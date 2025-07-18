@@ -9,7 +9,7 @@
 
 // This file aims to compute all the geometric quantities needed in
 // the simulation at nodal values].
-struct __attribute__((__packed__)) gkyl_mirror_geo_gen_geom {
+struct gkyl_mirror_geo_gen_geom {
   double rza_coord[3]; // Cylindrical coordinate radius, axial length, angle
   double psi; // Psi value at this node
 

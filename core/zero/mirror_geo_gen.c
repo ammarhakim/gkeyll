@@ -76,7 +76,6 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
         for (int i=0; i<3; ++i) {
             g->normal[i] = gkyl_vec3_norm(gkyl_vec3_polar_con_to_cart(g->rza_coord[0], alpha_curr, grid->dual[i]));
             g->normal[i] = gkyl_vec3_norm(g->dual[i]);
-            // printf("Normal vector %d: (%f, %f, %f)\n", i, g->normal[i].x[0], g->normal[i].x[1], g->normal[i].x[2]);
         }
 
         // Determine metric tensor

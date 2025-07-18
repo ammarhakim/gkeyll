@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <assert.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_gk_geometry_mirror_priv.h>
@@ -25,10 +26,31 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, geometry_inp->mirror_grid_info.filename_psi);
 
+  // Check if file exists using gkyl_check_file_exists and handle error only on rank 0
+  if (!gkyl_check_file_exists(geometry_inp->mirror_grid_info.filename_psi)) {
+    fprintf(stderr, "Failed to open the eqdsk file: %s\n", geometry_inp->mirror_grid_info.filename_psi);
+    assert(false);
+  }
+
+  // The mirror grid generators always require a computational grid of psi, phi, z.
+  // We must convert the user giving sqrt(psi) to psi if the flag is set.
+  struct gkyl_rect_grid comp_grid;
+  memcpy(&comp_grid, &up->grid, sizeof(struct gkyl_rect_grid));
+  if (geometry_inp->mirror_grid_info.fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+    // Convert grid from sqrt(psi) to psi if the flag is set
+    comp_grid.lower[0] = pow(comp_grid.lower[0], 2);
+    comp_grid.upper[0] = pow(comp_grid.upper[0], 2);
+    comp_grid.dx[0] = (comp_grid.upper[0] - comp_grid.lower[0]) / comp_grid.cells[0];
+
+    comp_grid.cellVolume = 1.0;
+    for (int i=0; i<3; ++i) // Geometry is always generated in 3D
+      comp_grid.cellVolume *= comp_grid.dx[i];
+  }
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *mirror_grid =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
-        .comp_grid = &up->grid,
+        .comp_grid = &comp_grid,
         
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -47,7 +69,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // Generate the required geometry objects at each node
   struct gkyl_mirror_geo_gen *mirror_geo = 
     gkyl_mirror_geo_gen_inew(&(struct gkyl_mirror_geo_gen_inp) {
-        .comp_grid = &up->grid,
+        .comp_grid = &comp_grid,
         .mirror_grid = mirror_grid,
         .range = up->global,
         .basis = up->basis,
@@ -57,7 +79,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // Project the geometry objects from the nodes onto DG arrays
   struct gkyl_mirror_geo_dg *mirror_geo_dg = 
     gkyl_mirror_geo_dg_inew(&(struct gkyl_mirror_geo_dg_inp) {
-        .comp_grid = &up->grid,
+        .comp_grid = &comp_grid,
         .mirror_geo = mirror_geo,
         .range = up->global,
         .range_ext = up->global_ext,

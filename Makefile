@@ -157,35 +157,35 @@ MKDIR_P ?= mkdir -p
 .EXPORT_ALL_VARIABLES:
 
 # Regression tests
-${BUILD_DIR}/core/creg/%:
+${BUILD_DIR}/core/creg/%: core/creg/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
 
-${BUILD_DIR}/moments/creg/%:
+${BUILD_DIR}/moments/creg/%: moments/creg/%.c ${BUILD_DIR}/moments/libg0moments.so
 	cd moments && $(MAKE) -f Makefile-moments ../$@
 
-${BUILD_DIR}/vlasov/creg/%:
+${BUILD_DIR}/vlasov/creg/%: vlasov/creg/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 	cd vlasov && $(MAKE) -f Makefile-vlasov ../$@
 
-${BUILD_DIR}/gyrokinetic/creg/%:
+${BUILD_DIR}/gyrokinetic/creg/%: gyrokinetic/creg/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/creg/%:
+${BUILD_DIR}/pkpm/creg/%: pkpm/creg/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
 # Unit tests
-${BUILD_DIR}/core/unit/%:
+${BUILD_DIR}/core/unit/%: core/unit/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
 
-${BUILD_DIR}/moments/unit/%:
+${BUILD_DIR}/moments/unit/%: core/moments/%.c ${BUILD_DIR}/moments/libg0moments.so
 	cd moments && $(MAKE) -f Makefile-moments ../$@
 
-${BUILD_DIR}/vlasov/unit/%:
+${BUILD_DIR}/vlasov/unit/%: vlasov/unit/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 	cd vlasov && $(MAKE) -f Makefile-vlasov ../$@
 
-${BUILD_DIR}/gyrokinetic/unit/%:
+${BUILD_DIR}/gyrokinetic/unit/%: gyrokinetic/unit/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/unit/%:
+${BUILD_DIR}/pkpm/unit/%: pkpm/unit/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
 # Declare sub-directories as phony targets
