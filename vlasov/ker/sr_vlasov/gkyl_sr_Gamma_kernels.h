@@ -59,10 +59,10 @@ GKYL_CU_DH void sr_vars_n_copy_3x3v_ser_p1(int count, struct gkyl_nmat *x, const
 GKYL_CU_DH void sr_vars_GammaV_3x3v_ser_p1(const double *u_i, double* GKYL_RESTRICT u_i_sq, double* GKYL_RESTRICT GammaV, double* GKYL_RESTRICT GammaV_sq); 
 GKYL_CU_DH void sr_vars_pressure_3x3v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV, const double *GammaV_sq, const double *f, double* GKYL_RESTRICT sr_pressure); 
 
-GKYL_CU_DH void sr_vars_lorentz_1v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv); 
+GKYL_CU_DH void sr_vars_lorentz_1v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma_inv); 
 
-GKYL_CU_DH void sr_vars_lorentz_2v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv); 
+GKYL_CU_DH void sr_vars_lorentz_2v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma_inv); 
 
-GKYL_CU_DH void sr_vars_lorentz_3v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv); 
+GKYL_CU_DH void sr_vars_lorentz_3v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma_inv); 
 
 EXTERN_C_END 

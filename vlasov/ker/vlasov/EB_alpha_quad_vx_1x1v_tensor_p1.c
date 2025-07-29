@@ -1,0 +1,10 @@
+#include <gkyl_vlasov_kernels.h> 
+GKYL_CU_DH void EB_alpha_quad_vx_1x1v_tensor_p1(const double *dxv, 
+  const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
+{ 
+  const double *Ex = &qmem[0]; 
+
+  alpha_quad[0] += 0.7071067811865475*Ex[0]-0.7071067811865475*Ex[1]; 
+  alpha_quad[1] += 0.7071067811865475*Ex[1]+0.7071067811865475*Ex[0]; 
+
+} 
