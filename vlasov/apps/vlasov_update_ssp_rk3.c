@@ -93,9 +93,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             state = RK_STAGE_1; // restart from stage 1
           } 
           else {
-            for (int i=0; i<ns; ++i)
-              array_combine(app->species[i].f1,
-                3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
+            for (int i=0; i<ns; ++i) {
+              struct vm_species *vms = &app->species[i];
+              vm_species_combine(vms, vms->f1, 3.0/4.0, vms->f, 1.0/4.0, vms->fnew, &vms->local_ext);
+            }
             for (int i=0; i<nfs; ++i)
               array_combine(app->fluid_species[i].fluid1,
                 3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
@@ -152,9 +153,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<ns; ++i) {
-              array_combine(app->species[i].f1,
-                1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-              gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+              struct vm_species *vms = &app->species[i];
+              // Step f.
+              vm_species_combine(vms, vms->f1, 1.0/3.0, vms->f, 2.0/3.0, vms->fnew, &vms->local_ext);
+              vm_species_copy_range(vms, vms->f, vms->f1, &vms->local_ext);
             }
             for (int i=0; i<nfs; ++i) {
               array_combine(app->fluid_species[i].fluid1,

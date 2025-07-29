@@ -358,8 +358,6 @@ struct vlasov_species_lw {
   bool has_metric_determinant_func; // Is there a metric determinant function?
   struct lua_func_ctx metric_determinant_func_ref; // Lua registry reference to metric determinant function.
 
-  bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
-
   int num_init; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
 
@@ -379,7 +377,8 @@ struct vlasov_species_lw {
   double iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
   int max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
   bool use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
-
+  bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
+  
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
@@ -388,11 +387,12 @@ struct vlasov_species_lw {
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
-  bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
-  double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
-  int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
-  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
-  bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+  bool lte_correct_all_moms; // Are we correcting all moments in collisions, or only density?
+  double lte_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
+  int lte_max_iter; // Maximum number of iterations for moment fixes in collisions.
+  bool lte_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+
+  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?  
   bool has_implicit_coll_scheme; // Use implicit scheme for collisions?
 
   enum gkyl_source_id source_id; // Source type.
@@ -525,8 +525,6 @@ vlasov_species_lw_new(lua_State *L)
     metric_determinant_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_metric_determinant_func = true;
   }
-
-  bool output_f_lte = glua_tbl_get_bool(L, "outputfLTE", false);
   
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
 
@@ -592,6 +590,19 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
+  bool lte_correct_all_moms = false;
+  double lte_iter_eps = pow(10.0, -12.0);
+  int lte_max_iter = 100;
+  bool lte_use_last_converged = true;
+  bool output_f_lte = false;  
+  with_lua_tbl_tbl(L, "correct") {
+    lte_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+    lte_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+    lte_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
+    lte_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+    output_f_lte = glua_tbl_get_bool(L, "outputfLTE", false);  
+  }
+
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
   bool has_self_nu_func = false;
@@ -600,13 +611,8 @@ vlasov_species_lw_new(lua_State *L)
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
 
-  bool collision_correct_all_moms = false;
-  double collision_iter_eps = pow(10.0, -12.0);
-  int collision_max_iter = 100;
   bool fixed_temp_relax = false;
-  bool collision_use_last_converged = true;
   bool has_implicit_coll_scheme = false;
-
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
 
@@ -622,12 +628,7 @@ vlasov_species_lw_new(lua_State *L)
         strcpy(collide_with[i], collide_with_char);
       }
     }
-
-    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
-    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
-    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
     fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
-    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
     has_implicit_coll_scheme = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
   }
 
@@ -748,8 +749,6 @@ vlasov_species_lw_new(lua_State *L)
     .L = L,
   };
 
-  vms_lw->output_f_lte = output_f_lte;
-
   vms_lw->num_init = num_init;
   for (int i = 0; i < num_init; i++) {
     vms_lw->proj_id[i] = proj_id[i];
@@ -849,11 +848,12 @@ vlasov_species_lw_new(lua_State *L)
     strcpy(vms_lw->collide_with[i], collide_with[i]);
   }
 
-  vms_lw->collision_correct_all_moms = collision_correct_all_moms;
-  vms_lw->collision_iter_eps = collision_iter_eps;
-  vms_lw->collision_max_iter = collision_max_iter;
+  vms_lw->lte_correct_all_moms = lte_correct_all_moms;
+  vms_lw->lte_iter_eps = lte_iter_eps;
+  vms_lw->lte_max_iter = lte_max_iter;
+  vms_lw->lte_use_last_converged = lte_use_last_converged;
+  vms_lw->output_f_lte = output_f_lte;
   vms_lw->fixed_temp_relax = fixed_temp_relax;
-  vms_lw->collision_use_last_converged = collision_use_last_converged;
   vms_lw->has_implicit_coll_scheme = has_implicit_coll_scheme;
   
   // Set metatable.
@@ -1268,11 +1268,11 @@ struct vlasov_app_lw {
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
-  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
-  double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
-  int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
+  bool lte_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
+  double lte_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
+  int lte_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
   bool fixed_temp_relax[GKYL_MAX_SPECIES]; // Are BGK collisions relaxing to a fixed input temperature?
-  bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
+  bool lte_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
   bool has_implicit_coll_scheme[GKYL_MAX_SPECIES]; // Use implicit scheme for collisions?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
@@ -1688,8 +1688,6 @@ vm_app_new(lua_State *L)
       vm.species[s].det_h_ctx = &app_lw->metric_determinant_func_ctx[s];
     }
 
-    app_lw->output_f_lte[s] = species[s]->output_f_lte;
-
     app_lw->num_init[s] = species[s]->num_init;
     for (int i = 0; i < app_lw->num_init[s]; i++) {
       app_lw->proj_id[s][i] = species[s]->proj_id[i];
@@ -1711,8 +1709,6 @@ vm_app_new(lua_State *L)
       app_lw->max_iter[s][i] = species[s]->max_iter[i];
       app_lw->use_last_converged[s][i] = species[s]->use_last_converged[i];
     }
-
-    vm.species[s].output_f_lte = app_lw->output_f_lte[s];
 
     vm.species[s].num_init = app_lw->num_init[s];
     for (int i = 0; i < app_lw->num_init[s]; i++) {
@@ -1754,15 +1750,22 @@ vm_app_new(lua_State *L)
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
     }
 
-    app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
-    app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
-    app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
+    app_lw->output_f_lte[s] = species[s]->output_f_lte;    
+    app_lw->lte_correct_all_moms[s] = species[s]->lte_correct_all_moms;
+    app_lw->lte_iter_eps[s] = species[s]->lte_iter_eps;
+    app_lw->lte_max_iter[s] = species[s]->lte_max_iter;
+    app_lw->lte_use_last_converged[s] = species[s]->lte_use_last_converged;
+
+    vm.species[s].correct.correct_all_moms = app_lw->lte_correct_all_moms[s];
+    vm.species[s].correct.iter_eps = app_lw->lte_iter_eps[s];
+    vm.species[s].correct.max_iter = app_lw->lte_max_iter[s];
+    vm.species[s].correct.use_last_converged = app_lw->lte_use_last_converged[s];
+    vm.species[s].correct.output_f_lte = app_lw->output_f_lte[s];
+
     app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
-    app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
     app_lw->has_implicit_coll_scheme[s] = species[s]->has_implicit_coll_scheme;
 
     vm.species[s].collisions.collision_id = app_lw->collision_id[s];
-
     if (species[s]->has_self_nu_func) {
       vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
       vm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
@@ -1773,11 +1776,7 @@ vm_app_new(lua_State *L)
       strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
 
-    vm.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
-    vm.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
-    vm.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
     vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
-    vm.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
     vm.species[s].collisions.has_implicit_coll_scheme = app_lw->has_implicit_coll_scheme[s];
 
     app_lw->source_id[s] = species[s]->source_id;
@@ -2086,21 +2085,6 @@ vm_app_apply_ic_species(lua_State *L)
   return 1;
 }
 
-// Compute diagnostic moments. () -> bool.
-static int
-vm_app_calc_mom(lua_State *L)
-{
-  bool status = true;
-
-  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
-  struct vlasov_app_lw *app_lw = *l_app_lw;
-
-  gkyl_vlasov_app_calc_mom(app_lw->app);
-
-  lua_pushboolean(L, status);  
-  return 1;
-}
-
 // Compute integrated moments. (tm) -> bool.
 static int
 vm_app_calc_integrated_mom(lua_State *L)
@@ -2234,21 +2218,6 @@ vm_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
-// Write integrated fluid moments to file () -> bool.
-static int
-vm_app_write_fluid_integrated_mom(lua_State *L)
-{
-  bool status = true;
-
-  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
-  struct vlasov_app_lw *app_lw = *l_app_lw;
-
-  gkyl_vlasov_app_write_fluid_integrated_mom(app_lw->app);
-
-  lua_pushboolean(L, status);  
-  return 1;
-}
-
 // Write integrated L2 norm of f to file () -> bool.
 static int
 vm_app_write_integrated_L2_f(lua_State *L)
@@ -2307,10 +2276,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
-    gkyl_vlasov_app_write_fluid_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
-
-    gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
@@ -2558,9 +2524,6 @@ vm_app_run(lua_State *L)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-
 freeresources:
 
   lua_pushboolean(L, ret_status);
@@ -2591,7 +2554,6 @@ static struct luaL_Reg vm_app_funcs[] = {
   { "apply_ic", vm_app_apply_ic },
   { "apply_ic_field", vm_app_apply_ic_field },
   { "apply_ic_species", vm_app_apply_ic_species },
-  { "calc_mom", vm_app_calc_mom },
   { "calc_integrated_mom", vm_app_calc_integrated_mom },
   { "calc_integrated_L2_f", vm_app_calc_integrated_L2_f },
   { "calc_field_energy", vm_app_calc_field_energy },

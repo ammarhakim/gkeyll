@@ -15,7 +15,7 @@ vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *e
 }
 
 void
-vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms,
   struct vm_emitting_wall *emit)
 {
   int cdim = app->cdim;
@@ -31,28 +31,29 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
   }
 
   if (emit->edge == GKYL_LOWER_EDGE) {
-    emit->write = gkyl_range_is_on_lower_edge(emit->dir, &s->lower_skin[emit->dir], &s->global);
-  } else {
-    emit->write = gkyl_range_is_on_upper_edge(emit->dir, &s->upper_skin[emit->dir], &s->global);
+    emit->write = gkyl_range_is_on_lower_edge(emit->dir, &vms->lower_skin[emit->dir], &vms->global);
+  } 
+  else {
+    emit->write = gkyl_range_is_on_upper_edge(emit->dir, &vms->upper_skin[emit->dir], &vms->global);
   }
 
-  emit->emit_grid = &s->bflux.boundary_grid[bdir];
-  emit->emit_buff_r = &s->bflux.flux_r[bdir];
-  emit->emit_ghost_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[emit->dir] : &s->upper_ghost[emit->dir];
-  emit->emit_skin_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_skin[emit->dir] : &s->upper_skin[emit->dir];
-  emit->buffer = s->bc_buffer;
-  emit->f_emit = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
+  emit->emit_grid = &vms->bflux.boundary_grid[bdir];
+  emit->emit_buff_r = &vms->bflux.flux_r[bdir];
+  emit->emit_ghost_r = (emit->edge == GKYL_LOWER_EDGE) ? &vms->lower_ghost[emit->dir] : &vms->upper_ghost[emit->dir];
+  emit->emit_skin_r = (emit->edge == GKYL_LOWER_EDGE) ? &vms->lower_skin[emit->dir] : &vms->upper_skin[emit->dir];
+  emit->buffer = vms->bc_buffer;
+  emit->f_emit = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
   emit->f_emit_host = app->use_gpu? mkarr(false, emit->f_emit->ncomp, emit->f_emit->size)
 	                          : gkyl_array_acquire(emit->f_emit);
 
-  struct gkyl_array *proj_buffer = mkarr(false, app->basis.num_basis, emit->emit_buff_r->volume);
+  struct gkyl_array *proj_buffer = mkarr(false, vms->basis.num_basis, emit->emit_buff_r->volume);
 
   // Initialize elastic component of emission
   if (emit->elastic) {
-    emit->elastic_yield = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
+    emit->elastic_yield = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
     emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_model,
-      emit->elastic_yield, emit->dir, emit->edge, cdim, vdim, s->info.mass, s->f->ncomp, emit->emit_grid,
-      emit->emit_buff_r, app->poly_order, app->basis_on_dev.basis, &app->basis, proj_buffer,
+      emit->elastic_yield, emit->dir, emit->edge, cdim, vdim, vms->info.mass, vms->f->ncomp, emit->emit_grid,
+      emit->emit_buff_r, app->poly_order, vms->basis_on_dev, &vms->basis, proj_buffer,
       app->use_gpu);
   }
 
@@ -61,8 +62,8 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->impact_species[i] = vm_find_species(app, emit->params->in_species[i]);
     emit->impact_grid[i] = &emit->impact_species[i]->bflux.boundary_grid[bdir];
 
-    emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->confBasis,
-      &app->basis, NULL, NULL, NULL, emit->impact_species[i]->model_id, 0, GKYL_F_MOMENT_M0M1M2, true,
+    emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->basis,
+      &vms->basis, NULL, NULL, NULL, emit->impact_species[i]->model_id, 0, GKYL_F_MOMENT_M0M1M2, true,
       app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
@@ -70,29 +71,29 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->impact_buff_r[i] = &emit->impact_species[i]->bflux.flux_r[bdir];
     emit->impact_cbuff_r[i] = &emit->impact_species[i]->bflux.conf_r[bdir];
 
-    emit->yield[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_buff_r[i]->volume);
-    emit->spectrum[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
-    emit->weight[i] = mkarr(app->use_gpu, app->confBasis.num_basis,
+    emit->yield[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->impact_buff_r[i]->volume);
+    emit->spectrum[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
+    emit->weight[i] = mkarr(app->use_gpu, app->basis.num_basis,
       emit->impact_cbuff_r[i]->volume);
-    emit->flux[i] = mkarr(app->use_gpu, app->confBasis.num_basis, emit->impact_cbuff_r[i]->volume);
+    emit->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
     emit->bflux_arr[i] = emit->impact_species[i]->bflux.flux_arr[bdir];
-    emit->k[i] = mkarr(app->use_gpu, app->confBasis.num_basis, emit->impact_cbuff_r[i]->volume);
+    emit->k[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
 
     gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir + cdim,
       emit->impact_buff_r[i], ghost, emit->edge);
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
       emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
-      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i],
+      cdim, vdim, emit->impact_species[i]->info.mass, vms->info.mass, emit->impact_buff_r[i],
       emit->emit_buff_r, emit->impact_grid[i], emit->emit_grid, app->poly_order,
-      &app->basis, proj_buffer, app->use_gpu);
+      &vms->basis, proj_buffer, app->use_gpu);
   }
   gkyl_array_release(proj_buffer);
 }
 
 void
-vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
-  struct gkyl_array *fout, double tcurr)
+vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_species *vms, 
+  const struct vm_emitting_wall *emit, struct gkyl_array *fout, double tcurr)
 {
   // Optional scaling of emission with time
   double t_scale = 1.0;
@@ -104,7 +105,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
   // Elastic emission contribution
   if (emit->elastic) {
     gkyl_bc_emission_elastic_advance(emit->elastic_update, emit->emit_skin_r, emit->buffer, fout,
-      emit->f_emit, emit->elastic_yield, &app->basis);
+      emit->f_emit, emit->elastic_yield, &vms->basis);
   }
   // Inelastic emission contribution
   for (int i=0; i<emit->num_species; ++i) {
@@ -126,13 +127,13 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 // KB - The write function only works in 1x at the moment.
 // It expects a single rank to own the whole emit range.
 void
-vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
+vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *vms,
   struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame)
 {
   const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
 
   if (emit->write) {
     if (app->use_gpu)

@@ -44,8 +44,10 @@
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_poisson.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
+#include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -108,10 +110,11 @@ struct vm_species_moment {
   //    Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   union {
     struct {
-      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
+      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Epdater for computing LTE moments.
     };
     struct {
-      struct gkyl_dg_updater_moment *mcalc; // moment update
+      struct gkyl_mom_type *mom_type; // Moment type. 
+      struct gkyl_mom_calc *mom_calc; // Moment calculator. 
     };
   };
 
@@ -122,7 +125,8 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
-struct vm_lbo_collisions {  
+struct vm_lbo_collisions {
+  enum gkyl_collision_id collision_id; // Type of collisions.  
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
@@ -165,17 +169,18 @@ struct vm_lte {
   // LTE distribution function projection object
   // also corrects the density of projected distribution function
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
-
-  long niter; // total number of iterations correcting self collisions
-
-  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-  bool correct_all_moms; // boolean if we are correcting all the moments
+  // LTE correction object. 
   struct gkyl_vlasov_lte_correct *corr_lte; 
+
+  long n_iter; // total number of iterations from correcting moments
+  long num_corr; // total number of times the correction updater is called
+  bool correct_all_moms; // boolean if we are correcting all the moments
   gkyl_dynvec corr_stat;
   bool is_first_corr_status_write_call;
 };
 
 struct vm_bgk_collisions {  
+  enum gkyl_collision_id collision_id; // Type of collisions.
   struct gkyl_array *nu_sum; // BGK collision frequency 
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
@@ -200,6 +205,7 @@ struct vm_bgk_collisions {
 };
 
 struct vm_rad_drag {  
+  enum gkyl_radiation_id radiation_id; // Type of radiation.
   struct gkyl_array *nu; // collision frequency for radiation
   struct gkyl_array *nu_rad_drag; // nu*drag for drag force
   gkyl_dg_updater_rad_vlasov *rad_slvr; // radiation solver
@@ -312,7 +318,7 @@ struct vm_source {
   int num_diag_moments; // number of diagnostics moments
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
-  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+  double *red_integ_diag; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
@@ -320,7 +326,12 @@ struct vm_source {
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
-  
+
+  struct gkyl_basis basis; // Phase-space basis. 
+  struct gkyl_basis basis_vel; // Velocity-space basis. 
+  struct gkyl_basis basis_surf; // Surface basis at velocity-space surfaces for velocity-space fluxes. 
+  struct gkyl_basis *basis_on_dev; // Pointer to phase-space basis on device.   
+
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -337,54 +348,54 @@ struct vm_species {
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
 
-  struct gkyl_array *f_host; // host copy for use IO and initialization
+  struct gkyl_array *f_host; // Host-side distribution function for I/O on GPUs.
+  struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
 
   enum gkyl_field_id field_id; // Type of field equation.
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
   double qbym; // Charge (q) divided by mass (m).
-  struct gkyl_array *qmem; // array for q/m*(E,B) or q/m(phi,A)
-  struct gkyl_array *qmem_ext; // array for external fields (q/m)*(E_ext,B_ext)
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
-  // organization of the different equation objects and the required data and solvers
+  struct gkyl_array *qmem; // array for q/m*(E,B) 
+  struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
+  bool has_qmem; // Do we have electric/magnetic fields? 
+  bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
+
+  // Organization of the different equation objects and the required data and solvers.
+  struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
+  struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
+  struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes. 
   union {
-    // Special relativistic Vlasov-Maxwell model
+    // Special relativistic Vlasov-Maxwell model.
     struct {
-      struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
       struct gkyl_array *gamma_inv; // array for 1/gamma = 1.0/sqrt(1 + p^2) 
-      struct gkyl_array *gamma_host; // host copy for I/O
-      struct gkyl_array *gamma_inv_host; // host copy for I/O
       struct gkyl_dg_calc_sr_vars *sr_vars; // updater for computing SR variables
     };
-    // Canonical Poisson Bracket using specified hamiltonian
+    // Canonical Poisson Bracket using specified Hamiltonian in phase space. 
     struct {
-      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
-      struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *hamil_host; // Host-side Hamiltonian array for intial projection. 
       struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
       struct gkyl_array *det_h; // Specified metric determinant
       struct gkyl_array *det_h_host; // Host side metric determinant
-
-      struct gkyl_array *alpha_surf; // Surface phase space velocity
-      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
-      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
     };
   };
+
+  struct gkyl_dg_eqn *eqn; // Vlasov equation object.
+  struct gkyl_hyper_dg *slvr; // Vlasov solver.   
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment m0; // for computing charge density
   struct vm_species_moment integ_moms; // integrated moments
   struct vm_species_moment *moms; // diagnostic moments
-  struct gkyl_array *L2_f; // L2 norm f^2
-  double *red_L2_f; // for reduction of integrated L^2 norm on GPU
+  struct gkyl_array *L2_f; // L2 energy f^2 
+  double *red_L2_f; // for reduction of integrated L^2 energy on GPU
   double *red_integ_diag; // for reduction of integrated moments on GPU
-  gkyl_dynvec integ_L2_f; // integrated L^2 norm reduced across grid
+  gkyl_dynvec integ_L2_f; // integrated L^2 energy reduced across grid
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
+  bool is_first_integ_L2_write_call; // flag for integrated L^2 energy dynvec written first time
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
-
-  gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
-  struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
   
   // boundary conditions on lower/upper edges in each direction  
   struct gkyl_vlasov_bc lower_bc[3], upper_bc[3];
@@ -401,6 +412,11 @@ struct vm_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
   bool has_app_accel; // flag to indicate there is applied acceleration
   bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
@@ -410,7 +426,6 @@ struct vm_species {
 
   int num_init; // Number of initial condition functions.
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
-  struct gkyl_array *f_tmp; // temporary array for accumulating initial conditions
   
   bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
@@ -420,7 +435,6 @@ struct vm_species {
 
   struct vm_lte lte; // object needed for the lte equilibrium
 
-  enum gkyl_collision_id collision_id; // type of collisions
   // collisions
   union {
     struct {
@@ -431,10 +445,35 @@ struct vm_species {
     };
   }; 
 
-  enum gkyl_radiation_id radiation_id; // type of radiation
   struct vm_rad_drag rad; // Vlasov radiation object
 
-  double *omegaCfl_ptr;
+  double *omega_cfl;
+
+  // Pointer to various functions selected at runtime.
+  void (*collisionless_rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
+    const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
+  void (*apply_ic_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
+  double (*rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
+    const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
+  double (*rhs_implicit_func)(gkyl_vlasov_app *app, struct vm_species *vms,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
+  void (*bc_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct gkyl_array *f, double tcurr);
+  void (*release_func)(const gkyl_vlasov_app* app, const struct vm_species *vms);
+  void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
+  void (*write_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+  void (*write_lte_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+  void (*write_cfl_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+  void (*write_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
+  void (*write_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms);
+  void (*calc_L2_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
+  void (*write_L2_func)(gkyl_vlasov_app* app, struct vm_species *vms);  
 };
 
 // field data
@@ -458,19 +497,6 @@ struct vm_field {
       // we must restore the old solution before restarting the time step
       struct gkyl_array *em_dup;  
 
-      bool has_ext_em; // flag to indicate there is external electromagnetic field
-      bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
-      struct gkyl_array *ext_em; // external electromagnetic field
-      struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
-      struct gkyl_array *tot_em; // total electromagnetic field
-      gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
-
-      bool has_app_current; // flag to indicate there is an applied current 
-      bool app_current_evolve; // flag to indicate applied current is time dependent
-      struct gkyl_array *app_current; // applied current
-      struct gkyl_array *app_current_host; // host copy for use in IO and projecting
-      gkyl_proj_on_basis *app_current_proj; // projector for applied current 
-
       gkyl_hyper_dg *slvr; // Maxwell solver
 
       bool limit_em; // boolean for whether or not we are limiting EM fields
@@ -489,7 +515,7 @@ struct vm_field {
       struct gkyl_bc_basic *bc_lo[3];
       struct gkyl_bc_basic *bc_up[3];
 
-      double* omegaCfl_ptr;
+      double* omega_cfl;
     };
 
     // Vlasov-Poisson.
@@ -506,17 +532,29 @@ struct vm_field {
     
       struct gkyl_fem_poisson *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
     
-      bool has_ext_pot; // flag to indicate there is external electromagnetic field
-      bool ext_pot_evolve; // flag to indicate external electromagnetic field is time dependent
-      struct gkyl_array *ext_pot; // external electromagnetic field
-      struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
-      gkyl_eval_on_nodes *ext_pot_proj; // projector for external electromagnetic field 
-    
       struct gkyl_array *es_energy_fac; // Factor in calculation of ES energy diagnostic.
       struct gkyl_array_integrate *calc_es_energy;
       double *es_energy_red, *es_energy_red_global; // Memory for use in GPU reduction of ES energy.
     };
   };
+
+  bool has_ext_em; // flag to indicate there are external electromagnetic fields (E, B)
+  bool ext_em_evolve; // flag to indicate external electromagnetic fields are time dependent
+  struct gkyl_array *ext_em; // external electromagnetic fields 
+  struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
+
+  bool has_app_current; // flag to indicate there is an applied current 
+  bool app_current_evolve; // flag to indicate applied current is time dependent
+  struct gkyl_array *app_current; // applied current
+  struct gkyl_array *app_current_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_current_proj; // projector for applied current 
+
+  bool has_ext_pot; // flag to indicate there are external potentials (phi, A)
+  bool ext_pot_evolve; // flag to indicate external external potentials are time dependent
+  struct gkyl_array *ext_pot; // external potentials
+  struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
+  gkyl_eval_on_nodes *ext_pot_proj; // projector for external potentials 
 
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
@@ -678,7 +716,8 @@ struct gkyl_vlasov_app {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
+  struct gkyl_basis basis; // Configuration-space basis. 
+  struct gkyl_basis *basis_on_dev; // Pointer to configuration-space basis on device. 
 
   struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
@@ -689,15 +728,21 @@ struct gkyl_vlasov_app {
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
-  
-  // pointers to basis on device (these point to host structs if not
-  // on GPU)
-  struct {
-    struct gkyl_basis *basis, *confBasis;
-  } basis_on_dev;
 
   bool has_field; // has field
   struct vm_field *field; // pointer to field object
+  // Pointer to function that calculates external electric and magnetic fields.
+  void (*field_ext_em_calc)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+  // Pointer to function that calculates external applied currents.
+  void (*field_app_current_calc)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+  // Pointer to function that calculates external potentials (phi, A).
+  void (*field_ext_pot_calc)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+  // Function used to compute the integrated field energy (e.g., E^2 + B^2 or |grad(phi)|^2). 
+  void (*field_energy_calc)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+  // Function which writes out electromagnetic/electrostatic fields. 
+  void (*field_write)(gkyl_vlasov_app *app, double tm, int frame);
+  // Function which writes out integrated field energy. 
+  void (*field_energy_write)(gkyl_vlasov_app *app);
 
   // species data
   int num_species;
@@ -714,12 +759,8 @@ struct gkyl_vlasov_app {
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
-  // Function used to compute the field energy. 
-  void (*field_energy_calc)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+
   struct gkyl_vlasov_stat stat; // statistics
- 
-  // Pointer to function that calculates the external E and B.
-  void (*field_calc_ext_em)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 };
 
 // Take a single forward Euler step of the Vlasov-Maxwell system 
@@ -886,12 +927,13 @@ void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_speci
  * Apply emission BCs to species distribution function
  *
  * @param app Vlasov app object
+ * @param s Species object 
  * @param emit Pointer to emission object
  * @param fout Field to apply BCs
  * @param tcurr Current time
  */
-void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
-  struct gkyl_array *fout, double tcurr);
+void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_species *s, 
+  const struct vm_emitting_wall *emit, struct gkyl_array *fout, double tcurr);
 
 /**
  * Write emission spectrum distribution function
@@ -1021,6 +1063,14 @@ void vm_species_lte(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lte *lte,
   const struct gkyl_array *fin);
+
+/**
+ * Write the LTE correction status. 
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ */
+void vm_species_lte_write_max_corr_status(gkyl_vlasov_app* app, struct vm_species *vms);
 
 /**
  * Release species lte object.
@@ -1224,6 +1274,51 @@ void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *specie
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
 
 /**
+ * Write source diagnostics.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param src Pointer to source.
+ * @param tm Time for source diagnostic.
+ * @param frame Output frame.
+ */
+void vm_species_source_write(gkyl_vlasov_app* app, 
+  const struct vm_species *vms, struct vm_source *src, double tm, int frame);
+
+/**
+ * Write source moment diagnostics.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param src Pointer to source.
+ * @param tm Time for source diagnostic.
+ * @param frame Output frame.
+ */
+void vm_species_source_write_mom(gkyl_vlasov_app* app, 
+  const struct vm_species *vms, struct vm_source *src, double tm, int frame);
+
+/**
+ * Calc source integrated moment diagnostics.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param src Pointer to source.
+ * @param tm Time for source diagnostic.
+ */
+void vm_species_source_calc_integrated_mom(gkyl_vlasov_app* app, 
+  const struct vm_species *vms, struct vm_source *src, double tm);
+
+/**
+ * Write source integrated moment diagnostics.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param src Pointer to source.
+ */
+void vm_species_source_write_integrated_mom(gkyl_vlasov_app* app, 
+  const struct vm_species *vms, struct vm_source *src);
+
+/**
  * Release species source object.
  *
  * @param app Vlasov app object
@@ -1288,6 +1383,43 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
 
 /**
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to species.
+ * @param out Output array.
+ * @param dt Timestep.
+ * @param inp Input array.
+ */
+void vm_species_step_f(struct vm_species *vms, struct gkyl_array* out, double a,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species.
+ * @param out Output array.
+ * @param c1 Scaling factor.
+ * @param arr1 Input array.
+ * @param c2 Scaling factor.
+ * @param arr2 Input array.
+ * @param rng Range.
+ */
+void vm_species_combine(struct vm_species *vms, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species.
+ * @param out Output array.
+ * @param inp Input array.
+ * @param range Range.
+ */
+void vm_species_copy_range(struct vm_species *vms, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
  * Apply BCs to species distribution function
  *
  * @param app Vlasov app object
@@ -1298,15 +1430,6 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr);
 
 /**
- * Compute L2 norm (f^2) of the distribution function diagnostic
- *
- * @param app Vlasov app object
- * @param tm Time at which diagnostic is computed
- * @param species Pointer to species
- */
-void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species);
-
-/**
  * Fill stat object in app with collision timers.
  *
  * @param app App object to update stat timers
@@ -1314,27 +1437,67 @@ void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species
 void vm_species_coll_tm(gkyl_vlasov_app *app);
 
 /**
+ * Species write function.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param tm simulation time.
+ * @param frame simulation frame.
+ */
+void vm_species_write(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+
+/**
+ * Species moment write function.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param tm simulation time.
+ * @param frame simulation frame.
+ */
+void vm_species_write_mom(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param tm Time at which diagnostic is computed.
+ */
+void vm_species_calc_integrated_mom(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ */
+void vm_species_write_integrated_mom(gkyl_vlasov_app* app, struct vm_species *vms);
+
+/**
+ * Compute L2 energy (f^2) of the distribution function diagnostic
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param tm Time at which diagnostic is computed.
+ */
+void vm_species_calc_L2(gkyl_vlasov_app *app, struct vm_species *vms, double tm);
+
+/**
+ * Species write integrated L^2 energy (f^2) function.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ */
+void vm_species_write_L2(gkyl_vlasov_app* app, struct vm_species *vms);
+
+/**
  * Fill stat object in app with total number of iterations
- * used to correct moments in BGK collisions update.
+ * used to correct moments in LTE projection object.
+ * Also fills stat object with number of times correction object called. 
  *
- * @param app App object to update stat timers
+ * @param app App object to update stat timers.
  */
-void vm_species_bgk_niter(gkyl_vlasov_app *app);
-
-
-/**
- * Fill stat object in app with collisionless timers.
- *
- * @param app App object to update stat timers
- */
-void vm_species_tm(gkyl_vlasov_app *app);
-
-/**
- * Fill stat object in app with radiation timers.
- *
- * @param app App object to update stat timers
- */
-void vm_species_rad_tm(gkyl_vlasov_app *app);
+void vm_species_n_iter_corr(gkyl_vlasov_app *app);
 
 /**
  * Delete resources used in species.
@@ -1383,6 +1546,15 @@ void vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double t
 void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
+ * Compute external potentials
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param tm Time for use in external potentials computation
+ */
+void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
  * Accumulate current density onto RHS from field equations
  *
  * @param app Vlasov app object
@@ -1424,13 +1596,29 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   struct gkyl_array *f);
 
 /**
- * Compute field energy diagnostic
+ * Write out electromagnetic fields.
+ *
+ * @param app Vlasov app object
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */  
+void vm_field_write(gkyl_vlasov_app* app, double tm, int frame);
+
+/**
+ * Compute field energy diagnostic.
  *
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
  */
 void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+
+/**
+ * Write out electromagnetic field energy.
+ *
+ * @param app Vlasov app object
+ */  
+void vm_field_write_energy(gkyl_vlasov_app* app);
 
 /**
  * Release resources allocated by field
@@ -1452,15 +1640,6 @@ void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);
 struct vm_field* vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 
 /**
- * Compute external potentials.
- *
- * @param app Vlasov app object.
- * @param field Field object.
- * @param tm Time for use in external fields computation.
- */
-void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
-
-/**
  * Compute external electromagnetic fields.
  *
  * @param app Vlasov app object.
@@ -1468,6 +1647,24 @@ void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
  * @param tm Time for use in external fields computation.
  */
 void vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
+ * Compute external applied currents.
+ *
+ * @param app Vlasov app object.
+ * @param field Field object.
+ * @param tm Time for use in external applied currents computation.
+ */
+void vp_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
+ * Compute external potentials.
+ *
+ * @param app Vlasov app object.
+ * @param field Field object.
+ * @param tm Time for use in external potentials computation.
+ */
+void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
  * Compute field initial conditions.
@@ -1519,13 +1716,29 @@ void
 vp_calc_field_and_apply_bc(gkyl_vlasov_app* app, double tcurr, struct gkyl_array *distf[]);
 
 /**
- * Compute field energy diagnostic.
+ * Write out potential fields.
  *
- * @param app Vlasov app object.
- * @param tm Time at which diagnostic is computed.
- * @param field Pointer to field.
+ * @param app Vlasov app object
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */  
+void vp_field_write(gkyl_vlasov_app* app, double tm, int frame);
+
+/**
+ * Compute potential field energy diagnostic.
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which diagnostic is computed
+ * @param field Pointer to field
  */
 void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+
+/**
+ * Write out potential field energy.
+ *
+ * @param app Vlasov app object
+ */  
+void vp_field_write_energy(gkyl_vlasov_app* app);
 
 /**
  * Release resources allocated by field.
@@ -1665,6 +1878,14 @@ void vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_
  * @param frame Frame number for I/O.  
  */
 void vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm, int frame);
+
+/**
+ * Write fluid species integrated moment diagnostics.
+ *
+ * @param app Vlasov app object.
+ * @param fluid_species Pointer to fluid species.
+ */
+void vm_fluid_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

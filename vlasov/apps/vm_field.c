@@ -19,17 +19,16 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->field_id = f->info.field_id;
 
   // allocate EM arrays
-  f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
+  f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  f->em1 = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  f->emnew = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
 
-  // allocate a total field variable for methods which require ext_em + em such as b_hat calculation
-  f->tot_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  // Host EM array for  I/O.
+  f->em_host = app->use_gpu ? mkarr(false, f->em->ncomp, f->em->size)
+                            : gkyl_array_acquire(f->em);
 
-  f->em_host = f->em;  
+  f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);                            
   if (app->use_gpu) {
-    f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
@@ -37,13 +36,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Needed because of implicit source split which modifies solution and 
   // is always successful, so if a time step fails due to the SSP RK3 
   // we must restore the old solution before restarting the time step
-  f->em_dup = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->em_dup = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
   // Initialize external EM fields (always used by implicit fluid sources, so always initialize) 
-  f->ext_em = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+  f->ext_em = mkarr(app->use_gpu, 6*app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->ext_em, 0.0);
   f->has_ext_em = false;
   f->ext_em_evolve = false;
@@ -54,11 +53,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->ext_em_evolve = f->info.ext_em_evolve;
     }
 
-    f->ext_em_host = f->ext_em;
-    if (app->use_gpu) {
-      f->ext_em_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
-    }
-    f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+    f->ext_em_host = app->use_gpu ? mkarr(false, f->ext_em->ncomp, f->ext_em->size)
+                                  : gkyl_array_acquire(f->ext_em);
+    f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->basis.poly_order+1,
       6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
@@ -66,7 +63,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->has_ext_pot = f->ext_pot_evolve = false;
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
-  f->app_current = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  f->app_current = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_current, 0.0);
   f->has_app_current = false;
   f->app_current_evolve = false;
@@ -77,32 +74,32 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->app_current_evolve = f->info.app_current_evolve;
     }
 
-    f->app_current_host = f->app_current;
-    if (app->use_gpu) {
-      f->app_current_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
-    }
-    f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+    f->app_current_host = app->use_gpu ? mkarr(false, f->app_current->ncomp, f->app_current->size)
+                                       : gkyl_array_acquire(f->app_current);
+    f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->basis.poly_order+1,
       3, f->info.app_current, f->info.app_current_ctx);
   }
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
-  if (app->use_gpu)
-    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else
-    f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+  if (app->use_gpu) {
+    f->omega_cfl = gkyl_cu_malloc(sizeof(double));
+  }
+  else {
+    f->omega_cfl = gkyl_malloc(sizeof(double));
+  }
 
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
+  eqn = gkyl_dg_maxwell_new(&app->basis, c, ef, mf, app->use_gpu);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {false};
 
   // Maxwell solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
+  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->basis, eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
@@ -112,25 +109,29 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for limiting EM fields
-  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
+  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->basis, &app->local_ext, 
     maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d)
+  for (int d=0; d<num_periodic_dir; ++d) {
     is_np[app->periodic_dirs[d]] = 0;
+  }
 
   for (int dir=0; dir<app->cdim; ++dir) {
     f->lower_bc[dir] = f->upper_bc[dir] = GKYL_FIELD_COPY;
     if (is_np[dir]) {
       const enum gkyl_field_bc_type *bc;
-      if (dir == 0)
+      if (dir == 0) {
         bc = f->info.bcx;
-      else if (dir == 1)
+      }
+      else if (dir == 1) {
         bc = f->info.bcy;
-      else
+      }
+      else {
         bc = f->info.bcz;
+      }
 
       f->lower_bc[dir] = bc[0];
       f->upper_bc[dir] = bc[1];
@@ -157,7 +158,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     long vol = GKYL_MAX2(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, 8*app->basis.num_basis, buff_sz);
   
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
@@ -171,7 +172,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev,
       &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
@@ -184,7 +185,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
@@ -199,7 +200,7 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   if (!app->has_field) return;
   
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
     poly_order+1, 8, field->info.init, field->info.ctx);
 
   // run updater; need to project onto extended range for ease of handling
@@ -223,12 +224,18 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
 }
 
 void
+vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+{
+  // No external potentials in Vlasov-Maxwell. 
+}
+
+void
 vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_ext_em) {
     gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
     if (app->use_gpu) {
-      // note: ext_em_host is same as ext_em when not on GPUs
+      // Note: ext_em_host is same as ext_em when not on GPUs.
       gkyl_array_copy(field->ext_em, field->ext_em_host);
     }
   }
@@ -240,7 +247,7 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
   if (field->has_app_current) {
     gkyl_proj_on_basis_advance(field->app_current_proj, tm, &app->local_ext, field->app_current_host);
     if (app->use_gpu) {
-      // note: app_current_host is same as app_current when not on GPUs
+      // Note: app_current_host is same as app_current when not on GPUs.
       gkyl_array_copy(field->app_current, field->app_current_host);
     }
   }
@@ -298,15 +305,14 @@ vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array
   }
 }
 
-// Compute the RHS for field update, returning maximum stable
-// time-step.
+// Compute the RHS for field update, returning maximum stable time-step.
 double
 vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   
-  double omegaCfl = 1/DBL_MAX;
+  double dt_out = DBL_MAX;
   
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -314,24 +320,26 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
-    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
+    gkyl_array_reduce_range(field->omega_cfl, field->cflrate, GKYL_MAX, &app->local);
 
     app->stat.n_field_omega_cfl += 1;
     struct timespec tm = gkyl_wall_clock();
     
-    double omegaCfl_ho[1];
-    if (app->use_gpu)
-      gkyl_cu_memcpy(omegaCfl_ho, field->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    else
-      omegaCfl_ho[0] = field->omegaCfl_ptr[0];
-    omegaCfl = omegaCfl_ho[0];
+    double omega_cfl_ho[1];
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(omega_cfl_ho, field->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      omega_cfl_ho[0] = field->omega_cfl[0];
+    }
+    dt_out = app->cfl/omega_cfl_ho[0];
 
     app->stat.field_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
-  return app->cfl/omegaCfl;
+  return dt_out;
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -346,8 +354,9 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
     num_periodic_dir, app->periodic_dirs, f);
   
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d)
+  for (int d=0; d<num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
+  }
 
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
@@ -383,11 +392,76 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+void 
+vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();  
+
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+
+  const char *fmt = "%s-field_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, frame);
+  char fileNm[sz+1]; // Ensures no buffer overflow.
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+  
+  // Copy data from device to host before writing it out.
+  if (app->use_gpu) {
+    gkyl_array_copy(app->field->em_host, app->field->em); 
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
+    app->field->em_host, fileNm);  
+
+  if (app->field->has_ext_em) {
+    // Only write out external fields at t=0 or if they are time-dependent.
+    if (frame == 0 || app->field->ext_em_evolve) {
+      const char *fmt_ext_em = "%s-field_ext_em_%d.gkyl";
+      int sz_ext_em = gkyl_calc_strlen(fmt_ext_em, app->name, frame);
+      char fileNm_ext_em[sz_ext_em+1]; // Ensures no buffer overflow.
+      snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy. 
+      vm_field_calc_ext_em(app, app->field, tm);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->ext_em_host, fileNm_ext_em);
+    }
+  }
+  if (app->field->has_app_current) {
+    // Only write out external fields at t=0 or if they are time-dependent.
+    if (frame == 0 || app->field->app_current_evolve) {
+      const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
+      int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);
+      char fileNm_app_current[sz_app_current+1]; // Ensures no buffer overflow.
+      snprintf(fileNm_app_current, sizeof fileNm_app_current, fmt_app_current, app->name, frame);
+
+      // Applied current computed with project on basis, so just use host copy. 
+      vm_field_calc_app_current(app, app->field, tm);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->app_current_host, fileNm_app_current);
+    }
+  }
+  
+  vlasov_array_meta_release(mt); 
+
+  app->stat.field_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_field_io += 1;  
+}
+
 void
 vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
-  for (int i=0; i<6; ++i)
-    gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, field->em, app->local);
+  struct timespec wst = gkyl_wall_clock();  
+
+  for (int i=0; i<6; ++i) {
+    gkyl_dg_calc_l2_range(app->basis, i, field->em_energy, i, field->em, app->local);
+  }
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
   
   double energy[6] = { 0.0 };
@@ -403,6 +477,39 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
+
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+vm_field_write_energy(gkyl_vlasov_app *app)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // Write out integrated field energy. 
+  const char *fmt = "%s-field-energy.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
+  char fileNm[sz+1]; // Ensures no buffer overflow.
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    if (app->field->is_first_energy_write_call) {
+      // Write to a new file (this ensure previous output is removed).
+      gkyl_dynvec_write(app->field->integ_energy, fileNm);
+      app->field->is_first_energy_write_call = false;
+    }
+    else {
+      // Append to existing file.
+      gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(app->field->integ_energy);  
+
+  app->stat.n_field_diag_io += 1;
+  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);  
 }
 
 // release resources for field
@@ -412,7 +519,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
-  gkyl_array_release(f->tot_em);
+  gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);
   
   gkyl_array_release(f->bc_buffer);
@@ -422,16 +529,12 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   gkyl_array_release(f->ext_em);
   if (f->has_ext_em) {
-    if (app->use_gpu) {
-      gkyl_array_release(f->ext_em_host);
-    }
+    gkyl_array_release(f->ext_em_host);
     gkyl_proj_on_basis_release(f->ext_em_proj);
   }
   gkyl_array_release(f->app_current);
   if (f->has_app_current) {
-    if (app->use_gpu) {
-      gkyl_array_release(f->app_current_host);
-    }
+    gkyl_array_release(f->app_current_host);
     gkyl_proj_on_basis_release(f->app_current_proj);
   }
 
@@ -440,12 +543,11 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
   if (app->use_gpu) {
-    gkyl_array_release(f->em_host);
-    gkyl_cu_free(f->omegaCfl_ptr);
+    gkyl_cu_free(f->omega_cfl);
     gkyl_cu_free(f->em_energy_red);
   }
   else {
-    gkyl_free(f->omegaCfl_ptr);
+    gkyl_free(f->omega_cfl);
   }
 
   if (f->use_ghost_current) {

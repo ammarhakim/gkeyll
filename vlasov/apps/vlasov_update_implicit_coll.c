@@ -16,7 +16,7 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS) {
       vm_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
     }
@@ -29,13 +29,9 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
     vm_species_rhs_implicit(app, &app->species[i], fin[i], fout[i], dt0);
   }
 
-  // complete update of distribution function
-  for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dt0), 1.0, fin[i]);
-    vm_species_apply_bc(app, &app->species[i], fout[i], app->tcurr);
-  }
-  
+  // Complete update of distribution function. 
   for (int i=0; i<ns; ++i) {
-    gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
-  };
+    vm_species_apply_bc(app, &app->species[i], fout[i], app->tcurr);
+    gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local_ext);
+  }
 }

@@ -56,11 +56,7 @@ struct gkyl_vlasov_collisions {
   double hbar; // Planck's constant/2 pi 
 
   // BGK collisions specific inputs
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
-  double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
-  bool use_last_converged; // use last iteration value regardless of convergence?
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
   bool has_implicit_coll_scheme; 
@@ -134,101 +130,115 @@ struct gkyl_vlasov_fluid_diffusion {
   void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
 };
 
-// Parameters for Vlasov species
+struct gkyl_vlasov_correct_inp {
+  bool correct_all_moms; // Boolean if we are correcting all the moments or only density.
+  double iter_eps; // Error tolerance for moment fixes (density is always exact).
+  int max_iter; // Maximum number of iteration
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge. 
+  bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.).
+};
+
+// Parameters for Vlasov species.
 struct gkyl_vlasov_species {
-  char name[128]; // species name
+  char name[128]; // Species name.
 
-  enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, general geometry, see gkyl_eqn_type.h)
+  enum gkyl_model_id model_id; // Type of model 
+                               // (e.g., SR, general geometry, see gkyl_eqn_type.h).
 
-  double charge, mass; // charge and mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
-  int cells[3]; // velocity-space cells
+  double charge, mass; // Charge and mass.
+  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
+  int cells[3]; // Velocity-space cells.
 
-  // initial conditions using projection routine
-  int num_init; // number of initial condition functions
+  // Initial conditions using projection routine.
+  int num_init; // Number of initial condition functions.
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
+
+  bool is_static; // Set to true if species does not change in time.
+  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
+  bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   int num_diag_moments; // number of diagnostic moments
   enum gkyl_distribution_moments diag_moments[16]; // list of diagnostic moments
 
-  // collisions to include
-  struct gkyl_vlasov_collisions collisions;
-
-  // radiation to include
-  struct gkyl_vlasov_radiation radiation;
-
-  // source to include
-  struct gkyl_vlasov_source source;
-
-  void *app_accel_ctx; // context for applied acceleration function
-  // pointer to applied acceleration function
+  void *app_accel_ctx; // Context for applied acceleration function.
+  // Pointer to applied acceleration function.
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
-  bool app_accel_evolve; // set to true if applied acceleration function is time dependent
+  bool app_accel_evolve; // Set to true if applied acceleration function is time dependent.
 
-  void *hamil_ctx; // context for hamiltonian function
-  // pointer to hamilonian function
+  void *hamil_ctx; // Context for general (phase space) Hamiltonian function.
+  // Pointer to general (phase space) Hamilonian function.
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);
 
-  void *h_ij_ctx; // context for spatial metric function (covariant)
-  // pointer to metric (covariant components) function
+  void *h_ij_ctx; // Context for spatial metric function (covariant).
+  // Pointer to metric (covariant components) function.
   void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
 
-  void *h_ij_inv_ctx; // context for spatial metric function (contravariant)
-  // pointer to metric (contravaraint components) function
+  void *h_ij_inv_ctx; // Context for spatial metric function (contravariant).
+  // Pointer to metric (contravaraint components) function.
   void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
 
-  void *det_h_ctx; // context for determinant of the spatial metric
-  // pointer to the determinant of the spatial metric
+  void *det_h_ctx; // Context for determinant of the spatial metric.
+  // Pointer to the determinant of the spatial metric.
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
 
-  bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.)
-  double iter_eps; // error tolerance for moment fixes of f_lte (density is always exact)
-  int max_iter; // maximum number of iterations for correction output f_lte
-  bool use_last_converged; // use last iteration value regardless of convergence for f_lte?
+  // Input quantities used by LTE (local thermodynamic equilibrium) projection
+  // This projection operator is used by BGK collisions.
+  struct gkyl_vlasov_correct_inp correct; 
 
-  // boundary conditions
+  // Collisions to include.
+  struct gkyl_vlasov_collisions collisions;
+
+  // Radiation to include.
+  struct gkyl_vlasov_radiation radiation;
+
+  // Source to include.
+  struct gkyl_vlasov_source source;
+
+  // Boundary conditions.
   struct gkyl_vlasov_bcs bcx, bcy, bcz;
 };
 
-// Parameter for EM field
+// Parameter for electromagnetic fields.
 struct gkyl_vlasov_field {
-  enum gkyl_field_id field_id; // type of field 
-                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
-  bool is_static; // set to true if field does not change in time
+  enum gkyl_field_id field_id; // Type of field 
+                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h).
+  bool is_static; // Set to true if field does not change in time.
 
-  double epsilon0, mu0;
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors. 
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
+  void *ctx; // Context for initial condition init function for Vlasov-Maxwell.
+  // Pointer to initialization function for Vlasov-Maxwell fields. 
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-
-  void *ext_em_ctx; // context for external electromagnetic fields function
-  // pointer to external electromagnetic fields function
-  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
-  bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
-
-  void *app_current_ctx; // context for external electromagnetic fields function
-  // pointer to external electromagnetic fields function
-  void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
-  bool app_current_evolve; // set to true if applied current function is time dependent
   
-  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
-  bool limit_em; // Optional input parameter for applying limiters to EM fields
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter.
+  bool limit_em; // Optional input parameter for applying limiters to EM fields.
 
-  bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
+  bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x?
   
-  // boundary conditions
+  // Vlasov-Maxwell boundary conditions.
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 
-  // Options for Vlasov-Poisson.
-  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson eqn.
+  // Vlasov-Poisson boundary conditions. 
+  struct gkyl_poisson_bc poisson_bcs; 
+
+  void *ext_em_ctx; // Context for external electromagnetic fields function (E,B).
+  // Pointer to external electromagnetic fields function.
+  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
+  bool ext_em_evolve; // Set to true if external electromagnetic fields are time dependent.
+
+  void *app_current_ctx; // Context for applied currents function.
+  // Pointer to applied currents function.
+  void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
+  bool app_current_evolve; // Set to true if applied currents are time dependent.
 
   void *external_potentials_ctx; // Context for external (phi,A) potentials.
   // Pointer to function defining external potentials (phi,A).
   void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
-  bool external_potentials_evolve; // True if external potentials are time dependent.
+  bool external_potentials_evolve; // Set to true if external potentials are time dependent.
 };
 
 // Parameter for Vlasov fluid species
@@ -327,7 +337,9 @@ struct gkyl_vlasov_stat {
   double species_rhs_tm; // time to compute species collisionless RHS
   double fluid_species_rhs_tm; // time to compute fluid species RHS
   double fluid_species_vars_tm; // time to compute fluid variables (flow velocity and pressure)
-    
+
+  long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
+  long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called  
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
@@ -337,8 +349,6 @@ struct gkyl_vlasov_stat {
 
   double species_lte_tm; // time needed to compute the lte equilibrium
 
-  long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
-
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
   double field_bc_tm; // time to compute field
@@ -346,20 +356,25 @@ struct gkyl_vlasov_stat {
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
-  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
-  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
+  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for species
+  double species_io_tm; // Time to write the species distribution.
+  double species_diag_calc_tm; // Time to compute species diagnostics.
+  double species_diag_io_tm; // Time to write species diagnostics.
 
-  long n_field_omega_cfl; // number of times CFL-omega for field all-reduce is called
-  double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
+  double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for fields
+  double field_io_tm; // Time to write the fields.
+  double field_diag_calc_tm; // Time to compute field diagnostics.
+  double field_diag_io_tm; // Time to write field diagnostics.  
 
-  long n_mom; // calls to moment calculation
-  double mom_tm; // time to compute moments
-
-  long n_diag; // calls to diagnostics
-  double diag_tm; // time to compute diagnostics
-
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called for species
+  long n_field_omega_cfl; // number of times CFL-omega all-reduce is called for fields
+  long n_mom; // total number of calls to moment updater routines
+  long n_diag; // total number of calls to diagnostics
   long n_io; // number of calls to IO
-  double io_tm; // time to perform IO
+  long n_diag_io; // number of calls to IO for diagnostics
+  long n_field_diag; // total number of calls to diagnostics for field
+  long n_field_io; // number of calls to IO for field
+  long n_field_diag_io; // number of calls to IO for field diagnostics  
 };
 
 // Object representing Vlasov app
@@ -484,13 +499,6 @@ struct gkyl_app_restart_status
 gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
 
 /**
- * Calculate diagnostic moments.
- *
- * @param app App object.
- */
-void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
-
-/**
  * Calculate integrated diagnostic moments.
  *
  * @param tm Time at which integrated diagnostic are to be computed
@@ -543,16 +551,6 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write species data to file - for the local equilbrium.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
  * Write fluid species data to file. 
  * 
  * @param app App object.
@@ -572,20 +570,12 @@ void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double 
 void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
- * Write integrated diagnostic moments for species to file. Integrated
- * moments are appended to the same file.
+ * Write integrated diagnostic moments for all species (kinetic and fluid) to file. 
+ * Integrated moments are appended to the same file.
  * 
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
-
-/**
- * Write integrated diagnostic quantities for fluid species to file. Integrated
- * quantities are appended to the same file.
- * 
- * @param app App object.
- */
-void gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app);
 
 /**
  * Write integrated L2 norm of the species distribution function to file. Integrated
@@ -654,16 +644,6 @@ struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
  * @return Return statistics object.
  */
 struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
-
-/**
- * Run the RHS for the species update. This is used to compute kernel
- * timers and is not otherwise a useful function for a full
- * simulation.
- *
- * @param app App object.
- * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
- */
-void gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term);
 
 /**
  * Free Vlasov app.

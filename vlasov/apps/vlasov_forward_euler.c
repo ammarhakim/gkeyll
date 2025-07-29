@@ -21,13 +21,13 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
     if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
-      vm_field_calc_app_current(app, app->field, tcurr); 
+      app->field_app_current_calc(app, app->field, tcurr); 
     }
     if (app->field->ext_em_evolve) {
-      vm_field_calc_ext_em(app, app->field, tcurr);
+      app->field_ext_em_calc(app, app->field, tcurr);
     }
     if (app->field->ext_pot_evolve) {
-      vp_field_calc_ext_pot(app, app->field, tcurr);
+      app->field_ext_pot_calc(app, app->field, tcurr);
     }
   }
   // Compute applied acceleration if if present and time-dependent.
@@ -39,10 +39,10 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+    else if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
       vm_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
     }
@@ -51,7 +51,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
+    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
@@ -109,7 +109,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    vm_species_step_f(&app->species[i], fout[i], dta, fin[i]);
   }
 
   // complete update of fluid species

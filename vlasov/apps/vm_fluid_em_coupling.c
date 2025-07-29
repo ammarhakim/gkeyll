@@ -20,7 +20,7 @@ vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
     qbym[i] = fs->info.charge/fs->info.mass;
   }
   // Initialize solver
-  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(&app->confBasis, &app->local, 
+  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(&app->basis, &app->local, 
     num_fluid_species, qbym, app->field->info.epsilon0, app->use_gpu);
 
   return fl_em;  
