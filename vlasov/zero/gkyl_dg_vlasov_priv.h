@@ -35,7 +35,7 @@ typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dx
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
-GKYL_CU_DH
+GKYL_CU_D
 static const struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices

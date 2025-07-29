@@ -146,7 +146,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_cu_dev_new(const struct gkyl_dg_vlasov_inp *inp)
+gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 {
   struct dg_vlasov *vlasov = (struct dg_vlasov*) gkyl_malloc(sizeof(*vlasov));
 

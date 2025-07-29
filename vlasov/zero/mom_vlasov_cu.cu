@@ -203,8 +203,6 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));
   gkyl_cu_memcpy(mom_vlasov_cu, mom_vlasov, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  assert(cv_index[cdim].vdim[vdim] != -1);
-
   set_cu_ptrs<<<1,1>>>(mom_vlasov_cu, inp->mom_type, inp->conf_basis->b_type, 
     cdim, vdim, poly_order, inp->model_id, inp->hamil->on_dev);
 
