@@ -52,7 +52,7 @@ gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid,
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&vel_range, idx);
 
-    double *hamil_d = gkyl_array_fetch(hamil, vidx);
+    double *hamil_d = gkyl_array_fetch(hamil, loc);
     calc_hamil(xc, vel_grid.dx, hamil_d);
   }
 }
