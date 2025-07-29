@@ -3,9 +3,9 @@ GKYL_CU_DH double vlasov_hamil_vel_boundary_surfy_3x3v_tensor_p1(const double *w
   const double *hamil, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
-  const double dx11 = 2.0/dxv[1]; 
-  const double dv11 = 2.0/dxv[4]; 
-  const double wv = w[4]; 
+  double dx11 = 2.0/dxv[1]; 
+  double dv11 = 2.0/dxv[4]; 
+  double wv = w[4]; 
 
   double Ghat[32]; 
 

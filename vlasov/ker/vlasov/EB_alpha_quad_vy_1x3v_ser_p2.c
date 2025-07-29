@@ -4,9 +4,9 @@ GKYL_CU_DH void EB_alpha_quad_vy_1x3v_ser_p2(const double *dxv,
 { 
   const double *Ey = &qmem[3]; 
 
-  const double dv10 = 2.0/dxv[1]; 
-  const double dv11 = 2.0/dxv[2]; 
-  const double dv12 = 2.0/dxv[3]; 
+  double dv10 = 2.0/dxv[1]; 
+  double dv11 = 2.0/dxv[2]; 
+  double dv12 = 2.0/dxv[3]; 
   const double *Bx = &qmem[9]; 
   const double *By = &qmem[12]; 
   const double *Bz = &qmem[15]; 

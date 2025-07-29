@@ -3,8 +3,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfx_3x3v_tensor_p1(const double *w, const d
   const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  const double dx10 = 2.0/dxv[0]; 
-  const double dv10 = 2.0/dxv[3]; 
+  double dx10 = 2.0/dxv[0]; 
+  double dv10 = 2.0/dxv[3]; 
 
   double Ghat_r[32]; 
   double Ghat_l[32]; 

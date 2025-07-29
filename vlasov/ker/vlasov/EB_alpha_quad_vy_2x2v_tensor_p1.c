@@ -4,8 +4,8 @@ GKYL_CU_DH void EB_alpha_quad_vy_2x2v_tensor_p1(const double *dxv,
 { 
   const double *Ey = &qmem[4]; 
 
-  const double dv10 = 2.0/dxv[2]; 
-  const double dv11 = 2.0/dxv[3]; 
+  double dv10 = 2.0/dxv[2]; 
+  double dv11 = 2.0/dxv[3]; 
   const double *Bz = &qmem[20]; 
   alpha_quad[0] += -(1.0*(0.5*Bz[3]-0.5*Bz[2]-0.5*Bz[1]+0.5*Bz[0])*(0.8660254037844386*hamil[1]-1.5*hamil[3])*dv10)+0.5*Ey[3]-0.5*Ey[2]-0.5*Ey[1]+0.5*Ey[0]; 
   alpha_quad[1] += -(1.0*(0.5*Bz[3]-0.5*Bz[2]-0.5*Bz[1]+0.5*Bz[0])*(0.8660254037844386*hamil[1]-1.5*hamil[3])*dv10)+0.5*Ey[3]-0.5*Ey[2]-0.5*Ey[1]+0.5*Ey[0]; 

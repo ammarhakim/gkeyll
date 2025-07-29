@@ -2,7 +2,7 @@
 GKYL_CU_DH double vlasov_surfvz_3x3v_tensor_p1(const double *w, const double *dxv,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out) 
 { 
-  const double dv12 = 2.0/dxv[5]; 
+  double dv12 = 2.0/dxv[5]; 
 
   const double *Ghat_l = &flux_l[64]; 
   const double *Ghat_r = &flux_r[64]; 

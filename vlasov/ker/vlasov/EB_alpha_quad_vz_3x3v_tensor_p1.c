@@ -4,9 +4,9 @@ GKYL_CU_DH void EB_alpha_quad_vz_3x3v_tensor_p1(const double *dxv,
 { 
   const double *Ez = &qmem[16]; 
 
-  const double dv10 = 2.0/dxv[3]; 
-  const double dv11 = 2.0/dxv[4]; 
-  const double dv12 = 2.0/dxv[5]; 
+  double dv10 = 2.0/dxv[3]; 
+  double dv11 = 2.0/dxv[4]; 
+  double dv12 = 2.0/dxv[5]; 
   const double *Bx = &qmem[24]; 
   const double *By = &qmem[32]; 
   const double *Bz = &qmem[40]; 

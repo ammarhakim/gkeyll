@@ -2,7 +2,7 @@
 GKYL_CU_DH double vlasov_surfvz_1x3v_ser_p1(const double *w, const double *dxv,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out) 
 { 
-  const double dv12 = 2.0/dxv[3]; 
+  double dv12 = 2.0/dxv[3]; 
 
   const double *Ghat_l = &flux_l[16]; 
   const double *Ghat_r = &flux_r[16]; 

@@ -2,7 +2,7 @@
 GKYL_CU_DH void hamil_alpha_quad_vy_2x2v_tensor_p1(const double *dxv, 
   const double *hamil, double* GKYL_RESTRICT alpha_quad) 
 { 
-  const double dx11 = 2.0/dxv[1]; 
+  double dx11 = 2.0/dxv[1]; 
 
   alpha_quad[0] += -dx11*(-(0.75*hamil[15])+0.75*hamil[14]+0.75*hamil[12]+0.4330127018922193*hamil[11]-0.75*hamil[9]-0.4330127018922193*hamil[7]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2]); 
   alpha_quad[1] += -dx11*(0.75*hamil[15]-0.75*hamil[14]+0.75*hamil[12]-0.4330127018922193*hamil[11]-0.75*hamil[9]+0.4330127018922193*hamil[7]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2]); 

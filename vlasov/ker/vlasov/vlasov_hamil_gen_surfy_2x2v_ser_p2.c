@@ -3,8 +3,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p2(const double *w, const doub
   const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  const double dx11 = 2.0/dxv[1]; 
-  const double dv11 = 2.0/dxv[3]; 
+  double dx11 = 2.0/dxv[1]; 
+  double dv11 = 2.0/dxv[3]; 
 
   double Ghat_r[20]; 
   double Ghat_l[20]; 

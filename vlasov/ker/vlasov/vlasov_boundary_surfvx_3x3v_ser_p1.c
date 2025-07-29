@@ -2,7 +2,7 @@
 GKYL_CU_DH double vlasov_boundary_surfvx_3x3v_ser_p1(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 
-  const double dv10 = 2.0/dxv[3]; 
+  double dv10 = 2.0/dxv[3]; 
 
   const double *Ghat = &flux[0]; 
   if (edge == -1) { 

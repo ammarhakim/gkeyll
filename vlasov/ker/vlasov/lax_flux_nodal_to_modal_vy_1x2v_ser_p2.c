@@ -3,7 +3,7 @@ GKYL_CU_DH double lax_flux_nodal_to_modal_vy_1x2v_ser_p2(const double *dxv, cons
   const double *f_l, const double *f_r, double *lax_nodal_quad, 
   double* GKYL_RESTRICT vel_flux_surf) 
 { 
-  const double dv11 = 2.0/dxv[2]; 
+  double dv11 = 2.0/dxv[2]; 
 
   double *Ghat = &vel_flux_surf[8]; 
   double alpha_max = 0.0; 

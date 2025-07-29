@@ -2,7 +2,7 @@
 GKYL_CU_DH void phi_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, 
   const double *phi, double* GKYL_RESTRICT alpha_quad) 
 { 
-  const double dx10 = 2.0/dxv[0]; 
+  double dx10 = 2.0/dxv[0]; 
 
   alpha_quad[0] += -dx10*(-(3.9547703670805854*phi[8])+1.1857789576832338*phi[7]+4.308049588470176*phi[6]-2.888338995926613*phi[4]-1.291704467391079*phi[3]+0.8660254037844386*phi[1]); 
   alpha_quad[1] += -dx10*(2.1094782708076156*phi[8]-0.6324956225107456*phi[7]+1.7008401285415227*phi[6]-2.888338995926613*phi[4]-0.5099715653772844*phi[3]+0.8660254037844386*phi[1]); 

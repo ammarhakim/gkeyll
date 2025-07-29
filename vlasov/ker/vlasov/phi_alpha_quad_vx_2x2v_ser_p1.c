@@ -2,7 +2,7 @@
 GKYL_CU_DH void phi_alpha_quad_vx_2x2v_ser_p1(const double *dxv, 
   const double *phi, double* GKYL_RESTRICT alpha_quad) 
 { 
-  const double dx10 = 2.0/dxv[0]; 
+  double dx10 = 2.0/dxv[0]; 
 
   alpha_quad[0] += -dx10*(0.8660254037844386*phi[1]-0.8660254037844386*phi[3]); 
   alpha_quad[1] += -dx10*(0.8660254037844386*phi[1]-0.8660254037844386*phi[3]); 

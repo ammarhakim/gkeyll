@@ -17,7 +17,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2(const double *w, const d
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
-  const double dv10 = 2.0/dxv[2]; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += (3.872983346207417*hamil[2]*f[3]+1.7320508075688772*f[0]*hamil[1])*dv10*volFact; 
   out[1] += (3.872983346207417*hamil[2]*f[5]+1.7320508075688772*f[1]*hamil[1])*dv10*volFact; 
   out[2] += (3.872983346207417*hamil[2]*f[6]+1.7320508075688772*hamil[1]*f[2])*dv10*volFact; 
@@ -32,7 +32,7 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_M1i_2x1v_tensor_p2(const double *w, const d
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
-  const double dv10 = 2.0/dxv[2]; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += (1.9364916731037085*f[23]*hamil[26]+1.9364916731037085*f[18]*hamil[25]+1.9364916731037085*f[17]*hamil[24]+0.8660254037844386*f[20]*hamil[23]+1.9364916731037085*f[14]*hamil[22]+1.9364916731037085*f[13]*hamil[21]+1.9364916731037085*f[10]*hamil[19]+0.8660254037844387*f[12]*hamil[18]+0.8660254037844387*f[11]*hamil[17]+1.9364916731037085*f[6]*hamil[16]+1.9364916731037085*f[5]*hamil[15]+0.8660254037844387*f[8]*hamil[14]+0.8660254037844387*f[7]*hamil[13]+0.8660254037844386*f[4]*hamil[10]+1.9364916731037085*f[3]*hamil[9]+0.8660254037844386*f[2]*hamil[6]+0.8660254037844386*f[1]*hamil[5]+0.8660254037844386*f[0]*hamil[3])*dv10*volFact; 
   out[1] += (1.7320508075688772*f[18]*hamil[26]+1.7320508075688772*f[23]*hamil[25]+1.9364916731037085*f[14]*hamil[25]+1.7320508075688772*f[10]*hamil[24]+0.7745966692414834*f[12]*hamil[23]+1.9364916731037085*f[18]*hamil[22]+1.7320508075688772*f[5]*hamil[21]+0.7745966692414833*hamil[18]*f[20]+1.7320508075688772*f[17]*hamil[19]+1.9364916731037085*f[6]*hamil[19]+0.8660254037844386*f[8]*hamil[18]+0.7745966692414833*f[4]*hamil[17]+1.9364916731037085*f[10]*hamil[16]+1.7320508075688772*f[13]*hamil[15]+1.9364916731037085*f[3]*hamil[15]+0.8660254037844386*f[12]*hamil[14]+0.7745966692414834*f[1]*hamil[13]+0.7745966692414834*hamil[10]*f[11]+0.8660254037844386*f[2]*hamil[10]+1.9364916731037085*f[5]*hamil[9]+0.7745966692414833*hamil[5]*f[7]+0.8660254037844386*f[4]*hamil[6]+0.8660254037844386*f[0]*hamil[5]+0.8660254037844386*f[1]*hamil[3])*dv10*volFact; 
   out[2] += (1.7320508075688772*f[17]*hamil[26]+1.7320508075688772*f[10]*hamil[25]+1.7320508075688772*f[23]*hamil[24]+1.9364916731037085*f[13]*hamil[24]+0.7745966692414834*f[11]*hamil[23]+1.7320508075688772*f[6]*hamil[22]+1.9364916731037085*f[17]*hamil[21]+0.7745966692414833*hamil[17]*f[20]+1.7320508075688772*f[18]*hamil[19]+1.9364916731037085*f[5]*hamil[19]+0.7745966692414833*f[4]*hamil[18]+0.8660254037844386*f[7]*hamil[17]+1.7320508075688772*f[14]*hamil[16]+1.9364916731037085*f[3]*hamil[16]+1.9364916731037085*f[10]*hamil[15]+0.7745966692414834*f[2]*hamil[14]+0.8660254037844386*f[11]*hamil[13]+0.7745966692414834*hamil[10]*f[12]+0.8660254037844386*f[1]*hamil[10]+1.9364916731037085*f[6]*hamil[9]+0.7745966692414833*hamil[6]*f[8]+0.8660254037844386*f[0]*hamil[6]+0.8660254037844386*f[4]*hamil[5]+0.8660254037844386*f[2]*hamil[3])*dv10*volFact; 
@@ -74,9 +74,9 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_M2_2x1v_tensor_p2(const double *w, const do
 GKYL_CU_DH void mom_vlasov_M2ij_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
   const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[2]/2; 
-  const double wx1 = w[2], dv1 = dxv[2]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  double volFact = dxv[2]/2; 
+  double wx1 = w[2], dv1 = dxv[2]; 
+  double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
   out[0] += volFact*(1.4142135623730951*f[0]*wx1_sq+0.8164965809277261*f[3]*dv1*wx1+0.10540925533894596*f[9]*dv1_sq+0.11785113019775789*f[0]*dv1_sq); 
   out[1] += volFact*(1.4142135623730951*f[1]*wx1_sq+0.8164965809277261*f[5]*dv1*wx1+0.105409255338946*f[15]*dv1_sq+0.11785113019775789*f[1]*dv1_sq); 
   out[2] += volFact*(1.4142135623730951*f[2]*wx1_sq+0.8164965809277261*f[6]*dv1*wx1+0.105409255338946*f[16]*dv1_sq+0.11785113019775789*f[2]*dv1_sq); 
@@ -90,10 +90,10 @@ GKYL_CU_DH void mom_vlasov_M2ij_2x1v_tensor_p2(const double *w, const double *dx
 GKYL_CU_DH void mom_vlasov_M3ijk_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
   const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[2]/2; 
-  const double wx1 = w[2], dv1 = dxv[2]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double wx1_cu = wx1*wx1*wx1, dv1_cu = dv1*dv1*dv1; 
+  double volFact = dxv[2]/2; 
+  double wx1 = w[2], dv1 = dxv[2]; 
+  double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  double wx1_cu = wx1*wx1*wx1, dv1_cu = dv1*dv1*dv1; 
   out[0] += volFact*(1.224744871391589*f[3]*dv1*wx1_sq+1.4142135623730951*f[0]*wx1_cu+0.3162277660168379*f[9]*dv1_sq*wx1+0.3535533905932737*f[0]*dv1_sq*wx1+0.06123724356957942*f[3]*dv1_cu); 
   out[1] += volFact*(1.224744871391589*f[5]*dv1*wx1_sq+1.4142135623730951*f[1]*wx1_cu+0.31622776601683794*f[15]*dv1_sq*wx1+0.3535533905932737*f[1]*dv1_sq*wx1+0.06123724356957942*f[5]*dv1_cu); 
   out[2] += volFact*(1.224744871391589*f[6]*dv1*wx1_sq+1.4142135623730951*f[2]*wx1_cu+0.31622776601683794*f[16]*dv1_sq*wx1+0.3535533905932737*f[2]*dv1_sq*wx1+0.06123724356957942*f[6]*dv1_cu); 
@@ -108,7 +108,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2(const double *w
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
-  const double dv10 = 2.0/dxv[2]; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += 1.4142135623730951*f[0]*volFact; 
   out[1] += 1.4142135623730951*f[1]*volFact; 
   out[2] += 1.4142135623730951*f[2]*volFact; 
@@ -141,7 +141,7 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_five_moments_2x1v_tensor_p2(const double *w
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
-  const double dv10 = 2.0/dxv[2]; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += 1.4142135623730951*f[0]*volFact; 
   out[1] += 1.4142135623730951*f[1]*volFact; 
   out[2] += 1.4142135623730951*f[2]*volFact; 
@@ -173,8 +173,8 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_five_moments_2x1v_tensor_p2(const double *w
 GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
-  const double dv10 = 2.0/dxv[2]; 
+  double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
   out[1] += (7.745966692414834*hamil[2]*f[3]+3.4641016151377544*f[0]*hamil[1])*dv10*volFact; 
   out[2] += (2.0*hamil[2]*f[9]+2.0*hamil[1]*f[3]+2.0*f[0]*hamil[0])*volFact; 
@@ -182,8 +182,8 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2(const doubl
 GKYL_CU_DH void mom_vlasov_hamil_gen_int_five_moments_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
-  const double dv10 = 2.0/dxv[2]; 
+  double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
+  double dv10 = 2.0/dxv[2]; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
   out[1] += (3.872983346207417*f[23]*hamil[26]+3.872983346207417*f[18]*hamil[25]+3.872983346207417*f[17]*hamil[24]+1.7320508075688772*f[20]*hamil[23]+3.872983346207417*f[14]*hamil[22]+3.872983346207417*f[13]*hamil[21]+3.872983346207417*f[10]*hamil[19]+1.7320508075688774*f[12]*hamil[18]+1.7320508075688774*f[11]*hamil[17]+3.872983346207417*f[6]*hamil[16]+3.872983346207417*f[5]*hamil[15]+1.7320508075688774*f[8]*hamil[14]+1.7320508075688774*f[7]*hamil[13]+1.7320508075688772*f[4]*hamil[10]+3.872983346207417*f[3]*hamil[9]+1.7320508075688772*f[2]*hamil[6]+1.7320508075688772*f[1]*hamil[5]+1.7320508075688772*f[0]*hamil[3])*dv10*volFact; 
   out[2] += (f[26]*hamil[26]+f[25]*hamil[25]+f[24]*hamil[24]+f[23]*hamil[23]+f[22]*hamil[22]+f[21]*hamil[21]+f[20]*hamil[20]+f[19]*hamil[19]+f[18]*hamil[18]+f[17]*hamil[17]+f[16]*hamil[16]+f[15]*hamil[15]+f[14]*hamil[14]+f[13]*hamil[13]+f[12]*hamil[12]+f[11]*hamil[11]+f[10]*hamil[10]+f[9]*hamil[9]+f[8]*hamil[8]+f[7]*hamil[7]+f[6]*hamil[6]+f[5]*hamil[5]+f[4]*hamil[4]+f[3]*hamil[3]+f[2]*hamil[2]+f[1]*hamil[1]+f[0]*hamil[0])*volFact; 
