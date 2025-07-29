@@ -43,7 +43,7 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (calc->use_gpu) {
     gkyl_mom_calc_advance_cu(calc, phase_rng, conf_rng, fin, mout);
     return;
   }

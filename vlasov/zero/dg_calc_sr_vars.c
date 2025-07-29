@@ -61,7 +61,7 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
 void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, struct gkyl_array* gamma_inv)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(gamma)) {
+  if (gkyl_array_is_cu_dev(gamma_inv)) {
     return gkyl_calc_sr_vars_init_p_vars_cu(up, gamma_inv);
   }
 #endif

@@ -116,7 +116,6 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       else {
         mom_vlasov->kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
-      mom_vlasov->kernel = m1i_kernels[tblidx].kernels[poly_order];
       mom_vlasov->momt.num_mom = vdim;
       break;
 
@@ -170,7 +169,7 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
-  struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
+  struct mom_type_vlasov *mom_vlasov = (struct mom_type_vlasov*) gkyl_malloc(sizeof(*mom_vlasov));
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
   int poly_order = inp->conf_basis->poly_order;
 
@@ -267,7 +266,7 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
-  struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
+  struct mom_type_vlasov *mom_vlasov = (struct mom_type_vlasov*) gkyl_malloc(sizeof(*mom_vlasov));
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
   int poly_order = inp->conf_basis->poly_order;
 

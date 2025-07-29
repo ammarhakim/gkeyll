@@ -61,7 +61,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
         gkyl_copy_int_arr(pdim, idx, idx_l);
         idx_l[cdim+dir] = idx_l[cdim+dir]-1;
         long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
-        const double* f_l = gkyl_array_cfetch(fin, pidx_l);  
+        const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);  
         cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
           hamil_d, qmem_d, pot_tot_d, f_l, f_c, flux);      
       }
@@ -163,7 +163,7 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
 gkyl_dg_vlasov_vel_flux_surf*
 gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp *inp)
 {
-  struct gkyl_dg_vlasov_vel_flux_surf *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_dg_vlasov_vel_flux_surf *up = (struct gkyl_dg_vlasov_vel_flux_surf*) gkyl_malloc(sizeof(*up));
 
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
   int poly_order = inp->conf_basis->poly_order;
@@ -186,7 +186,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
-  struct gkyl_dg_vlasov_vel_flux_surf *up_cu = (struct struct gkyl_dg_vlasov_vel_flux_surf *) gkyl_cu_malloc(sizeof(*up_cu));
+  struct gkyl_dg_vlasov_vel_flux_surf *up_cu = (struct gkyl_dg_vlasov_vel_flux_surf*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
