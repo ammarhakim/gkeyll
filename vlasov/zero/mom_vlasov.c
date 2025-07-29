@@ -30,7 +30,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
+  if (inp->use_gpu) {
     return gkyl_mom_vlasov_cu_dev_inew(inp);
   } 
 #endif
@@ -197,7 +197,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
+  if (inp->use_gpu) {
     return gkyl_int_mom_vlasov_cu_dev_inew(inp);
   } 
 #endif

@@ -208,6 +208,6 @@ GKYL_CU_DH double vlasov_hamil_vel_surfx_1x3v_tensor_p2(const double *w, const d
   out[79] += -(1.224744871391589*(Ghat_r[26]+Ghat_l[26])*dv10*dx10); 
   out[80] += (1.5811388300841895*Ghat_l[26]-1.5811388300841895*Ghat_r[26])*dv10*dx10; 
 
-  return 0.8838834764831842*dv10*dx10*sqrt(3)*hamil[1];
+  return fabs(0.8838834764831842*dv10*dx10*1.7320508075688772*hamil[1]);
 
 } 

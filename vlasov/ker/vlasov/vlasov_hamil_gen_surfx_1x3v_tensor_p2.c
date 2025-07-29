@@ -795,6 +795,6 @@ GKYL_CU_DH double vlasov_hamil_gen_surfx_1x3v_tensor_p2(const double *w, const d
   out[79] += -(1.224744871391589*(Ghat_r[26]+Ghat_l[26])*dv10*dx10); 
   out[80] += (1.5811388300841895*Ghat_l[26]-1.5811388300841895*Ghat_r[26])*dv10*dx10; 
 
-  return 2.5*dv10*dx10*alpha_max;
+  return fabs(2.5*dv10*dx10*alpha_max);
 
 } 

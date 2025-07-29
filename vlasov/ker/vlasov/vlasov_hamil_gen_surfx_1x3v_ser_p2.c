@@ -748,6 +748,6 @@ GKYL_CU_DH double vlasov_hamil_gen_surfx_1x3v_ser_p2(const double *w, const doub
   out[46] += -(1.224744871391589*(Ghat_r[18]+Ghat_l[18])*dv10*dx10); 
   out[47] += -(1.224744871391589*(Ghat_r[19]+Ghat_l[19])*dv10*dx10); 
 
-  return 2.5*dv10*dx10*alpha_max;
+  return fabs(2.5*dv10*dx10*alpha_max);
 
 } 
