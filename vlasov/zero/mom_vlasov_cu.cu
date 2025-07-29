@@ -20,11 +20,13 @@ v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
   
   switch (mom_type) {
     case GKYL_F_MOMENT_M0:
+    case GKYL_F_MOMENT_ENERGY:
     case GKYL_F_MOMENT_M2:
       num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M1:
+    case GKYL_F_MOMENT_M1_FROM_H:
     case GKYL_F_MOMENT_M3:
       num_mom = vdim;
       break;
@@ -56,10 +58,6 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
   enum gkyl_model_id model_id, const struct gkyl_array *hamil)
 {
-  // Assigning pointers on device so that the on_dev mom_vlasov object 
-  // points to the on_dev gkyl_array. 
-  mom_vlasov->hamil = hamil; 
-
   int m3ijk_count[] = { 1, 4, 10 };
 
   mom_vlasov->momt.kernel = kernel;
@@ -178,7 +176,6 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.poly_order = poly_order;
   mom_vlasov->momt.num_config = inp->conf_basis->num_basis;
   mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
-  mom_vlasov->momt.kernel = kernel;
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
@@ -191,7 +188,8 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
     mom_vlasov->hamil_offset = 0; 
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
-  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
+  struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
+  mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
@@ -207,6 +205,9 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
     cdim, vdim, poly_order, inp->model_id, inp->hamil->on_dev);
 
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
+
+  // Host-side moment type object should store host pointers.
+  mom_vlasov->hamil = hamil_ho; 
   
   return &mom_vlasov->momt;
 }
@@ -217,10 +218,6 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
   enum gkyl_model_id model_id, const struct gkyl_array *hamil)
 {
-  // Assigning pointers on device so that the on_dev mom_vlasov object 
-  // points to the on_dev gkyl_array. 
-  mom_vlasov->hamil = hamil; 
-
   mom_vlasov->momt.kernel = kernel;
 
   // Choose kernel tables based on basis-function type.
@@ -284,7 +281,8 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
     mom_vlasov->hamil_offset = 0; 
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
-  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
+  struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
+  mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
@@ -300,6 +298,9 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
     cdim, vdim, poly_order, inp->model_id, inp->hamil->on_dev);
 
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
-  
+
+  // Host-side moment type object should store host pointers.
+  mom_vlasov->hamil = hamil_ho;   
+
   return &mom_vlasov->momt;
 }

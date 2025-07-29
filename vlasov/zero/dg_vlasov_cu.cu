@@ -17,13 +17,6 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   const struct gkyl_array *hamil, const struct gkyl_array *qmem, 
   const struct gkyl_array *pot_tot, const struct gkyl_array *vel_flux_surf)
 {
-  // Assigning pointers on device so that the on_dev vlasov object 
-  // points to the on_dev gkyl_array. 
-  vlasov->hamil = hamil; 
-  vlasov->qmem = qmem; 
-  vlasov->pot_tot = pot_tot; 
-  vlasov->vel_flux_surf = vel_flux_surf; 
-
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
@@ -169,10 +162,15 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->conf_range = *inp->conf_range;
   vlasov->hamil_range = *inp->hamil_range;
   vlasov->phase_range = *inp->phase_range;
-  vlasov->hamil = gkyl_array_acquire(inp->hamil); 
-  vlasov->qmem = gkyl_array_acquire(inp->qmem); 
-  vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
-  vlasov->vel_flux_surf = gkyl_array_acquire(inp->vel_flux_surf); 
+  struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
+  struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
+  struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
+  struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
+  // store pointers to on_dev for copying over to device. 
+  vlasov->hamil = hamil_ho->on_dev; 
+  vlasov->qmem = qmem_ho->on_dev; 
+  vlasov->pot_tot = pot_tot_ho->on_dev; 
+  vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
 
   vlasov->eqn.num_equations = 1;
 
@@ -190,6 +188,12 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;
-  
+
+  // Host-side equation object should store host pointers.
+  vlasov->hamil = hamil_ho; 
+  vlasov->qmem = qmem_ho; 
+  vlasov->pot_tot = pot_tot_ho; 
+  vlasov->vel_flux_surf = vel_flux_surf_ho; 
+
   return &vlasov->eqn;
 }
