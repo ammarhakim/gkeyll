@@ -58,12 +58,6 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
     gkyl_mom_canonical_pb_set_auxfields(up->type, *can_pb_inp);
 
   } 
-  else {
-    if (is_integrated)
-      up->type = gkyl_int_mom_vlasov_new(cbasis, pbasis, mom_type, use_gpu);
-    else
-      up->type = gkyl_mom_vlasov_new(cbasis, pbasis, mom_type, use_gpu);
-  }
 
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
 

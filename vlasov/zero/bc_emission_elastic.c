@@ -93,7 +93,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 void
 gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
   struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
-  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis)
+  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, const struct gkyl_basis *basis)
 {
   gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_skin, up->dir+up->cdim, emit_skin_r,
     up->reflect_func->on_dev);

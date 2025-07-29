@@ -46,11 +46,6 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     struct gkyl_dg_canonical_pb_auxfields *canonical_pb_inp = aux_inp;
     gkyl_canonical_pb_set_auxfields(up->eqn_vlasov, *canonical_pb_inp); 
   }
-  else {
-    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu);
-    struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
-    gkyl_vlasov_set_auxfields(up->eqn_vlasov, *vlasov_inp); 
-  }
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;

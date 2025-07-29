@@ -12,7 +12,7 @@
 #include <assert.h>
 
 typedef void (*p_vars_t)(const double *w, const double *dv, 
-  double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv);
+  double* GKYL_RESTRICT gamma_inv);
 
 typedef void (*sr_n_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *M0, const double *M1i);

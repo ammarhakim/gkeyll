@@ -58,12 +58,11 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
   return up;
 }
 
-void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, 
-  struct gkyl_array* gamma, struct gkyl_array* gamma_inv)
+void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, struct gkyl_array* gamma_inv)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(gamma)) {
-    return gkyl_calc_sr_vars_init_p_vars_cu(up, gamma, gamma_inv);
+    return gkyl_calc_sr_vars_init_p_vars_cu(up, gamma_inv);
   }
 #endif
 
@@ -75,9 +74,8 @@ void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up,
     gkyl_rect_grid_cell_center(&up->vel_grid, iter.idx, xc);
     long loc = gkyl_range_idx(&up->vel_range, iter.idx);
 
-    double *gamma_d = gkyl_array_fetch(gamma, loc);
     double *gamma_inv_d = gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
+    up->sr_p_vars(xc, up->vel_grid.dx, gamma_inv_d);
   }
 }
 

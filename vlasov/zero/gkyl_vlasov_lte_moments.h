@@ -19,14 +19,13 @@ struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // Velocity-space range
   const struct gkyl_range *phase_range; // Phase-space range
-  const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
+  enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments (such as energy or dH/dv moment). 
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij; // Can-pb quantity: metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // Can-pb quantity: Inverse metric tensor (contravaraint components)
   const struct gkyl_array *det_h; // Can-pb quantity: determinant of the metric tensor
-  const struct gkyl_array *hamil; // Can-pb quantity: hamiltonian
-  enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
-  double mass; // Mass factor 
   bool use_gpu; // bool for gpu useage
 };
 

@@ -23,6 +23,7 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_HAMILTONIAN,  // M0, mass*M1, H moments.
   GKYL_F_MOMENT_M1_FROM_H, // dH/dv / m moment.
   GKYL_F_MOMENT_ENERGY, // H moment.
+  GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
   GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
   GKYL_F_MOMENT_NI, // M0, M1i for-vector.
   GKYL_F_MOMENT_TIJ, // Stress-energy tensor.

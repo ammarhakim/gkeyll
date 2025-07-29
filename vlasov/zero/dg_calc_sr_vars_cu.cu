@@ -15,7 +15,7 @@ extern "C" {
 
 __global__ void
 gkyl_calc_sr_vars_init_p_vars_cu_kernel(gkyl_dg_calc_sr_vars* up, 
-  struct gkyl_array* gamma, struct gkyl_array* gamma_inv)
+  struct gkyl_array* gamma_inv)
 {
   int idx[GKYL_MAX_DIM];
   // Cell center array
@@ -35,21 +35,19 @@ gkyl_calc_sr_vars_init_p_vars_cu_kernel(gkyl_dg_calc_sr_vars* up,
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&up->vel_range, idx);
 
-    double *gamma_d = (double*) gkyl_array_fetch(gamma, loc);
     double *gamma_inv_d = (double*) gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
+    up->sr_p_vars(xc, up->vel_grid.dx, gamma_inv_d);
   }
 }
 
-// Host-side wrapper for initialization of momentum variables (gamma, gamma_inv) 
+// Host-side wrapper for initialization of momentum variables (gamma_inv) 
 void
 gkyl_calc_sr_vars_init_p_vars_cu(struct gkyl_dg_calc_sr_vars *up, 
-  struct gkyl_array* gamma, struct gkyl_array* gamma_inv)
+  struct gkyl_array* gamma_inv)
 {
   int nblocks = up->vel_range.nblocks;
   int nthreads = up->vel_range.nthreads;
-  gkyl_calc_sr_vars_init_p_vars_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    gamma->on_dev, gamma_inv->on_dev);
+  gkyl_calc_sr_vars_init_p_vars_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, gamma_inv->on_dev);
 }
 
 __global__ static void

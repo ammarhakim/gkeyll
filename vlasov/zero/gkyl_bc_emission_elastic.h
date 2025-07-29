@@ -48,7 +48,7 @@ gkyl_bc_emission_elastic_new(struct gkyl_emission_elastic_model *elastic_model,
 void
 gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
   struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
-  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
+  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, const struct gkyl_basis *basis);
 
 /**
  * @param dir Direction in which to apply BC

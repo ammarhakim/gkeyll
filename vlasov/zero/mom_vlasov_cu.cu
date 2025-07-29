@@ -52,77 +52,112 @@ v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 
 __global__
 static void
-set_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_distribution_moments mom_type,
-  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
+set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
+  enum gkyl_model_id model_id, const struct gkyl_array *hamil)
 {
+  // Assigning pointers on device so that the on_dev mom_vlasov object 
+  // points to the on_dev gkyl_array. 
+  mom_vlasov->hamil = hamil; 
+
   int m3ijk_count[] = { 1, 4, 10 };
 
-  momt->momt.kernel = kernel;
+  mom_vlasov->momt.kernel = kernel;
   
   // choose kernel tables based on basis-function type
-  const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
-    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels, *five_moments_kernels;
-  
+  const gkyl_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
+    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels, *m3i_hamil_gen_kernels, 
+    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
+
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
-      m1i_kernels = ser_m1i_kernels;
-      m2_kernels = ser_m2_kernels;
+      m1i_hamil_vel_kernels = ser_m1i_hamil_vel_kernels;
+      m2_hamil_vel_kernels = ser_m2_hamil_vel_kernels;
+      // m3i_hamil_vel_kernels = ser_m3i_hamil_vel_kernels;
+      m1i_hamil_gen_kernels = ser_m1i_hamil_gen_kernels;
+      m2_hamil_gen_kernels = ser_m2_hamil_gen_kernels;
+      // m3i_hamil_gen_kernels = ser_m3i_hamil_gen_kernels;
       m2ij_kernels = ser_m2ij_kernels;
-      m3i_kernels = ser_m3i_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
-      five_moments_kernels = ser_five_moments_kernels;
+      five_moments_hamil_vel_kernels = ser_five_moments_hamil_vel_kernels;
+      five_moments_hamil_gen_kernels = ser_five_moments_hamil_gen_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       m0_kernels = tensor_m0_kernels;
-      m1i_kernels = tensor_m1i_kernels;
-      m2_kernels = tensor_m2_kernels;
+      m1i_hamil_vel_kernels = tensor_m1i_hamil_vel_kernels;
+      m2_hamil_vel_kernels = tensor_m2_hamil_vel_kernels;
+      // m3i_hamil_vel_kernels = tensor_m3i_hamil_vel_kernels;
+      m1i_hamil_gen_kernels = tensor_m1i_hamil_gen_kernels;
+      m2_hamil_gen_kernels = tensor_m2_hamil_gen_kernels;
+      // m3i_hamil_gen_kernels = tensor_m3i_hamil_gen_kernels;
       m2ij_kernels = tensor_m2ij_kernels;
-      m3i_kernels = tensor_m3i_kernels;
       m3ijk_kernels = tensor_m3ijk_kernels;
-      five_moments_kernels = tensor_five_moments_kernels;
+      five_moments_hamil_vel_kernels = tensor_five_moments_hamil_vel_kernels;
+      five_moments_hamil_gen_kernels = tensor_five_moments_hamil_gen_kernels;
       break;
 
     default:
       assert(false);
       break;    
-  }  
+  }
   
   switch (mom_type) {
     case GKYL_F_MOMENT_M0:
-      momt->kernel = m0_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = 1;
+      mom_vlasov->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M1:
-      momt->kernel = m1i_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = vdim;
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
+        mom_vlasov->kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      else {
+        mom_vlasov->kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      mom_vlasov->kernel = m1i_kernels[tblidx].kernels[poly_order];
+      mom_vlasov->momt.num_mom = vdim;
       break;
 
     case GKYL_F_MOMENT_M2:
-      momt->kernel = m2_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = 1;
-      break;
-
-    case GKYL_F_MOMENT_M2IJ:
-      momt->kernel = m2ij_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = vdim*(vdim+1)/2;
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
+        mom_vlasov->kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      else {
+        mom_vlasov->kernel = m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      mom_vlasov->momt.num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M3:
-      momt->kernel = m3i_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = vdim;
+      // if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
+      //   mom_vlasov->kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      // }
+      // else {
+      //   mom_vlasov->kernel = m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      // }
+      mom_vlasov->momt.num_mom = vdim;
+      break;
+
+    case GKYL_F_MOMENT_M2IJ:
+      mom_vlasov->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.num_mom = vdim*(vdim+1)/2;
       break;
 
     case GKYL_F_MOMENT_M3IJK:
-      momt->kernel = m3ijk_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = m3ijk_count[vdim-1];
+      mom_vlasov->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.num_mom = m3ijk_count[vdim-1];
       break;
 
     case GKYL_F_MOMENT_M0M1M2:
-      momt->kernel = five_moments_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = vdim+2;
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
+        mom_vlasov->kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      else {
+        mom_vlasov->kernel = five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      mom_vlasov->momt.num_mom = vdim+2;
       break;
       
     default: // can't happen
@@ -131,73 +166,94 @@ set_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_distribution_moments mom_typ
 }
 
 struct gkyl_mom_type*
-gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type)
+gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
+  assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
-  struct mom_type_vlasov *momt = (struct mom_type_vlasov*)
-    gkyl_malloc(sizeof(struct mom_type_vlasov));
-  
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
-  int poly_order = cbasis->poly_order;
+  struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
+  int poly_order = inp->conf_basis->poly_order;
 
-  momt->momt.cdim = cdim;
-  momt->momt.pdim = pdim;
-  momt->momt.poly_order = poly_order;
-  momt->momt.num_config = cbasis->num_basis;
-  momt->momt.num_phase = pbasis->num_basis;
+  mom_vlasov->momt.cdim = cdim;
+  mom_vlasov->momt.pdim = pdim;
+  mom_vlasov->momt.poly_order = poly_order;
+  mom_vlasov->momt.num_config = inp->conf_basis->num_basis;
+  mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
+  mom_vlasov->momt.kernel = kernel;
 
-  momt->momt.num_mom = v_num_mom(vdim, mom_type); // Number of moments.
+  // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
+  // from an input phase space index. 
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    mom_vlasov->hamil_dim = vdim; 
+    mom_vlasov->hamil_offset = cdim; 
+  }
+  else {
+    mom_vlasov->hamil_dim = pdim; 
+    mom_vlasov->hamil_offset = 0; 
+  }
+  mom_vlasov->hamil_range = *inp->hamil_range;
+  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
 
-  momt->momt.flags = 0;
-  GKYL_SET_CU_ALLOC(momt->momt.flags);
-  momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
+
+  mom_vlasov->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
   
   // copy struct to device
-  struct mom_type_vlasov *momt_cu = (struct mom_type_vlasov*)
-    gkyl_cu_malloc(sizeof(struct mom_type_vlasov));
-  gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
+  struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));
+  gkyl_cu_memcpy(mom_vlasov_cu, mom_vlasov, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(momt_cu, mom_type, cbasis->b_type,
-    vdim, poly_order, cv_index[cdim].vdim[vdim]);
+  set_cu_ptrs<<<1,1>>>(mom_vlasov_cu, inp->mom_type, inp->conf_basis->b_type, 
+    cdim, vdim, poly_order, inp->model_id, inp->hamil->on_dev);
 
-  momt->momt.on_dev = &momt_cu->momt;
+  mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
   
-  return &momt->momt;
+  return &mom_vlasov->momt;
 }
 
 __global__
 static void
-set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_distribution_moments mom_type,
-  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
+set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
+  enum gkyl_model_id model_id, const struct gkyl_array *hamil)
 {
-  momt->momt.kernel = kernel;
+  // Assigning pointers on device so that the on_dev mom_vlasov object 
+  // points to the on_dev gkyl_array. 
+  mom_vlasov->hamil = hamil; 
+
+  mom_vlasov->momt.kernel = kernel;
 
   // Choose kernel tables based on basis-function type.
-  const gkyl_mom_kern_list *int_five_moments_kernels;
+  const gkyl_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
 
-  // Set kernel pointer.
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_five_moments_kernels = ser_int_five_moments_kernels;
+      int_five_moments_hamil_vel_kernels = ser_int_five_moments_hamil_vel_kernels;
+      int_five_moments_hamil_gen_kernels = ser_int_five_moments_hamil_gen_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:      
-      int_five_moments_kernels = tensor_int_five_moments_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      int_five_moments_hamil_vel_kernels = tensor_int_five_moments_hamil_vel_kernels;
+      int_five_moments_hamil_gen_kernels = tensor_int_five_moments_hamil_gen_kernels;
       break;
 
     default:
       assert(false);
       break;    
-  }
+  }  
 
   switch (mom_type) {
     case GKYL_F_MOMENT_M0M1M2:
-      momt->kernel = int_five_moments_kernels[tblidx].kernels[poly_order];
-      momt->momt.num_mom = 2+vdim;
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
+        mom_vlasov->kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      else {
+        mom_vlasov->kernel = int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      } 
+      mom_vlasov->momt.num_mom = 2+vdim;
       break;
 
     default:
@@ -206,39 +262,47 @@ set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_distribution_moments mom
   }
 }
 
-struct gkyl_mom_type *
-gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type)
+struct gkyl_mom_type*
+gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
+  assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
-  struct mom_type_vlasov *momt = (struct mom_type_vlasov*)
-    gkyl_malloc(sizeof(struct mom_type_vlasov));
-  
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
-  int poly_order = cbasis->poly_order;
+  struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
+  int poly_order = inp->conf_basis->poly_order;
 
-  momt->momt.cdim = cdim;
-  momt->momt.pdim = pdim;
-  momt->momt.poly_order = poly_order;
-  momt->momt.num_config = cbasis->num_basis;
-  momt->momt.num_phase = pbasis->num_basis;
+  mom_vlasov->momt.cdim = cdim;
+  mom_vlasov->momt.pdim = pdim;
+  mom_vlasov->momt.poly_order = poly_order;
+  mom_vlasov->momt.num_config = inp->conf_basis->num_basis;
+  mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
+  // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
+  // from an input phase space index. 
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    mom_vlasov->hamil_dim = vdim; 
+    mom_vlasov->hamil_offset = cdim; 
+  }
+  else {
+    mom_vlasov->hamil_dim = pdim; 
+    mom_vlasov->hamil_offset = 0; 
+  }
+  mom_vlasov->hamil_range = *inp->hamil_range;
+  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
 
-  momt->momt.num_mom = v_num_mom(vdim, mom_type); // Number of moments.
+  mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
-  momt->momt.flags = 0;
-  GKYL_SET_CU_ALLOC(momt->momt.flags);
-  momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
   
   // copy struct to device
-  struct mom_type_vlasov *momt_cu = (struct mom_type_vlasov*)
-    gkyl_cu_malloc(sizeof(struct mom_type_vlasov));
-  gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
+  struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));
+  gkyl_cu_memcpy(mom_vlasov_cu, mom_vlasov, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, mom_type, cbasis->b_type,
-    vdim, poly_order, cv_index[cdim].vdim[vdim]);
+  set_int_cu_ptrs<<<1,1>>>(mom_vlasov_cu, inp->mom_type, inp->conf_basis->b_type, 
+    cdim, vdim, poly_order, inp->model_id, inp->hamil->on_dev);
 
-  momt->momt.on_dev = &momt_cu->momt;
+  mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
   
-  return &momt->momt;
+  return &mom_vlasov->momt;
 }

@@ -369,13 +369,13 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
-    .gamma = inp->gamma,
+    .hamil_range = inp->hamil_range, 
+    .hamil = inp->hamil,
+    .model_id = inp->model_id,
     .gamma_inv = inp->gamma_inv,
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
-    .hamil = inp->hamil,
-    .model_id = inp->model_id,
     .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );

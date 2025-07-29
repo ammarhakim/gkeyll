@@ -7,11 +7,10 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_updater_moment.h>
+#include <gkyl_mom_type.h> 
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_moments_priv.h>
-#include <gkyl_mom_canonical_pb.h>
-#include <gkyl_mom_vlasov_sr.h>
 
 #include <assert.h>
 
@@ -48,6 +47,31 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->num_conf_basis);
   }
 
+  // Create moment updaters for computing LTE moments. 
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .hamil_range = inp->hamil_range,
+    .hamil = inp->hamil,
+    .model_id = inp->model_id,
+    .use_gpu = inp->use_gpu,
+  };  
+  inp_mom.mom_type = GKYL_F_MOMENT_M0;
+  struct gkyl_mom_type *M0_type = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *M1_type = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *M2_type = gkyl_mom_vlasov_inew(&inp_mom);
+
+  up->M0_calc = gkyl_mom_calc_new(inp->phase_grid, M0_type, inp->use_gpu);
+  up->M1i_calc = gkyl_mom_calc_new(inp->phase_grid, M1_type, inp->use_gpu);
+  up->Pcalc = gkyl_mom_calc_new(inp->phase_grid, M2_type, inp->use_gpu);
+
+  gkyl_mom_type_release(M0_type); 
+  gkyl_mom_type_release(M1_type); 
+  gkyl_mom_type_release(M2_type); 
+
+  // Allocate model-specific data for obtaining LTE moments from base moments. 
   if (up->model_id == GKYL_MODEL_SR) {
     // spatial components of the four-velocity squared, u_i^2 = (GammaV*V_drift)^2
     // and bulk four-velocity Lorentz boost factor GammaV = sqrt(1 + |u_i|^2) and its square
@@ -61,18 +85,10 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       up->GammaV = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->GammaV_sq = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
-    up->gamma = gkyl_array_acquire(inp->gamma); 
+    up->hamil = gkyl_array_acquire(inp->hamil); 
     up->gamma_inv = gkyl_array_acquire(inp->gamma_inv); 
     up->sr_vars = gkyl_dg_calc_sr_vars_new(inp->phase_grid, inp->vel_grid, 
       inp->conf_basis, inp->vel_basis, inp->conf_range, inp->vel_range, inp->use_gpu);
-
-    // Set auxiliary fields for moment updates. 
-    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = inp->gamma};  
-    // Moment calculator for needed moments (M0, M1i)
-    up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, GKYL_F_MOMENT_M0, false, inp->use_gpu);
-    up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, GKYL_F_MOMENT_M1, false, inp->use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
     up->h_ij = gkyl_array_acquire(inp->h_ij);
@@ -88,28 +104,8 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       up->M1i_cov = gkyl_array_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
       up->V_drift_cov = gkyl_array_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
     }
-    up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
-    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = inp->hamil}; 
-
-    // Moment calculator for needed moments (M0, M1i, and M2)
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel
-    // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
-    up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, GKYL_F_MOMENT_M0, false, inp->use_gpu);
-    up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &can_pb_inp, GKYL_F_MOMENT_M1_FROM_H, false, inp->use_gpu);
-    up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &can_pb_inp, GKYL_F_MOMENT_ENERGY, false, inp->use_gpu);   
-  }
-  else {
-    // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
-    // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
-    up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, GKYL_F_MOMENT_M0, false, inp->use_gpu);
-    up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, GKYL_F_MOMENT_M1, false, inp->use_gpu);
-    up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, GKYL_F_MOMENT_M2, false, inp->use_gpu);    
+    up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
   }
   return up;
 }
@@ -120,14 +116,12 @@ gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_moms,
   const struct gkyl_array *fin, struct gkyl_array *density_out)
 {
   // compute lab frame moment M0
-  gkyl_dg_updater_moment_advance(lte_moms->M0_calc, phase_local, conf_local, 
-    fin, lte_moms->M0);
+  gkyl_mom_calc_advance(lte_moms->M0_calc, phase_local, conf_local, fin, lte_moms->M0); 
 
   // If we are relativistic, compute M1i and find the rest-frame density 
   // n = Gamma_inv*M0 where Gamma_inv = sqrt(1 - |V_drift|^2) and V_drift = M1i/M0
   if (lte_moms->model_id == GKYL_MODEL_SR) {
-    gkyl_dg_updater_moment_advance(lte_moms->M1i_calc, phase_local, conf_local, 
-      fin, lte_moms->M1i);
+    gkyl_mom_calc_advance(lte_moms->M1i_calc, phase_local, conf_local, fin, lte_moms->M1i); 
     gkyl_dg_calc_sr_vars_n(lte_moms->sr_vars, 
       lte_moms->M0, lte_moms->M1i, density_out);
   }
@@ -145,10 +139,8 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
   int num_conf_basis = lte_moms->num_conf_basis;
 
   // compute lab frame moments M0 and M1i
-  gkyl_dg_updater_moment_advance(lte_moms->M0_calc, phase_local, conf_local, 
-    fin, lte_moms->M0);
-  gkyl_dg_updater_moment_advance(lte_moms->M1i_calc, phase_local, conf_local, 
-    fin, lte_moms->M1i);
+  gkyl_mom_calc_advance(lte_moms->M0_calc, phase_local, conf_local, fin, lte_moms->M0); 
+  gkyl_mom_calc_advance(lte_moms->M1i_calc, phase_local, conf_local, fin, lte_moms->M1i); 
 
   if (lte_moms->model_id == GKYL_MODEL_SR) {
     // If we are relativistic, first compute rest-frame density n = Gamma_inv*M0,
@@ -178,7 +170,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     // computing the lab frame moment and then Lorentz transforming to the stationary frame. 
     gkyl_dg_calc_sr_vars_pressure(lte_moms->sr_vars, 
       conf_local, phase_local, 
-      lte_moms->gamma, lte_moms->gamma_inv, 
+      lte_moms->hamil, lte_moms->gamma_inv, 
       lte_moms->V_drift, lte_moms->V_drift_sq, 
       lte_moms->GammaV, lte_moms->GammaV_sq, 
       fin, lte_moms->pressure);  
@@ -202,8 +194,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
         lte_moms->V_drift, lte_moms->M1i, lte_moms->V_drift_cov, lte_moms->M1i_cov);
 
       // Compute MEnergy
-      gkyl_dg_updater_moment_advance(lte_moms->Pcalc, phase_local, conf_local, 
-        fin, lte_moms->energy_moment);
+      gkyl_mom_calc_advance(lte_moms->Pcalc, phase_local, conf_local, fin, lte_moms->energy_moment);
       // Take covaraint momentum components and M1i components
       // Solve for d*P*Jv: d*P*Jv = 2*E - n*h^{ij}*u_i*u_j 
       //                          = 2*E - h^{ij}*M1_i*V_drift_j 
@@ -218,8 +209,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     }
     else {
       // Compute the lab frame M2 = vdim*P/m + V_drift dot M1i.
-      gkyl_dg_updater_moment_advance(lte_moms->Pcalc, phase_local, conf_local, 
-        fin, lte_moms->pressure);
+      gkyl_mom_calc_advance(lte_moms->Pcalc, phase_local, conf_local, fin, lte_moms->pressure);
       // Subtract off V_drift dot M1i from total M2
       gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
       gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
@@ -262,7 +252,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
     gkyl_array_release(lte_moms->V_drift_sq);
     gkyl_array_release(lte_moms->GammaV);
     gkyl_array_release(lte_moms->GammaV_sq);
-    gkyl_array_release(lte_moms->gamma);
+    gkyl_array_release(lte_moms->hamil);
     gkyl_array_release(lte_moms->gamma_inv);
   }
   else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB 
@@ -276,11 +266,8 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
     gkyl_array_release(lte_moms->V_drift_cov);
   } 
 
-  gkyl_dg_updater_moment_release(lte_moms->M0_calc);
-  gkyl_dg_updater_moment_release(lte_moms->M1i_calc);
-  if (lte_moms->model_id != GKYL_MODEL_SR) {
-    gkyl_dg_updater_moment_release(lte_moms->Pcalc);
-  }
-
+  gkyl_mom_calc_release(lte_moms->M0_calc); 
+  gkyl_mom_calc_release(lte_moms->M1i_calc); 
+  gkyl_mom_calc_release(lte_moms->Pcalc); 
   gkyl_free(lte_moms);
 }

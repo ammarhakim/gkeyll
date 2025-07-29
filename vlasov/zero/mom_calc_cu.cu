@@ -73,6 +73,7 @@ gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 
   up->momt = mt; // host portion of struct should have host copy
   up->on_dev = up_cu; // host pointer
+  up->use_gpu = true;
 
   return up;
 }

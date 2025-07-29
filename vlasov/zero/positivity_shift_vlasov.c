@@ -99,7 +99,7 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
       double m0phase_in_c[num_cbasis];
       for (int k=0; k<num_cbasis; k++)
         m0phase_in_c[k] = 0.0;
-      up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_in_c);
+      up->kernels->m0(xc, up->grid.dx, vel_iter.idx, 0, distf_c, m0phase_in_c);
 
       // Add to the old number density.
       for (int k=0; k<num_cbasis; k++)
@@ -113,7 +113,7 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
         double m0phase_out_c[num_cbasis];
         for (int k=0; k<num_cbasis; k++)
           m0phase_out_c[k] = 0.0;
-        up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_out_c);
+        up->kernels->m0(xc, up->grid.dx, vel_iter.idx, 0, distf_c, m0phase_out_c);
 
         if (up->kernels->is_m0_positive(m0phase_in_c)) {
           // Rescale f in this cell so it keeps the same density.

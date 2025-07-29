@@ -1,30 +1,51 @@
 #pragma once
 
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_range.h>
+
+// Input packaged as a struct
+struct gkyl_mom_vlasov_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions. 
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions. 
+  enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments (such as energy or dH/dv moment). 
+  enum gkyl_distribution_moments mom_type; // Name of moment to compute. See gkyl_mom_type.h. 
+  bool use_gpu; // bool to determine if on GPU. 
+};
 
 /**
- * Create new Vlasov moment type object. Valid 'mom' strings are "M0",
- * "M1i", "M2", "M2ij", "M3i", "M3ijk", "FiveMoments"
+ * Create a new Vlasov moment type object. 
  *
- * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions
- * @param mom_type Name of moment to compute.
- * @param use_gpu bool to determine if on GPU
+ * @param inp Input parameters defined in gkyl_mom_vlasov_inp struct.
+ * @return Pointer to Vlasov moment type object.
  */
-struct gkyl_mom_type* 
-gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu);
+struct gkyl_mom_type* gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp);
 
 /**
- * Create new integrated Vlasov moment type object. Lab-frame
- * integrated moments (M0, M1i and M2) are computed.
+ * Create a new Vlasov moment type object that lives on 
+ * NV-GPU. See new() method for documentation.
  *
- * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions
- * @param mom_type Name of moment to compute.
- * @param use_gpu bool to determine if on GPU
+ * @param inp Input parameters defined in gkyl_mom_vlasov_inp struct.
+ * @return Pointer to Vlasov moment type object on device. 
  */
-struct gkyl_mom_type* 
-gkyl_int_mom_vlasov_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu);
+struct gkyl_mom_type* gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp);
+
+/**
+ * Create a new Vlasov integrated moment type object. 
+ *
+ * @param inp Input parameters defined in gkyl_mom_vlasov_inp struct.
+ * @return Pointer to Vlasov moment type object.
+ */
+struct gkyl_mom_type* gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp);
+
+/**
+ * Create a new Vlasov integrated moment type object that lives on 
+ * NV-GPU. See new() method for documentation.
+ *
+ * @param inp Input parameters defined in gkyl_mom_vlasov_inp struct.
+ * @return Pointer to Vlasov moment type object on device. 
+ */
+struct gkyl_mom_type* gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp);
