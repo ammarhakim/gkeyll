@@ -35,7 +35,7 @@ typedef double (*vel_flux_surf_edge_t)(struct gkyl_dg_vlasov_vel_flux_surf *up,
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
-GKYL_CU_D
+GKYL_CU_DH
 static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices

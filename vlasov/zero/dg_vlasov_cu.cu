@@ -185,7 +185,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_dg_vlasov_inp *inp)
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
   dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, model_id, inp->has_qmem, inp->has_phi, 
+    cdim, vdim, poly_order, inp->model_id, inp->has_qmem, inp->has_phi, 
     inp->hamil->on_dev, inp->qmem->on_dev, inp->pot_tot->on_dev, inp->vel_flux_surf->on_dev);
 
   // set parent on_dev pointer
