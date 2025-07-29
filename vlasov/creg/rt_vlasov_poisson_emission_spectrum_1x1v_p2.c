@@ -224,8 +224,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
     gkyl_vlasov_app_write(app, t_curr, frame);
-
-    gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, frame);
 
     gkyl_vlasov_app_calc_field_energy(app, t_curr);

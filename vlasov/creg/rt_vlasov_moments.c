@@ -286,13 +286,11 @@ main(int argc, char **argv)
   struct timespec tm_start = gkyl_wall_clock();
   // time with volume term
   for (int i=0; i<inp.nloop; ++i)
-    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, 0.0, 0);
   
   double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
     
   printf("Time for full update: %g [s]\n", tm_tot/inp.nloop);
-
-  gkyl_vlasov_app_write_mom(app, 0.0, 0);
 
   gkyl_vlasov_app_release(app);
   
