@@ -208,18 +208,18 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       assert(false);
     }
     else {
-      // Compute the lab frame M2 = vdim*P/m + V_drift dot M1i.
+      // Compute the lab frame M2 = 0.5*(vdim*P/m + V_drift dot M1i).
       gkyl_mom_calc_advance(lte_moms->Pcalc, phase_local, conf_local, fin, lte_moms->pressure);
       // Subtract off V_drift dot M1i from total M2
       gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
       gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
         lte_moms->V_drift_dot_M1i, lte_moms->V_drift, lte_moms->M1i, conf_local); 
-      gkyl_array_accumulate_range(lte_moms->pressure, -1.0, 
+      gkyl_array_accumulate_range(lte_moms->pressure, -0.5, 
         lte_moms->V_drift_dot_M1i, conf_local); 
     }
 
-    // Rescale pressure by 1.0/vdim and set the first component of moms_out to be the density. 
-    gkyl_array_scale(lte_moms->pressure, 1.0/vdim);
+    // Rescale pressure by 2.0/vdim and set the first component of moms_out to be the density. 
+    gkyl_array_scale(lte_moms->pressure, 2.0/vdim);
     gkyl_array_set_range(moms_out, 1.0, lte_moms->M0, conf_local);
   }
   // ( T/m = P/(mn) ) 
