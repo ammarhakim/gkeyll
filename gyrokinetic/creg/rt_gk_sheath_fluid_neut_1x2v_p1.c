@@ -684,8 +684,9 @@ main(int argc, char **argv)
     },
 
     .recycling_reaction_scaling = {
-      .num_impacting_species = 1,
-      .impacting_species = { "ion" },
+      .impacting_ion_name =  "ion" ,
+      .impacting_ion_id = GKYL_ION_H,
+      .electon_name = "elc",
       .recycling_coeff = ctx.rec_frac,
       .num_boundaries = 2,
       .boundary_dirs = {0, 0,},

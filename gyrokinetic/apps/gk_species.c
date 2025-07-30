@@ -1456,16 +1456,34 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         bc = &app->neut_species[i].info.bcz;
 
       if (bc->lower.type == GKYL_SPECIES_RECYCLE) {
-         for (int j=0; j<bc->lower.emission.num_species; j++)
-           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->lower.emission.in_species[j]);
+        for (int j=0; j<bc->lower.emission.num_species; j++)
+          recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->lower.emission.in_species[j]);
       }
       if (bc->upper.type == GKYL_SPECIES_RECYCLE) {
-         for (int j=0; j<bc->upper.emission.num_species; j++)
-           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->upper.emission.in_species[j]);
+        for (int j=0; j<bc->upper.emission.num_species; j++)
+          recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->upper.emission.in_species[j]);
       }
     }
   }
   return recycling_bcs;
+}
+
+static bool
+gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether one of the neutral species has a recycle_react_scale
+  // operation thats depend on this gyrokinetic species.
+  bool has_rrs = false;
+  int neuts = app->num_neut_species;
+  for (int i=0; i<neuts; ++i) {
+    struct gk_neut_species *ns = &app->neut_species[i];
+    struct gkyl_gyrokinetic_recycling_reaction_scaling_inp *rrs_inp = &ns->info.recycling_reaction_scaling;
+    if ((rrs_inp->num_boundaries > 0) && (0 == strcmp(gks->info.name, rrs_inp->impacting_ion_name))) {
+      has_rrs = true;
+      break;
+    }
+  }
+  return has_rrs;
 }
 
 static bool
@@ -1776,16 +1794,24 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
     
-    // Boltzmann elc model requires the fluxes.
+    // Check if using Boltzmann elc.
     bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
-    // Recycling BCs require the fluxes. Since this depends on other species,
-    // it'll be checked in .
+    // Check if other species have recycling BCs.
     bool recycling_bcs = gk_species_do_I_recycle(app, gks);
-    // Check if any of the sources are adaptive.
+    // Check if sources are adaptive.
     bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
+    // Check if other species use the recycle_react_scale operation.
+    bool recycle_react_scate = gk_species_do_I_recycle_react_scale(app, gks);
    
     if (boltz_elc_field || recycling_bcs || adaptive_sources) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+    }
+    if (recycle_react_scate) {
+      // This is within an if-statement instead of an else if because it
+      // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
+      bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
+      add_bflux_moms_inp.num_diag_moments = 1;
+      add_bflux_moms_inp.diag_moments[0] = GKYL_F_MOMENT_M0;
     }
   }
 

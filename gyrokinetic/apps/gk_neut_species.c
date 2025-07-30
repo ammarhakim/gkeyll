@@ -72,12 +72,10 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
   
-
   // Collisionless terms.
   struct timespec wst = gkyl_wall_clock();
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
-
 
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -600,6 +598,10 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
     gkyl_free(ns->omega_cfl);
   }
 
+  // Free memory for the object that scales the species according to a balance
+  // between recycling and reactions.
+  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+
   // Release integrated mom data.
   gk_neut_species_moment_release(app, &ns->integ_moms); 
 
@@ -896,6 +898,10 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 
   ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
                               : gkyl_malloc(sizeof(double));
+
+  // Initialize the object that scales the species according to a balance
+  // between recycling and reactions.
+  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
 
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);

@@ -654,6 +654,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     if (gkns->react_neut.num_react) {
       gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
     }
+
+    // Initialize cross-species part of the object that scales the species
+    // according to a balance between recycling and reactions.
+    gk_neut_species_recycle_react_scale_cross_init(app, gkns, &gkns->rrs);
     
     // Initialize wall emission terms.
     for (int d=0; d<app->cdim; ++d) {
@@ -1628,11 +1632,16 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
-    // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
     if (app->neut_species[i].react_neut.num_react) {
+      // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
         &app->neut_species[i].react_neut, fin, fin_neut);
     }
+
+    // Compute reaction coefficients fro scaling species according to balance
+    // between recycling and reactions.
+    gk_neut_species_recycle_react_scale_cross_moms(app, &app->neut_species[i], 
+      &app->neut_species[i].rrs, fin, fin_neut);
   }
 
   // Compute collisionless terms of charged species.

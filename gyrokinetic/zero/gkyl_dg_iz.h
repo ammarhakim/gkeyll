@@ -10,7 +10,6 @@
 struct gkyl_dg_iz_inp {
   struct gkyl_basis* cbasis; // Configuration-space basis-functions.
   const struct gkyl_range *conf_rng; // Configuration-space range.
-  double mass_ion; // Mass of the ion.
   enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru O, Ar).
   int charge_state; // Ion charge state.
   enum gkyl_react_self_type type_self; // Species type (ion, electron or donor).

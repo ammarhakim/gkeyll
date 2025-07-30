@@ -222,7 +222,7 @@ struct gkyl_gyrokinetic_react {
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
-  bool write_diagnostics; // used to write diagnostics from neutral species
+  bool write_diagnostics; // Whether to write diagnostics.
 };
 
 // Input parameters for scaling a species according to recycling at specified
@@ -231,9 +231,11 @@ struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
   int num_boundaries; // Number of boundaries.
   int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
   enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
-  int num_impacting_species; // Number of impacting species.
-  char impacting_species[GKYL_MAX_SPECIES][128]; // Names of impacting species.
+  char impacting_ion_name[128]; // Name of impacting species.
+  enum gkyl_ion_type impacting_ion_id; // Type of impacting ion.
+  char electron_name[128]; // Name of electron species.
   double recycling_coeff; // Recycling coefficient.
+  bool write_diagnostics; // Whether to write diagnostics.
 };
 
 // Parameters in FLR effects.

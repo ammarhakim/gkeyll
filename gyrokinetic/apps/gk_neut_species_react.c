@@ -98,7 +98,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       struct gkyl_dg_iz_inp iz_inp = {
         .cbasis = &app->basis, 
         .conf_rng = &app->local, 
-        .mass_ion = react->react_type[i].ion_mass, 
         .type_ion = react->react_type[i].ion_id, 
         .charge_state = react->react_type[i].charge_state, 
         .type_self = react->type_self[i], 
