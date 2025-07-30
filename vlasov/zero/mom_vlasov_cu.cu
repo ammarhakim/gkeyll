@@ -108,6 +108,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M1:
+    case GKYL_F_MOMENT_M1_FROM_H:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         mom_vlasov->kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
@@ -118,6 +119,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M2:
+    case GKYL_F_MOMENT_ENERGY:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         mom_vlasov->kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
