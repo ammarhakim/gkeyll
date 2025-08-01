@@ -1,34 +1,57 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void hamil_default_3v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT hamil) 
+GKYL_CU_DH void hamil_default_3v_ser_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv) 
 { 
   // w:   Cell-center coordinates of velocity grid.
   // dxv: Cell spacing of velocity grid.
+  // vmap: Velocity-space map for nonuniform meshes.
   // hamil: Particle Hamiltonian.
+  // hamil_inv: Inverse particle Hamiltonian. Utilized by relativistic simulations. 
  
-  const double wx1 = w[0], dv1 = dxv[0]; 
-  const double wx2 = w[1], dv2 = dxv[1]; 
-  const double wx3 = w[2], dv3 = dxv[2]; 
+  double wx1 = w[0], dv1 = dxv[0]; 
+  double wx2 = w[1], dv2 = dxv[1]; 
+  double wx3 = w[2], dv3 = dxv[2]; 
   double hamil_nodal[20] = {0.0};
+  double hamil_inv_nodal[20] = {0.0};
   hamil_nodal[0] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[0] = 1.0/hamil_nodal[0];
   hamil_nodal[1] = 0.5*(pow(wx1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[1] = 1.0/hamil_nodal[1];
   hamil_nodal[2] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[2] = 1.0/hamil_nodal[2];
   hamil_nodal[3] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[3] = 1.0/hamil_nodal[3];
   hamil_nodal[4] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[4] = 1.0/hamil_nodal[4];
   hamil_nodal[5] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[5] = 1.0/hamil_nodal[5];
   hamil_nodal[6] = 0.5*(pow(wx1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[6] = 1.0/hamil_nodal[6];
   hamil_nodal[7] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3-0.5*dv3, 2.0));
+  hamil_inv_nodal[7] = 1.0/hamil_nodal[7];
   hamil_nodal[8] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3, 2.0));
+  hamil_inv_nodal[8] = 1.0/hamil_nodal[8];
   hamil_nodal[9] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3, 2.0));
+  hamil_inv_nodal[9] = 1.0/hamil_nodal[9];
   hamil_nodal[10] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3, 2.0));
+  hamil_inv_nodal[10] = 1.0/hamil_nodal[10];
   hamil_nodal[11] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3, 2.0));
+  hamil_inv_nodal[11] = 1.0/hamil_nodal[11];
   hamil_nodal[12] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[12] = 1.0/hamil_nodal[12];
   hamil_nodal[13] = 0.5*(pow(wx1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[13] = 1.0/hamil_nodal[13];
   hamil_nodal[14] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[14] = 1.0/hamil_nodal[14];
   hamil_nodal[15] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[15] = 1.0/hamil_nodal[15];
   hamil_nodal[16] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[16] = 1.0/hamil_nodal[16];
   hamil_nodal[17] = 0.5*(pow(wx1-0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[17] = 1.0/hamil_nodal[17];
   hamil_nodal[18] = 0.5*(pow(wx1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[18] = 1.0/hamil_nodal[18];
   hamil_nodal[19] = 0.5*(pow(wx1+0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0) + pow(wx3+0.5*dv3, 2.0));
+  hamil_inv_nodal[19] = 1.0/hamil_nodal[19];
 
   hamil[0] = -(0.3535533905932737*hamil_nodal[19])+0.4714045207910317*hamil_nodal[18]-0.3535533905932737*hamil_nodal[17]+0.4714045207910317*hamil_nodal[16]+0.4714045207910317*hamil_nodal[15]-0.3535533905932737*hamil_nodal[14]+0.4714045207910317*hamil_nodal[13]-0.3535533905932737*hamil_nodal[12]+0.4714045207910317*hamil_nodal[11]+0.4714045207910317*hamil_nodal[10]+0.4714045207910317*hamil_nodal[9]+0.4714045207910317*hamil_nodal[8]-0.3535533905932737*hamil_nodal[7]+0.4714045207910317*hamil_nodal[6]-0.3535533905932737*hamil_nodal[5]+0.4714045207910317*hamil_nodal[4]+0.4714045207910317*hamil_nodal[3]-0.3535533905932737*hamil_nodal[2]+0.4714045207910317*hamil_nodal[1]-0.3535533905932737*hamil_nodal[0]; 
   hamil[1] = -(0.06804138174397717*hamil_nodal[19])+0.06804138174397717*hamil_nodal[17]+0.27216552697590873*hamil_nodal[16]-0.27216552697590873*hamil_nodal[15]-0.06804138174397717*hamil_nodal[14]+0.06804138174397717*hamil_nodal[12]+0.27216552697590873*hamil_nodal[11]-0.27216552697590873*hamil_nodal[10]+0.27216552697590873*hamil_nodal[9]-0.27216552697590873*hamil_nodal[8]-0.06804138174397717*hamil_nodal[7]+0.06804138174397717*hamil_nodal[5]+0.27216552697590873*hamil_nodal[4]-0.27216552697590873*hamil_nodal[3]-0.06804138174397717*hamil_nodal[2]+0.06804138174397717*hamil_nodal[0]; 
@@ -50,5 +73,26 @@ GKYL_CU_DH void hamil_default_3v_ser_p2(const double *w, const double *dxv, doub
   hamil[17] = 0.03513641844631532*hamil_nodal[19]-0.07027283689263064*hamil_nodal[18]+0.03513641844631532*hamil_nodal[17]-0.03513641844631532*hamil_nodal[14]+0.07027283689263064*hamil_nodal[13]-0.03513641844631532*hamil_nodal[12]-0.03513641844631532*hamil_nodal[7]+0.07027283689263064*hamil_nodal[6]-0.03513641844631532*hamil_nodal[5]+0.03513641844631532*hamil_nodal[2]-0.07027283689263064*hamil_nodal[1]+0.03513641844631532*hamil_nodal[0]; 
   hamil[18] = 0.03513641844631532*hamil_nodal[19]-0.03513641844631532*hamil_nodal[17]-0.07027283689263064*hamil_nodal[16]+0.07027283689263064*hamil_nodal[15]+0.03513641844631532*hamil_nodal[14]-0.03513641844631532*hamil_nodal[12]-0.03513641844631532*hamil_nodal[7]+0.03513641844631532*hamil_nodal[5]+0.07027283689263064*hamil_nodal[4]-0.07027283689263064*hamil_nodal[3]-0.03513641844631532*hamil_nodal[2]+0.03513641844631532*hamil_nodal[0]; 
   hamil[19] = 0.03513641844631532*hamil_nodal[19]-0.03513641844631532*hamil_nodal[17]-0.03513641844631532*hamil_nodal[14]+0.03513641844631532*hamil_nodal[12]-0.07027283689263064*hamil_nodal[11]+0.07027283689263064*hamil_nodal[10]+0.07027283689263064*hamil_nodal[9]-0.07027283689263064*hamil_nodal[8]+0.03513641844631532*hamil_nodal[7]-0.03513641844631532*hamil_nodal[5]-0.03513641844631532*hamil_nodal[2]+0.03513641844631532*hamil_nodal[0]; 
+
+  hamil_inv[0] = -(0.3535533905932737*hamil_inv_nodal[19])+0.4714045207910317*hamil_inv_nodal[18]-0.3535533905932737*hamil_inv_nodal[17]+0.4714045207910317*hamil_inv_nodal[16]+0.4714045207910317*hamil_inv_nodal[15]-0.3535533905932737*hamil_inv_nodal[14]+0.4714045207910317*hamil_inv_nodal[13]-0.3535533905932737*hamil_inv_nodal[12]+0.4714045207910317*hamil_inv_nodal[11]+0.4714045207910317*hamil_inv_nodal[10]+0.4714045207910317*hamil_inv_nodal[9]+0.4714045207910317*hamil_inv_nodal[8]-0.3535533905932737*hamil_inv_nodal[7]+0.4714045207910317*hamil_inv_nodal[6]-0.3535533905932737*hamil_inv_nodal[5]+0.4714045207910317*hamil_inv_nodal[4]+0.4714045207910317*hamil_inv_nodal[3]-0.3535533905932737*hamil_inv_nodal[2]+0.4714045207910317*hamil_inv_nodal[1]-0.3535533905932737*hamil_inv_nodal[0]; 
+  hamil_inv[1] = -(0.06804138174397717*hamil_inv_nodal[19])+0.06804138174397717*hamil_inv_nodal[17]+0.27216552697590873*hamil_inv_nodal[16]-0.27216552697590873*hamil_inv_nodal[15]-0.06804138174397717*hamil_inv_nodal[14]+0.06804138174397717*hamil_inv_nodal[12]+0.27216552697590873*hamil_inv_nodal[11]-0.27216552697590873*hamil_inv_nodal[10]+0.27216552697590873*hamil_inv_nodal[9]-0.27216552697590873*hamil_inv_nodal[8]-0.06804138174397717*hamil_inv_nodal[7]+0.06804138174397717*hamil_inv_nodal[5]+0.27216552697590873*hamil_inv_nodal[4]-0.27216552697590873*hamil_inv_nodal[3]-0.06804138174397717*hamil_inv_nodal[2]+0.06804138174397717*hamil_inv_nodal[0]; 
+  hamil_inv[2] = -(0.06804138174397717*hamil_inv_nodal[19])+0.27216552697590873*hamil_inv_nodal[18]-0.06804138174397717*hamil_inv_nodal[17]+0.06804138174397717*hamil_inv_nodal[14]-0.27216552697590873*hamil_inv_nodal[13]+0.06804138174397717*hamil_inv_nodal[12]+0.27216552697590873*hamil_inv_nodal[11]+0.27216552697590873*hamil_inv_nodal[10]-0.27216552697590873*hamil_inv_nodal[9]-0.27216552697590873*hamil_inv_nodal[8]-0.06804138174397717*hamil_inv_nodal[7]+0.27216552697590873*hamil_inv_nodal[6]-0.06804138174397717*hamil_inv_nodal[5]+0.06804138174397717*hamil_inv_nodal[2]-0.27216552697590873*hamil_inv_nodal[1]+0.06804138174397717*hamil_inv_nodal[0]; 
+  hamil_inv[3] = -(0.06804138174397717*hamil_inv_nodal[19])+0.27216552697590873*hamil_inv_nodal[18]-0.06804138174397717*hamil_inv_nodal[17]+0.27216552697590873*hamil_inv_nodal[16]+0.27216552697590873*hamil_inv_nodal[15]-0.06804138174397717*hamil_inv_nodal[14]+0.27216552697590873*hamil_inv_nodal[13]-0.06804138174397717*hamil_inv_nodal[12]+0.06804138174397717*hamil_inv_nodal[7]-0.27216552697590873*hamil_inv_nodal[6]+0.06804138174397717*hamil_inv_nodal[5]-0.27216552697590873*hamil_inv_nodal[4]-0.27216552697590873*hamil_inv_nodal[3]+0.06804138174397717*hamil_inv_nodal[2]-0.27216552697590873*hamil_inv_nodal[1]+0.06804138174397717*hamil_inv_nodal[0]; 
+  hamil_inv[4] = 0.0392837100659193*hamil_inv_nodal[19]-0.0392837100659193*hamil_inv_nodal[17]-0.0392837100659193*hamil_inv_nodal[14]+0.0392837100659193*hamil_inv_nodal[12]+0.15713484026367722*hamil_inv_nodal[11]-0.15713484026367722*hamil_inv_nodal[10]-0.15713484026367722*hamil_inv_nodal[9]+0.15713484026367722*hamil_inv_nodal[8]+0.0392837100659193*hamil_inv_nodal[7]-0.0392837100659193*hamil_inv_nodal[5]-0.0392837100659193*hamil_inv_nodal[2]+0.0392837100659193*hamil_inv_nodal[0]; 
+  hamil_inv[5] = 0.0392837100659193*hamil_inv_nodal[19]-0.0392837100659193*hamil_inv_nodal[17]+0.15713484026367722*hamil_inv_nodal[16]-0.15713484026367722*hamil_inv_nodal[15]+0.0392837100659193*hamil_inv_nodal[14]-0.0392837100659193*hamil_inv_nodal[12]-0.0392837100659193*hamil_inv_nodal[7]+0.0392837100659193*hamil_inv_nodal[5]-0.15713484026367722*hamil_inv_nodal[4]+0.15713484026367722*hamil_inv_nodal[3]-0.0392837100659193*hamil_inv_nodal[2]+0.0392837100659193*hamil_inv_nodal[0]; 
+  hamil_inv[6] = 0.0392837100659193*hamil_inv_nodal[19]+0.15713484026367722*hamil_inv_nodal[18]+0.0392837100659193*hamil_inv_nodal[17]-0.0392837100659193*hamil_inv_nodal[14]-0.15713484026367722*hamil_inv_nodal[13]-0.0392837100659193*hamil_inv_nodal[12]-0.0392837100659193*hamil_inv_nodal[7]-0.15713484026367722*hamil_inv_nodal[6]-0.0392837100659193*hamil_inv_nodal[5]+0.0392837100659193*hamil_inv_nodal[2]+0.15713484026367722*hamil_inv_nodal[1]+0.0392837100659193*hamil_inv_nodal[0]; 
+  hamil_inv[7] = 0.10540925533894596*hamil_inv_nodal[19]-0.21081851067789195*hamil_inv_nodal[18]+0.10540925533894596*hamil_inv_nodal[17]+0.10540925533894596*hamil_inv_nodal[14]-0.21081851067789195*hamil_inv_nodal[13]+0.10540925533894596*hamil_inv_nodal[12]+0.10540925533894596*hamil_inv_nodal[7]-0.21081851067789195*hamil_inv_nodal[6]+0.10540925533894596*hamil_inv_nodal[5]+0.10540925533894596*hamil_inv_nodal[2]-0.21081851067789195*hamil_inv_nodal[1]+0.10540925533894596*hamil_inv_nodal[0]; 
+  hamil_inv[8] = 0.10540925533894596*hamil_inv_nodal[19]+0.10540925533894596*hamil_inv_nodal[17]-0.21081851067789195*hamil_inv_nodal[16]-0.21081851067789195*hamil_inv_nodal[15]+0.10540925533894596*hamil_inv_nodal[14]+0.10540925533894596*hamil_inv_nodal[12]+0.10540925533894596*hamil_inv_nodal[7]+0.10540925533894596*hamil_inv_nodal[5]-0.21081851067789195*hamil_inv_nodal[4]-0.21081851067789195*hamil_inv_nodal[3]+0.10540925533894596*hamil_inv_nodal[2]+0.10540925533894596*hamil_inv_nodal[0]; 
+  hamil_inv[9] = 0.10540925533894596*hamil_inv_nodal[19]+0.10540925533894596*hamil_inv_nodal[17]+0.10540925533894596*hamil_inv_nodal[14]+0.10540925533894596*hamil_inv_nodal[12]-0.21081851067789195*hamil_inv_nodal[11]-0.21081851067789195*hamil_inv_nodal[10]-0.21081851067789195*hamil_inv_nodal[9]-0.21081851067789195*hamil_inv_nodal[8]+0.10540925533894596*hamil_inv_nodal[7]+0.10540925533894596*hamil_inv_nodal[5]+0.10540925533894596*hamil_inv_nodal[2]+0.10540925533894596*hamil_inv_nodal[0]; 
+  hamil_inv[10] = 0.06804138174397717*hamil_inv_nodal[19]-0.06804138174397717*hamil_inv_nodal[17]-0.06804138174397717*hamil_inv_nodal[14]+0.06804138174397717*hamil_inv_nodal[12]-0.06804138174397717*hamil_inv_nodal[7]+0.06804138174397717*hamil_inv_nodal[5]+0.06804138174397717*hamil_inv_nodal[2]-0.06804138174397717*hamil_inv_nodal[0]; 
+  hamil_inv[11] = 0.06085806194501844*hamil_inv_nodal[19]-0.1217161238900369*hamil_inv_nodal[18]+0.06085806194501844*hamil_inv_nodal[17]-0.06085806194501844*hamil_inv_nodal[14]+0.1217161238900369*hamil_inv_nodal[13]-0.06085806194501844*hamil_inv_nodal[12]+0.06085806194501844*hamil_inv_nodal[7]-0.1217161238900369*hamil_inv_nodal[6]+0.06085806194501844*hamil_inv_nodal[5]-0.06085806194501844*hamil_inv_nodal[2]+0.1217161238900369*hamil_inv_nodal[1]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[12] = 0.06085806194501844*hamil_inv_nodal[19]-0.06085806194501844*hamil_inv_nodal[17]-0.1217161238900369*hamil_inv_nodal[16]+0.1217161238900369*hamil_inv_nodal[15]+0.06085806194501844*hamil_inv_nodal[14]-0.06085806194501844*hamil_inv_nodal[12]+0.06085806194501844*hamil_inv_nodal[7]-0.06085806194501844*hamil_inv_nodal[5]-0.1217161238900369*hamil_inv_nodal[4]+0.1217161238900369*hamil_inv_nodal[3]+0.06085806194501844*hamil_inv_nodal[2]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[13] = 0.06085806194501844*hamil_inv_nodal[19]-0.1217161238900369*hamil_inv_nodal[18]+0.06085806194501844*hamil_inv_nodal[17]+0.06085806194501844*hamil_inv_nodal[14]-0.1217161238900369*hamil_inv_nodal[13]+0.06085806194501844*hamil_inv_nodal[12]-0.06085806194501844*hamil_inv_nodal[7]+0.1217161238900369*hamil_inv_nodal[6]-0.06085806194501844*hamil_inv_nodal[5]-0.06085806194501844*hamil_inv_nodal[2]+0.1217161238900369*hamil_inv_nodal[1]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[14] = 0.06085806194501844*hamil_inv_nodal[19]+0.06085806194501844*hamil_inv_nodal[17]-0.1217161238900369*hamil_inv_nodal[16]-0.1217161238900369*hamil_inv_nodal[15]+0.06085806194501844*hamil_inv_nodal[14]+0.06085806194501844*hamil_inv_nodal[12]-0.06085806194501844*hamil_inv_nodal[7]-0.06085806194501844*hamil_inv_nodal[5]+0.1217161238900369*hamil_inv_nodal[4]+0.1217161238900369*hamil_inv_nodal[3]-0.06085806194501844*hamil_inv_nodal[2]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[15] = 0.06085806194501844*hamil_inv_nodal[19]-0.06085806194501844*hamil_inv_nodal[17]+0.06085806194501844*hamil_inv_nodal[14]-0.06085806194501844*hamil_inv_nodal[12]-0.1217161238900369*hamil_inv_nodal[11]+0.1217161238900369*hamil_inv_nodal[10]-0.1217161238900369*hamil_inv_nodal[9]+0.1217161238900369*hamil_inv_nodal[8]+0.06085806194501844*hamil_inv_nodal[7]-0.06085806194501844*hamil_inv_nodal[5]+0.06085806194501844*hamil_inv_nodal[2]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[16] = 0.06085806194501844*hamil_inv_nodal[19]+0.06085806194501844*hamil_inv_nodal[17]-0.06085806194501844*hamil_inv_nodal[14]-0.06085806194501844*hamil_inv_nodal[12]-0.1217161238900369*hamil_inv_nodal[11]-0.1217161238900369*hamil_inv_nodal[10]+0.1217161238900369*hamil_inv_nodal[9]+0.1217161238900369*hamil_inv_nodal[8]+0.06085806194501844*hamil_inv_nodal[7]+0.06085806194501844*hamil_inv_nodal[5]-0.06085806194501844*hamil_inv_nodal[2]-0.06085806194501844*hamil_inv_nodal[0]; 
+  hamil_inv[17] = 0.03513641844631532*hamil_inv_nodal[19]-0.07027283689263064*hamil_inv_nodal[18]+0.03513641844631532*hamil_inv_nodal[17]-0.03513641844631532*hamil_inv_nodal[14]+0.07027283689263064*hamil_inv_nodal[13]-0.03513641844631532*hamil_inv_nodal[12]-0.03513641844631532*hamil_inv_nodal[7]+0.07027283689263064*hamil_inv_nodal[6]-0.03513641844631532*hamil_inv_nodal[5]+0.03513641844631532*hamil_inv_nodal[2]-0.07027283689263064*hamil_inv_nodal[1]+0.03513641844631532*hamil_inv_nodal[0]; 
+  hamil_inv[18] = 0.03513641844631532*hamil_inv_nodal[19]-0.03513641844631532*hamil_inv_nodal[17]-0.07027283689263064*hamil_inv_nodal[16]+0.07027283689263064*hamil_inv_nodal[15]+0.03513641844631532*hamil_inv_nodal[14]-0.03513641844631532*hamil_inv_nodal[12]-0.03513641844631532*hamil_inv_nodal[7]+0.03513641844631532*hamil_inv_nodal[5]+0.07027283689263064*hamil_inv_nodal[4]-0.07027283689263064*hamil_inv_nodal[3]-0.03513641844631532*hamil_inv_nodal[2]+0.03513641844631532*hamil_inv_nodal[0]; 
+  hamil_inv[19] = 0.03513641844631532*hamil_inv_nodal[19]-0.03513641844631532*hamil_inv_nodal[17]-0.03513641844631532*hamil_inv_nodal[14]+0.03513641844631532*hamil_inv_nodal[12]-0.07027283689263064*hamil_inv_nodal[11]+0.07027283689263064*hamil_inv_nodal[10]+0.07027283689263064*hamil_inv_nodal[9]-0.07027283689263064*hamil_inv_nodal[8]+0.03513641844631532*hamil_inv_nodal[7]-0.03513641844631532*hamil_inv_nodal[5]-0.03513641844631532*hamil_inv_nodal[2]+0.03513641844631532*hamil_inv_nodal[0]; 
 
 } 

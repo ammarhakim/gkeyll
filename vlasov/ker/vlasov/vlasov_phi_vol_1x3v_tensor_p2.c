@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_phi_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
-  const double *phi, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[1]; 
@@ -58,4 +58,5 @@ GKYL_CU_DH void vlasov_phi_vol_1x3v_tensor_p2(const double *w, const double *dxv
   out[78] += (-(2.1213203435596424*phi[1]*f[74])-4.242640687119286*phi[2]*f[64])*dv10*dx10; 
   out[79] += (-(9.48683298050514*phi[2]*f[78])-4.743416490252569*phi[1]*f[71]-10.606601717798213*phi[2]*f[65])*dv10*dx10; 
   out[80] += (-(4.743416490252569*phi[1]*f[78])-9.48683298050514*phi[2]*f[71])*dv10*dx10; 
+
 } 

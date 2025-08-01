@@ -23,7 +23,7 @@ GKYL_CU_DH void sr_vars_n_set_1x2v_ser_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A0,1,2,0.6324555320336759*M0[1]); 
   gkyl_mat_set(&A0,2,0,0.7071067811865475*M0[2]); 
   gkyl_mat_set(&A0,2,1,0.6324555320336759*M0[1]); 
-  gkyl_mat_set(&A0,2,2,0.4517539514526256*M0[2]+0.7071067811865475*M0[0]); 
+  gkyl_mat_set(&A0,2,2,0.45175395145262565*M0[2]+0.7071067811865475*M0[0]); 
  
   struct gkyl_mat A1 = gkyl_nmat_get(A, count+1); 
   struct gkyl_mat rhs1 = gkyl_nmat_get(rhs, count+1); 
@@ -40,6 +40,6 @@ GKYL_CU_DH void sr_vars_n_set_1x2v_ser_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A1,1,2,0.6324555320336759*M0[1]); 
   gkyl_mat_set(&A1,2,0,0.7071067811865475*M0[2]); 
   gkyl_mat_set(&A1,2,1,0.6324555320336759*M0[1]); 
-  gkyl_mat_set(&A1,2,2,0.4517539514526256*M0[2]+0.7071067811865475*M0[0]); 
+  gkyl_mat_set(&A1,2,2,0.45175395145262565*M0[2]+0.7071067811865475*M0[0]); 
  
 } 

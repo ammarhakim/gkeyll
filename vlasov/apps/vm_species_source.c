@@ -5,9 +5,10 @@ void
 vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_source *src)
 {
   int vdim = app->vdim; 
-  // Optional flag to write out source and source moments. 
-  src->write_source = vms->info.source.write_source; 
+  src->write_source = vms->info.source.write_source; // Optional flag to write out source and source moments. 
+  src->source_evolve = vms->info.source.source_evolve; // Are the sources time-dependent?
 
+  src->rescale_m0 = false; 
   src->calc_bflux = false;
   src->scale_factor = 1.0;
   if (vms->source_id == GKYL_BFLUX_SOURCE) {
@@ -22,6 +23,42 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     }
     else {
       src->scale_ptr = gkyl_malloc((vdim+2)*sizeof(double));
+    }
+  }
+  else if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    src->rescale_m0 = true; 
+    struct gkyl_mom_vlasov_inp inp_mom = {
+      .conf_basis = &app->basis,
+      .phase_basis = &vms->basis,
+      .vel_range = &vms->local_vel,
+      .use_vmap = vms->use_vmap, 
+      .vmap = vms->vmap, 
+      .jacob_vel = vms->jacob_vel, 
+      .hamil_range = &vms->hamil_range,
+      .hamil = vms->hamil,
+      .model_id = vms->model_id,
+      .use_gpu = app->use_gpu,
+    };
+    src->num_cross_source = vms->info.source.num_cross_source; 
+    for (int i=0; i<src->num_cross_source; i++) {
+      src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
+      src->adapt_source_species_idx[i] = vm_find_species_idx(app, vms->info.source.source_with[i]);
+      inp_mom.v_thresh = vms->info.source.source_with_v_thresh[i];
+      struct gkyl_mom_type *m0_reduced;
+      if (vms->info.source.source_with_upper_half[i]) {
+        inp_mom.mom_type = GKYL_F_MOMENT_M0_UPPER; 
+        m0_reduced = gkyl_mom_vlasov_inew(&inp_mom);    
+      }
+      else {
+        inp_mom.mom_type = GKYL_F_MOMENT_M0_LOWER; 
+        m0_reduced = gkyl_mom_vlasov_inew(&inp_mom);        
+      }
+      src->m0_reduced[i] = gkyl_mom_calc_new(&vms->grid, m0_reduced, app->use_gpu);
+      gkyl_mom_type_release(m0_reduced); 
+
+      src->scale_m0[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      src->adapt_source[i] = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume); 
+      src->adapt_proj_source[i] = vms->info.source.source_with_proj[i];
     }
   }
 
@@ -58,11 +95,17 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
 }
 
 void
-vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *vms, 
+vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *vms, 
   struct vm_source *src, double tm)
 {
   if (vms->source_id) {
-    if (src->num_sources > 1) {
+    if (src->rescale_m0) {
+      for (int i=0; i<src->num_cross_source; i++) {
+        vm_species_projection_calc(app, vms, &src->proj_source[src->adapt_proj_source[i]], 
+          src->adapt_source[i], tm);
+      } 
+    }
+    else if (src->num_sources > 1) {
       gkyl_array_clear(src->source, 0.0);
       for (int k=0; k<src->num_sources; k++) {
         vm_species_projection_calc(app, vms, &src->proj_source[k], src->source_tmp, tm);
@@ -72,6 +115,37 @@ vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *vms,
     else {
       vm_species_projection_calc(app, vms, &src->proj_source[0], src->source, tm);
     }
+  }
+}
+
+void
+vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms, 
+  struct vm_source *src, const struct gkyl_array *fin)
+{
+  if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {  
+    for (int i=0; i<src->num_cross_source; i++) {
+      gkyl_mom_calc_advance(src->m0_reduced[i], &vms->local, &app->local, fin, src->scale_m0[i]);
+    }  
+  }
+}
+
+void
+vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms, 
+  struct vm_source *src)
+{
+  int species_idx;
+  species_idx = vm_find_species_idx(app, vms->info.name);  
+  if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    gkyl_array_clear(src->source, 0.0);
+    for (int i=0; i<src->num_cross_source; i++) {
+      // First compute the adaptive source from self-sourcing. 
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
+        1.0, src->scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
+
+      // Next compute the adaptive source from the cross species. 
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
+        1.0, src->adapt_source_species[i]->src.scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
+    } 
   }
 }
 
@@ -158,6 +232,9 @@ vm_species_source_write(gkyl_vlasov_app* app,
   char fileNm[sz+1]; // Ensures no buffer overflow.
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
   
+  // Calculate adaptive source before I/O if source is adaptive. 
+  vm_species_source_adapt(app, vms, src); 
+
   // Copy data from device to host before writing it out.
   if (app->use_gpu) {
     gkyl_array_copy(src->source_host, src->source);
@@ -205,7 +282,20 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;
   }
-  
+
+  // Write out the adaptive density 
+  if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    // Calculate adaptive source density before I/O if source is adaptive. 
+    vm_species_source_adapt_moms(app, vms, src, vms->f); 
+
+    const char *fmt_source_M0 = "%s-%s_source_M0_adapt_%d.gkyl";
+    int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->info.name, frame);
+    char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
+    snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->info.name, frame);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+      mt, src->scale_m0[0], fileNm_source_M0); 
+  }  
+
   vlasov_array_meta_release(mt); 
 
   app->stat.n_diag += 1;

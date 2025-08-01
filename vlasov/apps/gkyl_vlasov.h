@@ -84,13 +84,21 @@ struct gkyl_vlasov_radiation {
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
+  bool source_evolve; // are our sources time-dependent?
   int num_sources;
 
   double source_length; // required for boundary flux source
   char source_species[128];
   
-  // sources using projection routine
+  // Sources using projection routine. 
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
+
+  // Adaptive source input parameters. 
+  int num_cross_source; // number of species to cross-collide with
+  char source_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
+  int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
 };
 
 // Parameters for boundary conditions
@@ -139,6 +147,14 @@ struct gkyl_vlasov_correct_inp {
   bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.).
 };
 
+struct vlasov_mapc2p_vel {
+  void *mapc2p_vel_ctx; // context for mapc2p function for velocity space
+  // pointer to mapc2p function for velocity space: 
+  // xc are the computational space coordinates and on output 
+  // xp are the corresponding physical space coordinates.
+  void (*mapc2p_vel_func)(double t, const double *xc, double *xp, void *ctx);
+};
+
 // Parameters for Vlasov species.
 struct gkyl_vlasov_species {
   char name[128]; // Species name.
@@ -149,6 +165,11 @@ struct gkyl_vlasov_species {
   double charge, mass; // Charge and mass.
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
+
+  bool write_cell_avg; // Boolean for only writing cell average of f
+
+  // Velocity-space mapping in each velocity-space dimension
+  struct vlasov_mapc2p_vel mapc2p_vel[GKYL_MAX_CDIM];
 
   // Initial conditions using projection routine.
   int num_init; // Number of initial condition functions.
@@ -224,6 +245,10 @@ struct gkyl_vlasov_field {
 
   // Vlasov-Poisson boundary conditions. 
   struct gkyl_poisson_bc poisson_bcs; 
+
+  void *sigma_ctx; // context for resistive layer to damp EM fields
+  // pointer to resistive layer function to damp EM fields
+  void (*sigma)(double t, const double *xn, double *fout, void *ctx);
 
   void *ext_em_ctx; // Context for external electromagnetic fields function (E,B).
   // Pointer to external electromagnetic fields function.

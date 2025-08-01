@@ -27,6 +27,8 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
   GKYL_F_MOMENT_NI, // M0, M1i for-vector.
   GKYL_F_MOMENT_TIJ, // Stress-energy tensor.
+  GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane. 
+  GKYL_F_MOMENT_M0_LOWER, // M0 integrated over (part of) the lower half-plane. 
 };
 
 // String names corresponding to the enum options above.
@@ -49,9 +51,12 @@ static const char *gkyl_distribution_moments_strs[] = {
   "HamiltonianMoments",
   "M1_from_H",
   "EnergyMoment",
+  "EnergyFlux",
   "M0EnergyM3",
   "Ni",
   "Tij",
+  "M0_upper", 
+  "M0_lower", 
 };
 
 // Forward declare for use in function pointers

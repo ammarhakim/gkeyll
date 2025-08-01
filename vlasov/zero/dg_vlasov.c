@@ -54,9 +54,14 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
     vlasov->hamil_dim = pdim; 
     vlasov->hamil_offset = 0; 
   }
-  vlasov->conf_range = *inp->conf_range;
   vlasov->hamil_range = *inp->hamil_range;
+  vlasov->conf_range = *inp->conf_range;
+  vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
+  vlasov->jacob_vel = 0;
+  if (inp->use_vmap) {
+    vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
+  }
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 
   vlasov->qmem = gkyl_array_acquire(inp->qmem); 
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 

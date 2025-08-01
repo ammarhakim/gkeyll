@@ -16,13 +16,14 @@ extern "C" {
 __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
-  const struct gkyl_array *hamil, const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
+  const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_hamil[GKYL_MAX_DIM];
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM], idx_hamil[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -33,15 +34,21 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     gkyl_sub_range_inv_idx(&phase_range, linc1, idx);  
     long cidx = gkyl_range_idx(&conf_range, idx);
     long pidx = gkyl_range_idx(&phase_range, idx);
+
+    for (int i=0; i<vdim; ++i) {
+      idx_vel[i] = idx[cdim+i];
+    } 
+    long vidx = gkyl_range_idx(&up->vel_range, idx_vel); 
+
     for (int i=0; i<up->hamil_dim; ++i) {
       idx_hamil[i] = idx[up->hamil_offset+i];
     } 
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
-    const double* hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
-    const double* qmem_d = (const double*) gkyl_array_cfetch(qmem, cidx); 
-    const double* pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx); 
-    const double* f_c = (const double*) gkyl_array_cfetch(fin, pidx); 
+    const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
+    const double *qmem_d = (const double*) gkyl_array_cfetch(qmem, cidx); 
+    const double *pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx); 
+    const double *f_c = (const double*) gkyl_array_cfetch(fin, pidx); 
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, pidx);
     double *flux = (double*) gkyl_array_fetch(vel_flux_surf, pidx); 
     
@@ -54,6 +61,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     for (int dir = 0; dir<vdim; ++dir) {
       if (idx[cdim+dir] == phase_range.lower[cdim+dir]) {
         cflrate_d[0] += up->vel_flux_surf_edge(up, dir, up->phase_grid.dx, 
+          jacob_vel ? (const double*) gkyl_array_cfetch(jacob_vel, vidx) : 0,
           hamil_d, qmem_d, pot_tot_d, f_c, flux); 
       }
       else {
@@ -62,6 +70,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
         long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
         const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);  
         cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
+          jacob_vel ? (const double*) gkyl_array_cfetch(jacob_vel, vidx) : 0,
           hamil_d, qmem_d, pot_tot_d, f_l, f_c, flux);      
       }
     }    
@@ -71,13 +80,14 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
 void 
 gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *hamil, const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
+  const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, 
+    *conf_range, *phase_range, jacob_vel ? jacob_vel->on_dev : 0,
     hamil->on_dev, qmem->on_dev, pot_tot->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);  
 }
 
@@ -181,6 +191,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
     up->hamil_dim = pdim; 
     up->hamil_offset = 0; 
   }
+  up->vel_range = *inp->vel_range; 
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

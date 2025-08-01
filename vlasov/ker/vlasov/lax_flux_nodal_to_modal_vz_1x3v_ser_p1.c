@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double lax_flux_nodal_to_modal_vz_1x3v_ser_p1(const double *dxv, const double *alpha_quad, 
-  const double *f_l, const double *f_r, double *lax_nodal_quad, 
-  double* GKYL_RESTRICT vel_flux_surf) 
+GKYL_CU_DH double lax_flux_nodal_to_modal_vz_1x3v_ser_p1(const double *dxv, const double *jacob_vel, 
+  const double *alpha_quad, const double *f_l, const double *f_r, 
+  double *lax_nodal_quad, double* GKYL_RESTRICT vel_flux_surf) 
 { 
   double dv12 = 2.0/dxv[3]; 
 

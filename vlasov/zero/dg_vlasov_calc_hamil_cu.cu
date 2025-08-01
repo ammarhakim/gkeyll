@@ -16,7 +16,8 @@ extern "C" {
 __global__ void
 gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid, 
   struct gkyl_basis vel_basis, struct gkyl_range vel_range, 
-  enum gkyl_model_id model_id, struct gkyl_array *hamil)
+  enum gkyl_model_id model_id, const struct gkyl_array *vmap, 
+  struct gkyl_array *hamil, struct gkyl_array *hamil_inv)
 {
   int vdim = vel_basis.ndim;
   int poly_order = vel_basis.poly_order;
@@ -53,7 +54,10 @@ gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid,
     long loc = gkyl_range_idx(&vel_range, idx);
 
     double *hamil_d = (double*) gkyl_array_fetch(hamil, loc);
-    calc_hamil(xc, vel_grid.dx, hamil_d);
+    double *hamil_inv_d = (double*) gkyl_array_fetch(hamil_inv, loc);
+    calc_hamil(xc, vel_grid.dx, 
+      vmap ? (const double*) gkyl_array_cfetch(vmap, vidx) : 0,
+      hamil_d, hamil_inv_d);
   }
 }
 
@@ -61,10 +65,11 @@ gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid,
 void
 gkyl_dg_vlasov_calc_hamil_cu(const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range, 
-  enum gkyl_model_id model_id, struct gkyl_array *hamil)
+  enum gkyl_model_id model_id, const struct gkyl_array *vmap, 
+  struct gkyl_array *hamil, struct gkyl_array *hamil_inv)
 {
   int nblocks = vel_range->nblocks;
   int nthreads = vel_range->nthreads;
   gkyl_dg_vlasov_calc_hamil_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range, 
-    model_id, hamil->on_dev);
+    model_id, vmap ? vmap->on_dev : 0, hamil->on_dev, hamil_inv->on_dev);
 }

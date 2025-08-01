@@ -11,11 +11,13 @@
 void
 gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range, 
-  enum gkyl_model_id model_id, struct gkyl_array *hamil, bool use_gpu)
+  enum gkyl_model_id model_id, const struct gkyl_array *vmap, 
+  struct gkyl_array *hamil, struct gkyl_array *hamil_inv, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    gkyl_dg_vlasov_calc_hamil_cu(vel_grid, vel_basis, vel_range, model_id, hamil);
+    gkyl_dg_vlasov_calc_hamil_cu(vel_grid, vel_basis, vel_range, 
+      model_id, vmap, hamil, hamil_inv);
     return;
   } 
 #endif 
@@ -45,6 +47,9 @@ gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid,
     long vidx = gkyl_range_idx(vel_range, iter.idx);
 
     double *hamil_d = gkyl_array_fetch(hamil, vidx);
-    calc_hamil(xc, vel_grid->dx, hamil_d);
+    double *hamil_inv_d = gkyl_array_fetch(hamil_inv, vidx);
+    calc_hamil(xc, vel_grid->dx, 
+      vmap ? gkyl_array_cfetch(vmap, vidx) : 0,
+      hamil_d, hamil_inv_d);
   }  
 }

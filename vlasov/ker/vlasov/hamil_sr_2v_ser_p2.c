@@ -1,21 +1,32 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void hamil_sr_2v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT hamil) 
+GKYL_CU_DH void hamil_sr_2v_ser_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv) 
 { 
   // w:   Cell-center coordinates of velocity grid.
   // dxv: Cell spacing of velocity grid.
+  // vmap: Velocity-space map for nonuniform meshes.
   // hamil: Particle Hamiltonian.
+  // hamil_inv: Inverse particle Hamiltonian. Utilized by relativistic simulations. 
  
-  const double wx1 = w[0], dv1 = dxv[0]; 
-  const double wx2 = w[1], dv2 = dxv[1]; 
+  double wx1 = w[0], dv1 = dxv[0]; 
+  double wx2 = w[1], dv2 = dxv[1]; 
   double hamil_nodal[8] = {0.0};
+  double hamil_inv_nodal[8] = {0.0};
   hamil_nodal[0] = sqrt(1.0 + pow(wx1-0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0));
+  hamil_inv_nodal[0] = 1.0/hamil_nodal[0];
   hamil_nodal[1] = sqrt(1.0 + pow(wx1, 2.0) + pow(wx2-0.5*dv2, 2.0));
+  hamil_inv_nodal[1] = 1.0/hamil_nodal[1];
   hamil_nodal[2] = sqrt(1.0 + pow(wx1+0.5*dv1, 2.0) + pow(wx2-0.5*dv2, 2.0));
+  hamil_inv_nodal[2] = 1.0/hamil_nodal[2];
   hamil_nodal[3] = sqrt(1.0 + pow(wx1-0.5*dv1, 2.0) + pow(wx2, 2.0));
+  hamil_inv_nodal[3] = 1.0/hamil_nodal[3];
   hamil_nodal[4] = sqrt(1.0 + pow(wx1+0.5*dv1, 2.0) + pow(wx2, 2.0));
+  hamil_inv_nodal[4] = 1.0/hamil_nodal[4];
   hamil_nodal[5] = sqrt(1.0 + pow(wx1-0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0));
+  hamil_inv_nodal[5] = 1.0/hamil_nodal[5];
   hamil_nodal[6] = sqrt(1.0 + pow(wx1, 2.0) + pow(wx2+0.5*dv2, 2.0));
+  hamil_inv_nodal[6] = 1.0/hamil_nodal[6];
   hamil_nodal[7] = sqrt(1.0 + pow(wx1+0.5*dv1, 2.0) + pow(wx2+0.5*dv2, 2.0));
+  hamil_inv_nodal[7] = 1.0/hamil_nodal[7];
 
   hamil[0] = -(0.16666666666666666*hamil_nodal[7])+0.6666666666666666*hamil_nodal[6]-0.16666666666666666*hamil_nodal[5]+0.6666666666666666*hamil_nodal[4]+0.6666666666666666*hamil_nodal[3]-0.16666666666666666*hamil_nodal[2]+0.6666666666666666*hamil_nodal[1]-0.16666666666666666*hamil_nodal[0]; 
   hamil[1] = 0.09622504486493764*hamil_nodal[7]-0.09622504486493764*hamil_nodal[5]+0.3849001794597506*hamil_nodal[4]-0.3849001794597506*hamil_nodal[3]+0.09622504486493764*hamil_nodal[2]-0.09622504486493764*hamil_nodal[0]; 
@@ -25,5 +36,14 @@ GKYL_CU_DH void hamil_sr_2v_ser_p2(const double *w, const double *dxv, double* G
   hamil[5] = 0.14907119849998596*hamil_nodal[7]+0.14907119849998596*hamil_nodal[5]-0.2981423969999719*hamil_nodal[4]-0.2981423969999719*hamil_nodal[3]+0.14907119849998596*hamil_nodal[2]+0.14907119849998596*hamil_nodal[0]; 
   hamil[6] = 0.08606629658238703*hamil_nodal[7]-0.17213259316477406*hamil_nodal[6]+0.08606629658238703*hamil_nodal[5]-0.08606629658238703*hamil_nodal[2]+0.17213259316477406*hamil_nodal[1]-0.08606629658238703*hamil_nodal[0]; 
   hamil[7] = 0.08606629658238703*hamil_nodal[7]-0.08606629658238703*hamil_nodal[5]-0.17213259316477406*hamil_nodal[4]+0.17213259316477406*hamil_nodal[3]+0.08606629658238703*hamil_nodal[2]-0.08606629658238703*hamil_nodal[0]; 
+
+  hamil_inv[0] = -(0.16666666666666666*hamil_inv_nodal[7])+0.6666666666666666*hamil_inv_nodal[6]-0.16666666666666666*hamil_inv_nodal[5]+0.6666666666666666*hamil_inv_nodal[4]+0.6666666666666666*hamil_inv_nodal[3]-0.16666666666666666*hamil_inv_nodal[2]+0.6666666666666666*hamil_inv_nodal[1]-0.16666666666666666*hamil_inv_nodal[0]; 
+  hamil_inv[1] = 0.09622504486493764*hamil_inv_nodal[7]-0.09622504486493764*hamil_inv_nodal[5]+0.3849001794597506*hamil_inv_nodal[4]-0.3849001794597506*hamil_inv_nodal[3]+0.09622504486493764*hamil_inv_nodal[2]-0.09622504486493764*hamil_inv_nodal[0]; 
+  hamil_inv[2] = 0.09622504486493764*hamil_inv_nodal[7]+0.3849001794597506*hamil_inv_nodal[6]+0.09622504486493764*hamil_inv_nodal[5]-0.09622504486493764*hamil_inv_nodal[2]-0.3849001794597506*hamil_inv_nodal[1]-0.09622504486493764*hamil_inv_nodal[0]; 
+  hamil_inv[3] = 0.16666666666666666*hamil_inv_nodal[7]-0.16666666666666666*hamil_inv_nodal[5]-0.16666666666666666*hamil_inv_nodal[2]+0.16666666666666666*hamil_inv_nodal[0]; 
+  hamil_inv[4] = 0.14907119849998596*hamil_inv_nodal[7]-0.2981423969999719*hamil_inv_nodal[6]+0.14907119849998596*hamil_inv_nodal[5]+0.14907119849998596*hamil_inv_nodal[2]-0.2981423969999719*hamil_inv_nodal[1]+0.14907119849998596*hamil_inv_nodal[0]; 
+  hamil_inv[5] = 0.14907119849998596*hamil_inv_nodal[7]+0.14907119849998596*hamil_inv_nodal[5]-0.2981423969999719*hamil_inv_nodal[4]-0.2981423969999719*hamil_inv_nodal[3]+0.14907119849998596*hamil_inv_nodal[2]+0.14907119849998596*hamil_inv_nodal[0]; 
+  hamil_inv[6] = 0.08606629658238703*hamil_inv_nodal[7]-0.17213259316477406*hamil_inv_nodal[6]+0.08606629658238703*hamil_inv_nodal[5]-0.08606629658238703*hamil_inv_nodal[2]+0.17213259316477406*hamil_inv_nodal[1]-0.08606629658238703*hamil_inv_nodal[0]; 
+  hamil_inv[7] = 0.08606629658238703*hamil_inv_nodal[7]-0.08606629658238703*hamil_inv_nodal[5]-0.17213259316477406*hamil_inv_nodal[4]+0.17213259316477406*hamil_inv_nodal[3]+0.08606629658238703*hamil_inv_nodal[2]-0.08606629658238703*hamil_inv_nodal[0]; 
 
 } 

@@ -19,7 +19,8 @@ enum gkyl_positivity_shift_type {
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
 typedef void (*m0_t)(const double *xc, const double *dx,
-  const int *idx, const double* hamil, const double *fIn, double* GKYL_RESTRICT out);
+  const int *idx, const double* jacob_vel, const double* hamil, 
+  const double *fIn, double* GKYL_RESTRICT out);
 
 typedef struct { m0_pos_check_t kernels[3]; } pos_shift_vlasov_kern_list_m0_pos_check; // For use in kernel tables.
 typedef struct { shift_t kernels[3]; } pos_shift_vlasov_kern_list_shift; // For use in kernel tables.
@@ -55,12 +56,12 @@ static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_list_MRSlimi
 
 GKYL_CU_D
 static const pos_shift_vlasov_kern_list_m0 pos_shift_vlasov_kern_list_m0_tensor[] = {
-  { mom_vlasov_M0_1x1v_tensor_p1, NULL, NULL },
-  { mom_vlasov_M0_1x2v_tensor_p1, NULL, NULL },
-  { mom_vlasov_M0_1x3v_tensor_p1, NULL, NULL },
-  { mom_vlasov_M0_2x2v_tensor_p1, NULL, NULL },
-  { mom_vlasov_M0_2x3v_tensor_p1, NULL, NULL },
-  { mom_vlasov_M0_3x3v_tensor_p1, NULL, NULL },
+  { mom_vlasov_M0_1x1v_ser_p1, NULL, NULL },
+  { mom_vlasov_M0_1x2v_ser_p1, NULL, NULL },
+  { mom_vlasov_M0_1x3v_ser_p1, NULL, NULL },
+  { mom_vlasov_M0_2x2v_ser_p1, NULL, NULL },
+  { mom_vlasov_M0_2x3v_ser_p1, NULL, NULL },
+  { mom_vlasov_M0_3x3v_ser_p1, NULL, NULL },
 };
 
 // The cv_index[cd].vdim[vd] is used to index the various list of

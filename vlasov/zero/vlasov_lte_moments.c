@@ -51,6 +51,10 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
   struct gkyl_mom_vlasov_inp inp_mom = {
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
+    .vel_range = inp->vel_range,
+    .use_vmap = inp->use_vmap, 
+    .vmap = inp->vmap, 
+    .jacob_vel = inp->jacob_vel, 
     .hamil_range = inp->hamil_range,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
@@ -88,7 +92,8 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->hamil = gkyl_array_acquire(inp->hamil); 
     up->gamma_inv = gkyl_array_acquire(inp->gamma_inv); 
     up->sr_vars = gkyl_dg_calc_sr_vars_new(inp->phase_grid, inp->vel_grid, 
-      inp->conf_basis, inp->vel_basis, inp->conf_range, inp->vel_range, inp->use_gpu);
+      inp->conf_basis, inp->vel_basis, inp->conf_range, inp->vel_range, 
+      inp->vmap, inp->use_vmap, inp->use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
     up->h_ij = gkyl_array_acquire(inp->h_ij);

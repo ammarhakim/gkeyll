@@ -70,11 +70,20 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], emin, fluidout[i]);
     dtmin = fmin(dtmin, dt1);
   }
-  // compute source term
-  // done here as the RHS update for all species should be complete before
-  // bflux calculation of the source species
+  // Compute source term.
+  // Done here as the RHS update for all species should be complete 
+  // in case we need bflux calculation for the source species.
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
+      vm_species_source_adapt_moms(app, &app->species[i], &app->species[i].src, fin[i]); 
+    }
+  }
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].source_id) {
+      if (app->species[i].src.source_evolve) {
+        vm_species_source_calc(app, &app->species[i], &app->species[i].src, tcurr);
+      }
+      vm_species_source_adapt(app, &app->species[i], &app->species[i].src); 
       vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
     }
   }

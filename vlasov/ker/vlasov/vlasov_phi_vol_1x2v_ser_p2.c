@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_phi_vol_1x2v_ser_p2(const double *w, const double *dxv, 
-  const double *phi, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[1]; 
@@ -16,4 +16,5 @@ GKYL_CU_DH void vlasov_phi_vol_1x2v_ser_p2(const double *w, const double *dxv,
   out[17] += (-(2.1213203435596424*phi[1]*f[13])-4.242640687119286*phi[2]*f[5])*dv10*dx10; 
   out[18] += (-(9.48683298050514*phi[2]*f[17])-4.743416490252569*phi[1]*f[10]-10.606601717798211*phi[2]*f[6])*dv10*dx10; 
   out[19] += (-(2.1213203435596424*phi[1]*f[15])-4.743416490252569*phi[2]*f[9])*dv10*dx10; 
+
 } 

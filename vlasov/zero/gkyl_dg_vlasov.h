@@ -11,12 +11,15 @@
 struct gkyl_dg_vlasov_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions. 
   const struct gkyl_basis *phase_basis; // Phase-space basis functions. 
-  const struct gkyl_range *conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.)
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_range *conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.). 
+  const struct gkyl_range *vel_range; // Velocity-space range for use in indexing velocity-space Jacobian. 
   const struct gkyl_range *phase_range; // Range for indexing velocity-space flux. 
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  bool use_vmap; // bool to determine whether we have a nonuniform velocity map. 
   bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 

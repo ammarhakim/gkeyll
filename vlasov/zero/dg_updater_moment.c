@@ -6,8 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_mom_canonical_pb.h>
-#include <gkyl_mom_vlasov.h>
-#include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_moment_priv.h>
 #include <gkyl_mom_calc.h>
@@ -36,17 +34,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->model_id = model_id;
   up->use_gpu = use_gpu;
-  if (up->model_id == GKYL_MODEL_SR) {
-    if (is_integrated)
-      up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom_type, use_gpu);
-    else
-      up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom_type, use_gpu);
-
-    struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
-    gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
-
-  } 
-  else if ((up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) 
+  if ((up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) 
     && (mom_type == GKYL_F_MOMENT_M1_FROM_H || mom_type == GKYL_F_MOMENT_ENERGY
     || (is_integrated && mom_type == GKYL_F_MOMENT_M0M1M2))) {
     if (is_integrated)

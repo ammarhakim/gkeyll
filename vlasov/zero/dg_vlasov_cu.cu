@@ -159,9 +159,15 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
     vlasov->hamil_dim = pdim; 
     vlasov->hamil_offset = 0; 
   }
-  vlasov->conf_range = *inp->conf_range;
   vlasov->hamil_range = *inp->hamil_range;
+  vlasov->conf_range = *inp->conf_range;
+  vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
+  struct gkyl_array *jacob_vel_ho = 0; 
+  if (inp->use_vmap) {
+    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
+    vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  }
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
@@ -190,6 +196,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->eqn.on_dev = &vlasov_cu->eqn;
 
   // Host-side equation object should store host pointers.
+  vlasov->jacob_vel = jacob_vel_ho; 
   vlasov->hamil = hamil_ho; 
   vlasov->qmem = qmem_ho; 
   vlasov->pot_tot = pot_tot_ho; 

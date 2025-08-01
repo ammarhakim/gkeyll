@@ -46,7 +46,6 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_poisson.h>
-#include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -59,7 +58,6 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_vlasov.h>
-#include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
@@ -75,6 +73,7 @@
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -301,6 +300,7 @@ struct vm_proj {
 
 struct vm_source {
   bool write_source; // optional parameter to write out source distribution
+  bool source_evolve; // flag to indicate sources are time dependent
 
   bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
   double scale_factor; // factor to scale source function
@@ -308,6 +308,15 @@ struct vm_source {
   double *scale_ptr;
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
+
+  bool rescale_m0; // boolean for if we are rescaling M0 
+  int num_cross_source; // how many other species are we obtaining sources from?
+  struct vm_species *adapt_source_species[GKYL_MAX_SPECIES]; // list of species to use for the source
+  int adapt_source_species_idx[GKYL_MAX_SPECIES]; // list of indices of source species
+  struct gkyl_array *scale_m0[GKYL_MAX_SPECIES]; // Time-dependent re-scaling of the density of the source. 
+  struct gkyl_mom_calc *m0_reduced[GKYL_MAX_SPECIES]; // Reduced density update for rescaling source. 
+  struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
+  int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO 
@@ -350,6 +359,16 @@ struct vm_species {
 
   struct gkyl_array *f_host; // Host-side distribution function for I/O on GPUs.
   struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
+  bool write_cell_avg; // Boolean for only writing cell average of f.
+
+  bool use_vmap; // bool to determine if we are using mapped velocity-space grids
+  struct gkyl_array *vmap; // mapping for mapped velocity-space grids
+  struct gkyl_array *jacob_vel; // velocity-space Jacobian in each direction at 1V Gauss-Legendre quadrature points.
+  struct gkyl_array *vmap_pgkyl; // mapping for mapped velocity-space grids for I/O
+  struct gkyl_array *jacob_vel_pgkyl; // total Jacobian for mapped velocity-space grids for I/O 
+  struct gkyl_array *vmap_avg_pgkyl; // cell average of mapping for mapped velocity-space grids for I/O
+  struct gkyl_array *jacob_vel_avg_pgkyl; // cell average of total Jacobian for mapped velocity-space grids for I/O 
+  struct gkyl_array *jacob_vel_gauss; // total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
 
   enum gkyl_field_id field_id; // Type of field equation.
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
@@ -469,6 +488,7 @@ struct vm_species {
   void (*write_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
   void (*write_lte_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
   void (*write_cfl_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
+  void (*write_cell_avg_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
   void (*write_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
   void (*write_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms);
@@ -496,6 +516,10 @@ struct vm_field {
       // is always successful, so if a time step fails due to the SSP RK3 
       // we must restore the old solution before restarting the time step
       struct gkyl_array *em_dup;  
+
+      bool has_sigma; // flag to indicate there is a resistive layer
+      struct gkyl_array *sigma; // resistive layer for damping EM fields
+      struct gkyl_array *sigmaEM; // resistivity*E/B for incrementing onto RHS
 
       gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -1258,8 +1282,32 @@ void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, s
  * @param src Pointer to source
  * @param tm Time for use in source
  */
-void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, 
+void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
   struct vm_source *src, double tm);
+
+/**
+ * Compute density re-scaling for adaptive sourcing. 
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param tm Time for use in source
+ */
+void vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_source *src, const struct gkyl_array *fin);
+
+/**
+ * Adapt source based on density re-scaling. 
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param tm Time for use in source
+ */
+void vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_source *src);
 
 /**
  * Compute RHS contribution from source

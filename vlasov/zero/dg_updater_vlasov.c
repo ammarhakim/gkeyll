@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_priv.h>
@@ -36,12 +35,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   up->model_id = model_id;
   up->field_id = field_id;
   up->use_gpu = use_gpu;
-  if (up->model_id == GKYL_MODEL_SR) {
-    up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, up->field_id, up->use_gpu);
-    struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
-    gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
-  } 
-  else if (up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+  if (up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     up->eqn_vlasov = gkyl_dg_canonical_pb_new(cbasis, pbasis, phase_range, up->use_gpu);
     struct gkyl_dg_canonical_pb_auxfields *canonical_pb_inp = aux_inp;
     gkyl_canonical_pb_set_auxfields(up->eqn_vlasov, *canonical_pb_inp); 

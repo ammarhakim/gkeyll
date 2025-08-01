@@ -12,7 +12,7 @@ GKYL_CU_DH void sr_vars_GammaV_1x1v_ser_p2(const double *u_i, double* GKYL_RESTR
   double *V_0_sq = &u_i_sq[0]; 
   ser_1x_p2_exp_sq(V_0, V_0_sq); 
  
-  GammaV_sq[0] = V_0_sq[0]+1.414213562373095; 
+  GammaV_sq[0] = V_0_sq[0]+1.4142135623730951; 
   GammaV_sq[1] = V_0_sq[1]; 
   GammaV_sq[2] = V_0_sq[2]; 
 

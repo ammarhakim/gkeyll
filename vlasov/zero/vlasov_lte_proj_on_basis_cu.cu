@@ -140,6 +140,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
   const struct gkyl_array* moms_lte_quad, const struct gkyl_array* expamp_quad, 
   const struct gkyl_array* h_ij_inv_quad, 
   const int *p2c_qidx, bool is_relativistic, bool is_canonical_pb, 
+  struct gkyl_array* vmap, struct gkyl_array* jacob_vel_gauss, struct gkyl_basis* vmap_basis, 
   struct gkyl_array* f_lte_quad)
 {
   double f_floor = 1.0e-40;
@@ -148,8 +149,9 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
   int tot_conf_quad = conf_basis_at_ords->size;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
-
+  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[GKYL_MAX_CDIM];
+  double jacob_vel_qidx;
+  int qidx_vel[GKYL_MAX_DIM];
   // 2D thread grid
   // linc2 goes from 0 to tot_phase_quad
   long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
@@ -180,6 +182,31 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
     comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
       phase_grid.dx, xc, &xmu[0]);
 
+    if (up->use_vmap) {
+      const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, linc2);
+      for (int d = cdim; d < pdim; d++) {
+        vidx[d-cdim] = pidx[d];
+      }
+      long loc_vel = gkyl_range_idx(&up->vel_range, vidx);
+      const double *vmap_d = gkyl_array_cfetch(vmap, loc_vel);
+      const double *jacob_vel_quad_d = gkyl_array_cfetch(jacob_vel_gauss, loc_vel);
+      double xcomp[1];
+      for (int vd=0; vd<vdim; vd++) {
+        xcomp[0] = xcomp_d[cdim+vd];
+        xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
+      }
+      for (int i=0; i<vdim; ++i) {
+        qidx_vel[i] = qiter.idx[cdim+i];          
+      }
+      int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
+      jacob_vel_qidx = jacob_vel_quad_d[vqidx];
+    }
+    else {
+      comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
+        phase_grid.dx, xc, &xmu[0]);
+      jacob_vel_qidx = 1.0;
+    }
+
     fq[linc2] = f_floor;
     if (T_over_m_quad[cqidx] > 0.0) {
       if (is_relativistic) {
@@ -193,7 +220,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
           uu += (xmu[cdim+d]*xmu[cdim+d]);
         }
         double GammaV_quad = sqrt(1.0 + vv);
-        fq[linc2] += expamp_quad_d[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
+        fq[linc2] += jacob_vel_qidx*expamp_quad_d[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
           - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1 + uu) - vu));
       }
       else if (is_canonical_pb) {
@@ -252,7 +279,9 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
     up->p2c_qidx, up->is_relativistic, up->is_canonical_pb, 
-    up->f_lte_quad->on_dev);
+    up->vmap ? up->vmap->on_dev : 0,
+    up->jacob_vel_gauss ? up->jacob_vel_gauss->on_dev : 0,
+    up->vmap_basis_on_dev, up->f_lte_quad->on_dev);
 
   // Call cublas to do the matrix multiplication nodal to modal conversion
   gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_lte_quad, f_lte);

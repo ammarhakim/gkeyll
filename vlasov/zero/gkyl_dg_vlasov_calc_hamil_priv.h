@@ -12,7 +12,7 @@
 #include <assert.h>
 
 typedef void (*calc_hamil_t)(const double *w, const double *dv, 
-  double* GKYL_RESTRICT hamil);
+  const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv);
 
 // for use in kernel tables
 typedef struct { calc_hamil_t kernels[3]; } gkyl_dg_calc_hamil_kern_list;
@@ -39,18 +39,18 @@ static const gkyl_dg_calc_hamil_kern_list ser_hamil_sr_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_default_kernels[] = {
   // 1x kernels
-  { NULL, hamil_default_1v_tensor_p1, hamil_default_1v_tensor_p2 }, // 0
-  { NULL, hamil_default_2v_tensor_p1, hamil_default_2v_tensor_p2 }, // 1
-  { NULL, hamil_default_3v_tensor_p1, hamil_default_3v_tensor_p2 }, // 2
+  { NULL, NULL, hamil_default_1v_tensor_p2 }, // 0
+  { NULL, NULL, hamil_default_2v_tensor_p2 }, // 1
+  { NULL, NULL, hamil_default_3v_tensor_p2 }, // 2
 };
 
 // Relativistic Hamiltonian = sqrt(1 + u^2) (Tensor kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_sr_kernels[] = {
   // 1x kernels
-  { NULL, hamil_sr_1v_tensor_p1, hamil_sr_1v_tensor_p2 }, // 0
-  { NULL, hamil_sr_2v_tensor_p1, hamil_sr_2v_tensor_p2 }, // 1
-  { NULL, hamil_sr_3v_tensor_p1, hamil_sr_3v_tensor_p2 }, // 2
+  { NULL, NULL, hamil_sr_1v_tensor_p2 }, // 0
+  { NULL, NULL, hamil_sr_2v_tensor_p2 }, // 1
+  { NULL, NULL, hamil_sr_3v_tensor_p2 }, // 2
 };
 
 GKYL_CU_D

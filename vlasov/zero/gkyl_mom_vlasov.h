@@ -10,8 +10,13 @@ struct gkyl_mom_vlasov_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions. 
   const struct gkyl_basis *phase_basis; // Phase-space basis functions. 
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  const struct gkyl_range *vel_range; // Range for indexing velocity-space Jacobian and velocity map. 
+  bool use_vmap; // bool to determine whether we have a nonuniform velocity map. 
+  const struct gkyl_array *vmap; // Velocity-space mapping.  
+  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments (such as energy or dH/dv moment). 
+  double v_thresh; // Threshold velocity for moments over a subset of the domain such as M0_UPPER and M0_LOWER. 
   enum gkyl_distribution_moments mom_type; // Name of moment to compute. See gkyl_mom_type.h. 
   bool use_gpu; // bool to determine if on GPU. 
 };

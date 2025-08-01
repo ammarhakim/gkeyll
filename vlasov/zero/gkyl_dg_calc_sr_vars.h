@@ -31,13 +31,16 @@ typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
  *                   for computing V_drift. Note range is stored so updater loops 
  *                   over consistent range solving linear systems since memory is pre-allocated.
  * @param vel_range  Momentum (four-velocity)-space
+ * @param vmap       Mapping for momentum (four-velocity)-space for mapped grids
+ * @param use_vmap   bool to determine if we are using mapped momentum (four-velocity)-space grids
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_sr_vars* 
 gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu);
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
+  const struct gkyl_array *vmap, bool use_vmap, bool use_gpu);
 
 /**
  * Create new updater to compute relativistic variables on
@@ -46,17 +49,8 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
 struct gkyl_dg_calc_sr_vars* 
 gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range);
-
-/**
- * Compute the momentum grid variables for special relativistic simulations
- * Uses special kernels which convert between a Gauss-Lobatto nodal basis and
- * our modal basis to insure continuity of the momentum (four-velocity)-grid variables.
- *
- * @param up        Updater for computing sr variables 
- * @param gamma_inv Output array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
- */
-void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma_inv);
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
+  const struct gkyl_array *vmap, bool use_vmap);
 
 /**
  * Compute the rest-frame density n = GammaV_inv*M0 where GammaV_inv = sqrt(1 - |V_drift|^2).

@@ -1,15 +1,15 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH double vlasov_hamil_gen_surfx_3x3v_ser_p1(const double *w, const double *dxv, 
-  const double *hamil, 
+  const double *jacob_vel, const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[3]; 
 
-  double Ghat_r[32]; 
-  double Ghat_l[32]; 
-  double Ghat_l_nodal[32]; 
-  double Ghat_r_nodal[32]; 
+  double Ghat_r[32] = {0.0}; 
+  double Ghat_l[32] = {0.0}; 
+  double Ghat_l_nodal[32] = {0.0}; 
+  double Ghat_r_nodal[32] = {0.0}; 
   double alpha_l_quad = 0.0; 
   double alpha_r_quad = 0.0; 
   double alpha_max = 0.0; 

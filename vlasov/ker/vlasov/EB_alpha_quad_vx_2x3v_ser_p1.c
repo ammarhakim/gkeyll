@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void EB_alpha_quad_vx_2x3v_ser_p1(const double *dxv, 
+GKYL_CU_DH void EB_alpha_quad_vx_2x3v_ser_p1(const double *dxv, const double *jacob_vel, 
   const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
 { 
   const double *Ex = &qmem[0]; 

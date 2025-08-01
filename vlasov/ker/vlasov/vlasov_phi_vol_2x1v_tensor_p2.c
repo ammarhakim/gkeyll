@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_phi_vol_2x1v_tensor_p2(const double *w, const double *dxv, 
-  const double *phi, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[2]; 
@@ -22,4 +22,5 @@ GKYL_CU_DH void vlasov_phi_vol_2x1v_tensor_p2(const double *w, const double *dxv
   out[24] += (-(3.0*phi[3]*f[23])-6.0*phi[6]*f[18]-3.0*phi[7]*f[17]-3.3541019662496847*phi[1]*f[17]-3.3541019662496843*phi[3]*f[13]-6.0*phi[8]*f[10]-6.708203932499369*phi[4]*f[10]-6.7082039324993685*f[5]*phi[6])*dv10*dx10; 
   out[25] += (-(4.285714285714286*phi[8]*f[23])-6.708203932499369*phi[4]*f[23]-2.142857142857143*phi[7]*f[18]-3.3541019662496847*phi[1]*f[18]-6.0*phi[6]*f[17]-4.79157423749955*phi[8]*f[14]-7.500000000000001*phi[4]*f[14]-6.7082039324993685*phi[8]*f[13]-3.0*phi[3]*f[10]-7.5*f[3]*phi[8]-3.3541019662496843*f[5]*phi[7]-6.7082039324993685*f[6]*phi[6])*dv10*dx10; 
   out[26] += (-(2.142857142857143*phi[7]*f[23])-3.3541019662496847*phi[1]*f[23]-4.285714285714286*phi[8]*f[18]-6.708203932499369*phi[4]*f[18]-3.0*phi[3]*f[17]-3.3541019662496847*phi[7]*f[13]-6.0*phi[6]*f[10]-6.708203932499369*f[5]*phi[8])*dv10*dx10; 
+
 } 

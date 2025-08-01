@@ -24,8 +24,8 @@ GKYL_CU_DH void sr_vars_n_copy_1x2v_ser_p1(int count, struct gkyl_nmat *x, const
   ser_1x_p1_exp_sq(V_1, V_1_sq); 
  
   double Gamma2_inv[2] = {0.0}; 
-  Gamma2_inv[0] = (-1.0*V_1_sq[0])-1.0*V_0_sq[0]+1.414213562373095; 
-  Gamma2_inv[1] = (-1.0*V_1_sq[1])-1.0*V_0_sq[1]; 
+  Gamma2_inv[0] = -(1.0*V_1_sq[0])-1.0*V_0_sq[0]+1.4142135623730951; 
+  Gamma2_inv[1] = -(1.0*V_1_sq[1])-1.0*V_0_sq[1]; 
 
   int cell_avg = 0;
   if (0.7071067811865475*Gamma2_inv[0]-0.7071067811865475*Gamma2_inv[1] < 0.0) cell_avg = 1; 

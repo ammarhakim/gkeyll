@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_EB_hamil_vel_vol_1x2v_ser_p2(const double *w, const double *dxv, 
-  const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dv10 = 2.0/dxv[1]; 
   const double *Ex = &qmem[0]; 

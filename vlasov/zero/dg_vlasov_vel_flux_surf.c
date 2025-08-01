@@ -35,6 +35,7 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
     up->hamil_dim = pdim; 
     up->hamil_offset = 0; 
   }
+  up->vel_range = *inp->vel_range; 
 
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
@@ -123,19 +124,20 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
 void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *hamil, const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
+  const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
     return gkyl_dg_vlasov_vel_flux_surf_advance_cu(up, conf_range, phase_range, 
-      hamil, qmem, pot_tot, fin, cflrate, vel_flux_surf);
+      jacob_vel, hamil, qmem, pot_tot, fin, cflrate, vel_flux_surf);
   }
 #endif
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_hamil[GKYL_MAX_DIM];
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM], idx_hamil[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
 
@@ -143,15 +145,21 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
     gkyl_copy_int_arr(pdim, iter.idx, idx);
     long cidx = gkyl_range_idx(conf_range, idx);
     long pidx = gkyl_range_idx(phase_range, idx);
+
+    for (int i=0; i<vdim; ++i) {
+      idx_vel[i] = idx[cdim+i];
+    } 
+    long vidx = gkyl_range_idx(&up->vel_range, idx_vel); 
+
     for (int i=0; i<up->hamil_dim; ++i) {
       idx_hamil[i] = idx[up->hamil_offset+i];
     } 
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
-    const double* hamil_d = gkyl_array_cfetch(hamil, hidx);
-    const double* qmem_d = gkyl_array_cfetch(qmem, cidx); 
-    const double* pot_tot_d = gkyl_array_cfetch(pot_tot, cidx); 
-    const double* f_c = gkyl_array_cfetch(fin, pidx); 
+    const double *hamil_d = gkyl_array_cfetch(hamil, hidx);
+    const double *qmem_d = gkyl_array_cfetch(qmem, cidx); 
+    const double *pot_tot_d = gkyl_array_cfetch(pot_tot, cidx); 
+    const double *f_c = gkyl_array_cfetch(fin, pidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
     double *flux = gkyl_array_fetch(vel_flux_surf, pidx); 
 
@@ -164,14 +172,16 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
     for (int dir = 0; dir<vdim; ++dir) {
       if (idx[cdim+dir] == phase_range->lower[cdim+dir]) {
         cflrate_d[0] += up->vel_flux_surf_edge(up, dir, up->phase_grid.dx, 
+          jacob_vel ? gkyl_array_cfetch(jacob_vel, vidx) : 0,
           hamil_d, qmem_d, pot_tot_d, f_c, flux); 
       }
       else {
         gkyl_copy_int_arr(pdim, iter.idx, idx_l);
         idx_l[cdim+dir] = idx_l[cdim+dir]-1;
         long pidx_l = gkyl_range_idx(phase_range, idx_l); 
-        const double* f_l = gkyl_array_cfetch(fin, pidx_l);  
+        const double *f_l = gkyl_array_cfetch(fin, pidx_l);  
         cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
+          jacob_vel ? gkyl_array_cfetch(jacob_vel, vidx) : 0,
           hamil_d, qmem_d, pot_tot_d, f_l, f_c, flux);      
       }
     }

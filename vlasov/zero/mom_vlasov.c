@@ -58,6 +58,17 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil_range = *inp->hamil_range;
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
 
+  mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vmap = 0;
+  mom_vlasov->jacob_vel = 0;
+  if (inp->use_vmap) {
+    mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
+    mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
+  }
+
+  // Threshold velocity for integration of moments over a subset of the domain. 
+  mom_vlasov->v_thresh = inp->v_thresh; 
+
   // choose kernel tables based on basis-function type
   const gkyl_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
     *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels, *m3i_hamil_gen_kernels, 
@@ -177,6 +188,20 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     } 
     mom_vlasov->momt.num_mom = 2+vdim;
   }
+  else if (inp->mom_type == GKYL_F_MOMENT_M0_UPPER) {
+    if (inp->conf_basis->b_type != GKYL_BASIS_MODAL_TENSOR && vdim !=1) {
+      gkyl_exit("mom_vlasov: M0 upper only defined for tensor basis and vdim = 1!");
+    }
+    mom_vlasov->momt.kernel = tensor_m0_upper_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.num_mom = 1;
+  }
+  else if (inp->mom_type == GKYL_F_MOMENT_M0_LOWER) {
+    if (inp->conf_basis->b_type != GKYL_BASIS_MODAL_TENSOR && vdim !=1) {
+      gkyl_exit("mom_vlasov: M0 lower only defined for tensor basis and vdim = 1!");
+    }
+    mom_vlasov->momt.kernel = tensor_m0_lower_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.num_mom = 1;
+  }
   else {
     // string not recognized
     gkyl_exit("mom_vlasov: Unrecognized moment requested!");
@@ -224,6 +249,14 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
+
+  mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vmap = 0;
+  mom_vlasov->jacob_vel = 0;
+  if (inp->use_vmap) {
+    mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
+    mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
+  }
 
   // Choose kernel tables based on basis-function type.
   const gkyl_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;

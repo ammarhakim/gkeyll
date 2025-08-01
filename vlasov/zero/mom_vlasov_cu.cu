@@ -22,6 +22,8 @@ v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
     case GKYL_F_MOMENT_M0:
     case GKYL_F_MOMENT_ENERGY:
     case GKYL_F_MOMENT_M2:
+    case GKYL_F_MOMENT_M0_UPPER:
+    case GKYL_F_MOMENT_M0_LOWER:
       num_mom = 1;
       break;
 
@@ -158,7 +160,17 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       }
       mom_vlasov->momt.num_mom = vdim+2;
       break;
-      
+
+    case GKYL_F_MOMENT_M0_UPPER:
+      mom_vlasov->momt.kernel = tensor_m0_upper_kernels[cdim-1].kernels[poly_order];
+      mom_vlasov->momt.num_mom = 1;
+      break;
+
+    case inp->mom_type == GKYL_F_MOMENT_M0_LOWER:
+      mom_vlasov->momt.kernel = tensor_m0_lower_kernels[cdim-1].kernels[poly_order];
+      mom_vlasov->momt.num_mom = 1;
+      break;   
+
     default: // can't happen
       break;
   }
@@ -193,6 +205,19 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
+  mom_vlasov->vel_range = *inp->vel_range;
+  struct gkyl_array *vmap_ho = 0; 
+  struct gkyl_array *jacob_vel_ho = 0; 
+  if (inp->use_vmap) {
+    vmap_ho = gkyl_array_acquire(inp->vmap); 
+    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
+    mom_vlasov->vmap = vmap_ho->on_dev;
+    mom_vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  }
+
+  // Threshold velocity for integration of moments over a subset of the domain. 
+  mom_vlasov->v_thresh = inp->v_thresh; 
+
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
   mom_vlasov->momt.flags = 0;
@@ -209,6 +234,8 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
 
   // Host-side moment type object should store host pointers.
+  mom_vlasov->vmap = vmap_ho; 
+  mom_vlasov->jacob_vel = jacob_vel_ho; 
   mom_vlasov->hamil = hamil_ho; 
   
   return &mom_vlasov->momt;

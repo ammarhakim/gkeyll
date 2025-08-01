@@ -75,6 +75,7 @@ enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default
   GKYL_FUNC_SOURCE, // Function source
   GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id
+  GKYL_PROJ_ADAPT_DENSITY_SOURCE, // Projected source with time-dependent density scaling. 
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
 };
 
