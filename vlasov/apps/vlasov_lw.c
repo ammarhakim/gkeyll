@@ -72,6 +72,7 @@ static const struct gkyl_str_int_pair source_type[] = {
   { "None", GKYL_NO_SOURCE },
   { "Func", GKYL_FUNC_SOURCE },
   { "Proj", GKYL_PROJ_SOURCE },
+  { "Adapt", GKYL_PROJ_ADAPT_DENSITY_SOURCE },
   { "BoundaryFlux", GKYL_BFLUX_SOURCE },
   { 0, 0 }
 };
@@ -344,7 +345,6 @@ struct vlasov_species_lw {
   
   struct gkyl_vlasov_species vm_species; // Input struct to construct species.
   int vdim; // Velocity space dimensions.
-  bool evolve; // Is this species evolved?
 
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
@@ -372,6 +372,9 @@ struct vlasov_species_lw {
 
   bool has_temp_init_func[GKYL_MAX_PROJ]; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to temperature initialization function.
+
+  bool has_mapc2p_vel_func[GKYL_MAX_CDIM]; // Is there a velocity-space mapping?
+  struct lua_func_ctx mapc2p_vel_func_ref[GKYL_MAX_CDIM]; // Lua registry reference to velocity-space mapping function.
 
   bool correct_all_moms[GKYL_MAX_PROJ]; // Are we correcting all moments in projections, or only density?
   double iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
@@ -419,6 +422,16 @@ struct vlasov_species_lw {
   double source_iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
   int source_max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+
+  int num_cross_source; // Number of species that we are sourcing with.
+  char source_with[GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
+  double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
+  int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+
+  bool has_app_accel_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx app_accel_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_app_accel; // Is the applied acceleration evolved?  
 };
 
 static int
@@ -453,6 +466,9 @@ vlasov_species_lw_new(lua_State *L)
   }
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  vm_species.is_static = !evolve; 
+  bool write_cell_avg = glua_tbl_get_bool(L, "writeCellAvg", false);
+  vm_species.write_cell_avg = write_cell_avg; 
 
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
@@ -491,6 +507,22 @@ vlasov_species_lw_new(lua_State *L)
 
     with_lua_tbl_tbl(L, "upper") {
       vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+    }
+  }
+
+  bool has_mapc2p_vel_func[GKYL_MAX_CDIM]; 
+  int mapc2p_vel_func_ref[GKYL_MAX_CDIM];
+  with_lua_tbl_tbl(L, "mapc2pVel") {
+    for (int d = 0; d < vdim; d++) {
+      if (glua_tbl_iget_tbl(L, d + 1)) {
+        has_mapc2p_vel_func[d] = false;
+        mapc2p_vel_func_ref[d] = LUA_NOREF;
+        if (glua_tbl_get_func(L, "vmap")) {
+          has_mapc2p_vel_func[d] = true; 
+          mapc2p_vel_func_ref[d] = luaL_ref(L, LUA_REGISTRYINDEX);
+        }
+      }
+      lua_pop(L, 1);
     }
   }
 
@@ -637,6 +669,12 @@ vlasov_species_lw_new(lua_State *L)
   double source_length = 1.0;
   char source_species[128] = { '\0' };
 
+  int num_cross_source = 0;
+  char source_with[GKYL_MAX_SPECIES][128];
+  double source_with_v_thresh[GKYL_MAX_SPECIES];
+  bool source_with_upper_half[GKYL_MAX_SPECIES];
+  int source_with_proj[GKYL_MAX_SPECIES];
+
   int num_sources = 0;
   enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ];
 
@@ -663,6 +701,30 @@ vlasov_species_lw_new(lua_State *L)
     source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
     const char* source_species_char = glua_tbl_get_string(L, "sourceSpecies", "");
     strcpy(source_species, source_species_char);
+
+    num_cross_source = glua_tbl_get_integer(L, "numCrossSources", 0);
+    with_lua_tbl_tbl(L, "sourceWith") {
+      for (int i = 0; i < num_cross_source; i++) {
+        const char* source_with_char = glua_tbl_iget_string(L, i + 1, "");
+        strcpy(source_with[i], source_with_char);
+      }
+    }
+    with_lua_tbl_tbl(L, "sourceWithVThresh") {
+      for (int i = 0; i < num_cross_source; i++) {
+        source_with_v_thresh[i] = glua_tbl_iget_number(L, i + 1, 0.0);
+      }
+    }
+    with_lua_tbl_tbl(L, "sourceWithUpperHalf") {
+      for (int i = 0; i < num_cross_source; i++) {
+        source_with_upper_half[i] = glua_tbl_iget_bool(L, i + 1, false);
+      }
+    }
+    with_lua_tbl_tbl(L, "sourceWithProj") {
+      for (int i = 0; i < num_cross_source; i++) {
+        // Indices are off by 1 between Lua and C.
+        source_with_proj[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+      }
+    }
 
     num_sources = glua_tbl_get_integer(L, "numSources", 0);
 
@@ -709,12 +771,31 @@ vlasov_species_lw_new(lua_State *L)
       }
     }
   }
-  
+
+  bool has_app_accel_func = false;
+  int app_accel_func_ref = LUA_NOREF;
+  bool evolve_app_accel = false;
+  if (glua_tbl_get_func(L, "appliedAccel")) {
+    app_accel_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_accel_func = true;
+
+    evolve_app_accel = glua_tbl_get_bool(L, "evolveAppliedAccel", false);
+  }  
+
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
   vms_lw->vdim = vdim;
-  vms_lw->evolve = evolve;
   vms_lw->vm_species = vm_species;
+
+  for (int i = 0; i < vdim; i++) {
+    vms_lw->has_mapc2p_vel_func[i] = has_mapc2p_vel_func[i];
+    vms_lw->mapc2p_vel_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = mapc2p_vel_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+  }
 
   vms_lw->has_hamiltonian_func = has_hamiltonian_func;
   vms_lw->hamiltonian_func_ref = (struct lua_func_ctx) {
@@ -796,7 +877,15 @@ vlasov_species_lw_new(lua_State *L)
 
   strcpy(vms_lw->source_species, source_species);
   vms_lw->source_length = source_length;
-  
+
+  vms_lw->num_cross_source = num_cross_source;
+  for (int i = 0; i < num_cross_source; i++) {
+    strcpy(vms_lw->source_with[i], source_with[i]);
+    vms_lw->source_with_v_thresh[i] = source_with_v_thresh[i]; 
+    vms_lw->source_with_upper_half[i] = source_with_upper_half[i]; 
+    vms_lw->source_with_proj[i] = source_with_proj[i]; 
+  }  
+
   for (int i = 0; i < num_sources; i++) {
     vms_lw->source_proj_id[i] = source_proj_id[i];
 
@@ -855,7 +944,16 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->output_f_lte = output_f_lte;
   vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->has_implicit_coll_scheme = has_implicit_coll_scheme;
-  
+
+  vms_lw->has_app_accel_func = has_app_accel_func;
+  vms_lw->app_accel_func_ref = (struct lua_func_ctx) {
+    .func_ref = app_accel_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+  vms_lw->evolve_app_accel = evolve_app_accel;  
+
   // Set metatable.
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
@@ -1024,7 +1122,7 @@ struct vlasov_field_lw {
   int magic; // This must be first element in the struct.
   
   struct gkyl_vlasov_field vm_field; // Input struct to construct field.
-  bool evolve; // Is this field evolved?
+
   struct lua_func_ctx init_ref; // Lua registry reference to initilization function.
 
   bool has_external_potential_func; // Is there an external potential initialization function?
@@ -1165,7 +1263,6 @@ vlasov_field_lw_new(lua_State *L)
   struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 
   vmf_lw->magic = VLASOV_FIELD_DEFAULT;
-  vmf_lw->evolve = evolve;
   vmf_lw->vm_field = vm_field;
   
   vmf_lw->init_ref = (struct lua_func_ctx) {
@@ -1226,6 +1323,9 @@ static struct luaL_Reg vm_field_ctor[] = {
 struct vlasov_app_lw {
   gkyl_vlasov_app *app; // Vlasov app object.
 
+  bool has_mapc2p_vel_func[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Is there a velocity-map?
+  struct lua_func_ctx mapc2p_vel_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Lua registry reference to velocity-space mapping.
+
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
 
@@ -1280,6 +1380,12 @@ struct vlasov_app_lw {
   double source_length[GKYL_MAX_SPECIES]; // Length used to scale the source function.
   char source_species[GKYL_MAX_SPECIES][128]; // Name of speccies to use for the source.
 
+  int num_cross_source[GKYL_MAX_SPECIES]; // Number of species that we are sourcing with.
+  char source_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
+  double source_with_v_thresh[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  bool source_with_upper_half[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
+  int source_with_proj[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+
   int num_sources[GKYL_MAX_SPECIES]; // Number of projection objects in source.
   enum gkyl_projection_id source_proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type in source.
 
@@ -1299,6 +1405,8 @@ struct vlasov_app_lw {
   double source_iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
   int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+
+  struct lua_func_ctx app_accel_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
 
   struct lua_func_ctx fluid_species_init_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species initial conditions.
 
@@ -1335,6 +1443,12 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
 
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
+        for (int i = 0; i < vms->vdim; i++) {
+          if (vms->has_mapc2p_vel_func[i]) {
+            vms->mapc2p_vel_func_ref[i].ndim = vms->vdim;
+          }
+        }
+
         if (vms->has_hamiltonian_func) {
           vms->hamiltonian_func_ref.ndim = cdim + vms->vdim;
         }
@@ -1656,6 +1770,15 @@ vm_app_new(lua_State *L)
     vm.species[s] = species[s]->vm_species;
     vm.vdim = species[s]->vdim;
 
+    for (int i = 0; i < species[s]->vdim; i++) {
+      app_lw->has_mapc2p_vel_func[s][i] = species[s]->has_mapc2p_vel_func[i];
+      app_lw->mapc2p_vel_func_ctx[s][i] = species[s]->mapc2p_vel_func_ref[i];
+      if (species[s]->has_mapc2p_vel_func[i]) {
+        vm.species[s].mapc2p_vel[i].mapc2p_vel_func = gkyl_lw_eval_cb;
+        vm.species[s].mapc2p_vel[i].mapc2p_vel_ctx = &app_lw->mapc2p_vel_func_ctx[s][i];
+      }
+    }
+
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
@@ -1784,6 +1907,14 @@ vm_app_new(lua_State *L)
     app_lw->source_length[s] = species[s]->source_length;
     strcpy(app_lw->source_species[s], species[s]->source_species);
 
+    app_lw->num_cross_source[s] = species[s]->num_cross_source;
+    for (int i = 0; i < app_lw->num_cross_source[s]; i++) {
+      strcpy(app_lw->source_with[s][i], species[s]->source_with[i]);
+      app_lw->source_with_v_thresh[s][i] = species[s]->source_with_v_thresh[i]; 
+      app_lw->source_with_upper_half[s][i] = species[s]->source_with_upper_half[i]; 
+      app_lw->source_with_proj[s][i] = species[s]->source_with_proj[i]; 
+    }
+
     app_lw->num_sources[s] = species[s]->num_sources;
     for (int i = 0; i < app_lw->num_sources[s]; i++) {
       app_lw->source_proj_id[s][i] = species[s]->source_proj_id[i];
@@ -1810,6 +1941,14 @@ vm_app_new(lua_State *L)
 
     vm.species[s].source.source_length = app_lw->source_length[s];
     strcpy(vm.species[s].source.source_species, app_lw->source_species[s]);
+
+    vm.species[s].source.num_cross_source = app_lw->num_cross_source[s];
+    for (int i = 0; i < app_lw->num_cross_source[s]; i++) {
+      strcpy(vm.species[s].source.source_with[i], app_lw->source_with[s][i]);
+      vm.species[s].source.source_with_v_thresh[i] = app_lw->source_with_v_thresh[s][i];
+      vm.species[s].source.source_with_upper_half[i] = app_lw->source_with_upper_half[s][i];
+      vm.species[s].source.source_with_proj[i] = app_lw->source_with_proj[s][i];
+    }
 
     vm.species[s].source.num_sources = app_lw->num_sources[s];
     for (int i = 0; i < app_lw->num_sources[s]; i++) {
@@ -1840,6 +1979,16 @@ vm_app_new(lua_State *L)
       vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
       vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
     }
+
+    if (species[s]->has_app_accel_func) {
+      species[s]->app_accel_func_ref.ndim = cdim;
+
+      app_lw->app_accel_func_ctx[s] = species[s]->app_accel_func_ref;
+      vm.species[s].app_accel = gkyl_lw_eval_cb;
+      vm.species[s].app_accel_ctx = &app_lw->app_accel_func_ctx;
+
+      vm.species[s].app_accel_evolve = species[s]->evolve_app_accel;
+    }    
   }
 
   struct vlasov_fluid_species_lw *fluid_species[GKYL_MAX_SPECIES];

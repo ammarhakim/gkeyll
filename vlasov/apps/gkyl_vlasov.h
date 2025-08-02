@@ -94,8 +94,8 @@ struct gkyl_vlasov_source {
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
   // Adaptive source input parameters. 
-  int num_cross_source; // number of species to cross-collide with
-  char source_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  int num_cross_source; // Number of species that we are sourcing with.
+  char source_with[GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
@@ -166,8 +166,6 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
-  bool write_cell_avg; // Boolean for only writing cell average of f
-
   // Velocity-space mapping in each velocity-space dimension
   struct vlasov_mapc2p_vel mapc2p_vel[GKYL_MAX_CDIM];
 
@@ -178,6 +176,7 @@ struct gkyl_vlasov_species {
   bool is_static; // Set to true if species does not change in time.
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
+  bool write_cell_avg; // Boolean for only writing cell average of f.
 
   int num_diag_moments; // number of diagnostic moments
   enum gkyl_distribution_moments diag_moments[16]; // list of diagnostic moments

@@ -446,7 +446,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
       snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app->name, vms->info.name);
 
       gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-        mt_vel, vms->vmap_pgkyl, fileNm_vmap);
+        mt_vel, vms->vmap_pgkyl_host, fileNm_vmap);
 
       const char *fmt_jacob_vel = "%s-%s_jacob_vel.gkyl";
       int sz_jacob_vel = gkyl_calc_strlen(fmt_jacob_vel, app->name, vms->info.name);
@@ -454,7 +454,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
       snprintf(fileNm_jacob_vel, sizeof fileNm_jacob_vel, fmt_jacob_vel, app->name, vms->info.name);
 
       gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-        mt_vel, vms->jacob_vel_pgkyl, fileNm_jacob_vel); 
+        mt_vel, vms->jacob_vel_pgkyl_host, fileNm_jacob_vel); 
 
       if (vms->write_cell_avg) {
         const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
@@ -463,7 +463,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
         snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app->name, vms->info.name);  
 
         gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-          mt_vel, vms->vmap_avg_pgkyl, fileNm_vmap_avg);
+          mt_vel, vms->vmap_avg_pgkyl_host, fileNm_vmap_avg);
 
         const char *fmt_jacob_vel_avg = "%s-%s_jacob_vel_avg.gkyl";
         int sz_jacob_vel_avg = gkyl_calc_strlen(fmt_jacob_vel_avg, app->name, vms->info.name);
@@ -471,7 +471,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
         snprintf(fileNm_jacob_vel_avg, sizeof fileNm_jacob_vel_avg, fmt_jacob_vel_avg, app->name, vms->info.name);
 
         gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-          mt_vel, vms->jacob_vel_avg_pgkyl, fileNm_jacob_vel_avg);           
+          mt_vel, vms->jacob_vel_avg_pgkyl_host, fileNm_jacob_vel_avg);           
       } 
     }
     vlasov_array_meta_release(mt_vel);  
@@ -1158,13 +1158,26 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   struct gkyl_basis vmap_basis, jacob_vel_basis;
   gkyl_cart_modal_serendip(&vmap_basis, vdim, 3); 
   gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, 2);
-  // velocity map and Jacobian for I/O 
-  vms->vmap_pgkyl = mkarr(app->use_gpu, vdim*vmap_basis.num_basis, vms->local_vel.volume);
-  vms->jacob_vel_pgkyl = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
-  vms->vmap_avg_pgkyl = mkarr(app->use_gpu, vdim, vms->local_vel.volume);
-  vms->jacob_vel_avg_pgkyl = mkarr(app->use_gpu, 1, vms->local_vel.volume);
   // velocity space Jacobian at Gaussian quadrature points for projecting distribution functions
   vms->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
+
+  // host-side arrays for GPU initialization
+  if (app->use_gpu) {
+    vms->vmap_host = mkarr(false, vms->vmap->ncomp, vms->vmap->size);
+    vms->jacob_vel_host = mkarr(app->use_gpu, vms->jacob_vel->ncomp, vms->jacob_vel->size);
+    vms->jacob_vel_gauss_host = mkarr(app->use_gpu, vms->jacob_vel_gauss->ncomp, vms->jacob_vel_gauss->size);
+  }
+  else {
+    vms->vmap_host = gkyl_array_acquire(vms->vmap);
+    vms->jacob_vel_host = gkyl_array_acquire(vms->jacob_vel);
+    vms->jacob_vel_gauss_host = gkyl_array_acquire(vms->jacob_vel_gauss);
+  }
+
+  // velocity map and Jacobian for I/O 
+  vms->vmap_pgkyl_host = mkarr(app->use_gpu, vdim*vmap_basis.num_basis, vms->local_vel.volume);
+  vms->jacob_vel_pgkyl_host = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
+  vms->vmap_avg_pgkyl_host = mkarr(app->use_gpu, vdim, vms->local_vel.volume);
+  vms->jacob_vel_avg_pgkyl_host = mkarr(app->use_gpu, 1, vms->local_vel.volume);
 
   if (vms->info.mapc2p_vel[0].mapc2p_vel_func) {
     vms->use_vmap = true; 
@@ -1174,10 +1187,17 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
       inp_vmap[v].ctx = vms->info.mapc2p_vel[v].mapc2p_vel_ctx; 
     }
     gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
-      inp_vmap, vms->vmap, vms->jacob_vel, 
-      vms->vmap_pgkyl, vms->jacob_vel_pgkyl, 
-      vms->vmap_avg_pgkyl, vms->jacob_vel_avg_pgkyl, 
-      vms->jacob_vel_gauss);
+      inp_vmap, vms->vmap_host, vms->jacob_vel_host, 
+      vms->vmap_pgkyl_host, vms->jacob_vel_pgkyl_host, 
+      vms->vmap_avg_pgkyl_host, vms->jacob_vel_avg_pgkyl_host, 
+      vms->jacob_vel_gauss_host);
+    
+    // Copy the mapping and velocity space Jacobian onto device. 
+    if (app->use_gpu) {
+      gkyl_array_copy(vms->vmap, vms->vmap_host); 
+      gkyl_array_copy(vms->jacob_vel, vms->jacob_vel_host); 
+      gkyl_array_copy(vms->jacob_vel_gauss, vms->jacob_vel_gauss_host); 
+    }
   }
 
   // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system. 
@@ -1231,6 +1251,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .phase_grid = &vms->grid, 
     .conf_basis = &app->basis,
     .phase_basis = &vms->basis,
+    .vel_range = &vms->local_vel,
     .hamil_range = &vms->hamil_range,
     .model_id = vms->model_id,
     .has_qmem = vms->has_qmem, 
@@ -1245,6 +1266,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .conf_range =  &app->local,
     .hamil_range = &vms->hamil_range,
     .phase_range = &vms->local,
+    .vel_range = &vms->local_vel,
+    .use_vmap = vms->use_vmap, 
+    .jacob_vel = vms->jacob_vel, 
     .model_id = vms->model_id,
     .has_qmem = vms->has_qmem, 
     .has_phi = vms->has_phi, 
@@ -1495,12 +1519,16 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   } 
   gkyl_array_release(vms->vel_flux_surf); 
 
+  gkyl_array_release(vms->vmap_host);
+  gkyl_array_release(vms->jacob_vel_host);
+  gkyl_array_release(vms->vmap_pgkyl_host);
+  gkyl_array_release(vms->jacob_vel_pgkyl_host);
+  gkyl_array_release(vms->vmap_avg_pgkyl_host);
+  gkyl_array_release(vms->jacob_vel_avg_pgkyl_host);
+  gkyl_array_release(vms->jacob_vel_gauss_host);
+
   gkyl_array_release(vms->vmap);
   gkyl_array_release(vms->jacob_vel);
-  gkyl_array_release(vms->vmap_pgkyl);
-  gkyl_array_release(vms->jacob_vel_pgkyl);
-  gkyl_array_release(vms->vmap_avg_pgkyl);
-  gkyl_array_release(vms->jacob_vel_avg_pgkyl);
   gkyl_array_release(vms->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations.
