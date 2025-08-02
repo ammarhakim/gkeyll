@@ -77,6 +77,8 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
+  gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
+
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);

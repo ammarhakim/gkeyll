@@ -54,10 +54,10 @@ gk_neut_species_rrs_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_specie
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, 
     rrs->react_vol_integ_local, rrs->react_vol_integ_global);
   if (app->use_gpu) {
-    gkyl_cu_memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
   }
   else {
-    memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double[1]));
+    memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double));
   }
   
   app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
