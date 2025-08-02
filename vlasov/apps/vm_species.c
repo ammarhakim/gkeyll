@@ -1164,8 +1164,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // host-side arrays for GPU initialization
   if (app->use_gpu) {
     vms->vmap_host = mkarr(false, vms->vmap->ncomp, vms->vmap->size);
-    vms->jacob_vel_host = mkarr(app->use_gpu, vms->jacob_vel->ncomp, vms->jacob_vel->size);
-    vms->jacob_vel_gauss_host = mkarr(app->use_gpu, vms->jacob_vel_gauss->ncomp, vms->jacob_vel_gauss->size);
+    vms->jacob_vel_host = mkarr(false, vms->jacob_vel->ncomp, vms->jacob_vel->size);
+    vms->jacob_vel_gauss_host = mkarr(false, vms->jacob_vel_gauss->ncomp, vms->jacob_vel_gauss->size);
   }
   else {
     vms->vmap_host = gkyl_array_acquire(vms->vmap);
@@ -1174,10 +1174,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   }
 
   // velocity map and Jacobian for I/O 
-  vms->vmap_pgkyl_host = mkarr(app->use_gpu, vdim*vmap_basis.num_basis, vms->local_vel.volume);
-  vms->jacob_vel_pgkyl_host = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
-  vms->vmap_avg_pgkyl_host = mkarr(app->use_gpu, vdim, vms->local_vel.volume);
-  vms->jacob_vel_avg_pgkyl_host = mkarr(app->use_gpu, 1, vms->local_vel.volume);
+  vms->vmap_pgkyl_host = mkarr(false, vdim*vmap_basis.num_basis, vms->local_vel.volume);
+  vms->jacob_vel_pgkyl_host = mkarr(false, jacob_vel_basis.num_basis, vms->local_vel.volume);
+  vms->vmap_avg_pgkyl_host = mkarr(false, vdim, vms->local_vel.volume);
+  vms->jacob_vel_avg_pgkyl_host = mkarr(false, 1, vms->local_vel.volume);
 
   if (vms->info.mapc2p_vel[0].mapc2p_vel_func) {
     vms->use_vmap = true; 
