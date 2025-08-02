@@ -9,7 +9,7 @@ mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 mass_ion = 1.0 -- Positron mass.
-charge_ion = -1.0 -- Positron charge.
+charge_ion = 1.0 -- Positron charge.
 
 n0 = 1.0 -- Reference number density.
 T = 0.1 -- Temperature (units of mc^2).
@@ -21,8 +21,8 @@ nPos = 3.0 -- Density of electrons in the magnetosphere.
 injRate = 0.5 -- Injection rate. 
 
 -- Simulation parameters.
-Nx = 256 -- Cell count (configuration space: x-direction).
-Nvx = 256 -- Cell count (velocity space: vx-direction).
+Nx = 512 -- Cell count (configuration space: x-direction).
+Nvx = 4096 -- Cell count (velocity space: vx-direction).
 Lx = 100.0 -- Domain size (configuration space: x-direction).
 vx_max = 4096.0 -- Domain boundary (velocity space: vx-direction).
 nonuniform_v_pow = 2.0 -- Quadratic velocity map. 
@@ -31,7 +31,7 @@ basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 400.0 -- Final simulation time.
+t_end = 1.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
