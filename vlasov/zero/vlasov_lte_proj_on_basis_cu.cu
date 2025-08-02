@@ -135,7 +135,7 @@ gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range, in
 
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
-  struct gkyl_range phase_range, struct gkyl_range conf_range, 
+  struct gkyl_range phase_range, struct gkyl_range vel_range, struct gkyl_range conf_range, 
   const struct gkyl_array* conf_basis_at_ords, const struct gkyl_array* phase_ordinates, 
   const struct gkyl_array* moms_lte_quad, const struct gkyl_array* expamp_quad, 
   const struct gkyl_array* h_ij_inv_quad, 
@@ -185,7 +185,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
       for (int d = cdim; d < pdim; d++) {
         vidx[d-cdim] = pidx[d];
       }
-      long loc_vel = gkyl_range_idx(&up->vel_range, vidx);
+      long loc_vel = gkyl_range_idx(&vel_range, vidx);
       const double *vmap_d = (const double*) gkyl_array_cfetch(vmap, loc_vel);
       const double *jacob_vel_quad_d = (const double*) gkyl_array_cfetch(jacob_vel_gauss, loc_vel);
       double xcomp[1];
@@ -273,7 +273,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
     up->p2c_qidx, up->p2v_qidx, up->is_relativistic, up->is_canonical_pb, 
-    up->vmap ? up->vmap->on_dev : 0,
+    up->vmap, up->vmap ? up->vmap->on_dev : 0,
     up->jacob_vel_gauss ? up->jacob_vel_gauss->on_dev : 0,
     up->vmap_basis_on_dev, up->f_lte_quad->on_dev);
 
