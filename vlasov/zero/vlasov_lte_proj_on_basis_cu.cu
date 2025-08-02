@@ -151,7 +151,6 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[GKYL_MAX_CDIM];
   double jacob_vel_qidx;
-  int qidx_vel[GKYL_MAX_DIM];
   // 2D thread grid
   // linc2 goes from 0 to tot_phase_quad
   long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
@@ -268,7 +267,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
   gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock>>>(up->phase_grid, 
-    *phase_range, *conf_range, 
+    *phase_range, up->vel_range, *conf_range, 
     up->conf_basis_at_ords->on_dev, up->ordinates->on_dev,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
