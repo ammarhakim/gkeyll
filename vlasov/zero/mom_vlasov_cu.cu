@@ -62,60 +62,54 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
 {
   int m3ijk_count[] = { 1, 4, 10 };
 
-  mom_vlasov->momt.kernel = kernel;
-  
   // choose kernel tables based on basis-function type
-  const gkyl_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels, *m3i_hamil_gen_kernels, 
+  const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
+    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, 
     *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
-      m1i_hamil_vel_kernels = ser_m1i_hamil_vel_kernels;
-      m2_hamil_vel_kernels = ser_m2_hamil_vel_kernels;
-      // m3i_hamil_vel_kernels = ser_m3i_hamil_vel_kernels;
-      m1i_hamil_gen_kernels = ser_m1i_hamil_gen_kernels;
-      m2_hamil_gen_kernels = ser_m2_hamil_gen_kernels;
-      // m3i_hamil_gen_kernels = ser_m3i_hamil_gen_kernels;
+      m1i_hamil_vel_kernels = ser_hamil_vel_m1i_kernels;
+      m2_hamil_vel_kernels = ser_hamil_vel_m2_kernels;
+      m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
+      m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
       m2ij_kernels = ser_m2ij_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
-      five_moments_hamil_vel_kernels = ser_five_moments_hamil_vel_kernels;
-      five_moments_hamil_gen_kernels = ser_five_moments_hamil_gen_kernels;
+      five_moments_hamil_vel_kernels = ser_hamil_vel_five_moments_kernels;
+      five_moments_hamil_gen_kernels = ser_hamil_gen_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       m0_kernels = tensor_m0_kernels;
-      m1i_hamil_vel_kernels = tensor_m1i_hamil_vel_kernels;
-      m2_hamil_vel_kernels = tensor_m2_hamil_vel_kernels;
-      // m3i_hamil_vel_kernels = tensor_m3i_hamil_vel_kernels;
-      m1i_hamil_gen_kernels = tensor_m1i_hamil_gen_kernels;
-      m2_hamil_gen_kernels = tensor_m2_hamil_gen_kernels;
-      // m3i_hamil_gen_kernels = tensor_m3i_hamil_gen_kernels;
+      m1i_hamil_vel_kernels = tensor_hamil_vel_m1i_kernels;
+      m2_hamil_vel_kernels = tensor_hamil_vel_m2_kernels;
+      m1i_hamil_gen_kernels = tensor_hamil_gen_m1i_kernels;
+      m2_hamil_gen_kernels = tensor_hamil_gen_m2_kernels;
       m2ij_kernels = tensor_m2ij_kernels;
       m3ijk_kernels = tensor_m3ijk_kernels;
-      five_moments_hamil_vel_kernels = tensor_five_moments_hamil_vel_kernels;
-      five_moments_hamil_gen_kernels = tensor_five_moments_hamil_gen_kernels;
+      five_moments_hamil_vel_kernels = tensor_hamil_vel_five_moments_kernels;
+      five_moments_hamil_gen_kernels = tensor_hamil_gen_five_moments_kernels;
       break;
 
     default:
       assert(false);
       break;    
-  }
-  
+  }  
+
   switch (mom_type) {
     case GKYL_F_MOMENT_M0:
-      mom_vlasov->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       mom_vlasov->momt.num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M1:
     case GKYL_F_MOMENT_M1_FROM_H:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
-        mom_vlasov->kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        mom_vlasov->kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = vdim;
       break;
@@ -123,40 +117,40 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
     case GKYL_F_MOMENT_M2:
     case GKYL_F_MOMENT_ENERGY:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
-        mom_vlasov->kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        mom_vlasov->kernel = m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M3:
       // if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
-      //   mom_vlasov->kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      //   mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       // }
       // else {
-      //   mom_vlasov->kernel = m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      //   mom_vlasov->momt.kernel = m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       // }
       mom_vlasov->momt.num_mom = vdim;
       break;
 
     case GKYL_F_MOMENT_M2IJ:
-      mom_vlasov->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       mom_vlasov->momt.num_mom = vdim*(vdim+1)/2;
       break;
 
     case GKYL_F_MOMENT_M3IJK:
-      mom_vlasov->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       mom_vlasov->momt.num_mom = m3ijk_count[vdim-1];
       break;
 
     case GKYL_F_MOMENT_M0M1M2:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
-        mom_vlasov->kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        mom_vlasov->kernel = five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = vdim+2;
       break;
@@ -247,34 +241,32 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
   enum gkyl_model_id model_id, const struct gkyl_array *hamil)
 {
-  mom_vlasov->momt.kernel = kernel;
-
   // Choose kernel tables based on basis-function type.
-  const gkyl_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
+  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_five_moments_hamil_vel_kernels = ser_int_five_moments_hamil_vel_kernels;
-      int_five_moments_hamil_gen_kernels = ser_int_five_moments_hamil_gen_kernels;
+      int_five_moments_hamil_vel_kernels = ser_hamil_vel_int_five_moments_kernels;
+      int_five_moments_hamil_gen_kernels = ser_hamil_gen_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      int_five_moments_hamil_vel_kernels = tensor_int_five_moments_hamil_vel_kernels;
-      int_five_moments_hamil_gen_kernels = tensor_int_five_moments_hamil_gen_kernels;
+      int_five_moments_hamil_vel_kernels = tensor_hamil_vel_int_five_moments_kernels;
+      int_five_moments_hamil_gen_kernels = tensor_hamil_gen_int_five_moments_kernels;
       break;
 
     default:
       assert(false);
       break;    
-  }  
+  }   
 
   switch (mom_type) {
     case GKYL_F_MOMENT_M0M1M2:
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
-        mom_vlasov->kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        mom_vlasov->kernel = int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        mom_vlasov->momt.kernel = int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       } 
       mom_vlasov->momt.num_mom = 2+vdim;
       break;
