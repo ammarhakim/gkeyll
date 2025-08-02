@@ -53,7 +53,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
-  struct gkyl_range vel_qrange;
+  struct gkyl_range vel_qrange; // Range of Velocity-space ordinates. 
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
 
   struct gkyl_range vel_range;
@@ -74,6 +74,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                   // ordinates in a cell.
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
+  int *p2v_qidx;  // Mapping between Velocity-space and Phase-space ordinates.
   struct gkyl_array *f_lte_quad; // Array keeping f_lte at phase-space quadrature nodes
   struct gkyl_array *moms_lte_quad; // Array keeping moms_lte (n, V_drift, T/m) 
                                     // at configuration-space quadrature nodes

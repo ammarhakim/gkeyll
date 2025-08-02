@@ -56,7 +56,7 @@ gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid,
     double *hamil_d = (double*) gkyl_array_fetch(hamil, loc);
     double *hamil_inv_d = (double*) gkyl_array_fetch(hamil_inv, loc);
     calc_hamil(xc, vel_grid.dx, 
-      vmap ? (const double*) gkyl_array_cfetch(vmap, vidx) : 0,
+      vmap ? (const double*) gkyl_array_cfetch(vmap, loc) : 0,
       hamil_d, hamil_inv_d);
   }
 }

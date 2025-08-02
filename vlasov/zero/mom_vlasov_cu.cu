@@ -166,7 +166,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       mom_vlasov->momt.num_mom = 1;
       break;
 
-    case inp->mom_type == GKYL_F_MOMENT_M0_LOWER:
+    case GKYL_F_MOMENT_M0_LOWER:
       mom_vlasov->momt.kernel = tensor_m0_lower_kernels[cdim-1].kernels[poly_order];
       mom_vlasov->momt.num_mom = 1;
       break;   

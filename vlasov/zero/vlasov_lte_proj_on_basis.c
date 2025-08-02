@@ -287,6 +287,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
+    int p2v_qidx_ho[up->phase_qrange.volume];
+    up->p2v_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
     // Allocate f_lte_quad at phase-space quadrature points
     // moms_lte_quad (n, V_drift, T/m) at configuration-space quadrature points.
@@ -328,13 +330,22 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
       inp->quad_type, num_quad,
       &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
-    int pidx[GKYL_MAX_DIM];
+    int pidx[GKYL_MAX_DIM], qidx_vel[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
       gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
+      // Fetch the configuration-space quadrature point corresponding to the phase-space quadrature point. 
       int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
       p2c_qidx_ho[n] = cqidx;
+
+      // Fetch the velocity-space quadrature point corresponding to the phase-space quadrature point. 
+      for (int i=0; i<vdim; ++i) {
+        qidx_vel[i] = pidx[up->cdim+i];          
+      }
+      int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel); 
+      p2v_qidx_ho[n] = vqidx; 
     }
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(up->p2v_qidx, p2v_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
@@ -649,6 +660,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->use_gpu) {
     gkyl_cu_free(up->vmap_basis_on_dev);
     gkyl_cu_free(up->p2c_qidx);
+    gkyl_cu_free(up->p2v_qidx);
     gkyl_array_release(up->f_lte_quad);
     gkyl_array_release(up->moms_lte_quad);
     gkyl_array_release(up->expamp_quad);

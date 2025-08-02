@@ -139,8 +139,8 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
   const struct gkyl_array* conf_basis_at_ords, const struct gkyl_array* phase_ordinates, 
   const struct gkyl_array* moms_lte_quad, const struct gkyl_array* expamp_quad, 
   const struct gkyl_array* h_ij_inv_quad, 
-  const int *p2c_qidx, bool is_relativistic, bool is_canonical_pb, 
-  struct gkyl_array* vmap, struct gkyl_array* jacob_vel_gauss, struct gkyl_basis* vmap_basis, 
+  const int *p2c_qidx, const int *p2v_qidx, bool is_relativistic, bool is_canonical_pb, 
+  bool use_vmap, struct gkyl_array* vmap, struct gkyl_array* jacob_vel_gauss, struct gkyl_basis* vmap_basis, 
   struct gkyl_array* f_lte_quad)
 {
   double f_floor = 1.0e-40;
@@ -179,26 +179,23 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
     double *fq = (double*) gkyl_array_fetch(f_lte_quad, lidx);
 
     int cqidx = p2c_qidx[linc2];
+    int vqidx = p2v_qidx[linc2];
     comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
       phase_grid.dx, xc, &xmu[0]);
 
-    if (up->use_vmap) {
+    if (use_vmap) {
       const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, linc2);
       for (int d = cdim; d < pdim; d++) {
         vidx[d-cdim] = pidx[d];
       }
       long loc_vel = gkyl_range_idx(&up->vel_range, vidx);
-      const double *vmap_d = gkyl_array_cfetch(vmap, loc_vel);
-      const double *jacob_vel_quad_d = gkyl_array_cfetch(jacob_vel_gauss, loc_vel);
+      const double *vmap_d = (const double*) gkyl_array_cfetch(vmap, loc_vel);
+      const double *jacob_vel_quad_d = (const double*) gkyl_array_cfetch(jacob_vel_gauss, loc_vel);
       double xcomp[1];
       for (int vd=0; vd<vdim; vd++) {
         xcomp[0] = xcomp_d[cdim+vd];
         xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
       }
-      for (int i=0; i<vdim; ++i) {
-        qidx_vel[i] = qiter.idx[cdim+i];          
-      }
-      int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
       jacob_vel_qidx = jacob_vel_quad_d[vqidx];
     }
     else {
@@ -278,7 +275,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     up->conf_basis_at_ords->on_dev, up->ordinates->on_dev,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
-    up->p2c_qidx, up->is_relativistic, up->is_canonical_pb, 
+    up->p2c_qidx, up->p2v_qidx, up->is_relativistic, up->is_canonical_pb, 
     up->vmap ? up->vmap->on_dev : 0,
     up->jacob_vel_gauss ? up->jacob_vel_gauss->on_dev : 0,
     up->vmap_basis_on_dev, up->f_lte_quad->on_dev);

@@ -230,7 +230,8 @@ dg_calc_sr_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_sr_vars *up,
 gkyl_dg_calc_sr_vars*
 gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range)
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
+  const struct gkyl_array *vmap, bool use_vmap)
 {
   struct gkyl_dg_calc_sr_vars *up = (struct gkyl_dg_calc_sr_vars*) gkyl_malloc(sizeof(*up));
 
