@@ -29,6 +29,8 @@ struct sheath_ctx
   double n0_neut; // Reference neutral density.
   double T0_neut; // Reference neutral temperature.
 
+  double rec_frac; // Recycling fraction.
+
   double B_axis; // Magnetic field axis (simple toroidal coordinates).
   double R0; // Major radius (simple toroidal coordinates).
   double a0; // Minor axis (simple toroidal coordinates).
@@ -102,6 +104,8 @@ create_ctx(void)
   double n0_neut = 1e-4*n0; // Reference neutral number density (1 / m^3).
   double T0_neut = Ti; // Reference neutral temperature.
 
+  double rec_frac = 0.98; // Recycling coefficient.
+
   double B_axis = 0.5; // Magnetic field axis (simple toroidal coordinates).
   double R0 = 0.85; // Major radius (simple toroidal coordinates).
   double a0 = 0.15; // Minor axis (simple toroidal coordinates).
@@ -169,6 +173,7 @@ create_ctx(void)
     .gas_gamma = gas_gamma,
     .n0_neut = n0_neut,
     .T0_neut = T0_neut,
+    .rec_frac = rec_frac,
     .B_axis = B_axis,
     .R0 = R0,
     .a0 = a0,
@@ -668,7 +673,7 @@ main(int argc, char **argv)
     .name = "D0",
     .mass = ctx.mass_ion,
     .gas_gamma = ctx.gas_gamma,
-    .is_static = true,
+//    .is_static = true,
 
     .projection = {
 //      .proj_id = GKYL_PROJ_FUNC, 
@@ -686,11 +691,11 @@ main(int argc, char **argv)
     .recycling_reaction_scaling = {
       .impacting_ion_name =  "ion" ,
       .impacting_ion_id = GKYL_ION_H,
-      .electon_name = "elc",
+      .electron_name = "elc",
       .recycling_coeff = ctx.rec_frac,
       .num_boundaries = 2,
-      .boundary_dirs = {0, 0,},
-      .boundary_edges = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE,},
+      .boundaries_dir = {0, 0,},
+      .boundaries_edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE,},
     }
   };
 

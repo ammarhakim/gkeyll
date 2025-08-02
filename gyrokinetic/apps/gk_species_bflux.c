@@ -200,6 +200,7 @@ gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
       break;
     }
   }
+  assert(mom_idx > -1);
   gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx], out_rng, bflux->boundaries_conf_ghost[b]);
 }
 
@@ -665,11 +666,11 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int m=0; m<bflux->num_calc_moms; m++) {
       gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
 
-      need_m2perp = (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP)
+      need_m2perp = need_m2perp || ( (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP)
-        || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN);
+        || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN) );
       bflux->is_hamiltonian_mom[m] = bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN;
       bflux->a_hamiltonian_mom = bflux->a_hamiltonian_mom || bflux->is_hamiltonian_mom[m];
     }
@@ -852,7 +853,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           num_mom_comp, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
         // Allocate a dynvector for each moment.
         for (int b=0; b<bflux->num_boundaries; ++b)
-          bflux->intmom[b*bflux->num_calc_moms+m] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom_comp);
+          bflux->intmom[b*num_diag_int_mom+m] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom_comp);
       }
   
       if (app->use_gpu) {

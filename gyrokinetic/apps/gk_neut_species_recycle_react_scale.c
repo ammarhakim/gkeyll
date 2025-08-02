@@ -98,7 +98,9 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   double bflux_intm0_global_ho;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &bflux_intm0_local_ho, &bflux_intm0_global_ho);
 
-  double neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
+  double neut_scaling_fac = 1.0;
+  if (rrs->react_vol_integ > 0.0)
+    neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
 
   gkyl_array_scale(fin, neut_scaling_fac);
 }
@@ -188,33 +190,6 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
       rrs->bflux_m0_vol_integ_local = gkyl_malloc(sizeof(double));
     }
 
-    for (int j=0; j<rrs->num_boundaries; ++j) {
-      int dir  = rrs_inp->boundaries_dir[j];
-      int edge = rrs_inp->boundaries_edge[j];
-  
-      // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
-      assert(ns->bc_is_np[dir]);
-      if (edge == GKYL_LOWER_EDGE) {
-        assert(ns->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-        assert(ns->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
-      } else {
-        assert(ns->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-        assert(ns->upper_bc[dir].type != GKYL_SPECIES_REFLECT);
-      }
-  
-      // Default scenario: we set the ranges to the full range of the ghost cells.
-      rrs->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
-      rrs->boundaries_dir[j]  = dir;
-      rrs->boundaries_edge[j] = edge;
-  
-      // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-      if (edge == GKYL_LOWER_EDGE? ns->lower_bc[dir].type == GKYL_SPECIES_GK_IWL
-                                 : ns->upper_bc[dir].type == GKYL_SPECIES_GK_IWL)
-      {
-        rrs->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
-      }
-    }
-
     rrs->cross_moms_func = gk_neut_species_rrs_cross_moms_enabled;
     rrs->rhs_func = gk_neut_species_rrs_rhs_enabled;
     rrs->apply_func = gk_neut_species_rrs_apply_enabled;
@@ -241,6 +216,35 @@ gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app *app,
     // Fetch index of species for indexing arrays.
     rrs->elc_idx = gk_find_species_idx(app, rrs_inp->electron_name);
     rrs->ion_idx = gk_find_species_idx(app, rrs_inp->impacting_ion_name);
+
+    struct gk_species *gks_ion = &app->species[rrs->ion_idx];
+
+    for (int j=0; j<rrs->num_boundaries; ++j) {
+      int dir  = rrs_inp->boundaries_dir[j];
+      int edge = rrs_inp->boundaries_edge[j];
+  
+      // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
+      assert(gks_ion->bc_is_np[dir]);
+      if (edge == GKYL_LOWER_EDGE) {
+        assert(gks_ion->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
+        assert(gks_ion->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
+      } else {
+        assert(gks_ion->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
+        assert(gks_ion->upper_bc[dir].type != GKYL_SPECIES_REFLECT);
+      }
+  
+      // Default scenario: we set the ranges to the full range of the ghost cells.
+      rrs->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+      rrs->boundaries_dir[j]  = dir;
+      rrs->boundaries_edge[j] = edge;
+  
+      // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
+      if (edge == GKYL_LOWER_EDGE? gks_ion->lower_bc[dir].type == GKYL_SPECIES_GK_IWL
+                                 : gks_ion->upper_bc[dir].type == GKYL_SPECIES_GK_IWL)
+      {
+        rrs->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+      }
+    }
 
     rrs->coeff_react = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     if (rrs->write_diagnostics) {
