@@ -305,6 +305,16 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
+  mom_vlasov->vel_range = *inp->vel_range;
+  struct gkyl_array *vmap_ho = 0; 
+  struct gkyl_array *jacob_vel_ho = 0; 
+  if (inp->use_vmap) {
+    vmap_ho = gkyl_array_acquire(inp->vmap); 
+    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
+    mom_vlasov->vmap = vmap_ho->on_dev;
+    mom_vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  }
+
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
   mom_vlasov->momt.flags = 0;
@@ -321,7 +331,9 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
 
   // Host-side moment type object should store host pointers.
-  mom_vlasov->hamil = hamil_ho;   
+  mom_vlasov->vmap = vmap_ho; 
+  mom_vlasov->jacob_vel = jacob_vel_ho; 
+  mom_vlasov->hamil = hamil_ho;  
 
   return &mom_vlasov->momt;
 }
