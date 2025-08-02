@@ -180,9 +180,6 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
 
     int cqidx = p2c_qidx[linc2];
     int vqidx = p2v_qidx[linc2];
-    comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
-      phase_grid.dx, xc, &xmu[0]);
-
     if (use_vmap) {
       const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, linc2);
       for (int d = cdim; d < pdim; d++) {
