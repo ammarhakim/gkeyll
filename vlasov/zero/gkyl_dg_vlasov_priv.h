@@ -106,6 +106,23 @@ no_rad_vol(const double *w, const double *dxv,
 
 GKYL_CU_DH
 static double
+no_stream_surf(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *hamil, 
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
+{
+  return 0.0;
+}
+GKYL_CU_DH
+static double 
+no_stream_boundary_surf(const double *w, const double *dxv, 
+  const double *hamil, 
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out)
+{
+  return 0.0;
+}
+
+GKYL_CU_DH
+static double
 vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -154,7 +171,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_vel_vol_kernels[] = {
   { NULL, vlasov_hamil_vel_vol_1x2v_ser_p1, vlasov_hamil_vel_vol_1x2v_ser_p2, NULL }, // 1
   { NULL, vlasov_hamil_vel_vol_1x3v_ser_p1, vlasov_hamil_vel_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_hamil_vel_vol_2x1v_ser_p1, vlasov_hamil_vel_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_vel_vol_2x2v_ser_p1, vlasov_hamil_vel_vol_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -169,7 +186,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_gen_vol_kernels[] = {
   { NULL, vlasov_hamil_gen_vol_1x2v_ser_p1, vlasov_hamil_gen_vol_1x2v_ser_p2, NULL }, // 1
   { NULL, vlasov_hamil_gen_vol_1x3v_ser_p1, vlasov_hamil_gen_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_hamil_gen_vol_2x1v_ser_p1, vlasov_hamil_gen_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_gen_vol_2x2v_ser_p1, vlasov_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -184,7 +201,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_vol_kernels[] =
   { NULL, NULL, vlasov_hamil_vel_vol_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, vlasov_hamil_vel_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_hamil_vel_vol_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -199,7 +216,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_gen_vol_kernels[] =
   { NULL, NULL, vlasov_hamil_gen_vol_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, vlasov_hamil_gen_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_hamil_gen_vol_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_hamil_gen_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -334,7 +351,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_vel_surf_y_ke
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, no_stream_surf, no_stream_surf, NULL }, // 3  
   { NULL, vlasov_hamil_vel_surfy_2x2v_ser_p1, vlasov_hamil_vel_surfy_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_vel_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -349,7 +366,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_surf_y
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, NULL, no_stream_surf, NULL }, // 3  
   { NULL, NULL, vlasov_hamil_vel_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -424,7 +441,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_y_ke
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, no_stream_surf, no_stream_surf, NULL }, // 3  
   { NULL, vlasov_hamil_gen_surfy_2x2v_ser_p1, vlasov_hamil_gen_surfy_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_gen_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -439,7 +456,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_gen_surf_y
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, NULL, no_stream_surf, NULL }, // 3  
   { NULL, NULL, vlasov_hamil_gen_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -604,7 +621,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, no_stream_boundary_surf, no_stream_boundary_surf, NULL }, // 3  
   { NULL, vlasov_hamil_vel_boundary_surfy_2x2v_ser_p1, vlasov_hamil_vel_boundary_surfy_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_vel_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -619,7 +636,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, NULL, no_stream_boundary_surf, NULL }, // 3  
   { NULL, NULL, vlasov_hamil_vel_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -694,7 +711,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, no_stream_boundary_surf, no_stream_boundary_surf, NULL }, // 3  
   { NULL, vlasov_hamil_gen_boundary_surfy_2x2v_ser_p1, vlasov_hamil_gen_boundary_surfy_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_hamil_gen_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -709,7 +726,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_g
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
+  { NULL, NULL, no_stream_boundary_surf, NULL }, // 3  
   { NULL, NULL, vlasov_hamil_gen_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels

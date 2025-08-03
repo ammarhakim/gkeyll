@@ -1167,6 +1167,9 @@ struct vlasov_field_lw {
   bool has_applied_current_func; // Is there an applied current initialization function?
   struct lua_func_ctx applied_current_func_ref; // Lua registry reference to applied current initialization function.
   bool evolve_applied_current; // Is the applied current evolved?
+
+  bool has_sigma_func; // Is there a resistive layer function?
+  struct lua_func_ctx sigma_func_ref; // Lua registry reference to resistive layer function.  
 };
 
 static int
@@ -1291,6 +1294,14 @@ vlasov_field_lw_new(lua_State *L)
     evolve_applied_current = glua_tbl_get_bool(L, "evolveAppliedCurrent", false);
   }
 
+  bool has_sigma_func = false;
+  int sigma_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "sigma")) {
+    sigma_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_sigma_func = true;
+  }
+
   struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 
   vmf_lw->magic = VLASOV_FIELD_DEFAULT;
@@ -1329,7 +1340,15 @@ vlasov_field_lw_new(lua_State *L)
     .L = L,
   };
   vmf_lw->evolve_applied_current = evolve_applied_current;
-  
+
+  vmf_lw->has_sigma_func = has_sigma_func;
+  vmf_lw->sigma_func_ref = (struct lua_func_ctx) {
+    .func_ref = sigma_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };  
+
   // Set metatable.
   luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
   lua_setmetatable(L, -2);
@@ -1452,6 +1471,7 @@ struct vlasov_app_lw {
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
   struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
+  struct lua_func_ctx sigma_func_ctx; // Function context for applied current.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -2113,6 +2133,14 @@ vm_app_new(lua_State *L)
 
           vm.field.app_current_evolve = vmf->evolve_applied_current;
         }
+
+        if (vmf->has_sigma_func) {
+          vmf->sigma_func_ref.ndim = cdim;
+
+          app_lw->sigma_func_ctx = vmf->sigma_func_ref;
+          vm.field.sigma = gkyl_lw_eval_cb;
+          vm.field.sigma_ctx = &app_lw->sigma_func_ctx;
+        }        
       }
     }
   }
