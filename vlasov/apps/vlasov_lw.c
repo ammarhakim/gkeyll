@@ -85,7 +85,6 @@ static const struct gkyl_str_int_pair radiation_type[] = {
   { 0, 0 }
 };
 
-
 void
 gkyl_register_poisson_bc_types(lua_State *L)
 {
@@ -119,7 +118,7 @@ gkyl_register_vlasov_source_types(lua_State *L)
 void
 gkyl_register_vlasov_radiation_types(lua_State *L)
 {
-  register_types(L, radiation_type, "Radiation");
+  register_types(L, radiation_type, "VMRadiation");
 }
 
 // Magic IDs for use in distinguishing various species and field types.
