@@ -165,6 +165,8 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->conf_range = *inp->conf_range;
   vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
+
+  vlasov->jacob_vel = 0;    
   struct gkyl_array *jacob_vel_ho = 0; 
   if (inp->use_vmap) {
     jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 

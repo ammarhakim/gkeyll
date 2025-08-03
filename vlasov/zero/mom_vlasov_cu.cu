@@ -200,6 +200,8 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
   mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vmap = 0;
+  mom_vlasov->jacob_vel = 0;    
   struct gkyl_array *vmap_ho = 0; 
   struct gkyl_array *jacob_vel_ho = 0; 
   if (inp->use_vmap) {
