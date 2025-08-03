@@ -530,11 +530,13 @@ vlasov_species_lw_new(lua_State *L)
 
   bool has_mapc2p_vel_func[GKYL_MAX_CDIM]; 
   int mapc2p_vel_func_ref[GKYL_MAX_CDIM];
+  for (int d = 0; d < vdim; d++) {
+    has_mapc2p_vel_func[d] = false;
+    mapc2p_vel_func_ref[d] = LUA_NOREF;
+  }
   with_lua_tbl_tbl(L, "mapc2pVel") {
     for (int d = 0; d < vdim; d++) {
       if (glua_tbl_iget_tbl(L, d + 1)) {
-        has_mapc2p_vel_func[d] = false;
-        mapc2p_vel_func_ref[d] = LUA_NOREF;
         if (glua_tbl_get_func(L, "vmap")) {
           has_mapc2p_vel_func[d] = true; 
           mapc2p_vel_func_ref[d] = luaL_ref(L, LUA_REGISTRYINDEX);
