@@ -17,7 +17,7 @@ __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
   const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const double *rad, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int pdim = up->pdim;
