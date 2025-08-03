@@ -77,6 +77,15 @@ static const struct gkyl_str_int_pair source_type[] = {
   { 0, 0 }
 };
 
+// Vlasov radiation type -> enum map.
+static const struct gkyl_str_int_pair radiation_type[] = {
+  { "None", GKYL_VM_NO_RADIATION },
+  { "Compton", GKYL_VM_COMPTON_RADIATION },
+  { "Curvature", GKYL_VM_CURVATURE_RADIATION },
+  { 0, 0 }
+};
+
+
 void
 gkyl_register_poisson_bc_types(lua_State *L)
 {
@@ -105,6 +114,12 @@ void
 gkyl_register_vlasov_source_types(lua_State *L)
 {
   register_types(L, source_type, "Source");
+}
+
+void
+gkyl_register_vlasov_radiation_types(lua_State *L)
+{
+  register_types(L, radiation_type, "Radiation");
 }
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -428,6 +443,10 @@ struct vlasov_species_lw {
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+
+  enum gkyl_vlasov_radiation_id radiation_id; // Radiation type.
+  double t_cool; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag
+  double p0; // (four-) velocity to cool to. 
 
   bool has_app_accel_func; // Is there an applied acceleration initialization function?
   struct lua_func_ctx app_accel_func_ref; // Lua registry reference to applied acceleration initialization function.
@@ -772,6 +791,15 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
+  enum gkyl_vlasov_radiation_id radiation_id = GKYL_VM_NO_RADIATION;
+  double t_cool = 0.0; 
+  double p0 = 0.0; 
+  with_lua_tbl_tbl(L, "radiation") {
+    radiation_id = glua_tbl_get_integer(L, "radiationID", 0);
+    t_cool = glua_tbl_get_number(L, "coolingTime", 1.0); // Default to 1.0 so 1/t_cool is not singular. 
+    p0 = glua_tbl_get_number(L, "p0", 0.0);
+  }
+
   bool has_app_accel_func = false;
   int app_accel_func_ref = LUA_NOREF;
   bool evolve_app_accel = false;
@@ -944,6 +972,10 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->output_f_lte = output_f_lte;
   vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->has_implicit_coll_scheme = has_implicit_coll_scheme;
+
+  vms_lw->radiation_id = radiation_id; 
+  vms_lw->t_cool = t_cool; 
+  vms_lw->p0 = p0; 
 
   vms_lw->has_app_accel_func = has_app_accel_func;
   vms_lw->app_accel_func_ref = (struct lua_func_ctx) {
@@ -1405,6 +1437,10 @@ struct vlasov_app_lw {
   double source_iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
   int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+
+  enum gkyl_vlasov_radiation_id radiation_id[GKYL_MAX_SPECIES]; // Radiation type.
+  double t_cool[GKYL_MAX_SPECIES]; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag.
+  double p0[GKYL_MAX_SPECIES]; // (four-) velocity to cool to. 
 
   struct lua_func_ctx app_accel_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
 
@@ -1979,6 +2015,14 @@ vm_app_new(lua_State *L)
       vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
       vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
     }
+
+    app_lw->radiation_id[s] = species[s]->radiation_id;
+    app_lw->t_cool[s] = species[s]->t_cool;
+    app_lw->p0[s] = species[s]->p0;
+
+    vm.species[s].radiation.radiation_id = app_lw->radiation_id[s];
+    vm.species[s].radiation.t_cool = app_lw->t_cool[s];
+    vm.species[s].radiation.p0 = app_lw->p0[s];
 
     if (species[s]->has_app_accel_func) {
       species[s]->app_accel_func_ref.ndim = cdim;
@@ -2773,11 +2817,13 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
 {
   gkyl_register_poisson_bc_types(L);
 
-  // Register types for Vlasov projection, model ID, collision ID, and source ID initialization.
+  // Register types for Vlasov projection, model ID, 
+  // collision ID, source ID, and radiation ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
   gkyl_register_vlasov_collision_types(L);
-  gkyl_register_vlasov_source_types(L);  
+  gkyl_register_vlasov_source_types(L); 
+  gkyl_register_vlasov_radiation_types(L);  
   
   eqn_openlibs(L);
   app_openlibs(L);

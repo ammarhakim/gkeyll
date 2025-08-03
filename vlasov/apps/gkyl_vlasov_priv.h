@@ -39,12 +39,12 @@
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_updater_rad_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_poisson.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_dg_vlasov_calc_radiation.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
@@ -201,13 +201,6 @@ struct vm_bgk_collisions {
 
   bool implicit_step; // whether or not to take an implcit bgk step
   double dt_implicit; // timestep used by the implicit collisions
-};
-
-struct vm_rad_drag {  
-  enum gkyl_radiation_id radiation_id; // Type of radiation.
-  struct gkyl_array *nu; // collision frequency for radiation
-  struct gkyl_array *nu_rad_drag; // nu*drag for drag force
-  gkyl_dg_updater_rad_vlasov *rad_slvr; // radiation solver
 };
 
 struct vm_boundary_fluxes {
@@ -382,6 +375,9 @@ struct vm_species {
   bool has_qmem; // Do we have electric/magnetic fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
 
+  bool has_rad; // Do we have a radiation drag force?
+  struct gkyl_array *rad; // array for radiation drag force. 
+
   // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
   struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
@@ -467,8 +463,6 @@ struct vm_species {
       struct vm_bgk_collisions bgk; // BGK collisions object
     };
   }; 
-
-  struct vm_rad_drag rad; // Vlasov radiation object
 
   double *omega_cfl;
 
@@ -1167,40 +1161,6 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
  * @param bgk Species BGK object to release
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
-
-/** vm_species_radiation API */
-
-/**
- * Initialize species radiation object.
- *
- * @param app Vlasov app object
- * @param s Species object 
- * @param rad Species radiation object
- */
-void vm_species_radiation_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_rad_drag *rad);
-
-/**
- * Compute RHS from radiation operator
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param rad Pointer to radiation object
- * @param fin Input distribution function
- * @param rhs On output, the RHS from radiation
- */
-void vm_species_radiation_rhs(gkyl_vlasov_app *app,
-  const struct vm_species *species,
-  struct vm_rad_drag *rad,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
-
-/**
- * Release species radiation object.
- *
- * @param app Vlasov app object
- * @param rad Species radiation object to release
- */
-void vm_species_radiation_release(const struct gkyl_vlasov_app *app, const struct vm_rad_drag *rad);
 
 /** vm_species_boundary_fluxes API */
 

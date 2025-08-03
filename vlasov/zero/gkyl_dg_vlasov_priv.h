@@ -19,6 +19,9 @@ typedef void (*EB_vol_t)(const double *w, const double *dxv,
 typedef void (*phi_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out);
 
+typedef void (*rad_vol_t)(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *rad, const double *f, double* GKYL_RESTRICT out);
+
 typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
@@ -47,6 +50,7 @@ static const struct { int vdim[4]; } cv_index[] = {
 typedef struct { hamil_vol_t kernels[4]; } gkyl_dg_vlasov_hamil_vol_kern_list;
 typedef struct { EB_vol_t kernels[4]; } gkyl_dg_vlasov_EB_vol_kern_list;
 typedef struct { phi_vol_t kernels[4]; } gkyl_dg_vlasov_phi_vol_kern_list;
+typedef struct { rad_vol_t kernels[4]; } gkyl_dg_vlasov_rad_vol_kern_list;
 
 // Surface kernel type tables. 
 typedef struct { vlasov_stream_surf_t kernels[4]; } gkyl_dg_vlasov_stream_surf_kern_list;
@@ -68,10 +72,12 @@ struct dg_vlasov {
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 
-  const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces. 
+  const struct gkyl_array *rad; // Radiation force.
+  const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces.  
   hamil_vol_t hamil_vol; // Volume term for Hamiltonian contribution to update from canonical bracket. 
   EB_vol_t EB_vol; // Volume term for Lorentz forces. 
   phi_vol_t phi_vol; // Volume term for scalar potential, -grad(phi), forces. 
+  rad_vol_t rad_vol; // Volume term for radiation drag forces. 
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for advection in configuration space.
   vlasov_stream_boundary_surf_t stream_boundary_surf[3]; // Boundary surface terms for advection in configuration space.
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration.
@@ -88,6 +94,12 @@ no_EB_vol(const double *w, const double *dxv,
 GKYL_CU_DH
 static void 
 no_phi_vol(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out)
+{
+}
+GKYL_CU_DH
+static void 
+no_rad_vol(const double *w, const double *dxv, 
   const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out)
 {
 }
@@ -125,6 +137,10 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   vlasov->phi_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx), 
+    qIn, qRhsOut); 
+  vlasov->rad_vol(xc, dx, 
+    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(vlasov->rad, vidx),
     qIn, qRhsOut); 
 
   return 0.0;
@@ -245,6 +261,36 @@ static const gkyl_dg_vlasov_phi_vol_kern_list tensor_phi_vol_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_phi_vol_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_phi_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Radiation force volume kernels (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_rad_vol_kern_list ser_rad_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_rad_vol_1x1v_ser_p1, vlasov_rad_vol_1x1v_ser_p2, NULL }, // 0
+  { NULL, vlasov_rad_vol_1x2v_ser_p1, vlasov_rad_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_rad_vol_1x3v_ser_p1, vlasov_rad_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, vlasov_rad_vol_2x1v_ser_p1, vlasov_rad_vol_2x1v_ser_p2, NULL }, // 3
+  { NULL, vlasov_rad_vol_2x2v_ser_p1, vlasov_rad_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_rad_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_rad_vol_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Radiation force volume kernels (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_rad_vol_kern_list tensor_rad_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, vlasov_rad_vol_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, vlasov_rad_vol_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_rad_vol_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_rad_vol_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, vlasov_rad_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6

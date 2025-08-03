@@ -90,11 +90,17 @@ enum gkyl_projection_id {
   GKYL_PROJ_MAXWELLIAN_GAUSSIAN, // Maxwellian in velocity space + Gaussian in configuration space
 };
 
-// Identifiers for specific radiation object types
+// Identifiers for specific radiation object types for gyrokinetic equation
 enum gkyl_radiation_id {
   GKYL_NO_RADIATION = 0, // No radiation. This is default
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+};
+
+// Identifiers for specific radiation object types for Vlasov equation
+enum gkyl_vlasov_radiation_id {
+  GKYL_VM_NO_RADIATION = 0, // No radiation. This is default
   GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
+  GKYL_VM_CURVATURE_RADIATION, // Vlasov simple curvature radiation model. 
 };
 
 // Identifiers for specific reaction object types

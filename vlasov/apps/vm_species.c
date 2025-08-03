@@ -96,6 +96,21 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   }
 }
 
+static void 
+vm_species_new_radiation(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
+{
+  int vdim = app->vdim;    
+  vms->has_rad = false;
+  enum gkyl_vlasov_radiation_id radiation_id = vms->info.radiation.radiation_id;
+  vms->rad = mkarr(app->use_gpu, vdim*vms->basis_vel.num_basis, vms->local_vel.volume);
+  if (radiation_id ==  GKYL_VM_COMPTON_RADIATION || radiation_id == GKYL_VM_CURVATURE_RADIATION) {
+    vms->has_rad = true;
+    gkyl_dg_vlasov_calc_radiation(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
+      radiation_id, vms->vmap, vms->info.radiation.t_cool, vms->info.radiation.p0, 
+      vms->rad, app->use_gpu); 
+  }
+}
+
 static void
 vm_species_apply_ic_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double tm)
 {
@@ -183,7 +198,7 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
 
   // Compute the surface expansion of the phase space flux in velocity space. 
   gkyl_dg_vlasov_vel_flux_surf_advance(vms->calc_vel_flux, &app->local, &vms->local, 
-    vms->jacob_vel, vms->hamil, vms->qmem, vms->pot_tot, 
+    vms->jacob_vel, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
     fin, vms->cflrate, vms->vel_flux_surf);
 
   gkyl_hyper_dg_advance(vms->slvr, &vms->local, fin, vms->cflrate, rhs);
@@ -224,10 +239,6 @@ vm_species_rhs_dynamic(gkyl_vlasov_app *app, struct vm_species *vms,
   if (vms->calc_bflux) {
     vm_species_bflux_rhs(app, vms, &vms->bflux, fin, rhs);
   }
-
-  if (vms->rad.radiation_id == GKYL_VM_COMPTON_RADIATION) {
-    vm_species_radiation_rhs(app, vms, &vms->rad, fin, rhs);
-  }  
 
   // Reduce the CFL frequency anc compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -803,10 +814,6 @@ vm_species_release_dynamic(const gkyl_vlasov_app* app, const struct vm_species *
     vm_species_bgk_release(app, &vms->bgk);
   }
 
-  if (vms->rad.radiation_id == GKYL_VM_COMPTON_RADIATION) {
-    vm_species_radiation_release(app, &vms->rad);
-  }
-
   if (vms->calc_bflux) {
     vm_species_bflux_release(app, &vms->bflux);
   }
@@ -886,10 +893,6 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   else if (vms->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_init(app, vms, &vms->bgk);
   }  
-
-  if (vms->info.radiation.radiation_id == GKYL_VM_COMPTON_RADIATION) {
-    vm_species_radiation_init(app, vms, &vms->rad);
-  }
   
   // Allocate buffer for applying BCs.
   long buff_sz = 0;
@@ -1245,6 +1248,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
 
+  // Determine whether we have radiation. 
+  vm_species_new_radiation(vm_app_inp, app, vms); 
+
   // Allocate modal surface expansion of velocity space flux array. 
   vms->vel_flux_surf = mkarr(app->use_gpu, vdim*vms->basis_surf.num_basis, vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
@@ -1256,6 +1262,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .model_id = vms->model_id,
     .has_qmem = vms->has_qmem, 
     .has_phi = vms->has_phi, 
+    .has_rad = vms->has_rad, 
     .use_gpu = app->use_gpu,
   }; 
   vms->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
@@ -1272,10 +1279,12 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .model_id = vms->model_id,
     .has_qmem = vms->has_qmem, 
     .has_phi = vms->has_phi, 
+    .has_rad = vms->has_rad, 
     .hamil = vms->hamil,
     .qmem = vms->qmem, 
     .pot_tot = vms->pot_tot, 
     .vel_flux_surf = vms->vel_flux_surf, 
+    .rad = vms->rad, 
     .use_gpu = app->use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 
@@ -1348,7 +1357,6 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->src = (struct vm_source) { };
   vms->lbo = (struct vm_lbo_collisions) { };
   vms->bgk = (struct vm_bgk_collisions) { };
-  vms->rad = (struct vm_rad_drag) { };
   vms->bflux = (struct vm_boundary_fluxes) { };
 
   // Set species source id. 

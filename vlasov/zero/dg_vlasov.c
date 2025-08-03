@@ -24,6 +24,7 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(vlasov->hamil);
   gkyl_array_release(vlasov->qmem);
   gkyl_array_release(vlasov->pot_tot);
+  gkyl_array_release(vlasov->rad);
   gkyl_array_release(vlasov->vel_flux_surf); 
   gkyl_free(vlasov);
 }
@@ -65,6 +66,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 
   vlasov->qmem = gkyl_array_acquire(inp->qmem); 
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
+  vlasov->rad = gkyl_array_acquire(inp->rad);
   vlasov->vel_flux_surf = gkyl_array_acquire(inp->vel_flux_surf); 
 
   vlasov->eqn.num_equations = 1;
@@ -72,9 +74,10 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
-  // By default, we have no forces from E, B, or phi. 
+  // By default, we have no forces from E, B, phi, or radiation. 
   vlasov->EB_vol = no_EB_vol; 
   vlasov->phi_vol = no_phi_vol; 
+  vlasov->rad_vol = no_rad_vol; 
 
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
     *stream_surf_y_kernels, 
@@ -99,6 +102,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = ser_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         if (inp->has_qmem) vlasov->EB_vol = ser_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        if (inp->has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
@@ -136,6 +140,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = tensor_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         if (inp->has_qmem) vlasov->EB_vol = tensor_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = tensor_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = tensor_stream_hamil_vel_surf_y_kernels;

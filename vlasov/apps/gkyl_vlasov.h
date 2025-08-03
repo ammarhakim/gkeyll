@@ -69,15 +69,9 @@ struct gkyl_vlasov_collisions {
 
 // Parameters for species radiation
 struct gkyl_vlasov_radiation {
-  enum gkyl_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
-
-  void *ctx_nu; // context for collision frequency
-  // function for computing collision frequency
-  void (*nu)(double t, const double *xn, double *fout, void *ctx);
-
-  void *ctx_nu_rad_drag; // context for collision frequency * drag
-  // function for computing collision frequency * drag
-  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);  
+  enum gkyl_vlasov_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
+  double t_cool; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag
+  double p0; // (four-) velocity to cool to. 
 };
 
 // Parameters for species source

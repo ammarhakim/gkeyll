@@ -17,7 +17,7 @@ __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
   const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const double *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int pdim = up->pdim;
@@ -48,6 +48,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
     const double *qmem_d = (const double*) gkyl_array_cfetch(qmem, cidx); 
     const double *pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx); 
+    const double *rad_d = (const double*) gkyl_array_cfetch(rad, vidx); 
     const double *f_c = (const double*) gkyl_array_cfetch(fin, pidx); 
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, pidx);
     double *flux = (double*) gkyl_array_fetch(vel_flux_surf, pidx); 
@@ -62,7 +63,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
       if (idx[cdim+dir] == phase_range.lower[cdim+dir]) {
         cflrate_d[0] += up->vel_flux_surf_edge(up, dir, up->phase_grid.dx, 
           jacob_vel ? (const double*) gkyl_array_cfetch(jacob_vel, vidx) : 0,
-          hamil_d, qmem_d, pot_tot_d, f_c, flux); 
+          hamil_d, qmem_d, pot_tot_d, rad_d, f_c, flux); 
       }
       else {
         gkyl_copy_int_arr(pdim, idx, idx_l);
@@ -71,7 +72,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
         const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);  
         cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
           jacob_vel ? (const double*) gkyl_array_cfetch(jacob_vel, vidx) : 0,
-          hamil_d, qmem_d, pot_tot_d, f_l, f_c, flux);      
+          hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);      
       }
     }    
   }
@@ -81,14 +82,14 @@ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const struct gkyl_array *jacob_vel, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, 
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
     *conf_range, *phase_range, jacob_vel ? jacob_vel->on_dev : 0,
-    hamil->on_dev, qmem->on_dev, pot_tot->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);  
+    hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);  
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
@@ -96,13 +97,14 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_qmem, bool has_phi)
+  enum gkyl_model_id model_id, bool has_qmem, bool has_phi, bool has_rad)
 {
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
     up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
     up->EB_alpha_quad[d] = no_EB_alpha_quad;
     up->phi_alpha_quad[d] = no_phi_alpha_quad; 
+    up->rad_alpha_quad[d] = no_rad_alpha_quad; 
   } 
 
   int kernel_index = cv_index[cdim].vdim[vdim];   
@@ -130,7 +132,13 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
-      
+
+      if (has_rad) {
+        up->rad_alpha_quad[0] = ser_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->rad_alpha_quad[1] = ser_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->rad_alpha_quad[2] = ser_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }      
+
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -156,7 +164,13 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
-      
+
+      if (has_rad) {
+        up->rad_alpha_quad[0] = tensor_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->rad_alpha_quad[1] = tensor_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->rad_alpha_quad[2] = tensor_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }      
+
       break;      
 
     default:
@@ -200,7 +214,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_qmem, inp->has_phi);  
+    cdim, vdim, poly_order, inp->model_id, inp->has_qmem, inp->has_phi, inp->has_rad);  
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

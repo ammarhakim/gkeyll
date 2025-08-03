@@ -13,17 +13,17 @@ extern "C" {
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
-  int cdim, int vdim, int poly_order, enum gkyl_model_id model_id, bool has_qmem, bool has_phi, 
-  const struct gkyl_array *hamil, const struct gkyl_array *qmem, 
-  const struct gkyl_array *pot_tot, const struct gkyl_array *vel_flux_surf)
+  int cdim, int vdim, int poly_order, enum gkyl_model_id model_id, 
+  bool has_qmem, bool has_phi, bool has_rad)
 {
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
-  // By default, we have no forces from E, B, or phi. 
+  // By default, we have no forces from E, B, phi, or radiation. 
   vlasov->EB_vol = no_EB_vol; 
   vlasov->phi_vol = no_phi_vol; 
+  vlasov->rad_vol = no_rad_vol; 
 
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
     *stream_surf_y_kernels, 
@@ -48,6 +48,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = ser_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         if (has_qmem) vlasov->EB_vol = ser_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        if (has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
@@ -85,6 +86,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = tensor_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         if (has_qmem) vlasov->EB_vol = tensor_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        if (has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = tensor_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = tensor_stream_hamil_vel_surf_y_kernels;
@@ -171,11 +173,13 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
+  struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad); 
   struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
   // store pointers to on_dev for copying over to device. 
   vlasov->hamil = hamil_ho->on_dev; 
   vlasov->qmem = qmem_ho->on_dev; 
   vlasov->pot_tot = pot_tot_ho->on_dev; 
+  vlasov->rad = rad_ho->on_dev;
   vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
 
   vlasov->eqn.num_equations = 1;
@@ -189,8 +193,8 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
   dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_qmem, inp->has_phi, 
-    inp->hamil->on_dev, inp->qmem->on_dev, inp->pot_tot->on_dev, inp->vel_flux_surf->on_dev);
+    cdim, vdim, poly_order, inp->model_id, 
+    inp->has_qmem, inp->has_phi, inp->has_rad);
 
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;
@@ -200,6 +204,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->hamil = hamil_ho; 
   vlasov->qmem = qmem_ho; 
   vlasov->pot_tot = pot_tot_ho; 
+  vlasov->rad = rad_ho; 
   vlasov->vel_flux_surf = vel_flux_surf_ho; 
 
   return &vlasov->eqn;

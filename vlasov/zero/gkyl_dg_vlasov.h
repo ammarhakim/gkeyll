@@ -19,10 +19,12 @@ struct gkyl_dg_vlasov_inp {
   bool use_vmap; // bool to determine whether we have a nonuniform velocity map. 
   bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  bool has_rad; // bool to determine whether we have radiation drag forces. 
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 
+  const struct gkyl_array *rad; // Radiation drag forces, F_rad(v). 
   const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces. 
   bool use_gpu; // bool to determine if on GPU. 
 };
