@@ -155,7 +155,7 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local x = xn[1]
 
-      local Ex = -alpha * math.sin(kx * x) / kx -- Total electric field (x-direction).
+      local Ex = -alpha * gamma * math.sin(kx * x) / kx -- Total electric field (x-direction).
       local Ey = 0.0 -- Total electric field (y-direction).
       local Ez = 0.0 -- Total electric field (z-direction).
 

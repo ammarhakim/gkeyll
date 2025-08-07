@@ -168,7 +168,7 @@ vlasovApp = Vlasov.App.new {
       -- Total electric field (x-direction). 
       for i = mode_init, mode_final do 
         if (i ~= 0) then 
-          Ex = Ex - alpha*math.random()*math.sin(kx*i*x + 2.0 * pi * math.random())/(i*kx)
+          Ex = Ex - alpha*gamma*math.random()*math.sin(kx*i*x + 2.0 * pi * math.random())/(i*kx)
         end
       end
       local Ey = 0.0 -- Total electric field (y-direction).

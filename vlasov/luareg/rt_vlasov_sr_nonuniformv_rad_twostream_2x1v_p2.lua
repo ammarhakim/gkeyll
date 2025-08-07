@@ -229,7 +229,7 @@ vlasovApp = Vlasov.App.new {
       for i = mode_init, mode_final do 
         if (i ~= 0) then 
           for j = mode_init, mode_final do 
-            Ex = Ex - alpha*math.random()*math.sin(kx*i*x + ky*j*y + 2.0 * pi * math.random())/(i*kx)
+            Ex = Ex - alpha*gamma*math.random()*math.sin(kx*i*x + ky*j*y + 2.0 * pi * math.random())/(i*kx)
           end
         end
       end
