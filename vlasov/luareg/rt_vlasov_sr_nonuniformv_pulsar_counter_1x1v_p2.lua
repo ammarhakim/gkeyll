@@ -147,7 +147,7 @@ vlasovApp = Vlasov.App.new {
     -- Sources. 
     source = {
       sourceID = G0.Source.Adapt,
-      numCrossSource = 1, 
+      numCrossSources = 1, 
       sourceWith = { "pos" }, 
       sourceWithVThresh = { 10.0 }, -- threshold velocity for partial moment
       sourceWithUpperHalf = { true }, -- is the integral over the upper-half plane?
@@ -265,7 +265,7 @@ vlasovApp = Vlasov.App.new {
     -- Sources. 
     source = {
       sourceID = G0.Source.Adapt,
-      numCrossSource = 1, 
+      numCrossSources = 1, 
       sourceWith = { "elc" }, 
       sourceWithVThresh = { 10.0 }, -- threshold velocity for partial moment
       sourceWithUpperHalf = { true }, -- is the integral over the upper-half plane?
