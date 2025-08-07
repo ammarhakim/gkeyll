@@ -13,7 +13,7 @@ n0 = 1.0 -- Reference number density.
 T = 0.04 -- Temperature (units of mc^2).
 Vx_drift = 0.9 -- Drift velocity (x-direction).
 
-alpha = 1.0e-3 -- Applied perturbation amplitude.
+alpha = 1.0e-8 -- Applied perturbation amplitude.
 kx = 0.5 -- Perturbed wave number (x-direction).
 
 -- Derived physical quantities (using normalized code units).
@@ -21,11 +21,12 @@ gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
 Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
-Nx = 96 -- Cell count (configuration space: x-direction).
-Nvx = 96 -- Cell count (velocity space: vx-direction).
+Nx = 64 -- Cell count (configuration space: x-direction).
+Nvx = 256 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 192.0 -- Domain boundary (velocity space: vx-direction).
+vx_max = 128.0 -- Domain boundary (velocity space: vx-direction).
 nonuniform_v_pow = 2.0 -- Quadratic velocity map. 
+vx_linear_res = 1.0/32.0 -- Transition from linear to quadratic velocity map. 
 poly_order = 2 -- Polynomial order.
 basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -79,21 +80,12 @@ vlasovApp = Vlasov.App.new {
         vmap = function (t, xn)
           local vc = xn[1]
           local vp = 0.0
-
-          local ncells = Nvx
-          local v1, v2
-          local pmin, pint, pmax, p0, vZero
-
-          pmin = 0.07
-          pint = 10.0
-          pmax = vx_max
+          local ncells_linear = Nvx/2
 
           if (vc < 0.0) then 
-            v1 = pmin*(-1*vc)*ncells+vx_max*vc^nonuniform_v_pow
-            vp = -v1;
+            vp = vx_linear_res*ncells_linear*vc - vx_max*vc^nonuniform_v_pow
           else
-            v1 = pmin*vc*ncells+vx_max*vc^nonuniform_v_pow
-            vp = v1;
+            vp = vx_linear_res*ncells_linear*vc + vx_max*vc^nonuniform_v_pow
           end
           return vp
         end
