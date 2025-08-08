@@ -16,7 +16,8 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
   const struct gkyl_basis *phase_basis; // Phase-space basis functions. 
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_range *vel_range; // Velocity-space range for use in indexing velocity-space Jacobian. 
-  enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
+  enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
   bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
   bool has_rad; // bool to determine whether we have radiation drag forces. 

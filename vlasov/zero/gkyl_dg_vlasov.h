@@ -15,6 +15,7 @@ struct gkyl_dg_vlasov_inp {
   const struct gkyl_range *conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.). 
   const struct gkyl_range *vel_range; // Velocity-space range for use in indexing velocity-space Jacobian. 
   const struct gkyl_range *phase_range; // Range for indexing velocity-space flux. 
+  double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
   bool use_vmap; // bool to determine whether we have a nonuniform velocity map. 
   bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).

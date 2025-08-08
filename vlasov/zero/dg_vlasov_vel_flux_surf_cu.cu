@@ -194,6 +194,15 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
   up->pdim = pdim; 
+
+  // Are we skipping cells with small phase space density?
+  if (inp->skip_cell_thresh > 0.0) {
+    up->skip_cell_thresh = inp->skip_cell_thresh * pow(sqrt(2.0), pdim);
+  }
+  else {
+    up->skip_cell_thresh = -1.0;
+  }  
+
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
   up->hamil_range = *inp->hamil_range; 

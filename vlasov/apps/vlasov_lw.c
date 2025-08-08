@@ -488,6 +488,8 @@ vlasov_species_lw_new(lua_State *L)
   bool write_cell_avg = glua_tbl_get_bool(L, "writeCellAvg", false);
   vm_species.write_cell_avg = write_cell_avg; 
 
+  vm_species.skip_cell_thresh = glua_tbl_get_number(L, "skipCellThresh", 0.0);
+
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
 

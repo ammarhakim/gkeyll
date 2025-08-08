@@ -62,6 +62,7 @@ struct dg_vlasov {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Configuration-space dimensions.
   int pdim; // Phase-space dimensions.
+  double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
@@ -127,6 +128,10 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  if (fabs(qIn[0]) < vlasov->skip_cell_thresh) {
+    return 0.0; // Immediately return if phase-space density is below threshold
+  }  
 
   int idx_vel[GKYL_MAX_DIM];
   for (int i=0; i<vlasov->pdim-vlasov->cdim; ++i) {
@@ -871,6 +876,12 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
+  if (fabs(qInL[0]) < vlasov->skip_cell_thresh && 
+      fabs(qInC[0]) < vlasov->skip_cell_thresh && 
+      fabs(qInR[0]) < vlasov->skip_cell_thresh) {
+    return 0.0; // Immediately return if phase-space density is below threshold.
+  }
+
   if (dir < vlasov->cdim) {
     int idx_vel[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->pdim-vlasov->cdim; ++i) {
@@ -911,6 +922,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  if (fabs(qInEdge[0]) < vlasov->skip_cell_thresh && 
+      fabs(qInSkin[0]) < vlasov->skip_cell_thresh) {
+    return 0.0; // Immediately return if phase-space density is below threshold.
+  }
 
   if (dir < vlasov->cdim) {
     int idx_hamil[GKYL_MAX_DIM];

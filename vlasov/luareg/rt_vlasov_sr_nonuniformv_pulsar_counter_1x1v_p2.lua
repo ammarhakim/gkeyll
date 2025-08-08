@@ -67,6 +67,8 @@ vlasovApp = Vlasov.App.new {
   elc = Vlasov.Species.new {
     modelID = G0.Model.SR,
     charge = charge_elc, mass = mass_elc,
+    writeCellAvg = true, 
+    skipCellThresh = 1.0e-30, 
     
     -- Velocity space grid.
     lower = { -1.0 },
@@ -204,6 +206,8 @@ vlasovApp = Vlasov.App.new {
   pos = Vlasov.Species.new {
     modelID = G0.Model.SR,
     charge = charge_ion, mass = mass_ion,
+    writeCellAvg = true, 
+    skipCellThresh = 1.0e-30, 
     
     -- Velocity space grid.
     lower = { -1.0 },

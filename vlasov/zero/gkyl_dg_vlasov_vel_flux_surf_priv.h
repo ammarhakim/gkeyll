@@ -7,6 +7,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_vlasov_kernels.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
@@ -59,6 +60,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
   struct gkyl_rect_grid phase_grid; // Phase-space grid. 
   int cdim; // Configuration-space dimensions.
   int pdim; // Phase-space dimensions.
+  double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
@@ -140,9 +142,18 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -159,9 +170,18 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -179,9 +199,18 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  } 
 } 
 
 GKYL_CU_DH
@@ -199,9 +228,18 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -219,9 +257,18 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -239,9 +286,18 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -258,9 +314,18 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -277,9 +342,18 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -297,9 +371,18 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -317,9 +400,18 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);   
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  } 
 } 
 
 GKYL_CU_DH
@@ -337,9 +429,18 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 GKYL_CU_DH
@@ -357,9 +458,18 @@ vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
 
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux. 
-  return up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
-    f_l, f_c, lax_nodal_quad, vel_flux_surf);  
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  }
 } 
 
 // Velocity-space flux computation assembly function. 

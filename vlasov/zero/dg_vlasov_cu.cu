@@ -151,6 +151,14 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->cdim = cdim;
   vlasov->pdim = pdim;  
 
+  // Are we skipping cells with small phase space density?
+  if (inp->skip_cell_thresh > 0.0) {
+    vlasov->skip_cell_thresh = inp->skip_cell_thresh * pow(sqrt(2.0), pdim);
+  }
+  else {
+    vlasov->skip_cell_thresh = -1.0;
+  }
+
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
   if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
