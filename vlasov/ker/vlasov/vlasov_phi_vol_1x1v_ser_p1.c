@@ -4,7 +4,7 @@ GKYL_CU_DH void vlasov_phi_vol_1x1v_ser_p1(const double *w, const double *dxv,
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[1]; 
-  out[2] += -(2.1213203435596424*f[0]*phi[1]*dv10*dx10); 
-  out[3] += -(2.1213203435596424*f[1]*phi[1]*dv10*dx10); 
+  out[2] += dv10*dx10*(-(2.1213203435596424*f[0]*phi[1])); 
+  out[3] += dv10*dx10*(-(2.1213203435596424*f[1]*phi[1])); 
 
 } 

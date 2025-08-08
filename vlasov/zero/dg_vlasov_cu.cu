@@ -14,15 +14,18 @@ extern "C" {
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cdim, int vdim, int poly_order, enum gkyl_model_id model_id, 
-  bool has_qmem, bool has_phi, bool has_rad)
+  bool has_E, bool has_phi, bool has_B, bool has_rad)
 {
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
-  // By default, we have no forces from E, B, phi, or radiation. 
-  vlasov->EB_vol = no_EB_vol; 
-  vlasov->phi_vol = no_phi_vol; 
+  // By default, we have no forces from E, phi, B, or radiation. 
+  vlasov->E_vol = no_E_vol; 
+  vlasov->phi_vol = no_phi_vol;
+  vlasov->Bx_vol = no_B_vol; 
+  vlasov->By_vol = no_B_vol; 
+  vlasov->Bz_vol = no_B_vol;  
   vlasov->rad_vol = no_rad_vol; 
 
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
@@ -47,8 +50,13 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       // Set function pointers for individual pieces of the volume update.    
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = ser_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (has_qmem) vlasov->EB_vol = ser_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];
+
+        if (inp->has_B) {
+          vlasov->Bx_vol = ser_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        if (inp->has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];        
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
@@ -69,7 +77,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;         
       }
-      if (has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
@@ -85,8 +94,13 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       // Set function pointers for individual pieces of the volume update. 
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = tensor_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (has_qmem) vlasov->EB_vol = tensor_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
+
+        if (inp->has_B) {
+          vlasov->Bx_vol = tensor_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];        
 
         stream_surf_x_kernels = tensor_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = tensor_stream_hamil_vel_surf_y_kernels;
@@ -107,7 +121,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = tensor_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = tensor_stream_hamil_gen_boundary_surf_z_kernels;             
       }
-      if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
       accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
@@ -204,7 +219,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, inp->conf_basis->b_type, 
     cdim, vdim, poly_order, inp->model_id, 
-    inp->has_qmem, inp->has_phi, inp->has_rad);
+    inp->has_E, inp->has_phi, inp->has_B, inp->has_rad);
 
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;

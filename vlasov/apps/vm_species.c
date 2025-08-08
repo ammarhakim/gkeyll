@@ -1231,18 +1231,20 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Determine which forces we need based on combination of field ID and presence 
   // of applied accelerations and external fields/potentials. 
-  vms->has_qmem = false; 
+  vms->has_E = false; 
+  vms->has_B = false; 
   vms->has_phi = false; 
   if (app->has_field) {
     if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em) {
-      vms->has_qmem = true; 
+      vms->has_E = true; 
+      vms->has_B = true; 
     } 
     if (vms->field_id == GKYL_FIELD_PHI) {
       vms->has_phi = true; 
     }
   }
   else if (vms->has_app_accel) {
-    vms->has_qmem = true; 
+    vms->has_E = true; 
   }
 
   // Construct Hamiltonian. 
@@ -1261,8 +1263,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
-    .has_qmem = vms->has_qmem, 
+    .has_E = vms->has_E, 
     .has_phi = vms->has_phi, 
+    .has_B = vms->has_B, 
     .has_rad = vms->has_rad, 
     .use_gpu = app->use_gpu,
   }; 
@@ -1279,8 +1282,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .jacob_vel = vms->jacob_vel, 
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
-    .has_qmem = vms->has_qmem, 
+    .has_E = vms->has_E, 
     .has_phi = vms->has_phi, 
+    .has_B = vms->has_B, 
     .has_rad = vms->has_rad, 
     .hamil = vms->hamil,
     .qmem = vms->qmem, 

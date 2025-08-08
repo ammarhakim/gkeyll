@@ -372,9 +372,9 @@ struct vm_species {
   double qbym; // Charge (q) divided by mass (m).
   struct gkyl_array *qmem; // array for q/m*(E,B) 
   struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
-  bool has_qmem; // Do we have electric/magnetic fields? 
+  bool has_E; // Do we have electric fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
-
+  bool has_B; // Do we have magnetic fields? 
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
 

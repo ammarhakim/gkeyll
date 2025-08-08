@@ -97,13 +97,14 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_qmem, bool has_phi, bool has_rad)
+  enum gkyl_model_id model_id, bool has_E, bool has_phi, has_B, bool has_rad)
 {
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
     up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
-    up->EB_alpha_quad[d] = no_EB_alpha_quad;
+    up->E_alpha_quad[d] = no_E_alpha_quad;
     up->phi_alpha_quad[d] = no_phi_alpha_quad; 
+    up->B_alpha_quad[d] = no_B_alpha_quad;
     up->rad_alpha_quad[d] = no_rad_alpha_quad; 
   } 
 
@@ -121,16 +122,22 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (has_qmem) {
-        up->EB_alpha_quad[0] = ser_EB_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[1] = ser_EB_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[2] = ser_EB_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) {
+        up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (has_phi) {
+      if (inp->has_phi) {
         up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }
+
+      if (inp->has_B) {
+        up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (has_rad) {
@@ -153,16 +160,22 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->hamil_alpha_quad[2] = tensor_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (has_qmem) {
-        up->EB_alpha_quad[0] = tensor_EB_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[1] = tensor_EB_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[2] = tensor_EB_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) {
+        up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (has_phi) {
+      if (inp->has_phi) {
         up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }
+
+      if (inp->has_B) {
+        up->B_alpha_quad[0] = tensor_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[1] = tensor_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[2] = tensor_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (has_rad) {
@@ -223,7 +236,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_qmem, inp->has_phi, inp->has_rad);  
+    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad);  
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

@@ -13,11 +13,14 @@
 typedef void (*hamil_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out);
 
-typedef void (*EB_vol_t)(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out);
+typedef void (*E_vol_t)(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *qmem, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*phi_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out);
+
+typedef void (*B_vol_t)(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*rad_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *rad, const double *f, double* GKYL_RESTRICT out);
@@ -48,8 +51,9 @@ static const struct { int vdim[4]; } cv_index[] = {
 
 // Volume forces tables. 
 typedef struct { hamil_vol_t kernels[4]; } gkyl_dg_vlasov_hamil_vol_kern_list;
-typedef struct { EB_vol_t kernels[4]; } gkyl_dg_vlasov_EB_vol_kern_list;
+typedef struct { E_vol_t kernels[4]; } gkyl_dg_vlasov_E_vol_kern_list;
 typedef struct { phi_vol_t kernels[4]; } gkyl_dg_vlasov_phi_vol_kern_list;
+typedef struct { B_vol_t kernels[4]; } gkyl_dg_vlasov_B_vol_kern_list;
 typedef struct { rad_vol_t kernels[4]; } gkyl_dg_vlasov_rad_vol_kern_list;
 
 // Surface kernel type tables. 
@@ -76,8 +80,11 @@ struct dg_vlasov {
   const struct gkyl_array *rad; // Radiation force.
   const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces.  
   hamil_vol_t hamil_vol; // Volume term for Hamiltonian contribution to update from canonical bracket. 
-  EB_vol_t EB_vol; // Volume term for Lorentz forces. 
+  E_vol_t E_vol; // Volume term for Lorentz forces due to electric fields. 
   phi_vol_t phi_vol; // Volume term for scalar potential, -grad(phi), forces. 
+  B_vol_t Bx_vol; // Volume term for Lorentz forces due to magnetic fields in the x direction. 
+  B_vol_t By_vol; // Volume term for Lorentz forces due to magnetic fields in the y direction. 
+  B_vol_t Bz_vol; // Volume term for Lorentz forces due to magnetic fields in the z direction. 
   rad_vol_t rad_vol; // Volume term for radiation drag forces. 
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for advection in configuration space.
   vlasov_stream_boundary_surf_t stream_boundary_surf[3]; // Boundary surface terms for advection in configuration space.
@@ -88,14 +95,20 @@ struct dg_vlasov {
 // Empty function pointers for cases where these forces do not exist. 
 GKYL_CU_DH
 static void 
-no_EB_vol(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out)
+no_E_vol(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *qmem, const double *f, double* GKYL_RESTRICT out)
 {
 }
 GKYL_CU_DH
 static void 
 no_phi_vol(const double *w, const double *dxv, 
   const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out)
+{
+}
+GKYL_CU_DH
+static void 
+no_B_vol(const double *w, const double *dxv, 
+  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out)
 {
 }
 GKYL_CU_DH
@@ -151,14 +164,28 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
     qIn, qRhsOut); 
-  vlasov->EB_vol(xc, dx, 
+  vlasov->E_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
     qIn, qRhsOut); 
   vlasov->phi_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx), 
+    qIn, qRhsOut); 
+  vlasov->Bx_vol(xc, dx, 
+    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
+    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    qIn, qRhsOut); 
+  vlasov->By_vol(xc, dx, 
+    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
+    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    qIn, qRhsOut); 
+  vlasov->Bz_vol(xc, dx, 
+    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
+    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
     qIn, qRhsOut); 
   vlasov->rad_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
@@ -228,31 +255,31 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_gen_vol_kernels[] =
   { NULL, NULL, NULL, NULL }, // 6
 };
 
-// Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
+// Electric field Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_dg_vlasov_EB_vol_kern_list ser_EB_hamil_vel_vol_kernels[] = {
+static const gkyl_dg_vlasov_E_vol_kern_list ser_E_vol_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_EB_hamil_vel_vol_1x1v_ser_p1, vlasov_EB_hamil_vel_vol_1x1v_ser_p2, NULL }, // 0
-  { NULL, vlasov_EB_hamil_vel_vol_1x2v_ser_p1, vlasov_EB_hamil_vel_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_EB_hamil_vel_vol_1x3v_ser_p1, vlasov_EB_hamil_vel_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_E_vol_1x1v_ser_p1, vlasov_E_vol_1x1v_ser_p2, NULL }, // 0
+  { NULL, vlasov_E_vol_1x2v_ser_p1, vlasov_E_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_E_vol_1x3v_ser_p1, vlasov_E_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_EB_hamil_vel_vol_2x1v_ser_p1, vlasov_EB_hamil_vel_vol_2x1v_ser_p2, NULL }, // 3
-  { NULL, vlasov_EB_hamil_vel_vol_2x2v_ser_p1, vlasov_EB_hamil_vel_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_EB_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_E_vol_2x1v_ser_p1, vlasov_E_vol_2x1v_ser_p2, NULL }, // 3
+  { NULL, vlasov_E_vol_2x2v_ser_p1, vlasov_E_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_E_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_EB_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_E_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
-// Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
+// Electric field Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
 GKYL_CU_D
-static const gkyl_dg_vlasov_EB_vol_kern_list tensor_EB_hamil_vel_vol_kernels[] = {
+static const gkyl_dg_vlasov_E_vol_kern_list tensor_E_vol_kernels[] = {
   // 1x kernels
-  { NULL, NULL, vlasov_EB_hamil_vel_vol_1x1v_tensor_p2, NULL }, // 0
-  { NULL, NULL, vlasov_EB_hamil_vel_vol_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_EB_hamil_vel_vol_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_E_vol_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, vlasov_E_vol_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_E_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, vlasov_EB_hamil_vel_vol_2x1v_tensor_p2, NULL }, // 3
-  { NULL, NULL, vlasov_EB_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_E_vol_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, vlasov_E_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -283,6 +310,96 @@ static const gkyl_dg_vlasov_phi_vol_kern_list tensor_phi_vol_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_phi_vol_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_phi_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in x-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 0
+  { NULL, no_B_vol, no_B_vol, NULL }, // 1
+  { NULL, vlasov_Bx_hamil_vel_vol_1x3v_ser_p1, vlasov_Bx_hamil_vel_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 3
+  { NULL, no_B_vol, no_B_vol, NULL }, // 4
+  { NULL, vlasov_Bx_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_Bx_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Magnetic field in x-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 0
+  { NULL, NULL, no_B_vol, NULL }, // 1
+  { NULL, NULL, vlasov_Bx_hamil_vel_vol_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 3
+  { NULL, NULL, no_B_vol, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in y-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 0
+  { NULL, no_B_vol, no_B_vol, NULL }, // 1
+  { NULL, vlasov_By_hamil_vel_vol_1x3v_ser_p1, vlasov_By_hamil_vel_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 3
+  { NULL, no_B_vol, no_B_vol, NULL }, // 4
+  { NULL, vlasov_By_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_By_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Magnetic field in y-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 0
+  { NULL, NULL, no_B_vol, NULL }, // 1
+  { NULL, NULL, vlasov_By_hamil_vel_vol_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 3
+  { NULL, NULL, no_B_vol, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in z-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 0
+  { NULL, vlasov_Bz_hamil_vel_vol_1x2v_ser_p1, vlasov_Bz_hamil_vel_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_Bz_hamil_vel_vol_1x3v_ser_p1, vlasov_Bz_hamil_vel_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, NULL }, // 3
+  { NULL, vlasov_Bz_hamil_vel_vol_2x2v_ser_p1, vlasov_Bz_hamil_vel_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_Bz_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_Bz_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Magnetic field in z-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 0
+  { NULL, NULL, vlasov_Bz_hamil_vel_vol_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_Bz_hamil_vel_vol_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, no_B_vol, NULL }, // 3
+  { NULL, NULL, vlasov_Bz_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6

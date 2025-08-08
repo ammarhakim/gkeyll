@@ -49,8 +49,9 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   // By default, we have no forces from Hamiltonian, E, B, phi, or radiation. 
   for (int d=0; d<vdim; ++d) {
     up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
-    up->EB_alpha_quad[d] = no_EB_alpha_quad;
+    up->E_alpha_quad[d] = no_E_alpha_quad;
     up->phi_alpha_quad[d] = no_phi_alpha_quad; 
+    up->B_alpha_quad[d] = no_B_alpha_quad;
     up->rad_alpha_quad[d] = no_rad_alpha_quad; 
   } 
 
@@ -68,16 +69,22 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
         up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_qmem) {
-        up->EB_alpha_quad[0] = ser_EB_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[1] = ser_EB_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[2] = ser_EB_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) {
+        up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (inp->has_phi) {
         up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }
+
+      if (inp->has_B) {
+        up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (inp->has_rad) {
@@ -100,16 +107,22 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
         up->hamil_alpha_quad[2] = tensor_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_qmem) {
-        up->EB_alpha_quad[0] = tensor_EB_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[1] = tensor_EB_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->EB_alpha_quad[2] = tensor_EB_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_E) {
+        up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (inp->has_phi) {
         up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }
+
+      if (inp->has_B) {
+        up->B_alpha_quad[0] = tensor_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[1] = tensor_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[2] = tensor_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (inp->has_rad) {
@@ -133,8 +146,9 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   for (int i=0; i<vdim; ++i) {
     assert(up->lax_flux_nodal_to_modal[i]);
     assert(up->hamil_alpha_quad[i]);
-    assert(up->EB_alpha_quad[i]);
+    assert(up->E_alpha_quad[i]);
     assert(up->phi_alpha_quad[i]);
+    assert(up->B_alpha_quad[i]);
     assert(up->rad_alpha_quad[i]);
   }
 

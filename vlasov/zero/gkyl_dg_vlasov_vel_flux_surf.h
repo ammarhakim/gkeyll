@@ -18,8 +18,9 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
   const struct gkyl_range *vel_range; // Velocity-space range for use in indexing velocity-space Jacobian. 
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
-  bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).
+  bool has_E; // bool to determine whether we have electric fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  bool has_B; // bool to determine whether we have magnetic fields.
   bool has_rad; // bool to determine whether we have radiation drag forces. 
   bool use_gpu; // bool to determine if on GPU. 
 };

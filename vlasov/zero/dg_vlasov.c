@@ -83,7 +83,10 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
   // By default, we have no forces from E, B, phi, or radiation. 
-  vlasov->EB_vol = no_EB_vol; 
+  vlasov->E_vol = no_E_vol; 
+  vlasov->Bx_vol = no_B_vol; 
+  vlasov->By_vol = no_B_vol; 
+  vlasov->Bz_vol = no_B_vol; 
   vlasov->phi_vol = no_phi_vol; 
   vlasov->rad_vol = no_rad_vol; 
 
@@ -109,7 +112,12 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       // Set function pointers for individual pieces of the volume update.    
       if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = ser_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (inp->has_qmem) vlasov->EB_vol = ser_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+
+        if (inp->has_B) {
+          vlasov->Bx_vol = ser_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
         if (inp->has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
@@ -131,6 +139,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;         
       }
+      if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
@@ -147,7 +156,12 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       // Set function pointers for individual pieces of the volume update. 
       if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = tensor_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
-        if (inp->has_qmem) vlasov->EB_vol = tensor_EB_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+
+        if (inp->has_B) {
+          vlasov->Bx_vol = tensor_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
         if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
 
         stream_surf_x_kernels = tensor_stream_hamil_vel_surf_x_kernels;
@@ -169,6 +183,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_y_kernels = tensor_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = tensor_stream_hamil_gen_boundary_surf_z_kernels;             
       }
+      if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;

@@ -18,8 +18,9 @@ struct gkyl_dg_vlasov_inp {
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
   bool use_vmap; // bool to determine whether we have a nonuniform velocity map. 
-  bool has_qmem; // bool to determine whether we have electric or magnetic fields (used for external forces too).
+  bool has_E; // bool to determine whether we have electric fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  bool has_B; // bool to determine whether we have magnetic fields.
   bool has_rad; // bool to determine whether we have radiation drag forces. 
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 

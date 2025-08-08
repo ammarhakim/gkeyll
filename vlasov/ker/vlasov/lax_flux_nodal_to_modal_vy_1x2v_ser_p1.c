@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double lax_flux_nodal_to_modal_vy_1x2v_ser_p1(const double *dxv, const double *jacob_vel, 
+GKYL_CU_DH double lax_flux_nodal_to_modal_vy_1x2v_ser_p1(const double *dxv, const double *jacob_vel_surf, 
   const double *alpha_quad, const double *f_l, const double *f_r, 
   double *lax_nodal_quad, double* GKYL_RESTRICT vel_flux_surf) 
 { 
