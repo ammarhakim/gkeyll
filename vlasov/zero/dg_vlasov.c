@@ -26,6 +26,7 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(vlasov->pot_tot);
   gkyl_array_release(vlasov->rad);
   gkyl_array_release(vlasov->vel_flux_surf); 
+  gkyl_array_release(vlasov->f_no_J); 
   gkyl_free(vlasov);
 }
 
@@ -76,6 +77,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
   vlasov->rad = gkyl_array_acquire(inp->rad);
   vlasov->vel_flux_surf = gkyl_array_acquire(inp->vel_flux_surf); 
+  vlasov->f_no_J = gkyl_array_acquire(inp->f_no_J); 
 
   vlasov->eqn.num_equations = 1;
   vlasov->eqn.vol_term = vlasov_vol;

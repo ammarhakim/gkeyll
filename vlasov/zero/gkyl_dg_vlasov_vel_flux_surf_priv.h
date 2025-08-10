@@ -457,6 +457,35 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 
 GKYL_CU_DH
 static double 
+vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
+  int dir, const double *dxv, const double *jacob_vel, 
+  const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
+  const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
+{
+  // Needs to integrate a sixth order polynomial in configuration space, and a
+  // sixth order polynomial in velocity space, so 4^2*4^2 = 256 quadrature points. 
+  double alpha_quad[256] = {0.0};
+  double lax_nodal_quad[256] = {0.0};
+
+  // Accumulate forces to construct total alpha_v at each quadrature point. 
+  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+
+  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+    f_l, f_c, lax_nodal_quad, vel_flux_surf); 
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  else {
+    return cflrate; 
+  } 
+} 
+
+GKYL_CU_DH
+static double 
 vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   int dir, const double *dxv, const double *jacob_vel, 
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
@@ -494,7 +523,7 @@ static const gkyl_vel_flux_surf_kern_list vel_flux_surf_kernels[] = {
   // 2x kernels
   { NULL, vel_flux_surf_2x1v_p1, vel_flux_surf_2x1v_p2, NULL }, // 3
   { NULL, vel_flux_surf_2x2v_p1, vel_flux_surf_2x2v_p2, NULL }, // 4
-  { NULL, vel_flux_surf_2x3v_p1, NULL, NULL }, // 5
+  { NULL, vel_flux_surf_2x3v_p1, vel_flux_surf_2x3v_p2, NULL }, // 5
   // 3x kernels
   { NULL, vel_flux_surf_3x3v_p1, NULL, NULL }, // 6
 };
@@ -509,7 +538,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_
   // 2x kernels
   { NULL, lax_flux_nodal_to_modal_vx_2x1v_ser_p1, lax_flux_nodal_to_modal_vx_2x1v_ser_p2, NULL }, // 3
   { NULL, lax_flux_nodal_to_modal_vx_2x2v_ser_p1, lax_flux_nodal_to_modal_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, lax_flux_nodal_to_modal_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -523,7 +552,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, lax_flux_nodal_to_modal_vy_2x2v_ser_p1, lax_flux_nodal_to_modal_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, lax_flux_nodal_to_modal_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -537,7 +566,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, lax_flux_nodal_to_modal_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -595,7 +624,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_alpha_quad_vx_kernels[] =
   // 2x kernels
   { NULL, hamil_alpha_quad_vx_2x1v_ser_p1, hamil_alpha_quad_vx_2x1v_ser_p2, NULL }, // 3
   { NULL, hamil_alpha_quad_vx_2x2v_ser_p1, hamil_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, hamil_alpha_quad_vx_2x3v_ser_p1, hamil_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, hamil_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -609,7 +638,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_alpha_quad_vy_kernels[] =
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, hamil_alpha_quad_vy_2x2v_ser_p1, hamil_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, hamil_alpha_quad_vy_2x3v_ser_p1, hamil_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, hamil_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -681,7 +710,7 @@ static const gkyl_E_alpha_quad_kern_list ser_E_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, E_alpha_quad_vx_2x1v_ser_p1, E_alpha_quad_vx_2x1v_ser_p2, NULL }, // 3
   { NULL, E_alpha_quad_vx_2x2v_ser_p1, E_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, E_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, E_alpha_quad_vx_2x3v_ser_p1, E_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, E_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -695,7 +724,7 @@ static const gkyl_E_alpha_quad_kern_list ser_E_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, E_alpha_quad_vy_2x2v_ser_p1, E_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, E_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, E_alpha_quad_vy_2x3v_ser_p1, E_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, E_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -709,7 +738,7 @@ static const gkyl_E_alpha_quad_kern_list ser_E_alpha_quad_vz_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, E_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, E_alpha_quad_vz_2x3v_ser_p1, E_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, E_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -767,7 +796,7 @@ static const gkyl_phi_alpha_quad_kern_list ser_phi_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, phi_alpha_quad_vx_2x1v_ser_p1, phi_alpha_quad_vx_2x1v_ser_p2, NULL }, // 3
   { NULL, phi_alpha_quad_vx_2x2v_ser_p1, phi_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, phi_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, phi_alpha_quad_vx_2x3v_ser_p1, phi_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, phi_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -781,7 +810,7 @@ static const gkyl_phi_alpha_quad_kern_list ser_phi_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, phi_alpha_quad_vy_2x2v_ser_p1, phi_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, phi_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, phi_alpha_quad_vy_2x3v_ser_p1, phi_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, phi_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -853,7 +882,7 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, NULL }, // 3
   { NULL, B_alpha_quad_vx_2x2v_ser_p1, B_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_alpha_quad_vx_2x3v_ser_p1, B_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, B_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -867,7 +896,7 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_alpha_quad_vy_2x2v_ser_p1, B_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_alpha_quad_vy_2x3v_ser_p1, B_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, B_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -881,7 +910,7 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vz_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_alpha_quad_vz_2x3v_ser_p1, B_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, B_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -940,7 +969,7 @@ static const gkyl_rad_alpha_quad_kern_list ser_rad_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, rad_alpha_quad_vx_2x1v_ser_p1, rad_alpha_quad_vx_2x1v_ser_p2, NULL }, // 3
   { NULL, rad_alpha_quad_vx_2x2v_ser_p1, rad_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, rad_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, rad_alpha_quad_vx_2x3v_ser_p1, rad_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, rad_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -954,7 +983,7 @@ static const gkyl_rad_alpha_quad_kern_list ser_rad_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, rad_alpha_quad_vy_2x2v_ser_p1, rad_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, rad_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, rad_alpha_quad_vy_2x3v_ser_p1, rad_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, rad_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -968,7 +997,7 @@ static const gkyl_rad_alpha_quad_kern_list ser_rad_alpha_quad_vz_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, rad_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, rad_alpha_quad_vz_2x3v_ser_p1, rad_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, rad_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };

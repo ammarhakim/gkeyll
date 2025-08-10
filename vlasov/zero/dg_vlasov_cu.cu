@@ -51,12 +51,12 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = ser_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
 
-        if (inp->has_B) {
+        if (has_B) {
           vlasov->Bx_vol = ser_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = ser_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = ser_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         }
-        if (inp->has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];        
+        if (has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];        
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
@@ -77,8 +77,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;         
       }
-      if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
-      if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
@@ -95,12 +95,12 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR) {
         vlasov->hamil_vol = tensor_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
 
-        if (inp->has_B) {
+        if (has_B) {
           vlasov->Bx_vol = tensor_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = tensor_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = tensor_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         }
-        if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];        
+        if (has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];        
 
         stream_surf_x_kernels = tensor_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = tensor_stream_hamil_vel_surf_y_kernels;
@@ -121,8 +121,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = tensor_stream_hamil_gen_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = tensor_stream_hamil_gen_boundary_surf_z_kernels;             
       }
-      if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
-      if (inp->has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
       accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
@@ -200,12 +200,14 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
   struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad); 
   struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
+  struct gkyl_array *f_no_J_ho = gkyl_array_acquire(inp->f_no_J); 
   // store pointers to on_dev for copying over to device. 
   vlasov->hamil = hamil_ho->on_dev; 
   vlasov->qmem = qmem_ho->on_dev; 
   vlasov->pot_tot = pot_tot_ho->on_dev; 
   vlasov->rad = rad_ho->on_dev;
   vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
+  vlasov->f_no_J =f_no_J_ho->on_dev; 
 
   vlasov->eqn.num_equations = 1;
 
@@ -231,6 +233,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->pot_tot = pot_tot_ho; 
   vlasov->rad = rad_ho; 
   vlasov->vel_flux_surf = vel_flux_surf_ho; 
+  vlasov->f_no_J = f_no_J_ho; 
 
   return &vlasov->eqn;
 }

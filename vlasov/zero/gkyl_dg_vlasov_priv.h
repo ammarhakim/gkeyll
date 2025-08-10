@@ -79,6 +79,7 @@ struct dg_vlasov {
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 
   const struct gkyl_array *rad; // Radiation force.
   const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces.  
+  const struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. Used by magnetic field updates.  
   hamil_vol_t hamil_vol; // Volume term for Hamiltonian contribution to update from canonical bracket. 
   E_vol_t E_vol; // Volume term for Lorentz forces due to electric fields. 
   phi_vol_t phi_vol; // Volume term for scalar potential, -grad(phi), forces. 
@@ -159,6 +160,7 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   long vidx = gkyl_range_idx(&vlasov->vel_range, idx_vel);
   long hidx = gkyl_range_idx(&vlasov->hamil_range, idx_hamil);
+  long pidx = gkyl_range_idx(&vlasov->phase_range, idx);
 
   vlasov->hamil_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
@@ -172,21 +174,26 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx), 
     qIn, qRhsOut); 
+  // Nonuniform mesh kernels utilize f without the velocity-space Jacobian to handle
+  // the transverse derivatives in the 1/Jvi grad_vi(H) x B cross product. 
   vlasov->Bx_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
-    qIn, qRhsOut); 
+    (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
+    qRhsOut); 
   vlasov->By_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
-    qIn, qRhsOut); 
+    (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
+    qRhsOut); 
   vlasov->Bz_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
-    qIn, qRhsOut); 
+    (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
+    qRhsOut); 
   vlasov->rad_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->rad, vidx),
@@ -205,7 +212,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_vel_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_hamil_vel_vol_2x1v_ser_p1, vlasov_hamil_vel_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_vel_vol_2x2v_ser_p1, vlasov_hamil_vel_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_vel_vol_2x3v_ser_p1, vlasov_hamil_vel_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -220,7 +227,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_gen_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_hamil_gen_vol_2x1v_ser_p1, vlasov_hamil_gen_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_gen_vol_2x2v_ser_p1, vlasov_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, vlasov_hamil_gen_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_gen_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -265,7 +272,7 @@ static const gkyl_dg_vlasov_E_vol_kern_list ser_E_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_E_vol_2x1v_ser_p1, vlasov_E_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_E_vol_2x2v_ser_p1, vlasov_E_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_E_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_E_vol_2x3v_ser_p1, vlasov_E_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_E_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -295,7 +302,7 @@ static const gkyl_dg_vlasov_phi_vol_kern_list ser_phi_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_phi_vol_2x1v_ser_p1, vlasov_phi_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_phi_vol_2x2v_ser_p1, vlasov_phi_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_phi_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_phi_vol_2x3v_ser_p1, vlasov_phi_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_phi_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -325,7 +332,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_vel_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, NULL }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_Bx_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_Bx_hamil_vel_vol_2x3v_ser_p1, vlasov_Bx_hamil_vel_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_Bx_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -355,7 +362,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_vel_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, NULL }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_By_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_By_hamil_vel_vol_2x3v_ser_p1, vlasov_By_hamil_vel_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_By_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -385,7 +392,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_vel_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, NULL }, // 3
   { NULL, vlasov_Bz_hamil_vel_vol_2x2v_ser_p1, vlasov_Bz_hamil_vel_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_Bz_hamil_vel_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_Bz_hamil_vel_vol_2x3v_ser_p1, vlasov_Bz_hamil_vel_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_Bz_hamil_vel_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -415,7 +422,7 @@ static const gkyl_dg_vlasov_rad_vol_kern_list ser_rad_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_rad_vol_2x1v_ser_p1, vlasov_rad_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_rad_vol_2x2v_ser_p1, vlasov_rad_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_rad_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_rad_vol_2x3v_ser_p1, vlasov_rad_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_rad_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };

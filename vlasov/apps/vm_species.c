@@ -196,10 +196,14 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
     }
   }
 
+  // Divide out velocity-space Jacobian. 
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, fin, vms->f_no_J, app->use_gpu); 
+
   // Compute the surface expansion of the phase space flux in velocity space. 
   gkyl_dg_vlasov_vel_flux_surf_advance(vms->calc_vel_flux, &app->local, &vms->local, 
     vms->jacob_vel, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
-    fin, vms->cflrate, vms->vel_flux_surf);
+    vms->f_no_J, vms->cflrate, vms->vel_flux_surf);
 
   gkyl_hyper_dg_advance(vms->slvr, &vms->local, fin, vms->cflrate, rhs);
 
@@ -1203,6 +1207,12 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     }
   }
 
+  // Allocate array for dividing out velocity-space Jacobian. 
+  // If the mesh is uniform, we simply copy the distribution function at that RK stage
+  // into this array for use in the velocity-space surface flux computation and 
+  // the magnetic field volume update if magnetic fields are present. 
+  vms->f_no_J = mkarr(app->use_gpu, vms->f->ncomp, vms->f->size); 
+
   // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system. 
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
@@ -1290,6 +1300,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .qmem = vms->qmem, 
     .pot_tot = vms->pot_tot, 
     .vel_flux_surf = vms->vel_flux_surf, 
+    .f_no_J = vms->f_no_J, 
     .rad = vms->rad, 
     .use_gpu = app->use_gpu,
   };  
@@ -1532,6 +1543,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_proj_on_basis_release(vms->app_accel_proj);
   } 
   gkyl_array_release(vms->vel_flux_surf); 
+  gkyl_array_release(vms->f_no_J); 
 
   gkyl_array_release(vms->vmap_host);
   gkyl_array_release(vms->jacob_vel_host);

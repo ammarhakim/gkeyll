@@ -97,7 +97,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_E, bool has_phi, has_B, bool has_rad)
+  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad)
 {
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
@@ -122,19 +122,19 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_E) {
+      if (has_E) {
         up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_phi) {
+      if (has_phi) {
         up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_B) {
+      if (has_B) {
         up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
@@ -160,19 +160,19 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->hamil_alpha_quad[2] = tensor_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_E) {
+      if (has_E) {
         up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_phi) {
+      if (has_phi) {
         up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (inp->has_B) {
+      if (has_B) {
         up->B_alpha_quad[0] = tensor_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
         up->B_alpha_quad[1] = tensor_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
         up->B_alpha_quad[2] = tensor_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];

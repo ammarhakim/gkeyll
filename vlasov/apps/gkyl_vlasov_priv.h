@@ -45,6 +45,7 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
+#include <gkyl_dg_vlasov_divide_Jv.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
@@ -366,6 +367,7 @@ struct vm_species {
   struct gkyl_array *jacob_vel_pgkyl_host; // total Jacobian for mapped velocity-space grids for I/O 
   struct gkyl_array *vmap_avg_pgkyl_host; // cell average of mapping for mapped velocity-space grids for I/O
   struct gkyl_array *jacob_vel_avg_pgkyl_host; // cell average of total Jacobian for mapped velocity-space grids for I/O 
+  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
 
   enum gkyl_field_id field_id; // Type of field equation.
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
