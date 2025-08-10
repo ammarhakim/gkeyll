@@ -51,10 +51,10 @@ gkyl_dg_vlasov_divide_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_bas
     for (int i=0; i<vdim; ++i) {
       idx_vel[i] = idx[cdim+i];
     }
-    long vidx = gkyl_range_idx(vel_range, idx_vel);
-    long pidx = gkyl_range_idx(phase_range, idx);
+    long vidx = gkyl_range_idx(&vel_range, idx_vel);
+    long pidx = gkyl_range_idx(&phase_range, idx);
 
-    const double *Jf_d = (const double*) gkyl_array_fetch(Jf, pidx);
+    const double *Jf_d = (const double*) gkyl_array_cfetch(Jf, pidx);
     double *f_no_J_d = (double*) gkyl_array_fetch(f_no_J, pidx);
     divide_Jv(jacob_vel_gauss ? (const double*) gkyl_array_cfetch(jacob_vel_gauss, vidx) : 0,
       Jf_d, f_no_J_d);
