@@ -986,6 +986,12 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
       gkyl_array_copy(vms->f, vms->f_host);
     }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // Rescale distribution function by velocity-space Jacobian if present
+      // since output distribution function does not include velocity-space Jacobian. 
+      gkyl_dg_vlasov_rescale_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+        vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+      gkyl_array_copy(vms->f, vms->f_no_J);
+      
       if (vms->calc_bflux) {                                                                
         vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
       }
@@ -995,12 +1001,6 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
       }
     }
   }
-
-  // Rescale distribution function by velocity-space Jacobian if present
-  // since output distribution function does not include velocity-space Jacobian. 
-  gkyl_dg_vlasov_rescale_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
-  gkyl_array_copy(vms->f, vms->f_no_J);
 
   // Compute applied acceleration if present.
   // Computation necessary in case applied acceleration

@@ -450,7 +450,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
   // Copy distribution function (potentially without velocity-space Jacobian) into
   // host-side array before I/O. If simulation is on device, this call also moves
   // the data from device to host for the write. 
-  gkyl_array_copy(vms->f_host, vms->f_no_J);
+  gkyl_array_copy_range(vms->f_host, vms->f_no_J, &vms->local);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_host, fileNm);
     
   vlasov_array_meta_release(mt);  
@@ -513,7 +513,7 @@ vm_species_write_cfl_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
-  gkyl_array_copy(vms->cflrate_host, vms->cflrate);
+  gkyl_array_copy_range(vms->cflrate_host, vms->cflrate, &vms->local);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt,
     vms->cflrate_host, fileNm);
 
@@ -554,7 +554,7 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
 
   // Copy the cell average into a temporary array and re-scale
   gkyl_array_set_offset(vms->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vms->f_no_J, 0); 
-  gkyl_array_copy(vms->cflrate_host, vms->cflrate);
+  gkyl_array_copy_range(vms->cflrate_host, vms->cflrate, &vms->local);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt,
     vms->cflrate_host, fileNm);
 
@@ -598,7 +598,7 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   // Copy LTE distribution function (potentially without velocity-space Jacobian) into
   // host-side array before I/O. If simulation is on device, this call also moves
   // the data from device to host for the write. 
-  gkyl_array_copy(vms->f_host, vms->f_no_J);
+  gkyl_array_copy_range(vms->f_host, vms->f_no_J, &vms->local);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_host, fileNm);
 
   vlasov_array_meta_release(mt);  
