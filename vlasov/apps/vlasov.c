@@ -977,36 +977,42 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
 {
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
-  struct vm_species *vm_s = &app->species[sidx];
+  struct vm_species *vms = &app->species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
-      gkyl_comm_array_read(vm_s->comm, &vm_s->grid, &vm_s->local, vm_s->f_host, fname);
+      gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
     if (app->use_gpu) {
-      gkyl_array_copy(vm_s->f, vm_s->f_host);
+      gkyl_array_copy(vms->f, vms->f_host);
     }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (vm_s->calc_bflux) {                                                                
-        vm_species_bflux_rhs(app, vm_s, &vm_s->bflux, vm_s->f, vm_s->f);
+      if (vms->calc_bflux) {                                                                
+        vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
       }
-      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
-      if (vm_s->source_id) {
-        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
+      vm_species_apply_bc(app, vms, vms->f, rstat.stime);
+      if (vms->source_id) {
+        vm_species_source_calc(app, vms, &vms->src, 0.0);
       }
     }
   }
+
+  // Rescale distribution function by velocity-space Jacobian if present
+  // since output distribution function does not include velocity-space Jacobian. 
+  gkyl_dg_vlasov_rescale_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+  gkyl_array_copy(vms->f, vms->f_no_J);
 
   // Compute applied acceleration if present.
   // Computation necessary in case applied acceleration
   // is time-independent and not computed in the time-stepping loop
   // since it is not read-in as part of restarts. 
-  vm_species_calc_app_accel(app, vm_s, rstat.stime);
+  vm_species_calc_app_accel(app, vms, rstat.stime);
 
   // Optional runtime configuration to use BGK collisions but with fixed input 
   // temperature relaxation based on the initial temperature value. 
   // Need to reinitialize the fixed temperature at restarts. 
-  if (vm_s->bgk.fixed_temp_relax) {
-    vm_species_bgk_moms_fixed_temp(app, vm_s, &vm_s->bgk, vm_s->f);
+  if (vms->bgk.fixed_temp_relax) {
+    vm_species_bgk_moms_fixed_temp(app, vms, &vms->bgk, vms->f);
   }
 
   return rstat;

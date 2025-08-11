@@ -12,6 +12,11 @@
 #include <assert.h>
 #include <time.h>
 
+static void identity_vmap(double t, const double *vc, double *vp, void *ctx) 
+{
+  vp[0] = vc[0];
+}
+
 static void 
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -202,7 +207,7 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
 
   // Compute the surface expansion of the phase space flux in velocity space. 
   gkyl_dg_vlasov_vel_flux_surf_advance(vms->calc_vel_flux, &app->local, &vms->local, 
-    vms->jacob_vel, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
+    vms->jacob_vel_surf, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
     vms->f_no_J, vms->cflrate, vms->vel_flux_surf);
 
   gkyl_hyper_dg_advance(vms->slvr, &vms->local, fin, vms->cflrate, rhs);
@@ -436,10 +441,16 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
   char fileNm[sz+1]; // Ensures no buffer overflow.
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
   
-  // Copy data from device to host before writing it out.
-  if (app->use_gpu) {
-    gkyl_array_copy(vms->f_host, vms->f);
-  }
+  // Divide out the velocity space Jacobian if present
+  // We do the division before I/O to increase the accuracy since we know
+  // the velocity-space Jacobian at specific quadrature points. 
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+
+  // Copy distribution function (potentially without velocity-space Jacobian) into
+  // host-side array before I/O. If simulation is on device, this call also moves
+  // the data from device to host for the write. 
+  gkyl_array_copy(vms->f_host, vms->f_no_J);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_host, fileNm);
     
   vlasov_array_meta_release(mt);  
@@ -463,14 +474,6 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
       gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
         mt_vel, vms->vmap_pgkyl_host, fileNm_vmap);
 
-      const char *fmt_jacob_vel = "%s-%s_jacob_vel.gkyl";
-      int sz_jacob_vel = gkyl_calc_strlen(fmt_jacob_vel, app->name, vms->info.name);
-      char fileNm_jacob_vel[sz_jacob_vel+1]; // ensures no buffer overflow
-      snprintf(fileNm_jacob_vel, sizeof fileNm_jacob_vel, fmt_jacob_vel, app->name, vms->info.name);
-
-      gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-        mt_vel, vms->jacob_vel_pgkyl_host, fileNm_jacob_vel); 
-
       if (vms->write_cell_avg) {
         const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
         int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app->name, vms->info.name);
@@ -478,15 +481,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
         snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app->name, vms->info.name);  
 
         gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-          mt_vel, vms->vmap_avg_pgkyl_host, fileNm_vmap_avg);
-
-        const char *fmt_jacob_vel_avg = "%s-%s_jacob_vel_avg.gkyl";
-        int sz_jacob_vel_avg = gkyl_calc_strlen(fmt_jacob_vel_avg, app->name, vms->info.name);
-        char fileNm_jacob_vel_avg[sz_jacob_vel_avg+1]; // ensures no buffer overflow
-        snprintf(fileNm_jacob_vel_avg, sizeof fileNm_jacob_vel_avg, fmt_jacob_vel_avg, app->name, vms->info.name);
-
-        gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-          mt_vel, vms->jacob_vel_avg_pgkyl_host, fileNm_jacob_vel_avg);           
+          mt_vel, vms->vmap_avg_pgkyl_host, fileNm_vmap_avg);        
       } 
     }
     vlasov_array_meta_release(mt_vel);  
@@ -551,8 +546,14 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
 
-    // Copy the cell average into a temporary array and re-scale
-  gkyl_array_set_offset(vms->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vms->f, 0); 
+  // Divide out the velocity space Jacobian if present
+  // We do the division before I/O to increase the accuracy since we know
+  // the velocity-space Jacobian at specific quadrature points. 
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+
+  // Copy the cell average into a temporary array and re-scale
+  gkyl_array_set_offset(vms->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vms->f_no_J, 0); 
   gkyl_array_copy(vms->cflrate_host, vms->cflrate);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt,
     vms->cflrate_host, fileNm);
@@ -588,19 +589,17 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
 
   vm_species_lte(app, vms, &vms->lte, vms->f);
   
-  // copy data from device to host before writing it out
-  // Just re-use f_host host-side array to avoid allocating 
-  // more distribution function-size arrays. 
-  if (app->use_gpu) {
-    // copy data from device to host before writing it out
-    gkyl_array_copy(vms->f_host, vms->lte.f_lte);
-    gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, 
-      vms->f_host, fileNm);
-  }
-  else {
-    gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, 
-      vms->lte.f_lte, fileNm);
-  }
+  // Divide out the velocity space Jacobian from LTE distribution if present
+  // We do the division before I/O to increase the accuracy since we know
+  // the velocity-space Jacobian at specific quadrature points. 
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, vms->lte.f_lte, vms->f_no_J, app->use_gpu); 
+
+  // Copy LTE distribution function (potentially without velocity-space Jacobian) into
+  // host-side array before I/O. If simulation is on device, this call also moves
+  // the data from device to host for the write. 
+  gkyl_array_copy(vms->f_host, vms->f_no_J);
+  gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_host, fileNm);
 
   vlasov_array_meta_release(mt);  
 
@@ -1158,53 +1157,57 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
   // inverse Jacobian in each direction is derivative of velocity map so uses quadratic representation
   vms->vmap = mkarr(app->use_gpu, vdim*4, vms->local_vel.volume);
-  vms->jacob_vel = mkarr(app->use_gpu, vdim*3, vms->local_vel.volume);
+  vms->jacob_vel = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+1), vms->local_vel.volume);
+  vms->jacob_vel_surf = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+2), vms->local_vel.volume);
   // need special basis sets to get the correct number of coefficients in 2V and 3V for constructing
-  // the mapping in post-processing and dividing out the Jacobian from J*f, as well as storing the
-  // velocity space Jacobian at quadrature points. 
+  // the mapping in post-processing, as well as storing the velocity-space Jacobian at quadrature points. 
   struct gkyl_basis vmap_basis, jacob_vel_basis;
   gkyl_cart_modal_serendip(&vmap_basis, vdim, 3); 
-  gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, 2);
-  // velocity space Jacobian at Gaussian quadrature points for projecting distribution functions
+  gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, vms->basis_vel.poly_order);
+  // velocity-space Jacobian at Gaussian quadrature points for projecting distribution functions
   vms->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
 
   // host-side arrays for GPU initialization
   if (app->use_gpu) {
     vms->vmap_host = mkarr(false, vms->vmap->ncomp, vms->vmap->size);
     vms->jacob_vel_host = mkarr(false, vms->jacob_vel->ncomp, vms->jacob_vel->size);
+    vms->jacob_vel_surf_host = mkarr(false, vms->jacob_vel_surf->ncomp, vms->jacob_vel_surf->size);
     vms->jacob_vel_gauss_host = mkarr(false, vms->jacob_vel_gauss->ncomp, vms->jacob_vel_gauss->size);
   }
   else {
     vms->vmap_host = gkyl_array_acquire(vms->vmap);
     vms->jacob_vel_host = gkyl_array_acquire(vms->jacob_vel);
+    vms->jacob_vel_surf_host = gkyl_array_acquire(vms->jacob_vel_surf);
     vms->jacob_vel_gauss_host = gkyl_array_acquire(vms->jacob_vel_gauss);
   }
 
-  // velocity map and Jacobian for I/O 
+  // velocity map for I/O 
   vms->vmap_pgkyl_host = mkarr(false, vdim*vmap_basis.num_basis, vms->local_vel.volume);
-  vms->jacob_vel_pgkyl_host = mkarr(false, jacob_vel_basis.num_basis, vms->local_vel.volume);
   vms->vmap_avg_pgkyl_host = mkarr(false, vdim, vms->local_vel.volume);
-  vms->jacob_vel_avg_pgkyl_host = mkarr(false, 1, vms->local_vel.volume);
 
-  if (vms->info.mapc2p_vel[0].mapc2p_vel_func) {
-    vms->use_vmap = true; 
-    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM];
-    for (int v=0; v<vdim; ++v) {
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM];
+  for (int v=0; v<vdim; ++v) {
+    if (vms->info.mapc2p_vel[v].mapc2p_vel_func) {
+      vms->use_vmap = true; 
       inp_vmap[v].eval_vmap = vms->info.mapc2p_vel[v].mapc2p_vel_func; 
       inp_vmap[v].ctx = vms->info.mapc2p_vel[v].mapc2p_vel_ctx; 
     }
-    gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
-      inp_vmap, vms->vmap_host, vms->jacob_vel_host, 
-      vms->vmap_pgkyl_host, vms->jacob_vel_pgkyl_host, 
-      vms->vmap_avg_pgkyl_host, vms->jacob_vel_avg_pgkyl_host, 
-      vms->jacob_vel_gauss_host);
-    
-    // Copy the mapping and velocity space Jacobian onto device. 
-    if (app->use_gpu) {
-      gkyl_array_copy(vms->vmap, vms->vmap_host); 
-      gkyl_array_copy(vms->jacob_vel, vms->jacob_vel_host); 
-      gkyl_array_copy(vms->jacob_vel_gauss, vms->jacob_vel_gauss_host); 
+    else {
+      inp_vmap[v].eval_vmap = identity_vmap; 
+      inp_vmap[v].ctx = 0;       
     }
+  }
+
+  gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, inp_vmap, 
+    vms->vmap_host, vms->jacob_vel_host, vms->jacob_vel_surf_host, 
+    vms->vmap_pgkyl_host, vms->vmap_avg_pgkyl_host, vms->jacob_vel_gauss_host);
+  
+  // Copy the mapping and velocity space Jacobian onto device. 
+  if (app->use_gpu) {
+    gkyl_array_copy(vms->vmap, vms->vmap_host); 
+    gkyl_array_copy(vms->jacob_vel, vms->jacob_vel_host); 
+    gkyl_array_copy(vms->jacob_vel_surf, vms->jacob_vel_surf_host); 
+    gkyl_array_copy(vms->jacob_vel_gauss, vms->jacob_vel_gauss_host); 
   }
 
   // Allocate array for dividing out velocity-space Jacobian. 
@@ -1547,14 +1550,14 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
 
   gkyl_array_release(vms->vmap_host);
   gkyl_array_release(vms->jacob_vel_host);
+  gkyl_array_release(vms->jacob_vel_surf_host);
   gkyl_array_release(vms->vmap_pgkyl_host);
-  gkyl_array_release(vms->jacob_vel_pgkyl_host);
   gkyl_array_release(vms->vmap_avg_pgkyl_host);
-  gkyl_array_release(vms->jacob_vel_avg_pgkyl_host);
   gkyl_array_release(vms->jacob_vel_gauss_host);
 
   gkyl_array_release(vms->vmap);
   gkyl_array_release(vms->jacob_vel);
+  gkyl_array_release(vms->jacob_vel_surf);
   gkyl_array_release(vms->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations.

@@ -12,9 +12,8 @@
 void
 gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange, 
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM], 
-  struct gkyl_array *vmap, struct gkyl_array *jacob_vel, 
-  struct gkyl_array *vmap_pgkyl, struct gkyl_array *jacob_vel_pgkyl, 
-  struct gkyl_array *vmap_avg_pgkyl, struct gkyl_array *jacob_vel_avg_pgkyl, 
+  struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf, 
+  struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl, 
   struct gkyl_array *jacob_vel_gauss)
 {
   int vdim = vgrid->ndim;
@@ -89,16 +88,13 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
     }
     double *vmap_d = gkyl_array_fetch(vmap, loc_vel);
     double *jacob_vel_d = gkyl_array_fetch(jacob_vel, loc_vel);
+    double *jacob_vel_surf_d = gkyl_array_fetch(jacob_vel_surf, loc_vel);
     double *vmap_pgkyl_d = gkyl_array_fetch(vmap_pgkyl, loc_vel);
-    double *jacob_vel_pgkyl_d = gkyl_array_fetch(jacob_vel_pgkyl, loc_vel);
     double *vmap_avg_pgkyl_d = gkyl_array_fetch(vmap_avg_pgkyl, loc_vel);
-    double *jacob_vel_avg_pgkyl_d = gkyl_array_fetch(jacob_vel_avg_pgkyl, loc_vel);
     double *jacob_vel_gauss_d = gkyl_array_fetch(jacob_vel_gauss, loc_vel);
     
-    vmap_op(vgrid->dx, v_cubic_dir, vmap_d, jacob_vel_d, 
-      vmap_pgkyl_d, jacob_vel_pgkyl_d, 
-      vmap_avg_pgkyl_d, jacob_vel_avg_pgkyl_d, 
-      jacob_vel_gauss_d);
+    vmap_op(vgrid->dx, v_cubic_dir, vmap_d, jacob_vel_d, jacob_vel_surf_d, 
+      vmap_pgkyl_d, vmap_avg_pgkyl_d, jacob_vel_gauss_d);
   }
 
   // free temporary memory

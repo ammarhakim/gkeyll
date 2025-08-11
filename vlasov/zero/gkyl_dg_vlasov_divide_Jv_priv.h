@@ -11,7 +11,8 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*divide_Jv_t)(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J) ;
+typedef void (*divide_Jv_t)(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J);
+typedef void (*rescale_Jv_t)(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -25,12 +26,22 @@ static const struct { int vdim[4]; } cv_index[] = {
 
 // for use in kernel tables
 typedef struct { divide_Jv_t kernels[4]; } gkyl_dg_divide_Jv_kern_list;
+typedef struct { rescale_Jv_t kernels[4]; } gkyl_dg_rescale_Jv_kern_list;
 
-GKYL_CU_DH
-static void 
-no_divide_Jv(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J) 
-{
-}
+// Velocity-space Jacobian division kernels (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_divide_Jv_kern_list ser_divide_Jv_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_divide_Jv_1x1v_ser_p1, vlasov_divide_Jv_1x1v_ser_p2, NULL }, // 0
+  { NULL, vlasov_divide_Jv_1x2v_ser_p1, vlasov_divide_Jv_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_divide_Jv_1x3v_ser_p1, vlasov_divide_Jv_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, vlasov_divide_Jv_2x1v_ser_p1, vlasov_divide_Jv_2x1v_ser_p2, NULL }, // 3
+  { NULL, vlasov_divide_Jv_2x2v_ser_p1, vlasov_divide_Jv_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_divide_Jv_2x3v_ser_p1, vlasov_divide_Jv_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_divide_Jv_3x3v_ser_p1, NULL, NULL }, // 6
+};
 
 // Velocity-space Jacobian division kernels (Tensor basis). 
 GKYL_CU_D
@@ -42,7 +53,37 @@ static const gkyl_dg_divide_Jv_kern_list tensor_divide_Jv_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_divide_Jv_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_divide_Jv_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_divide_Jv_2x3v_tensor_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Velocity-space Jacobian rescale kernels (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_rescale_Jv_kern_list ser_rescale_Jv_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_rescale_Jv_1x1v_ser_p1, vlasov_rescale_Jv_1x1v_ser_p2, NULL }, // 0
+  { NULL, vlasov_rescale_Jv_1x2v_ser_p1, vlasov_rescale_Jv_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_rescale_Jv_1x3v_ser_p1, vlasov_rescale_Jv_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, vlasov_rescale_Jv_2x1v_ser_p1, vlasov_rescale_Jv_2x1v_ser_p2, NULL }, // 3
+  { NULL, vlasov_rescale_Jv_2x2v_ser_p1, vlasov_rescale_Jv_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_rescale_Jv_2x3v_ser_p1, vlasov_rescale_Jv_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_rescale_Jv_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Velocity-space Jacobian rescale kernels (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_rescale_Jv_kern_list tensor_rescale_Jv_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, vlasov_rescale_Jv_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, vlasov_rescale_Jv_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_rescale_Jv_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_rescale_Jv_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, vlasov_rescale_Jv_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_rescale_Jv_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -51,7 +92,7 @@ GKYL_CU_D
 static divide_Jv_t
 choose_ser_divide_Jv_kern(int cdim, int vdim, int poly_order)
 {
-  return no_divide_Jv;
+  return ser_divide_Jv_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
 GKYL_CU_D
@@ -59,4 +100,18 @@ static divide_Jv_t
 choose_tensor_divide_Jv_kern(int cdim, int vdim, int poly_order)
 {
   return tensor_divide_Jv_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+GKYL_CU_D
+static rescale_Jv_t
+choose_ser_rescale_Jv_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_rescale_Jv_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+GKYL_CU_D
+static rescale_Jv_t
+choose_tensor_rescale_Jv_kern(int cdim, int vdim, int poly_order)
+{
+  return tensor_rescale_Jv_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }

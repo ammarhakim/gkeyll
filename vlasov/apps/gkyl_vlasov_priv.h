@@ -358,16 +358,21 @@ struct vm_species {
   bool use_vmap; // bool to determine if we are using mapped velocity-space grids
   struct gkyl_array *vmap; // mapping for mapped velocity-space grids
   struct gkyl_array *jacob_vel; // velocity-space Jacobian in each direction at 1V Gauss-Legendre quadrature points.
+  struct gkyl_array *jacob_vel_surf; // velocity-space Jacobian in each direction for surface flux computation
+                                     // at (higher order) 1V Gauss-Legendre quadrature points.
   struct gkyl_array *jacob_vel_gauss; // total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
 
   struct gkyl_array *vmap_host; // host-side for initialization on device of mapping for mapped velocity-space grid
   struct gkyl_array *jacob_vel_host; // host-side for initialization on device of velocity-space Jacobian in each direction at 1V Gauss-Legendre quadrature points.
-  struct gkyl_array *jacob_vel_gauss_host; // host-side for initialization on device of total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.  
+  struct gkyl_array *jacob_vel_surf_host; // host-side for initialization on device of velocity-space Jacobian for 
+                                          // surface flux computation at (higher order) 1V Gauss-Legendre quadrature points.
+  struct gkyl_array *jacob_vel_gauss_host; // host-side for initialization on device of total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
+
   struct gkyl_array *vmap_pgkyl_host; // mapping for mapped velocity-space grids for I/O
-  struct gkyl_array *jacob_vel_pgkyl_host; // total Jacobian for mapped velocity-space grids for I/O 
   struct gkyl_array *vmap_avg_pgkyl_host; // cell average of mapping for mapped velocity-space grids for I/O
-  struct gkyl_array *jacob_vel_avg_pgkyl_host; // cell average of total Jacobian for mapped velocity-space grids for I/O 
+
   struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
+                             // When using uniform velocity-space mesh, just stores the distribution function at that RK stage. 
 
   enum gkyl_field_id field_id; // Type of field equation.
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).

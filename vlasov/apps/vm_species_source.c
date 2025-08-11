@@ -235,10 +235,16 @@ vm_species_source_write(gkyl_vlasov_app* app,
   // Calculate adaptive source before I/O if source is adaptive. 
   vm_species_source_adapt(app, vms, src); 
 
-  // Copy data from device to host before writing it out.
-  if (app->use_gpu) {
-    gkyl_array_copy(src->source_host, src->source);
-  }
+  // Divide out the velocity space Jacobian from source distribution if present
+  // We do the division before I/O to increase the accuracy since we know
+  // the velocity-space Jacobian at specific quadrature points. 
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, src->source, vms->f_no_J, app->use_gpu); 
+
+  // Copy source distribution function (potentially without velocity-space Jacobian) into
+  // host-side array before I/O. If simulation is on device, this call also moves
+  // the data from device to host for the write. 
+  gkyl_array_copy(src->source_host, vms->f_no_J);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, src->source_host, fileNm);
     
   vlasov_array_meta_release(mt);  
