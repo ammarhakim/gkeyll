@@ -241,11 +241,15 @@ vm_species_source_write(gkyl_vlasov_app* app,
   gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
     vms->jacob_vel_gauss, src->source, vms->f_no_J, app->use_gpu); 
 
-  // Copy source distribution function (potentially without velocity-space Jacobian) into
-  // host-side array before I/O. If simulation is on device, this call also moves
-  // the data from device to host for the write. 
-  gkyl_array_copy(src->source_host, vms->f_no_J);
-  gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, src->source_host, fileNm);
+  // If we are on device, copy the source distribution function without the velocity-space
+  // Jacobian to the host, otherwise just write out the f_no_J array. 
+  if (app->use_gpu) {
+    gkyl_array_copy(src->source_host, vms->f_no_J);
+    gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, src->source_host, fileNm);
+  }
+  else {
+    gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_no_J, fileNm);
+  }
     
   vlasov_array_meta_release(mt);  
 
