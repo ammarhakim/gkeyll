@@ -24,7 +24,20 @@ gkyl_dg_mul_op_cu_kernel(struct gkyl_basis basis,
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
     
@@ -56,7 +69,20 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   int idx[GKYL_MAX_DIM];
 
@@ -255,7 +281,20 @@ gkyl_dg_dot_product_op_range_cu_kernel(struct gkyl_basis basis,
 {
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   int num_basis = basis.num_basis;
   int vcomp = lop->ncomp/out->ncomp;
@@ -310,7 +349,22 @@ gkyl_dg_div_set_op_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+  div_set_op_t div_set_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      div_set_op = choose_ten_div_set_kern(ndim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
     
@@ -368,7 +422,22 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+  div_set_op_t div_set_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      div_set_op = choose_ten_div_set_kern(ndim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   int idx[GKYL_MAX_DIM];
 
