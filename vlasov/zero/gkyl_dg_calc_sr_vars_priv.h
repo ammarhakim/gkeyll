@@ -183,7 +183,7 @@ static const gkyl_dg_sr_vars_pressure_kern_list tensor_sr_vars_pressure_kernels[
   // 2x kernels
   { NULL, NULL, sr_vars_pressure_2x1v_tensor_p2 }, // 3
   { NULL, NULL, sr_vars_pressure_2x2v_tensor_p2 }, // 4
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, sr_vars_pressure_2x3v_tensor_p2 }, // 5
   // 3x kernels
   { NULL, NULL, NULL }, // 6
 };
