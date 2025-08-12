@@ -463,3 +463,12 @@ void gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_ar
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op);
 
+GKYL_CU_D
+static inline double
+dg_cell_mean_fg_prod(int nb, const double *f, const double *g)
+{
+  double sum = 0.0;
+  for (int i=0; i<nb; ++i)
+    sum += f[i]*g[i];
+  return sum;
+}

@@ -1,13 +1,12 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH double vlasov_hamil_gen_boundary_surfy_2x2v_ser_p1(const double *w, const double *dxv, 
-  const double *hamil, 
+  const double *jacob_vel, const double *hamil, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   double dx11 = 2.0/dxv[1]; 
   double dv11 = 2.0/dxv[3]; 
 
   double Ghat[8]; 
-
   double Ghat_nodal[8]; 
   if (edge == -1) { 
 

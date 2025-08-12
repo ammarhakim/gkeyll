@@ -111,15 +111,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_z_kernels = tensor_stream_hamil_vel_boundary_surf_z_kernels;         
       }
       else {
-        vlasov->hamil_vol = tensor_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
-
-        stream_surf_x_kernels = tensor_stream_hamil_gen_surf_x_kernels;
-        stream_surf_y_kernels = tensor_stream_hamil_gen_surf_y_kernels;
-        stream_surf_z_kernels = tensor_stream_hamil_gen_surf_z_kernels;
-        
-        stream_boundary_surf_x_kernels = tensor_stream_hamil_gen_boundary_surf_x_kernels;
-        stream_boundary_surf_y_kernels = tensor_stream_hamil_gen_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = tensor_stream_hamil_gen_boundary_surf_z_kernels;             
+        assert(false);            
       }
       if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];

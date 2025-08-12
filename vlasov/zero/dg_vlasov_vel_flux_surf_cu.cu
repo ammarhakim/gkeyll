@@ -13,6 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+#include <cassert>
+
 __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
@@ -155,9 +157,7 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       
       // Only have Hamiltonian forces in general geometry. 
       if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        up->hamil_alpha_quad[0] = tensor_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[1] = tensor_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[2] = tensor_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        assert(false);
       }
 
       if (has_E) {

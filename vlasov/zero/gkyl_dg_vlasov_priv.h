@@ -30,7 +30,7 @@ typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv, 
-  const double *hamil, 
+  const double *jacob_vel, const double *hamil, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
@@ -130,7 +130,7 @@ no_stream_surf(const double *w, const double *dxv,
 GKYL_CU_DH
 static double 
 no_stream_boundary_surf(const double *w, const double *dxv, 
-  const double *hamil, 
+  const double *jacob_vel, const double *hamil, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out)
 {
   return 0.0;
@@ -227,7 +227,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_gen_vol_kernels[] = {
   // 2x kernels
   { NULL, vlasov_hamil_gen_vol_2x1v_ser_p1, vlasov_hamil_gen_vol_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_gen_vol_2x2v_ser_p1, vlasov_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, vlasov_hamil_gen_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_gen_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -243,21 +243,6 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_vol_kernels[] =
   { NULL, NULL, vlasov_hamil_vel_vol_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, vlasov_hamil_vel_vol_2x3v_tensor_p2, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
-};
-
-// Hamiltonian, general phase space, volume kernels (Tensor basis).
-GKYL_CU_D
-static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_gen_vol_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, vlasov_hamil_gen_vol_1x1v_tensor_p2, NULL }, // 0
-  { NULL, NULL, vlasov_hamil_gen_vol_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_gen_vol_1x3v_tensor_p2, NULL }, // 2
-  // 2x kernels
-  { NULL, NULL, vlasov_hamil_gen_vol_2x1v_tensor_p2, NULL }, // 3
-  { NULL, NULL, vlasov_hamil_gen_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -547,21 +532,6 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_x_ke
   { NULL, vlasov_hamil_gen_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
-// Streaming phase-space Hamiltonian surface kernel list: x-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_gen_surf_x_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, vlasov_hamil_gen_surfx_1x1v_tensor_p2, NULL }, // 0
-  { NULL, NULL, vlasov_hamil_gen_surfx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_gen_surfx_1x3v_tensor_p2, NULL }, // 2
-  // 2x kernels
-  { NULL, NULL, vlasov_hamil_gen_surfx_2x1v_tensor_p2, NULL }, // 3
-  { NULL, NULL, vlasov_hamil_gen_surfx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL}, // 6
-};
-
 // Streaming phase-space Hamiltonian surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_y_kernels[] = {
@@ -577,21 +547,6 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_y_ke
   { NULL, vlasov_hamil_gen_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
-// Streaming phase-space Hamiltonian surface kernel list: y-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_gen_surf_y_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, no_stream_surf, NULL }, // 3  
-  { NULL, NULL, vlasov_hamil_gen_surfy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
-};
-
 // Streaming phase-space Hamiltonian surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_z_kernels[] = {
@@ -605,21 +560,6 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_z_ke
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_gen_surfz_3x3v_ser_p1, NULL, NULL }, // 6
-};
-
-// Streaming phase-space Hamiltonian surface kernel list: z-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_gen_surf_z_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
-  { NULL, NULL, NULL, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Acceleration surface kernel list: vx-direction (Serendipity basis)
@@ -722,7 +662,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_
   // 2x kernels
   { NULL, vlasov_hamil_vel_boundary_surfx_2x1v_ser_p1, vlasov_hamil_vel_boundary_surfx_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_hamil_vel_boundary_surfx_2x2v_ser_p1, vlasov_hamil_vel_boundary_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_boundary_surfx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_vel_boundary_surfx_2x3v_ser_p1, vlasov_hamil_vel_boundary_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_vel_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -737,7 +677,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL}, // 6
 };
@@ -752,7 +692,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_
   // 2x kernels
   { NULL, no_stream_boundary_surf, no_stream_boundary_surf, NULL }, // 3  
   { NULL, vlasov_hamil_vel_boundary_surfy_2x2v_ser_p1, vlasov_hamil_vel_boundary_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_vel_boundary_surfy_2x3v_ser_p1, vlasov_hamil_vel_boundary_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_vel_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -767,7 +707,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   // 2x kernels
   { NULL, NULL, no_stream_boundary_surf, NULL }, // 3  
   { NULL, NULL, vlasov_hamil_vel_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_hamil_vel_boundary_surfy_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -817,21 +757,6 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, vlasov_hamil_gen_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
-// Streaming phase-space Hamiltonian boundary surface kernel list: x-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_gen_boundary_surf_x_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfx_1x1v_tensor_p2, NULL }, // 0
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfx_1x3v_tensor_p2, NULL }, // 2
-  // 2x kernels
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfx_2x1v_tensor_p2, NULL }, // 3
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL}, // 6
-};
-
 // Streaming phase-space Hamiltonian boundary surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_surf_y_kernels[] = {
@@ -845,21 +770,6 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, vlasov_hamil_gen_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_gen_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
-};
-
-// Streaming phase-space Hamiltonian boundary surface kernel list: y-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_gen_boundary_surf_y_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, no_stream_boundary_surf, NULL }, // 3  
-  { NULL, NULL, vlasov_hamil_gen_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: z-direction (Serendipity basis)
@@ -877,21 +787,6 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, vlasov_hamil_gen_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
-// Streaming phase-space Hamiltonian boundary surface kernel list: z-direction (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_gen_boundary_surf_z_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3  
-  { NULL, NULL, NULL, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
-  // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
-};
-
 // Acceleration boundary surface kernel (zero-flux BCs) list: vx-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_surf_vx_kernels[] = {
@@ -902,7 +797,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 2x kernels
   { NULL, vlasov_boundary_surfvx_2x1v_ser_p1, vlasov_boundary_surfvx_2x1v_ser_p2, NULL }, // 3
   { NULL, vlasov_boundary_surfvx_2x2v_ser_p1, vlasov_boundary_surfvx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, vlasov_boundary_surfvx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_boundary_surfvx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -917,7 +812,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, vlasov_boundary_surfvx_2x1v_tensor_p2, NULL }, // 3
   { NULL, NULL, vlasov_boundary_surfvx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_boundary_surfvx_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -932,7 +827,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_boundary_surfvy_2x2v_ser_p1, vlasov_boundary_surfvy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, vlasov_boundary_surfvy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_boundary_surfvy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -947,7 +842,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, vlasov_boundary_surfvy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_boundary_surfvy_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -962,7 +857,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, vlasov_boundary_surfvz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_boundary_surfvz_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -977,7 +872,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, NULL, NULL, NULL }, // 5
+  { NULL, NULL, vlasov_boundary_surfvz_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -1053,6 +948,12 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   }
 
   if (dir < vlasov->cdim) {
+    int idx_vel[GKYL_MAX_DIM];
+    for (int i=0; i<vlasov->pdim-vlasov->cdim; ++i) {
+      idx_vel[i] = idxSkin[vlasov->cdim+i];
+    }
+    long vidx = gkyl_range_idx(&vlasov->vel_range, idx_vel);
+
     int idx_hamil[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->hamil_dim; ++i) {
       idx_hamil[i] = idxSkin[vlasov->hamil_offset+i];
@@ -1060,6 +961,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long hidx = gkyl_range_idx(&vlasov->hamil_range, idx_hamil);
 
     return vlasov->stream_boundary_surf[dir](xcSkin, dxSkin,
+      vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
       (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), edge, qInEdge, qInSkin, qRhsOut);
   } 
   else if (dir >= vlasov->cdim) {

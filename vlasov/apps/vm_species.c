@@ -737,8 +737,11 @@ vm_species_calc_L2_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double 
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_dg_calc_l2_range(vms->basis, 0, vms->L2_f, 0, vms->f, vms->local);
-  gkyl_array_scale_range(vms->L2_f, vms->grid.cellVolume, &vms->local);
+  // L^2 energy with nonuniform velocity-space meshes is Jf*f
+  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
+    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+  gkyl_dg_calc_prod_op_range(vms->basis, 0, vms->L2_f, 0, vms->f_no_J, 0, vms->f, vms->local);
+  gkyl_array_scale_range(vms->L2_f, vms->grid.cellVolume, &vms->local); 
   
   double L2[1] = { 0.0 };
   if (app->use_gpu) {
