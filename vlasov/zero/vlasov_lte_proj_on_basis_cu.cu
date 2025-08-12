@@ -272,9 +272,9 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
     up->p2c_qidx, up->p2v_qidx, up->is_relativistic, up->is_canonical_pb, 
-    up->vmap, up->vmap ? up->vmap->on_dev : 0,
-    up->vmap ? up->jacob_vel_gauss->on_dev : 0,
-    up->vmap ? up->vmap_basis_on_dev : 0, up->f_lte_quad->on_dev);
+    up->use_vmap, up->use_vmap ? up->vmap->on_dev : 0,
+    up->use_vmap ? up->jacob_vel_gauss->on_dev : 0,
+    up->use_vmap ? up->vmap_basis_on_dev : 0, up->f_lte_quad->on_dev);
 
   // Call cublas to do the matrix multiplication nodal to modal conversion
   gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_lte_quad, f_lte);

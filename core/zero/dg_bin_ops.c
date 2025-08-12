@@ -565,7 +565,7 @@ gkyl_dg_calc_prod_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_calc_prod_op_range_cu(basis, c_oop, out, c_f, f, c_g, g, range, op);
+    return gkyl_dg_calc_prod_op_range_cu(basis, c_oop, out, c_f, f, c_g, g, range);
   }
 #endif
   

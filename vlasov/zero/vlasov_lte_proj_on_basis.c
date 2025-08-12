@@ -230,6 +230,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     inp->quad_type, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
+  up->use_vmap = false;
   if (inp->use_vmap) {
     up->use_vmap = true;
     if (up->use_gpu) {
