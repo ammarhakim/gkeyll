@@ -6,8 +6,21 @@
 
 // Spacetime gauge choices.
 enum gkyl_spacetime_gauge {
-  GKYL_STATIC_GAUGE = 0, // Default
+  GKYL_STATIC_GAUGE = 0, // Default.
   GKYL_BLACKHOLE_COLLAPSE_GAUGE
+};
+
+// Dynamic spacetime slicing condition.
+enum gkyl_spacetime_slicing {
+  GKYL_GEODESIC_SLICING = 0, // Default.
+  GKYL_HARMONIC_SLICING,
+  GKYL_1PLUSLOG_SLICING
+};
+
+// Dynamic spacetime evolution system.
+enum gkyl_spacetime_evolution {
+  GKYL_RICCI_EVOLUTION = 0, // Default.
+  GKYL_EINSTEIN_EVOLUTION
 };
 
 // Forward declare the spacetime struct, for use in future function pointers.
