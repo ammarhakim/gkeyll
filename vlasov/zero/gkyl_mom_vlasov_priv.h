@@ -39,25 +39,7 @@ static void
 kernel_mom_vlasov_M0_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x1v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -65,25 +47,15 @@ static void
 kernel_mom_vlasov_M0_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
+  return mom_vlasov_M0_1x1v_ser_p2(xc, dx, idx, f, out);  
+}
 
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return mom_vlasov_M0_1x1v_ser_p3(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -91,25 +63,7 @@ static void
 kernel_mom_vlasov_M0_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x2v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -117,25 +71,7 @@ static void
 kernel_mom_vlasov_M0_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x2v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -143,25 +79,7 @@ static void
 kernel_mom_vlasov_M0_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x3v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -169,25 +87,7 @@ static void
 kernel_mom_vlasov_M0_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x3v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -195,25 +95,7 @@ static void
 kernel_mom_vlasov_M0_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x1v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -221,25 +103,15 @@ static void
 kernel_mom_vlasov_M0_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
+  return mom_vlasov_M0_2x1v_ser_p2(xc, dx, idx, f, out);  
+}
 
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return mom_vlasov_M0_2x1v_ser_p3(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -247,25 +119,7 @@ static void
 kernel_mom_vlasov_M0_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x2v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -273,25 +127,7 @@ static void
 kernel_mom_vlasov_M0_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x2v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -299,25 +135,7 @@ static void
 kernel_mom_vlasov_M0_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x3v_ser_p1(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -325,25 +143,7 @@ static void
 kernel_mom_vlasov_M0_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x3v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -351,36 +151,18 @@ static void
 kernel_mom_vlasov_M0_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_3x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_3x3v_ser_p1(xc, dx, idx, f, out);  
 }
 
 // M0 kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_m0_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_M0_1x1v_ser_p1, kernel_mom_vlasov_M0_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_M0_1x1v_ser_p1, kernel_mom_vlasov_M0_1x1v_ser_p2, kernel_mom_vlasov_M0_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_M0_1x2v_ser_p1, kernel_mom_vlasov_M0_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_M0_1x3v_ser_p1, kernel_mom_vlasov_M0_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_M0_2x1v_ser_p1, kernel_mom_vlasov_M0_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_M0_2x1v_ser_p1, kernel_mom_vlasov_M0_2x1v_ser_p2, kernel_mom_vlasov_M0_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_M0_2x2v_ser_p1, kernel_mom_vlasov_M0_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_M0_2x3v_ser_p1, kernel_mom_vlasov_M0_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -392,25 +174,15 @@ static void
 kernel_mom_vlasov_M0_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
+  return mom_vlasov_M0_1x1v_tensor_p2(xc, dx, idx, f, out);  
+}
 
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return mom_vlasov_M0_1x1v_tensor_p3(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -418,25 +190,7 @@ static void
 kernel_mom_vlasov_M0_1x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x2v_tensor_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -444,25 +198,7 @@ static void
 kernel_mom_vlasov_M0_1x3v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_1x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_1x3v_tensor_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -470,25 +206,15 @@ static void
 kernel_mom_vlasov_M0_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
+  return mom_vlasov_M0_2x1v_tensor_p2(xc, dx, idx, f, out);  
+}
 
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return mom_vlasov_M0_2x1v_tensor_p3(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -496,25 +222,7 @@ static void
 kernel_mom_vlasov_M0_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x2v_tensor_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -522,36 +230,18 @@ static void
 kernel_mom_vlasov_M0_2x3v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
-
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
-  return mom_vlasov_M0_2x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+  return mom_vlasov_M0_2x3v_tensor_p2(xc, dx, idx, f, out);  
 }
 
 // M0 kernel list (Tensor basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_m0_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_M0_1x1v_tensor_p2, kernel_mom_vlasov_M0_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_M0_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_M0_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_M0_2x1v_tensor_p2, kernel_mom_vlasov_M0_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_M0_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_M0_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -573,15 +263,9 @@ kernel_mom_vlasov_M2ij_1x1v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -599,15 +283,29 @@ kernel_mom_vlasov_M2ij_1x1v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M2ij_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M2ij_1x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -625,15 +323,9 @@ kernel_mom_vlasov_M2ij_1x2v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -651,15 +343,9 @@ kernel_mom_vlasov_M2ij_1x2v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -677,15 +363,9 @@ kernel_mom_vlasov_M2ij_1x3v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -703,15 +383,9 @@ kernel_mom_vlasov_M2ij_1x3v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -729,15 +403,9 @@ kernel_mom_vlasov_M2ij_2x1v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -755,15 +423,29 @@ kernel_mom_vlasov_M2ij_2x1v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M2ij_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M2ij_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -781,15 +463,9 @@ kernel_mom_vlasov_M2ij_2x2v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -807,15 +483,9 @@ kernel_mom_vlasov_M2ij_2x2v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -833,15 +503,9 @@ kernel_mom_vlasov_M2ij_2x3v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -859,15 +523,9 @@ kernel_mom_vlasov_M2ij_2x3v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -885,26 +543,20 @@ kernel_mom_vlasov_M2ij_3x3v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_3x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 // M2ij kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_m2ij_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_M2ij_1x1v_ser_p1, kernel_mom_vlasov_M2ij_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_M2ij_1x1v_ser_p1, kernel_mom_vlasov_M2ij_1x1v_ser_p2, kernel_mom_vlasov_M2ij_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_M2ij_1x2v_ser_p1, kernel_mom_vlasov_M2ij_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_M2ij_1x3v_ser_p1, kernel_mom_vlasov_M2ij_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_M2ij_2x1v_ser_p1, kernel_mom_vlasov_M2ij_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_M2ij_2x1v_ser_p1, kernel_mom_vlasov_M2ij_2x1v_ser_p2, kernel_mom_vlasov_M2ij_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_M2ij_2x2v_ser_p1, kernel_mom_vlasov_M2ij_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_M2ij_2x3v_ser_p1, kernel_mom_vlasov_M2ij_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -926,15 +578,29 @@ kernel_mom_vlasov_M2ij_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M2ij_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M2ij_1x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -952,15 +618,9 @@ kernel_mom_vlasov_M2ij_1x2v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -978,15 +638,9 @@ kernel_mom_vlasov_M2ij_1x3v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_1x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1004,15 +658,29 @@ kernel_mom_vlasov_M2ij_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M2ij_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M2ij_2x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1030,15 +698,9 @@ kernel_mom_vlasov_M2ij_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1056,26 +718,20 @@ kernel_mom_vlasov_M2ij_2x3v_tensor_p2(const struct gkyl_mom_type *momt, const do
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M2ij_2x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 // M2ij kernel list (Tensor basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_m2ij_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_M2ij_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_M2ij_1x1v_tensor_p2, kernel_mom_vlasov_M2ij_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_M2ij_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_M2ij_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_M2ij_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_M2ij_2x1v_tensor_p2, kernel_mom_vlasov_M2ij_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_M2ij_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_M2ij_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -1097,15 +753,9 @@ kernel_mom_vlasov_M3ijk_1x1v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1123,15 +773,29 @@ kernel_mom_vlasov_M3ijk_1x1v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M3ijk_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M3ijk_1x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1149,15 +813,9 @@ kernel_mom_vlasov_M3ijk_1x2v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1175,15 +833,9 @@ kernel_mom_vlasov_M3ijk_1x2v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1201,15 +853,9 @@ kernel_mom_vlasov_M3ijk_1x3v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1227,15 +873,9 @@ kernel_mom_vlasov_M3ijk_1x3v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1253,15 +893,9 @@ kernel_mom_vlasov_M3ijk_2x1v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1279,15 +913,29 @@ kernel_mom_vlasov_M3ijk_2x1v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M3ijk_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M3ijk_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1305,15 +953,9 @@ kernel_mom_vlasov_M3ijk_2x2v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1331,15 +973,9 @@ kernel_mom_vlasov_M3ijk_2x2v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1357,15 +993,9 @@ kernel_mom_vlasov_M3ijk_2x3v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1383,15 +1013,9 @@ kernel_mom_vlasov_M3ijk_2x3v_ser_p2(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1409,26 +1033,20 @@ kernel_mom_vlasov_M3ijk_3x3v_ser_p1(const struct gkyl_mom_type *momt, const doub
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_3x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 // M3ijk kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_m3ijk_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_M3ijk_1x1v_ser_p1, kernel_mom_vlasov_M3ijk_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_M3ijk_1x1v_ser_p1, kernel_mom_vlasov_M3ijk_1x1v_ser_p2, kernel_mom_vlasov_M3ijk_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_M3ijk_1x2v_ser_p1, kernel_mom_vlasov_M3ijk_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_M3ijk_1x3v_ser_p1, kernel_mom_vlasov_M3ijk_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_M3ijk_2x1v_ser_p1, kernel_mom_vlasov_M3ijk_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_M3ijk_2x1v_ser_p1, kernel_mom_vlasov_M3ijk_2x1v_ser_p2, kernel_mom_vlasov_M3ijk_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_M3ijk_2x2v_ser_p1, kernel_mom_vlasov_M3ijk_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_M3ijk_2x3v_ser_p1, kernel_mom_vlasov_M3ijk_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -1450,15 +1068,29 @@ kernel_mom_vlasov_M3ijk_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M3ijk_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M3ijk_1x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1476,15 +1108,9 @@ kernel_mom_vlasov_M3ijk_1x2v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1502,15 +1128,9 @@ kernel_mom_vlasov_M3ijk_1x3v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_1x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1528,15 +1148,29 @@ kernel_mom_vlasov_M3ijk_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M3ijk_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M3ijk_2x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1554,15 +1188,9 @@ kernel_mom_vlasov_M3ijk_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 GKYL_CU_DH
@@ -1580,26 +1208,20 @@ kernel_mom_vlasov_M3ijk_2x3v_tensor_p2(const struct gkyl_mom_type *momt, const d
   }
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
-  int idx_hamil[GKYL_MAX_DIM];
-  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
-    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
-  }
-  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
-
   return mom_vlasov_M3ijk_2x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+    mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out);  
 }
 
 // M3ijk kernel list (Tensor basis)
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_m3ijk_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_M3ijk_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_M3ijk_1x1v_tensor_p2, kernel_mom_vlasov_M3ijk_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_M3ijk_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_M3ijk_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_M3ijk_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_M3ijk_2x1v_tensor_p2, kernel_mom_vlasov_M3ijk_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_M3ijk_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_M3ijk_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -1654,6 +1276,32 @@ kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p2(const struct gkyl_mom_type *momt, co
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M1i_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M1i_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -1816,6 +1464,32 @@ kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p2(const struct gkyl_mom_type *momt, co
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M1i_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_M1i_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -1948,11 +1622,11 @@ kernel_mom_vlasov_hamil_vel_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, co
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m1i_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -1981,6 +1655,32 @@ kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2(const struct gkyl_mom_type *momt,
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -2065,6 +1765,32 @@ kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2(const struct gkyl_mom_type *momt,
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M1i_2x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_M1i_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2119,11 +1845,11 @@ kernel_mom_vlasov_hamil_vel_M1i_2x3v_tensor_p2(const struct gkyl_mom_type *momt,
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_m1i_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -2178,6 +1904,32 @@ kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p2(const struct gkyl_mom_type *momt, co
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M1i_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_M1i_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -2340,6 +2092,32 @@ kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p2(const struct gkyl_mom_type *momt, co
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_M1i_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_gen_M1i_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2446,11 +2224,11 @@ kernel_mom_vlasov_hamil_gen_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, co
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_gen_m1i_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p2, kernel_mom_vlasov_hamil_gen_M1i_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_gen_M1i_1x2v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_gen_M1i_1x3v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p2, kernel_mom_vlasov_hamil_gen_M1i_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_gen_M1i_2x2v_ser_p1, kernel_mom_vlasov_hamil_gen_M1i_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_gen_M1i_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -2463,14 +2241,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2479,7 +2249,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2489,14 +2258,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2505,7 +2266,23 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M2_1x1v_ser_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2515,14 +2292,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2531,7 +2300,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2541,14 +2309,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2557,7 +2317,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2567,14 +2326,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2583,7 +2334,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2593,14 +2343,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2609,7 +2351,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2619,14 +2360,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2635,7 +2368,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2645,14 +2377,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2661,7 +2385,23 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M2_2x1v_ser_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2671,14 +2411,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2687,7 +2419,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2697,14 +2428,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2713,7 +2436,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2723,14 +2445,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2739,7 +2453,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2749,14 +2462,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2765,7 +2470,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2775,14 +2479,6 @@ kernel_mom_vlasov_hamil_vel_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2791,7 +2487,6 @@ kernel_mom_vlasov_hamil_vel_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_3x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2799,11 +2494,11 @@ kernel_mom_vlasov_hamil_vel_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m2_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -2816,14 +2511,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2832,7 +2519,23 @@ kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M2_1x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2842,14 +2545,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2858,7 +2553,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x2v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2868,14 +2562,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2884,7 +2570,6 @@ kernel_mom_vlasov_hamil_vel_M2_1x3v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_1x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2894,14 +2579,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2910,7 +2587,23 @@ kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x1v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_M2_2x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2920,14 +2613,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2936,7 +2621,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x2v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2946,14 +2630,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_tensor_p2(const struct gkyl_mom_type *momt, 
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -2962,7 +2638,6 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_tensor_p2(const struct gkyl_mom_type *momt, 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_M2_2x3v_tensor_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -2970,11 +2645,11 @@ kernel_mom_vlasov_hamil_vel_M2_2x3v_tensor_p2(const struct gkyl_mom_type *momt, 
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_m2_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -2987,14 +2662,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3003,7 +2670,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3013,14 +2679,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3029,7 +2687,23 @@ kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_M2_1x1v_ser_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3039,14 +2713,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3055,7 +2721,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3065,14 +2730,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3081,7 +2738,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3091,14 +2747,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3107,7 +2755,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3117,14 +2764,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3133,7 +2772,6 @@ kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_1x3v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3143,14 +2781,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3159,7 +2789,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_2x1v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3169,14 +2798,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3185,7 +2806,23 @@ kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_2x1v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_M2_2x1v_ser_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3195,14 +2832,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3211,7 +2840,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_2x2v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3221,14 +2849,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3237,7 +2857,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_2x2v_ser_p2(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3247,14 +2866,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3263,7 +2874,6 @@ kernel_mom_vlasov_hamil_gen_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_2x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3273,14 +2883,6 @@ kernel_mom_vlasov_hamil_gen_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-  int cdim = mom_vlasov->momt.cdim;
-  int pdim = mom_vlasov->momt.pdim;  
-
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i) {
-    idx_vel[i] = idx[cdim+i];
-  }
-  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   int idx_hamil[GKYL_MAX_DIM];
   for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
@@ -3289,7 +2891,6 @@ kernel_mom_vlasov_hamil_gen_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_M2_3x3v_ser_p1(xc, dx, idx, 
-    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
@@ -3297,11 +2898,11 @@ kernel_mom_vlasov_hamil_gen_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_gen_m2_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p2, kernel_mom_vlasov_hamil_gen_M2_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p2, kernel_mom_vlasov_hamil_gen_M2_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p1, kernel_mom_vlasov_hamil_gen_M2_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_gen_M2_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -3356,6 +2957,32 @@ kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2(const struct gkyl_mom_type 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -3518,6 +3145,32 @@ kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p2(const struct gkyl_mom_type 
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -3651,11 +3304,11 @@ kernel_mom_vlasov_hamil_vel_five_moments_3x3v_ser_p1(const struct gkyl_mom_type 
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_vel_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -3684,6 +3337,32 @@ kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2(const struct gkyl_mom_ty
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -3768,6 +3447,32 @@ kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2(const struct gkyl_mom_ty
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_five_moments_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -3823,11 +3528,11 @@ kernel_mom_vlasov_hamil_vel_five_moments_2x3v_tensor_p2(const struct gkyl_mom_ty
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -3882,6 +3587,32 @@ kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p2(const struct gkyl_mom_type 
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_five_moments_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_five_moments_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -4044,6 +3775,32 @@ kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p2(const struct gkyl_mom_type 
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_five_moments_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_gen_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -4151,11 +3908,11 @@ kernel_mom_vlasov_hamil_gen_five_moments_3x3v_ser_p1(const struct gkyl_mom_type 
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_gen_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_gen_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_gen_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_gen_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_gen_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_gen_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_gen_five_moments_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_gen_five_moments_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -4210,6 +3967,32 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_t
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -4372,6 +4155,32 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p2(const struct gkyl_mom_t
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -4505,11 +4314,11 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_3x3v_ser_p1(const struct gkyl_mom_t
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_vel_int_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
@@ -4538,6 +4347,32 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2(const struct gkyl_mo
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -4622,6 +4457,32 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2(const struct gkyl_mo
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -4677,11 +4538,11 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_tensor_p2(const struct gkyl_mo
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_int_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_tensor_p2, NULL }, // 1
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2, NULL }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
@@ -4736,6 +4597,32 @@ kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_t
   long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
 
   return mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p3(xc, dx, idx, 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
@@ -4898,6 +4785,32 @@ kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p2(const struct gkyl_mom_t
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p3(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_gen_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -5005,11 +4918,11 @@ kernel_mom_vlasov_hamil_gen_int_five_moments_3x3v_ser_p1(const struct gkyl_mom_t
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list ser_hamil_gen_int_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p2, NULL }, // 0
+  { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_gen_int_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_1x2v_ser_p2, NULL }, // 1
   { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p2, NULL }, // 3
+  { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_gen_int_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_gen_int_five_moments_2x2v_ser_p2, NULL }, // 4
   { NULL, kernel_mom_vlasov_hamil_gen_int_five_moments_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
@@ -5040,6 +4953,26 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_M0_upper_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M0_upper_1x1v_tensor_p3(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
+    mom_vlasov->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -5054,6 +4987,26 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
   long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
 
   return mom_vlasov_M0_upper_2x1v_tensor_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
+    mom_vlasov->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_upper_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M0_upper_2x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     mom_vlasov->v_thresh, f, out);  
 }
@@ -5080,6 +5033,26 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_M0_lower_1x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M0_lower_1x1v_tensor_p3(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
+    mom_vlasov->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -5098,13 +5071,33 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
     mom_vlasov->v_thresh, f, out);  
 }
 
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_M0_lower_2x1v_tensor_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M0_lower_2x1v_tensor_p3(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
+    mom_vlasov->v_thresh, f, out);  
+}
+
 // M0 upper half-plane kernel list
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_m0_upper_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_upper_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_M0_upper_1x1v_tensor_p2, kernel_mom_vlasov_M0_upper_1x1v_tensor_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_upper_2x1v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_M0_upper_2x1v_tensor_p2, kernel_mom_vlasov_M0_upper_2x1v_tensor_p3 }, // 1
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 2
 };
@@ -5113,9 +5106,9 @@ static const gkyl_vlasov_mom_kern_list tensor_m0_upper_kernels[] = {
 GKYL_CU_D
 static const gkyl_vlasov_mom_kern_list tensor_m0_lower_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_lower_1x1v_tensor_p2, NULL }, // 0
+  { NULL, NULL, kernel_mom_vlasov_M0_lower_1x1v_tensor_p2, kernel_mom_vlasov_M0_lower_1x1v_tensor_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_M0_lower_2x1v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_M0_lower_2x1v_tensor_p2, kernel_mom_vlasov_M0_lower_2x1v_tensor_p3 }, // 1
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 2
 };

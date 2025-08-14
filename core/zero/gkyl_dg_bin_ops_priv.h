@@ -69,7 +69,7 @@ GKYL_CU_D
 static const mul_op_kern_list ten_mul_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { binop_mul_1d_ser_p0, binop_mul_1d_ser_p1, binop_mul_1d_ser_p2, binop_mul_1d_ser_p3 },
-  { binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_tensor_p2, NULL },
+  { binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_tensor_p2, binop_mul_2d_tensor_p3 },
   { binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_tensor_p2, NULL }
 };
 
@@ -152,12 +152,12 @@ static const cross_mul_accumulate_comp_par_op_kern_list ser_cross_mul_accumulate
 GKYL_CU_D
 static const cross_mul_op_kern_list ten_cross_mul_list[] = {
   // pdim=2
-  { .list = {{ NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2, NULL },
+  { .list = {{ NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2, binop_cross_mul_1d_2d_tensor_p3 },
              { NULL, NULL, NULL, NULL },
              { NULL, NULL, NULL, NULL },} },
   // pdim=3
   { .list = {{ NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_tensor_p2, NULL },
-             { NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2, NULL },
+             { NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2, binop_cross_mul_2d_3d_tensor_p3 },
              { NULL, NULL, NULL, NULL },} },
   // pdim=4
   { .list = {{ NULL, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_tensor_p2, NULL },
@@ -177,12 +177,12 @@ static const cross_mul_op_kern_list ten_cross_mul_list[] = {
 GKYL_CU_D
 static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulate_list[] = {
   // pdim=2
-  { .list = {{ NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_tensor_p2, NULL },
+  { .list = {{ NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_tensor_p2, binop_cross_mul_accumulate_1d_2d_tensor_p3 },
              { NULL, NULL, NULL, NULL },
              { NULL, NULL, NULL, NULL },} },
   // pdim=3
   { .list = {{ NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_tensor_p2, NULL },
-             { NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_tensor_p2, NULL },
+             { NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_tensor_p2, binop_cross_mul_accumulate_2d_3d_tensor_p3 },
              { NULL, NULL, NULL, NULL },} },
   // pdim=4
   { .list = {{ NULL, binop_cross_mul_accumulate_1d_4d_ser_p1, binop_cross_mul_accumulate_1d_4d_tensor_p2, NULL },
@@ -202,12 +202,12 @@ static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulate_list[] =
 GKYL_CU_D
 static const cross_mul_accumulate_comp_par_op_kern_list ten_cross_mul_accumulate_comp_par_list[] = {
   // pdim=2
-  { .list = {{ NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1, binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2, NULL },
+  { .list = {{ NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1, binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2, binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p3 },
              { NULL, NULL, NULL, NULL },
              { NULL, NULL, NULL, NULL },} },
   // pdim=3
   { .list = {{ NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1, binop_cross_mul_accumulate_comp_par_1d_3d_tensor_p2, NULL },
-             { NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1, binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2, NULL },
+             { NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1, binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2, binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p3 },
              { NULL, NULL, NULL, NULL },} },
   // pdim=4
   { .list = {{ NULL, binop_cross_mul_accumulate_comp_par_1d_4d_ser_p1, binop_cross_mul_accumulate_comp_par_1d_4d_tensor_p2, NULL },
@@ -292,7 +292,7 @@ GKYL_CU_D
 static const div_set_op_kern_list ten_div_set_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { binop_div_set_1d_ser_p0, binop_div_set_1d_ser_p1, binop_div_set_1d_ser_p2, binop_div_set_1d_ser_p3 },
-  { binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_tensor_p2, NULL },
+  { binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_tensor_p2, binop_div_set_2d_tensor_p3 },
   { binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_tensor_p2, NULL } 
 };
 

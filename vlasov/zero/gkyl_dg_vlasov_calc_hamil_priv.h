@@ -15,42 +15,42 @@ typedef void (*calc_hamil_t)(const double *w, const double *dv,
   const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv);
 
 // for use in kernel tables
-typedef struct { calc_hamil_t kernels[3]; } gkyl_dg_calc_hamil_kern_list;
+typedef struct { calc_hamil_t kernels[4]; } gkyl_dg_calc_hamil_kern_list;
 
 // Default Hamiltonian = v^2/2 (Serendipity kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list ser_hamil_default_kernels[] = {
   // 1x kernels
-  { NULL, hamil_default_1v_ser_p1, hamil_default_1v_ser_p2 }, // 0
-  { NULL, hamil_default_2v_ser_p1, hamil_default_2v_ser_p2 }, // 1
-  { NULL, hamil_default_3v_ser_p1, hamil_default_3v_ser_p2 }, // 2
+  { NULL, hamil_default_1v_ser_p1, hamil_default_1v_ser_p2, hamil_default_1v_ser_p3 }, // 0
+  { NULL, hamil_default_2v_ser_p1, hamil_default_2v_ser_p2, NULL }, // 1
+  { NULL, hamil_default_3v_ser_p1, hamil_default_3v_ser_p2, NULL }, // 2
 };
 
 // Relativistic Hamiltonian = sqrt(1 + u^2) (Serendipity kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list ser_hamil_sr_kernels[] = {
   // 1x kernels
-  { NULL, hamil_sr_1v_ser_p1, hamil_sr_1v_ser_p2 }, // 0
-  { NULL, hamil_sr_2v_ser_p1, hamil_sr_2v_ser_p2 }, // 1
-  { NULL, hamil_sr_3v_ser_p1, hamil_sr_3v_ser_p2 }, // 2
+  { NULL, hamil_sr_1v_ser_p1, hamil_sr_1v_ser_p2, hamil_sr_1v_ser_p3 }, // 0
+  { NULL, hamil_sr_2v_ser_p1, hamil_sr_2v_ser_p2, NULL }, // 1
+  { NULL, hamil_sr_3v_ser_p1, hamil_sr_3v_ser_p2, NULL }, // 2
 };
 
 // Default Hamiltonian = v^2/2 (Tensor kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_default_kernels[] = {
   // 1x kernels
-  { NULL, NULL, hamil_default_1v_tensor_p2 }, // 0
-  { NULL, NULL, hamil_default_2v_tensor_p2 }, // 1
-  { NULL, NULL, hamil_default_3v_tensor_p2 }, // 2
+  { NULL, NULL, hamil_default_1v_tensor_p2, hamil_default_1v_tensor_p3 }, // 0
+  { NULL, NULL, hamil_default_2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, hamil_default_3v_tensor_p2, NULL }, // 2
 };
 
 // Relativistic Hamiltonian = sqrt(1 + u^2) (Tensor kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_sr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, hamil_sr_1v_tensor_p2 }, // 0
-  { NULL, NULL, hamil_sr_2v_tensor_p2 }, // 1
-  { NULL, NULL, hamil_sr_3v_tensor_p2 }, // 2
+  { NULL, NULL, hamil_sr_1v_tensor_p2, hamil_sr_1v_tensor_p3 }, // 0
+  { NULL, NULL, hamil_sr_2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, hamil_sr_3v_tensor_p2, NULL }, // 2
 };
 
 GKYL_CU_D

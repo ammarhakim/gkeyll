@@ -1209,7 +1209,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     }
   }
 
-  gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, inp_vmap, 
+  gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
+    vms->basis_vel.poly_order, inp_vmap, 
     vms->vmap_host, vms->jacob_vel_host, vms->jacob_vel_surf_host, 
     vms->vmap_pgkyl_host, vms->vmap_avg_pgkyl_host, vms->jacob_vel_gauss_host);
   

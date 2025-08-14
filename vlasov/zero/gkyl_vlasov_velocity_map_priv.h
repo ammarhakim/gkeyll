@@ -10,7 +10,7 @@
 #include <assert.h>
 
 static void 
-kernel_vmap_1v(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
+kernel_vmap_1v_p2(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
     double* GKYL_RESTRICT vmap, double* GKYL_RESTRICT jacob_vel, double* GKYL_RESTRICT jacob_vel_surf,  
     double* GKYL_RESTRICT vmap_pgkyl, double* GKYL_RESTRICT vmap_avg_pgkyl, double* GKYL_RESTRICT jacob_vel_gauss) 
 { 
@@ -58,7 +58,58 @@ kernel_vmap_1v(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM],
 } 
 
 static void 
-kernel_vmap_2v(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
+kernel_vmap_1v_p3(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
+    double* GKYL_RESTRICT vmap, double* GKYL_RESTRICT jacob_vel, double* GKYL_RESTRICT jacob_vel_surf,  
+    double* GKYL_RESTRICT vmap_pgkyl, double* GKYL_RESTRICT vmap_avg_pgkyl, double* GKYL_RESTRICT jacob_vel_gauss) 
+{ 
+  // v_cubic_dir: Cubic C^1 representation of the velocity mapping.
+  // vmap: Velocity-space nonuniform mapping in each dimension.
+  // jacob_vel: Velocity-space Jacobian in each dimension at 1V Gauss-Legendre quadrature points.
+  // jacob_vel_surf: Velocity-space Jacobian evaluated at number of quadrature points needed for surface updates.
+  // vmap_pgkyl: Velocity-space nonuniform mapping for I/O (defined in full 1V, 2V, or 3V).
+  // vmap_avg_pgkyl: Cell average of velocity-space nonuniform mapping for I/O (defined in full 1V, 2V, or 3V).
+  // jacob_vel_gauss: Velocity space Jacobian at Gauss-Legendre quadrature points.
+ 
+  double dv_tot = 1.0; 
+  const double dv0 = 2.0/dv[0]; 
+  dv_tot *= 2.0/dv[0]; 
+  const double *v_cubic_dir0 = &v_cubic_dir[0][0]; 
+  double *p0 = &vmap[0]; 
+  double *vmap_pgkyl0 = &vmap_pgkyl[0]; 
+  double *jacob_vel0 = &jacob_vel[0]; 
+  double *jacob_vel0_surf = &jacob_vel_surf[0]; 
+  p0[0] = v_cubic_dir0[0];
+  p0[1] = v_cubic_dir0[1];
+  p0[2] = v_cubic_dir0[2];
+  p0[3] = v_cubic_dir0[3];
+
+  jacob_vel0[0] = dv0*(7.59868523121749*p0[3]-4.084728180770504*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0[1] = dv0*(-(1.1844154253193069*p0[3])-1.6126716885136843*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0[2] = dv0*(-(1.1844154253193069*p0[3])+1.6126716885136843*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0[3] = dv0*(7.59868523121749*p0[3]+4.084728180770504*p0[2]+1.224744871391589*p0[1]);
+
+  jacob_vel0_surf[0] = dv0*(8.715656478198236*p0[3]-4.298388424359991*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0_surf[1] = dv0*(1.2620965531989388*p0[3]-2.554184205050221*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0_surf[2] = dv0*(1.224744871391589*p0[1]-2.806243040080455*p0[3]);
+  jacob_vel0_surf[3] = dv0*(1.2620965531989388*p0[3]+2.554184205050221*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel0_surf[4] = dv0*(8.715656478198236*p0[3]+4.298388424359991*p0[2]+1.224744871391589*p0[1]);
+
+  vmap_pgkyl0[0] = p0[0]; 
+  vmap_pgkyl0[1] = p0[1]; 
+  vmap_pgkyl0[2] = p0[2]; 
+  vmap_pgkyl0[3] = p0[3]; 
+
+  vmap_avg_pgkyl[0] = vmap_pgkyl0[0]/1.4142135623730951;
+
+  jacob_vel_gauss[0] = dv_tot*(7.598685231217489*p0[3]-4.084728180770504*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel_gauss[1] = dv_tot*(-(1.1844154253193042*p0[3])-1.6126716885136843*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel_gauss[2] = dv_tot*(-(1.1844154253193042*p0[3])+1.6126716885136843*p0[2]+1.224744871391589*p0[1]);
+  jacob_vel_gauss[3] = dv_tot*(7.598685231217489*p0[3]+4.084728180770504*p0[2]+1.224744871391589*p0[1]);
+
+} 
+
+static void 
+kernel_vmap_2v_p2(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
     double* GKYL_RESTRICT vmap, double* GKYL_RESTRICT jacob_vel, double* GKYL_RESTRICT jacob_vel_surf,  
     double* GKYL_RESTRICT vmap_pgkyl, double* GKYL_RESTRICT vmap_avg_pgkyl, double* GKYL_RESTRICT jacob_vel_gauss) 
 { 
@@ -138,7 +189,7 @@ kernel_vmap_2v(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM],
 } 
 
 static void 
-kernel_vmap_3v(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
+kernel_vmap_3v_p2(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
     double* GKYL_RESTRICT vmap, double* GKYL_RESTRICT jacob_vel, double* GKYL_RESTRICT jacob_vel_surf,  
     double* GKYL_RESTRICT vmap_pgkyl, double* GKYL_RESTRICT vmap_avg_pgkyl, double* GKYL_RESTRICT jacob_vel_gauss) 
 { 
@@ -266,16 +317,16 @@ typedef void (*vmap_cubic_t)(const double *dv, const double *v_cubic_dir[3],
     double* GKYL_RESTRICT vmap_pgkyl, double* GKYL_RESTRICT vmap_avg_pgkyl, double* GKYL_RESTRICT jacob_vel_gauss);
 
 // for use in kernel tables
-typedef struct { vmap_cubic_t kernels[1]; } vmap_cubic_kern_list;
+typedef struct { vmap_cubic_t kernels[4]; } vmap_cubic_kern_list;
 
 static const vmap_cubic_kern_list vmap_cubic_list[] = {
-  { kernel_vmap_1v },
-  { kernel_vmap_2v },
-  { kernel_vmap_3v }
+  { NULL, NULL, kernel_vmap_1v_p2, kernel_vmap_1v_p3 },
+  { NULL, NULL, kernel_vmap_2v_p2, NULL },
+  { NULL, NULL, kernel_vmap_3v_p2, NULL }
 };
 
 static vmap_cubic_t
-choose_vmap_kern(int vdim)
+choose_vmap_kern(int vdim, int poly_order)
 {
-  return vmap_cubic_list[vdim-1].kernels[0];
+  return vmap_cubic_list[vdim-1].kernels[poly_order];
 }

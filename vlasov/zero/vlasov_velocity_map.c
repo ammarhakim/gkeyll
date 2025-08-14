@@ -11,7 +11,7 @@
 
 void
 gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange, 
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM], 
+  int v_poly_order, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM], 
   struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf, 
   struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl, 
   struct gkyl_array *jacob_vel_gauss)
@@ -72,7 +72,7 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
   }
 
   // initialize the mapping
-  vmap_cubic_t vmap_op = choose_vmap_kern(vdim); 
+  vmap_cubic_t vmap_op = choose_vmap_kern(vdim, v_poly_order); 
   const double *v_cubic_dir[3]; // 1D cubic in each direction
   int vidx_1D[1]; // 1D index for indexing correct cubic mapping
 

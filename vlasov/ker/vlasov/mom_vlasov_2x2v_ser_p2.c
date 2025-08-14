@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -13,7 +13,7 @@ GKYL_CU_DH void mom_vlasov_M0_2x2v_ser_p2(const double *w, const double *dxv, co
   out[7] += 2.0*f[20]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -46,7 +46,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_2x2v_ser_p2(const double *w, const double *dxv, 
   out[23] += volFact*(2.0*f[20]*wx2_sq+1.1547005383792515*f[36]*dv2*wx2+0.16666666666666666*f[20]*dv2_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -112,7 +112,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x2v_ser_p2(const double *w, const doub
   out[15] += (3.872983346207417*hamil[7]*f[45]+3.872983346207417*hamil[5]*f[36]+1.7320508075688774*hamil[3]*f[33]+1.7320508075688772*hamil[2]*f[20])*dv11*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += (hamil[7]*f[30]+hamil[6]*f[27]+hamil[5]*f[14]+hamil[4]*f[13]+hamil[3]*f[10]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 
@@ -198,7 +198,7 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_M1i_2x2v_ser_p2(const double *w, const doub
   out[15] += (1.5491933384829668*f[44]*hamil[47]+1.7320508075688772*f[18]*hamil[47]+0.7745966692414834*f[24]*hamil[46]+0.5532833351724881*f[22]*hamil[45]+0.7745966692414834*f[21]*hamil[45]+0.8660254037844386*f[3]*hamil[45]+1.9364916731037085*hamil[30]*f[45]+0.6928203230275509*f[15]*hamil[44]+1.7320508075688774*f[31]*hamil[43]+1.9364916731037085*f[38]*hamil[42]+1.5491933384829668*f[35]*hamil[41]+1.7320508075688774*f[9]*hamil[41]+0.7745966692414834*f[34]*hamil[40]+0.5532833351724881*f[33]*hamil[38]+0.8660254037844387*f[6]*hamil[38]+0.7745966692414834*f[33]*hamil[37]+0.5532833351724881*f[12]*hamil[36]+0.7745966692414834*f[11]*hamil[36]+0.8660254037844387*f[0]*hamil[36]+1.9364916731037085*hamil[14]*f[36]+0.6928203230275508*f[5]*hamil[35]+0.8660254037844387*hamil[10]*f[33]+0.6928203230275508*hamil[31]*f[32]+0.7745966692414834*f[7]*hamil[31]+1.7320508075688772*f[16]*hamil[29]+1.9364916731037085*f[26]*hamil[28]+0.5532833351724881*f[20]*hamil[26]+0.8660254037844386*f[1]*hamil[26]+0.7745966692414834*f[20]*hamil[25]+0.8660254037844386*hamil[17]*f[22]+0.8660254037844386*hamil[4]*f[20]+0.6928203230275509*hamil[16]*f[19]+0.7745966692414834*f[15]*hamil[18]+0.7745966692414834*f[2]*hamil[16]+0.8660254037844387*hamil[8]*f[12]+0.7745966692414834*f[5]*hamil[9])*dv11*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_gen_M2_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += (0.5*f[47]*hamil[47]+0.5*f[46]*hamil[46]+0.5*f[45]*hamil[45]+0.5*f[44]*hamil[44]+0.5*f[43]*hamil[43]+0.5*f[42]*hamil[42]+0.5*f[41]*hamil[41]+0.5*f[40]*hamil[40]+0.5*f[39]*hamil[39]+0.5*f[38]*hamil[38]+0.5*f[37]*hamil[37]+0.5*f[36]*hamil[36]+0.5*f[35]*hamil[35]+0.5*f[34]*hamil[34]+0.5*f[33]*hamil[33]+0.5*f[32]*hamil[32]+0.5*f[31]*hamil[31]+0.5*f[30]*hamil[30]+0.5*f[29]*hamil[29]+0.5*f[28]*hamil[28]+0.5*f[27]*hamil[27]+0.5*f[26]*hamil[26]+0.5*f[25]*hamil[25]+0.5*f[24]*hamil[24]+0.5*f[23]*hamil[23]+0.5*f[22]*hamil[22]+0.5*f[21]*hamil[21]+0.5*f[20]*hamil[20]+0.5*f[19]*hamil[19]+0.5*f[18]*hamil[18]+0.5*f[17]*hamil[17]+0.5*f[16]*hamil[16]+0.5*f[15]*hamil[15]+0.5*f[14]*hamil[14]+0.5*f[13]*hamil[13]+0.5*f[12]*hamil[12]+0.5*f[11]*hamil[11]+0.5*f[10]*hamil[10]+0.5*f[9]*hamil[9]+0.5*f[8]*hamil[8]+0.5*f[7]*hamil[7]+0.5*f[6]*hamil[6]+0.5*f[5]*hamil[5]+0.5*f[4]*hamil[4]+0.5*f[3]*hamil[3]+0.5*f[2]*hamil[2]+0.5*f[1]*hamil[1]+0.5*f[0]*hamil[0])*volFact; 

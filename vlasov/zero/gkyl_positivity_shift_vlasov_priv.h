@@ -19,8 +19,7 @@ enum gkyl_positivity_shift_type {
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
 typedef void (*m0_t)(const double *xc, const double *dx,
-  const int *idx, const double* jacob_vel, const double* hamil, 
-  const double *fIn, double* GKYL_RESTRICT out);
+  const int *idx, const double *fIn, double* GKYL_RESTRICT out);
 
 typedef struct { m0_pos_check_t kernels[3]; } pos_shift_vlasov_kern_list_m0_pos_check; // For use in kernel tables.
 typedef struct { shift_t kernels[3]; } pos_shift_vlasov_kern_list_shift; // For use in kernel tables.

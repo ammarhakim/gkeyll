@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
@@ -13,7 +13,7 @@ GKYL_CU_DH void mom_vlasov_M0_2x3v_ser_p2(const double *w, const double *dxv, co
   out[7] += 2.8284271247461907*f[32]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -72,7 +72,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_2x3v_ser_p2(const double *w, const double *dxv, 
   out[47] += volFact*(2.8284271247461907*f[32]*wx3_sq+1.6329931618554525*f[69]*dv3*wx3+0.2357022603955158*f[32]*dv3_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -198,7 +198,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x3v_ser_p2(const double *w, const doub
   out[23] += (3.872983346207417*hamil[19]*f[108]+3.872983346207417*hamil[16]*f[95]+3.872983346207417*hamil[15]*f[92]+1.7320508075688772*hamil[10]*f[88]+3.872983346207417*hamil[9]*f[69]+1.7320508075688774*hamil[6]*f[60]+1.7320508075688774*hamil[5]*f[57]+1.7320508075688772*hamil[3]*f[32])*dv12*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   out[0] += (hamil[19]*f[85]+hamil[18]*f[79]+hamil[17]*f[76]+hamil[16]*f[50]+hamil[15]*f[49]+hamil[14]*f[46]+hamil[13]*f[45]+hamil[12]*f[42]+hamil[11]*f[39]+hamil[10]*f[30]+hamil[9]*f[20]+hamil[8]*f[19]+hamil[7]*f[18]+hamil[6]*f[15]+hamil[5]*f[14]+hamil[4]*f[11]+hamil[3]*f[5]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 

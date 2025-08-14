@@ -108,7 +108,7 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
     double m0Local_in[num_cbasis];
     for (unsigned int k=0; k<delta_m0->ncomp; ++k)
       m0Local_in[k] = 0.0;
-    kers->m0(xc, grid.dx, pidx, 0, 0, distf_c, m0Local_in);
+    kers->m0(xc, grid.dx, pidx, distf_c, m0Local_in);
 
     // Add to the old number density.
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
@@ -122,7 +122,7 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
       double m0Local_out[num_cbasis];
       for (unsigned int k=0; k<m0->ncomp; ++k)
         m0Local_out[k] = 0.0;
-      kers->m0(xc, grid.dx, pidx, 0, 0, distf_c, m0Local_out);
+      kers->m0(xc, grid.dx, pidx, distf_c, m0Local_out);
 
       if (kers->is_m0_positive(m0Local_in)) {
         // Rescale f in this cell so it keeps the same density.

@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -9,7 +9,7 @@ GKYL_CU_DH void mom_vlasov_M0_2x2v_ser_p1(const double *w, const double *dxv, co
   out[3] += 2.0*f[5]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -30,7 +30,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_2x2v_ser_p1(const double *w, const double *dxv, 
   out[11] += volFact*(2.0*f[5]*wx2_sq+1.1547005383792517*f[12]*dv2*wx2+0.16666666666666666*f[5]*dv2_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -72,7 +72,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x2v_ser_p1(const double *w, const doub
   out[7] += (1.7320508075688772*hamil[3]*f[11]+1.7320508075688772*hamil[2]*f[5])*dv11*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += (hamil[3]*f[10]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 
@@ -130,7 +130,7 @@ GKYL_CU_DH void mom_vlasov_hamil_gen_M1i_2x2v_ser_p1(const double *w, const doub
   out[7] += (0.8660254037844386*f[3]*hamil[15]+0.8660254037844386*f[6]*hamil[14]+0.8660254037844386*f[7]*hamil[13]+0.8660254037844386*f[0]*hamil[12]+0.8660254037844386*hamil[10]*f[11]+0.8660254037844386*f[1]*hamil[9]+0.8660254037844386*f[2]*hamil[8]+0.8660254037844386*hamil[4]*f[5])*dv11*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_gen_M2_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]/4; 
   out[0] += (0.5*f[15]*hamil[15]+0.5*f[14]*hamil[14]+0.5*f[13]*hamil[13]+0.5*f[12]*hamil[12]+0.5*f[11]*hamil[11]+0.5*f[10]*hamil[10]+0.5*f[9]*hamil[9]+0.5*f[8]*hamil[8]+0.5*f[7]*hamil[7]+0.5*f[6]*hamil[6]+0.5*f[5]*hamil[5]+0.5*f[4]*hamil[4]+0.5*f[3]*hamil[3]+0.5*f[2]*hamil[2]+0.5*f[1]*hamil[1]+0.5*f[0]*hamil[0])*volFact; 

@@ -34,6 +34,6 @@ GKYL_CU_DH double lax_flux_nodal_to_modal_vx_1x1v_tensor_p2(const double *dxv, c
   Ghat[1] = 0.3668728630454641*lax[3]+0.271546746793545*lax[2]-0.271546746793545*lax[1]-0.3668728630454641*lax[0]; 
   Ghat[2] = 0.3367876570272824*lax[3]-0.3367876570272824*lax[2]-0.3367876570272824*lax[1]+0.3367876570272824*lax[0]; 
 
-  return 2.5*dv10*alpha_max/(-(0.11391719628198901*jacob_vel_surf_vx[3])+0.40076152031164924*jacob_vel_surf_vx[2]-0.8136324494869276*jacob_vel_surf_vx[1]+1.5267881254572673*jacob_vel_surf_vx[0]);
+  return 2.5*dv10*alpha_max/(-(0.11391719628198976*jacob_vel_surf_vx[3])+0.40076152031165097*jacob_vel_surf_vx[2]-0.8136324494869231*jacob_vel_surf_vx[1]+1.5267881254572662*jacob_vel_surf_vx[0]);
 
 } 

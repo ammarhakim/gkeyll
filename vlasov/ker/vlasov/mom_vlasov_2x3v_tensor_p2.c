@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
@@ -14,7 +14,7 @@ GKYL_CU_DH void mom_vlasov_M0_2x3v_tensor_p2(const double *w, const double *dxv,
   out[8] += 2.8284271247461907*f[86]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -79,7 +79,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_2x3v_tensor_p2(const double *w, const double *dx
   out[53] += volFact*(2.8284271247461907*f[86]*wx3_sq+1.6329931618554527*f[129]*dv3*wx3+0.21081851067789195*f[186]*dv3_sq+0.2357022603955158*f[86]*dv3_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   double wx1 = w[2], dv1 = dxv[2]; 
@@ -221,7 +221,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x3v_tensor_p2(const double *w, const d
   out[26] += ((1.2909944487358058*hamil[26]*f[242]+0.4303314829119353*hamil[23]*f[242]+1.2909944487358058*hamil[25]*f[239]+0.4303314829119353*hamil[18]*f[239]+1.2909944487358058*hamil[24]*f[238]+0.4303314829119353*hamil[17]*f[238]+1.9364916731037085*hamil[26]*f[237]+0.6454972243679029*hamil[23]*f[237]+1.2909944487358058*hamil[22]*f[234]+0.4303314829119352*hamil[14]*f[234]+1.2909944487358058*hamil[21]*f[233]+0.4303314829119352*hamil[13]*f[233]+1.4433756729740645*hamil[26]*f[232]+0.48112522432468824*hamil[23]*f[232]+1.2909944487358058*hamil[19]*f[226]+0.4303314829119353*hamil[10]*f[226]+1.9364916731037085*hamil[25]*f[223]+0.6454972243679029*hamil[18]*f[223]+1.9364916731037085*hamil[24]*f[222]+0.6454972243679029*hamil[17]*f[222]+1.2909944487358058*hamil[16]*f[213]+0.4303314829119352*hamil[6]*f[213]+1.2909944487358058*hamil[15]*f[210]+0.4303314829119352*hamil[5]*f[210]+1.9364916731037085*hamil[22]*f[207]+0.6454972243679029*hamil[14]*f[207]+1.9364916731037085*hamil[21]*f[206]+0.6454972243679029*hamil[13]*f[206]+1.4433756729740645*hamil[25]*f[203]+0.4811252243246881*hamil[18]*f[203]+1.4433756729740645*hamil[24]*f[202]+0.4811252243246881*hamil[17]*f[202]+1.9364916731037085*hamil[19]*f[192]+0.6454972243679029*hamil[10]*f[192]+1.2909944487358058*hamil[9]*f[186]+0.4303314829119353*hamil[3]*f[186]+1.4433756729740645*hamil[22]*f[183]+0.4811252243246881*hamil[14]*f[183]+1.4433756729740645*hamil[21]*f[182]+0.4811252243246881*hamil[13]*f[182]+1.9364916731037085*hamil[16]*f[161]+0.6454972243679029*hamil[6]*f[161]+1.9364916731037085*hamil[15]*f[158]+0.6454972243679029*hamil[5]*f[158]+1.4433756729740645*hamil[19]*f[152]+0.48112522432468824*hamil[10]*f[152]+1.9364916731037085*hamil[9]*f[129]+0.6454972243679029*hamil[3]*f[129]+1.4433756729740645*hamil[16]*f[120]+0.48112522432468824*hamil[6]*f[120]+1.4433756729740645*hamil[15]*f[117]+0.48112522432468824*hamil[5]*f[117]+1.4433756729740645*hamil[9]*f[86]+0.48112522432468824*hamil[3]*f[86])*dv12*volFact)/jacob_vz[2]+((-(1.2909944487358058*hamil[26]*f[242])+0.4303314829119353*hamil[23]*f[242]-1.2909944487358058*hamil[25]*f[239]+0.4303314829119353*hamil[18]*f[239]-1.2909944487358058*hamil[24]*f[238]+0.4303314829119353*hamil[17]*f[238]+1.9364916731037085*hamil[26]*f[237]-0.6454972243679029*hamil[23]*f[237]-1.2909944487358058*hamil[22]*f[234]+0.4303314829119352*hamil[14]*f[234]-1.2909944487358058*hamil[21]*f[233]+0.4303314829119352*hamil[13]*f[233]-1.4433756729740645*hamil[26]*f[232]+0.48112522432468824*hamil[23]*f[232]-1.2909944487358058*hamil[19]*f[226]+0.4303314829119353*hamil[10]*f[226]+1.9364916731037085*hamil[25]*f[223]-0.6454972243679029*hamil[18]*f[223]+1.9364916731037085*hamil[24]*f[222]-0.6454972243679029*hamil[17]*f[222]-1.2909944487358058*hamil[16]*f[213]+0.4303314829119352*hamil[6]*f[213]-1.2909944487358058*hamil[15]*f[210]+0.4303314829119352*hamil[5]*f[210]+1.9364916731037085*hamil[22]*f[207]-0.6454972243679029*hamil[14]*f[207]+1.9364916731037085*hamil[21]*f[206]-0.6454972243679029*hamil[13]*f[206]-1.4433756729740645*hamil[25]*f[203]+0.4811252243246881*hamil[18]*f[203]-1.4433756729740645*hamil[24]*f[202]+0.4811252243246881*hamil[17]*f[202]+1.9364916731037085*hamil[19]*f[192]-0.6454972243679029*hamil[10]*f[192]-1.2909944487358058*hamil[9]*f[186]+0.4303314829119353*hamil[3]*f[186]-1.4433756729740645*hamil[22]*f[183]+0.4811252243246881*hamil[14]*f[183]-1.4433756729740645*hamil[21]*f[182]+0.4811252243246881*hamil[13]*f[182]+1.9364916731037085*hamil[16]*f[161]-0.6454972243679029*hamil[6]*f[161]+1.9364916731037085*hamil[15]*f[158]-0.6454972243679029*hamil[5]*f[158]-1.4433756729740645*hamil[19]*f[152]+0.48112522432468824*hamil[10]*f[152]+1.9364916731037085*hamil[9]*f[129]-0.6454972243679029*hamil[3]*f[129]-1.4433756729740645*hamil[16]*f[120]+0.48112522432468824*hamil[6]*f[120]-1.4433756729740645*hamil[15]*f[117]+0.48112522432468824*hamil[5]*f[117]-1.4433756729740645*hamil[9]*f[86]+0.48112522432468824*hamil[3]*f[86])*dv12*volFact)/jacob_vz[0]+((-(0.8606629658238706*hamil[23]*f[242])-0.8606629658238706*hamil[18]*f[239]-0.8606629658238706*hamil[17]*f[238]-0.8606629658238704*hamil[14]*f[234]-0.8606629658238704*hamil[13]*f[233]+0.7698003589195012*hamil[23]*f[232]-0.8606629658238706*hamil[10]*f[226]-0.8606629658238704*hamil[6]*f[213]-0.8606629658238704*hamil[5]*f[210]+0.7698003589195009*hamil[18]*f[203]+0.7698003589195009*hamil[17]*f[202]-0.8606629658238706*hamil[3]*f[186]+0.7698003589195009*hamil[14]*f[183]+0.7698003589195009*hamil[13]*f[182]+0.7698003589195012*hamil[10]*f[152]+0.7698003589195012*hamil[6]*f[120]+0.7698003589195012*hamil[5]*f[117]+0.7698003589195012*hamil[3]*f[86])*dv12*volFact)/jacob_vz[1]; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
   out[0] += (hamil[26]*f[191]+hamil[25]*f[146]+hamil[24]*f[143]+hamil[23]*f[134]+hamil[22]*f[95]+hamil[21]*f[94]+hamil[20]*f[91]+hamil[19]*f[85]+hamil[18]*f[79]+hamil[17]*f[76]+hamil[16]*f[50]+hamil[15]*f[49]+hamil[14]*f[46]+hamil[13]*f[45]+hamil[12]*f[42]+hamil[11]*f[39]+hamil[10]*f[30]+hamil[9]*f[20]+hamil[8]*f[19]+hamil[7]*f[18]+hamil[6]*f[15]+hamil[5]*f[14]+hamil[4]*f[11]+hamil[3]*f[5]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 

@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
   out[0] += 1.4142135623730951*f[0]*volFact; 
@@ -8,7 +8,7 @@ GKYL_CU_DH void mom_vlasov_M0_1x1v_tensor_p2(const double *w, const double *dxv,
   out[2] += 1.4142135623730951*f[4]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
   double wx1 = w[1], dv1 = dxv[1]; 
@@ -18,7 +18,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_1x1v_tensor_p2(const double *w, const double *dx
   out[2] += volFact*(1.4142135623730951*f[4]*wx1_sq+0.816496580927726*f[6]*dv1*wx1+0.10540925533894596*f[8]*dv1_sq+0.11785113019775789*f[4]*dv1_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
   double wx1 = w[1], dv1 = dxv[1]; 
@@ -39,7 +39,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2(const double *w, const d
   out[2] += ((1.2909944487358058*hamil[2]*f[8]+0.4303314829119353*hamil[1]*f[8]+1.9364916731037085*hamil[2]*f[6]+0.6454972243679028*hamil[1]*f[6]+1.4433756729740645*hamil[2]*f[4]+0.48112522432468824*hamil[1]*f[4])*dv10*volFact)/jacob_vx[2]+((-(1.2909944487358058*hamil[2]*f[8])+0.4303314829119353*hamil[1]*f[8]+1.9364916731037085*hamil[2]*f[6]-0.6454972243679028*hamil[1]*f[6]-1.4433756729740645*hamil[2]*f[4]+0.48112522432468824*hamil[1]*f[4])*dv10*volFact)/jacob_vx[0]+((0.7698003589195012*hamil[1]*f[4]-0.8606629658238706*hamil[1]*f[8])*dv10*volFact)/jacob_vx[1]; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
   out[0] += (hamil[2]*f[5]+hamil[1]*f[2]+f[0]*hamil[0])*volFact; 
@@ -78,17 +78,17 @@ GKYL_CU_DH void mom_vlasov_M0_upper_1x1v_tensor_p2(const double *w, const double
   const double volFact = dxv[1]/2; 
   const double *px = &vmap[0]; 
   double f_nodes[9] = {0.0};
-  if (0.6324555320336759*px[2]-0.9486832980505137*px[1]+0.7071067811865475*px[0] > v_thresh) { 
+  if ((0.6324555320336759*px[2]-0.9486832980505137*px[1]+0.7071067811865475*px[0]) > v_thresh) { 
     f_nodes[0] = 0.4*f[8]-0.5999999999999995*f[7]-0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])+0.9*f[3]-0.6708203932499369*(f[2]+f[1])+0.5*f[0]; 
     f_nodes[3] = -(0.5*f[8])+0.75*f[6]+0.4472135954999579*f[5]-0.5590169943749475*f[4]-0.6708203932499369*f[2]+0.5*f[0]; 
     f_nodes[6] = 0.4*f[8]+0.5999999999999995*f[7]-0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])-0.9*f[3]-0.6708203932499369*f[2]+0.6708203932499369*f[1]+0.5*f[0]; 
   } 
-  if (0.7071067811865475*px[0]-0.7905694150420947*px[2] > v_thresh) { 
+  if ((0.7071067811865475*px[0]-0.7905694150420947*px[2]) > v_thresh) { 
     f_nodes[1] = -(0.5*f[8])+0.75*f[7]-0.5590169943749475*f[5]+0.4472135954999579*f[4]-0.6708203932499369*f[1]+0.5*f[0]; 
     f_nodes[4] = 0.625*f[8]-0.5590169943749475*(f[5]+f[4])+0.5*f[0]; 
     f_nodes[7] = -(0.5*f[8])-0.75*f[7]-0.5590169943749475*f[5]+0.4472135954999579*f[4]+0.6708203932499369*f[1]+0.5*f[0]; 
   } 
-  if (0.6324555320336759*px[2]+0.9486832980505137*px[1]+0.7071067811865475*px[0] > v_thresh) { 
+  if ((0.6324555320336759*px[2]+0.9486832980505137*px[1]+0.7071067811865475*px[0]) > v_thresh) { 
     f_nodes[2] = 0.4*f[8]-0.5999999999999995*f[7]+0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])-0.9*f[3]+0.6708203932499369*f[2]-0.6708203932499369*f[1]+0.5*f[0]; 
     f_nodes[5] = -(0.5*f[8])-0.75*f[6]+0.4472135954999579*f[5]-0.5590169943749475*f[4]+0.6708203932499369*f[2]+0.5*f[0]; 
     f_nodes[8] = 0.4*f[8]+0.5999999999999995*f[7]+0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])+0.9*f[3]+0.6708203932499369*(f[2]+f[1])+0.5*f[0]; 
@@ -103,17 +103,17 @@ GKYL_CU_DH void mom_vlasov_M0_lower_1x1v_tensor_p2(const double *w, const double
   const double volFact = dxv[1]/2; 
   const double *px = &vmap[0]; 
   double f_nodes[9] = {0.0};
-  if (0.6324555320336759*px[2]-0.9486832980505137*px[1]+0.7071067811865475*px[0] < -v_thresh) { 
+  if ((0.6324555320336759*px[2]-0.9486832980505137*px[1]+0.7071067811865475*px[0]) < -v_thresh) { 
     f_nodes[0] = 0.4*f[8]-0.5999999999999995*f[7]-0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])+0.9*f[3]-0.6708203932499369*(f[2]+f[1])+0.5*f[0]; 
     f_nodes[3] = -(0.5*f[8])+0.75*f[6]+0.4472135954999579*f[5]-0.5590169943749475*f[4]-0.6708203932499369*f[2]+0.5*f[0]; 
     f_nodes[6] = 0.4*f[8]+0.5999999999999995*f[7]-0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])-0.9*f[3]-0.6708203932499369*f[2]+0.6708203932499369*f[1]+0.5*f[0]; 
   } 
-  if (0.7071067811865475*px[0]-0.7905694150420947*px[2] < -v_thresh) { 
+  if ((0.7071067811865475*px[0]-0.7905694150420947*px[2]) < -v_thresh) { 
     f_nodes[1] = -(0.5*f[8])+0.75*f[7]-0.5590169943749475*f[5]+0.4472135954999579*f[4]-0.6708203932499369*f[1]+0.5*f[0]; 
     f_nodes[4] = 0.625*f[8]-0.5590169943749475*(f[5]+f[4])+0.5*f[0]; 
     f_nodes[7] = -(0.5*f[8])-0.75*f[7]-0.5590169943749475*f[5]+0.4472135954999579*f[4]+0.6708203932499369*f[1]+0.5*f[0]; 
   } 
-  if (0.6324555320336759*px[2]+0.9486832980505137*px[1]+0.7071067811865475*px[0] < -v_thresh) { 
+  if ((0.6324555320336759*px[2]+0.9486832980505137*px[1]+0.7071067811865475*px[0]) < -v_thresh) { 
     f_nodes[2] = 0.4*f[8]-0.5999999999999995*f[7]+0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])-0.9*f[3]+0.6708203932499369*f[2]-0.6708203932499369*f[1]+0.5*f[0]; 
     f_nodes[5] = -(0.5*f[8])-0.75*f[6]+0.4472135954999579*f[5]-0.5590169943749475*f[4]+0.6708203932499369*f[2]+0.5*f[0]; 
     f_nodes[8] = 0.4*f[8]+0.5999999999999995*f[7]+0.5999999999999999*f[6]+0.4472135954999579*(f[5]+f[4])+0.9*f[3]+0.6708203932499369*(f[2]+f[1])+0.5*f[0]; 

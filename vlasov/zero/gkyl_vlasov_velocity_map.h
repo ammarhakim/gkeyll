@@ -18,6 +18,7 @@ struct gkyl_vlasov_velocity_map_inp {
  *
  * @param vgrid Velocity-space grid object
  * @param vrange Velocity-space range
+ * @param v_poly_order Velocity-space basis polynomial order
  * @param inp_vmap[GKYL_MAX_CDIM] Velocity mapping input (function and context) in each velocity-space dimension
  * @param vmap C^1 cubic representation of mapping in each velocity-space dimension.
  * @param jacob_vel Jacobian (derivative of vmap) in each velocity space dimension at 1V Gauss-Legendre quadrature points.
@@ -27,8 +28,8 @@ struct gkyl_vlasov_velocity_map_inp {
  * @param vmap_avg_pgkyl Cell average of the C^1 cubic representation of mapping used for I/O (defined in the full 1V, 2V, or 3V).
  * @param jacob_vel_gauss Total velocity space Jacobian evaluated at Gauss-Legendre quadrature points.
  */
-void gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, 
-  const struct gkyl_range *vrange, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM], 
+void gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange, 
+  int v_poly_order, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM], 
   struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf, 
   struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl,
   struct gkyl_array *jacob_vel_gauss);

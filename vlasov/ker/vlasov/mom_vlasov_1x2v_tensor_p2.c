@@ -1,6 +1,6 @@
 #include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void mom_vlasov_M0_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]*dxv[2]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -8,7 +8,7 @@ GKYL_CU_DH void mom_vlasov_M0_1x2v_tensor_p2(const double *w, const double *dxv,
   out[2] += 2.0*f[7]*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M2ij_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]*dxv[2]/4; 
   double wx1 = w[1], dv1 = dxv[1]; 
@@ -26,7 +26,7 @@ GKYL_CU_DH void mom_vlasov_M2ij_1x2v_tensor_p2(const double *w, const double *dx
   out[8] += volFact*(2.0*f[7]*wx2_sq+1.1547005383792515*f[13]*dv2*wx2+0.14907119849998596*f[21]*dv2_sq+0.16666666666666666*f[7]*dv2_sq); 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]*dxv[2]/4; 
   double wx1 = w[1], dv1 = dxv[1]; 
@@ -64,7 +64,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_1x2v_tensor_p2(const double *w, const d
   out[5] += ((1.2909944487358058*hamil[8]*f[26]+0.4303314829119352*hamil[6]*f[26]+1.2909944487358056*hamil[7]*f[24]+0.4303314829119353*hamil[3]*f[24]+1.9364916731037085*hamil[8]*f[23]+0.6454972243679028*hamil[6]*f[23]+1.2909944487358058*hamil[5]*f[21]+0.4303314829119353*hamil[2]*f[21]+1.4433756729740645*hamil[8]*f[20]+0.4811252243246881*hamil[6]*f[20]+1.9364916731037085*hamil[7]*f[17]+0.6454972243679029*hamil[3]*f[17]+1.9364916731037085*hamil[5]*f[13]+0.6454972243679028*hamil[2]*f[13]+1.4433756729740645*hamil[7]*f[11]+0.4811252243246881*hamil[3]*f[11]+1.4433756729740645*hamil[5]*f[7]+0.48112522432468824*hamil[2]*f[7])*dv11*volFact)/jacob_vy[2]+((-(1.2909944487358058*hamil[8]*f[26])+0.4303314829119352*hamil[6]*f[26]-1.2909944487358056*hamil[7]*f[24]+0.4303314829119353*hamil[3]*f[24]+1.9364916731037085*hamil[8]*f[23]-0.6454972243679028*hamil[6]*f[23]-1.2909944487358058*hamil[5]*f[21]+0.4303314829119353*hamil[2]*f[21]-1.4433756729740645*hamil[8]*f[20]+0.4811252243246881*hamil[6]*f[20]+1.9364916731037085*hamil[7]*f[17]-0.6454972243679029*hamil[3]*f[17]+1.9364916731037085*hamil[5]*f[13]-0.6454972243679028*hamil[2]*f[13]-1.4433756729740645*hamil[7]*f[11]+0.4811252243246881*hamil[3]*f[11]-1.4433756729740645*hamil[5]*f[7]+0.48112522432468824*hamil[2]*f[7])*dv11*volFact)/jacob_vy[0]+((-(0.8606629658238704*hamil[6]*f[26])-0.8606629658238706*hamil[3]*f[24]-0.8606629658238706*hamil[2]*f[21]+0.7698003589195009*hamil[6]*f[20]+0.7698003589195009*hamil[3]*f[11]+0.7698003589195012*hamil[2]*f[7])*dv11*volFact)/jacob_vy[1]; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, 
-    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]*dxv[2]/4; 
   out[0] += (hamil[8]*f[22]+hamil[7]*f[16]+hamil[6]*f[14]+hamil[5]*f[9]+hamil[4]*f[8]+hamil[3]*f[6]+hamil[2]*f[3]+hamil[1]*f[2]+f[0]*hamil[0])*volFact; 
