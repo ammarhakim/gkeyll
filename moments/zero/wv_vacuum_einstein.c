@@ -1008,6 +1008,72 @@ vacuum_einstein_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, d
   diag[0] = qin[9];
 }
 
+static inline void
+gr_mhd_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = qin[0]; spatial_metric[0][1] = qin[1]; spatial_metric[0][2] = qin[2];
+  spatial_metric[1][0] = qin[3]; spatial_metric[1][1] = qin[4]; spatial_metric[1][2] = qin[5];
+  spatial_metric[2][0] = qin[6]; spatial_metric[2][1] = qin[7]; spatial_metric[2][2] = qin[8];
+
+  double lapse = qin[9];
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = qin[10]; extrinsic_curvature[0][1] = qin[11]; extrinsic_curvature[0][2] = qin[12];
+  extrinsic_curvature[1][0] = qin[13]; extrinsic_curvature[1][1] = qin[14]; extrinsic_curvature[1][2] = qin[15];
+  extrinsic_curvature[2][0] = qin[16]; extrinsic_curvature[2][1] = qin[17]; extrinsic_curvature[2][2] = qin[18];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = qin[19]; spatial_metric_der[0][0][1] = qin[20]; spatial_metric_der[0][0][2] = qin[21];
+  spatial_metric_der[0][1][0] = qin[22]; spatial_metric_der[0][1][1] = qin[23]; spatial_metric_der[0][1][2] = qin[24];
+  spatial_metric_der[0][2][0] = qin[25]; spatial_metric_der[0][2][1] = qin[26]; spatial_metric_der[0][2][2] = qin[27];
+
+  spatial_metric_der[1][0][0] = qin[28]; spatial_metric_der[1][0][1] = qin[29]; spatial_metric_der[1][0][2] = qin[30];
+  spatial_metric_der[1][1][0] = qin[31]; spatial_metric_der[1][1][1] = qin[32]; spatial_metric_der[1][1][2] = qin[33];
+  spatial_metric_der[1][2][0] = qin[34]; spatial_metric_der[1][2][1] = qin[35]; spatial_metric_der[1][2][2] = qin[36];
+
+  spatial_metric_der[2][0][0] = qin[37]; spatial_metric_der[2][0][1] = qin[38]; spatial_metric_der[2][0][2] = qin[39];
+  spatial_metric_der[2][1][0] = qin[40]; spatial_metric_der[2][1][1] = qin[41]; spatial_metric_der[2][1][2] = qin[42];
+  spatial_metric_der[2][2][0] = qin[43]; spatial_metric_der[2][2][1] = qin[44]; spatial_metric_der[2][2][2] = qin[45];
+
+  double lapse_der[3];
+  lapse_der[0] = qin[46];
+  lapse_der[1] = qin[47];
+  lapse_der[2] = qin[48];
+
+  double aux_vect[3];
+  aux_vect[0] = qin[49];
+  aux_vect[1] = qin[50];
+  aux_vect[2] = qin[51];
+
+  double shift_vect[3];
+  shift_vect[0] = qin[52];
+  shift_vect[1] = qin[53];
+  shift_vect[2] = qin[54];
+
+  double shift_vect_der[3][3];
+  shift_vect_der[0][0] = qin[55]; shift_vect_der[0][1] = qin[56]; shift_vect_der[0][2] = qin[57];
+  shift_vect_der[1][0] = qin[58]; shift_vect_der[1][1] = qin[59]; shift_vect_der[1][2] = qin[60];
+  shift_vect_der[2][0] = qin[61]; shift_vect_der[2][1] = qin[62]; shift_vect_der[2][2] = qin[63];
+
+  bool in_excision_region = false;
+  if (lapse < 0.7) {
+    in_excision_region = true;
+  }
+
+  // Placeholder!
+  if (!in_excision_region) {
+    for (int i = 0; i < 64; i++) {
+      sout[i] = 0.0;
+    }
+  }
+  else {
+    for (int i = 0; i < 64; i++) {
+      sout[i] = 0.0;
+    }
+  }
+}
+
 void
 gkyl_vacuum_einstein_free(const struct gkyl_ref_count* ref)
 {

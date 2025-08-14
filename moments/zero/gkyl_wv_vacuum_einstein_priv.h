@@ -214,6 +214,17 @@ static inline void
 vacuum_einstein_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
+* Compute forcing/source term vector from conserved variables.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param sout Forcing/source term vector (output).
+*/
+GKYL_CU_DH
+static inline void
+vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+
+/**
 * Free vacuum Einstein equations object using the Bona-Masso formalism.
 *
 * @param ref Reference counter for vacuum Einstein equations object using the Bona-Masso formalism.
