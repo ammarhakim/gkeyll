@@ -168,6 +168,8 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
       for (int k = 0; k < 3; k++) {
         spatial_metric_der[i][j][k] = 0.5 * spatial_metric_der[i][j][k];
       }
+
+      shift_der[i][j] = 0.5 * shift_der[i][j];
     }
   }
 
