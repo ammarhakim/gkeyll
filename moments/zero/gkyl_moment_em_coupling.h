@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_gr_spacetime.h>
 
 struct gkyl_moment_em_coupling_data {
   enum gkyl_eqn_type type; // Equation type.
@@ -75,6 +76,10 @@ struct gkyl_moment_em_coupling_inp {
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+
+  bool has_vacuum_einstein_sources; // Run with vacuum Einstein sources using the Bona-Masso formalism.
+  enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
 };
 
 // Moment-EM coupling object.

@@ -43,6 +43,7 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_gr_spacetime.h>
 
 // number of components that various applied functions should return
 enum {
@@ -109,6 +110,10 @@ struct moment_species {
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+
+  bool has_vacuum_einstein; // Run with vacuum Einstein sources using the Bona-Masso formalism.
+  enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function

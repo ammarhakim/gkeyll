@@ -377,7 +377,7 @@ gkyl_vacuum_einstein_max_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing
     }
     gkyl_free(inv_spatial_metric);
 
-    return pow(10.0, -8.0);
+    return 1.0;
   }
 }
 
@@ -1233,7 +1233,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
           for (int m = 0; m < 3; m++) {
             spatial_christoffel[i][k][l] += inv_spatial_metric[i][m] * spatial_metric_der[l][m][k];
             spatial_christoffel[i][k][l] += inv_spatial_metric[i][m] * spatial_metric_der[k][m][l];
-            spatial_christoffel[i][k][l] += inv_spatial_metric[i][m] * spatial_metric_der[m][k][l];
+            spatial_christoffel[i][k][l] -= inv_spatial_metric[i][m] * spatial_metric_der[m][k][l];
           }
         }
       }

@@ -119,6 +119,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_twofluid_gas_gamma_ion = mom_sp->gr_twofluid_gas_gamma_ion;
   }
 
+  sp->has_vacuum_einstein = false;
+  if (mom_sp->has_vacuum_einstein) {
+    sp->update_sources = true;
+    sp->has_vacuum_einstein = true;
+
+    sp->vacuum_einstein_spacetime_slicing = mom_sp->vacuum_einstein_spacetime_slicing;
+    sp->vacuum_einstein_spacetime_evolution = mom_sp->vacuum_einstein_spacetime_evolution;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter

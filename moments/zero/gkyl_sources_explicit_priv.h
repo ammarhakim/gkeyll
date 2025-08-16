@@ -1,4 +1,5 @@
 #pragma once
+#include <gkyl_gr_spacetime.h>
 
 // Forward-declaration of the private gkyl_moment_em_coupling object type.
 typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
@@ -187,7 +188,7 @@ explicit_medium_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 
 /**
 * Integrate the general relativistic source terms (Euler equations, ultra-relativistic equation of state) in the multi-fluid equation system within a
-single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+* single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
 *
 * @param mom_em Moment-EM coupling object.
 * @param gas_gamma Adiabatic index.
@@ -214,7 +215,7 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, doubl
 
 /**
 * Integrate the general relativistic source terms (Euler equations, general equation of state) in the multi-fluid equation system within a
-single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+* single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
 *
 * @param mom_em Moment-EM coupling object.
 * @param gas_gamma Adiabatic index.
@@ -335,6 +336,34 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 */
 void
 explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+
+/**
+* Integrate the vacuum Einstein source terms (Bona-Masso formalism) in the dynamic spacetime equation system within a single cell, using an
+* explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param spacetime_slicing Spacetime slicing condition.
+* @param spacetime_evolution Spacetime evolution system.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void
+explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_em, const enum gkyl_spacetime_slicing spacetime_slicing,
+  const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt, double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the vacuum Einstein source terms (Bona-Masso formalism) in the dynamic spacetime equation system within a single cell, using an
+* explicit forcing solver (specifically a strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void
+explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically

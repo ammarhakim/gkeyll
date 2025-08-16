@@ -2014,6 +2014,440 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
 }
 
 void
+explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_em, const enum gkyl_spacetime_slicing spacetime_slicing,
+  const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt, double* fluid_old, double* fluid_new)
+{
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = fluid_old[0]; spatial_metric[0][1] = fluid_old[1]; spatial_metric[0][2] = fluid_old[2];
+  spatial_metric[1][0] = fluid_old[3]; spatial_metric[1][1] = fluid_old[4]; spatial_metric[1][2] = fluid_old[5];
+  spatial_metric[2][0] = fluid_old[6]; spatial_metric[2][1] = fluid_old[7]; spatial_metric[2][2] = fluid_old[8];
+
+  double lapse = fluid_old[9];
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = fluid_old[10]; extrinsic_curvature[0][1] = fluid_old[11]; extrinsic_curvature[0][2] = fluid_old[12];
+  extrinsic_curvature[1][0] = fluid_old[13]; extrinsic_curvature[1][1] = fluid_old[14]; extrinsic_curvature[1][2] = fluid_old[15];
+  extrinsic_curvature[2][0] = fluid_old[16]; extrinsic_curvature[2][1] = fluid_old[17]; extrinsic_curvature[2][2] = fluid_old[18];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = fluid_old[19]; spatial_metric_der[0][0][1] = fluid_old[20]; spatial_metric_der[0][0][2] = fluid_old[21];
+  spatial_metric_der[0][1][0] = fluid_old[22]; spatial_metric_der[0][1][1] = fluid_old[23]; spatial_metric_der[0][1][2] = fluid_old[24];
+  spatial_metric_der[0][2][0] = fluid_old[25]; spatial_metric_der[0][2][1] = fluid_old[26]; spatial_metric_der[0][2][2] = fluid_old[27];
+
+  spatial_metric_der[1][0][0] = fluid_old[28]; spatial_metric_der[1][0][1] = fluid_old[29]; spatial_metric_der[1][0][2] = fluid_old[30];
+  spatial_metric_der[1][1][0] = fluid_old[31]; spatial_metric_der[1][1][1] = fluid_old[32]; spatial_metric_der[1][1][2] = fluid_old[33];
+  spatial_metric_der[1][2][0] = fluid_old[34]; spatial_metric_der[1][2][1] = fluid_old[35]; spatial_metric_der[1][2][2] = fluid_old[36];
+
+  spatial_metric_der[2][0][0] = fluid_old[37]; spatial_metric_der[2][0][1] = fluid_old[38]; spatial_metric_der[2][0][2] = fluid_old[39];
+  spatial_metric_der[2][1][0] = fluid_old[40]; spatial_metric_der[2][1][1] = fluid_old[41]; spatial_metric_der[2][1][2] = fluid_old[42];
+  spatial_metric_der[2][2][0] = fluid_old[43]; spatial_metric_der[2][2][1] = fluid_old[44]; spatial_metric_der[2][2][2] = fluid_old[45];
+
+  double lapse_der[3];
+  lapse_der[0] = fluid_old[46];
+  lapse_der[1] = fluid_old[47];
+  lapse_der[2] = fluid_old[48];
+
+  double aux_vect[3];
+  aux_vect[0] = fluid_old[49];
+  aux_vect[1] = fluid_old[50];
+  aux_vect[2] = fluid_old[51];
+
+  double shift_vect[3];
+  shift_vect[0] = fluid_old[52];
+  shift_vect[1] = fluid_old[53];
+  shift_vect[2] = fluid_old[54];
+
+  double shift_vect_der[3][3];
+  shift_vect_der[0][0] = fluid_old[55]; shift_vect_der[0][1] = fluid_old[56]; shift_vect_der[0][2] = fluid_old[57];
+  shift_vect_der[1][0] = fluid_old[58]; shift_vect_der[1][1] = fluid_old[59]; shift_vect_der[1][2] = fluid_old[60];
+  shift_vect_der[2][0] = fluid_old[61]; shift_vect_der[2][1] = fluid_old[62]; shift_vect_der[2][2] = fluid_old[63];
+
+  bool in_excision_region = false;
+  if (lapse < 0.7) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double inv_spatial_metric[3][3];
+    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+      (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+      (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+    
+    double trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      trace += spatial_metric[i][i];
+    }
+
+    double spatial_metric_sq[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        spatial_metric_sq[i][j] = 0.0;
+      }
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+        }
+      }
+    }
+
+    double sq_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      sq_trace += spatial_metric_sq[i][i];
+    }
+
+    double euclidean_metric[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        if (i == j) {
+          euclidean_metric[i][j] = 1.0;
+        }
+        else {
+          euclidean_metric[i][j] = 0.0;
+        }
+      }
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        inv_spatial_metric[i][j] = (1.0 / spatial_det) *
+          ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      }
+    }
+
+    double evolution_func = 0.0;
+    if (spacetime_evolution == GKYL_RICCI_EVOLUTION) {
+      evolution_func = 0.0;
+    }
+    else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
+      evolution_func = 1.0;
+    }
+
+    double extrinsic_curvature_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        extrinsic_curvature_trace += inv_spatial_metric[i][j] * extrinsic_curvature[i][j];
+      }
+    }
+
+    double extrinsic_curvature_mixed[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        extrinsic_curvature_mixed[i][j] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          extrinsic_curvature_mixed[i][j] += inv_spatial_metric[l][j] * extrinsic_curvature[i][l];
+        }
+      }
+    }
+
+    double extrinsic_curvature_raised[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        extrinsic_curvature_raised[i][j] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            extrinsic_curvature_raised[i][j] += inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * extrinsic_curvature[l][m];
+          }
+        }
+      }
+    }
+
+    double shift_vect_der_lowered[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        shift_vect_der_lowered[i][j] = 0.0;
+
+        for (int k = 0; k < 3; k++) {
+          shift_vect_der_lowered[i][j] += spatial_metric[k][j] * shift_vect_der[i][k];
+        }
+      }
+    }
+
+    double shift_vect_der_switched[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int k = 0; k < 3; k++) {
+        shift_vect_der_switched[i][k] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            shift_vect_der_switched[i][k] += inv_spatial_metric[i][l] * spatial_metric[m][k] * shift_vect_der[l][m];
+          }
+        }
+      }
+    }
+
+    double shift_vect_der_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      shift_vect_der_trace += shift_vect_der[i][i];
+    }
+
+    double symmetrized_shift[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        symmetrized_shift[i][j] = (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
+      }
+    }
+
+    double slicing_func = 0.0;
+    if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
+      slicing_func = 0.0;
+    }
+    else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+      slicing_func = extrinsic_curvature_trace;
+    }
+    else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+      slicing_func = extrinsic_curvature_trace / lapse;
+    }
+
+    double spatial_metric_der_raised1[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_raised1[k][i][j] = 0.0;
+          
+          for (int l = 0; l < 3; l++) {
+            spatial_metric_der_raised1[k][i][j] += inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
+          }
+        }
+      }
+    }
+
+    double spatial_metric_der_raised3[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_raised3[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            spatial_metric_der_raised3[i][j][k] += inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
+          }
+        }
+      }
+    }
+
+    double spatial_metric_der_lowered1[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_lowered1[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            for (int m = 0; m < 3; m++) {
+              spatial_metric_der_lowered1[i][j][k] += inv_spatial_metric[j][l] * inv_spatial_metric[m][k] * spatial_metric_der[i][l][m];
+            }
+          }
+        }
+      }
+    }
+
+    double spatial_metric_der_lowered3[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_lowered3[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            for (int m = 0; m < 3; m++) {
+              spatial_metric_der_lowered3[i][j][k] += inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * spatial_metric_der[l][m][k];
+            }
+          }
+        }
+      }
+    }
+
+    double aux_vect_raised[3];
+    for (int k = 0; k < 3; k++) {
+      aux_vect_raised[k] = 0.0;
+        
+      for (int l = 0; l < 3; l++) {
+        aux_vect_raised[k] += inv_spatial_metric[k][l] * aux_vect[l];
+      }
+    }
+
+    double spatial_christoffel[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          spatial_christoffel[i][k][l] = 0.0;
+
+          for (int m = 0; m < 3; m++) {
+            spatial_christoffel[i][k][l] += inv_spatial_metric[i][m] * spatial_metric_der[l][m][k];
+            spatial_christoffel[i][k][l] += inv_spatial_metric[i][m] * spatial_metric_der[k][m][l];
+            spatial_christoffel[i][k][l] -= inv_spatial_metric[i][m] * spatial_metric_der[m][k][l];
+          }
+        }
+      }
+    }
+
+    double spatial_metric_source[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        spatial_metric_source[i][j] = -2.0 * lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
+
+        for (int r = 0; r < 3; r++) {
+          spatial_metric_source[i][j] += 2.0 * shift_vect[r] * spatial_metric_der[r][i][j];
+        }
+      }
+    }
+
+    double lapse_source = -(lapse * lapse) * slicing_func;
+    for (int r = 0; r < 3; r++) {
+      lapse_source += lapse * shift_vect[r] * lapse_der[r];
+    }
+
+    double extrinsic_curvature_source[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        extrinsic_curvature_source[i][j] = 0.0;
+
+        for (int r = 0; r < 3; r++) {
+          extrinsic_curvature_source[i][j] += 2.0 * extrinsic_curvature[i][r] * shift_vect_der[j][r];
+          extrinsic_curvature_source[i][j] += 2.0 * extrinsic_curvature[j][r] * shift_vect_der[i][r];
+          extrinsic_curvature_source[i][j] -= 2.0 * extrinsic_curvature[i][j] * shift_vect_der[r][r];
+        }
+
+        for (int k = 0; k < 3; k++) {
+          extrinsic_curvature_source[i][j] -= 2.0 * lapse * extrinsic_curvature_mixed[i][k] * extrinsic_curvature[k][j];
+          extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
+
+          for (int r = 0; r < 3; r++) {
+            extrinsic_curvature_source[i][j] -= lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
+
+            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] * spatial_metric_der_raised3[r][j][k];
+            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] * spatial_metric_der_raised3[r][i][k];
+            extrinsic_curvature_source[i][j] += lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
+
+            extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) * (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
+          }
+
+          extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_raised3[j][k][k]));
+          extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_raised3[i][k][k]));
+
+          extrinsic_curvature_source[i][j] -= lapse * evolution_func * aux_vect_raised[k] * spatial_metric_der[k][i][j];
+        }
+
+        for (int k = 0; k < 3; k++) {
+          for (int r = 0; r < 3; r++) {
+            for (int s = 0; s < 3; s++) {
+              extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) * spatial_metric_der_lowered1[k][r][s] * spatial_christoffel[k][r][s];
+              extrinsic_curvature_source[i][j] += (0.25 * evolution_func * lapse * spatial_metric[i][j]) * spatial_metric_der_raised3[k][r][r] * spatial_metric_der_lowered3[k][s][s];
+            }
+          }
+
+          extrinsic_curvature_source[i][j] -= (0.5 * evolution_func * lapse * spatial_metric[i][j]) * aux_vect_raised[k] * lapse_der[k];
+        }
+
+        for (int r = 0; r < 3; r++) {
+          for (int s = 0; s < 3; s++) {
+            extrinsic_curvature_source[i][j] += (0.25 * evolution_func * lapse * spatial_metric[i][j]) * extrinsic_curvature_raised[r][s] * extrinsic_curvature[r][s];
+          }
+        }
+
+        extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) * (extrinsic_curvature_trace * extrinsic_curvature_trace);
+      }
+    }
+
+    double aux_vect_source[3];
+    for (int i = 0; i < 3; i++) {
+      aux_vect_source[i] = 0.0;
+
+      for (int r = 0; r < 3; r++) {
+        aux_vect_source[i] += lapse * lapse_der[r] * extrinsic_curvature_mixed[i][r];
+        
+        if (i == r) {
+          aux_vect_source[i] -= lapse * lapse_der[r] * extrinsic_curvature_trace;
+        }
+
+        for (int s = 0; s < 3; s++) {
+          aux_vect_source[i] += lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[i][r][s];
+          aux_vect_source[i] -= 2.0 * lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[r][i][s];
+
+          aux_vect_source[i] -= lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[r][s][s];
+          aux_vect_source[i] += 2.0 * lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[s][r][s];
+        }
+
+        aux_vect_source[i] += 2.0 * shift_vect_der[i][r] * aux_vect[r];
+
+        if (i == r) {
+          aux_vect_source[i] -= 2.0 * shift_vect_der_trace * aux_vect[r];
+        }
+
+        for (int s = 0; s < 3; s++) {
+          aux_vect_source[i] += 2.0 * spatial_metric_der_raised3[r][i][s] * shift_vect_der_switched[r][s];
+
+          if (i == s) {
+            for (int j = 0; j < 3; j++) {
+              aux_vect_source[i] -= 2.0 * spatial_metric_der_raised1[j][j][r] * shift_vect_der_switched[r][s];
+            }
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i < 64; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+
+    fluid_new[0] += dt * spatial_metric_source[0][0]; fluid_new[1] += dt * spatial_metric_source[0][1]; fluid_new[2] += dt * spatial_metric_source[0][2];
+    fluid_new[3] += dt * spatial_metric_source[1][0]; fluid_new[4] += dt * spatial_metric_source[1][1]; fluid_new[5] += dt * spatial_metric_source[1][2];
+    fluid_new[6] += dt * spatial_metric_source[2][0]; fluid_new[7] += dt * spatial_metric_source[2][1]; fluid_new[8] += dt * spatial_metric_source[2][2];
+
+    fluid_new[9] += dt * lapse_source;
+
+    fluid_new[10] += dt * extrinsic_curvature_source[0][0]; fluid_new[11] += dt * extrinsic_curvature_source[0][1]; fluid_new[12] += dt * extrinsic_curvature_source[0][2];
+    fluid_new[13] += dt * extrinsic_curvature_source[1][0]; fluid_new[14] += dt * extrinsic_curvature_source[1][1]; fluid_new[15] += dt * extrinsic_curvature_source[1][2];
+    fluid_new[16] += dt * extrinsic_curvature_source[2][0]; fluid_new[17] += dt * extrinsic_curvature_source[2][1]; fluid_new[18] += dt * extrinsic_curvature_source[2][2];
+
+    fluid_new[49] += dt * aux_vect_source[0];
+    fluid_new[50] += dt * aux_vect_source[1];
+    fluid_new[51] += dt * aux_vect_source[2];
+  }
+  else {
+    for (int i = 0; i < 64; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+  }
+}
+
+void
+explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein_spacetime_slicing;
+  enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_spacetime_evolution;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[64], f_stage1[64], f_stage2[64], f_old[64];
+
+    for (int j = 0; j < 64; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 64; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 64; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 64; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
 explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double e_field_old[3], double* e_field_new,
   double* fluid_s[GKYL_MAX_SPECIES], const double* app_current)
 {
