@@ -503,7 +503,7 @@ gkyl_gr_blackhole_isotropic_free(const struct gkyl_ref_count* ref);
 * @return Pointer to the black hole spacetime in isotropic gauge object.
 */
 struct gkyl_gr_spacetime*
-gkyl_gr_blackhole_isotropic_new(bool use_gpu, double mass, double spin, double mass_quadrupole, double spin_octupole, double mass_hexadecapole, double pos_x, double pos_y, double pos_z);
+gkyl_gr_blackhole_isotropic_new(bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z);
 
 /**
 * Create a new black hole spacetime in isotropic gauge object, from an input context struct.
