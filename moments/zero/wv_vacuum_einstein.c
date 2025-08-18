@@ -55,7 +55,7 @@ gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gk
   shift_vect_der[2][0] = q[61]; shift_vect_der[2][1] = q[62]; shift_vect_der[2][2] = q[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.7) {
+  if (lapse < 0.3) {
     in_excision_region = true;
   }
 
@@ -90,7 +90,7 @@ gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gk
       slicing_func = extrinsic_curvature_trace;
     }
     else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-      slicing_func = extrinsic_curvature_trace / lapse;
+      slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
     }
 
     double spatial_metric_der_raised1[3][3][3];
@@ -341,11 +341,11 @@ gkyl_vacuum_einstein_max_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing
     slicing_func = 1.0;
   }
   else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-    slicing_func = 1.0 / lapse;
+    slicing_func = 2.0 / lapse;
   }
 
   bool in_excision_region = false;
-  if (lapse < 0.7) {
+  if (lapse < 0.3) {
     in_excision_region = true;
   }
 
@@ -889,12 +889,12 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, qr, fr);
 
   bool in_excision_region_l = false;
-  if (ql[9] < 0.7) {
+  if (ql[9] < 0.3) {
     in_excision_region_l = true;
   }
 
   bool in_excision_region_r = false;
-  if (qr[9] < 0.7) {
+  if (qr[9] < 0.3) {
     in_excision_region_r = true;
   }
 
@@ -956,12 +956,12 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, qr, fr);
 
   bool in_excision_region_l = false;
-  if (ql[9] < 0.7) {
+  if (ql[9] < 0.3) {
     in_excision_region_l = true;
   }
 
   bool in_excision_region_r = false;
-  if (qr[9] < 0.7) {
+  if (qr[9] < 0.3) {
     in_excision_region_r = true;
   }
 
@@ -1061,7 +1061,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
   shift_vect_der[2][0] = qin[61]; shift_vect_der[2][1] = qin[62]; shift_vect_der[2][2] = qin[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.7) {
+  if (lapse < 0.3) {
     in_excision_region = true;
   }
 
@@ -1156,7 +1156,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
       slicing_func = extrinsic_curvature_trace;
     }
     else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-      slicing_func = extrinsic_curvature_trace / lapse;
+      slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
     }
 
     double spatial_metric_der_raised1[3][3][3];

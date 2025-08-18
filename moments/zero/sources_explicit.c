@@ -2063,7 +2063,7 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
   shift_vect_der[2][0] = fluid_old[61]; shift_vect_der[2][1] = fluid_old[62]; shift_vect_der[2][2] = fluid_old[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.7) {
+  if (lapse < 0.3) {
     in_excision_region = true;
   }
 
@@ -2200,7 +2200,7 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
       slicing_func = extrinsic_curvature_trace;
     }
     else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-      slicing_func = extrinsic_curvature_trace / lapse;
+      slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
     }
 
     double spatial_metric_der_raised1[3][3][3];

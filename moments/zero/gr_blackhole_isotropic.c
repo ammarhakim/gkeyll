@@ -11,11 +11,18 @@ blackhole_isotropic_spatial_transformation_tensor(const struct gkyl_gr_spacetime
 {
   const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
 
+  double mass = blackhole_isotropic->mass;
+  double spin = blackhole_isotropic->spin;
+
   double pos_x = blackhole_isotropic->pos_x;
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   double phi = atan2((y - pos_y), (x - pos_x));
 
@@ -44,11 +51,18 @@ blackhole_isotropic_spacetime_transformation_tensor(const struct gkyl_gr_spaceti
 {
   const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
 
+  double mass = blackhole_isotropic->mass;
+  double spin = blackhole_isotropic->spin;
+
   double pos_x = blackhole_isotropic->pos_x;
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   double phi = atan2((y - pos_y), (x - pos_x));
 
@@ -85,11 +99,18 @@ blackhole_isotropic_spatial_inv_transformation_tensor(const struct gkyl_gr_space
 {
   const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
 
+  double mass = blackhole_isotropic->mass;
+  double spin = blackhole_isotropic->spin;
+
   double pos_x = blackhole_isotropic->pos_x;
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   double phi = atan2((y - pos_y), (x - pos_x));
 
@@ -118,11 +139,18 @@ blackhole_isotropic_spacetime_inv_transformation_tensor(const struct gkyl_gr_spa
 {
   const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
 
+  double mass = blackhole_isotropic->mass;
+  double spin = blackhole_isotropic->spin;
+
   double pos_x = blackhole_isotropic->pos_x;
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   double phi = atan2((y - pos_y), (x - pos_x));
 
@@ -167,7 +195,11 @@ blackhole_isotropic_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacet
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -223,7 +255,11 @@ blackhole_isotropic_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spac
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -285,7 +321,11 @@ blackhole_isotropic_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* sp
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -388,7 +428,11 @@ blackhole_isotropic_lapse_function(const struct gkyl_gr_spacetime* spacetime, co
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -410,7 +454,11 @@ blackhole_isotropic_shift_vector(const struct gkyl_gr_spacetime* spacetime, cons
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -537,7 +585,11 @@ blackhole_isotropic_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* s
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double r_plus = mass + sqrt((mass * mass) - (spin * spin));
+  double r_minus = mass - sqrt((mass * mass) - (spin * spin));
+  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+  
   double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
   
   double rho_kerr_sq = (rho * rho) + ((spin * spin) * (cos(theta) * cos(theta)));
@@ -594,9 +646,9 @@ blackhole_isotropic_excision_region(const struct gkyl_gr_spacetime* spacetime, c
   double pos_y = blackhole_isotropic->pos_y;
   double pos_z = blackhole_isotropic->pos_z;
 
-  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));\
+  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
 
-  if (rho <= mass * 2.0) {
+  if (eta <= mass * 2.0) {
     *in_excision_region = true;
   }
   else {
