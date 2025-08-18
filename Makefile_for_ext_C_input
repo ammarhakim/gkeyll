@@ -1,5 +1,4 @@
-# Define the path to your gkeyll directory here (the one that contains gkylsoft and gkeyll directories)
-GKEYLL_DIR = ${HOME}
+# Makefile for C input files located outside of the gkeyll/ repository.
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
@@ -26,7 +25,7 @@ else
 endif
 
 # Include config.mak file (if it exists)
--include ${GKEYLL_DIR}/gkylsoft/gkeyll/share/config.mak
+-include GKEYLL_SHARE_INSTALL_PREFIX_TAG/config.mak
 
 CFLAGS = -O3 -g -ffast-math -I. 
 
@@ -149,7 +148,7 @@ help:
 
 # copy the rt_arg_parse.h into the gkylsoft directory
 copy-rt-arg-parse:
-	cp ${GKEYLL_DIR}/gkeyll/gyrokinetic/creg/rt_arg_parse.h ${GKEYLL_DIR}/gkylsoft/gkeyll/include/.
+	cp /Users/mfrancis/Documents/gkeyll/code/gkylzero_base/gkylzero/gyrokinetic/creg/rt_arg_parse.h ${HOME}
 
 # Pattern rule: build executable from .c source
 $(BINS): %: %.c | copy-rt-arg-parse

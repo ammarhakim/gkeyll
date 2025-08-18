@@ -191,6 +191,10 @@ ${BUILD_DIR}/pkpm/unit/%: pkpm/unit/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 # Declare sub-directories as phony targets
 .PHONY: core moments vlasov gyrokinetic pkpm
 
+# sed argument to replace path in Makefile for C input files outside gkeyll/.
+GKEYLL_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/${PROJ_NAME}/share
+SED_REPS_STR=s,GKEYLL_SHARE_INSTALL_PREFIX_TAG,${GKEYLL_SHARE_INSTALL_PREFIX},g
+
 all: gkeyll
 	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
 
@@ -207,6 +211,8 @@ core-regression: ## Build core regression tests
 	cd core && $(MAKE) -f Makefile-core regression
 
 core-install: ## Install core infrastructure code
+	cp -f gyrokinetic/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
+	sed ${SED_REPS_STR} Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 	cd core && $(MAKE) -f Makefile-core install
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
 
