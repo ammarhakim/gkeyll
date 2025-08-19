@@ -588,38 +588,6 @@ gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new(struct gkyl_gk *gk);
 void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0);
 
 /**
- * Initialize species by projecting initial conditions on basis
- * functions. Species index (sidx) is the same index used to specify
- * the species in the gkyl_gk object used to construct app.
- *
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param t0 Time for initial conditions
- */
-void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
-
-/**
- * Initialize neutral species by projecting initial conditions on basis
- * functions. Neutral species index (sidx) is the same index used to specify
- * the neutral species in the gkyl_gk object used to construct app.
- *
- * @param app App object.
- * @param sidx Index of neutral species to initialize.
- * @param t0 Time for initial conditions
- */
-void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
-
-/**
- * Perform part of initialization that depends on the other species being
- * (partially) initialized.
- *
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param t0 Time for initial conditions
- */
-void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
-
-/**
  * Write geometry file.
  *
  * @param app App object.

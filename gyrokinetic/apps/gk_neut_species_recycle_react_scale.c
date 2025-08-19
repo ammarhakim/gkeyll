@@ -14,13 +14,12 @@ gk_neut_species_rrs_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct g
     gks_elc->local, app->local, fin[rrs->elc_idx]);
 
   // Divide the electron density by the Jacobian.
-  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
-    0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
+    0, gks_elc->lte.moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
 
   // Compute ionization reaction rate.
   gkyl_dg_iz_coll(rrs->iz_react_calc, gks_elc->lte.moms.marr, 
-    rrs->coeff_react, rrs->coeff_react, rrs->coeff_react, 0);
+    rrs->dfdt_react, rrs->dfdt_react, rrs->dfdt_react, 0);
   
   app->stat.neut_species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -38,18 +37,16 @@ gk_neut_species_rrs_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_specie
 {
   struct timespec wst = gkyl_wall_clock();  
 
-  gkyl_array_clear(rrs->f_react, 0.0);
-
   struct gk_species *gks_elc = &app->species[rrs->elc_idx];
 
-  // Compute (J*n_neut)*n_elc*coeff_react (note: conf-space Jacobian is included in fin).
-  gkyl_dg_mul_op_range(app->basis, 0, rrs->f_react,
-    0, gks_elc->lte.moms.marr, 0, fin, &app->local);  
-  gkyl_dg_mul_op_range(app->basis, 0, rrs->f_react,
-    0, rrs->f_react, 0, rrs->coeff_react, &app->local);  
+  // Compute (J*n_neut)*n_elc*dfdt_react (note: conf-space Jacobian is included in fin).
+  gkyl_dg_mul_op_range(app->basis, 0, rrs->dfdt_react,
+    0, rrs->Jm0_init, 0, rrs->dfdt_react, &app->local);  
+  gkyl_dg_mul_op_range(app->basis, 0, rrs->dfdt_react,
+    0, gks_elc->lte.moms.marr, 0, rrs->dfdt_react, &app->local);  
 
   // Volume integrate the reaction contribution.
-  gkyl_array_integrate_advance(rrs->integrate_op, rrs->f_react, 1.0, 0, &app->local, 0, rrs->react_vol_integ_local);
+  gkyl_array_integrate_advance(rrs->integrate_op, rrs->dfdt_react, 1.0, 0, &app->local, 0, rrs->react_vol_integ_local);
   // Reduce over MPI processes.
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, 
     rrs->react_vol_integ_local, rrs->react_vol_integ_global);
@@ -76,14 +73,14 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
 {
   struct gk_species *gks_ion = &app->species[rrs->ion_idx];
 
-  gkyl_array_clear(rrs->f_react, 0.0);
+  gkyl_array_clear(rrs->dfdt_react, 0.0);
 
   double bflux_intm0_local_ho = 0.0;
   for (int j=0; j<rrs->num_boundaries; ++j) {
     // Add integrated M0 moments of boundary fluxes.
     gk_species_bflux_get_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
-      GKYL_F_MOMENT_M0, rrs->f_react, &rrs->boundaries_conf_ghost[j]);
-    gkyl_array_integrate_advance(rrs->integrate_op, rrs->f_react, 1.0, 0,
+      GKYL_F_MOMENT_M0, rrs->dfdt_react, &rrs->boundaries_conf_ghost[j]);
+    gkyl_array_integrate_advance(rrs->integrate_op, rrs->dfdt_react, 1.0, 0,
       &rrs->boundaries_conf_ghost[j], 0, rrs->bflux_m0_vol_integ_local);
 
     double bflux_m0_vol_integ_local_ho;
@@ -98,11 +95,19 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   double bflux_intm0_global_ho;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &bflux_intm0_local_ho, &bflux_intm0_global_ho);
 
-  double neut_scaling_fac = 1.0;
-  if (rrs->react_vol_integ > 0.0)
-    neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
+  if (rrs->react_vol_integ > 0.0) {
+    double neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
 
-  gkyl_array_scale(fin, neut_scaling_fac);
+    // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
+    for (int i=0; i<ns->num_moments;++i) {
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
+        i, fin, 0, fin, &app->local); 
+  
+      gkyl_dg_mul_op_range(app->basis, i, fin,
+        i, fin, 0, rrs->Jm0_init, &app->local);  
+    }
+    gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
+  }
 }
 
 static void
@@ -130,32 +135,9 @@ gk_neut_species_rrs_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_spec
 //    fin_neut[i] = app->neut_species[i].f;
 //  }
 //  gk_neut_species_recycle_react_scale_cross_moms(app, gkns, gkr, fin, fin_neut);
-//  app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
-//  
+  app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+  
   struct timespec wtm = gkyl_wall_clock();
-//  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-//      .frame = frame,
-//      .stime = tm,
-//      .poly_order = app->poly_order,
-//      .basis_type = app->basis.id
-//    }
-//  );
-//
-//  if (app->use_gpu)
-//    gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
-//  
-//  const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
-//  int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
-//    gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
-//  char fileNm[sz+1]; // ensures no buffer overflow
-//  snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
-//   gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
-//  
-//  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
-//    gkr->coeff_react_host[ridx], fileNm);
-//  app->stat.n_neut_diag_io += 1;
-//  
-//  gk_array_meta_release(mt); 
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -172,9 +154,13 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
 {
   struct gkyl_gyrokinetic_recycling_reaction_scaling_inp *rrs_inp = &ns->info.recycling_reaction_scaling;
   rrs->num_boundaries = rrs_inp->num_boundaries;
+  rrs->recycling_coeff = rrs_inp->recycling_coeff;
 
   if (rrs->num_boundaries > 0) {
     rrs->write_diagnostics = rrs_inp->write_diagnostics;
+
+    // Initial number density times conf-space Jacobian.
+    rrs->Jm0_init = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
 
     // Create an updater that integrates an array.
     rrs->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
@@ -246,14 +232,6 @@ gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app *app,
       }
     }
 
-    rrs->coeff_react = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    if (rrs->write_diagnostics) {
-      rrs->coeff_react_host = rrs->coeff_react;
-      if (app->use_gpu) {
-        rrs->coeff_react_host = mkarr(false, rrs->coeff_react->ncomp, rrs->coeff_react->size);
-      }
-    }
-
     struct gkyl_dg_iz_inp iz_inp = {
       .cbasis = &app->basis, 
       .conf_rng = &app->local, 
@@ -266,7 +244,17 @@ gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app *app,
     rrs->iz_react_calc = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
 
     // Reaction contribution.
-    rrs->f_react = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
+    rrs->dfdt_react = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
+  }
+}
+
+void 
+gk_neut_species_recycle_react_scale_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_recycle_react_scale *rrs)
+{
+  if (rrs->num_boundaries > 0) {
+    // Store the initial particle number density.
+    gkyl_array_set_offset(rrs->Jm0_init, 1.0/ns->info.mass, ns->f, 0);
   }
 }
 
@@ -303,6 +291,7 @@ gk_neut_species_recycle_react_scale_release(const struct gkyl_gyrokinetic_app *a
   const struct gk_recycle_react_scale *rrs)
 {
   if (rrs->num_boundaries > 0) {
+    gkyl_array_release(rrs->Jm0_init);
     gkyl_array_integrate_release(rrs->integrate_op);
 
     if (app->use_gpu){
@@ -315,14 +304,7 @@ gk_neut_species_recycle_react_scale_release(const struct gkyl_gyrokinetic_app *a
       gkyl_free(rrs->react_vol_integ_global);
       gkyl_free(rrs->bflux_m0_vol_integ_local);
     }
-    gkyl_array_release(rrs->f_react);
-
-    gkyl_array_release(rrs->coeff_react);
-    if (rrs->write_diagnostics) {
-      if (app->use_gpu) {
-        gkyl_array_release(rrs->coeff_react_host);
-      }
-    }
+    gkyl_array_release(rrs->dfdt_react);
 
     gkyl_dg_iz_release(rrs->iz_react_calc);
   } 

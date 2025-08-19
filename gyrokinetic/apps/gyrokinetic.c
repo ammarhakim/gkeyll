@@ -790,14 +790,19 @@ void
 gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 {
   app->tcurr = t0;
+  // Apply ICs that don't depend on other species.
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
 
   for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
 
+  // Apply ICs that depend on other species.
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
+
+  for (int i=0; i<app->num_neut_species; ++i)
+    gkyl_gyrokinetic_app_apply_ic_cross_neut_species(app, i, t0);
 
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species];
@@ -919,6 +924,19 @@ gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx,
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
   gk_species_apply_ic_cross(app, gk_s, t0);
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+void
+gkyl_gyrokinetic_app_apply_ic_cross_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0)
+{
+  assert(sidx < app->num_neut_species);
+
+  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+
+  app->tcurr = t0;
+  struct timespec wtm = gkyl_wall_clock();
+  gk_neut_species_apply_ic_cross(app, gk_ns, t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 

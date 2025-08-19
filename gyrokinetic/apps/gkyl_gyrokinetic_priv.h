@@ -538,9 +538,8 @@ struct gk_recycle_react_scale {
   int ion_idx; // Index of ion species.
   double recycling_coeff; // Recycling coefficient.
  
-  struct gkyl_array *f_react; // Reaction contribution.
-  struct gkyl_array *coeff_react; // Reaction rate.
-  struct gkyl_array *coeff_react_host; // Reaction rate on host for I/O.
+  struct gkyl_array *Jm0_init; // Initial number density times jacobgeo.
+  struct gkyl_array *dfdt_react; // Reaction contribution.
   struct gkyl_dg_iz *iz_react_calc; // Operator to compute ionization rate.
   struct gkyl_array_integrate *integrate_op; // Operator that integrates an array.
   double react_vol_integ, *react_vol_integ_local, *react_vol_integ_global; // Volume integral of reaction contribution.
@@ -1262,6 +1261,48 @@ struct gk_neut_species* gk_find_neut_species(const gkyl_gyrokinetic_app *app, co
  * @return Index of neutral species, -1 if not found
  */
 int gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm);
+
+/**
+ * Initialize species by projecting initial conditions on basis
+ * functions. Species index (sidx) is the same index used to specify
+ * the species in the gkyl_gk object used to construct app.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
+
+/**
+ * Initialize neutral species by projecting initial conditions on basis
+ * functions. Neutral species index (sidx) is the same index used to specify
+ * the neutral species in the gkyl_gk object used to construct app.
+ *
+ * @param app App object.
+ * @param sidx Index of neutral species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
+
+/**
+ * Perform part of initialization that depends on the other species being
+ * (partially) initialized.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
+
+/**
+ * Perform part of neutral species initialization that depends on the other species being
+ * (partially) initialized.
+ *
+ * @param app App object.
+ * @param sidx Index of neutral species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_cross_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 /** gk_species_moment API */
 
@@ -2741,6 +2782,16 @@ void  gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app
   struct gk_recycle_react_scale *rrs);
 
 /**
+ * Store initial condition of the neutral species.
+ *
+ * @param app gyrokinetic app object.
+ * @param ns Neutral species object.
+ * @param rrs Recycle react scale object.
+ */
+void gk_neut_species_recycle_react_scale_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_recycle_react_scale *rrs);
+
+/**
  * Compute the reaction rates needed.
  *
  * @param app gyrokinetic app object.
@@ -2929,6 +2980,16 @@ void gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, 
  * @param t0 Time for use in ICs.
  */
 void gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0);
+
+/**
+ * Compute the part of the neutral species initial conditions
+ * that depends on other species.
+ *
+ * @param app gyrokinetic app object.
+ * @param species Neutral species object.
+ * @param t0 Time for use in ICs.
+ */
+void gk_neut_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0);
 
 /**
  * Compute RHS from neutral species distribution function.

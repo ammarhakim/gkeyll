@@ -77,6 +77,7 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
+  // Compute volume-integrated reactions in rrs.
   gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
 
   app->stat.n_neut_species_omega_cfl +=1;
@@ -84,12 +85,11 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
   
   double omega_cfl_ho[1];
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
+  else
     omega_cfl_ho[0] = species->omega_cfl[0];
-  }
+
   omega_cfl = omega_cfl_ho[0];
   
   app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
@@ -1579,6 +1579,13 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 
   // We are pre-computing source for now as it is time-independent.
   gk_neut_species_source_calc(app, species, &species->src, species->lte.f_lte, t0);
+}
+
+void
+gk_neut_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns_self, double t0)
+{
+  // Store initial density in recycle_react_scale.
+  gk_neut_species_recycle_react_scale_apply_ic_cross(app, gkns_self, &gkns_self->rrs);
 }
 
 double
