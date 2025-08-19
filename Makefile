@@ -211,10 +211,10 @@ core-regression: ## Build core regression tests
 	cd core && $(MAKE) -f Makefile-core regression
 
 core-install: ## Install core infrastructure code
-	cp -f gyrokinetic/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
-	sed ${SED_REPS_STR} Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 	cd core && $(MAKE) -f Makefile-core install
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
+	cp -f gyrokinetic/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
+	sed ${SED_REPS_STR} Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
