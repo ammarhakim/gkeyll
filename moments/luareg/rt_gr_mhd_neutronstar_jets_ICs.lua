@@ -92,41 +92,51 @@ momentApp = Moments.App.new {
     -- Initial conditions function.
     init = function (t, xn)
       local x, y, z = xn[1], xn[2], xn[3]
-      
       local r = math.sqrt(((x - 50.0) * (x - 50.0)) + ((y - 5.0) * (y - 5.0)) + ((z - 50.0) * (z - 50.0)))
+      local theta = math.atan((y - 5.0) / (x - 5.0))
+      local phi = math.atan((((x - 50.0) * (x - 50.0)) + ((y - 5.0) * (y - 5.0))) / (z - 50.0))
+      --print(theta)
       local rho = 0.0
-      local up = 0.0
       local p = 0.0
       local rho0 = 10
       local r_star = 150740.0
-      local omega0 = -0.001
+      local omega0 = -6.08113e-6
+      local rc = 1507.4
+      local Rhe = 21103.5
+      local ux = 0.0
+      local uy = 0.0
 
       local Bx = 0.0
       local By = 0.0
       local Bz = 0.0
 
       if r < r_star then
-        rho = rho0 * math.pow(4.473e49 / (math.pow(r, 2) + 1.3419e49) , 1.25) * math.pow((1 - (r / r_star)) , 5)
-        --rho = rho0 * math.pow(1e16 / (math.pow(r, 2) + 3e15) , 1.25) * math.pow((1 - (r / r_star)) , 5)
-        p = 4.473e27 * rho / r
+        rho = rho0 * math.pow(1.21052e38 / (math.pow(r, 2) + 3.63155e37) , 1.25) * math.pow((1 - (r / r_star)) , 5)
+        --rho = rho0 * math.pow(1e16 / (math.pow(r, 2) + 1e16) , 1.25) * math.pow((1 - (r / r_star)) , 5)
+        p = 3.64945e10 * rho / r
         --p = 1e-6 * rho / r
-        --up = 0.0
-        if r < 70.0 then
-          up = omega0 / math.pow(70.0, 2.0)
-        elseif r < 17500.0 then
-          up = omega0 / math.pow(r, 2.0)
-        else 
-          up = omega0 / math.pow(17500.0, 2.0)
+
+        if r < rc then
+          ux = - omega0 * (r * r * math.pow(math.sin(theta), 2)) * math.sin(theta) * r * math.sin(phi)
+          uy = omega0 * (r * r * math.pow(math.sin(theta), 2)) * r * math.cos(theta) * math.sin(phi)
+          --ux = 0.0
+          --uy = 0.0
+        elseif r < Rhe then
+          ux = - omega0 * (rc * rc * math.pow(math.sin(theta), 2)) * r * math.sin(theta) * math.sin(phi)
+          uy = omega0 * (rc * rc * math.pow(math.sin(theta), 2)) * r * math.cos(theta) * math.sin(phi)
         end
-        if r < 1.2 then
-          Bz = 8.5e-8
+
+        if r < 2.4 then
+          Bz = 8.54651e-8
+          --Bz = 1e6
         end
       else
         --rho = 1e-20
-        rho = 4.473e13
-        up = 0.0
+        rho = 121.052
+        ux = 0.0
+        uy = 0.0
         -- p = rho / 1e6
-        p = rho / 4.473e39
+        p = rho / 3.64945e22
       end
 
       local lapse = NeutronStar.lapseFunction(mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z, 0.0, x, y, z)
@@ -144,7 +154,7 @@ momentApp = Moments.App.new {
       local spatial_metric_der = NeutronStar.spatialMetricTensorDer(mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z, 0.0, x, y, z,
         math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
 
-      local vel = { 0.0, 0.0, up }
+      local vel = { ux, uy, 0 }
       local v_sq = 0.0
 
       for i = 1, 3 do
