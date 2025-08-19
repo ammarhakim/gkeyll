@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_schwarzschild_ctx
+struct einstein_kerr_ctx
 {
   // Spacetime parameters (using geometric units).
   double mass; // Mass of the black hole.
@@ -51,12 +51,12 @@ struct einstein_schwarzschild_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_schwarzschild_ctx
+struct einstein_kerr_ctx
 create_ctx(void)
 {
   // Spacetime parameters (using geometric units).
   double mass = 0.1; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  double spin = 0.2; // Spin of the black hole.
 
   double pos_x = 5.0; // Position of the black hole (x-direction).
   double pos_y = 5.0; // Position of the black hole (y-direction).
@@ -83,7 +83,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_schwarzschild_ctx ctx = {
+  struct einstein_kerr_ctx ctx = {
     .mass = mass,
     .spin = spin,
     .pos_x = pos_x,
@@ -112,7 +112,7 @@ void
 evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct einstein_schwarzschild_ctx *app = ctx;
+  struct einstein_kerr_ctx *app = ctx;
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
@@ -327,7 +327,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_schwarzschild_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_kerr_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -416,7 +416,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_schwarzschild",
+    .name = "vacuum_einstein_kerr",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },

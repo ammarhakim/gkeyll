@@ -377,7 +377,7 @@ gkyl_vacuum_einstein_max_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing
     }
     gkyl_free(inv_spatial_metric);
 
-    return 1.0;
+    return pow(10.0, -8.0);
   }
 }
 
