@@ -32,18 +32,9 @@ PROJ_NAME ?= gkeyll
 # Determine OS we are running on
 UNAME = $(shell uname)
 
-# Read ADAS paths and flags if needed 
-USING_ADAS =
-ADAS_INC_DIR = zero # dummy
-ADAS_LIB_DIR = .
-ifeq (${USE_ADAS}, 1)
-	USING_ADAS = yes
-	CFLAGS += -DGKYL_HAVE_ADAS
-endif
-
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
-CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
+CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
