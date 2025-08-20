@@ -77,7 +77,7 @@ create_ctx(void)
   double cfl_frac = 0.1; // CFL coefficient.
 
   double t_end = 0.1; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -253,7 +253,7 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   fout[58] = shift_der[1][0]; fout[59] = shift_der[1][1]; fout[60] = shift_der[1][2];
   fout[61] = shift_der[2][0]; fout[62] = shift_der[2][1]; fout[63] = shift_der[2][2];
 
-  if (lapse < 0.3) {
+  if (in_excision_region) {
     for (int i = 0; i < 64; i++) {
       fout[i] = 0.0;
     }

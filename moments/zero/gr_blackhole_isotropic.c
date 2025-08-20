@@ -24,13 +24,13 @@ blackhole_isotropic_spatial_transformation_tensor(const struct gkyl_gr_spacetime
     spatial_transformation_tensor[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  spatial_transformation_tensor[0][0] = sin(theta) * cos(phi);
-  spatial_transformation_tensor[0][1] = sin(theta) * sin(phi);
-  spatial_transformation_tensor[0][2] = cos(theta);
+  spatial_transformation_tensor[0][0] = -(sin(theta) * cos(phi)) / cos(2.0 * theta);
+  spatial_transformation_tensor[0][1] = -(sin(theta) * sin(phi)) / cos(2.0 * theta);
+  spatial_transformation_tensor[0][2] = cos(theta) / cos(2.0 * theta);
 
-  spatial_transformation_tensor[1][0] = (cos(theta) * cos(phi)) / eta;
-  spatial_transformation_tensor[1][1] = (cos(theta) * sin(phi)) / eta;
-  spatial_transformation_tensor[1][2] = -sin(theta) / eta;
+  spatial_transformation_tensor[1][0] = (cos(theta) * cos(phi)) / (eta * cos(2.0 * theta));
+  spatial_transformation_tensor[1][1] = (cos(theta) * sin(phi)) / (eta * cos(2.0 * theta));
+  spatial_transformation_tensor[1][2] = -sin(theta) / (eta * cos(2.0 * theta));
 
   spatial_transformation_tensor[2][0] = -sin(phi) / (eta * sin(theta));
   spatial_transformation_tensor[2][1] = cos(phi) / (eta * sin(theta));
@@ -169,51 +169,34 @@ blackhole_isotropic_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacet
 
   double Mspin = mass * spin;
 
-  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
-  double r_plus = mass + sqrt((mass * mass) - (Mspin * Mspin));
-  double r_minus = mass - sqrt((mass * mass) - (Mspin * Mspin));
-  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double sin_theta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  double cos_theta = (z - pos_z) / rho;
 
-  double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
-  
-  double rho_kerr_sq = (rho * rho) + ((Mspin * Mspin) * (cos(theta) * cos(theta)));
-  double delta = (rho * rho) - (2.0 * mass * rho) + (Mspin * Mspin);
+  double r_BL = rho * (1.0 + ((mass + Mspin) / (2.0 * rho))) * (1.0 + ((mass - Mspin) / (2.0 * rho)));
+  double sigma = (r_BL * r_BL) + ((Mspin * Mspin) * (cos_theta * cos_theta));
+  double delta = (r_BL * r_BL) - (2.0 * mass * r_BL) + (Mspin * Mspin);
 
-  double **spatial_metric_tensor_spherical = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) {
-    spatial_metric_tensor_spherical[i] = gkyl_malloc(sizeof(double[3]));
-  }
+  double A_BL = (((r_BL * r_BL) + (Mspin * Mspin)) * ((r_BL * r_BL) + (Mspin + Mspin))) - ((Mspin * Mspin) * delta * (sin_theta * sin_theta));
+  double A_func = sqrt(sigma) / rho;
+  double B_func = sqrt(A_BL) / (rho * sqrt(sigma));
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      spatial_metric_tensor_spherical[i][j] = 0.0;
       (*spatial_metric_tensor)[i][j] = 0.0;
     }
   }
 
-  spatial_metric_tensor_spherical[0][0] = rho_kerr_sq;
-  spatial_metric_tensor_spherical[1][1] = rho_kerr_sq;
-  spatial_metric_tensor_spherical[2][2] = ((((rho * rho) + (Mspin * Mspin)) * ((rho * rho) + (Mspin * Mspin))) -
-    (delta * (Mspin * Mspin) * (sin(theta) * sin(theta)))) * (sin(theta) * sin(theta)) / rho_kerr_sq;
-  
-  double **spatial_transformation_tensor = blackhole_isotropic_spatial_transformation_tensor(spacetime, x, y, z);
+  (*spatial_metric_tensor)[0][0] = ((A_func * A_func) + (((B_func * B_func) - (A_func * A_func)) * ((y - pos_y) * (y - pos_y)))) /
+    (((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  (*spatial_metric_tensor)[1][1] = ((A_func * A_func) + (((B_func * B_func) - (A_func * A_func)) * ((y - pos_y) * (y - pos_y)))) /
+    (((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  (*spatial_metric_tensor)[2][2] = (A_func * A_func);
 
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        for (int l = 0; l < 3; l++) {
-          (*spatial_metric_tensor)[i][j] += spatial_transformation_tensor[k][i] * spatial_transformation_tensor[l][j] * spatial_metric_tensor_spherical[k][l];
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric_tensor_spherical[i]);
-    gkyl_free(spatial_transformation_tensor[i]);
-  }
-  gkyl_free(spatial_metric_tensor_spherical);
-  gkyl_free(spatial_transformation_tensor);
+  (*spatial_metric_tensor)[0][1] = -(((B_func * B_func) - (A_func * A_func)) * ((x - pos_x) * (y - pos_y))) /
+    (((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  (*spatial_metric_tensor)[1][0] = -(((B_func * B_func) - (A_func * A_func)) * ((x - pos_x) * (y - pos_y))) /
+    (((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
 }
 
 static void
@@ -288,62 +271,76 @@ static void
 blackhole_isotropic_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spatial_inv_metric_tensor)
 {
-  const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
-
-  double mass = blackhole_isotropic->mass;
-  double spin = blackhole_isotropic->spin;
-
-  double pos_x = blackhole_isotropic->pos_x;
-  double pos_y = blackhole_isotropic->pos_y;
-  double pos_z = blackhole_isotropic->pos_z;
-
-  double Mspin = mass * spin;
-
-  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
-  double r_plus = mass + sqrt((mass * mass) - (Mspin * Mspin));
-  double r_minus = mass - sqrt((mass * mass) - (Mspin * Mspin));
-  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
-
-  double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
-  
-  double rho_kerr_sq = (rho * rho) + ((Mspin * Mspin) * (cos(theta) * cos(theta)));
-  double delta = (rho * rho) - (2.0 * mass * rho) + (Mspin * Mspin);
-
-  double **spatial_inv_metric_tensor_spherical = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_inv_metric_tensor_spherical[i] = gkyl_malloc(sizeof(double[3]));
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  blackhole_isotropic_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+  double spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  double trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    trace += spatial_metric[i][i];
+  }
+
+  double **spatial_metric_sq = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_sq[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      spatial_inv_metric_tensor_spherical[i][j] = 0.0;
-      (*spatial_inv_metric_tensor)[i][j] = 0.0;
+      spatial_metric_sq[i][j] = 0.0;
     }
   }
-
-  spatial_inv_metric_tensor_spherical[0][0] = 1.0 / rho_kerr_sq;
-  spatial_inv_metric_tensor_spherical[1][1] = 1.0 / rho_kerr_sq;
-  spatial_inv_metric_tensor_spherical[2][2] = rho_kerr_sq / (((((rho * rho) + (Mspin * Mspin)) * ((rho * rho) + (Mspin * Mspin))) - (delta * (Mspin * Mspin) *
-    (sin(theta) * sin(theta)))) * (sin(theta) * sin(theta)));
-  
-  double **spatial_inv_transformation_tensor = blackhole_isotropic_spatial_inv_transformation_tensor(spacetime, x, y, z);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 3; k++) {
-        for (int l = 0; l < 3; l++) {
-          (*spatial_inv_metric_tensor)[i][j] += spatial_inv_transformation_tensor[k][i] * spatial_inv_transformation_tensor[l][j] * spatial_inv_metric_tensor_spherical[k][l];
-        }
+        spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+      }
+    }
+  }
+
+  double sq_trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    sq_trace += spatial_metric_sq[i][i];
+  }
+
+  double **euclidean_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    euclidean_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        euclidean_metric[i][j] = 1.0;
+      }
+      else {
+        euclidean_metric[i][j] = 0.0;
       }
     }
   }
 
   for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_inv_metric_tensor_spherical[i]);
-    gkyl_free(spatial_inv_transformation_tensor[i]);
+    for (int j = 0; j < 3; j++) {
+      (*spatial_inv_metric_tensor)[i][j] = (1.0 / spatial_metric_det) *
+        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+    }
   }
-  gkyl_free(spatial_inv_metric_tensor_spherical);
-  gkyl_free(spatial_inv_transformation_tensor);
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(spatial_metric_sq[i]);
+    gkyl_free(euclidean_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(spatial_metric_sq);
+  gkyl_free(euclidean_metric);
 }
 
 static void
@@ -408,17 +405,17 @@ blackhole_isotropic_lapse_function(const struct gkyl_gr_spacetime* spacetime, co
 
   double Mspin = mass * spin;
 
-  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
-  double r_plus = mass + sqrt((mass * mass) - (Mspin * Mspin));
-  double r_minus = mass - sqrt((mass * mass) - (Mspin * Mspin));
-  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double sin_theta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  double cos_theta = (z - pos_z) / rho;
 
-  double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
-  
-  double rho_kerr_sq = (rho * rho) + ((Mspin * Mspin) * (cos(theta) * cos(theta)));
-  double delta = (rho * rho) - (2.0 * mass * rho) + (Mspin * Mspin);
+  double r_BL = rho * (1.0 + ((mass + Mspin) / (2.0 * rho))) * (1.0 + ((mass - Mspin) / (2.0 * rho)));
+  double sigma = (r_BL * r_BL) + ((Mspin * Mspin) * (cos_theta * cos_theta));
+  double delta = (r_BL * r_BL) - (2.0 * mass * r_BL) + (Mspin * Mspin);
 
-  *lapse_function = sqrt(1.0 / (1.0 + ((2.0 * mass * rho) * ((rho * rho) + (Mspin * Mspin)) / (delta * rho_kerr_sq))));
+  double A_BL = (((r_BL * r_BL) + (Mspin * Mspin)) * ((r_BL * r_BL) + (Mspin + Mspin))) - ((Mspin * Mspin) * delta * (sin_theta * sin_theta));
+
+  *lapse_function = sqrt((sigma * delta) / A_BL);
 }
 
 static void
@@ -436,38 +433,19 @@ blackhole_isotropic_shift_vector(const struct gkyl_gr_spacetime* spacetime, cons
 
   double Mspin = mass * spin;
 
-  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
-  double r_plus = mass + sqrt((mass * mass) - (Mspin * Mspin));
-  double r_minus = mass - sqrt((mass * mass) - (Mspin * Mspin));
-  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
+  double sin_theta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  double cos_theta = (z - pos_z) / rho;
 
-  double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
-  
-  double rho_kerr_sq = (rho * rho) + ((Mspin * Mspin) * (cos(theta) * cos(theta)));
-  double delta = (rho * rho) - (2.0 * mass * rho) + (Mspin * Mspin);
+  double r_BL = rho * (1.0 + ((mass + Mspin) / (2.0 * rho))) * (1.0 + ((mass - Mspin) / (2.0 * rho)));
+  double delta = (r_BL * r_BL) - (2.0 * mass * r_BL) + (Mspin * Mspin);
 
-  double *shift_vector_spherical = gkyl_malloc(sizeof(double[3]));
-  for (int i = 0; i < 3; i++) {
-    (*shift_vector)[i] = 0.0;
-  }
+  double A_BL = (((r_BL * r_BL) + (Mspin * Mspin)) * ((r_BL * r_BL) + (Mspin + Mspin))) - ((Mspin * Mspin) * delta * (sin_theta * sin_theta));
+  double omega = (2.0 * mass * Mspin * r_BL) / (A_BL);
 
-  shift_vector_spherical[0] = 0.0;
-  shift_vector_spherical[1] = 0.0;
-  shift_vector_spherical[2] = -(2.0 * Mspin * mass * rho) / ((((rho * rho) + (Mspin * Mspin)) * ((rho * rho) + (Mspin * Mspin))) - ((Mspin * Mspin) * delta * (sin(theta) * sin(theta))));
-
-  double **spatial_inv_transformation_tensor = blackhole_isotropic_spatial_inv_transformation_tensor(spacetime, x, y, z);
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*shift_vector)[i] += spatial_inv_transformation_tensor[i][j] * shift_vector_spherical[j];
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_inv_transformation_tensor[i]);
-  }
-  gkyl_free(shift_vector_spherical);
-  gkyl_free(spatial_inv_transformation_tensor);
+  (*shift_vector)[0] = omega * (y - pos_y);
+  (*shift_vector)[1] = -omega * (x - pos_x);
+  (*shift_vector)[2] = 0.0;
 }
 
 static void
@@ -558,70 +536,77 @@ static void
 blackhole_isotropic_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
-  const struct gr_blackhole_isotropic *blackhole_isotropic = container_of(spacetime, struct gr_blackhole_isotropic, spacetime);
+  double lapse_function;
+  double *shift_vector = gkyl_malloc(sizeof(double[3]));
 
-  double mass = blackhole_isotropic->mass;
-  double spin = blackhole_isotropic->spin;
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
+  double **shift_vector_cov_der = gkyl_malloc(sizeof(double*[3]));
+  double **shift_covector_cov_der = gkyl_malloc(sizeof(double*[3]));
 
-  double pos_x = blackhole_isotropic->pos_x;
-  double pos_y = blackhole_isotropic->pos_y;
-  double pos_z = blackhole_isotropic->pos_z;
-
-  double Mspin = mass * spin;
-
-  double eta = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
-  double r_plus = mass + sqrt((mass * mass) - (Mspin * Mspin));
-  double r_minus = mass - sqrt((mass * mass) - (Mspin * Mspin));
-  double rho = (r_plus * (cosh(0.5 * eta) * cosh(0.5 * eta))) - (r_minus * (sinh(0.5 * eta) * sinh(0.5 * eta)));
-  
-  double theta = atan2(sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y))), (z - pos_z));
-  
-  double rho_kerr_sq = (rho * rho) + ((Mspin * Mspin) * (cos(theta) * cos(theta)));
-  double delta = (rho * rho) - (2.0 * mass * rho) + (Mspin * Mspin);
-
-  double **extrinsic_curvature_tensor_spherical = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) {
-    extrinsic_curvature_tensor_spherical[i] = gkyl_malloc(sizeof(double[3]));
-  }
+  double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
 
   for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
+    shift_vector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+    shift_covector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+
+    spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
     for (int j = 0; j < 3; j++) {
-      extrinsic_curvature_tensor_spherical[i][j] = 0.0;
-      (*extrinsic_curvature_tensor)[i][j] = 0.0;
+      spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
+
+      shift_covector_cov_der[i][j] = 0.0;
     }
   }
 
-  double conformal_factor_sq = sin(theta) / sqrt(((((rho * rho) + (Mspin * Mspin)) * ((rho * rho) + (Mspin * Mspin))) -
-    (delta * (Mspin * Mspin) * (sin(theta) * sin(theta)))) * (sin(theta) * sin(theta)) / rho_kerr_sq);
-
-  extrinsic_curvature_tensor_spherical[0][2] = conformal_factor_sq * ((Mspin * mass * ((2.0 * (rho * rho) * ((rho * rho) + (Mspin * Mspin))) +
-    (rho_kerr_sq * ((rho * rho) - (Mspin * Mspin)))) * (sin(theta) * sin(theta))) / (rho_kerr_sq * rho_kerr_sq));
-  extrinsic_curvature_tensor_spherical[2][0] = conformal_factor_sq * ((Mspin * mass * ((2.0 * (rho * rho) * ((rho * rho) + (Mspin * Mspin))) +
-    (rho_kerr_sq * ((rho * rho) - (Mspin * Mspin)))) * (sin(theta) * sin(theta))) / (rho_kerr_sq * rho_kerr_sq));
-
-  extrinsic_curvature_tensor_spherical[1][2] = -conformal_factor_sq * ((2.0 * (Mspin * Mspin * Mspin) * mass * rho * sqrt(delta) * cos(theta) *
-    (sin(theta) * sin(theta) * sin(theta))) / (rho_kerr_sq * rho_kerr_sq));
-  extrinsic_curvature_tensor_spherical[2][1] = -conformal_factor_sq * ((2.0 * (Mspin * Mspin * Mspin) * mass * rho * sqrt(delta) * cos(theta) *
-    (sin(theta) * sin(theta) * sin(theta))) / (rho_kerr_sq * rho_kerr_sq));
-
-  double **spatial_transformation_tensor = blackhole_isotropic_spatial_transformation_tensor(spacetime, x, y, z);
+  blackhole_isotropic_lapse_function(spacetime, t, x, y, z, &lapse_function);
+  blackhole_isotropic_shift_vector(spacetime, t, x, y, z, &shift_vector);
+  blackhole_isotropic_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+  blackhole_isotropic_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_vector_der);
+  blackhole_isotropic_spatial_christoffel(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
+      shift_vector_cov_der[i][j] = shift_vector_der[i][j];
+
       for (int k = 0; k < 3; k++) {
-        for (int l = 0; l < 3; l++) {
-          (*extrinsic_curvature_tensor)[i][j] += spatial_transformation_tensor[k][i] * spatial_transformation_tensor[l][j] * extrinsic_curvature_tensor_spherical[k][l];
-        }
+        shift_vector_cov_der[i][j] += spatial_christoffel[j][i][k] * shift_vector[k];
       }
     }
   }
 
   for (int i = 0; i < 3; i++) {
-    gkyl_free(extrinsic_curvature_tensor_spherical[i]);
-    gkyl_free(spatial_transformation_tensor[i]);
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        shift_covector_cov_der[i][j] += spatial_metric[j][k] * shift_vector_cov_der[i][k];
+      }
+    }
   }
-  gkyl_free(extrinsic_curvature_tensor_spherical);
-  gkyl_free(spatial_transformation_tensor);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*extrinsic_curvature_tensor)[i][j] = -(1.0 / (2.0 * lapse_function)) * (shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]);
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(shift_vector_der[i]);
+    gkyl_free(shift_vector_cov_der[i]);
+    gkyl_free(shift_covector_cov_der[i]);
+
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_christoffel[i][j]);
+    }
+    gkyl_free(spatial_christoffel[i]);
+  }
+  gkyl_free(shift_vector);
+  gkyl_free(spatial_metric);
+  gkyl_free(shift_vector_der);
+  gkyl_free(shift_vector_cov_der);
+  gkyl_free(shift_covector_cov_der);
+  gkyl_free(spatial_christoffel);
 }
 
 static void
