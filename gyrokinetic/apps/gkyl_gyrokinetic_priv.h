@@ -539,7 +539,8 @@ struct gk_recycle_react_scale {
   double recycling_coeff; // Recycling coefficient.
  
   struct gkyl_array *Jm0_init; // Initial number density times jacobgeo.
-  struct gkyl_array *dfdt_react; // Reaction contribution.
+  struct gkyl_array *reactivity; // Reactivity.
+  struct gkyl_array *dndt_react; // Reaction contribution.
   struct gkyl_dg_iz *iz_react_calc; // Operator to compute ionization rate.
   struct gkyl_array_integrate *integrate_op; // Operator that integrates an array.
   double react_vol_integ, *react_vol_integ_local, *react_vol_integ_global; // Volume integral of reaction contribution.
