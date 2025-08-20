@@ -30,54 +30,6 @@ struct gkyl_gr_blackhole_isotropic_inp {
 };
 
 /**
-* Compute the spatial transformation tensor from isotropic spherical coordinates to Kerr-Schild Cartesian coordinates, at a given point in a black hole spacetime in isotropic gauge.
-*
-* @param spacetime Base spacetime object.
-* @param x Spatial coordinate (x-direction).
-* @param y Spatial coordinate (y-direction).
-* @param z Spatial coordinate (z-direction).
-* @return The rank-2 (spatial) transformation tensor from isotropic spherical to Kerr-Schild coordinates.
-*/
-double**
-blackhole_isotropic_spatial_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
-
-/**
-* Compute the spacetime transformation tensor from isotropic spherical coordinates to Kerr-Schild Cartesian coordinates, at a given point in a black hole spacetime in isotropic gauge.
-*
-* @param spacetime Base spacetime object.
-* @param x Spatial coordinate (x-direction).
-* @param y Spatial coordinate (y-direction).
-* @param z Spatial coordinate (z-direction).
-* @return The rank-2 (spacetime) transformation tensor from isotropic spherical to Kerr-Schild coordinates.
-*/
-double**
-blackhole_isotropic_spacetime_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
-
-/**
-* Compute the (inverse) spatial transformation tensor from Kerr-Schild Cartesian coordinates to isotropic spherical coordinates, at a given point in a black hole spacetime in isotropic gauge.
-*
-* @param spacetime Base spacetime object.
-* @param x Spatial coordinate (x-direction).
-* @param y Spatial coordinate (y-direction).
-* @param z Spatial coordinate (z-direction).
-* @return The rank-2 (spatial, inverse) transformation tensor from Kerr-Schild to isotropic spherical coordinates.
-*/
-double**
-blackhole_isotropic_spatial_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
-
-/**
-* Compute the (inverse) spacetime transformation tensor from Kerr-Schild Cartesian coordinates to isotropic spherical coordinates, at a given point in a black hole spacetime in isotropic gauge.
-*
-* @param spacetime Base spacetime object.
-* @param x Spatial coordinate (x-direction).
-* @param y Spatial coordinate (y-direction).
-* @param z Spatial coordinate (z-direction).
-* @return The rank-2 (spacetime, inverse) transformation tensor from Kerr-Schild to isotropic spherical coordinates.
-*/
-double**
-blackhole_isotropic_spacetime_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
-
-/**
 * Compute the rank-2 spatial metric tensor at a given point in a black hole spacetime in isotropic gauge.
 *
 * @param spacetime Base spacetime object.

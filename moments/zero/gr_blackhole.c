@@ -270,14 +270,11 @@ static void
 blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spacetime_inv_metric_tensor)
 {
-  double** spatial_metric = gkyl_malloc(sizeof(double*[3]));
   double** inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
     inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
   blackhole_spatial_inv_metric_tensor(spacetime, t, x, y, z, &inv_spatial_metric);
 
   double lapse_function;
@@ -302,10 +299,8 @@ blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
   }
 
   for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric[i]);
     gkyl_free(inv_spatial_metric[i]);
   }
-  gkyl_free(spatial_metric);
   gkyl_free(inv_spatial_metric);
   gkyl_free(shift_vector);
 }

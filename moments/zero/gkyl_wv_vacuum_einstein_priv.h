@@ -30,7 +30,7 @@ void
 gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, const double q[64], double flux[64]);
 
 /**
-* Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
+* Compute inverse spatial metric tensor (in contravariant component form) given the conserved variables.
 *
 * @param q Conserved variable vector.
 * @param inv_spatial_metric Inverse spatial metric tensor (output).
@@ -73,6 +73,20 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 GKYL_CU_D
 static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
+
+/**
+* Boundary condition function for applying wall boundary conditions for the vacuum Einstein equations using the Bona-Masso formalism.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+GKYL_CU_D
+static void
+vacuum_einstein_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.

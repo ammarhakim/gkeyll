@@ -399,6 +399,50 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
+static void
+vacuum_einstein_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  // Set spatial metric tensor.
+  ghost[0] = 1.0; ghost[1] = 0.0; ghost[2] = 0.0;
+  ghost[3] = 0.0; ghost[4] = 1.0; ghost[5] = 0.0;
+  ghost[6] = 0.0; ghost[7] = 0.0; ghost[8] = 1.0;
+
+  // Set lapse gauge variable.
+  ghost[9] = 1.0;
+
+  // Set extrinsic curvature tensor.
+  ghost[10] = 0.0; ghost[11] = 0.0; ghost[12] = 0.0;
+  ghost[13] = 0.0; ghost[14] = 0.0; ghost[15] = 0.0;
+  ghost[16] = 0.0; ghost[17] = 0.0; ghost[18] = 0.0;
+
+  // Set spatial metric tensor derivatives.
+  ghost[19] = 0.0; ghost[20] = 0.0; ghost[21] = 0.0;
+  ghost[22] = 0.0; ghost[23] = 0.0; ghost[24] = 0.0;
+  ghost[25] = 0.0; ghost[26] = 0.0; ghost[27] = 0.0;
+
+  ghost[28] = 0.0; ghost[29] = 0.0; ghost[30] = 0.0;
+  ghost[31] = 0.0; ghost[32] = 0.0; ghost[33] = 0.0;
+  ghost[34] = 0.0; ghost[35] = 0.0; ghost[36] = 0.0;
+
+  ghost[37] = 0.0; ghost[38] = 0.0; ghost[39] = 0.0;
+  ghost[40] = 0.0; ghost[41] = 0.0; ghost[42] = 0.0;
+  ghost[43] = 0.0; ghost[44] = 0.0; ghost[45] = 0.0;
+
+  // Set lapse function derivatives.
+  ghost[46] = 0.0; ghost[47] = 0.0; ghost[48] = 0.0;
+
+  // Set auxiliary vector.
+  ghost[49] = 0.0; ghost[50] = 0.0; ghost[51] = 0.0;
+
+  // Set shift gauge variables.
+  ghost[52] = 0.0; ghost[53] = 0.0; ghost[54] = 0.0;
+
+  // Set shift vector derivatives.
+  ghost[55] = 0.0; ghost[56] = 0.0; ghost[57] = 0.0;
+  ghost[58] = 0.0; ghost[59] = 0.0; ghost[60] = 0.0;
+  ghost[61] = 0.0; ghost[62] = 0.0; ghost[63] = 0.0;
+}
+
 static inline void
 rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
   double* GKYL_RESTRICT qlocal)
@@ -1428,6 +1472,8 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
   vacuum_einstein->eqn.max_speed_func = max_speed;
   vacuum_einstein->eqn.rotate_to_local_func = rot_to_local;
   vacuum_einstein->eqn.rotate_to_global_func = rot_to_global;
+
+  vacuum_einstein->eqn.wall_bc_func = vacuum_einstein_wall;
 
   vacuum_einstein->eqn.cons_to_riem = cons_to_riem;
   vacuum_einstein->eqn.riem_to_cons = riem_to_cons;
