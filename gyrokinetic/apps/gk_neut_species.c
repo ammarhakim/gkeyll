@@ -585,6 +585,10 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
     gkyl_dynvec_release(s->ps_integ_diag);
   }
 
+  // Free memory for the object that scales the species according to a balance
+  // between recycling and reactions.
+  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
+
 }
 
 static void
@@ -824,6 +828,10 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
       }
     }
   }
+
+  // Initialize the object that scales the species according to a balance
+  // between recycling and reactions (meant for fluid neutrals for now).
+  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
 
   if (app->enforce_positivity || s->info.enforce_positivity) {
     s->enforce_positivity = true;
@@ -1418,6 +1426,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize boundary fluxes.
   s->bflux = (struct gk_boundary_fluxes) { };
+
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   // Set the operation type for the bflux app.
@@ -1454,6 +1463,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->src = (struct gk_source) { };
   s->bgk = (struct gk_bgk_collisions) { };
   s->react_neut = (struct gk_react) { };
+  s->rrs = (struct gk_recycle_react_scale) { };
   if (!s->info.is_static) {
     gk_neut_species_kinetic_init_dynamic(gk, app, s);
   }

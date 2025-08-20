@@ -157,6 +157,7 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
   rrs->recycling_coeff = rrs_inp->recycling_coeff;
 
   if (rrs->num_boundaries > 0) {
+    assert(ns->is_fluid);
     rrs->write_diagnostics = rrs_inp->write_diagnostics;
 
     // Initial number density times conf-space Jacobian.

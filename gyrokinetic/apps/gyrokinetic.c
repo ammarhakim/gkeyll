@@ -1650,16 +1650,16 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (app->neut_species[i].react_neut.num_react) {
+    struct gk_neut_species *s = &app->neut_species[i];
+
+    if (s->react_neut.num_react) {
       // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
-      gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
-        &app->neut_species[i].react_neut, fin, fin_neut);
+      gk_neut_species_react_cross_moms(app, s, &s->react_neut, fin, fin_neut);
     }
 
     // Compute reaction coefficients fro scaling species according to balance
     // between recycling and reactions.
-    gk_neut_species_recycle_react_scale_cross_moms(app, &app->neut_species[i], 
-      &app->neut_species[i].rrs, fin, fin_neut);
+    gk_neut_species_recycle_react_scale_cross_moms(app, s, &s->rrs, fin, fin_neut);
   }
 
   // Compute collisionless terms of charged species.
