@@ -17,9 +17,9 @@ gk_neut_species_rrs_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct g
   gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
     0, gks_elc->lte.moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
 
-  // Compute ionization reaction rate.
+  // Compute ionization reactivity <sigma v>_iz.
   gkyl_dg_iz_coll(rrs->iz_react_calc, gks_elc->lte.moms.marr, 
-    rrs->dfdt_react, rrs->dfdt_react, rrs->dfdt_react, 0);
+    rrs->dndt_react, rrs->dndt_react, rrs->reactivity, 0);
   
   app->stat.neut_species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -39,24 +39,22 @@ gk_neut_species_rrs_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_specie
 
   struct gk_species *gks_elc = &app->species[rrs->elc_idx];
 
-  // Compute (J*n_neut)*n_elc*dfdt_react (note: conf-space Jacobian is included in fin).
-  gkyl_dg_mul_op_range(app->basis, 0, rrs->dfdt_react,
-    0, rrs->Jm0_init, 0, rrs->dfdt_react, &app->local);  
-  gkyl_dg_mul_op_range(app->basis, 0, rrs->dfdt_react,
-    0, gks_elc->lte.moms.marr, 0, rrs->dfdt_react, &app->local);  
+  // Compute (J*n_neut)*n_elc*<sigma v>_iz.
+  gkyl_dg_mul_op_range(app->basis, 0, rrs->dndt_react,
+    0, rrs->Jm0_init, 0, rrs->reactivity, &app->local);  
+  gkyl_dg_mul_op_range(app->basis, 0, rrs->dndt_react,
+    0, gks_elc->lte.moms.marr, 0, rrs->dndt_react, &app->local);  
 
   // Volume integrate the reaction contribution.
-  gkyl_array_integrate_advance(rrs->integrate_op, rrs->dfdt_react, 1.0, 0, &app->local, 0, rrs->react_vol_integ_local);
+  gkyl_array_integrate_advance(rrs->integrate_op, rrs->dndt_react, 1.0, 0, &app->local, 0, rrs->react_vol_integ_local);
   // Reduce over MPI processes.
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, 
     rrs->react_vol_integ_local, rrs->react_vol_integ_global);
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_cu_memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
+  else
     memcpy(&rrs->react_vol_integ, rrs->react_vol_integ_global, sizeof(double));
-  }
-  
+
   app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -73,39 +71,40 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
 {
   struct gk_species *gks_ion = &app->species[rrs->ion_idx];
 
-  gkyl_array_clear(rrs->dfdt_react, 0.0);
-
-  double bflux_intm0_local_ho = 0.0;
-  for (int j=0; j<rrs->num_boundaries; ++j) {
-    // Add integrated M0 moments of boundary fluxes.
-    gk_species_bflux_get_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
-      GKYL_F_MOMENT_M0, rrs->dfdt_react, &rrs->boundaries_conf_ghost[j]);
-    gkyl_array_integrate_advance(rrs->integrate_op, rrs->dfdt_react, 1.0, 0,
-      &rrs->boundaries_conf_ghost[j], 0, rrs->bflux_m0_vol_integ_local);
-
-    double bflux_m0_vol_integ_local_ho;
-    if (app->use_gpu)
-      gkyl_cu_memcpy(&bflux_m0_vol_integ_local_ho, rrs->bflux_m0_vol_integ_local, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    else
-      memcpy(&bflux_m0_vol_integ_local_ho, rrs->bflux_m0_vol_integ_local, sizeof(double));
-
-    bflux_intm0_local_ho += bflux_m0_vol_integ_local_ho;
-  }
-
-  double bflux_intm0_global_ho;
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &bflux_intm0_local_ho, &bflux_intm0_global_ho);
-
   if (rrs->react_vol_integ > 0.0) {
+    gkyl_array_clear(rrs->dndt_react, 0.0);
+
+    double bflux_intm0_local_ho = 0.0;
+    for (int j=0; j<rrs->num_boundaries; ++j) {
+      // Add integrated M0 moments of boundary fluxes.
+      gk_species_bflux_get_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
+        GKYL_F_MOMENT_M0, rrs->dndt_react, &rrs->boundaries_conf_ghost[j]);
+      gkyl_array_integrate_advance(rrs->integrate_op, rrs->dndt_react, 1.0, 0,
+        &rrs->boundaries_conf_ghost[j], 0, rrs->bflux_m0_vol_integ_local);
+
+      double bflux_m0_vol_integ_local_ho;
+      if (app->use_gpu)
+        gkyl_cu_memcpy(&bflux_m0_vol_integ_local_ho, rrs->bflux_m0_vol_integ_local, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      else
+        memcpy(&bflux_m0_vol_integ_local_ho, rrs->bflux_m0_vol_integ_local, sizeof(double));
+
+      bflux_intm0_local_ho += bflux_m0_vol_integ_local_ho;
+    }
+
+    double bflux_intm0_global_ho;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &bflux_intm0_local_ho, &bflux_intm0_global_ho);
+
     double neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
 
     // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
-    for (int i=0; i<ns->num_moments;++i) {
+    for (int i=0; i<ns->num_moments;++i)
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
         i, fin, 0, fin, &app->local); 
   
+    for (int i=0; i<ns->num_moments;++i)
       gkyl_dg_mul_op_range(app->basis, i, fin,
         i, fin, 0, rrs->Jm0_init, &app->local);  
-    }
+
     gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
   }
 }
@@ -157,10 +156,11 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
   rrs->recycling_coeff = rrs_inp->recycling_coeff;
 
   if (rrs->num_boundaries > 0) {
+    assert(ns->is_fluid);
     rrs->write_diagnostics = rrs_inp->write_diagnostics;
 
     // Initial number density times conf-space Jacobian.
-    rrs->Jm0_init = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
+    rrs->Jm0_init = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Create an updater that integrates an array.
     rrs->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
@@ -244,7 +244,8 @@ gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app *app,
     rrs->iz_react_calc = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
 
     // Reaction contribution.
-    rrs->dfdt_react = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
+    rrs->reactivity = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
+    rrs->dndt_react = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
   }
 }
 
@@ -304,7 +305,8 @@ gk_neut_species_recycle_react_scale_release(const struct gkyl_gyrokinetic_app *a
       gkyl_free(rrs->react_vol_integ_global);
       gkyl_free(rrs->bflux_m0_vol_integ_local);
     }
-    gkyl_array_release(rrs->dfdt_react);
+    gkyl_array_release(rrs->reactivity);
+    gkyl_array_release(rrs->dndt_react);
 
     gkyl_dg_iz_release(rrs->iz_react_calc);
   } 
