@@ -1490,6 +1490,33 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->local_ext = app->local_ext;
   ns->local = app->local;
 
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  ns->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<ns->num_periodic_dir; ++d)
+    ns->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) ns->bc_is_np[d] = true;
+  for (int d=0; d<ns->num_periodic_dir; ++d)
+    ns->bc_is_np[ns->periodic_dirs[d]] = false;
+
+  // Store the BCs from the input file.
+  for (int dir=0; dir<app->cdim; ++dir) {
+    ns->lower_bc[dir].type = ns->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (ns->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (dir == 0)
+        bc = &ns->info.bcx;
+      else if (dir == 1)
+        bc = &ns->info.bcy;
+      else
+        bc = &ns->info.bcz;
+
+      ns->lower_bc[dir] = bc->lower;
+      ns->upper_bc[dir] = bc->upper;
+    }
+  }
+
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
   ns->f_host = app->use_gpu? mkarr(false, ns->f->ncomp, ns->f->size)

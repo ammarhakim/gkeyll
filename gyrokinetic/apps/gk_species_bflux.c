@@ -1018,7 +1018,7 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *spe
       for (int m=0; m<num_diag_int_mom; m++) {
         gkyl_array_integrate_release(bflux->integ_op[m]);
         for (int b=0; b<bflux->num_boundaries; ++b)
-          gkyl_dynvec_release(bflux->intmom[b*bflux->num_calc_moms+m]);
+          gkyl_dynvec_release(bflux->intmom[b*num_diag_int_mom+m]);
       }
       gkyl_free(bflux->integ_op);
       gkyl_free(bflux->intmom);
