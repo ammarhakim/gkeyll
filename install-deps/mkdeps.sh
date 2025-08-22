@@ -17,6 +17,7 @@ BUILD_SUPERLU_DIST=no
 BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
 BUILD_LUAJIT=no
+BUILD_TCC=no
 BUILD_CUDSS=no
 
 # by default, download as well as build packages
@@ -58,6 +59,7 @@ The following flags specify the libraries to build.
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
 --build-cudss               [no] Should we build cuDSS?
+--build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
 
 EOF
@@ -163,6 +165,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
       ;;
+   --build-tcc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_TCC="$value"
+      ;;
    --build-cudss)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_CUDSS="$value"
@@ -250,6 +256,14 @@ build_luajit() {
     fi
 }
 
+build_tcc() {
+    if [ "$BUILD_TCC" = "yes" ]
+    then    
+	echo "Building TCC"
+	./build-tcc.sh
+    fi
+}
+
 build_cudss() {
     if [ "$BUILD_CUDSS" = "yes" ]
     then    
@@ -270,6 +284,7 @@ echo "Installations will be in  $PREFIX"
 
 build_openmpi
 build_luajit
+build_tcc
 build_openblas
 build_superlu
 build_superlu_dist

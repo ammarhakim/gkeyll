@@ -59,6 +59,7 @@ choose_kern(struct gkyl_basis cbasis)
       assert(false);
       break; 
   }
+  return 0;
 }
 
 static void
