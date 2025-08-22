@@ -15,7 +15,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -67,7 +67,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -127,7 +127,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_va
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -178,7 +178,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fl
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -234,7 +234,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -286,7 +286,7 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_var
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -342,7 +342,7 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(up, moms, out, out_coff);
   }
 #endif
@@ -394,7 +394,7 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(stru
   assert(up->As->num == nprob*up->mem_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u)) {
+  if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_mass_momentum_thermal_flow_energy_advance_cu(up, moms, out, out_coff);
   }
 #endif
