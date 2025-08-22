@@ -32,10 +32,6 @@ PROJ_NAME ?= gkeyll
 # Determine OS we are running on
 UNAME = $(shell uname)
 
-# Directory for storing shared data, like ADAS reaction rates and radiation fits
-GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
-CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
-
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
 	LAPACK_LIB_DIR = .
@@ -61,6 +57,10 @@ ifeq ($(CC), nvcc)
 	CUDA_LIBS += -lcublas -lcusparse -lcusolver
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
+
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
+CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
 
 # MPI paths and flags
 USING_MPI =
