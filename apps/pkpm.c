@@ -998,6 +998,12 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
   pkpm_field_calc_ext_em(app, app->field, rstat.stime);
   pkpm_field_calc_app_current(app, app->field, rstat.stime);
 
+  // bvar is computed over extended range, so calculate it after
+  // we apply BCs when restarting. Note that the apply_bc call
+  // may not apply BCs in the corner cells and the corner values will just
+  // be what comes from initializing the EM field over the extended range
+  pkpm_field_calc_bvar(app, app->field, app->field->em); 
+
   return rstat;
 }
 
@@ -1045,7 +1051,7 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
       gkyl_array_copy(s->fluid_io, s->fluid_io_host);
     }
     // Copy the relevant components of 10 component fluid array (components 1-4)
-    gkyl_array_set_offset(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis);
+    gkyl_array_set_offset_range(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis, &app->local);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }
@@ -1057,6 +1063,11 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
 struct gkyl_app_restart_status
 gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame)
 {
+  // First call the apply_ic function; the interior cells will be overwritten by the read,
+  // but we need to fill certain corner cells with values to handle various weak operations
+  // over the extended range. 
+  gkyl_pkpm_app_apply_ic_field(app, 0.0);
+
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_field(app, fileNm.str);
   app->field->is_first_energy_write_call = false; // append to existing diagnostic
@@ -1069,6 +1080,11 @@ struct gkyl_app_restart_status
 gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
 {
   struct pkpm_species *s = &app->species[sidx];
+
+  // First call the apply_ic function; the interior cells will be overwritten by the read,
+  // but we need to fill certain corner cells with values to handle various weak operations
+  // over the extended range. 
+  gkyl_pkpm_app_apply_ic_species(app, sidx, 0.0);
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
