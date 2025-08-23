@@ -68,7 +68,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
     // Rescale moment by inverse of Jacobian. 
     // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
     // the density (the 0th component).
-    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->basis, 
+    gkyl_dg_div_op_range(gks->src.moms[m].mem_geo, app->basis, 
       0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
       app->gk_geom->jacobgeo, &app->local);      
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
