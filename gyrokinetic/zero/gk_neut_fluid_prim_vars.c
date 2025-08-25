@@ -97,7 +97,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
 
-    double udrift_d[up->num_basis];
+    double udrift_d[up->udrift_ncomp*up->num_basis];
     for (int i=0; i<up->num_basis; i++)
       udrift_d[i] = 0.0;
 
@@ -395,7 +395,7 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(stru
 
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_gk_neut_fluid_prim_vars_mass_momentum_thermal_flow_energy_advance_cu(up, moms, out, out_coff);
+    return gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(up, moms, out, out_coff);
   }
 #endif
 
@@ -479,52 +479,33 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
       up->integrated_fac *= (grid->dx[d]/2.0)*sqrt(2.0);
   }
 
-  // Assign all kernels in case soone can use the updater for multiple calc types.
-  up->udrift_set_prob_ker = choose_udrift_set_prob_ker(b_type, cdim, poly_order);
-  up->udrift_get_sol_ker = choose_udrift_get_sol_ker(b_type, cdim, poly_order);
-  up->pressure_ker = choose_pressure_ker(b_type, cdim, poly_order);
-  up->temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
-  up->temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
-  up->udrift_temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
-  up->udrift_temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
-  up->flowE_set_prob_ker = choose_flowE_set_prob_ker(b_type, cdim, poly_order);
-  up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
-
   int nprob;
   up->thermalE_fac = 0.0;
   if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT) {
     nprob = up->udrift_ncomp;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_udrift_advance;
   }
   else if ( (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE) ||
             (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY) ) {
     nprob = up->udrift_ncomp;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_pressure_advance;
     up->thermalE_fac = prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE? 1.0 : 1.0/(up->gas_gamma-1.0);
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_TEMP) {
     nprob = 1;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_temp_advance;
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT_PRESSURE) {
     nprob = up->udrift_ncomp;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance;
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT_TEMP) {
     nprob = up->udrift_ncomp+1;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance;
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE) {
     nprob = up->udrift_ncomp+1;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_lte_advance;
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY) {
     nprob = 1;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_flow_energy_advance;
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY) {
     nprob = 1;
-    up->advance_func = gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance;
   }
 
   // There are udrift_ncomp*range->volume linear systems to be solved
@@ -534,6 +515,17 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
   if (up->poly_order > 1) {
     up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
   }
+
+  // Assign all kernels so one can use the updater for multiple calc types.
+  up->udrift_set_prob_ker = choose_udrift_set_prob_ker(b_type, cdim, poly_order);
+  up->udrift_get_sol_ker = choose_udrift_get_sol_ker(b_type, cdim, poly_order);
+  up->pressure_ker = choose_pressure_ker(b_type, cdim, poly_order);
+  up->temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
+  up->temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
+  up->udrift_temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
+  up->udrift_temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
+  up->flowE_set_prob_ker = choose_flowE_set_prob_ker(b_type, cdim, poly_order);
+  up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
