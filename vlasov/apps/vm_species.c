@@ -1166,8 +1166,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   vms->use_vmap = false;
   // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
-  // inverse Jacobian in each direction is derivative of velocity map so uses quadratic representation
   vms->vmap = mkarr(app->use_gpu, vdim*4, vms->local_vel.volume);
+  // velocity-space Jacobian at quadrature points and "surface" quadrature points. Used to compute
+  // 1/Jvi nodally in volume and surface operations respectively, with surface operations utilizing
+  // more quadrature points to eliminate aliasing errors. 
   vms->jacob_vel = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+1), vms->local_vel.volume);
   vms->jacob_vel_surf = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+2), vms->local_vel.volume);
   // need special basis sets to get the correct number of coefficients in 2V and 3V for constructing
@@ -1176,6 +1178,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   gkyl_cart_modal_serendip(&vmap_basis, vdim, 3); 
   gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, vms->basis_vel.poly_order);
   // velocity-space Jacobian at Gaussian quadrature points for projecting distribution functions
+  // and dividing out velocity-space Jacobian nodally. 
   vms->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
 
   // host-side arrays for GPU initialization

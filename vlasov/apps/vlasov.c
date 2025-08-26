@@ -1010,13 +1010,6 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   // since it is not read-in as part of restarts. 
   vm_species_calc_app_accel(app, vms, rstat.stime);
 
-  // Optional runtime configuration to use BGK collisions but with fixed input 
-  // temperature relaxation based on the initial temperature value. 
-  // Need to reinitialize the fixed temperature at restarts. 
-  if (vms->bgk.fixed_temp_relax) {
-    vm_species_bgk_moms_fixed_temp(app, vms, &vms->bgk, vms->f);
-  }
-
   return rstat;
 }
 
@@ -1071,6 +1064,11 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
+  // First call the apply_ic function; the interior cells will be overwritten by the read,
+  // but we need to fill quantities such as the fixed function boundary conditions with the
+  // data from the *initial* conditions. 
+  gkyl_vlasov_app_apply_ic_species(app, sidx, 0.0);
+
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_species(app, sidx, fileNm.str);
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
