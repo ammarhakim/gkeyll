@@ -22,7 +22,7 @@ GKYL_CU_DH double vlasov_hamil_gen_surfx_1x1v_ser_p1(const double *w, const doub
   alpha_max = fmax(alpha_max, fmax(fabs(alpha_l_quad), fabs(alpha_r_quad))); 
   f_lr_quad = -(0.8660254037844386*fl[3])-0.5*fl[2]+0.8660254037844386*fl[1]+0.5*fl[0]; 
   f_cl_quad = 0.8660254037844386*fc[3]-0.5*fc[2]-0.8660254037844386*fc[1]+0.5*fc[0]; 
-  f_cr_quad = -(0.8660254037844386*fl[3])-0.5*fl[2]+0.8660254037844386*fl[1]+0.5*fl[0]; 
+  f_cr_quad = -(0.8660254037844386*fc[3])-0.5*fc[2]+0.8660254037844386*fc[1]+0.5*fc[0]; 
   f_rl_quad = 0.8660254037844386*fr[3]-0.5*fr[2]-0.8660254037844386*fr[1]+0.5*fr[0]; 
   Ghat_l_nodal[0] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
   Ghat_r_nodal[0] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
@@ -32,7 +32,7 @@ GKYL_CU_DH double vlasov_hamil_gen_surfx_1x1v_ser_p1(const double *w, const doub
   alpha_max = fmax(alpha_max, fmax(fabs(alpha_l_quad), fabs(alpha_r_quad))); 
   f_lr_quad = 0.8660254037844386*fl[3]+0.5*fl[2]+0.8660254037844386*fl[1]+0.5*fl[0]; 
   f_cl_quad = -(0.8660254037844386*fc[3])+0.5*fc[2]-0.8660254037844386*fc[1]+0.5*fc[0]; 
-  f_cr_quad = 0.8660254037844386*fl[3]+0.5*fl[2]+0.8660254037844386*fl[1]+0.5*fl[0]; 
+  f_cr_quad = 0.8660254037844386*fc[3]+0.5*fc[2]+0.8660254037844386*fc[1]+0.5*fc[0]; 
   f_rl_quad = -(0.8660254037844386*fr[3])+0.5*fr[2]-0.8660254037844386*fr[1]+0.5*fr[0]; 
   Ghat_l_nodal[1] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
   Ghat_r_nodal[1] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
