@@ -205,6 +205,8 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       //                          = 2*E - h^{ij}*M1_i*V_drift_j 
       gkyl_canonical_pb_pressure(lte_moms->can_pb_vars, conf_local, lte_moms->h_ij_inv, lte_moms->energy_moment,
         lte_moms->V_drift_cov, lte_moms->M1i_cov, lte_moms->pressure);
+      // Rescale pressure by 2.0/vdim and set the first component of moms_out to be the density. 
+      gkyl_array_scale(lte_moms->pressure, 1.0/vdim);
     }
     else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
 
@@ -221,10 +223,9 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
         lte_moms->V_drift_dot_M1i, lte_moms->V_drift, lte_moms->M1i, conf_local); 
       gkyl_array_accumulate_range(lte_moms->pressure, -0.5, 
         lte_moms->V_drift_dot_M1i, conf_local); 
+      // Rescale pressure by 2.0/vdim and set the first component of moms_out to be the density. 
+      gkyl_array_scale(lte_moms->pressure, 2.0/vdim);
     }
-
-    // Rescale pressure by 2.0/vdim and set the first component of moms_out to be the density. 
-    gkyl_array_scale(lte_moms->pressure, 2.0/vdim);
     gkyl_array_set_range(moms_out, 1.0, lte_moms->M0, conf_local);
   }
   // ( T/m = P/(mn) ) 
