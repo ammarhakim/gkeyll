@@ -756,7 +756,10 @@ main(int argc, char **argv)
       .num_boundaries = 2,
       .boundaries_dir = {0, 0,},
       .boundaries_edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE,},
-    }
+    },
+
+    .num_diag_moments = 1,
+    .diag_moments = { GKYL_F_MOMENT_LTE, },
   };
 
   // Field.

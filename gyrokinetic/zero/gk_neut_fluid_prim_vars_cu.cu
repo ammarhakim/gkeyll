@@ -398,10 +398,13 @@ gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars* up
     double* out_d = (double*) gkyl_array_fetch(out, loc);
     double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
 
-    for (int i=0; i<up->num_basis; i++)
-      prim_vars_d[out_coff+i] = moms_d[i]/up->mass;
-
     up->udrift_temp_get_sol_ker(count, xs, &prim_vars_d[up->num_basis]);
+
+    // Scale rho and temp by 1/m.
+    for (int i=0; i<up->num_basis; i++) {
+      prim_vars_d[out_coff+i] = moms_d[i]/up->mass;
+      prim_vars_d[out_coff+(up->udrift_ncomp+1)*up->num_basis+i] *= 1.0/up->mass;
+    }
 
     if (up->is_integrated) {
       for (int i=0; i<up->udrift_ncomp+2; i++)
@@ -580,8 +583,8 @@ gk_neut_fluid_prim_vars_set_cu_dev_ptrs(struct gkyl_gk_neut_fluid_prim_vars *up,
   up->pressure_ker = choose_pressure_ker(b_type, cdim, poly_order);
   up->temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
   up->temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
-  up->udrift_temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
-  up->udrift_temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
+  up->udrift_temp_set_prob_ker = choose_udrift_temp_set_prob_ker(b_type, cdim, poly_order);
+  up->udrift_temp_get_sol_ker = choose_udrift_temp_get_sol_ker(b_type, cdim, poly_order);
   up->flowE_set_prob_ker = choose_flowE_set_prob_ker(b_type, cdim, poly_order);
   up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
 }
