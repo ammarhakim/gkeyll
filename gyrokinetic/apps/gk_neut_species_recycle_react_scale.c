@@ -97,9 +97,10 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
     double neut_scaling_fac = rrs->recycling_coeff * bflux_intm0_global_ho / rrs->react_vol_integ;
 
     // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
+    gkyl_array_set_offset_range(rrs->dndt_react, 1.0, fin, 0, &app->local);
     for (int i=0; i<ns->num_moments;++i)
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
-        i, fin, 0, fin, &app->local); 
+        i, fin, 0, rrs->dndt_react, &app->local); 
   
     for (int i=0; i<ns->num_moments;++i)
       gkyl_dg_mul_op_range(app->basis, i, fin,
