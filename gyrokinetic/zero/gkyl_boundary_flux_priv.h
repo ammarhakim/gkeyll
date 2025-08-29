@@ -7,7 +7,8 @@ struct gkyl_boundary_flux {
   enum gkyl_edge_loc edge; // Lower or upper boundary.
   struct gkyl_rect_grid grid; // Phase-space grid object.
   struct gkyl_range skin_r, ghost_r; // Skin and ghost ranges.
-  const struct gkyl_dg_eqn *equation; // Equation object.
+  int num_eqns; // Number of equation objects.
+  struct gkyl_dg_eqn **eqns; // Equation objects.
   bool use_gpu; // Whether to run on GPU.
   double skip_cell_threshold; // Threshold for skipping cells in the skin range.
 
@@ -25,14 +26,15 @@ struct gkyl_boundary_flux {
  * @param grid Grid object (on device)
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
- * @param equation Equation object
+ * @param num_eqns Number of equation objects.
+ * @param eqns Equation objects.
  * @param skip_cell_threshold Threshold for skipping cells.
  * @return New updater pointer.
  */
 gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold);
+  int num_eqns, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold);
 
 /**
  * Compute the boundary flux on the GPU.

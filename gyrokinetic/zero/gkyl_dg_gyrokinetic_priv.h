@@ -605,6 +605,18 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   return 0.;
 }
 
+GKYL_CU_D
+static double
+boundary_diag(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double* xcEdge, const double* xcSkin,
+  const double* dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{
+  return boundary_surf(eqn, dir, xcEdge, xcSkin, dxEdge, dxSkin, idxEdge, idxSkin, edge, qInEdge, qInSkin, qRhsOut);
+}
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * Create new Gyrokinetic equation object on NV-GPU: 

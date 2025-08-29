@@ -344,6 +344,8 @@ struct gk_boundary_fluxes {
   struct gkyl_range *boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
   struct gkyl_range *boundaries_phase_ghost_nosub; // Not a sub range of local_ext.
   struct gkyl_range *boundaries_conf_skin_fullx[2*GKYL_MAX_CDIM]; // Whole x range (for IWL).
+  int num_eqns; // Number of equations with boundary fluxes.
+  const struct gkyl_dg_eqn **eqns; // Array of equation objects with boundary fluxes.
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
@@ -676,7 +678,6 @@ struct gk_species {
   bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
 
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver.
-  struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
   
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.

@@ -43,11 +43,11 @@ gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_r
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
- * Acquire gyrokinetic equation object
+ * Acquire gyrokinetic equation object.
  *
- * @param up gyrokinetic updater object
+ * @param up gyrokinetic updater object.
  * 
- * @return gyrokinetic equation object
+ * @return gyrokinetic equation object.
  */
 struct gkyl_dg_eqn* 
 gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* up);

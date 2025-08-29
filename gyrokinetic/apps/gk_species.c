@@ -76,7 +76,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 }
 
 static void
-gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -98,7 +98,7 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
 }
 
 static void
-gk_species_collisionless_rhs_empty(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
 }
@@ -772,11 +772,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gk_species_radiation_release(app, &s->rad);
   }
 
-  if (s->has_diffusion) {
-    gkyl_array_release(s->diffD);
-    gkyl_dg_updater_diffusion_gyrokinetic_release(s->diff_slvr);
-  }
-
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
@@ -963,43 +958,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
   }
 
-  // Initialize diffusion if present.
-  gks->has_diffusion = false;  
-  if (gks->info.diffusion.num_diff_dir) {
-    gks->has_diffusion = true;
-    int diffusion_order = gks->info.diffusion.order ? gks->info.diffusion.order : 2;
-
-    int szD = cdim*app->basis.num_basis;
-    gks->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
-    bool diff_dir[GKYL_MAX_CDIM] = {false};
-
-    int num_diff_dir = gks->info.diffusion.num_diff_dir ? gks->info.diffusion.num_diff_dir : app->cdim;
-    // Assuming diffusion along x only for now.
-    assert(num_diff_dir == 1);
-    assert(gks->info.diffusion.diff_dirs[0] == 0);
-    for (int d=0; d<num_diff_dir; ++d) {
-      int dir = gks->info.diffusion.diff_dirs[d]; 
-      diff_dir[dir] = 1; 
-      gkyl_array_shiftc(gks->diffD, gks->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
-    }
-    // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gks->diffD, 0, app->gk_geom->gxxj, 0, gks->diffD);
-
-    // By default, we do not have zero-flux boundary conditions in any direction
-    // Determine which directions are zero-flux.
-    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-    for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir] = true;
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir+pdim] = true;
-    }
-
-    gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux,
-      gks->info.skip_cell_threshold, app->use_gpu);
-  }
-  
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
   for (int dir=0; dir<cdim; ++dir) {
@@ -1672,12 +1630,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->info.skip_cell_threshold, gks->gkmodel_id, app->gk_geom, gks->vel_map, 
     &aux_inp, app->use_gpu);
 
-  // Acquire equation object.
-  gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
-
-  gks->collisionless_rhs_func = gk_species_collisionless_rhs_included;
+  gks->collisionless_rhs_func = gk_species_collisionless_rhs_enabled;
   if (gks->info.no_collisionless_terms)
-    gks->collisionless_rhs_func = gk_species_collisionless_rhs_empty;
+    gks->collisionless_rhs_func = gk_species_collisionless_rhs_disabled;
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
@@ -1761,6 +1716,43 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_init(&gks->local_par_ext_core, &gks->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
   }
 
+  // Initialize diffusion if present.
+  gks->has_diffusion = false;  
+  if (gks->info.diffusion.num_diff_dir) {
+    gks->has_diffusion = true;
+    int diffusion_order = gks->info.diffusion.order ? gks->info.diffusion.order : 2;
+
+    int szD = cdim*app->basis.num_basis;
+    gks->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
+    bool diff_dir[GKYL_MAX_CDIM] = {false};
+
+    int num_diff_dir = gks->info.diffusion.num_diff_dir ? gks->info.diffusion.num_diff_dir : app->cdim;
+    // Assuming diffusion along x only for now.
+    assert(num_diff_dir == 1);
+    assert(gks->info.diffusion.diff_dirs[0] == 0);
+    for (int d=0; d<num_diff_dir; ++d) {
+      int dir = gks->info.diffusion.diff_dirs[d]; 
+      diff_dir[dir] = 1; 
+      gkyl_array_shiftc(gks->diffD, gks->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
+    }
+    // Multiply diffD by g^xx*jacobgeo.
+    gkyl_dg_mul_op(app->basis, 0, gks->diffD, 0, app->gk_geom->gxxj, 0, gks->diffD);
+
+    // By default, we do not have zero-flux boundary conditions in any direction
+    // Determine which directions are zero-flux.
+    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
+    for (int dir=0; dir<app->cdim; ++dir) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+        is_zero_flux[dir] = true;
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+        is_zero_flux[dir+pdim] = true;
+    }
+
+    gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
+      false, diff_dir, diffusion_order, &app->local, is_zero_flux,
+      gks->info.skip_cell_threshold, app->use_gpu);
+  }
+  
   // Initialize boundary fluxes.
   gks->bflux = (struct gk_boundary_fluxes) { };
   // Additional bflux moments to step in time.
@@ -1788,7 +1780,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
   }
-
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   
@@ -2051,8 +2042,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gkyl_dg_calc_gyrokinetic_vars_release(s->calc_gk_vars);
 
-  // Release equation object and solver.
-  gkyl_dg_eqn_release(s->eqn_gyrokinetic);
   gkyl_dg_updater_gyrokinetic_release(s->slvr);
 
   // Release moment data.
@@ -2067,6 +2056,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);
   
+  if (s->has_diffusion) {
+    gkyl_array_release(s->diffD);
+    gkyl_dg_updater_diffusion_gyrokinetic_release(s->diff_slvr);
+  }
+
   gk_species_lte_release(app, &s->lte);
 
   gkyl_array_release(s->m0_gyroavg);
