@@ -76,7 +76,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
-  gyrokinetic->eqn.boundary_surf_term = boundary_diag;
+  gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_no_by_x_kernels; 
