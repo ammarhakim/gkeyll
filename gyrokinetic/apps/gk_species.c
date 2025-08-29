@@ -132,7 +132,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   if (species->has_diffusion) {
     struct timespec wst = gkyl_wall_clock();
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
-      species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
+      fin, species->cflrate, rhs);
     app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
   }
 
@@ -1749,8 +1749,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux,
-      gks->info.skip_cell_threshold, app->use_gpu);
+      false, diff_dir, diffusion_order, &app->local, is_zero_flux, gks->info.skip_cell_threshold,
+      gks->diffD, app->gk_geom->jacobgeo_inv, app->use_gpu);
   }
   
   // Initialize boundary fluxes.

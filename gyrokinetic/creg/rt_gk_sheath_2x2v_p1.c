@@ -634,9 +634,16 @@ main(int argc, char **argv)
       }
     },
     
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 1. },
+      .order = 2,
+    },
+
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
     .bcy = {
       .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
@@ -707,9 +714,16 @@ main(int argc, char **argv)
       }
     },
 
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 1. },
+      .order = 2,
+    },
+
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
     .bcy = {
       .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
