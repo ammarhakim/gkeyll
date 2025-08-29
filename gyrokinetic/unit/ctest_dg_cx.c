@@ -111,7 +111,7 @@ test_coll_cx_d(bool use_gpu)
 
   struct gkyl_array *n_ion = mkarr(use_gpu, basis.num_basis, confRange.volume);
   struct gkyl_array *T_over_m_ion = mkarr(use_gpu, basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_ion = mkarr(use_gpu, (3+2)*basis.num_basis, confRange.volume);
+  struct gkyl_array *moms_ion = mkarr(use_gpu, (1+2)*basis.num_basis, confRange.volume);
   struct gkyl_array *n_neut = mkarr(use_gpu, basis.num_basis, confRange.volume);
   struct gkyl_array *T_over_m_neut = mkarr(use_gpu, basis.num_basis, confRange.volume);
   struct gkyl_array *moms_neut = mkarr(use_gpu, (3+2)*basis.num_basis, confRange.volume);
@@ -128,7 +128,7 @@ test_coll_cx_d(bool use_gpu)
   proj_on_basis_copy(proj_n, 0.0, &confRange, n_ion, use_gpu);
   proj_on_basis_copy(proj_T_over_m_ion, 0.0, &confRange, T_over_m_ion, use_gpu);
   gkyl_array_set_offset(moms_ion, 1.0, n_ion, 0);
-  gkyl_array_set_offset(moms_ion, 1.0, T_over_m_ion, (1+3)*basis.num_basis);
+  gkyl_array_set_offset(moms_ion, 1.0, T_over_m_ion, (1+1)*basis.num_basis);
 
   proj_on_basis_copy(proj_n, 0.0, &confRange, n_neut, use_gpu);
   proj_on_basis_copy(proj_T_over_m_neut, 0.0, &confRange, T_over_m_neut, use_gpu);
