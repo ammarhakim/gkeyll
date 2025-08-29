@@ -14,7 +14,7 @@ double sigma_cx_1x_ser_p1(const double a, const double b, double vt_sq_ion_min, 
 
   double m0_neut_av = 0.7071067811865476*maxwellian_moms_neut[0]; 
  
-  const double *vt_sq_ion = &maxwellian_moms_ion[8]; 
+  const double *vt_sq_ion = &maxwellian_moms_ion[4]; 
   const double *u_neut = &maxwellian_moms_neut[2]; 
   const double *vt_sq_neut = &maxwellian_moms_neut[8]; 
  
@@ -48,7 +48,7 @@ double sigma_cx_1x_ser_p2(const double a, const double b, double vt_sq_ion_min, 
 
   double m0_neut_av = 0.7071067811865476*maxwellian_moms_neut[0]; 
  
-  const double *vt_sq_ion = &maxwellian_moms_ion[12]; 
+  const double *vt_sq_ion = &maxwellian_moms_ion[6]; 
   const double *u_neut = &maxwellian_moms_neut[3]; 
   const double *vt_sq_neut = &maxwellian_moms_neut[12]; 
  
@@ -82,7 +82,7 @@ double sigma_cx_2x_ser_p1(const double a, const double b, double vt_sq_ion_min, 
 
   double m0_neut_av = 0.5*maxwellian_moms_neut[0]; 
  
-  const double *vt_sq_ion = &maxwellian_moms_ion[16]; 
+  const double *vt_sq_ion = &maxwellian_moms_ion[8]; 
   const double *u_neut = &maxwellian_moms_neut[4]; 
   const double *vt_sq_neut = &maxwellian_moms_neut[16]; 
  
@@ -116,7 +116,7 @@ double sigma_cx_2x_ser_p2(const double a, const double b, double vt_sq_ion_min, 
 
   double m0_neut_av = 0.5*maxwellian_moms_neut[0]; 
  
-  const double *vt_sq_ion = &maxwellian_moms_ion[32]; 
+  const double *vt_sq_ion = &maxwellian_moms_ion[16]; 
   const double *u_neut = &maxwellian_moms_neut[8]; 
   const double *vt_sq_neut = &maxwellian_moms_neut[32]; 
  
@@ -150,7 +150,7 @@ double sigma_cx_3x_ser_p1(const double a, const double b, double vt_sq_ion_min, 
 
   double m0_neut_av = 0.35355339059327384*maxwellian_moms_neut[0]; 
  
-  const double *vt_sq_ion = &maxwellian_moms_ion[32]; 
+  const double *vt_sq_ion = &maxwellian_moms_ion[16]; 
   const double *u_neut = &maxwellian_moms_neut[8]; 
   const double *vt_sq_neut = &maxwellian_moms_neut[32]; 
  
