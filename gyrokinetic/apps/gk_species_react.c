@@ -142,7 +142,6 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       struct gkyl_dg_cx_inp cx_inp = {
-        .grid = &s->grid,
         .cbasis = &app->basis,
         .conf_rng = &app->local,
         .vt_sq_ion_min = ion_vt_sq_min, 
@@ -450,7 +449,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
     
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
-      const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
+      const char *fmt = "%s-%s_%s_react_iz_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
@@ -461,7 +460,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
         gkr->coeff_react_host[ridx], fileNm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
-      const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+      const char *fmt = "%s-%s_%s_react_recomb_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, 
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].recvr_nm, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
@@ -472,7 +471,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
         gkr->coeff_react_host[ridx], fileNm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_CX) {
-      const char *fmt = "%s-%s_%s_cx_react_%d.gkyl";
+      const char *fmt = "%s-%s_react_cx_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
         gkr->react_type[ridx].partner_nm, frame);
       char fileNm[sz+1]; // ensures no buffer overflow

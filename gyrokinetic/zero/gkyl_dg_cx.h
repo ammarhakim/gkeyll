@@ -9,7 +9,6 @@
 #include <gkyl_eqn_type.h>
 
 struct gkyl_dg_cx_inp {
-  const struct gkyl_rect_grid* grid; // Grid object needed for fmax
   struct gkyl_basis* cbasis; // Configuration-space basis-functions
   const struct gkyl_range *conf_rng; // Configuration-space range
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
