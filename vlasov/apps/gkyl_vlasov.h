@@ -183,6 +183,18 @@ struct gkyl_vlasov_species {
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // Set to true if applied acceleration function is time dependent.
 
+  void *cov_tangent_basis_ctx; // Context for covariant tangent basis function.
+  // Pointer to covariant tangent basis function.
+  void (*cov_tangent_basis)(double t, const double *xn, double *aout, void *ctx);
+
+  void *triad_basis_ctx; // Context for triad basis function.
+  // Pointer to triad basis function.
+  void (*triad_basis)(double t, const double *xn, double *aout, void *ctx);
+
+  void *triad_basis_gradient_ctx; // Context for triad basis gradient function.
+  // Pointer to triad basis gradient function.
+  void (*triad_basis_gradient)(double t, const double *xn, double *aout, void *ctx);
+
   void *hamil_ctx; // Context for general (phase space) Hamiltonian function.
   // Pointer to general (phase space) Hamilonian function.
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);

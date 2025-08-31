@@ -36,6 +36,110 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
         &app->basis,  &vms->basis_vel, &app->local, &vms->local_vel, 
         vms->vmap, vms->use_vmap, app->use_gpu);   
     }
+  } 
+  else if (vms->model_id == GKYL_MODEL_TRIAD) {
+
+    int cdim = app->cdim;
+    int vdim = app->vdim;  
+  
+    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // same infrastructure as GKYL_MODEL_DEFAULT
+    vms->hamil_range = vms->local_vel; 
+    vms->hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
+      GKYL_MODEL_DEFAULT, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu);
+
+    // Allocate arrays for covariant tangent basis  
+    vms->cov_tangent_basis = mkarr(app->use_gpu, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
+    vms->cov_tangent_basis_host = vms->cov_tangent_basis;
+    if (app->use_gpu){
+      vms->cov_tangent_basis_host = mkarr(false, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
+    }
+
+    // Allocate arrays for triad basis  
+    vms->triad_basis = mkarr(app->use_gpu, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
+    vms->triad_basis_host = vms->triad_basis;
+    if (app->use_gpu){
+      vms->triad_basis_host = mkarr(false, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric inverse
+    vms->h_ij = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+    vms->h_ij_host = vms->h_ij;
+    if (app->use_gpu){
+      vms->h_ij_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric inverse
+    vms->h_ij_inv = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+    vms->h_ij_inv_host = vms->h_ij_inv;
+    if (app->use_gpu){
+      vms->h_ij_inv_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric determinant
+    vms->det_h = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    vms->det_h_host = vms->det_h;
+    if (app->use_gpu){
+      vms->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    } 
+
+    // Allocate arrays for configuration space Poisson tensor
+    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+cdim)*((vdim+cdim)+1)/2, app->local_ext.volume);
+    vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
+    if (app->use_gpu){
+      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*vdim*(vdim+cdim)*((vdim+cdim)+1)/2, app->local_ext.volume);
+    }
+
+    // Evaluate specified covariant tangent basis function at nodes to ensure continuity of the basis
+    struct gkyl_eval_on_nodes* cov_tangent_basis_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*vdim, 
+      vms->info.cov_tangent_basis, vms->info.cov_tangent_basis_ctx);
+    gkyl_eval_on_nodes_advance(cov_tangent_basis_proj, 0.0, &app->local, vms->cov_tangent_basis_host);
+    if (app->use_gpu){
+      gkyl_array_copy(vms->cov_tangent_basis, vms->cov_tangent_basis_host);
+    }
+    gkyl_eval_on_nodes_release(cov_tangent_basis_proj);
+
+    // Evaluate specified triad basis function at nodes to ensure continuity of the basis
+    struct gkyl_eval_on_nodes* triad_basis_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*vdim, 
+      vms->info.triad_basis, vms->info.triad_basis_ctx);
+    gkyl_eval_on_nodes_advance(triad_basis_proj, 0.0, &app->local, vms->triad_basis_host);
+    if (app->use_gpu){
+      gkyl_array_copy(vms->triad_basis, vms->triad_basis_host);
+    }
+    gkyl_eval_on_nodes_release(triad_basis_proj);
+
+    // INCOMPLETE: 
+    // NOTE: Quantities are stored modally
+    // 1. Need to build the inputs like is done in: gkyl_vlasov_velocity_map_new
+    // 2. Signature is incomplete for gkyl_calc_triad_geom
+
+    struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+    if ((vms->info.triad_basis && vms->info.triad_basis_gradient) 
+      && (vms->info.cov_tangent_basis))  {
+      vms->use_vmap = true; 
+      inp_basis_vectors.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
+      inp_basis_vectors.eval_triad_basis = vms->info.triad_basis; 
+      inp_basis_vectors.eval_triad_basis_gradient = vms->info.triad_basis_gradient; 
+      inp_basis_vectors.ctx = 0; 
+    }
+
+    // The geometry comes from the tangents and triads
+    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
+      &vms->grid, &vms->local, vms->basis, 
+      inp_basis_vectors, vms->cov_tangent_basis, vms->triad_basis,  
+      vms->h_ij, vms->h_ij_inv, vms->det_h, 
+      vms->conf_poisson_tensor);
+
+    // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
+    if (app->use_gpu) {
+      gkyl_array_copy(vms->h_ij, vms->h_ij_host); 
+      gkyl_array_copy(vms->h_ij_inv, vms->h_ij_inv_host); 
+      gkyl_array_copy(vms->det_h, vms->det_h_host); 
+      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host); 
+    }
+
   }
   else {
     // Hamiltonian is a full phase-space array. 
@@ -67,7 +171,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       vms->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
-    // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
+    // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltoniam
     struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, vms->info.hamil, vms->info.hamil_ctx);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
@@ -75,7 +179,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     gkyl_eval_on_nodes_release(hamil_proj);
 
-    // Evaluate specified metric function at nodes to insure continuity
+    // Evaluate specified metric function at nodes to ensure continuity
     struct gkyl_eval_on_nodes* h_ij_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, vms->info.h_ij, vms->info.h_ij_ctx);
     gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, vms->h_ij_host);
     if (app->use_gpu){
@@ -83,7 +187,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     gkyl_eval_on_nodes_release(h_ij_proj);
 
-    // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
+    // Evaluate specified inverse metric function at nodes to ensure continuity of the inverse 
     struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, vms->info.h_ij_inv, vms->info.h_ij_inv_ctx);
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, vms->h_ij_inv_host);
     if (app->use_gpu){
@@ -91,7 +195,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     gkyl_eval_on_nodes_release(h_ij_inv_proj);
 
-    // Evaluate specified determinant metric function at nodes to insure continuity of the determinant
+    // Evaluate specified determinant metric function at nodes to ensure continuity of the determinant
     struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, vms->info.det_h, vms->info.det_h_ctx);
     gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, vms->det_h_host);
     if (app->use_gpu){
@@ -1583,14 +1687,20 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     }
   }
   else  {
+    gkyl_array_release(vms->cov_tangent_basis);
+    gkyl_array_release(vms->triad_basis);
     gkyl_array_release(vms->h_ij);
     gkyl_array_release(vms->h_ij_inv);
     gkyl_array_release(vms->det_h);
+    gkyl_array_release(vms->conf_poisson_tensor);
     if (app->use_gpu){
+      gkyl_array_release(vms->cov_tangent_basis_host);
+      gkyl_array_release(vms->triad_basis_host);
       gkyl_array_release(vms->hamil_host);
       gkyl_array_release(vms->h_ij_host);
       gkyl_array_release(vms->h_ij_inv_host);
       gkyl_array_release(vms->det_h_host);
+      gkyl_array_release(vms->conf_poisson_tensor_host);
     }
   }
   gkyl_array_release(vms->hamil);  

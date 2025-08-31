@@ -360,6 +360,15 @@ struct vlasov_species_lw {
   struct gkyl_vlasov_species vm_species; // Input struct to construct species.
   int vdim; // Velocity space dimensions.
 
+  bool has_cov_tangent_basis_func; // Is there a covariant tangent basis function?
+  struct lua_func_ctx cov_tangent_basis_func_ref; // Lua registry reference to covariant tangent basis function.
+
+  bool has_triad_basis_func; // Is there a triad basis function?
+  struct lua_func_ctx triad_basis_func_ref; // Lua registry reference to triad basis function.
+
+  bool has_triad_basis_gradient_func; // Is there a triad basis gradient function?
+  struct lua_func_ctx triad_basis_gradient_func_ref; // Lua registry reference to triad basis gradient function.
+
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
 
@@ -548,6 +557,15 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
+  bool has_cov_tangent_basis_func = false;
+  int cov_tangent_basis_func_ref = LUA_NOREF;
+
+  bool has_triad_basis_func = false;
+  int triad_basis_func_ref = LUA_NOREF;
+
+  bool has_triad_basis_gradient_func = false;
+  int triad_basis_gradient_func_ref = LUA_NOREF;
+
   bool has_hamiltonian_func = false;
   int hamiltonian_func_ref = LUA_NOREF;
 
@@ -559,6 +577,21 @@ vlasov_species_lw_new(lua_State *L)
 
   bool has_metric_determinant_func = false;
   int metric_determinant_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "covTangentBasis")) {
+    cov_tangent_basis_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_cov_tangent_basis_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "triadBasis")) {
+    triad_basis_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_triad_basis_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "triadBasisGradient")) {
+    triad_basis_gradient_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_triad_basis_gradient_func = true;
+  }
 
   if (glua_tbl_get_func(L, "hamiltonian")) {
     hamiltonian_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -827,6 +860,31 @@ vlasov_species_lw_new(lua_State *L)
       .L = L,
     };
   }
+
+  vms_lw->has_cov_tangent_basis_func = has_cov_tangent_basis_func;
+  vms_lw->cov_tangent_basis_func_ref = (struct lua_func_ctx) {
+    .func_ref = cov_tangent_basis_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim * vdim,
+    .L = L,
+  };
+
+  vms_lw->has_triad_basis_func = has_triad_basis_func;
+  vms_lw->triad_basis_func_ref = (struct lua_func_ctx) {
+    .func_ref = triad_basis_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim * vdim,
+    .L = L,
+  };
+
+  vms_lw->has_triad_basis_gradient_func = has_triad_basis_gradient_func;
+  vms_lw->triad_basis_gradient_func_ref = (struct lua_func_ctx) {
+    .func_ref = triad_basis_gradient_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim * vdim * vdim, // should be vdim^2 cdim
+    .L = L,
+  };
+
 
   vms_lw->has_hamiltonian_func = has_hamiltonian_func;
   vms_lw->hamiltonian_func_ref = (struct lua_func_ctx) {
@@ -1380,6 +1438,15 @@ struct vlasov_app_lw {
   bool has_mapc2p_vel_func[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Is there a velocity-map?
   struct lua_func_ctx mapc2p_vel_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Lua registry reference to velocity-space mapping.
 
+  bool has_cov_tangent_basis_func[GKYL_MAX_SPECIES]; // Is there a covariant tangent basis function?
+  struct lua_func_ctx cov_tangent_basis_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to covariant tangent basis function.
+
+  bool has_triad_basis_func[GKYL_MAX_SPECIES]; // Is there a triad basis function?
+  struct lua_func_ctx triad_basis_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to triad basis function.
+
+  bool has_triad_basis_gradient_func[GKYL_MAX_SPECIES]; // Is there a triad basis gradient function?
+  struct lua_func_ctx triad_basis_gradient_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to triad basis gradient function.
+
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
 
@@ -1506,6 +1573,18 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
           if (vms->has_mapc2p_vel_func[i]) {
             vms->mapc2p_vel_func_ref[i].ndim = vms->vdim;
           }
+        }
+
+        if (vms->has_cov_tangent_basis_func) {
+          vms->cov_tangent_basis_func_ref.ndim = cdim;
+        }
+
+        if (vms->has_triad_basis_func) {
+          vms->triad_basis_func_ref.ndim = cdim;
+        }
+
+        if (vms->has_triad_basis_gradient_func) {
+          vms->triad_basis_gradient_func_ref.ndim = cdim;
         }
 
         if (vms->has_hamiltonian_func) {
@@ -1838,6 +1917,15 @@ vm_app_new(lua_State *L)
       }
     }
 
+    app_lw->has_cov_tangent_basis_func[s] = species[s]->has_cov_tangent_basis_func;
+    app_lw->cov_tangent_basis_func_ctx[s] = species[s]->cov_tangent_basis_func_ref;
+
+    app_lw->has_triad_basis_func[s] = species[s]->has_triad_basis_func;
+    app_lw->triad_basis_func_ctx[s] = species[s]->triad_basis_func_ref;
+
+    app_lw->has_triad_basis_gradient_func[s] = species[s]->has_triad_basis_gradient_func;
+    app_lw->triad_basis_gradient_func_ctx[s] = species[s]->triad_basis_gradient_func_ref;
+
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
@@ -1849,6 +1937,16 @@ vm_app_new(lua_State *L)
 
     app_lw->has_metric_determinant_func[s] = species[s]->has_metric_determinant_func;
     app_lw->metric_determinant_func_ctx[s] = species[s]->metric_determinant_func_ref;
+
+    if (species[s]->has_cov_tangent_basis_func) {
+      vm.species[s].cov_tangent_basis = gkyl_lw_eval_cb;
+      vm.species[s].cov_tangent_basis_ctx = &app_lw->cov_tangent_basis_func_ctx[s];
+    }
+
+    if (species[s]->has_triad_basis_func) {
+      vm.species[s].triad_basis = gkyl_lw_eval_cb;
+      vm.species[s].triad_basis_ctx = &app_lw->triad_basis_func_ctx[s];
+    }
 
     if (species[s]->has_hamiltonian_func) {
       vm.species[s].hamil = gkyl_lw_eval_cb;

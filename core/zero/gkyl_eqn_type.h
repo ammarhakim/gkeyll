@@ -60,6 +60,7 @@ enum gkyl_model_id {
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_CANONICAL_PB = 2,
   GKYL_MODEL_CANONICAL_PB_GR = 3,
+  GKYL_MODEL_TRIAD = 4,
 };
 
 // Identifiers for specific collision object types
