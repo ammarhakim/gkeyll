@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>

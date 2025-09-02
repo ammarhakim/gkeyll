@@ -253,19 +253,37 @@ compute_nu_inv_3x(const double *h_ij_inv, const double *triad_basis, const doubl
   h_ij_inv_local[7] = h_ij_inv[4];
   h_ij_inv_local[8] = h_ij_inv[5];
 
-
+  // Zero out nu_inv components
   for (int i=0; i<vdim; ++i) {
     for (int j=0; j<vdim; ++j) {
       nu_inv[i*vdim + j] = 0;
+    }
+  }
+
+  // Set nu_inv components
+  // nu^{ij} = h^{jn} (\sigma^{i,m} g_{n,m})
+  for (int i=0; i<vdim; ++i) {
+    for (int j=0; j<vdim; ++j) {
       for (int n=0; n<vdim; ++n) {
         for (int m=0; m<vdim; ++m) {
-          nu_inv[i*vdim + j] += h_ij_inv_local[j*vdim + n] * ( cov_tangent_basis[i*vdim+m] * cov_tangent_basis[n*vdim+m] );
+          nu_inv[i*vdim + j] += h_ij_inv_local[j*vdim + n] * ( triad_basis[i*vdim+m] * cov_tangent_basis[n*vdim+m] );
         }
       }
     }
   }
 }
 
+
+static void
+asym_ten_indx(const int vdim, const int p, int* m, int* k)
+{
+  if(vdim == 3){
+    // map p = 0,1,2 to index pairs (m,n) = (0,1),(0,2),(1,2)
+    static const int pairs[3][2] = { {0,1}, {0,2}, {1,2} };
+    m[0] = pairs[p][0];
+    k[0] = pairs[p][1];
+  }
+}
 
 static void 
 kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basis,
@@ -308,8 +326,8 @@ kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basi
   int cdim = 3;
   int vdim = 3;
   int pdim = cdim + vdim;
-  int n_sym_tensor_indices = 3;
-  int n_nonzero_indices = vdim*vdim + n_sym_tensor_indices;
+  int nonzero_asym_indices = 3;
+  int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices;
 
   // Zero out the Poisson Tensor, top left block is zero
   for (int i=0; i<n_nonzero_indices; ++i) {
@@ -323,51 +341,42 @@ kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basi
   //         = h^{jn} (\sigma^i \cdot g_n)
   compute_nu_inv_3x(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
 
-  // Top right block:
+  // Top right block: \Pi^{ij}_{xp} = e^{ji} (transpose)
   conf_poisson_tensor[0] = nu_inv[0];
-  conf_poisson_tensor[1] = nu_inv[1];
-  conf_poisson_tensor[2] = nu_inv[2];
-  conf_poisson_tensor[3] = nu_inv[3];
+  conf_poisson_tensor[1] = nu_inv[3];
+  conf_poisson_tensor[2] = nu_inv[6];
+  conf_poisson_tensor[3] = nu_inv[1];
   conf_poisson_tensor[4] = nu_inv[4];
-  conf_poisson_tensor[5] = nu_inv[5];  
-  conf_poisson_tensor[6] = nu_inv[6];
-  conf_poisson_tensor[7] = nu_inv[7];
+  conf_poisson_tensor[5] = nu_inv[7];  
+  conf_poisson_tensor[6] = nu_inv[2];
+  conf_poisson_tensor[7] = nu_inv[5];
   conf_poisson_tensor[8] = nu_inv[8];
 
 
   // Bottom right block 
+  // Pi^{km}_{j,pp} = \Omega^{km}_j
+  // \Omega^{km}_j = \sum_{in} \nu^{kn} \nu^{mi} ( d(sigma)_j/dx^n \cdot g_i - d(sigma)_j/dx^i \cdot g_n )  
+  // Sum over i and n, j is and independnant coordinated and k(p), m(p) are also independant coordiantes
   for (int i=0; i<vdim; ++i) {
-    for (int j=0; j<vdim; ++j) {
-      for (int k=0; k<vdim; ++k) {
-        for (int p=0; p<3; ++p ){
+    for (int n=0; n<vdim; ++n) {
+      for (int j=0; j<vdim; ++j) {
+        for (int p=0; p<nonzero_asym_indices; ++p ){
 
-         // index the free component of the antisymmetric tensor
-         int asym_ten_indx = p;
-         int m = 0;
-         int n = 0;
-         if (p == 0) {
-          m = 0;
-          n = 1;
-         }
-         else if (p == 1) {
-          m = 0;
-          n = 2;
-         }
-         else if (p == 2) {
-          m = 1;
-          n = 2;
-         }
+          // index the free component of the antisymmetric tensor
+          int k; int m;
+          asym_ten_indx(vdim, p, &k, &m); 
 
           // Diagonal elements are zero
-          double gj_dot_d_sigma_i_dx_k = 0.0;
-          double gi_dot_d_sigma_j_dx_k = 0.0;
-          for (int p=0; p<vdim; ++p) {
-            gj_dot_d_sigma_i_dx_k += cov_tangent_basis[vdim*j + p] * triad_basis_gradient[vdim*vdim*k + i*vdim + p];
-            gi_dot_d_sigma_j_dx_k += cov_tangent_basis[vdim*i + p] * triad_basis_gradient[vdim*vdim*k + j*vdim + p];
+          double d_sigma_j_dx_n_dot_g_i = 0.0;
+          double d_sigma_j_dx_i_dot_g_n = 0.0;
+          for (int q=0; q<vdim; ++q) {
+            d_sigma_j_dx_n_dot_g_i += triad_basis_gradient[vdim*vdim*n + j*vdim + q] * cov_tangent_basis[vdim*i + q];
+            d_sigma_j_dx_i_dot_g_n += triad_basis_gradient[vdim*vdim*i + j*vdim + q] * cov_tangent_basis[vdim*n + q];
           }
-          // Offset by vdim^2
-          conf_poisson_tensor[vdim*vdim + n_sym_tensor_indices*j + p] +=  nu_inv[m*vdim + k] * nu_inv[n*vdim + i] * 
-            ( gj_dot_d_sigma_i_dx_k -  gi_dot_d_sigma_j_dx_k ); 
+          // Offset by vdim^2 which is the space for the Pi_{xx} block
+          // plus additional offsets of nonzero_asym_indices*j for each j
+          conf_poisson_tensor[vdim*vdim + nonzero_asym_indices*j + p] +=  nu_inv[k*vdim + n] * nu_inv[m*vdim + i] * 
+            ( d_sigma_j_dx_n_dot_g_i -  d_sigma_j_dx_i_dot_g_n ); 
         }
       }
     }
