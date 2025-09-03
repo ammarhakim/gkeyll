@@ -53,13 +53,25 @@ struct gk_app_ctx {
 // Z is constant at -0.8
 // R goes from 1.5 to 1.75
 void pfunc_upper(double s, double* RZ){
-  RZ[0] = 0.2;
-  RZ[1] = -0.3 + s*0.3;
+  if (s < 0.2-0.14047) {
+    RZ[0] = 0.2 - s;
+    RZ[1] = 0.0;
+  }
+  else {
+    RZ[0] = 0.14047;
+    RZ[1] = -(s-0.061)*0.6;
+  }
 }
 
 void pfunc_lower(double s, double* RZ){
-  RZ[0] = 0.2;
-  RZ[1] = 0.3 - s*0.3;
+  if (s < 0.2-0.14047) {
+    RZ[0] = 0.2 - s;
+    RZ[1] = 0.0;
+  }
+  else {
+    RZ[0] = 0.14047;
+    RZ[1] = (s-0.061)*0.6;
+  }
 }
 
 // Electron source profiles.
