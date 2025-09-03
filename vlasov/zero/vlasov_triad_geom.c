@@ -73,8 +73,8 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   h_ij_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, nc_local.volume);
   h_ij_inv_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, nc_local.volume);
   det_h_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nc_local.volume);
-  conf_poisson_tensor_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+cdim)*((vdim+cdim)+1)/2, nc_local.volume);
-  triad_basis_gradient_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*vdim*cdim, nc_local.volume);
+  conf_poisson_tensor_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+vdim)*((vdim+vdim)+1)/2, nc_local.volume);
+  triad_basis_gradient_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*vdim*vdim, nc_local.volume);
   double xn[GKYL_MAX_DIM];
 
   // Choose functions
@@ -127,7 +127,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   h_ij_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+1)/2, NULL, NULL);
   h_ij_inv_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+1)/2, NULL, NULL);
   det_h_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, 1, NULL, NULL);
-  conf_poisson_tensor_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+cdim)*((vdim+cdim)+1)/2, NULL, NULL);
+  conf_poisson_tensor_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+vdim)*((vdim+vdim)+1)/2, NULL, NULL);
 
   gkyl_range_iter_init(&iter, crange);
   while (gkyl_range_iter_next(&iter)) {

@@ -56,7 +56,7 @@ test_triad_math_1v(int vdim)
   TEST_CHECK(gkyl_compare_double(nu_inv[0], 1.0 / (2.0 * z1), eps));
 
   // 5. Test kernel_conf_poisson_tensor_1v()
-  double conf_poisson_tensor[2];
+  double conf_poisson_tensor[1];
 
   // Assign the triad basis gradient
   double triad_basis_gradient[1];
@@ -69,9 +69,6 @@ test_triad_math_1v(int vdim)
 
   // Pi_{xx} block
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[0], 1.0 / (2*z1), eps));
-
-  // Pi_{pp} block, p_z1 coeffs 
-  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[1], 0.0, eps));
 
 }
 

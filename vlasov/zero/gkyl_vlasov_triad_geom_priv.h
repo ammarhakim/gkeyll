@@ -227,7 +227,7 @@ kernel_conf_poisson_tensor_1v(const double *h_ij_inv, const double *triad_basis,
   +----+----+
   | -- | 00 |
   +----+----+
-  | -- | 01 |
+  | -- | -- |
   +----+----+
   */
 
@@ -241,7 +241,7 @@ kernel_conf_poisson_tensor_1v(const double *h_ij_inv, const double *triad_basis,
   int vdim = 1;
   int pdim = 2*vdim;
   int nonzero_asym_indices = 0;
-  int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices + 1;
+  int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices;
 
   // Zero out the Poisson Tensor, top left block is zero
   for (int i=0; i<n_nonzero_indices; ++i) {
