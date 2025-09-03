@@ -10,7 +10,7 @@
 #include <assert.h>
 
 static void 
-kernel_metric_1x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
+kernel_metric_1v(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
 { 
   // Finds the metric 
   // cov_tangent_basis: components of the covariant tangent basis 
@@ -20,7 +20,7 @@ kernel_metric_1x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij)
 } 
 
 static void 
-kernel_metric_2x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
+kernel_metric_2v(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
 { 
   // Finds the metric 
   // cov_tangent_basis: components of the covariant tangent basis
@@ -39,7 +39,7 @@ kernel_metric_2x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij)
 } 
 
 static void 
-kernel_metric_3x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
+kernel_metric_3v(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij) 
 { 
   // Finds the metric 
   // cov_tangent_basis: components of the covariant tangent basis
@@ -60,7 +60,7 @@ kernel_metric_3x(const double *cov_tangent_basis, double* GKYL_RESTRICT h_ij)
 
 
 static void 
-kernel_metric_inv_1x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
+kernel_metric_inv_1v(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
 { 
   // Finds the inverse of the metric 
   // h_ij: metric 
@@ -70,7 +70,7 @@ kernel_metric_inv_1x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv)
 } 
 
 static void 
-kernel_metric_inv_2x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
+kernel_metric_inv_2v(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
 { 
   // Finds the inverse of the metric 
   // h_ij: metric 
@@ -84,7 +84,7 @@ kernel_metric_inv_2x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv)
 } 
 
 static void 
-kernel_metric_inv_3x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
+kernel_metric_inv_3v(const double *h_ij, double* GKYL_RESTRICT h_ij_inv) 
 { 
   // Finds the inverse of the metric 
   // h_ij: metric 
@@ -110,7 +110,7 @@ kernel_metric_inv_3x(const double *h_ij, double* GKYL_RESTRICT h_ij_inv)
 
 
 static void 
-kernel_metric_det_1x(const double *h_ij, double* GKYL_RESTRICT det_h) 
+kernel_metric_det_1v(const double *h_ij, double* GKYL_RESTRICT det_h) 
 { 
   // Finds the determinant of the metric 
   // h_ij: metric 
@@ -121,7 +121,7 @@ kernel_metric_det_1x(const double *h_ij, double* GKYL_RESTRICT det_h)
 } 
 
 static void 
-kernel_metric_det_2x(const double *h_ij, double* GKYL_RESTRICT det_h) 
+kernel_metric_det_2v(const double *h_ij, double* GKYL_RESTRICT det_h) 
 { 
   // Finds the determinant of the metric 
   // h_ij: metric 
@@ -132,7 +132,7 @@ kernel_metric_det_2x(const double *h_ij, double* GKYL_RESTRICT det_h)
 } 
 
 static void 
-kernel_metric_det_3x(const double *h_ij, double* GKYL_RESTRICT det_h) 
+kernel_metric_det_3v(const double *h_ij, double* GKYL_RESTRICT det_h) 
 { 
   // Finds the determinant of the metric 
   // h_ij: metric 
@@ -145,9 +145,75 @@ kernel_metric_det_3x(const double *h_ij, double* GKYL_RESTRICT det_h)
 
 } 
 
+static void
+asym_ten_indx(const int vdim, const int p, int* m, int* k)
+{
+  if (vdim == 1) {
+    m[0] = 0;
+    k[0] = 0;
+  }
+  else if (vdim == 2) {
+    // map p = 0,1 to index pairs (m,n) = (0,1)
+    static const int pairs[1][2] = { {0,1} };
+    m[0] = pairs[p][0];
+    k[0] = pairs[p][1];
+  }
+  else if (vdim == 3) {
+    // map p = 0,1,2 to index pairs (m,n) = (0,1),(0,2),(1,2)
+    static const int pairs[3][2] = { {0,1}, {0,2}, {1,2} };
+    m[0] = pairs[p][0];
+    k[0] = pairs[p][1];
+  }
+}
 
 static void 
-kernel_conf_poisson_tensor_1x1v(const double *h_ij_inv, const double *triad_basis,
+compute_nu_inv_1v(const double *h_ij_inv, const double *triad_basis, const double *cov_tangent_basis,
+  double* GKYL_RESTRICT nu_inv)
+{
+  // Compute nu_inv by raising the indicies:
+  // nu^{ij} = \delta^{im} h^{jn} (\sigma_m \cdot g_n)
+  //         = h^{jn} (\sigma^i \cdot g_n)
+  //        = h^{jn} (\sigma^{i,m} g_{n,m})
+
+  /* Shape of nu_inv.
+  +----+
+  | 00 |
+  +----+
+  */
+
+  /* Shape of h_ij_inv
+  +----+
+  | 00 |
+  +----+
+  */
+
+  int vdim = 1;
+
+  double h_ij_inv_local[1];
+  h_ij_inv_local[0] = h_ij_inv[0];
+
+  // Zero out nu_inv components
+  for (int i=0; i<vdim; ++i) {
+    for (int j=0; j<vdim; ++j) {
+      nu_inv[i*vdim + j] = 0;
+    }
+  }
+
+  // Set nu_inv components
+  // nu^{ij} = h^{jn} (\sigma^{i,m} g_{n,m})
+  for (int i=0; i<vdim; ++i) {
+    for (int j=0; j<vdim; ++j) {
+      for (int n=0; n<vdim; ++n) {
+        for (int m=0; m<vdim; ++m) {
+          nu_inv[i*vdim + j] += h_ij_inv_local[j*vdim + n] * ( triad_basis[i*vdim+m] * cov_tangent_basis[n*vdim+m] );
+        }
+      }
+    }
+  }
+}
+
+static void 
+kernel_conf_poisson_tensor_1v(const double *h_ij_inv, const double *triad_basis,
   const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
 { 
   // Finds the configuration space components of the Poisson tensor
@@ -157,10 +223,128 @@ kernel_conf_poisson_tensor_1x1v(const double *h_ij_inv, const double *triad_basi
   // triad_basis_gradient: triad basis gradient coefficients
   // (out) conf_poisson_tensor:  configuration space components of the Poisson tensor
 
+  /* Shape of conf_poisson_tensor non-zero elements.
+  +----+----+
+  | -- | 00 |
+  +----+----+
+  | -- | 01 |
+  +----+----+
+  */
+
+  /* Shape of nu_inv.
+  +----+
+  | 00 |
+  +----+
+  */
+
+
+  int vdim = 1;
+  int pdim = 2*vdim;
+  int nonzero_asym_indices = 0;
+  int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices + 1;
+
+  // Zero out the Poisson Tensor, top left block is zero
+  for (int i=0; i<n_nonzero_indices; ++i) {
+    conf_poisson_tensor[i] = 0.0;
+  }
+
+  double nu_inv[1] = { 0.0 };
+
+  // Compute nu_inv by raising the indicies:
+  // nu^{ij} = \delta^{im} h^{jn} (\sigma_m \cdot g_n)
+  //         = h^{jn} (\sigma^i \cdot g_n)
+  compute_nu_inv_1v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+
+  // Top right block: \Pi^{ij}_{xp} = e^{ji} (transpose)
+  conf_poisson_tensor[0] = nu_inv[0];
+
+
+  // Bottom right block 
+  // Pi^{km}_{j,pp} = \Omega^{km}_j
+  // \Omega^{km}_j = \sum_{in} \nu^{kn} \nu^{mi} ( d(sigma)_j/dx^n \cdot g_i - d(sigma)_j/dx^i \cdot g_n )  
+  // Sum over i and n, j is and independnant coordinated and k(p), m(p) are also independant coordiantes
+  for (int i=0; i<vdim; ++i) {
+    for (int n=0; n<vdim; ++n) {
+      for (int j=0; j<vdim; ++j) {
+        for (int p=0; p<nonzero_asym_indices; ++p ){
+
+          // index the free component of the antisymmetric tensor
+          int k = 0; int m = 0;
+          asym_ten_indx(vdim, p, &k, &m); 
+
+          // Diagonal elements are zero
+          double d_sigma_j_dx_n_dot_g_i = 0.0;
+          double d_sigma_j_dx_i_dot_g_n = 0.0;
+          for (int q=0; q<vdim; ++q) {
+            d_sigma_j_dx_n_dot_g_i += triad_basis_gradient[vdim*vdim*n + j*vdim + q] * cov_tangent_basis[vdim*i + q];
+            d_sigma_j_dx_i_dot_g_n += triad_basis_gradient[vdim*vdim*i + j*vdim + q] * cov_tangent_basis[vdim*n + q];
+          }
+          // Offset by vdim^2 which is the space for the Pi_{xx} block
+          // plus additional offsets of nonzero_asym_indices*j for each j
+          conf_poisson_tensor[vdim*vdim + nonzero_asym_indices*j + p] +=  nu_inv[k*vdim + n] * nu_inv[m*vdim + i] * 
+            ( d_sigma_j_dx_n_dot_g_i -  d_sigma_j_dx_i_dot_g_n ); 
+        }
+      }
+    }
+  }
 } 
 
+
 static void 
-kernel_conf_poisson_tensor_1x2v(const double *h_ij_inv, const double *triad_basis,
+compute_nu_inv_2v(const double *h_ij_inv, const double *triad_basis, const double *cov_tangent_basis,
+  double* GKYL_RESTRICT nu_inv)
+{
+  // Compute nu_inv by raising the indicies:
+  // nu^{ij} = \delta^{im} h^{jn} (\sigma_m \cdot g_n)
+  //         = h^{jn} (\sigma^i \cdot g_n)
+  //        = h^{jn} (\sigma^{i,m} g_{n,m})
+
+  /* Shape of nu_inv.
+  +----+----+
+  | 00 | 01 |
+  +----+----+
+  | 02 | 03 |
+  +----+----+
+  */
+
+  /* Shape of h_ij_inv
+  +----+----+
+  | 00 | 01 |
+  +----+----+
+  | -- | 02 |
+  +----+----+
+  */
+
+  int vdim = 2;
+
+  double h_ij_inv_local[4];
+  h_ij_inv_local[0] = h_ij_inv[0];
+  h_ij_inv_local[1] = h_ij_inv[1];
+  h_ij_inv_local[2] = h_ij_inv[1];
+  h_ij_inv_local[3] = h_ij_inv[2];
+
+  // Zero out nu_inv components
+  for (int i=0; i<vdim; ++i) {
+    for (int j=0; j<vdim; ++j) {
+      nu_inv[i*vdim + j] = 0;
+    }
+  }
+
+  // Set nu_inv components
+  // nu^{ij} = h^{jn} (\sigma^{i,m} g_{n,m})
+  for (int i=0; i<vdim; ++i) {
+    for (int j=0; j<vdim; ++j) {
+      for (int n=0; n<vdim; ++n) {
+        for (int m=0; m<vdim; ++m) {
+          nu_inv[i*vdim + j] += h_ij_inv_local[j*vdim + n] * ( triad_basis[i*vdim+m] * cov_tangent_basis[n*vdim+m] );
+        }
+      }
+    }
+  }
+}
+
+static void 
+kernel_conf_poisson_tensor_2v(const double *h_ij_inv, const double *triad_basis,
   const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
 { 
   // Finds the configuration space components of the Poisson tensor
@@ -170,49 +354,85 @@ kernel_conf_poisson_tensor_1x2v(const double *h_ij_inv, const double *triad_basi
   // triad_basis_gradient: triad basis gradient coefficients
   // (out) conf_poisson_tensor:  configuration space components of the Poisson tensor
 
+  /* Shape of conf_poisson_tensor non-zero elements.
+  +----+----+----+----+
+  | -- | -- | 00 | 01 |
+  +----+----+----+----+
+  | -- | -- | 02 | 03 |
+ +----+----+----+----+
+  | -- | -- | -- | 04 |
+  +----+----+----+----+
+  | -- | -- | -- | -- |
+  +----+----+----+----+
+  */
+
+  /* Shape of nu_inv.
+  +----+----+
+  | 00 | 01 |
+  +----+----+
+  | 02 | 03 |
+  +----+----+
+  */
+
+
+  int vdim = 2;
+  int pdim = 2*vdim;
+  int nonzero_asym_indices = 1;
+  int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices;
+
+  // Zero out the Poisson Tensor, top left block is zero
+  for (int i=0; i<n_nonzero_indices; ++i) {
+    conf_poisson_tensor[i] = 0.0;
+  }
+
+  double nu_inv[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+  // Compute nu_inv by raising the indicies:
+  // nu^{ij} = \delta^{im} h^{jn} (\sigma_m \cdot g_n)
+  //         = h^{jn} (\sigma^i \cdot g_n)
+  compute_nu_inv_2v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+
+  // Top right block: \Pi^{ij}_{xp} = e^{ji} (transpose)
+  conf_poisson_tensor[0] = nu_inv[0];
+  conf_poisson_tensor[1] = nu_inv[2];
+  conf_poisson_tensor[2] = nu_inv[1];
+  conf_poisson_tensor[3] = nu_inv[3];
+
+
+  // Bottom right block 
+  // Pi^{km}_{j,pp} = \Omega^{km}_j
+  // \Omega^{km}_j = \sum_{in} \nu^{kn} \nu^{mi} ( d(sigma)_j/dx^n \cdot g_i - d(sigma)_j/dx^i \cdot g_n )  
+  // Sum over i and n, j is and independnant coordinated and k(p), m(p) are also independant coordiantes
+  for (int i=0; i<vdim; ++i) {
+    for (int n=0; n<vdim; ++n) {
+      for (int j=0; j<vdim; ++j) {
+        for (int p=0; p<nonzero_asym_indices; ++p ){
+
+          // index the free component of the antisymmetric tensor
+          int k; int m;
+          asym_ten_indx(vdim, p, &k, &m); 
+
+          // Diagonal elements are zero
+          double d_sigma_j_dx_n_dot_g_i = 0.0;
+          double d_sigma_j_dx_i_dot_g_n = 0.0;
+          for (int q=0; q<vdim; ++q) {
+            d_sigma_j_dx_n_dot_g_i += triad_basis_gradient[vdim*vdim*n + j*vdim + q] * cov_tangent_basis[vdim*i + q];
+            d_sigma_j_dx_i_dot_g_n += triad_basis_gradient[vdim*vdim*i + j*vdim + q] * cov_tangent_basis[vdim*n + q];
+          }
+          // Offset by vdim^2 which is the space for the Pi_{xx} block
+          // plus additional offsets of nonzero_asym_indices*j for each j
+          conf_poisson_tensor[vdim*vdim + nonzero_asym_indices*j + p] +=  nu_inv[k*vdim + n] * nu_inv[m*vdim + i] * 
+            ( d_sigma_j_dx_n_dot_g_i -  d_sigma_j_dx_i_dot_g_n ); 
+        }
+      }
+    }
+  }
 } 
 
-static void 
-kernel_conf_poisson_tensor_1x3v(const double *h_ij_inv, const double *triad_basis,
-  const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
-{ 
-  // Finds the configuration space components of the Poisson tensor
-  // h_ij_inv: inverse metric 
-  // triad_basis: triad basis coefficients
-  // cov_tangent_basis: covariant tangent basis coefficients
-  // triad_basis_gradient: triad basis gradient coefficients
-  // (out) conf_poisson_tensor:  configuration space components of the Poisson tensor
 
-} 
 
 static void 
-kernel_conf_poisson_tensor_2x2v(const double *h_ij_inv, const double *triad_basis,
-  const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
-{ 
-  // Finds the configuration space components of the Poisson tensor
-  // h_ij_inv: inverse metric 
-  // triad_basis: triad basis coefficients
-  // cov_tangent_basis: covariant tangent basis coefficients
-  // triad_basis_gradient: triad basis gradient coefficients
-  // (out) conf_poisson_tensor:  configuration space components of the Poisson tensor
-
-} 
-
-static void 
-kernel_conf_poisson_tensor_2x3v(const double *h_ij_inv, const double *triad_basis,
-  const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
-{ 
-  // Finds the configuration space components of the Poisson tensor
-  // h_ij_inv: inverse metric 
-  // triad_basis: triad basis coefficients
-  // cov_tangent_basis: covariant tangent basis coefficients
-  // triad_basis_gradient: triad basis gradient coefficients
-  // (out) conf_poisson_tensor:  configuration space components of the Poisson tensor
-
-} 
-
-static void 
-compute_nu_inv_3x(const double *h_ij_inv, const double *triad_basis, const double *cov_tangent_basis,
+compute_nu_inv_3v(const double *h_ij_inv, const double *triad_basis, const double *cov_tangent_basis,
   double* GKYL_RESTRICT nu_inv)
 {
   // Compute nu_inv by raising the indicies:
@@ -242,7 +462,7 @@ compute_nu_inv_3x(const double *h_ij_inv, const double *triad_basis, const doubl
 
   int vdim = 3;
 
-  double h_ij_inv_local[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double h_ij_inv_local[9];
   h_ij_inv_local[0] = h_ij_inv[0];
   h_ij_inv_local[1] = h_ij_inv[1];
   h_ij_inv_local[2] = h_ij_inv[2];
@@ -273,20 +493,8 @@ compute_nu_inv_3x(const double *h_ij_inv, const double *triad_basis, const doubl
   }
 }
 
-
-static void
-asym_ten_indx(const int vdim, const int p, int* m, int* k)
-{
-  if(vdim == 3){
-    // map p = 0,1,2 to index pairs (m,n) = (0,1),(0,2),(1,2)
-    static const int pairs[3][2] = { {0,1}, {0,2}, {1,2} };
-    m[0] = pairs[p][0];
-    k[0] = pairs[p][1];
-  }
-}
-
 static void 
-kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basis,
+kernel_conf_poisson_tensor_3v(const double *h_ij_inv, const double *triad_basis,
   const double *cov_tangent_basis, const double *triad_basis_gradient, double* GKYL_RESTRICT conf_poisson_tensor) 
 { 
   // Finds the configuration space components of the Poisson tensor
@@ -323,9 +531,8 @@ kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basi
   */
 
 
-  int cdim = 3;
   int vdim = 3;
-  int pdim = cdim + vdim;
+  int pdim = 2*vdim;
   int nonzero_asym_indices = 3;
   int n_nonzero_indices = vdim*vdim + vdim*nonzero_asym_indices;
 
@@ -339,7 +546,7 @@ kernel_conf_poisson_tensor_3x3v(const double *h_ij_inv, const double *triad_basi
   // Compute nu_inv by raising the indicies:
   // nu^{ij} = \delta^{im} h^{jn} (\sigma_m \cdot g_n)
   //         = h^{jn} (\sigma^i \cdot g_n)
-  compute_nu_inv_3x(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+  compute_nu_inv_3v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
 
   // Top right block: \Pi^{ij}_{xp} = e^{ji} (transpose)
   conf_poisson_tensor[0] = nu_inv[0];
@@ -401,27 +608,27 @@ typedef struct { metric_det_t kernels[3]; } metric_det_kern_list;
 typedef struct { conf_poisson_tensor_t kernels[6]; } conf_poisson_tensor_kern_list;
 
 static const metric_kern_list metric_list[] = {
-  { kernel_metric_1x },
-  { kernel_metric_2x },
-  { kernel_metric_3x }
+  { kernel_metric_1v },
+  { kernel_metric_2v },
+  { kernel_metric_3v }
 };
 
 static const metric_inv_kern_list metric_inv_list[] = {
-  { kernel_metric_inv_1x },
-  { kernel_metric_inv_2x },
-  { kernel_metric_inv_3x }
+  { kernel_metric_inv_1v },
+  { kernel_metric_inv_2v },
+  { kernel_metric_inv_3v }
 };
 
 static const metric_det_kern_list metric_det_list[] = {
-  { kernel_metric_det_1x },
-  { kernel_metric_det_2x },
-  { kernel_metric_det_3x }
+  { kernel_metric_det_1v },
+  { kernel_metric_det_2v },
+  { kernel_metric_det_3v }
 };
 
 static const conf_poisson_tensor_kern_list conf_poisson_tensor_list[] = {
-  { kernel_conf_poisson_tensor_1x1v, kernel_conf_poisson_tensor_1x2v, kernel_conf_poisson_tensor_1x3v },
-  { NULL, kernel_conf_poisson_tensor_2x2v, kernel_conf_poisson_tensor_2x3v },
-  { NULL, NULL, kernel_conf_poisson_tensor_3x3v }
+  { kernel_conf_poisson_tensor_1v },
+  { kernel_conf_poisson_tensor_2v },
+  { kernel_conf_poisson_tensor_3v }
 };
 
 
@@ -444,7 +651,7 @@ choose_metric_det_kern(int vdim)
 }
 
 static conf_poisson_tensor_t
-choose_conf_poisson_tensor_kern(int cdim, int vdim)
+choose_conf_poisson_tensor_kern(int vdim)
 {
-  return conf_poisson_tensor_list[cdim-1].kernels[vdim-1];
+  return conf_poisson_tensor_list[vdim-1].kernels[0];
 }

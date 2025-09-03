@@ -81,7 +81,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   metric_t compute_h_ij_from_cov_tangent_basis = choose_metric_kern(vdim); 
   metric_inv_t compute_h_ij_inv_from_h_ij = choose_metric_inv_kern(vdim); 
   metric_det_t compute_det_h_ij = choose_metric_det_kern(vdim); 
-  conf_poisson_tensor_t compute_triad_poisson_tensor_ij = choose_conf_poisson_tensor_kern(cdim, vdim); 
+  conf_poisson_tensor_t compute_triad_poisson_tensor_ij = choose_conf_poisson_tensor_kern(vdim); 
 
   // initialize nodal values in configuration space
   struct gkyl_range_iter iter;

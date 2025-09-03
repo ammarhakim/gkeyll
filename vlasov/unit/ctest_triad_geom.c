@@ -5,8 +5,177 @@
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_triad_geom_priv.h>
 
+
 void
-test_triad_math(int vdim, int cdim)
+test_triad_math_1v(int vdim)
+{
+  // Test: Can the correct bracket be constructed for:
+  // 1D streched coordinates: x(z^1) = (z^1)^2 \sigma_x
+
+  // Accuracy of the tests
+  double eps = 1e-12;
+
+  // 1. Test kernel_metric_1v()
+  double cov_tangent_basis[1];
+  double h_ij[1];
+
+  // Randomly choosen coordinates
+  double z1 = 3.2;
+
+  // Assign covaraint tangent basis 
+  cov_tangent_basis[0] = 2*z1;
+
+  kernel_metric_1v(cov_tangent_basis, h_ij);
+
+  // h_ij only has symmetric entries
+  TEST_CHECK(gkyl_compare_double(h_ij[0], 4.0 * z1 * z1, eps));
+
+  // 2. Test kernel_metric_inv_1v()
+  double h_ij_inv[1];
+  kernel_metric_inv_1v(h_ij, h_ij_inv);
+
+  // h_ij_inv only has symmetric entries as well
+  TEST_CHECK(gkyl_compare_double(h_ij_inv[0], 1.0 / (4.0 * z1 * z1), eps));
+
+  // 3. Test kernel_metric_det_1v()
+  double det_h[1];
+  kernel_metric_det_1v(h_ij, det_h);
+
+  TEST_CHECK(gkyl_compare_double(det_h[0], 2.0 * z1, eps));
+
+  // 4. Test compute_nu_inv_1v()
+
+  double triad_basis[1];
+  double nu_inv[1];
+
+  // Assign the triad basis 
+  triad_basis[0] = 1;
+
+  compute_nu_inv_1v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+
+  TEST_CHECK(gkyl_compare_double(nu_inv[0], 1.0 / (2.0 * z1), eps));
+
+  // 5. Test kernel_conf_poisson_tensor_1v()
+  double conf_poisson_tensor[2];
+
+  // Assign the triad basis gradient
+  double triad_basis_gradient[1];
+
+  // gradient in r
+  triad_basis_gradient[0] = 0.0;
+
+  kernel_conf_poisson_tensor_1v(h_ij_inv, triad_basis, cov_tangent_basis,
+    triad_basis_gradient, conf_poisson_tensor);
+
+  // Pi_{xx} block
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[0], 1.0 / (2*z1), eps));
+
+  // Pi_{pp} block, p_z1 coeffs 
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[1], 0.0, eps));
+
+}
+
+void
+test_triad_math_2v(int vdim)
+{
+  // Test: Can the correct bracket be constructed for:
+  // 3D Annular Disk Coordiantes
+
+  // Accuracy of the tests
+  double eps = 1e-12;
+
+  // 1. Test kernel_metric_2v()
+  double cov_tangent_basis[4];
+  double h_ij[3];
+
+  // Randomly choosen coordinates
+  double r = 3.2;
+  double theta = 1.4;
+
+  // Assign covaraint tangent basis 
+  cov_tangent_basis[0] = cos(theta);
+  cov_tangent_basis[1] = sin(theta);
+  cov_tangent_basis[2] = - r * sin(theta);
+  cov_tangent_basis[3] = r * cos(theta);
+
+  kernel_metric_2v(cov_tangent_basis, h_ij);
+
+  // h_ij only has symmetric entries
+  TEST_CHECK(gkyl_compare_double(h_ij[0], 1.0, eps));
+  TEST_CHECK(gkyl_compare_double(h_ij[1], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(h_ij[2], r*r, eps));
+
+  // 2. Test kernel_metric_inv_2v()
+  double h_ij_inv[3];
+  kernel_metric_inv_2v(h_ij, h_ij_inv);
+
+  // h_ij_inv only has symmetric entries as well
+  TEST_CHECK(gkyl_compare_double(h_ij_inv[0], 1.0, eps));
+  TEST_CHECK(gkyl_compare_double(h_ij_inv[1], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(h_ij_inv[2], 1.0/(r*r), eps));
+
+  // 3. Test kernel_metric_det_2v()
+  double det_h[1];
+  kernel_metric_det_2v(h_ij, det_h);
+
+  TEST_CHECK(gkyl_compare_double(det_h[0], r, eps));
+
+  // 4. Test compute_nu_inv_2v()
+
+  double triad_basis[4];
+  double nu_inv[4];
+
+  // Assign the triad basis 
+  triad_basis[0] = cos(theta);
+  triad_basis[1] = sin(theta);
+  triad_basis[2] = - sin(theta);
+  triad_basis[3] = cos(theta);
+
+  compute_nu_inv_2v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+
+  TEST_CHECK(gkyl_compare_double(nu_inv[0], 1.0, eps));
+  TEST_CHECK(gkyl_compare_double(nu_inv[1], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(nu_inv[2], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(nu_inv[3], 1/r, eps));
+
+  // 5. Test kernel_conf_poisson_tensor_2v()
+  double conf_poisson_tensor[6];
+
+  // Assign the triad basis gradient
+  double triad_basis_gradient[8];
+
+  // gradient in r
+  triad_basis_gradient[0] = 0.0;
+  triad_basis_gradient[1] = 0.0;
+
+  triad_basis_gradient[2] = 0.0;
+  triad_basis_gradient[3] = 0.0;
+
+  // gradient in theta
+  triad_basis_gradient[4] = -sin(theta);
+  triad_basis_gradient[5] = cos(theta);
+
+  triad_basis_gradient[6] = -cos(theta);
+  triad_basis_gradient[7] = -sin(theta);
+
+  kernel_conf_poisson_tensor_2v(h_ij_inv, triad_basis, cov_tangent_basis,
+    triad_basis_gradient, conf_poisson_tensor);
+
+  // Pi_{xx} block
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[0], 1.0, eps));
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[1], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[2], 0.0, eps));
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[3], 1/r, eps));
+
+  // Pi_{pp} block, p_r coeffs 
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[4], 0.0, eps));
+
+  // Pi_{pp} block, p_theta coeffs 
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[5], 1.0/r, eps));
+}
+
+void
+test_triad_math_3v(int vdim)
 {
   // Test: Can the correct bracket be constructed for:
   // 3D Spherical Coordiantes
@@ -14,7 +183,7 @@ test_triad_math(int vdim, int cdim)
   // Accuracy of the tests
   double eps = 1e-12;
 
-  // 1. Test kernel_metric_3x()
+  // 1. Test kernel_metric_3v()
   double cov_tangent_basis[9];
   double h_ij[6];
 
@@ -36,7 +205,7 @@ test_triad_math(int vdim, int cdim)
   cov_tangent_basis[7] = r * sin(theta) * cos(phi);
   cov_tangent_basis[8] = 0.0;
 
-  kernel_metric_3x(cov_tangent_basis, h_ij);
+  kernel_metric_3v(cov_tangent_basis, h_ij);
 
   // h_ij only has symmetric entries
   TEST_CHECK(gkyl_compare_double(h_ij[0], 1.0, eps));
@@ -46,9 +215,9 @@ test_triad_math(int vdim, int cdim)
   TEST_CHECK(gkyl_compare_double(h_ij[4], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(h_ij[5], r*r*sin(theta)*sin(theta), eps));
 
-  // 2. Test kernel_metric_inv_3x()
+  // 2. Test kernel_metric_inv_3v()
   double h_ij_inv[6];
-  kernel_metric_inv_3x(h_ij, h_ij_inv);
+  kernel_metric_inv_3v(h_ij, h_ij_inv);
 
   // h_ij_inv only has symmetric entries as well
   TEST_CHECK(gkyl_compare_double(h_ij_inv[0], 1.0, eps));
@@ -58,13 +227,13 @@ test_triad_math(int vdim, int cdim)
   TEST_CHECK(gkyl_compare_double(h_ij_inv[4], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(h_ij_inv[5], 1.0/(r*r*sin(theta)*sin(theta)), eps));
 
-  // 3. Test kernel_metric_det_3x()
+  // 3. Test kernel_metric_det_3v()
   double det_h[1];
-  kernel_metric_det_3x(h_ij, det_h);
+  kernel_metric_det_3v(h_ij, det_h);
 
   TEST_CHECK(gkyl_compare_double(det_h[0], r*r*sin(theta), eps));
 
-  // 4. Test compute_nu_inv_3x()
+  // 4. Test compute_nu_inv_3v()
 
   double triad_basis[9];
   double nu_inv[9];
@@ -82,7 +251,7 @@ test_triad_math(int vdim, int cdim)
   triad_basis[7] = cos(phi);
   triad_basis[8] = 0.0;
 
-  compute_nu_inv_3x(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
+  compute_nu_inv_3v(h_ij_inv, triad_basis, cov_tangent_basis, nu_inv);
 
   TEST_CHECK(gkyl_compare_double(nu_inv[0], 1.0, eps));
   TEST_CHECK(gkyl_compare_double(nu_inv[1], 0.0, eps));
@@ -94,7 +263,7 @@ test_triad_math(int vdim, int cdim)
   TEST_CHECK(gkyl_compare_double(nu_inv[7], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(nu_inv[8], 1/(r*sin(theta)), eps));
 
-  // 5. Test kernel_conf_poisson_tensor_3x3v()
+  // 5. Test kernel_conf_poisson_tensor_3v()
   double conf_poisson_tensor[18];
 
   // Assign the triad basis gradient
@@ -139,7 +308,7 @@ test_triad_math(int vdim, int cdim)
   triad_basis_gradient[25] = -sin(phi);
   triad_basis_gradient[26] = 0.0;
 
-  kernel_conf_poisson_tensor_3x3v(h_ij_inv, triad_basis, cov_tangent_basis,
+  kernel_conf_poisson_tensor_3v(h_ij_inv, triad_basis, cov_tangent_basis,
     triad_basis_gradient, conf_poisson_tensor);
 
   // Pi_{xx} block
@@ -170,9 +339,13 @@ test_triad_math(int vdim, int cdim)
 
 }
 
-void test_triad_3x3v() { test_triad_math(3, 3); }
+void test_triad_1v() { test_triad_math_1v(1); }
+void test_triad_2v() { test_triad_math_2v(2); }
+void test_triad_3v() { test_triad_math_3v(3); }
 
 TEST_LIST = {
-  { "test_triad_3x3v", test_triad_3x3v},
+  { "test_triad_1v", test_triad_1v}, 
+  { "test_triad_2v", test_triad_2v},
+  { "test_triad_3v", test_triad_3v},
   {NULL, NULL}
 };

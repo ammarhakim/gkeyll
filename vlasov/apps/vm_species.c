@@ -86,10 +86,10 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     } 
 
     // Allocate arrays for configuration space Poisson tensor
-    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+cdim)*((vdim+cdim)+1)/2, app->local_ext.volume);
+    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+vdim)*((vdim+vdim)+1)/2, app->local_ext.volume);
     vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
     if (app->use_gpu){
-      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*vdim*(vdim+cdim)*((vdim+cdim)+1)/2, app->local_ext.volume);
+      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*vdim*(vdim+vdim)*((vdim+vdim)+1)/2, app->local_ext.volume);
     }
 
     // Evaluate specified covariant tangent basis function at nodes to ensure continuity of the basis

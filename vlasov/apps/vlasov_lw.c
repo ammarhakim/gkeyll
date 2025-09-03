@@ -881,7 +881,7 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->triad_basis_gradient_func_ref = (struct lua_func_ctx) {
     .func_ref = triad_basis_gradient_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = vdim * vdim * vdim, // should be vdim^2 cdim
+    .nret = vdim * vdim * vdim,
     .L = L,
   };
 
