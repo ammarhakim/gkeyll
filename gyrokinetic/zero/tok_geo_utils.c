@@ -187,6 +187,40 @@ void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       arc_ctx->zmin = rzplate[1];
 }
 
+// Sets zmax if plate is specified
+void set_upper_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
+{
+      double rzplate[2];
+      pctx->psi_curr = psi_curr;
+      pctx->lower=false;
+      double a = 0;
+      double b = 1;
+      double fa = tok_plate_psi_func(a, pctx);
+      double fb = tok_plate_psi_func(b, pctx);
+      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smax = res.res;
+      geo->plate_func_upper(smax, rzplate);
+      arc_ctx->zmax_iwl_plate = rzplate[1];
+}
+
+// Sets zmin if plate is specified
+void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
+{
+      double rzplate[2];
+      pctx->psi_curr = psi_curr;
+      pctx->lower=true;
+      double a = 0;
+      double b = 1;
+      double fa = tok_plate_psi_func(a, pctx);
+      double fb = tok_plate_psi_func(b, pctx);
+      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smin = res.res;
+      geo->plate_func_lower(smin, rzplate);
+      arc_ctx->zmin_iwl_plate = rzplate[1];
+}
+
 void 
 tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up)
 {
@@ -839,12 +873,21 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->zmin_iwl = arc_ctx->zmin;
     arc_ctx->zmax_iwl = arc_ctx->zmax;
 
+    if (geo->plate_spec){
+      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else {
+      arc_ctx->zmin_iwl_plate = geo->zmaxis;
+      arc_ctx->zmax_iwl_plate = geo->zmaxis;
+    }
+
     arc_ctx->right = true;
     arc_ctx->arcL_q1 = integrate_psi_contour_memo(geo, psi_curr, geo->zmaxis, arc_ctx->zmax, arc_ctx->rright, false, false, arc_memo);
     arc_ctx->right = false;
-    arc_ctx->arcL_q2 = integrate_psi_contour_memo(geo, psi_curr, geo->zmaxis, arc_ctx->zmax, arc_ctx->rleft, false, false, arc_memo);
+    arc_ctx->arcL_q2 = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin_iwl_plate, arc_ctx->zmax, arc_ctx->rleft, false, false, arc_memo);
     arc_ctx->right = false;
-    arc_ctx->arcL_q3 = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, geo->zmaxis, arc_ctx->rleft, false, false, arc_memo);
+    arc_ctx->arcL_q3 = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax_iwl_plate, arc_ctx->rleft, false, false, arc_memo);
     arc_ctx->right = true;
     arc_ctx->arcL_q4 = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, geo->zmaxis, arc_ctx->rright, false, false, arc_memo);
 
@@ -976,7 +1019,7 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       *ridders_min = arc_ctx->arcL_q3 - arcL_curr;
       *ridders_max = -arcL_curr;
       arc_ctx->zmin = arc_ctx->zmin_iwl;
-      arc_ctx->zmax = arc_ctx->geo->zmaxis;
+      arc_ctx->zmax = arc_ctx->zmax_iwl_plate;
     }
 
     else if(arcL_curr <= ( arc_ctx->arcL_q3 + arc_ctx->arcL_q4) ) {
@@ -1005,7 +1048,7 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       arc_ctx->right = false;
       *ridders_min = arc_ctx->arcL_q3 + arc_ctx->arcL_q4 + arc_ctx->arcL_q1 + arc_ctx->arcL_q2 - arcL_curr;
       *ridders_max = arc_ctx->arcL_q3 + arc_ctx->arcL_q4 + arc_ctx->arcL_q1 - arcL_curr;
-      arc_ctx->zmin = arc_ctx->geo->zmaxis;
+      arc_ctx->zmin = arc_ctx->zmin_iwl_plate;
       arc_ctx->zmax = arc_ctx->zmax_iwl;
     }
   }

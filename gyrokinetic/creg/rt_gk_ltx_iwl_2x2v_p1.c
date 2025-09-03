@@ -50,6 +50,18 @@ struct gk_app_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
+// Z is constant at -0.8
+// R goes from 1.5 to 1.75
+void pfunc_upper(double s, double* RZ){
+  RZ[0] = 0.2;
+  RZ[1] = -0.3 + s*0.3;
+}
+
+void pfunc_lower(double s, double* RZ){
+  RZ[0] = 0.2;
+  RZ[1] = 0.3 - s*0.3;
+}
+
 // Electron source profiles.
 void density_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -444,6 +456,9 @@ int main(int argc, char **argv)
     .rmax = 0.7,
     .zmin = -0.35,
     .zmax = 0.35,
+    .plate_spec = true,
+    .plate_func_lower = pfunc_lower,
+    .plate_func_upper = pfunc_upper,
   }; 
 
   // GK app
