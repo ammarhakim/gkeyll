@@ -69,9 +69,9 @@ vlasovApp = Vlasov.App.new {
     charge = charge, mass = mass,
 
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
-    cov_tangent_basis = function (t, xn)
+    covTangentBasis = function (t, xn)
       local q_r = xn[1]
-      local q_theta = xn[2]
+      local q_theta = 0.0
 
       local e_rx = math.cos(q_theta) -- Covariant Tangent Basis Coefficients (r-x coefficient).
       local e_ry = math.sin(q_theta) -- Covariant Tangent Basis Coefficients (r-y coefficient).
@@ -84,7 +84,7 @@ vlasovApp = Vlasov.App.new {
     -- vals_ij = \sigma_{r,\theta} . \sigma_{x,y}
     triadBasis = function (t, xn)
       local q_r = xn[1]
-      local q_theta = xn[2]
+      local q_theta = 0.0
 
       local sigma_rx = math.cos(q_theta) -- Triad Basis Coefficients (r-x coefficient).
       local sigma_ry = math.sin(q_theta) -- Triad Basis Coefficients (r-y coefficient).
@@ -98,7 +98,7 @@ vlasovApp = Vlasov.App.new {
     -- x^k = { r, \theta }
     triadBasisGradient = function (t, xn)
       local q_r = xn[1]
-      local q_theta = xn[2]
+      local q_theta = 0.0
 
       -- d/dr components
       local d_sigma_rx_dr = 0.0 -- Triad Basis Coefficients (r-x coefficient).
