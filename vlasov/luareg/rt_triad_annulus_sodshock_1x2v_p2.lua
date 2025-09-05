@@ -19,8 +19,8 @@ nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nr = 128 -- Cell count (configuration space: radial direction).
-Nvr = 12 -- Cell count (velocity space: radial direction).
-Nvtheta = 12 -- Cell count (velocity space: angular direction).
+Nvr = 32 -- Cell count (velocity space: radial direction).
+Nvtheta = 32 -- Cell count (velocity space: angular direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
@@ -30,7 +30,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 0.1 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+num_frames = 20 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -136,9 +136,7 @@ vlasovApp = Vlasov.App.new {
             n = nr -- Total number density (right/outer).
           end
 
-          local metric_det = r
-
-          return metric_det * n
+          return n
         end,
         temperatureInit = function (t, xn)
           local r = xn[1]
