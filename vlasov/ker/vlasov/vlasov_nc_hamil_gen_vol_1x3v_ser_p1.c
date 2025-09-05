@@ -12,6 +12,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_1x3v_ser_p1(const double *w, const doubl
   const double dv11_sq = dv11*dv11; 
   const double wx3 = w[3]; 
   const double dv12_sq = dv12*dv12; 
+  
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[0]; 
   out[1] += (0.75*poisson_tensor_conf_0[1]*hamil[7]*f[13]+0.75*poisson_tensor_conf_0[0]*hamil[7]*f[10]+0.75*poisson_tensor_conf_0[1]*hamil[5]*f[8]+0.75*poisson_tensor_conf_0[1]*hamil[4]*f[6]+0.75*poisson_tensor_conf_0[0]*f[4]*hamil[5]+0.75*poisson_tensor_conf_0[0]*f[3]*hamil[4]+0.75*f[1]*hamil[1]*poisson_tensor_conf_0[1]+0.75*f[0]*poisson_tensor_conf_0[0]*hamil[1])*dv10*dx10; 
   out[5] += (0.75*poisson_tensor_conf_0[1]*hamil[7]*f[15]+0.75*poisson_tensor_conf_0[0]*hamil[7]*f[14]+0.75*poisson_tensor_conf_0[1]*hamil[5]*f[12]+0.75*poisson_tensor_conf_0[1]*hamil[4]*f[11]+0.75*poisson_tensor_conf_0[0]*hamil[5]*f[9]+0.75*poisson_tensor_conf_0[0]*hamil[4]*f[7]+0.75*hamil[1]*poisson_tensor_conf_0[1]*f[5]+0.75*poisson_tensor_conf_0[0]*hamil[1]*f[2])*dv10*dx10; 
@@ -41,12 +42,6 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_1x3v_ser_p1(const double *w, const doubl
   out[12] += (0.75*poisson_tensor_conf_2[1]*hamil[6]*f[15]+0.75*poisson_tensor_conf_2[0]*hamil[6]*f[14]+0.75*poisson_tensor_conf_2[1]*hamil[7]*f[13]+0.75*poisson_tensor_conf_2[1]*hamil[3]*f[12]+0.75*poisson_tensor_conf_2[0]*hamil[7]*f[10]+0.75*poisson_tensor_conf_2[0]*hamil[3]*f[9]+0.75*poisson_tensor_conf_2[1]*hamil[5]*f[8]+0.75*poisson_tensor_conf_2[0]*f[4]*hamil[5])*dv12*dx10; 
   out[13] += (0.75*poisson_tensor_conf_2[1]*hamil[5]*f[15]+0.75*poisson_tensor_conf_2[0]*hamil[5]*f[14]+0.75*poisson_tensor_conf_2[1]*hamil[3]*f[13]+0.75*poisson_tensor_conf_2[1]*hamil[7]*f[12]+0.75*poisson_tensor_conf_2[0]*hamil[3]*f[10]+0.75*poisson_tensor_conf_2[0]*hamil[7]*f[9]+0.75*poisson_tensor_conf_2[1]*hamil[6]*f[8]+0.75*poisson_tensor_conf_2[0]*f[4]*hamil[6])*dv12*dx10; 
   out[15] += (0.75*poisson_tensor_conf_2[1]*hamil[3]*f[15]+0.75*poisson_tensor_conf_2[0]*hamil[3]*f[14]+0.75*poisson_tensor_conf_2[1]*hamil[5]*f[13]+0.75*poisson_tensor_conf_2[1]*hamil[6]*f[12]+0.75*poisson_tensor_conf_2[0]*hamil[5]*f[10]+0.75*poisson_tensor_conf_2[0]*hamil[6]*f[9]+0.75*poisson_tensor_conf_2[1]*hamil[7]*f[8]+0.75*poisson_tensor_conf_2[0]*f[4]*hamil[7])*dv12*dx10; 
-
-
-
-
-
-
 
   const double *poisson_tensor_conf_9 = &poisson_tensor_conf[18]; 
   out[2] += dv10*dv11*(0.75*poisson_tensor_conf_9[1]*hamil[7]*f[12]*wx1+0.75*poisson_tensor_conf_9[0]*hamil[7]*f[9]*wx1+0.75*poisson_tensor_conf_9[1]*hamil[6]*f[8]*wx1+0.75*poisson_tensor_conf_9[0]*f[4]*hamil[6]*wx1+0.75*poisson_tensor_conf_9[1]*hamil[4]*f[5]*wx1+0.75*poisson_tensor_conf_9[0]*f[2]*hamil[4]*wx1+0.75*f[1]*poisson_tensor_conf_9[1]*hamil[2]*wx1+0.75*f[0]*poisson_tensor_conf_9[0]*hamil[2]*wx1)+(0.2165063509461096*poisson_tensor_conf_9[1]*hamil[6]*f[12]*dv10_sq+0.2165063509461096*poisson_tensor_conf_9[0]*hamil[6]*f[9]*dv10_sq+0.2165063509461096*poisson_tensor_conf_9[1]*hamil[7]*f[8]*dv10_sq+0.2165063509461096*poisson_tensor_conf_9[0]*f[4]*hamil[7]*dv10_sq+0.2165063509461096*poisson_tensor_conf_9[1]*hamil[2]*f[5]*dv10_sq+0.2165063509461096*f[1]*poisson_tensor_conf_9[1]*hamil[4]*dv10_sq+0.2165063509461096*f[0]*poisson_tensor_conf_9[0]*hamil[4]*dv10_sq+0.2165063509461096*poisson_tensor_conf_9[0]*f[2]*hamil[2]*dv10_sq)*dv11; 

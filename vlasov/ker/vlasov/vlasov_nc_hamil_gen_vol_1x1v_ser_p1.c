@@ -6,6 +6,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_1x1v_ser_p1(const double *w, const doubl
   const double dv10 = 2.0/dxv[1]; 
   const double wx1 = w[1]; 
   const double dv10_sq = dv10*dv10; 
+  
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[0]; 
   out[1] += (1.5*f[1]*hamil[1]*poisson_tensor_conf_0[1]+1.5*f[0]*poisson_tensor_conf_0[0]*hamil[1])*dv10*dx10; 
   out[3] += (1.5*hamil[1]*poisson_tensor_conf_0[1]*f[3]+1.5*poisson_tensor_conf_0[0]*hamil[1]*f[2])*dv10*dx10; 
