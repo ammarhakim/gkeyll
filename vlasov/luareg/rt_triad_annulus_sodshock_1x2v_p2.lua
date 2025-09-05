@@ -78,7 +78,7 @@ vlasovApp = Vlasov.App.new {
       local e_tx = - q_r * math.sin(q_theta) -- Covariant Tangent Basis Coefficients (theta-x coefficient).
       local e_ty = q_r * math.cos(q_theta)-- Covariant Tangent Basis Coefficients (theta-y coefficient).
 
-      return e_rx, e_ry, e_tx, e_tz
+      return e_rx, e_ry, e_tx, e_ty
     end,
 
     -- vals_ij = \sigma_{r,\theta} . \sigma_{x,y}
@@ -91,7 +91,7 @@ vlasovApp = Vlasov.App.new {
       local sigma_tx = - math.sin(q_theta) -- Triad Basis Coefficients (theta-x coefficient).
       local sigma_ty = math.cos(q_theta)-- Triad Basis Coefficients (theta-y coefficient).
 
-      return sigma_rx, sigma_ry, sigma_tx, sigma_tz
+      return sigma_rx, sigma_ry, sigma_tx, sigma_ty
     end,
 
     -- d(vals_ij)/dx^k = d(\sigma_{r, \theta} . \sigma_{x,y})/dx^k
@@ -112,7 +112,7 @@ vlasovApp = Vlasov.App.new {
       local d_sigma_tx_dtheta = - math.cos(q_theta) -- Triad Basis Coefficients (theta-x coefficient).
       local d_sigma_ty_dtheta = math.sin(q_theta)-- Triad Basis Coefficients (theta-y coefficient).
 
-      return d_sigma_rx_dr, d_sigma_ry_dr, d_sigma_tx_dr, d_sigma_tz_dr, d_sigma_rx_dtheta, d_sigma_ry_dtheta, d_sigma_tx_dtheta, d_sigma_tz_dtheta
+      return d_sigma_rx_dr, d_sigma_ry_dr, d_sigma_tx_dr, d_sigma_ty_dr, d_sigma_rx_dtheta, d_sigma_ry_dtheta, d_sigma_tx_dtheta, d_sigma_ty_dtheta
     end,
 
     -- Velocity space grid.
