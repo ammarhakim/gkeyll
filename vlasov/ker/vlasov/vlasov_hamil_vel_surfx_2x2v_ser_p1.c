@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH double vlasov_hamil_vel_surfx_2x2v_ser_p1(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, 
+  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
@@ -71,22 +71,22 @@ GKYL_CU_DH double vlasov_hamil_vel_surfx_2x2v_ser_p1(const double *w, const doub
   Ghat_r[7] = 0.8660254037844386*(hamil[1]*fUpwind_r[7]+hamil[3]*fUpwind_r[4]); 
 
   out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*dv10*dx10; 
-  out[1] += -(1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10*dx10); 
+  out[1] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10*dx10; 
   out[2] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv10*dx10; 
   out[3] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*dv10*dx10; 
   out[4] += (0.7071067811865475*Ghat_l[3]-0.7071067811865475*Ghat_r[3])*dv10*dx10; 
-  out[5] += -(1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10*dx10); 
-  out[6] += -(1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv10*dx10); 
+  out[5] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10*dx10; 
+  out[6] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv10*dx10; 
   out[7] += (0.7071067811865475*Ghat_l[4]-0.7071067811865475*Ghat_r[4])*dv10*dx10; 
-  out[8] += -(1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dv10*dx10); 
+  out[8] += -1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dv10*dx10; 
   out[9] += (0.7071067811865475*Ghat_l[5]-0.7071067811865475*Ghat_r[5])*dv10*dx10; 
   out[10] += (0.7071067811865475*Ghat_l[6]-0.7071067811865475*Ghat_r[6])*dv10*dx10; 
-  out[11] += -(1.224744871391589*(Ghat_r[4]+Ghat_l[4])*dv10*dx10); 
-  out[12] += -(1.224744871391589*(Ghat_r[5]+Ghat_l[5])*dv10*dx10); 
-  out[13] += -(1.224744871391589*(Ghat_r[6]+Ghat_l[6])*dv10*dx10); 
+  out[11] += -1.224744871391589*(Ghat_r[4]+Ghat_l[4])*dv10*dx10; 
+  out[12] += -1.224744871391589*(Ghat_r[5]+Ghat_l[5])*dv10*dx10; 
+  out[13] += -1.224744871391589*(Ghat_r[6]+Ghat_l[6])*dv10*dx10; 
   out[14] += (0.7071067811865475*Ghat_l[7]-0.7071067811865475*Ghat_r[7])*dv10*dx10; 
-  out[15] += -(1.224744871391589*(Ghat_r[7]+Ghat_l[7])*dv10*dx10); 
+  out[15] += -1.224744871391589*(Ghat_r[7]+Ghat_l[7])*dv10*dx10; 
 
-  return fabs(0.75*dv10*dx10*(1.7320508075688772*hamil[1]));
+  return fabs(0.75*dv10*dx10*(1.732050807568877*hamil[1]));
 
 } 

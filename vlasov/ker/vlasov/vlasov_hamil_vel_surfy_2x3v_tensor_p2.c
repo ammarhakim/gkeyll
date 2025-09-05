@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH double vlasov_hamil_vel_surfy_2x3v_tensor_p2(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, 
+  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   double dx11 = 2.0/dxv[1]; 

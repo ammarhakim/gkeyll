@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_hamil_gen_vol_2x3v_ser_p1(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[2]; 

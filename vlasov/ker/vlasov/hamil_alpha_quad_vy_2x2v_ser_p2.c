@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void hamil_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
+GKYL_CU_DH void hamil_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *poisson_tensor_conf,
   const double *hamil, double* GKYL_RESTRICT alpha_quad) 
 { 
   double dx11 = 2.0/dxv[1]; 
