@@ -2,9 +2,24 @@
 
 #include <math.h>
 
+#include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_triad_geom_priv.h>
+#include <gkyl_util.h>
 
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
 
 void
 test_triad_math_1v(int vdim)
@@ -70,6 +85,128 @@ test_triad_math_1v(int vdim)
   // Pi_{xx} block
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[0], 1.0 / (2*z1), eps));
 
+}
+
+void eval_triad_basis_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 1;
+}
+
+void eval_cov_tangent_basis_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 1;
+}
+
+void eval_triad_basis_gradient_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 0;
+}
+
+void
+test_triad_1x1v_flat_conf(int poly_order)
+{
+
+  double lower[] = {0.1, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {2, 2};
+  int vdim = 1, cdim = 1;
+  int ndim = cdim+vdim;
+
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
+  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
+  int velCells[] = {cells[1]};
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+    struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = {0};
+  struct gkyl_range velLocal, velLocal_ext; 
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis, velBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
+
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = { confGhost[0], 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Construct the input map
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_1v; 
+  inp_basis_vectors.eval_triad_basis = eval_triad_basis_1v; 
+  inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_1v; 
+  inp_basis_vectors.ctx = 0; 
+
+  // Make the memory for arrays (modal)
+  struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *det_h; // Specified metric determinant
+  struct gkyl_array *cov_tangent_basis; // Covariant tangent basis
+  struct gkyl_array *triad_basis; // Triad basis
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+
+  // Size of the PT
+  int num_pt_indices[3] = { 1 , 6, 18 }; 
+
+  // Allocate arrays for covariant tangent basis 
+  cov_tangent_basis = mkarr(basis.num_basis*vdim*vdim, local_ext.volume);
+  triad_basis = mkarr(basis.num_basis*vdim*vdim, local_ext.volume);
+  h_ij = mkarr(basis.num_basis*vdim*(vdim+1)/2, local_ext.volume);
+  h_ij_inv = mkarr(basis.num_basis*vdim*(vdim+1)/2, local_ext.volume);
+  det_h = mkarr(basis.num_basis, local_ext.volume);
+  conf_poisson_tensor = mkarr(basis.num_basis*num_pt_indices[vdim-1], local_ext.volume);
+
+  // Construct the Geometry for this configuration
+  gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
+    &grid, &local, basis, inp_basis_vectors, cov_tangent_basis,
+    triad_basis, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
+
+  // Iterate over the grid, conf space, checking output
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &confLocal);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *h_ij_d = gkyl_array_cfetch(h_ij, gkyl_range_idx(&confLocal, iter.idx));
+    const double *h_ij_inv_d = gkyl_array_cfetch(h_ij_inv, gkyl_range_idx(&confLocal, iter.idx));
+    const double *det_h_d = gkyl_array_cfetch(det_h, gkyl_range_idx(&confLocal, iter.idx));
+    const double *conf_poisson_tensor_d = gkyl_array_cfetch(conf_poisson_tensor, gkyl_range_idx(&confLocal, iter.idx));
+    
+    int NC = confBasis.num_basis;
+    for (int k=0; k<vdim*(vdim+1)/2; ++k) {
+      printf("h_ij[%d]: %1.2e, h_ij[%d]: %1.2e, h_ij[%d]: %1.2e \n", k*NC, h_ij_d[0], k*NC + 1, h_ij_d[1], k*NC + 2, h_ij_d[2]); 
+      printf("h_ij_inv[%d]: %1.2e, h_ij_inv[%d]: %1.2e, h_ij_inv[%d]: %1.2e \n", k*NC, h_ij_inv_d[0], k*NC + 1, h_ij_inv_d[1], k*NC + 2, h_ij_inv_d[2]); 
+    }
+    printf("det_h_d[0]: %1.2e, det_h_d[1]: %1.2e, det_h_d[2]: %1.2e \n", det_h_d[0], det_h_d[1], det_h_d[2]); 
+    for (int k=0; k<num_pt_indices[vdim-1]; ++k) {
+      printf("conf_pt[%d]: %1.2e, conf_pt[%d]: %1.2e, conf_pt[%d]: %1.2e \n", k*NC, conf_poisson_tensor_d[0], k*NC + 1, conf_poisson_tensor_d[1], k*NC + 2, conf_poisson_tensor_d[2]); 
+    }
+
+    for (int k=0; k<confBasis.num_basis; ++k) {
+      //TEST_CHECK( gkyl_compare_double(n0[k], nr[k], 1e-14) );
+    }
+  }
+
+
+  // Release the memory
+  gkyl_array_release(h_ij);
+  gkyl_array_release(h_ij_inv);
+  gkyl_array_release(det_h);
+  gkyl_array_release(cov_tangent_basis);
+  gkyl_array_release(triad_basis);
+  gkyl_array_release(conf_poisson_tensor);
 }
 
 void
@@ -337,11 +474,13 @@ test_triad_math_3v(int vdim)
 }
 
 void test_triad_1v() { test_triad_math_1v(1); }
+void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
 void test_triad_2v() { test_triad_math_2v(2); }
 void test_triad_3v() { test_triad_math_3v(3); }
 
 TEST_LIST = {
   { "test_triad_1v", test_triad_1v}, 
+  { "test_triad_1x1v_flat", test_triad_1x1v_flat}, 
   { "test_triad_2v", test_triad_2v},
   { "test_triad_3v", test_triad_3v},
   {NULL, NULL}

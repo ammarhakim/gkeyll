@@ -66,6 +66,17 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = ser_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels;        
       }
+      else if (model_id == GKYL_MODEL_TRIAD) {
+        vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+
+        stream_surf_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
+        stream_surf_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
+        stream_surf_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
+        
+        stream_boundary_surf_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
+        stream_boundary_surf_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
+        stream_boundary_surf_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels;  
+      }
       else {
         vlasov->hamil_vol = ser_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
 
@@ -168,7 +179,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     vlasov->hamil_dim = vdim; 
     vlasov->hamil_offset = cdim; 
   }
@@ -187,6 +198,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
     jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
     vlasov->jacob_vel = jacob_vel_ho->on_dev; 
   }
+  struct gkyl_array *poisson_tensor_conf_ho = gkyl_array_acquire(inp->poisson_tensor_conf);
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
@@ -194,6 +206,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
   struct gkyl_array *f_no_J_ho = gkyl_array_acquire(inp->f_no_J); 
   // store pointers to on_dev for copying over to device. 
+  vlasov->poisson_tensor_conf = poisson_tensor_conf_ho->on_dev; 
   vlasov->hamil = hamil_ho->on_dev; 
   vlasov->qmem = qmem_ho->on_dev; 
   vlasov->pot_tot = pot_tot_ho->on_dev; 
@@ -220,6 +233,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // Host-side equation object should store host pointers.
   vlasov->jacob_vel = jacob_vel_ho; 
+  vlasov->poisson_tensor_conf = poisson_tensor_conf_ho; 
   vlasov->hamil = hamil_ho; 
   vlasov->qmem = qmem_ho; 
   vlasov->pot_tot = pot_tot_ho; 

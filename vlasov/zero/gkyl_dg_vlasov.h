@@ -23,6 +23,7 @@ struct gkyl_dg_vlasov_inp {
   bool has_B; // bool to determine whether we have magnetic fields.
   bool has_rad; // bool to determine whether we have radiation drag forces. 
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
+  const struct gkyl_array *poisson_tensor_conf; // Configuration space poisson tensor used for nc poisson brackets.
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 

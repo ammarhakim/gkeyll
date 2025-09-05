@@ -13,7 +13,7 @@ Tr = math.sqrt(0.1 / 0.125) -- Right temperature.
 Vx_drift_r = 0.0 -- Right drift velocity (x-direction).
 
 vt = 1.0 -- Thermal velocity.
-nu = 15000.0 -- Collision frequency.
+nu = 0.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nx = 128 -- Cell count (configuration space: x-direction).
@@ -26,7 +26,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 0.1 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+num_frames = 100 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.

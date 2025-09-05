@@ -55,6 +55,7 @@ static const struct gkyl_str_int_pair model_type[] = {
   { "SR", GKYL_MODEL_SR },
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
   { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
+  { "Triad", GKYL_MODEL_TRIAD},
   { 0, 0 }
 };
 
@@ -1946,6 +1947,11 @@ vm_app_new(lua_State *L)
     if (species[s]->has_triad_basis_func) {
       vm.species[s].triad_basis = gkyl_lw_eval_cb;
       vm.species[s].triad_basis_ctx = &app_lw->triad_basis_func_ctx[s];
+    }
+
+    if (species[s]->has_triad_basis_gradient_func) {
+      vm.species[s].triad_basis_gradient = gkyl_lw_eval_cb;
+      vm.species[s].triad_basis_gradient_ctx = &app_lw->triad_basis_gradient_func_ctx[s];
     }
 
     if (species[s]->has_hamiltonian_func) {

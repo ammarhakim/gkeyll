@@ -86,10 +86,11 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     } 
 
     // Allocate arrays for configuration space Poisson tensor
-    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+vdim)*((vdim+vdim)+1)/2, app->local_ext.volume);
+    int num_pt_indices[3] = { 1 , 6, 18 }; 
+    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
     vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
     if (app->use_gpu){
-      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*vdim*(vdim+vdim)*((vdim+vdim)+1)/2, app->local_ext.volume);
+      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
     }
 
     // Evaluate specified covariant tangent basis function at nodes to ensure continuity of the basis
@@ -110,19 +111,13 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     gkyl_eval_on_nodes_release(triad_basis_proj);
 
-    // INCOMPLETE: 
-    // NOTE: Quantities are stored modally
-    // 1. Need to build the inputs like is done in: gkyl_vlasov_velocity_map_new
-    // 2. Signature is incomplete for gkyl_calc_triad_geom
-
     struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
     if ((vms->info.triad_basis && vms->info.triad_basis_gradient) 
       && (vms->info.cov_tangent_basis))  {
-      vms->use_vmap = true; 
       inp_basis_vectors.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
       inp_basis_vectors.eval_triad_basis = vms->info.triad_basis; 
       inp_basis_vectors.eval_triad_basis_gradient = vms->info.triad_basis_gradient; 
-      inp_basis_vectors.ctx = 0; 
+      inp_basis_vectors.ctx = vms->info.cov_tangent_basis_ctx; 
     }
 
     // The geometry comes from the tangents and triads
@@ -311,7 +306,7 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
 
   // Compute the surface expansion of the phase space flux in velocity space. 
   gkyl_dg_vlasov_vel_flux_surf_advance(vms->calc_vel_flux, &app->local, &vms->local, 
-    vms->jacob_vel_surf, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
+    vms->jacob_vel_surf, vms->conf_poisson_tensor, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
     vms->f_no_J, vms->cflrate, vms->vel_flux_surf);
 
   gkyl_hyper_dg_advance(vms->slvr, &vms->local, fin, vms->cflrate, rhs);
@@ -1418,6 +1413,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .has_phi = vms->has_phi, 
     .has_B = vms->has_B, 
     .has_rad = vms->has_rad, 
+    .poisson_tensor_conf = vms->conf_poisson_tensor,
     .hamil = vms->hamil,
     .qmem = vms->qmem, 
     .pot_tot = vms->pot_tot, 
@@ -1686,7 +1682,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
       gkyl_array_release(vms->gamma_inv);   
     }
   }
-  else  {
+  else  { 
     gkyl_array_release(vms->cov_tangent_basis);
     gkyl_array_release(vms->triad_basis);
     gkyl_array_release(vms->h_ij);

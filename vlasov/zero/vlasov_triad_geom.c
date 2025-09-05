@@ -10,14 +10,6 @@
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_triad_geom_priv.h>
 
-// This function needs to:
-// 1. Project the basis at Gauss-Legendre points in a cell
-// 2. Compute h_ij
-// 3. Compute sqrt(det(h_ij))
-// 4. Compute h_ij_inv
-// 5. Compute conf_poisson tensor at nodal configuration space points
-// 6. Convert nodal to modal representations of h_ij, h_ij_inv, sqrt(det(h_ij))
-// (LATER FOR GR ONLY) Use this information to contruct the continious hamil
 
 void
 gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
@@ -27,14 +19,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   struct gkyl_array *h_ij_inv, struct gkyl_array *det_h, struct gkyl_array *conf_poisson_tensor)
 {
 
-  // INCOMPLETE
-  // 1. Need to generalize to multiple dimensions (cdim dimension)
-    // See: ctest_dg_basis_ops.c (test_cubic_evalf_2d) for details
-  // 2. Need to save the evalf results nodally
-  // 3. Need to construct remaining physical quantites with some nodal to modal conv.
-    // >? perhaps the way I verified the hamiltonian is build nodally is useful?
-  // 4. Should remove iteration over cdim, it should go over the entire conf grid.
-
+  int num_pt_indices[3] = { 1 , 6, 18 };
   int cdim = cgrid->ndim;
   int pdim = pgrid->ndim;
   int vdim = pdim - cdim;
@@ -48,7 +33,6 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
 
   // Configuration space nodal grid construction from cgrid
   const double *clower = cgrid->lower, *cupper = cgrid->upper;
-  const double *plower = pgrid->lower, *pupper = pgrid->upper;
   const int *cells = cgrid->cells;
 
   // Nodal grid used for constructing physical coordinates in configuration space
@@ -59,7 +43,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   for (int i=0; i<cdim; ++i) {
     nc_lower[i] = clower[i] - 0.5*cgrid->dx[i];
     nc_upper[i] = cupper[i] + 0.5*cgrid->dx[i];
-    nc_cells[i] = cells[i] + 1; 
+    nc_cells[i] = 2*cells[i] + 1; 
     nghost[i] = 1; // One ghost cell in conf space
   }
 
@@ -73,7 +57,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   h_ij_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, nc_local.volume);
   h_ij_inv_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, nc_local.volume);
   det_h_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nc_local.volume);
-  conf_poisson_tensor_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+vdim)*((vdim+vdim)+1)/2, nc_local.volume);
+  conf_poisson_tensor_nodal = gkyl_array_new(GKYL_DOUBLE, num_pt_indices[vdim-1], nc_local.volume);
   triad_basis_gradient_nodal = gkyl_array_new(GKYL_DOUBLE, vdim*vdim*vdim, nc_local.volume);
   double xn[GKYL_MAX_DIM];
 
@@ -127,7 +111,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   h_ij_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+1)/2, NULL, NULL);
   h_ij_inv_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+1)/2, NULL, NULL);
   det_h_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, 1, NULL, NULL);
-  conf_poisson_tensor_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, vdim*(vdim+vdim)*((vdim+vdim)+1)/2, NULL, NULL);
+  conf_poisson_tensor_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, num_pt_indices[vdim-1], NULL, NULL);
 
   gkyl_range_iter_init(&iter, crange);
   while (gkyl_range_iter_next(&iter)) {

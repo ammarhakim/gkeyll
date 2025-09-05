@@ -46,7 +46,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     mom_vlasov->hamil_dim = vdim; 
     mom_vlasov->hamil_offset = cdim; 
   }
@@ -111,7 +111,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants dH/dv moment when they
     // request M1 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);    
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
       assert(NULL != m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -128,7 +128,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants H moment when they
     // request M2 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
       assert(NULL != m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -146,7 +146,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // request M3 in some form. JJ 07/25/25
     gkyl_exit("mom_vlasov M3: Not currently supported in new Hamiltonian formulation.");
     // assert(cv_index[cdim].vdim[vdim] != -1);
-    // if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    // if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     //   assert(NULL != m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     //   mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     // }
@@ -176,7 +176,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants {1, dH/dv, H} moments when they
     // request five_moments/M0M1M2. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
       assert(NULL != five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -239,7 +239,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     mom_vlasov->hamil_dim = vdim; 
     mom_vlasov->hamil_offset = cdim; 
   }
@@ -279,7 +279,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   assert(cv_index[cdim].vdim[vdim] != -1);   
 
   if (inp->mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
       assert(NULL != int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }

@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*hamil_alpha_quad_t)(const double *dxv, 
+typedef void (*hamil_alpha_quad_t)(const double *w, const double *dxv, const double *poisson_tensor_conf, 
   const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 
 typedef void (*E_alpha_quad_t)(const double *dxv, 
@@ -32,12 +32,12 @@ typedef double (*lax_flux_nodal_to_modal_t)(const double *dxv,
   double *lax_nodal_quad, double* GKYL_RESTRICT vel_flux_surf); 
 
 typedef double (*vel_flux_surf_t)(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *phi_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf); 
 
 typedef double (*vel_flux_surf_edge_t)(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *phi_tot, const double *rad, 
   const double *f_c, double* GKYL_RESTRICT vel_flux_surf); 
 
@@ -85,7 +85,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
 // Empty function pointers for cases where these forces do not exist. 
 GKYL_CU_DH
 static void 
-no_hamil_alpha_quad(const double *dxv, 
+no_hamil_alpha_quad(const double *w, const double *dxv, const double *poisson_tensor_conf,
   const double *hamil, double* GKYL_RESTRICT alpha_quad)
 {
 }
@@ -116,7 +116,7 @@ no_rad_alpha_quad(const double *dxv,
 GKYL_CU_DH
 static double
 no_vel_flux_surf_edge(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *phi_tot, const double *rad, 
   const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -127,11 +127,11 @@ no_vel_flux_surf_edge(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static void inline
 vel_flux_surf_alpha_quad(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf, 
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   double* GKYL_RESTRICT alpha_quad)
 {
-  up->hamil_alpha_quad[dir](dxv, hamil, alpha_quad); 
+  up->hamil_alpha_quad[dir](w, dxv, poisson_tensor_conf, hamil, alpha_quad); 
   up->E_alpha_quad[dir](dxv, qmem, alpha_quad); 
   up->phi_alpha_quad[dir](dxv, pot_tot, alpha_quad); 
   up->B_alpha_quad[dir](dxv, jacob_vel, hamil, qmem, alpha_quad); 
@@ -143,7 +143,7 @@ vel_flux_surf_alpha_quad(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -152,7 +152,7 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[2] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -171,7 +171,7 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -180,7 +180,7 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[4] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -199,7 +199,7 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -208,7 +208,7 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[5] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -227,7 +227,7 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -237,7 +237,7 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[4] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -256,7 +256,7 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -266,7 +266,7 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[16] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -285,7 +285,7 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -295,7 +295,7 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[8] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -314,7 +314,7 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -324,7 +324,7 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[64] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -343,7 +343,7 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -352,7 +352,7 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[4] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -371,7 +371,7 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -380,7 +380,7 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[16] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -399,7 +399,7 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -408,7 +408,7 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[25] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -427,7 +427,7 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -437,7 +437,7 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[8] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -456,7 +456,7 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -466,7 +466,7 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[64] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -485,7 +485,7 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -495,7 +495,7 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[16] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -514,7 +514,7 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -524,7 +524,7 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[256] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -543,7 +543,7 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *dxv, const double *jacob_vel, 
+  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -553,7 +553,7 @@ vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   double lax_nodal_quad[32] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
-  vel_flux_surf_alpha_quad(up, dir, dxv, jacob_vel, hamil, qmem, pot_tot, rad, alpha_quad); 
+  vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
   double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
@@ -711,6 +711,49 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_alpha_quad_vz_kernels[] =
   { NULL, no_hamil_alpha_quad, no_hamil_alpha_quad, NULL }, // 5
   // 3x kernels
   { NULL, hamil_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// alpha_v evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, nc_hamil_alpha_quad_vx_1x1v_ser_p1, nc_hamil_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
+  { NULL, nc_hamil_alpha_quad_vx_1x2v_ser_p1, nc_hamil_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vx_1x3v_ser_p1, nc_hamil_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vx_2x2v_ser_p1, nc_hamil_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vy_2x2v_ser_p1, nc_hamil_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for the electric field Lorentz force (Serendipity basis). 
