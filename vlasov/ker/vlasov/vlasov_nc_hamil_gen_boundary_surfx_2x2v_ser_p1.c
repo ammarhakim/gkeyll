@@ -4,7 +4,8 @@ GKYL_CU_DH double vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1(const double *w
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
-  double dv10 = 2.0/dxv[2]; 
+  const double dv10 = 2.0/dxv[2]; 
+  const double dv11 = 2.0/dxv[3]; 
 
   double Ghat[8]; 
   double Ghat_nodal[8]; 
@@ -15,42 +16,42 @@ GKYL_CU_DH double vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1(const double *w
   double alpha_quad = 0.0; 
   double f_l_quad = 0.0; 
   double f_r_quad = 0.0; 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fskin[15])-0.25*fskin[14]+0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]+0.25*fskin[10]+0.25*fskin[9]-0.4330127018922193*fskin[8]+0.25*fskin[7]-0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]-0.25*fskin[4]-0.25*fskin[3]-0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = 0.4330127018922193*fedge[15]-0.25*fedge[14]-0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]+0.25*fedge[10]+0.25*fedge[9]+0.4330127018922193*fedge[8]+0.25*fedge[7]+0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]-0.25*fedge[4]-0.25*fedge[3]-0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[0] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fskin[15]+0.25*fskin[14]-0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]-0.25*fskin[10]-0.25*fskin[9]+0.4330127018922193*fskin[8]+0.25*fskin[7]-0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]+0.25*fskin[4]-0.25*fskin[3]-0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = (-0.4330127018922193*fedge[15])+0.25*fedge[14]+0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]-0.25*fedge[10]-0.25*fedge[9]-0.4330127018922193*fedge[8]+0.25*fedge[7]+0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]+0.25*fedge[4]-0.25*fedge[3]-0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[1] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fskin[15]+0.25*fskin[14]-0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]-0.25*fskin[10]+0.25*fskin[9]-0.4330127018922193*fskin[8]-0.25*fskin[7]+0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]-0.25*fskin[4]+0.25*fskin[3]-0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = (-0.4330127018922193*fedge[15])+0.25*fedge[14]+0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]-0.25*fedge[10]+0.25*fedge[9]+0.4330127018922193*fedge[8]-0.25*fedge[7]-0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]-0.25*fedge[4]+0.25*fedge[3]-0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[2] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])-0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])-0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fskin[15])-0.25*fskin[14]+0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]+0.25*fskin[10]-0.25*fskin[9]+0.4330127018922193*fskin[8]-0.25*fskin[7]+0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]+0.25*fskin[4]+0.25*fskin[3]-0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = 0.4330127018922193*fedge[15]-0.25*fedge[14]-0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]+0.25*fedge[10]-0.25*fedge[9]-0.4330127018922193*fedge[8]-0.25*fedge[7]-0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]+0.25*fedge[4]+0.25*fedge[3]-0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[3] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fskin[15]+0.25*fskin[14]+0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]+0.25*fskin[10]-0.25*fskin[9]-0.4330127018922193*fskin[8]-0.25*fskin[7]-0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]-0.25*fskin[4]-0.25*fskin[3]+0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = (-0.4330127018922193*fedge[15])+0.25*fedge[14]-0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]+0.25*fedge[10]-0.25*fedge[9]+0.4330127018922193*fedge[8]-0.25*fedge[7]+0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]-0.25*fedge[4]-0.25*fedge[3]+0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[4] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fskin[15])-0.25*fskin[14]-0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]-0.25*fskin[10]+0.25*fskin[9]+0.4330127018922193*fskin[8]-0.25*fskin[7]-0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]+0.25*fskin[4]-0.25*fskin[3]+0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = 0.4330127018922193*fedge[15]-0.25*fedge[14]+0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]-0.25*fedge[10]+0.25*fedge[9]-0.4330127018922193*fedge[8]-0.25*fedge[7]+0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]+0.25*fedge[4]-0.25*fedge[3]+0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[5] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fskin[15])-0.25*fskin[14]-0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]-0.25*fskin[10]-0.25*fskin[9]-0.4330127018922193*fskin[8]+0.25*fskin[7]+0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]-0.25*fskin[4]+0.25*fskin[3]+0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = 0.4330127018922193*fedge[15]-0.25*fedge[14]+0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]-0.25*fedge[10]-0.25*fedge[9]+0.4330127018922193*fedge[8]+0.25*fedge[7]-0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]-0.25*fedge[4]+0.25*fedge[3]+0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[6] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]+0.5*poisson_tensor_conf_1[2]+0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]+0.5*poisson_tensor_conf_0[2]+0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fskin[15]+0.25*fskin[14]+0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]+0.25*fskin[10]+0.25*fskin[9]+0.4330127018922193*fskin[8]+0.25*fskin[7]+0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]+0.25*fskin[4]+0.25*fskin[3]+0.25*fskin[2]+0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   f_r_quad = (-0.4330127018922193*fedge[15])+0.25*fedge[14]-0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]+0.25*fedge[10]+0.25*fedge[9]-0.4330127018922193*fedge[8]+0.25*fedge[7]-0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]+0.25*fedge[4]+0.25*fedge[3]+0.25*fedge[2]-0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   Ghat_nodal[7] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
@@ -64,64 +65,64 @@ GKYL_CU_DH double vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1(const double *w
   Ghat[6] = 0.3535533905932737*Ghat_nodal[7]-0.3535533905932737*Ghat_nodal[6]-0.3535533905932737*Ghat_nodal[5]+0.3535533905932737*Ghat_nodal[4]+0.3535533905932737*Ghat_nodal[3]-0.3535533905932737*Ghat_nodal[2]-0.3535533905932737*Ghat_nodal[1]+0.3535533905932737*Ghat_nodal[0]; 
   Ghat[7] = 0.3535533905932737*Ghat_nodal[7]-0.3535533905932737*Ghat_nodal[6]-0.3535533905932737*Ghat_nodal[5]+0.3535533905932737*Ghat_nodal[4]-0.3535533905932737*Ghat_nodal[3]+0.3535533905932737*Ghat_nodal[2]+0.3535533905932737*Ghat_nodal[1]-0.3535533905932737*Ghat_nodal[0]; 
 
-  out[0] += -0.7071067811865475*Ghat[0]*dv10*dx10; 
-  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
-  out[2] += -0.7071067811865475*Ghat[1]*dv10*dx10; 
-  out[3] += -0.7071067811865475*Ghat[2]*dv10*dx10; 
-  out[4] += -0.7071067811865475*Ghat[3]*dv10*dx10; 
-  out[5] += -1.224744871391589*Ghat[1]*dv10*dx10; 
-  out[6] += -1.224744871391589*Ghat[2]*dv10*dx10; 
-  out[7] += -0.7071067811865475*Ghat[4]*dv10*dx10; 
-  out[8] += -1.224744871391589*Ghat[3]*dv10*dx10; 
-  out[9] += -0.7071067811865475*Ghat[5]*dv10*dx10; 
-  out[10] += -0.7071067811865475*Ghat[6]*dv10*dx10; 
-  out[11] += -1.224744871391589*Ghat[4]*dv10*dx10; 
-  out[12] += -1.224744871391589*Ghat[5]*dv10*dx10; 
-  out[13] += -1.224744871391589*Ghat[6]*dv10*dx10; 
-  out[14] += -0.7071067811865475*Ghat[7]*dv10*dx10; 
-  out[15] += -1.224744871391589*Ghat[7]*dv10*dx10; 
+  out[0] += -0.7071067811865475*Ghat[0]*dx10; 
+  out[1] += -1.224744871391589*Ghat[0]*dx10; 
+  out[2] += -0.7071067811865475*Ghat[1]*dx10; 
+  out[3] += -0.7071067811865475*Ghat[2]*dx10; 
+  out[4] += -0.7071067811865475*Ghat[3]*dx10; 
+  out[5] += -1.224744871391589*Ghat[1]*dx10; 
+  out[6] += -1.224744871391589*Ghat[2]*dx10; 
+  out[7] += -0.7071067811865475*Ghat[4]*dx10; 
+  out[8] += -1.224744871391589*Ghat[3]*dx10; 
+  out[9] += -0.7071067811865475*Ghat[5]*dx10; 
+  out[10] += -0.7071067811865475*Ghat[6]*dx10; 
+  out[11] += -1.224744871391589*Ghat[4]*dx10; 
+  out[12] += -1.224744871391589*Ghat[5]*dx10; 
+  out[13] += -1.224744871391589*Ghat[6]*dx10; 
+  out[14] += -0.7071067811865475*Ghat[7]*dx10; 
+  out[15] += -1.224744871391589*Ghat[7]*dx10; 
 
   } else { 
 
   double alpha_quad = 0.0; 
   double f_l_quad = 0.0; 
   double f_r_quad = 0.0; 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fedge[15])-0.25*fedge[14]+0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]+0.25*fedge[10]+0.25*fedge[9]-0.4330127018922193*fedge[8]+0.25*fedge[7]-0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]-0.25*fedge[4]-0.25*fedge[3]-0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = 0.4330127018922193*fskin[15]-0.25*fskin[14]-0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]+0.25*fskin[10]+0.25*fskin[9]+0.4330127018922193*fskin[8]+0.25*fskin[7]+0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]-0.25*fskin[4]-0.25*fskin[3]-0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[0] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fedge[15]+0.25*fedge[14]-0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]-0.25*fedge[10]-0.25*fedge[9]+0.4330127018922193*fedge[8]+0.25*fedge[7]-0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]+0.25*fedge[4]-0.25*fedge[3]-0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = (-0.4330127018922193*fskin[15])+0.25*fskin[14]+0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]-0.25*fskin[10]-0.25*fskin[9]-0.4330127018922193*fskin[8]+0.25*fskin[7]+0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]+0.25*fskin[4]-0.25*fskin[3]-0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[1] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fedge[15]+0.25*fedge[14]-0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]-0.25*fedge[10]+0.25*fedge[9]-0.4330127018922193*fedge[8]-0.25*fedge[7]+0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]-0.25*fedge[4]+0.25*fedge[3]-0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = (-0.4330127018922193*fskin[15])+0.25*fskin[14]+0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]-0.25*fskin[10]+0.25*fskin[9]+0.4330127018922193*fskin[8]-0.25*fskin[7]-0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]-0.25*fskin[4]+0.25*fskin[3]-0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[2] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*(0.8660254037844388*poisson_tensor_conf_1[3]-0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*(0.8660254037844388*poisson_tensor_conf_0[3]-0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fedge[15])-0.25*fedge[14]+0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]+0.25*fedge[10]-0.25*fedge[9]+0.4330127018922193*fedge[8]-0.25*fedge[7]+0.4330127018922193*fedge[6]-0.4330127018922193*fedge[5]+0.25*fedge[4]+0.25*fedge[3]-0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = 0.4330127018922193*fskin[15]-0.25*fskin[14]-0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]+0.25*fskin[10]-0.25*fskin[9]-0.4330127018922193*fskin[8]-0.25*fskin[7]-0.4330127018922193*fskin[6]+0.4330127018922193*fskin[5]+0.25*fskin[4]+0.25*fskin[3]-0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[3] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fedge[15]+0.25*fedge[14]+0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]+0.25*fedge[10]-0.25*fedge[9]-0.4330127018922193*fedge[8]-0.25*fedge[7]-0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]-0.25*fedge[4]-0.25*fedge[3]+0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = (-0.4330127018922193*fskin[15])+0.25*fskin[14]-0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]+0.25*fskin[10]-0.25*fskin[9]+0.4330127018922193*fskin[8]-0.25*fskin[7]+0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]-0.25*fskin[4]-0.25*fskin[3]+0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[4] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[2]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fedge[15])-0.25*fedge[14]-0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]-0.4330127018922193*fedge[11]-0.25*fedge[10]+0.25*fedge[9]+0.4330127018922193*fedge[8]-0.25*fedge[7]-0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]+0.25*fedge[4]-0.25*fedge[3]+0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = 0.4330127018922193*fskin[15]-0.25*fskin[14]+0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]+0.4330127018922193*fskin[11]-0.25*fskin[10]+0.25*fskin[9]-0.4330127018922193*fskin[8]-0.25*fskin[7]+0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]+0.25*fskin[4]-0.25*fskin[3]+0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[5] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[1]-0.8660254037844386*hamil[3])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = (-0.4330127018922193*fedge[15])-0.25*fedge[14]-0.4330127018922193*fedge[13]-0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]-0.25*fedge[10]-0.25*fedge[9]-0.4330127018922193*fedge[8]+0.25*fedge[7]+0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]-0.25*fedge[4]+0.25*fedge[3]+0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = 0.4330127018922193*fskin[15]-0.25*fskin[14]+0.4330127018922193*fskin[13]+0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]-0.25*fskin[10]-0.25*fskin[9]+0.4330127018922193*fskin[8]+0.25*fskin[7]-0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]-0.25*fskin[4]+0.25*fskin[3]+0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[6] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
 
-  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0]); 
+  alpha_quad = (0.8660254037844386*hamil[3]+0.8660254037844386*hamil[2])*((-0.8660254037844388*poisson_tensor_conf_1[3])+0.5*poisson_tensor_conf_1[2]-0.8660254037844386*poisson_tensor_conf_1[1]+0.5*poisson_tensor_conf_1[0])*dv11+(0.8660254037844386*hamil[3]+0.8660254037844386*hamil[1])*((-0.8660254037844388*poisson_tensor_conf_0[3])+0.5*poisson_tensor_conf_0[2]-0.8660254037844386*poisson_tensor_conf_0[1]+0.5*poisson_tensor_conf_0[0])*dv10; 
   f_l_quad = 0.4330127018922193*fedge[15]+0.25*fedge[14]+0.4330127018922193*fedge[13]+0.4330127018922193*fedge[12]+0.4330127018922193*fedge[11]+0.25*fedge[10]+0.25*fedge[9]+0.4330127018922193*fedge[8]+0.25*fedge[7]+0.4330127018922193*fedge[6]+0.4330127018922193*fedge[5]+0.25*fedge[4]+0.25*fedge[3]+0.25*fedge[2]+0.4330127018922193*fedge[1]+0.25*fedge[0]; 
   f_r_quad = (-0.4330127018922193*fskin[15])+0.25*fskin[14]-0.4330127018922193*fskin[13]-0.4330127018922193*fskin[12]-0.4330127018922193*fskin[11]+0.25*fskin[10]+0.25*fskin[9]-0.4330127018922193*fskin[8]+0.25*fskin[7]-0.4330127018922193*fskin[6]-0.4330127018922193*fskin[5]+0.25*fskin[4]+0.25*fskin[3]+0.25*fskin[2]-0.4330127018922193*fskin[1]+0.25*fskin[0]; 
   Ghat_nodal[7] = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
@@ -135,22 +136,22 @@ GKYL_CU_DH double vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1(const double *w
   Ghat[6] = 0.3535533905932737*Ghat_nodal[7]-0.3535533905932737*Ghat_nodal[6]-0.3535533905932737*Ghat_nodal[5]+0.3535533905932737*Ghat_nodal[4]+0.3535533905932737*Ghat_nodal[3]-0.3535533905932737*Ghat_nodal[2]-0.3535533905932737*Ghat_nodal[1]+0.3535533905932737*Ghat_nodal[0]; 
   Ghat[7] = 0.3535533905932737*Ghat_nodal[7]-0.3535533905932737*Ghat_nodal[6]-0.3535533905932737*Ghat_nodal[5]+0.3535533905932737*Ghat_nodal[4]-0.3535533905932737*Ghat_nodal[3]+0.3535533905932737*Ghat_nodal[2]+0.3535533905932737*Ghat_nodal[1]-0.3535533905932737*Ghat_nodal[0]; 
 
-  out[0] += 0.7071067811865475*Ghat[0]*dv10*dx10; 
-  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
-  out[2] += 0.7071067811865475*Ghat[1]*dv10*dx10; 
-  out[3] += 0.7071067811865475*Ghat[2]*dv10*dx10; 
-  out[4] += 0.7071067811865475*Ghat[3]*dv10*dx10; 
-  out[5] += -1.224744871391589*Ghat[1]*dv10*dx10; 
-  out[6] += -1.224744871391589*Ghat[2]*dv10*dx10; 
-  out[7] += 0.7071067811865475*Ghat[4]*dv10*dx10; 
-  out[8] += -1.224744871391589*Ghat[3]*dv10*dx10; 
-  out[9] += 0.7071067811865475*Ghat[5]*dv10*dx10; 
-  out[10] += 0.7071067811865475*Ghat[6]*dv10*dx10; 
-  out[11] += -1.224744871391589*Ghat[4]*dv10*dx10; 
-  out[12] += -1.224744871391589*Ghat[5]*dv10*dx10; 
-  out[13] += -1.224744871391589*Ghat[6]*dv10*dx10; 
-  out[14] += 0.7071067811865475*Ghat[7]*dv10*dx10; 
-  out[15] += -1.224744871391589*Ghat[7]*dv10*dx10; 
+  out[0] += 0.7071067811865475*Ghat[0]*dx10; 
+  out[1] += -1.224744871391589*Ghat[0]*dx10; 
+  out[2] += 0.7071067811865475*Ghat[1]*dx10; 
+  out[3] += 0.7071067811865475*Ghat[2]*dx10; 
+  out[4] += 0.7071067811865475*Ghat[3]*dx10; 
+  out[5] += -1.224744871391589*Ghat[1]*dx10; 
+  out[6] += -1.224744871391589*Ghat[2]*dx10; 
+  out[7] += 0.7071067811865475*Ghat[4]*dx10; 
+  out[8] += -1.224744871391589*Ghat[3]*dx10; 
+  out[9] += 0.7071067811865475*Ghat[5]*dx10; 
+  out[10] += 0.7071067811865475*Ghat[6]*dx10; 
+  out[11] += -1.224744871391589*Ghat[4]*dx10; 
+  out[12] += -1.224744871391589*Ghat[5]*dx10; 
+  out[13] += -1.224744871391589*Ghat[6]*dx10; 
+  out[14] += 0.7071067811865475*Ghat[7]*dx10; 
+  out[15] += -1.224744871391589*Ghat[7]*dx10; 
 
   } 
   return 0.0;
