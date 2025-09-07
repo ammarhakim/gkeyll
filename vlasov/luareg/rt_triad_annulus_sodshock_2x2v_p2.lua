@@ -19,9 +19,11 @@ nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nr = 128 -- Cell count (configuration space: radial direction).
+Ntheta = 1 -- Cell count (configuration space: radial direction).
 Nvr = 12 -- Cell count (velocity space: radial direction).
 Nvtheta = 12 -- Cell count (velocity space: angular direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
+Ltheta = 2 * math.pi -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
 poly_order = 2 -- Polynomial order.
@@ -48,9 +50,9 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.5 },
-  upper = { 0.5 + Lr },
-  cells = { Nr },
+  lower = { 0.5 , 0.0 },
+  upper = { 0.5 + Lr, Ltheta },
+  cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
 
   basis = basis_type,
@@ -61,7 +63,7 @@ vlasovApp = Vlasov.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { }, -- Periodic directions (none).
+  periodicDirs = { 2 }, -- Periodic directions (theta-dir).
 
   -- Neutral species.
   neut = Vlasov.Species.new {
@@ -71,7 +73,7 @@ vlasovApp = Vlasov.App.new {
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
     covTangentBasis = function (t, xn)
       local q_r = xn[1]
-      local q_theta = 0.0
+      local q_theta = xn[2]
 
       local e_rx = math.cos(q_theta) -- Covariant Tangent Basis Coefficients (r-x coefficient).
       local e_ry = math.sin(q_theta) -- Covariant Tangent Basis Coefficients (r-y coefficient).
@@ -84,7 +86,7 @@ vlasovApp = Vlasov.App.new {
     -- vals_ij = \sigma_{r,\theta} . \sigma_{x,y}
     triadBasis = function (t, xn)
       local q_r = xn[1]
-      local q_theta = 0.0
+      local q_theta = xn[2]
 
       local sigma_rx = math.cos(q_theta) -- Triad Basis Coefficients (r-x coefficient).
       local sigma_ry = math.sin(q_theta) -- Triad Basis Coefficients (r-y coefficient).
@@ -98,7 +100,7 @@ vlasovApp = Vlasov.App.new {
     -- x^k = { r, \theta }
     triadBasisGradient = function (t, xn)
       local q_r = xn[1]
-      local q_theta = 0.0
+      local q_theta = xn[2]
 
       -- d/dr components
       local d_sigma_rx_dr = 0.0 -- Triad Basis Gradient Coefficients (r-x coefficient).
