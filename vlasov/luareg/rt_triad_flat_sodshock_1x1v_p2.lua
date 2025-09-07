@@ -83,7 +83,7 @@ vlasovApp = Vlasov.App.new {
     -- d(vals_ij)/dx^k = (\sigma_{x} . \sigma_{x})/dx^k
     triadBasisGradient = function (t, xn)
 
-      local dsigma_xx_dx = 0 -- Triad Basis Coefficients (x-x coefficient).
+      local dsigma_xx_dx = 0 -- Triad Basis Gradient Coefficients (x-x coefficient).
 
       return dsigma_xx_dx
     end,

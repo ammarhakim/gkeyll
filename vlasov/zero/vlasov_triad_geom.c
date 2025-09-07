@@ -30,8 +30,7 @@ c2p_identity(const double *xcomp, double *xphys, int ndim)
 void
 gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *cov_tangent_basis,
-  struct gkyl_array *triad_basis, struct gkyl_array *h_ij,
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *h_ij,
   struct gkyl_array *h_ij_inv, struct gkyl_array *det_h, struct gkyl_array *conf_poisson_tensor)
 {
 
@@ -96,9 +95,9 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
       c2p_identity(xmu, xmu, cgrid->ndim);
 
       // Evaluate the functions for basis and their gradients at a nodal point xmu
-      inp_basis_vectors.eval_cov_tangent_basis(0.0, xmu, gkyl_array_fetch(cov_tangent_basis_at_nodes, i), inp_basis_vectors.ctx);
-      inp_basis_vectors.eval_triad_basis(0.0, xmu, gkyl_array_fetch(triad_basis_at_nodes, i), inp_basis_vectors.ctx);
-      inp_basis_vectors.eval_triad_basis_gradient(0.0, xmu, gkyl_array_fetch(triad_basis_gradient_at_nodes, i), inp_basis_vectors.ctx);
+      inp_basis_vectors.eval_cov_tangent_basis(0.0, xmu, gkyl_array_fetch(cov_tangent_basis_at_nodes, i), inp_basis_vectors.eval_cov_tangent_basis_ctx);
+      inp_basis_vectors.eval_triad_basis(0.0, xmu, gkyl_array_fetch(triad_basis_at_nodes, i), inp_basis_vectors.eval_triad_basis_ctx);
+      inp_basis_vectors.eval_triad_basis_gradient(0.0, xmu, gkyl_array_fetch(triad_basis_gradient_at_nodes, i), inp_basis_vectors.eval_triad_basis_gradient_ctx);
 
       // Fill the remaining nodal quantities:
       double *pn_cov_tangent_basis = gkyl_array_fetch(cov_tangent_basis_at_nodes, i);

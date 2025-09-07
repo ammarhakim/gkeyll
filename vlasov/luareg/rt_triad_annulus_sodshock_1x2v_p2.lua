@@ -19,8 +19,8 @@ nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nr = 128 -- Cell count (configuration space: radial direction).
-Nvr = 32 -- Cell count (velocity space: radial direction).
-Nvtheta = 32 -- Cell count (velocity space: angular direction).
+Nvr = 12 -- Cell count (velocity space: radial direction).
+Nvtheta = 12 -- Cell count (velocity space: angular direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
@@ -101,16 +101,16 @@ vlasovApp = Vlasov.App.new {
       local q_theta = 0.0
 
       -- d/dr components
-      local d_sigma_rx_dr = 0.0 -- Triad Basis Coefficients (r-x coefficient).
-      local d_sigma_ry_dr = 0.0 -- Triad Basis Coefficients (r-y coefficient).
-      local d_sigma_tx_dr = 0.0 -- Triad Basis Coefficients (theta-x coefficient).
-      local d_sigma_ty_dr = 0.0-- Triad Basis Coefficients (theta-y coefficient).
+      local d_sigma_rx_dr = 0.0 -- Triad Basis Gradient Coefficients (r-x coefficient).
+      local d_sigma_ry_dr = 0.0 -- Triad Basis Gradient Coefficients (r-y coefficient).
+      local d_sigma_tx_dr = 0.0 -- Triad Basis Gradient Coefficients (theta-x coefficient).
+      local d_sigma_ty_dr = 0.0-- Triad Basis Gradient Coefficients (theta-y coefficient).
 
       -- d/dtheta components
-      local d_sigma_rx_dtheta = math.sin(q_theta) -- Triad Basis Coefficients (r-x coefficient).
-      local d_sigma_ry_dtheta = math.cos(q_theta) -- Triad Basis Coefficients (r-y coefficient).
-      local d_sigma_tx_dtheta = - math.cos(q_theta) -- Triad Basis Coefficients (theta-x coefficient).
-      local d_sigma_ty_dtheta = math.sin(q_theta)-- Triad Basis Coefficients (theta-y coefficient).
+      local d_sigma_rx_dtheta = - math.sin(q_theta) -- Triad Basis Gradient Coefficients (r-x coefficient).
+      local d_sigma_ry_dtheta = math.cos(q_theta) -- Triad Basis Gradient Coefficients (r-y coefficient).
+      local d_sigma_tx_dtheta = - math.cos(q_theta) -- Triad Basis Gradient Coefficients (theta-x coefficient).
+      local d_sigma_ty_dtheta = - math.sin(q_theta)-- Triad Basis Gradient Coefficients (theta-y coefficient).
 
       return d_sigma_rx_dr, d_sigma_ry_dr, d_sigma_tx_dr, d_sigma_ty_dr, d_sigma_rx_dtheta, d_sigma_ry_dtheta, d_sigma_tx_dtheta, d_sigma_ty_dtheta
     end,

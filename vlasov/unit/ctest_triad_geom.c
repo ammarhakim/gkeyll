@@ -149,7 +149,9 @@ test_triad_1x1v_flat_conf(int poly_order)
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_1v; 
   inp_basis_vectors.eval_triad_basis = eval_triad_basis_1v; 
   inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_1v; 
-  inp_basis_vectors.ctx = 0; 
+  inp_basis_vectors.eval_cov_tangent_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_gradient_ctx = 0; 
 
   // Make the memory for arrays (modal)
   struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
@@ -172,8 +174,7 @@ test_triad_1x1v_flat_conf(int poly_order)
 
   // Construct the Geometry for this configuration
   gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
-    &grid, &local, basis, inp_basis_vectors, cov_tangent_basis,
-    triad_basis, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
+    &grid, &local, basis, inp_basis_vectors, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
 
   // Iterate over the grid, conf space, checking output
   struct gkyl_range_iter iter;
@@ -212,7 +213,188 @@ test_triad_1x1v_flat_conf(int poly_order)
 }
 
 
-void eval_triad_basis_2v(double t, const double *xn, double* restrict fout, void *ctx)
+
+
+void eval_triad_basis_flat_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 1.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 1.0;
+}
+
+void eval_cov_tangent_basis_flat_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 1.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 1.0;
+}
+
+void eval_triad_basis_gradient_flat_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
+}
+
+void
+test_triad_1x2v_flat_conf(int poly_order)
+{
+
+  double lower[] = {0.1, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2};
+  int vdim = 2, cdim = 1;
+  int ndim = cdim+vdim;
+
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
+  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
+  int velCells[] = {cells[1], cells[2]};
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+    struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; 
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis, velBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
+
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = { confGhost[0], 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Construct the input map
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_flat_2v; 
+  inp_basis_vectors.eval_triad_basis = eval_triad_basis_flat_2v; 
+  inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_flat_2v; 
+  inp_basis_vectors.eval_cov_tangent_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_gradient_ctx = 0; 
+
+  // Make the memory for arrays (modal)
+  struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *det_h; // Specified metric determinant
+  struct gkyl_array *cov_tangent_basis; // Covariant tangent basis
+  struct gkyl_array *triad_basis; // Triad basis
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+
+  // Size of the PT
+  int num_pt_indices[3] = { 1 , 6, 18 }; 
+
+  // Allocate arrays for covariant tangent basis 
+  cov_tangent_basis = mkarr(basis.num_basis*vdim*vdim, local_ext.volume);
+  triad_basis = mkarr(basis.num_basis*vdim*vdim, local_ext.volume);
+  h_ij = mkarr(basis.num_basis*vdim*(vdim+1)/2, local_ext.volume);
+  h_ij_inv = mkarr(basis.num_basis*vdim*(vdim+1)/2, local_ext.volume);
+  det_h = mkarr(basis.num_basis, local_ext.volume);
+  conf_poisson_tensor = mkarr(basis.num_basis*num_pt_indices[vdim-1], local_ext.volume);
+
+  // Construct the Geometry for this configuration
+  gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
+    &grid, &local, basis, inp_basis_vectors, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
+
+  // Iterate over the grid, conf space, checking output
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &confLocal);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *h_ij_d = gkyl_array_cfetch(h_ij, gkyl_range_idx(&confLocal, iter.idx));
+    const double *h_ij_inv_d = gkyl_array_cfetch(h_ij_inv, gkyl_range_idx(&confLocal, iter.idx));
+    const double *det_h_d = gkyl_array_cfetch(det_h, gkyl_range_idx(&confLocal, iter.idx));
+    const double *conf_poisson_tensor_d = gkyl_array_cfetch(conf_poisson_tensor, gkyl_range_idx(&confLocal, iter.idx));
+    
+    int NC = confBasis.num_basis;
+
+    // index size of the symmetric h_ij
+    int n_sym = vdim*(vdim+1)/2; 
+
+    // Double precision values of the expected output
+    double h_ij_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 1.4142135623730951e+00, 0.0, 0.0 };
+    double h_ij_inv_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 1.4142135623730951e+00, 0.0, 0.0 };
+    double det_h_vals[3] = { 1.4142135623730951e+00, 0.0, 0.0 };
+
+    /* Shape of conf_poisson_tensor non-zero elements.
+    // xx - components are not used by 1x2v, but might still be saved/ non-zero
+    // -- - compoentns are zero/implied by symmetry
+    // Used - components actualled used by the kernels 
+    // 
+    +----+----+----+----+     +----+----+----+----+     
+    | -- | -- | 00 | 01 |     | -- | xx |Used|Used|     
+    +----+----+----+----+     +----+----+----+----+     
+    | -- | -- | 02 | 03 |     | xx | xx | xx | xx |     
+    +----+----+----+----+     +----+----+----+----+     
+    | -- | -- | -- |04+j|     | -- | xx | -- |Used|      
+    +----+----+----+----+     +----+----+----+----+     
+    | -- | -- | -- | -- |     | -- | xx | -- | -- |     
+    +----+----+----+----+     +----+----+----+----+     
+    */
+
+    // pt at the first and second points of conflocal
+    double conf_pt_vals[18] = { 1.4142135623730951e+00, 0.0, 0.0,    // PT-Comp 00
+      0.0, 0.0, 0.0, // PT-Comp 01
+      0.0, 0.0, 0.0, // PT-Comp 02
+      1.4142135623730951e+00, 0.0, 0.0, // PT-Comp 03
+      0.0, 0.0, 0.0, // PT-Comp 04 + 0
+      0.0, 0.0, 0.0  }; // PT-Comp 05
+
+
+    // Test checks
+    for (int k = 0; k<n_sym; ++k) {
+      for (int m = 0; m<NC; ++m) {
+        int test_idx = k*NC + m;
+        TEST_CHECK( gkyl_compare_double(h_ij_d[test_idx],     h_ij_vals[test_idx],     1e-12) );
+        TEST_CHECK( gkyl_compare_double(h_ij_inv_d[test_idx], h_ij_inv_vals[test_idx],  1e-12) );
+      }
+    }
+
+    for (int c = 0; c < NC; ++c) {
+      TEST_CHECK( gkyl_compare_double(det_h_d[c], det_h_vals[c], 1e-12) );
+    }
+
+    for (int k = 0; k<num_pt_indices[vdim-1]; ++k) {
+      for (int m = 0; m<NC; ++m) {
+        int test_idx = k*NC + m;
+        double expected = conf_pt_vals[test_idx];
+        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
+      }
+    }
+  }
+
+
+  // Release the memory
+  gkyl_array_release(h_ij);
+  gkyl_array_release(h_ij_inv);
+  gkyl_array_release(det_h);
+  gkyl_array_release(cov_tangent_basis);
+  gkyl_array_release(triad_basis);
+  gkyl_array_release(conf_poisson_tensor);
+}
+
+void eval_cov_tangent_basis_annulus_2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double q_r = xn[0];
   double q_theta = 0.0;
@@ -222,7 +404,7 @@ void eval_triad_basis_2v(double t, const double *xn, double* restrict fout, void
   fout[3] = q_r * cos(q_theta);
 }
 
-void eval_cov_tangent_basis_2v(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_triad_basis_annulus_2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double q_r = xn[0];
   double q_theta = 0.0;
@@ -232,7 +414,7 @@ void eval_cov_tangent_basis_2v(double t, const double *xn, double* restrict fout
   fout[3] = cos(q_theta);
 }
 
-void eval_triad_basis_gradient_2v(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_triad_basis_gradient_annulus_2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double q_r = xn[0];
   double q_theta = 0.0;
@@ -291,10 +473,12 @@ test_triad_1x2v_annulus_conf(int poly_order)
 
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
-  inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_2v; 
-  inp_basis_vectors.eval_triad_basis = eval_triad_basis_2v; 
-  inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_2v; 
-  inp_basis_vectors.ctx = 0; 
+  inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_annulus_2v; 
+  inp_basis_vectors.eval_triad_basis = eval_triad_basis_annulus_2v; 
+  inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_annulus_2v; 
+  inp_basis_vectors.eval_cov_tangent_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_ctx = 0; 
+  inp_basis_vectors.eval_triad_basis_gradient_ctx = 0; 
 
   // Make the memory for arrays (modal)
   struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
@@ -317,8 +501,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
 
   // Construct the Geometry for this configuration
   gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
-    &grid, &local, basis, inp_basis_vectors, cov_tangent_basis,
-    triad_basis, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
+    &grid, &local, basis, inp_basis_vectors, h_ij, h_ij_inv, det_h, conf_poisson_tensor);
 
   // Iterate over the grid, conf space, checking output
   struct gkyl_range_iter iter;
@@ -335,30 +518,50 @@ test_triad_1x2v_annulus_conf(int poly_order)
     int n_sym = vdim*(vdim+1)/2; 
 
     // Double precision values of the expected output
-    double h_ij_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 1.4142135623730951e+00, 0.0, 0.0 };
-    double h_ij_inv_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 1.4142135623730951e+00, 0.0, 0.0 };
-    double det_h_vals[3] = { 1.4142135623730951e+00, 0.0, 0.0 };
-
     // pt at the first and second points of conflocal
+    double h_ij_pnt1_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 1.7324116139070420e-01, 1.1941262496067995e-01,  2.1345374206136577e-02 };
+    double h_ij_pnt2_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 8.7327687476538640e-01, 2.8475318259854449e-01,  2.1345374206136518e-02 };
+    double h_ij_inv_pnt1_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 3.3275409826192700e+01, -3.9475247920885920e+01, 1.7786941976261286e+01 };
+    double h_ij_inv_pnt2_vals[9] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 2.5845965711283418e+00, -9.4133283503651044e-01, 2.0574208520943119e-01 };
+    double det_h_pnt1_vals[3] = { 4.5961940777125598e-01, 1.8371173070873839e-01,  -1.3360012858723191e-17 };
+    double det_h_pnt2_vals[3] = { 1.0960155108391487e+00, 1.8371173070873834e-01,  -5.9033440057246974e-18 };
     double conf_pt_pnt1_vals[18] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      4.5961940777125598e-01, 1.8371173070873839e-01, -1.3360012858723191e-17, 0.0, 0.0, 0.0,
-      4.5961940777125598e-01, 1.8371173070873839e-01, -1.3360012858723191e-17  };
+      5.6865230654862211e+00, -3.3402132856134248e+00, 1.1941468087349127e+00, 0.0, 0.0, 0.0,
+      5.6865230654862211e+00, -3.3402132856134248e+00, 1.1941468087349127e+00  };
     double conf_pt_pnt2_vals[18] = { 1.4142135623730951e+00, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      1.0960155108391487e+00, 1.8371173070873839e-01, -1.3360012858723191e-17, 0.0, 0.0, 0.0,
-      1.0960155108391487e+00, 1.8371173070873839e-01, -1.3360012858723191e-17  };
+      1.8807796203407585e+00, -3.3402132856134242e-01, 5.0077124237270627e-02, 0.0, 0.0, 0.0,
+      1.8807796203407585e+00, -3.3402132856134242e-01, 5.0077124237270627e-02  };
 
 
     // Test checks
     for (int k = 0; k<n_sym; ++k) {
       for (int m = 0; m<NC; ++m) {
         int test_idx = k*NC + m;
-        TEST_CHECK( gkyl_compare_double(h_ij_d[test_idx],     h_ij_vals[test_idx],     1e-12) );
-        TEST_CHECK( gkyl_compare_double(h_ij_inv_d[test_idx], h_ij_inv_vals[test_idx],  1e-12) );
+        double expected = 0;
+        if (iter.idx[0] == 1) expected = h_ij_pnt1_vals[test_idx];
+        if (iter.idx[0] == 2) expected = h_ij_pnt2_vals[test_idx];
+        //printf("h_ij_d[%d]: %1.16e\n",test_idx, h_ij_d[test_idx]);
+        TEST_CHECK( gkyl_compare_double(h_ij_d[test_idx], expected, 1e-12) );
+      }
+    }
+
+    for (int k = 0; k<n_sym; ++k) {
+      for (int m = 0; m<NC; ++m) {
+        int test_idx = k*NC + m;
+        double expected = 0;
+        if (iter.idx[0] == 1) expected = h_ij_inv_pnt1_vals[test_idx];
+        if (iter.idx[0] == 2) expected = h_ij_inv_pnt2_vals[test_idx];
+        //printf("h_ij_inv_d[%d]: %1.16e\n",test_idx, h_ij_inv_d[test_idx]);
+        TEST_CHECK( gkyl_compare_double(h_ij_inv_d[test_idx], expected,  1e-12) );
       }
     }
 
     for (int c = 0; c < NC; ++c) {
-      TEST_CHECK( gkyl_compare_double(det_h_d[c], det_h_vals[c], 1e-12) );
+      double expected = 0;
+      if (iter.idx[0] == 1) expected = det_h_pnt1_vals[c];
+      if (iter.idx[0] == 2) expected = det_h_pnt2_vals[c];
+      //printf("det_h_d[%d]: %1.16e\n", c, det_h_d[c]);
+      TEST_CHECK( gkyl_compare_double(det_h_d[c], expected, 1e-12) );
     }
 
     for (int k = 0; k<num_pt_indices[vdim-1]; ++k) {
@@ -367,6 +570,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
         double expected = 0;
         if (iter.idx[0] == 1) expected = conf_pt_pnt1_vals[test_idx];
         if (iter.idx[0] == 2) expected = conf_pt_pnt2_vals[test_idx];
+        //printf("conf_poisson_tensor_d[%d]: %1.16e\n",test_idx,conf_poisson_tensor_d[test_idx]);
         TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
       }
     }
@@ -648,6 +852,7 @@ test_triad_math_3v(int vdim)
 
 void test_triad_1v() { test_triad_math_1v(1); }
 void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
+void test_triad_1x2v_flat() { test_triad_1x2v_flat_conf(2); }
 void test_triad_1x2v_annulus() { test_triad_1x2v_annulus_conf(2); }
 void test_triad_2v() { test_triad_math_2v(2); }
 void test_triad_3v() { test_triad_math_3v(3); }
@@ -655,6 +860,7 @@ void test_triad_3v() { test_triad_math_3v(3); }
 TEST_LIST = {
   { "test_triad_1v", test_triad_1v}, 
   { "test_triad_1x1v_flat", test_triad_1x1v_flat}, 
+  { "test_triad_1x2v_flat", test_triad_1x2v_flat}, 
   { "test_triad_1x2v_annulus", test_triad_1x2v_annulus}, 
   { "test_triad_2v", test_triad_2v},
   { "test_triad_3v", test_triad_3v},

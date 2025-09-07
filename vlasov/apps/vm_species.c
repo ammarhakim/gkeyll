@@ -21,6 +21,15 @@ static void
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
   int vdim = app->vdim;  
+
+  // Allocate arrays for configuration space Poisson tensor (unused)
+  int num_pt_indices[3] = { 1 , 6, 18 }; 
+  vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
+  vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
+  if (app->use_gpu){
+    vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
+  }
+
   if (vms->model_id == GKYL_MODEL_DEFAULT || vms->model_id == GKYL_MODEL_SR) {
     // Hamiltonain is only a function of velocity space. 
     vms->hamil_range = vms->local_vel; 
@@ -50,20 +59,6 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
       GKYL_MODEL_DEFAULT, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu);
 
-    // Allocate arrays for covariant tangent basis  
-    vms->cov_tangent_basis = mkarr(app->use_gpu, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
-    vms->cov_tangent_basis_host = vms->cov_tangent_basis;
-    if (app->use_gpu){
-      vms->cov_tangent_basis_host = mkarr(false, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
-    }
-
-    // Allocate arrays for triad basis  
-    vms->triad_basis = mkarr(app->use_gpu, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
-    vms->triad_basis_host = vms->triad_basis;
-    if (app->use_gpu){
-      vms->triad_basis_host = mkarr(false, app->basis.num_basis*vdim*vdim, app->local_ext.volume);
-    }
-
     // Allocate arrays for specified metric inverse
     vms->h_ij = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     vms->h_ij_host = vms->h_ij;
@@ -85,47 +80,21 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       vms->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     } 
 
-    // Allocate arrays for configuration space Poisson tensor
-    int num_pt_indices[3] = { 1 , 6, 18 }; 
-    vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
-    vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
-    if (app->use_gpu){
-      vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
-    }
-
-    // Evaluate specified covariant tangent basis function at nodes to ensure continuity of the basis
-    struct gkyl_eval_on_nodes* cov_tangent_basis_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*vdim, 
-      vms->info.cov_tangent_basis, vms->info.cov_tangent_basis_ctx);
-    gkyl_eval_on_nodes_advance(cov_tangent_basis_proj, 0.0, &app->local, vms->cov_tangent_basis_host);
-    if (app->use_gpu){
-      gkyl_array_copy(vms->cov_tangent_basis, vms->cov_tangent_basis_host);
-    }
-    gkyl_eval_on_nodes_release(cov_tangent_basis_proj);
-
-    // Evaluate specified triad basis function at nodes to ensure continuity of the basis
-    struct gkyl_eval_on_nodes* triad_basis_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*vdim, 
-      vms->info.triad_basis, vms->info.triad_basis_ctx);
-    gkyl_eval_on_nodes_advance(triad_basis_proj, 0.0, &app->local, vms->triad_basis_host);
-    if (app->use_gpu){
-      gkyl_array_copy(vms->triad_basis, vms->triad_basis_host);
-    }
-    gkyl_eval_on_nodes_release(triad_basis_proj);
-
     struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
     if ((vms->info.triad_basis && vms->info.triad_basis_gradient) 
       && (vms->info.cov_tangent_basis))  {
       inp_basis_vectors.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
       inp_basis_vectors.eval_triad_basis = vms->info.triad_basis; 
       inp_basis_vectors.eval_triad_basis_gradient = vms->info.triad_basis_gradient; 
-      inp_basis_vectors.ctx = vms->info.cov_tangent_basis_ctx; 
+      inp_basis_vectors.eval_cov_tangent_basis_ctx = vms->info.cov_tangent_basis_ctx; 
+      inp_basis_vectors.eval_triad_basis_ctx = vms->info.triad_basis_ctx; 
+      inp_basis_vectors.eval_triad_basis_gradient_ctx = vms->info.triad_basis_gradient_ctx; 
     }
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
-      &vms->grid, &vms->local, vms->basis, 
-      inp_basis_vectors, vms->cov_tangent_basis, vms->triad_basis,  
-      vms->h_ij, vms->h_ij_inv, vms->det_h, 
-      vms->conf_poisson_tensor);
+      &vms->grid, &vms->local, vms->basis,  inp_basis_vectors, vms->h_ij, 
+      vms->h_ij_inv, vms->det_h, vms->conf_poisson_tensor);
 
     // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
     if (app->use_gpu) {
@@ -1683,23 +1652,22 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     }
   }
   else  { 
-    gkyl_array_release(vms->cov_tangent_basis);
-    gkyl_array_release(vms->triad_basis);
     gkyl_array_release(vms->h_ij);
     gkyl_array_release(vms->h_ij_inv);
     gkyl_array_release(vms->det_h);
-    gkyl_array_release(vms->conf_poisson_tensor);
     if (app->use_gpu){
-      gkyl_array_release(vms->cov_tangent_basis_host);
-      gkyl_array_release(vms->triad_basis_host);
       gkyl_array_release(vms->hamil_host);
       gkyl_array_release(vms->h_ij_host);
       gkyl_array_release(vms->h_ij_inv_host);
       gkyl_array_release(vms->det_h_host);
-      gkyl_array_release(vms->conf_poisson_tensor_host);
+      
     }
   }
   gkyl_array_release(vms->hamil);  
+  gkyl_array_release(vms->conf_poisson_tensor);
+  if (app->use_gpu) {
+    gkyl_array_release(vms->conf_poisson_tensor_host);
+  }
 
   // Release equation object and solver.
   gkyl_dg_eqn_release(vms->eqn);

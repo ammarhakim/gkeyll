@@ -406,16 +406,11 @@ struct vm_species {
       struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
       struct gkyl_array *det_h; // Specified metric determinant
       struct gkyl_array *det_h_host; // Host side metric determinant
-
-      // for tetrads specifically
-      struct gkyl_array *cov_tangent_basis; // Covariant tangent basis
-      struct gkyl_array *cov_tangent_basis_host; // Host-side covariant tangent basis
-      struct gkyl_array *triad_basis; // Triad basis
-      struct gkyl_array *triad_basis_host; // Host-side triad basis
-      struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
-      struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation
     };
   };
+
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+  struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation object.
   struct gkyl_hyper_dg *slvr; // Vlasov solver.   
