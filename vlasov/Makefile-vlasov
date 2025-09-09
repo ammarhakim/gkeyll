@@ -178,7 +178,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls $(KERNELS_DIR)/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h  | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h  | grep -v "priv" | sort)
 
 .PHONY: install
 install: all

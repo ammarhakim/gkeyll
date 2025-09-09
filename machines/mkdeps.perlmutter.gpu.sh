@@ -15,4 +15,4 @@ module load nccl/2.18.3-cu12
 : "${PREFIX:=$HOME/gkylsoft}"
 
 cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx
+./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
