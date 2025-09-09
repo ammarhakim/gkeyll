@@ -49,7 +49,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
 
     // Grab the cell center location for NC bracket calculation 
     double xcC[GKYL_MAX_DIM];
-    gkyl_rect_grid_cell_center(&up->phase_grid, pidx, xcC);
+    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
 
     const double *poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
     const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
