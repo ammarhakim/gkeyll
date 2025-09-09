@@ -4,7 +4,7 @@
 
 struct gkyl_emission_elastic_model*
 gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat,
-  double E_hat, double W, double p, bool use_gpu)
+  double E_hat, double W, double p, double e1, double e2, bool use_gpu)
 {
   struct gkyl_emission_elastic_furman_pivi *model =
     gkyl_malloc(sizeof(struct gkyl_emission_elastic_furman_pivi));
@@ -14,6 +14,8 @@ gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_ha
   model->E_hat = E_hat;
   model->W = W;
   model->p = p;
+  model->e1 = e1;
+  model->e2 = e2;
   model->elastic.charge = charge;
   model->elastic.function = gkyl_emission_elastic_furman_pivi_yield;
 

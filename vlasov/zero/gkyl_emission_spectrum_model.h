@@ -174,7 +174,7 @@ gkyl_emission_spectrum_maxwellian_dist(double t, const double *xn, double *fout,
   fout[0] = exp(-v_sq/(2.0*pow(vt, 2)));
 }
 
-// Chung-Everhart normalization factor
+// Chung-Everhart normalization factors
 GKYL_CU_D
 static void
 gkyl_emission_spectrum_chung_everhart_norm(double *out,
@@ -190,7 +190,22 @@ gkyl_emission_spectrum_chung_everhart_norm(double *out,
   out[0] = 6.0*effective_delta*flux[0]*phi*phi*mass/fabs(charge);
 }
 
-// Gaussian normalization factor
+GKYL_CU_D
+static void
+gkyl_emission_spectrum_chung_everhart_2V_norm(double *out,
+  struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta)
+{
+  const struct gkyl_emission_spectrum_chung_everhart *model = container_of(spectrum,
+    struct gkyl_emission_spectrum_chung_everhart, spectrum);
+  double mass = spectrum->mass;
+  double charge = spectrum->charge;
+  double phi = model->phi;
+  
+  out[0] = 4.0*sqrt(2.0)*effective_delta*flux[0]*pow(phi, 1.5)*pow(mass/fabs(charge), 1.5)/M_PI;
+}
+
+// Gaussian normalization factors
 GKYL_CU_D
 static void
 gkyl_emission_spectrum_gaussian_norm(double *out,
@@ -205,6 +220,22 @@ gkyl_emission_spectrum_gaussian_norm(double *out,
   double tau = model->tau;
 
   out[0] = effective_delta*flux[0]*mass/(sqrt(2.0*M_PI)*E_0*tau*exp(tau*tau/2.0)*fabs(charge));
+}
+
+GKYL_CU_D
+static void
+gkyl_emission_spectrum_gaussian_2V_norm(double *out,
+  struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta)
+{
+  const struct gkyl_emission_spectrum_gaussian *model = container_of(spectrum,
+    struct gkyl_emission_spectrum_gaussian, spectrum);
+  double mass = spectrum->mass;
+  double charge = spectrum->charge;
+  double E_0 = model->E_0;
+  double tau = model->tau;
+
+  out[0] = effective_delta*flux[0]*pow(mass, 1.5)/(4.0*sqrt(M_PI)*pow(E_0*fabs(charge), 1.5)*tau*exp(9.0*tau*tau/8.0));
 }
 
 // Maxwellian normalization factor */
@@ -234,6 +265,17 @@ struct gkyl_emission_spectrum_model*
 gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
 
 /**
+ * Create the emission spectrum model using the Chung-Everhart distribution
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param phi Work function of the emitting material
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_chung_everhart_2V_new(double charge, double phi, bool use_gpu);
+
+/**
  * Create the emission spectrum model using the logarithmic Gaussian distribution
  *
  * @param charge Elementary charge, used for eV units
@@ -244,6 +286,18 @@ gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gp
  */
 struct gkyl_emission_spectrum_model*
 gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
+
+/**
+ * Create the emission spectrum model using the logarithmic Gaussian distribution
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param E_0 Fitting parameter, energy location of distribution peak
+ * @param tau Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_gaussian_2V_new(double charge, double E_0, double tau, bool use_gpu);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution

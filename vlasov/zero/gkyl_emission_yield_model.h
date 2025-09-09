@@ -171,10 +171,12 @@ gkyl_emission_yield_furman_pivi_yield(double *out, struct gkyl_emission_yield_mo
   double s = model->s;
   
   double E = 0.0;
-  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  double magv = 0.0; // Magnitude of velocity vector
   for (int d=0; d<vdim; d++) {
     E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge); // Calculate energy in eV
+    magv += xc[cdim+d]*xc[cdim+d];
   }
+  double mu = xc[cdim+0]/sqrt(magv); // Cosine of incident angle (only for 1X)
   double deltahat = deltahat_ts*(1 + t1*(1 - pow(mu, t2)));
   double Ehat = Ehat_ts*(1 + t3*(1 - pow(mu, t4)));
   double x = E/Ehat;

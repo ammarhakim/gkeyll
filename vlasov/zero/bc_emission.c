@@ -47,6 +47,8 @@ gkyl_bc_emission_secondary_electron_copper_new(int num_species, double t_bound,
   double E_hat = 1.0e-6;
   double W = 60.86;
   double p = 1.0;
+  double e1 = 0.26;
+  double e2 = 2.0;
 
   ctx->num_species = num_species;
   ctx->t_bound = t_bound;
@@ -59,7 +61,7 @@ gkyl_bc_emission_secondary_electron_copper_new(int num_species, double t_bound,
     strcpy(ctx->in_species[i], in_species[i]);
   }
   ctx->elastic_model = gkyl_emission_elastic_furman_pivi_new(q0, P1_inf, P1_hat, E_hat,
-    W, p, use_gpu);
+    W, p, e1, e2, use_gpu);
 
   return ctx;
 }

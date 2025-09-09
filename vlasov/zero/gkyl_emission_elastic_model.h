@@ -26,6 +26,8 @@ struct gkyl_emission_elastic_furman_pivi {
   double E_hat;
   double W;
   double p;
+  double e1;
+  double e2;
 };
 
 // Cazaux model container
@@ -93,13 +95,17 @@ gkyl_emission_elastic_furman_pivi_yield(double t, const double *xn, double *fout
   double E_hat = model->E_hat;
   double W = model->W;
   double p = model->p;
+  double e1 = model->e1;
+  double e2 = model->e2;
 
   double E = 0.0;
-  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  double magv = 0.0; // Magnitude of velocity vector
   for (int d=0; d<vdim; d++) {
     E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge); // Calculate energy in eV
+    magv += xn[cdim+d]*xn[cdim+d];
   }
-  fout[0] = P1_inf + (P1_hat - P1_inf)*exp(pow(-fabs(E - E_hat)/W, p)/p);
+  double mu = xn[cdim+0]/sqrt(magv); // Cosine of incident angle (only for 1X)
+  fout[0] = (P1_inf + (P1_hat - P1_inf)*exp(pow(-fabs(E - E_hat)/W, p)/p))*(1 + e1*(1 - pow(mu, e2)));
 }
 
 // Cazaux backscattering */
@@ -150,12 +156,14 @@ gkyl_emission_elastic_constant_yield(double t, const double *xn, double *fout, v
  * @param E_hat Fitting parameter
  * @param W Fitting parameter
  * @param p Fitting parameter
+ * @param e1 Fitting parameter
+ * @param e2 Fitting parameter
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
 struct gkyl_emission_elastic_model*
 gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
-  double W, double p, bool use_gpu);
+  double W, double p, double e1, double e2, bool use_gpu);
 
 /**
  * Create the elastic emission model using Cazaux
