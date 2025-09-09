@@ -5,6 +5,7 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -156,15 +157,16 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-      &confBasis,  &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
+  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
+  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
+  // Project hamil and gamma_inv
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
   // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -181,7 +183,8 @@ test_1x1v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -189,6 +192,11 @@ test_1x1v(int poly_order)
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
+
+  // Write the output
+  char fname[1024];
+  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d_uncorr_distf.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Create a MJ with corrected moments
   struct gkyl_vlasov_lte_correct_inp inp_corr = {
@@ -201,7 +209,8 @@ test_1x1v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -214,8 +223,7 @@ test_1x1v(int poly_order)
   gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Write the output
-  char fname[1024];
-  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d.gkyl", poly_order);
+  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d_corr_distf.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Correct the distribution function
@@ -229,7 +237,8 @@ test_1x1v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -250,7 +259,7 @@ test_1x1v(int poly_order)
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
-      // printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
+      //printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
     }
   }
 
@@ -269,7 +278,7 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
 }
 
@@ -345,15 +354,16 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-      &confBasis,  &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
+  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
+  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
+  // Project hamil and gamma_inv
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
   // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -370,7 +380,8 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -390,7 +401,8 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -418,7 +430,8 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -480,7 +493,7 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
 }
 
@@ -556,15 +569,16 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-      &confBasis,  &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
+  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
+  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
+  // Project hamil and gamma_inv
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
   // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -581,7 +595,8 @@ test_1x2v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -601,7 +616,8 @@ test_1x2v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -624,7 +640,8 @@ test_1x2v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -672,7 +689,7 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
 }
 
@@ -747,15 +764,16 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-      &confBasis,  &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
+  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
+  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
+  // Project hamil and gamma_inv
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
   // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -772,7 +790,8 @@ test_1x3v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -792,7 +811,8 @@ test_1x3v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -815,7 +835,8 @@ test_1x3v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
@@ -870,7 +891,7 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
 }
 
