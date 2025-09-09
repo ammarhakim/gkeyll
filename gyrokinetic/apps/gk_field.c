@@ -70,14 +70,18 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   // Initialize the polarization weight.
   struct gkyl_array *Jgij[3];
   if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
-    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *epsilon_local = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
+    // Must do an all gather on these variables
     Jgij[0] = app->gk_geom->gxxj;
     Jgij[1] = app->gk_geom->gxzj;
     Jgij[2] = app->gk_geom->eps2;
     for (int i=0; i<3; i++) {
-      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+      gkyl_array_set_offset(epsilon_local, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
-    f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
+    f->epsilon = mkarr(app->use_gpu, epsilon_local->ncomp, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, epsilon_local, f->epsilon);
+
+    f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
       &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
   } else {
     f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
@@ -288,9 +292,15 @@ gk_field_poisson_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *fie
 void
 gk_field_poisson_solve_full_2x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
+
   // Solve the Poisson equation.
-  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c, field->phi_bc);
-  gkyl_fem_poisson_solve(field->fem_poisson, field->phi_smooth);
+  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global_dg, field->phi_bc);
+  gkyl_fem_poisson_solve(field->fem_poisson, field->phi_fem);
+
+  // Copy global phi to local values
+  gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
 
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
