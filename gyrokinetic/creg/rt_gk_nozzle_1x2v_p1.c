@@ -279,7 +279,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
-    .filename_psi = "gyrokinetic/data/unit/single_coil.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "core/data/unit/single_coil.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 

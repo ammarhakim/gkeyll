@@ -72,36 +72,36 @@ struct gkyl_phase_diagnostics_inp {
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   enum gkyl_radiation_id radiation_id; // type of radiation
-  bool write_diagnostics; // Whether to write diagnostics out.
+  bool write_diagnostics; // Whether to output diagnostics.
 
-  void *ctx; // context for collision function
-  // function for computing self-collision frequency
+  void *ctx; // Context for collision function.
+  // Function for computing self-collision frequency.
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
 
-  // inputs for Spitzer collisionality
-  bool normNu; // Set to true if you want to rescale collision frequency
-  double n_ref; // Density used to calculate coulomb logarithm
-  double T_ref; // Temperature used to calculate coulomb logarithm
-  double bmag_mid; // bmag at the middle of the domain
-  double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge
+  // Inputs for Spitzer collisionality.
+  bool normNu; // Set to true if you want to rescale collision frequency.
+  double n_ref; // Density used to calculate coulomb logarithm.
+  double T_ref; // Temperature used to calculate coulomb logarithm.
+  double bmag_mid; // bmag at the middle of the domain.
+  double nuFrac; // Parameter for rescaling collision frequency from SI values.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
   bool has_implicit_coll_scheme; 
 
-  int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  int num_cross_collisions; // Number of species to collide with.
+  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
 };
 
-// Parameters for species diffusion
+// Parameters for species diffusion.
 struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // number of diffusion directions
-  int diff_dirs[3]; // list of diffusion directions
-  double D[3]; // constant diffusion coefficient in each direction
-  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  int num_diff_dir; // Number of diffusion directions.
+  int diff_dirs[3]; // List of diffusion directions.
+  double D[3]; // Constant diffusion coefficient in each direction.
+  int order; // Order of the diffusion (4 for grad^4, 6 for grad^6, default is 2).
 };
 
-// Structure to hold parameters for adaptive source
+// Structure to hold parameters for adaptive source.
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
@@ -113,7 +113,7 @@ struct gkyl_gyrokinetic_adapt_source {
 
 // Parameters for species source
 struct gkyl_gyrokinetic_source {
-  enum gkyl_source_id source_id; // type of source
+  enum gkyl_source_id source_id; // Type of source.
   int num_sources;
   bool evolve; // Whether the source is time dependent.
   int num_adapt_sources;
@@ -124,7 +124,18 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
-//
+// Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
+struct gkyl_gyrokinetic_heating {
+  enum gkyl_heating_id heating_id; // Type of heating term.
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
+  void *rate_profile_ctx;
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
+  void *temp_shape_ctx;
+  double power; // Desired heating power (sets T_Q(t)).
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
+// Emitting BCs inputs.
 struct gkyl_gyrokinetic_emission_inp {
   int num_species;
   char in_species[GKYL_MAX_SPECIES][128];
@@ -140,7 +151,7 @@ struct gkyl_gyrokinetic_bc {
   double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission; 
-  bool write_diagnostics; // used to write diagnostics from the BC.
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 struct gkyl_gyrokinetic_bcs {
@@ -216,7 +227,7 @@ struct gkyl_gyrokinetic_react {
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
-  bool write_diagnostics; // used to write diagnostics from neutral species
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters in FLR effects.
@@ -294,21 +305,24 @@ struct gkyl_gyrokinetic_species {
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 
 
-  // Collisions to include.
+  // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
+  // Diffusion.
   struct gkyl_gyrokinetic_diffusion diffusion;
 
-  // Source to include.
+  // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
-  // Radiation to include.
+  // Heating source.
+  struct gkyl_gyrokinetic_heating heating;
+
+  // Line radiation.
   struct gkyl_gyrokinetic_radiation radiation;
 
-  // Reactions between plasma species to include.
+  // Reactions between plasma species.
   struct gkyl_gyrokinetic_react react;
-  // Reactions with neutral species to include.
+  // Reactions with neutral species.
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
@@ -463,6 +477,7 @@ struct gkyl_gyrokinetic_stat {
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
+  double species_heat_tm; // Time to compute heating term RHS.
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.

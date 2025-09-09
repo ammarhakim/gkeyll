@@ -10,24 +10,17 @@
 #include <gkyl_dg_recomb.h>
 #include <read_adas.h>
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 void
 read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
-  char *base = STR(GKYL_SHARE_DIR);    
+  const char *fmt = "%s/%s";
   if (type_ion == GKYL_ION_H) {
-    strcpy(fname, base);
     data->NT = 29, data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_h.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);
-    strcat(fname, "/adas/logT_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_h.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_h.npy");
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
     data->Eiz[0] = 13.6; 
@@ -35,14 +28,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_HE) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_he.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_he.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_he.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
     data->Eiz[0] = 24.6;
@@ -51,14 +41,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_LI) {
     data->NT = 25;
     data->NN = 16;
-    strcpy(fname, base);
-    strcat(fname, "/adas/ioniz_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_li.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_li.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_li.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
     data->Eiz[0] = 5.4;
@@ -68,14 +55,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_BE) {
     data->NT = 25;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_be.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_be.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_be.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
     data->Eiz[0] = 9.3;
@@ -86,14 +70,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_B) {
     data->NT = 48;
     data->NN = 26;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_b.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_b.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_b.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
     data->Eiz[0] = 8.3;
@@ -105,14 +86,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_C) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_c.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_c.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_c.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
     data->Eiz[0] = 11.3;
@@ -125,14 +103,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_N) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_n.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_n.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_n.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
     data->Eiz[0] = 14.5;
@@ -146,14 +121,11 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_O) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_o.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_o.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
     data->Eiz[0] = 13.6;
@@ -168,14 +140,14 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   else if (type_ion == GKYL_ION_AR) {
     data->NT = 48;
     data->NN = 26;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/ioniz_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_ar.npy");
+    printf("fname = %s\n",fname);
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_ar.npy");
+    printf("fname = %s\n",fname);
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_ar.npy");
+    printf("fname = %s\n",fname);
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 18;
     data->Eiz[0] = 15.8;
@@ -197,138 +169,112 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
     data->Eiz[16] = 4120.7;
     data->Eiz[17] = 4426.2;
   }
-  else fprintf(stderr, "Incorrect ion type for ionization.");
+  else
+    fprintf(stderr, "Incorrect ion type for ionization.");
 }
  
 void
 read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
-  char *base = STR(GKYL_SHARE_DIR);
+  const char *fmt = "%s/%s";
   if (type_ion == GKYL_ION_H) {
-    strcpy(fname, base);
     data->NT = 29, data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_h.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_h.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_h.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_h.npy");
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
    }
   else if (type_ion == GKYL_ION_HE) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_he.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_he.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_he.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_he.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
    }
   else if (type_ion == GKYL_ION_LI) {
     data->NT = 25;
     data->NN = 16;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_li.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_li.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_li.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_li.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
   }
   else if (type_ion == GKYL_ION_BE) {
     data->NT = 25;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_be.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_be.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_be.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_be.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
   }
   else if (type_ion == GKYL_ION_B) {
     data->NT = 48;
     data->NN = 26;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_b.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_b.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_b.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_b.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
   }
   else if (type_ion == GKYL_ION_C) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_c.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_c.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_c.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_c.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
   }
   else if (type_ion == GKYL_ION_N) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_n.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_n.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_n.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_n.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
   }
   else if (type_ion == GKYL_ION_O) {
     data->NT = 30;
     data->NN = 24;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_o.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_o.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_o.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
   }
   else if (type_ion == GKYL_ION_AR) {
     data->NT = 48;
     data->NN = 26;
-    strcpy(fname, base);  
-    strcat(fname, "/adas/recomb_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/recomb_ar.npy");
     data->logData = fopen(fname,"rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logT_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_ar.npy");
     data->logT = fopen(fname, "rb");
-    strcpy(fname, base);  
-    strcat(fname, "/adas/logN_ar.npy");
+    snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_ar.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 18;
   }
-  else fprintf(stderr, "Incorrect ion type for recombination.");
+  else
+    fprintf(stderr, "Incorrect ion type for recombination.");
 }

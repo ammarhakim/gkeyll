@@ -10,15 +10,6 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
-
-#include <gkyl_wv_euler_rgfm_priv.h>
-#include <gkyl_wv_gr_maxwell_priv.h>
-#include <gkyl_wv_gr_maxwell_tetrad_priv.h>
-#include <gkyl_wv_gr_euler_priv.h>
-#include <gkyl_wv_gr_euler_tetrad_priv.h>
-#include <gkyl_wv_gr_ultra_rel_euler_priv.h>
-#include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
-#include <gkyl_wv_gr_twofluid_priv.h>
 #include <gkyl_gr_blackhole.h>
 
 /**
