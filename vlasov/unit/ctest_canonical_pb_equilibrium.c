@@ -216,6 +216,7 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };  
@@ -238,6 +239,7 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
     .max_iter = 100,
@@ -264,6 +266,7 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };
