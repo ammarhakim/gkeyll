@@ -75,6 +75,7 @@
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
+#include <gkyl_prim_cross_m0deltas.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -215,6 +216,7 @@ struct gk_lbo_collisions {
   struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
   struct gkyl_array *moms_buff; // Buffer for moments (multiplied by nu).
 
+  int *my_idx_in_other; // Index of this species in another species' list of species. 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
@@ -235,6 +237,10 @@ struct gk_lbo_collisions {
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *greene_num, *greene_den;
   struct gkyl_array *greene_factor;
+
+  // Operator that computes factor proportional to
+  // m0_s*delta_s in cross primitive moment calculation.
+  struct gkyl_prim_cross_m0deltas *prim_cross_m0deltas_op;
 
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
@@ -630,56 +636,80 @@ struct gk_fdot_multiplier {
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
 };
 
-// species data
+struct gk_heating {
+  enum gkyl_heating_id heating_id; // Type of heating source.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  double norm_power; // Normalized power, 2*P/(vdim_phys*m).
+  struct gkyl_array *rate; // Heating rate.
+  struct gkyl_array *Jrate; // Heating rate times the conf-space Jacobian.
+  struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
+  struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
+  struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
+  struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
+  struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
+  double *volint_local, *volint_global; // Local and global volume integrals.
+  double vtsq_amplitude; // Amplitude of squared thermal speed.
+  struct gkyl_bgk_collisions *bgk_op; // BGK operator.
+  bool implicit_step; // Whether or not to take an implcit BGK step.
+  double dt_implicit; // Timestep used by the implicit collisions.
+  gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
+  bool is_first_diag_dynvec_write_call; // Whether dynvec is being written for the first time.
+  // Methods chosen at runtime.
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_heating *src, double tm, int frame);
+};
+
+// Species data.
 struct gk_species {
-  struct gkyl_gyrokinetic_species info; // data for species
+  struct gkyl_gyrokinetic_species info; // Input data.
 
-  enum gkyl_gkmodel_id gkmodel_id;
-  enum gkyl_gkfield_id gkfield_id;
+  enum gkyl_gkmodel_id gkmodel_id; // Gyrokinetic species model.
+  enum gkyl_gkfield_id gkfield_id; // Gyrokinetic field model.
 
-  struct gkyl_basis basis; // phase-space basis
+  struct gkyl_basis basis; // Phase-space basis.
 
-  // pointer to basis on device
-  // (points to host structs if not on GPU)
+  // Basis on device (points to host basis if running w/o GPU).
   struct gkyl_basis *basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
+  struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
+  struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
 
-  struct gkyl_comm *comm;   // communicator object for phase-space arrays
-  int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
+  struct gkyl_comm *comm;   // Communicator object for phase-space arrays.
+  int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction.
 
-  struct gkyl_rect_grid grid_vel; // velocity space grid
-  struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+  struct gkyl_rect_grid grid_vel; // Velocity space grid.
+  struct gkyl_range local_vel, local_ext_vel; // Local, local-ext velocity-space ranges.
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for updates
-  struct gkyl_array *cflrate; // CFL rate in each cell
-  struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side
-  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
+  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  struct gkyl_array *cflrate; // CFL rate in each cell.
+  struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+  struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic).
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
-  struct gkyl_array *f_host; // host copy for use IO and initialization
+  struct gkyl_array *f_host; // Host copy for IO and initialization.
 
-  struct gkyl_array *alpha_surf; // array for surface phase space flux
-  struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+  struct gkyl_array *alpha_surf; // Surface phase space flux.
+  struct gkyl_array *sgn_alpha_surf; // Sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function
-                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-  struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) ).
+  struct gkyl_array *const_sgn_alpha; // If the surface phase space flux is single signed
                                       // if true, numerical flux function inside kernels simplifies to
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
-                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1).
   
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
-  // organization of the different equation objects and the required data and solvers
+  // Organization of the different equation objects and the required data and solvers
   union {
     // EM GK model
     struct {
-      struct gkyl_array *apar; // array for A_parallel
-      struct gkyl_array *apardot; // array for d/dt A_parallel
+      struct gkyl_array *apar; // A_parallel.
+      struct gkyl_array *apardot; // d/dt A_parallel.
     };
   };
 
@@ -688,22 +718,23 @@ struct gk_species {
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
 
   double collisionless_scale_fac; // Factor multiplying collisionless terms.
-  
-  struct gk_species_moment m0; // for computing charge density
-  struct gk_species_moment integ_moms; // integrated moments
-  struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+
+  struct gk_species_moment m0; // Computes charge density.
+  struct gk_species_moment integ_moms; // Integrated moments.
+  struct gk_species_moment *moms; // Diagnostic moments
+  double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
+
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
-  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  bool is_first_integ_write_call;  // Whether dynvec is being written for the first time.
 
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
-  bool is_first_fdot_integ_write_call; // flag for integrated moments dynvec written first time
+  bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
 
   struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
   gkyl_dynvec L2norm; // L2 norm.
-  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
+  bool is_first_L2norm_write_call; // Whether dynvec is being written for the first time.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -745,6 +776,7 @@ struct gk_species {
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
   struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
+  struct gk_heating heat_src; // Heating source.
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
@@ -2112,7 +2144,7 @@ void gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const
 /**
  * Initialize species source object.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param s Species object.
  * @param src Species source object.
  */
@@ -2121,7 +2153,7 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 /**
  * Compute species applied source term.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param species Species object.
  * @param src Species source object.
  * @param f_buffer Phase-space buffer used to project the source.
@@ -2133,7 +2165,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *specie
 /**
  * Adapt source to maintain input power and/or particle content constant.
  * 
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param s Species object.
  * @param src Species source object.
  * @param tm Time for use in source.
@@ -2145,11 +2177,11 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 /**
  * Compute RHS contribution from source.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param species Pointer to species.
  * @param src Pointer to source.
  * @param fin Input distribution function.
- * @param rhs On output, the distribution function.
+ * @param rhs Source contribution to df/dt.
  */
 void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
@@ -2157,7 +2189,7 @@ void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s
 /**
  * Write source diagnostics.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param gks Pointer to species.
  * @param tm Time for source diagnostic.
  * @param frame Output frame.
@@ -2167,7 +2199,7 @@ void gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
 /**
  * Write source moment diagnostics.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param gks Pointer to species.
  * @param tm Time for source diagnostic.
  * @param frame Output frame.
@@ -2177,7 +2209,7 @@ void gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *g
 /**
  * Calc source integrated moment diagnostics.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param gks Pointer to species.
  * @param tm Time for source diagnostic.
  */
@@ -2186,7 +2218,7 @@ void gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
 /**
  * Write source integrated moment diagnostics.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param gks Pointer to species.
  */
 void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
@@ -2194,11 +2226,12 @@ void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
 /**
  * Release species source object.
  *
- * @param app gyrokinetic app object.
+ * @param app Gyrokinetic app object.
  * @param src Species source object to release.
  */
 void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
 
+<<<<<<< HEAD
 /** gk_species_damping API */
 
 /**
@@ -2300,6 +2333,51 @@ void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_speci
  * @param fdmul Species df/dt multiplier object.
  */
 void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul);
+=======
+/** gk_heating API */
+
+/**
+ * Initialize species heating object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param s Species object.
+ * @param src Species heating object.
+ */
+void gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_heating *src);
+
+/**
+ * Compute RHS contribution from heating source.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param src Pointer to source.
+ * @param fin Input distribution function.
+ * @param rhs Heating contribution to df/dt.
+ */
+void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write out diagnostics from the heating source.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param src Pointer to source.
+ * @param tm Current simulation time.
+ * @param frame Current I/O frame.
+ */
+void gk_species_heating_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_heating *src, double tm, int frame);
+
+/**
+ * Release species heating object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param src Species heating object to release.
+ */
+void gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct gk_heating *src);
+>>>>>>> main
 
 /** gk_species API */
 

@@ -85,7 +85,7 @@ test_load_geometry()
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+    .filepath = "core/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,

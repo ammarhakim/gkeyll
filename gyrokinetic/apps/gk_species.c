@@ -153,6 +153,9 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   }
 
+  // Heating source.
+  gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
+
   // Compute and store (in the ghost cell of rhs) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
@@ -868,6 +871,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_dynvec_release(s->fdot_integ_diag);
   }
 
+  gk_species_heating_release(app, &s->heat_src);
 }
 
 static void
@@ -885,7 +889,7 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 
 // Initialize species object.
 static void
-gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
@@ -1180,6 +1184,9 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     }
   }
 
+  // Initialize a heating source.
+  gk_species_heating_init(app, gks, &gks->heat_src);
+
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
@@ -1212,7 +1219,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
 // Initialize static species object.
 static void
-gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Allocate distribution function arrays.
   gks->f1 = gks->f;
@@ -1833,6 +1840,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Initialize empty structs. New methods will fill them if specified.
   gks->src = (struct gk_source) { };
+  gks->heat_src = (struct gk_heating) { };
   gks->lbo = (struct gk_lbo_collisions) { };
   gks->bgk = (struct gk_bgk_collisions) { };
   gks->react = (struct gk_react) { };
@@ -1886,10 +1894,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->enforce_positivity = false;
 
   if (!gks->info.is_static) {
-    gk_species_new_dynamic(gk_app_inp, app, gks);
+    gk_species_init_dynamic(gk_app_inp, app, gks);
   }
   else {
-    gk_species_new_static(gk_app_inp, app, gks);
+    gk_species_init_static(gk_app_inp, app, gks);
   }
 }
 
