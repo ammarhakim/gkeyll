@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -147,6 +148,13 @@ test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
+  struct gkyl_array *hamil;
+  struct gkyl_array *gamma_inv;
+  hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, false); 
+
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
@@ -158,8 +166,9 @@ test_1x1v(int poly_order, bool use_gpu)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .mass = 1.0,
     .use_gpu = false,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
@@ -176,8 +185,9 @@ test_1x1v(int poly_order, bool use_gpu)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .mass = 1.0,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
@@ -193,6 +203,8 @@ test_1x1v(int poly_order, bool use_gpu)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
     .use_gpu = false,
     .max_iter = 100,
@@ -259,7 +271,10 @@ test_1x1v(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare_double(T0[k], Tr[k], 1e-14) );
     }
   }
-  
+
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
