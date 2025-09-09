@@ -2231,7 +2231,6 @@ void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
  */
 void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
 
-<<<<<<< HEAD
 /** gk_species_damping API */
 
 /**
@@ -2333,7 +2332,7 @@ void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_speci
  * @param fdmul Species df/dt multiplier object.
  */
 void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul);
-=======
+
 /** gk_heating API */
 
 /**
@@ -2377,7 +2376,6 @@ void gk_species_heating_write_diags(gkyl_gyrokinetic_app* app, struct gk_species
  * @param src Species heating object to release.
  */
 void gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct gk_heating *src);
->>>>>>> main
 
 /** gk_species API */
 
