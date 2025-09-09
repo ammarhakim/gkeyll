@@ -83,6 +83,7 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
 
     f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
       &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
+    gkyl_array_release(epsilon_local);
   } else {
     f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
     Jgij[0] = app->gk_geom->gxxj;
