@@ -3,6 +3,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_1x1v_ser_p1(const double *w, const doubl
   const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double dx10 = 2.0/dxv[0]; 
+  const double dv0 = dxv[1]; 
   const double dv10 = 2.0/dxv[1]; 
   const double wx1 = w[1]; 
   const double dv10_sq = dv10*dv10; 
