@@ -136,7 +136,9 @@ vlasovApp = Vlasov.App.new {
             n = nr -- Total number density (right/outer).
           end
 
-          return n
+          local det_factor = r
+
+          return n * det_factor
         end,
         temperatureInit = function (t, xn)
           local r = xn[1]
