@@ -160,13 +160,8 @@ test_1x1v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
-  // Project hamil and gamma_inv
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
     GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
-  // Free SR variable computation
-  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -357,13 +352,8 @@ test_1x1v_spatially_varied(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
-  // Project hamil and gamma_inv
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
     GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
-  // Free SR variable computation
-  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -572,13 +562,8 @@ test_1x2v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
-  // Project hamil and gamma_inv
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
     GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
-  // Free SR variable computation
-  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -767,13 +752,8 @@ test_1x3v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  //struct gkyl_dg_calc_sr_vars *sr_vars = gkyl_dg_calc_sr_vars_new(&grid, &vel_grid,
-  //    &confBasis, &velBasis, &confLocal, &velLocal, 0, false, false);
-  // Project hamil and gamma_inv
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
     GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
-  // Free SR variable computation
-  //gkyl_dg_calc_sr_vars_release(sr_vars);
 
   // create distribution function array
   struct gkyl_array *distf;
