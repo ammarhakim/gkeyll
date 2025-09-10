@@ -14,7 +14,7 @@
 
 GKYL_CU_DH
 static inline void
-comp_to_phys(int ndim, const double *eta,
+log_to_comp(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {
@@ -78,15 +78,6 @@ struct gkyl_loss_cone_mask_gyrokinetic {
                                                           // stores the info to convert phase
                                                           // space nodal to modal gkyl arrays.
 };
-
-static inline void
-log_to_comp(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
-{
-  // Convert logical to computational coordinates.
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
-}
 
 #ifdef GKYL_HAVE_CUDA
 /**
