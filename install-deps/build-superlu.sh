@@ -3,7 +3,7 @@
 source ./build-opts.sh
 
 # Edit to suite your system
-PREFIX=$GKYLSOFT/superlu-5.2.2
+PREFIX=$GKYLSOFT/superlu-7.0.0
 # Location where dependency sources will be downloaded
 DEP_SOURCES=$GKYLSOFT/dep_src/
 
@@ -15,16 +15,16 @@ then
     echo "Downloading SuperLU .."
     # delete old checkout and builds
     rm -rf superlu-*
-    curl -L https://github.com/xiaoyeli/superlu/archive/refs/tags/v5.2.2.tar.gz > superlu-5.2.2.tar.gz
+    curl -L https://github.com/xiaoyeli/superlu/archive/refs/tags/v7.0.0.tar.gz > superlu-7.0.0.tar.gz
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]
 then
     echo "Building SuperLU .."
-    gunzip -f superlu-5.2.2.tar.gz
-    tar xvf superlu-5.2.2.tar
+    gunzip -f superlu-7.0.0.tar.gz
+    tar xvf superlu-7.0.0.tar
 
-    cd superlu-5.2.2
+    cd superlu-7.0.0
     mkdir build
     cd build
 

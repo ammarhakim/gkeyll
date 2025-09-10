@@ -20,7 +20,7 @@ waf_tools/__pycache__/
 gkylzero-dist*
 *.json
 TAGS
-data/adas/*.npy
+gyrokinetic/data/adas/*.npy
 *.log
 
 # Object files
@@ -67,3 +67,4 @@ data/adas/*.npy
 
 # Adas data files
 data/adas/*.npy
+install-deps/*.npy

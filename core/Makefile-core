@@ -1,0 +1,197 @@
+# -*- makefile-gmake -*-
+
+# Sqlite can't use agressive optimization flags
+SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
+
+SRC_DIRS := minus $(KERNELS_DIR) zero apps lua/Comm lua/Tool
+UNIT_DIRS := unit
+
+PREFIX ?= ${HOME}/gkylsoft
+SUPERLU_INC = $(PREFIX)/superlu/include
+ifeq ($(UNAME_S),Linux)
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
+else
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
+endif
+
+LLIB := ../$(BUILD_DIR)/core/libg0core.so
+SLLIB := 
+SRCS := $(shell find $(SRC_DIRS) -name *.c)
+ifdef USING_NVCC
+	SRCS += $(shell find $(SRC_DIRS) -name *.cu)
+	SRCS += $(shell find $(UNIT_DIRS) -name *.cu)
+endif
+OBJS := $(SRCS:%=../$(BUILD_DIR)/core/%.o)
+DEPS := $(OBJS:.o=.d)
+
+UNITS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard unit/ctest_*.c))
+MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard unit/mctest_*.c))
+LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard unit/lctest_*.c))
+
+# We need to build CUDA unit-test objects                                                                                                                                            
+UNIT_CU_SRCS =
+UNIT_CU_OBJS =
+ifdef USING_NVCC
+    UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_struct_of_arrays_cu.cu
+ifdef USING_CUDSS
+    UNIT_CU_SRCS += unit/ctest_cudss.cu
+endif
+    UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=../$(BUILD_DIR)/core/%.o)
+endif
+
+REGS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard creg/rt_*.c))
+
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
+KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
+EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC}
+INCS := ${EXT_INCS} -Iminus -Iminus/STC/include -Izero -Iapps -I${SUPERLU_INC} $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
+
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIBS = -L../${BUILD_DIR}/core ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
+
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/core
+
+unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
+regression: ${LLIB} ${SLLIB} ${REGS} ## Build regression tests
+
+.PHONY: all
+all: $(LLIB) ## Build all targets
+.DEFAULT_GOAL := all
+
+# SQLITE needs special flags
+../$(BUILD_DIR)/core/minus/sqlite3.c.o: minus/sqlite3.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(SQL_CFLAGS) -c $< -o $@
+
+# c -> o files
+../$(BUILD_DIR)/core/%.c.o: %.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(INCS) $< -o $@
+
+# Build commands for CUDA source                                                                                                                                                     
+../$(BUILD_DIR)/core/%.cu.o: %.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(INCS) $< -o $@
+
+# Unit tests                                                                                                                                                                         
+$(UNITS): ../${BUILD_DIR}/core/unit/%: unit/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/core/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+# MPI unit tests
+$(MPI_UNITS): ../${BUILD_DIR}/core/unit/%: unit/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/core/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+# Regression tests
+$(REGS): ../${BUILD_DIR}/core/creg/%: creg/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/core/creg
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+# Lua unit tests
+$(LUA_UNITS): ../${BUILD_DIR}/core/unit/%: unit/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/core/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+ifdef USING_NVCC
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_average/%.c.o : $(KERNELS_DIR)/array_average/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/%.c.o : $(KERNELS_DIR)/bin_op/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_integrate/%.c.o : $(KERNELS_DIR)/array_integrate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/basis/%.c.o : $(KERNELS_DIR)/basis/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_interpolate/%.c.o : $(KERNELS_DIR)/dg_interpolate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/skin_surf_from_ghost/%.c.o : $(KERNELS_DIR)/skin_surf_from_ghost/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+endif
+
+# include link object list
+include ../core/corelinkobjs.mak
+
+# build lib
+$(LLIB): $(OBJS)
+	$(MKDIR_P) $(dir $@)
+
+ifeq ($(UNAME),Linux)
+ifdef USING_NVCC
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${CORE_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0core.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+else
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-soname,libg0core.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} -lsuperlu ${LAPACK_LIB} ${MPI_RPATH} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+endif
+else
+## Darwin
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-install_name,@rpath/libg0core.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+endif
+
+.PHONY: check valcheck
+# Run all unit tests
+check: unit ## Build (if needed) and run all unit tests
+	$(foreach unit,${UNITS},echo $(unit); cd ../; ./core/$(unit) -E; cd core;)
+
+valcheck: unit ## Run valgrind on unit test
+	$(foreach unit,$(UNITS),valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --show-error-list=yes $(unit) --exec=never 2>$(unit)_val_err 1>/dev/null;)
+	$(foreach unit,$(UNITS),./minus/checkval.sh $(unit);)
+
+-include $(DEPS)
+
+# Headers to install
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS += $(shell ls minus/*.h)
+
+.PHONY: install
+install: all
+# Construct install 
+	$(MKDIR_P) ${INSTALL_PREFIX}/${PROJ_NAME}/include
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/lib
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share
+# Headers
+	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/${PROJ_NAME}/include
+# libraries
+	cp -f $(LLIB) ${INSTALL_PREFIX}/${PROJ_NAME}/lib/libg0core.so
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+
+.PHONY: clean
+clean: ## Clean build output
+	rm -rf ../${BUILD_DIR}/core
