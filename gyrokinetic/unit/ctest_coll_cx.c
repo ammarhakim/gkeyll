@@ -212,11 +212,9 @@ void coll_cx_d_gpu() { test_coll_cx_d(true); }
 #endif
 
 TEST_LIST = {
-#ifdef GKYL_HAVE_ADAS
   { "coll_cx_d", coll_cx_d },
 #ifdef GKYL_HAVE_CUDA
   { "coll_cx_d_gpu", coll_cx_d_gpu },
-#endif
 #endif
   { NULL, NULL },
 };

@@ -14,7 +14,6 @@
 
 #include <gkyl_efit.h>
 
-
 void test_solovev(){
 
   struct gkyl_efit_inp inp  = {
@@ -47,6 +46,25 @@ void test_step(){
   gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "step_psi.gkyl");
   gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "step_fpol.gkyl");
   gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "step_q.gkyl");
+
+  gkyl_efit_release(efit);
+
+}
+
+void test_nstxu(){
+  // Uses DN configuration by default, but one can switch to SN by changing the filepath if desired.
+  struct gkyl_efit_inp inp  = {
+    .filepath = "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
+
+  // printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g psisep=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry, efit->psisep);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "nstxu_DN_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "nstxu_DN_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "nstxu_DN_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -108,7 +126,7 @@ void test_elliptical(){
 
 void test_wham(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+    .filepath = "core/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     //.reflect =  true,
@@ -182,6 +200,7 @@ TEST_LIST = {
   { "test_solovev", test_solovev},
   { "test_step", test_step},
   { "test_asdex", test_asdex},
+  { "test_nstxu", test_nstxu},
   { "test_cerfon", test_cerfon},
   { "test_elliptical", test_elliptical},
   { "test_wham", test_wham},

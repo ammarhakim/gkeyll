@@ -51,6 +51,11 @@ struct sheath_ctx
   double xmu_src; // Source mean position (x-direction).
   double xsigma_src; // Source standard deviation (x-direction).
   double floor_src; // Minimum source intensity.
+  double heating_power_elc; // Electron heating power [W].
+  double heating_power_ion; // Ion heating power [W].
+  double nu_Q_ion; // Ion heating rate [1/s].
+  double nu_Q_elc; // Electron heating rate [1/s].
+  double floor_Q; // Floor in heating term.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -114,13 +119,7 @@ create_ctx(void)
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
   double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
-  double n_src = 1.4690539 * 3.612270e23; // Source number density.
-  double T_src = 2.0 * Te; // Source temperature.
-  double xmu_src = R; // Source mean position (x-direction).
-  double xsigma_src = 0.005; // Source standard deviation (x-direction).
-  double floor_src = 0.1; // Minimum source intensity.
-
-  // Simulation parameters.
+  // Grid parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Nz = 8; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
@@ -132,6 +131,20 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
+
+  // Source parameters.
+  double n_src = 1.4690539 * 3.612270e23; // Source number density.
+  double T_src = Te/5.0; // Source temperature.
+  double xmu_src = R; // Source mean position (x-direction).
+  double xsigma_src = 0.005; // Source standard deviation (x-direction).
+  double floor_src = 0.1; // Minimum source intensity.
+
+  double heating_power_elc = 453e3; // Electron heating power [W].
+  double heating_power_ion = 453e3; // Ion heating power [W].
+  double nu_Q_ion = Lz/c_s; // Ion heating rate [1/s].
+  double nu_Q_elc = nu_elc; // Electron heating rate [1/s].
+  double floor_Q = 1e-8; // Minimum heating amplitude.
+
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 6.0e-6; // Final simulation time.
@@ -172,6 +185,11 @@ create_ctx(void)
     .xmu_src = xmu_src,
     .xsigma_src = xsigma_src,
     .floor_src = floor_src,
+    .heating_power_elc = heating_power_elc,
+    .heating_power_ion = heating_power_ion,
+    .nu_Q_ion = nu_Q_ion,
+    .nu_Q_elc = nu_Q_elc,
+    .floor_Q = floor_Q,
     .Nx = Nx,
     .Nz = Nz,
     .Nvpar = Nvpar,
@@ -216,12 +234,10 @@ evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double src_temp = 0.0;
   double n = 0;
 
-  if (x < xmu_src + 3.0 * xsigma_src) {
-    src_temp = T_src;
-  }
-  else {
-    src_temp = (3.0 / 8.0) * T_src;
-  }
+  if (x < xmu_src + 3.0 * xsigma_src)
+    src_temp = 10.0 * T_src;
+  else
+    src_temp = (3.0 / 8.0) * 10.0 * T_src;
 
   double c_s_src = sqrt((5.0 / 3.0) * src_temp / mass_ion);
   double n_peak = 4.0 * sqrt(5.0) / 3.0 / c_s_src * (0.125 * Lz) * src_density;
@@ -345,12 +361,10 @@ evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double src_temp = 0.0;
   double n = 0;
 
-  if (x < xmu_src + 3.0 * xsigma_src) {
-    src_temp = T_src;
-  }
-  else {
-    src_temp = (3.0 / 8.0) * T_src;
-  }
+  if (x < xmu_src + 3.0 * xsigma_src)
+    src_temp = 10.0 * T_src;
+  else
+    src_temp = (3.0 / 8.0) * 10.0 * T_src;
 
   double c_s_src = sqrt((5.0 / 3.0) * src_temp / mass_ion);
   double n_peak = 4.0 * sqrt(5.0) / 3.0 / c_s_src * (0.125 * Lz) * src_density;
@@ -452,6 +466,104 @@ evalIonSourceUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 {
   // Set ion source parallel velocity.
   fout[0] = 0.0;
+}
+
+void
+heat_rate_func_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+
+  double nu_Q_ion = app->nu_Q_ion;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_Q = app->floor_Q;
+
+  double Lz = app->Lz;
+
+  double S_Q = 0.0;
+  if (fabs(z) < 0.25 * Lz) {
+    S_Q = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
+      floor_Q);
+  }
+  else {
+    S_Q = 1.0e-40;
+  }
+
+  fout[0] = S_Q*nu_Q_ion;
+}
+
+void
+heat_temp_shape_func_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_Q = app->floor_Q;
+
+  double Lz = app->Lz;
+
+  double s_T = 0.0;
+  if (fabs(z) < 0.25 * Lz) {
+    s_T = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
+      floor_Q);
+  }
+  else {
+    s_T = 1.0e-40;
+  }
+
+  fout[0] = s_T;
+}
+
+void
+heat_rate_func_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+
+  double nu_Q_elc = app->nu_Q_elc;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_Q = app->floor_Q;
+
+  double Lz = app->Lz;
+
+  double S_Q = 0.0;
+  if (fabs(z) < 0.25 * Lz) {
+    S_Q = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
+      floor_Q);
+  }
+  else {
+    S_Q = 1.0e-40;
+  }
+
+  fout[0] = S_Q*nu_Q_elc;
+}
+
+void
+heat_temp_shape_func_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_Q = app->floor_Q;
+
+  double Lz = app->Lz;
+
+  double s_T = 0.0;
+  if (fabs(z) < 0.25 * Lz) {
+    s_T = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
+      floor_Q);
+  }
+  else {
+    s_T = 1.0e-40;
+  }
+
+  fout[0] = s_T;
 }
 
 void
@@ -634,6 +746,16 @@ main(int argc, char **argv)
       }
     },
     
+    .heating = {
+      .heating_id = GKYL_HEATING_DEFAULT,
+      .rate_profile = heat_rate_func_elc,
+      .rate_profile_ctx = &ctx,
+      .temp_shape = heat_temp_shape_func_elc,
+      .temp_shape_ctx = &ctx,
+      .power = ctx.heating_power_elc, 
+      .write_diagnostics = true,
+    },
+
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
@@ -646,7 +768,7 @@ main(int argc, char **argv)
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .integrated_diag_moments = { GKYL_F_MOMENT_M2 },
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics = {
@@ -702,9 +824,19 @@ main(int argc, char **argv)
         .num_diag_moments = 5,
         .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .integrated_diag_moments = { GKYL_F_MOMENT_M2 },
 //        .time_integrated = true,
       }
+    },
+
+    .heating = {
+      .heating_id = GKYL_HEATING_DEFAULT,
+      .rate_profile = heat_rate_func_ion,
+      .rate_profile_ctx = &ctx,
+      .temp_shape = heat_temp_shape_func_ion,
+      .temp_shape_ctx = &ctx,
+      .power = ctx.heating_power_ion, 
+      .write_diagnostics = true,
     },
 
     .bcx = {
@@ -745,7 +877,7 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_2x2v_p1",
+    .name = "gk_sheath_heat_source_2x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },

@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <assert.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_gk_geometry_mirror_priv.h>
@@ -24,6 +25,12 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // read psi(R,Z) from file
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, geometry_inp->mirror_grid_info.filename_psi);
+
+  // Check if file exists using gkyl_check_file_exists and handle error only on rank 0
+  if (!gkyl_check_file_exists(geometry_inp->mirror_grid_info.filename_psi)) {
+    fprintf(stderr, "Failed to open the eqdsk file: %s\n", geometry_inp->mirror_grid_info.filename_psi);
+    assert(false);
+  }
 
   // create mirror geometry
   struct gkyl_mirror_grid_gen *mirror_grid =

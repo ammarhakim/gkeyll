@@ -26,11 +26,17 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
   gkyl_cart_modal_tensor(&up->rzbasis, 2, inp->rz_poly_order);
+  
+  // Check if file exists using gkyl_check_file_exists and handle error only on rank 0.
+  if (!gkyl_check_file_exists(up->filepath)) {
+    fprintf(stderr, "Failed to open the eqdsk file: %s\n", up->filepath);
+    assert(false);
+  }
 
-  FILE *ptr = fopen(up->filepath,"r");
-  size_t status;
+  FILE *ptr = fopen(up->filepath,"r"); 
 
   // Get the dimensions
+  size_t status;
 
   status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
 
@@ -317,7 +323,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
     //  printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
   }
-
 
   return up;
 }

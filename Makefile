@@ -14,7 +14,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -23,27 +23,34 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
+FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
+FIN_APP_LIB = -lg0pkpm
+
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
+
+HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+
+ifeq (${BUILD_APP}, moments)
+	HAVE_APP_FLAGS = -DGKYL_HAVE_MOMENTS
+endif
+ifeq (${BUILD_APP}, vlasov)
+	HAVE_APP_FLAGS = -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+endif
+ifeq (${BUILD_APP}, gyrokinetic)
+	HAVE_APP_FLAGS = -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+endif
+ifeq (${BUILD_APP}, pkpm)
+	HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+endif
+
+CFLAGS += ${HAVE_APP_FLAGS}
 
 INSTALL_PREFIX ?= ${PREFIX}
 PROJ_NAME ?= gkeyll
 
 # Determine OS we are running on
 UNAME = $(shell uname)
-
-# Read ADAS paths and flags if needed 
-USING_ADAS =
-ADAS_INC_DIR = zero # dummy
-ADAS_LIB_DIR = .
-ifeq (${USE_ADAS}, 1)
-	USING_ADAS = yes
-	CFLAGS += -DGKYL_HAVE_ADAS
-endif
-
-# Directory for storing shared data, like ADAS reaction rates and radiation fits
-GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
-CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
@@ -70,6 +77,10 @@ ifeq ($(CC), nvcc)
 	CUDA_LIBS += -lcublas -lcusparse -lcusolver
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
+
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
+CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
 
 # MPI paths and flags
 USING_MPI =
@@ -157,42 +168,58 @@ MKDIR_P ?= mkdir -p
 .EXPORT_ALL_VARIABLES:
 
 # Regression tests
-${BUILD_DIR}/core/creg/%:
+${BUILD_DIR}/core/creg/%: core/creg/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
 
-${BUILD_DIR}/moments/creg/%:
+${BUILD_DIR}/moments/creg/%: moments/creg/%.c ${BUILD_DIR}/moments/libg0moments.so
 	cd moments && $(MAKE) -f Makefile-moments ../$@
 
-${BUILD_DIR}/vlasov/creg/%:
+${BUILD_DIR}/vlasov/creg/%: vlasov/creg/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 	cd vlasov && $(MAKE) -f Makefile-vlasov ../$@
 
-${BUILD_DIR}/gyrokinetic/creg/%:
+${BUILD_DIR}/gyrokinetic/creg/%: gyrokinetic/creg/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/creg/%:
+${BUILD_DIR}/pkpm/creg/%: pkpm/creg/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
 # Unit tests
-${BUILD_DIR}/core/unit/%:
+${BUILD_DIR}/core/unit/%: core/unit/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
 
-${BUILD_DIR}/moments/unit/%:
+${BUILD_DIR}/moments/unit/%: moments/unit/%.c ${BUILD_DIR}/moments/libg0moments.so
 	cd moments && $(MAKE) -f Makefile-moments ../$@
 
-${BUILD_DIR}/vlasov/unit/%:
+${BUILD_DIR}/vlasov/unit/%: vlasov/unit/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 	cd vlasov && $(MAKE) -f Makefile-vlasov ../$@
 
-${BUILD_DIR}/gyrokinetic/unit/%:
+${BUILD_DIR}/gyrokinetic/unit/%: gyrokinetic/unit/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/unit/%:
+${BUILD_DIR}/pkpm/unit/%: pkpm/unit/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
 # Declare sub-directories as phony targets
 .PHONY: core moments vlasov gyrokinetic pkpm
 
-all: gkeyll
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
+# sed argument to replace path in Makefile for C input files outside gkeyll/.
+GKEYLL_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/${PROJ_NAME}/share
+SED_REPS_STR1=s,GKEYLL_SHARE_INSTALL_PREFIX_TAG,${GKEYLL_SHARE_INSTALL_PREFIX},g
+MAKEFILE_FOR_EXT_C_INP_PHONY=
+ifeq (${BUILD_APP}, moments)
+	MAKEFILE_FOR_EXT_C_INP_PHONY = moments moments-unit moments-regression
+endif
+ifeq (${BUILD_APP}, vlasov)
+	MAKEFILE_FOR_EXT_C_INP_PHONY = vlasov vlasov-unit vlasov-regression
+endif
+ifeq (${BUILD_APP}, gyrokinetic)
+	MAKEFILE_FOR_EXT_C_INP_PHONY = gyrokinetic gyrokinetic-unit gyrokinetic-regression
+endif
+ifeq (${BUILD_APP}, pkpm)
+	MAKEFILE_FOR_EXT_C_INP_PHONY = pkpm pkpm-unit pkpm-regression
+endif
+SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY},g
+
 
 everything: regression unit gkeyll ## Build everything, including unit, regression and gkeyll exectuable
 
@@ -209,6 +236,7 @@ core-regression: ## Build core regression tests
 core-install: ## Install core infrastructure code
 	cd core && $(MAKE) -f Makefile-core install
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
+	sed '${SED_REPS_STR1};${SED_REPS_STR2}' Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
@@ -223,10 +251,10 @@ core-valcheck: core ## Run valgrind on unit tests in core
 moments: core  ## Build moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments
 
-moments-unit: moments ## Build moments unit tests
+moments-unit: moments core-unit ## Build moments unit tests
 	cd moments && $(MAKE) -f Makefile-moments unit
 
-moments-regression: moments ## Build moments regression tests
+moments-regression: moments core-regression ## Build moments regression tests
 	cd moments && $(MAKE) -f Makefile-moments regression
 
 moments-amr-regression: moments ## Build moments AMR regression tests
@@ -234,6 +262,7 @@ moments-amr-regression: moments ## Build moments AMR regression tests
 
 moments-install: core-install ## Install moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments install
+	cp -f moments/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
 
 moments-clean: ## Clean moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments clean
@@ -248,14 +277,15 @@ moments-valcheck: moments ## Run valgrind on unit tests in moments
 vlasov: moments  ## Build Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov
 
-vlasov-unit: vlasov ## Build Vlasov unit tests
+vlasov-unit: vlasov moments-unit ## Build Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit
 
-vlasov-regression: vlasov ## Build Vlasov regression tests
+vlasov-regression: vlasov moments-regression ## Build Vlasov regression tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov regression
 
 vlasov-install: moments-install ## Install Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov install
+	cp -f vlasov/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
 
 vlasov-clean: ## Clean Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov clean
@@ -270,14 +300,15 @@ vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic
 
-gyrokinetic-unit: gyrokinetic ## Build Gyrokinetic unit tests
+gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
 
-gyrokinetic-regression: gyrokinetic ## Build Gyrokinetic regression tests
+gyrokinetic-regression: gyrokinetic vlasov-regression ## Build Gyrokinetic regression tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic regression
 
 gyrokinetic-install: vlasov-install ## Install Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic install
+	cp -f gyrokinetic/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
 
 gyrokinetic-clean: ## Clean Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic clean
@@ -292,14 +323,15 @@ gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 pkpm: gyrokinetic  ## Build PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm
 
-pkpm-unit: pkpm ## Build PKPM unit tests
+pkpm-unit: pkpm gyrokinetic-unit ## Build PKPM unit tests
 	cd pkpm && $(MAKE) -f Makefile-pkpm unit
 
-pkpm-regression: pkpm ## Build PKM regression tests
+pkpm-regression: pkpm gyrokinetic-regression ## Build PKM regression tests
 	cd pkpm && $(MAKE) -f Makefile-pkpm regression
 
 pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm install
+	cp -f pkpm/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
 
 pkpm-clean: ## Clean PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm clean
@@ -311,10 +343,10 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
 
 ## Top-level Gkeyll target
-gkeyll: pkpm
+gkeyll: pkpm ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: pkpm-install gkeyll
+gkeyll-install: pkpm-install gkeyll ## Install Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
@@ -324,9 +356,6 @@ unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all
 
 # build all regression tests 
 regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
-
-# Install everything
-install: gkeyll-install  ## Install all code
 
 # Clean everything
 clean:
@@ -349,7 +378,7 @@ help: ## Show help
 	@echo "See ./configure --help for usage of configure script."
 	@echo ""
 	@echo "You can build only portions of the code using the specific targers below."
-	@echo "Typing \"make all\" will build the complete code"
+	@echo "Typing \"make everything\" will build the complete code"
 	@echo ""
 	@awk -F ':|##' '/^[^\t].+?:.*?##/ {\
         printf "\033[36m%-30s\033[0m %s\n", $$1, $$NF \
