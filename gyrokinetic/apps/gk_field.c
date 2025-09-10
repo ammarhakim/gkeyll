@@ -70,7 +70,7 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   // Initialize the polarization weight.
   struct gkyl_array *Jgij[3];
   if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
-    struct gkyl_array *epsilon_local = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
+    struct gkyl_array *epsilon_local = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
     // Must do an all gather on these variables
     Jgij[0] = app->gk_geom->gxxj;
     Jgij[1] = app->gk_geom->gxzj;
@@ -78,7 +78,7 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
     for (int i=0; i<3; i++) {
       gkyl_array_set_offset(epsilon_local, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
-    f->epsilon = mkarr(app->use_gpu, epsilon_local->ncomp, app->global_ext.volume);
+    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
     gkyl_comm_array_allgather(app->comm, &app->local, &app->global, epsilon_local, f->epsilon);
 
     f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
