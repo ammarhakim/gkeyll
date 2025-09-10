@@ -107,8 +107,8 @@ __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
   struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
   double mass, double norm_fac, const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* phase_ordinates, 
-  const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad, const int *p2c_qidx, 
-  struct gkyl_array* vmap, struct gkyl_basis* vmap_basis, struct gkyl_array* mask_out_quad)
+  const double *bmag_max_loc, const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad,
+  const int *p2c_qidx, struct gkyl_array* vmap, struct gkyl_basis* vmap_basis, struct gkyl_array* mask_out_quad)
 {
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
@@ -142,6 +142,12 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
     long linidx_vel = gkyl_range_idx(&vel_range, vidx);
     const double *vmap_d = (const double*) gkyl_array_cfetch(vmap, linidx_vel);
     const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, linc2);
+
+    // Convert comp position coordinate to phys pos coord.
+    gkyl_rect_grid_cell_center(&grid_phase, pidx, xc);
+    log_to_comp(cdim, xcomp_d, grid_phase.dx, xc, xmu);
+//    up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
+
     // Convert comp velocity coordinate to phys velocity coord.
     double xcomp[1];
     for (int vd = 0; vd < vdim; vd++) {
@@ -158,10 +164,8 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
 
     double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad_d[cqidx]);
 
-    gkyl_rect_grid_cell_center(&grid_phase, pidx, xc);
-
     double *fq = (double*) gkyl_array_fetch(mask_out_quad, linidx_phase);
-    if (mu_bound < xmu[cdim+1] && fabs(xc[cdim-1]) < 0.98) 
+    if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < bmag_max_loc[cdim-1]) 
       fq[linc2] = norm_fac;
     else
       fq[linc2] = 0.0;
@@ -188,8 +192,8 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
 
   gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock>>>(*up->grid_phase, *phase_range, *conf_range,
     gvm->local_ext_vel, up->mass, up->norm_fac, up->basis_at_ords_conf->on_dev, up->ordinates_phase->on_dev,
-    up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev, gvm->vmap_basis, 
-    up->mask_out_quad->on_dev);
+    up->bmag_max_loc, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
+    gvm->vmap_basis, up->mask_out_quad->on_dev);
 
   // Call cublas to do the matrix multiplication nodal to modal conversion
   gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->mask_out_quad, mask_out);

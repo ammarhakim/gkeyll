@@ -198,9 +198,12 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->bmag,
         .bmag_max = fdmul->bmag_max,
+        .bmag_max_loc = fdmul->bmag_max_coord,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
+        .qtype = GKYL_GAUSS_QUAD,
         .num_quad = num_quad,
+        .c2p_pos_func = 0, // Change for nonuniform position grid.
         .use_gpu = app->use_gpu,
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );

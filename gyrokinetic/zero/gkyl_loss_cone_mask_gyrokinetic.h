@@ -10,6 +10,9 @@
 // Object type.
 typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 
+// Type of function expected for the ctp_pos_func input.
+typedef void (*loss_cone_mask_gyrokinetic_c2p_t)(const double *xcomp, double *xphys, void *ctx);
+
 // Inputs packaged as a struct.
 struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments.
@@ -21,9 +24,14 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   const struct gkyl_array *bmag; // Magnetic field magnitude.
   const double *bmag_max; // Maximum bmag (on GPU if use_gpu=true).
+  const double *bmag_max_loc; // Location of maximum bmag (on GPU if use_gpu=true)..
   double mass; // Species mass.
   double charge; // Species charge.
+  enum gkyl_quad_type qtype; // Quadrature rule/nodes.
   int num_quad; // Number of quad points in each direction to use (default: poly_order+1).
+  loss_cone_mask_gyrokinetic_c2p_t c2p_pos_func; // Function that transforms a set of cdim
+                                    // position-space computational coordinates to physical ones.
+  void *c2p_pos_func_ctx; // Context for c2p_pos_func.
   bool use_gpu; // Whether to run on GPU.
 };
 

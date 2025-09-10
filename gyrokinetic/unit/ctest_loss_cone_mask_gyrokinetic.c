@@ -11,6 +11,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 #include <gkyl_const.h>
 
@@ -19,6 +20,7 @@ struct loss_cone_mask_test_ctx {
   double eV; // Elementary charge.
   double R_m; // Mirror ratio.
   double B_m; // Maximum magnetic field amplitude.
+  double z_m; // Location of B_m.
   double mass, charge; // Species mass and charge.
   double n0, T0, B0; // Reference parameters.
   double phi_fac; // phi(z=0) = phi_fac*T0/e;
@@ -52,6 +54,7 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   double B_m = params->B_m; // Maximum magnetic field amplitude.
 
   fout[0] = B_m * (1.0 - ((R_m-1.0)/R_m)*pow(cos(z), 2.0));
+//  fout[0] = (B_m/R_m) * (1.0 + (R_m-1.0)*pow(sin(z), 2.0));
 }
 
 void
@@ -64,7 +67,35 @@ phi_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   double T0 = params->T0;
   double eV = params->eV;
 
-  fout[0] = 0.5 * phi_fac*T0/eV * (1.0 + cos(z));
+  fout[0] = 0.0; //0.5 * phi_fac*T0/eV * (1.0 + cos(z));
+}
+
+void
+mask_ref_1x2v(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xc[0], vpar = xc[1], mu = xc[2];
+  struct loss_cone_mask_test_ctx *params = ctx;
+
+  double z_m = params->z_m;
+  double mass = params->mass;
+  double charge = params->charge;
+
+  double phi, phi_m;
+  phi_func_1x(t, xc, &phi, ctx);
+  phi_func_1x(t, &z_m, &phi_m, ctx);
+
+  double bmag, bmag_m;
+  double zinfl[3] = {0.0}, z_minfl[3] = {0.0};
+  zinfl[2] = z, z_minfl[2] = z_m;
+  bmag_func_3x(t, zinfl, &bmag, ctx);
+  bmag_func_3x(t, z_minfl, &bmag_m, ctx);
+
+  // mu_bound = (0.5*m*vpar^2+q*(phi-phi_m))/(B*(B_max/B-1))
+  double mu_bound = (0.5*mass*pow(vpar,2)+charge*(phi-phi_m))/(bmag*(bmag_m/bmag-1));
+  if (mu_bound < mu && fabs(z) < z_m)
+    fout[0] = 1/pow(sqrt(2.0),3);
+  else
+    fout[0] = 0;
 }
 
 void
@@ -80,15 +111,16 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .eV = eV,
     .R_m = 8.0,
     .B_m = 4.0,
+    .z_m = M_PI/2.0,
     .mass = 2.014*mass_proton,
     .charge = eV,
     .n0 = 1e18,
     .T0 = 100*eV,
     .phi_fac = 3.0,
     .z_max = M_PI,
-    .Nz = 16,
+    .Nz = 8,
     .Nvpar = 16,
-    .Nmu = 16,
+    .Nmu = 8,
     .num_quad = 1,
   };
   ctx.B0 = ctx.B_m/2.0;
@@ -209,8 +241,22 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_eval_on_nodes_release(evphi);
   gkyl_array_copy(phi, phi_ho);
 
+  // Location of the mirror throat.
+  double bmag_max_loc_ho[] = {ctx.z_m};
+  double *bmag_max_loc;
+  if (use_gpu) {
+    bmag_max_loc = gkyl_cu_malloc(sizeof(double));
+    gkyl_cu_memcpy(bmag_max_loc, bmag_max_loc_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
+  }
+  else {
+    bmag_max_loc = gkyl_malloc(sizeof(double));
+    memcpy(bmag_max_loc, bmag_max_loc_ho, sizeof(double));
+  }
+
   // Get the magnetic field at the mirror throat.
-  double bmag_max_ho[] = {ctx.B_m};
+  double bmag_max_ho[1];
+  double xc_infl[] = {0.0,0.0,ctx.z_m};
+  bmag_func_3x(0.0, xc_infl, bmag_max_ho, &ctx);
   double *bmag_max;
   if (use_gpu) {
     bmag_max = gkyl_cu_malloc(sizeof(double));
@@ -223,7 +269,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Get the potential at the mirror throat (z=pi/2).
   double phi_m_ho[1];
-  double xc[] = {ctx.z_max/2.0};
+  double xc[] = {ctx.z_m};
   phi_func_1x(0.0, xc, phi_m_ho, &ctx);
   double *phi_m;
   if (use_gpu) {
@@ -235,8 +281,19 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     memcpy(phi_m, phi_m_ho, sizeof(double));
   }
 
+  // Basis used for the mask.
+  struct gkyl_basis basis_mask;
+  if (ctx.num_quad == 1)
+    gkyl_cart_modal_serendip(&basis_mask, ndim, 0);
+  else {
+    if (poly_order == 1) 
+      gkyl_cart_modal_gkhybrid(&basis_mask, cdim, vdim);
+    else
+      gkyl_cart_modal_serendip(&basis_mask, ndim, poly_order);
+  }
+
   // Create mask array.
-  struct gkyl_array *mask = mkarr(use_gpu, ctx.num_quad == 1? 1 : basis.num_basis, local_ext.volume);
+  struct gkyl_array *mask = mkarr(use_gpu, basis_mask.num_basis, local_ext.volume);
   struct gkyl_array *mask_ho = use_gpu? mkarr(false, mask->ncomp, mask->size)
 	                              : gkyl_array_acquire(mask);
 
@@ -251,8 +308,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .bmag = gk_geom->bmag,
     .bmag_max = bmag_max,
+    .bmag_max_loc = bmag_max_loc,
     .mass = ctx.mass,
     .charge = ctx.charge,
+    .qtype = GKYL_GAUSS_QUAD,
     .num_quad = ctx.num_quad,
     .use_gpu = use_gpu,
   };
@@ -261,6 +320,12 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf, phi, phi_m, mask);
 
   gkyl_array_copy(mask_ho, mask);
+
+  // Project expected mask.
+  struct gkyl_array *mask_ref_ho = mkarr(false, basis_mask.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *evmask_ref = gkyl_proj_on_basis_new(&grid, &basis_mask, basis_mask.poly_order+1, 1, mask_ref_1x2v, &ctx);
+  gkyl_proj_on_basis_advance(evmask_ref, 0.0, &local, mask_ref_ho);
+  gkyl_proj_on_basis_release(evmask_ref);
 
 //  // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
 //  double p1_vals[] = {  
@@ -293,6 +358,9 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ho.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
 
+  sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ref.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
+
   if (use_gpu) {
     gkyl_cu_free(bmag_max);
     gkyl_cu_free(phi_m);
@@ -305,6 +373,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_array_release(phi_ho); 
   gkyl_array_release(mask); 
   gkyl_array_release(mask_ho);
+  gkyl_array_release(mask_ref_ho);
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);

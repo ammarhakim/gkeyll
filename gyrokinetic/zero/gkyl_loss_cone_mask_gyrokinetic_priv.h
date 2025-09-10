@@ -44,8 +44,12 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   double mass; // Species mass.
   double charge; // Species charge.
-  const double *bmag_max; // Maximum magnetic field amplitude.
+  double *bmag_max; // Maximum magnetic field amplitude.
+  double *bmag_max_loc; // Location of bmag_max.
   bool use_gpu; // Boolean if we are performing projection on device.
+
+  loss_cone_mask_gyrokinetic_c2p_t c2p_pos; // Function transforming position comp to phys coords.
+  void *c2p_pos_ctx; // Context for the c2p_pos mapping.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
@@ -74,6 +78,15 @@ struct gkyl_loss_cone_mask_gyrokinetic {
                                                           // stores the info to convert phase
                                                           // space nodal to modal gkyl arrays.
 };
+
+static inline void
+log_to_comp(int ndim, const double *eta,
+  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
+  double* GKYL_RESTRICT xout)
+{
+  // Convert logical to computational coordinates.
+  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+}
 
 #ifdef GKYL_HAVE_CUDA
 /**

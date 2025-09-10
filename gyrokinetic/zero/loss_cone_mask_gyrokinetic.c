@@ -18,6 +18,15 @@
 //          = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]) + charge*(phi-phi_m)/(bmag_max-bmag[0]);
 //
 
+// Identity comp to phys coord mapping, for when user doesn't provide a map.
+static inline void
+c2p_pos_identity(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gkyl_loss_cone_mask_gyrokinetic *up = ctx;
+  int cdim = up->cdim;
+  for (int d=0; d<cdim; d++) xphys[d] = xcomp[d];
+}
+
 // create range to loop over quadrature points.
 static inline struct gkyl_range
 get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
@@ -33,7 +42,7 @@ get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
 static int
-init_quad_values(int cdim, const struct gkyl_basis *basis,
+init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type qtype,
   int num_quad, struct gkyl_array **ordinates, struct gkyl_array **weights,
   struct gkyl_array **basis_at_ords, bool use_gpu)
 {
@@ -49,20 +58,36 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
   double ordinates1[num_quad], weights1[num_quad];
   double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
 
+  if (qtype == GKYL_GAUSS_QUAD) {
   if (num_quad <= gkyl_gauss_max) {
     // Use pre-computed values if possible (these are more accurate than computing them on the fly).
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-  } 
+  }
   else {
     gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
   if (num_quad_v <= gkyl_gauss_max) {
     memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
     memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
-  } 
+  }
   else {
     gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
+  }
+  }
+  else if (qtype == GKYL_GAUSS_LOBATTO_QUAD) {
+    assert( (num_quad > 1) && (num_quad <= gkyl_gauss_max) );
+    // Gauss-Lobatto quadrature
+    memcpy(ordinates1, gkyl_gauss_lobatto_ordinates[num_quad], sizeof(double[num_quad]));
+    memcpy(weights1, gkyl_gauss_lobatto_weights[num_quad], sizeof(double[num_quad]));
+
+    assert( (num_quad_v > 1) && (num_quad_v <= gkyl_gauss_max) );
+    memcpy(ordinates1_v, gkyl_gauss_lobatto_ordinates[num_quad_v], sizeof(double[num_quad_v]));
+    memcpy(weights1_v, gkyl_gauss_lobatto_weights[num_quad_v], sizeof(double[num_quad_v]));
+  }
+  else {
+    fprintf(stderr, "Quadrature rule not available.\n");
+    assert(false);
   }
 
   struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
@@ -182,12 +207,22 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->num_basis_phase = num_quad == 1? 1 : inp->phase_basis->num_basis;
   up->use_gpu = inp->use_gpu;
 
+  if (inp->c2p_pos_func == 0) {
+    up->c2p_pos = c2p_pos_identity;
+    up->c2p_pos_ctx = up;
+  }
+  else {
+    assert(!up->use_gpu); // Need to set the c2p_pos function pointer in GPU.
+    up->c2p_pos = inp->c2p_pos_func;
+    up->c2p_pos_ctx = inp->c2p_pos_func_ctx;
+  }
+
   // Initialize data needed for conf-space quadrature.
-  up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, num_quad,
+  up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, inp->qtype, num_quad,
     &up->ordinates_conf, &up->weights_conf, &up->basis_at_ords_conf, false);
 
   // Initialize data needed for phase-space quadrature.
-  up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, num_quad,
+  up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, inp->qtype, num_quad,
     &up->ordinates_phase, &up->weights_phase, &up->basis_at_ords_phase, false);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad_phase); // Only used in CPU implementation.
@@ -241,11 +276,11 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
     // Initialize data needed for conf-space quadrature on device.
-    up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, num_quad,
+    up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, inp->qtype, num_quad,
       &up->ordinates_conf, &up->weights_conf, &up->basis_at_ords_conf, up->use_gpu);
 
     // Initialize data needed for phase-space quadrature on device.
-    up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, num_quad,
+    up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, inp->qtype, num_quad,
       &up->ordinates_phase, &up->weights_phase, &up->basis_at_ords_phase, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];
@@ -266,6 +301,16 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 
   gkyl_array_clear(up->Dbmag_quad, 0.0); 
   gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, inp->bmag_max);
+
+  // Save the location of bmag_max in this updater.
+  if (up->use_gpu) {
+    up->bmag_max_loc = gkyl_cu_malloc(sizeof(double)*up->cdim);
+    gkyl_cu_memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim, GKYL_CU_MEMCPY_D2D);
+  }
+  else {
+    up->bmag_max_loc = gkyl_malloc(sizeof(double)*up->cdim);
+    memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim);
+  }
     
   return up;
 }
@@ -288,6 +333,28 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
       f[k] += tmp*basis_at_ords[k+num_basis*imu] * up->norm_fac;
   }
 }
+
+static void
+nod_to_mod_reduce(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array *fun_at_ords, double* f)
+{
+  int num_basis = up->num_basis_phase;
+  int tot_quad = up->tot_quad_phase;
+
+  const double* GKYL_RESTRICT weights = up->weights_phase->data;
+  const double* GKYL_RESTRICT basis_at_ords = up->basis_at_ords_phase->data;
+  const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
+
+  for (int k=0; k<num_basis; ++k) f[k] = 0.0;
+  f[0] = 1.0;
+  
+  for (int imu=0; imu<tot_quad; ++imu) {
+    if (func_at_ords[imu] < 1e-14) {
+      f[0] = 0.0;
+      break;
+    }
+  }
+}
+
 
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
@@ -359,6 +426,11 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
         const double *xcomp_d = gkyl_array_cfetch(up->ordinates_phase, pqidx);
 
+        // Convert comp position coordinate to phys pos coord.
+        gkyl_rect_grid_cell_center(up->grid_phase, pidx, xc);
+        log_to_comp(up->cdim, xcomp_d, up->grid_phase->dx, xc, xmu);
+        up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
+
         // Convert comp velocity coordinate to phys velocity coord.
         const struct gkyl_velocity_map *gvm = up->vel_map;
         long linidx_vel = gkyl_range_idx(&gvm->local_ext_vel, vel_iter.idx);
@@ -378,16 +450,15 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
 	double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
 
-        gkyl_rect_grid_cell_center(up->grid_phase, vel_iter.idx, xc);
-
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-	if (mu_bound < xmu[cdim+1] && fabs(xc[cdim-1]) < 0.98) 
+	if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < up->bmag_max_loc[cdim-1]) 
           fq[0] = 1.0;
         else
           fq[0] = 0.0;
       }
       // Compute DG expansion coefficients of the mask.
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
+      //nod_to_mod_reduce(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
     }
   }
 }
@@ -413,6 +484,10 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
     gkyl_array_release(up->mask_out_quad);
     gkyl_array_release(up->qDphiDbmag_quad);
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
+    gkyl_cu_free(up->bmag_max_loc);
+  }
+  else {
+    gkyl_free(up->bmag_max_loc);
   }
 
   gkyl_free(up);
