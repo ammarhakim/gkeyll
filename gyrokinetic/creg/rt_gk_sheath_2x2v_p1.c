@@ -649,8 +649,8 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
       .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
@@ -728,8 +728,8 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
       .lower = { .type = GKYL_SPECIES_GK_SHEATH, },

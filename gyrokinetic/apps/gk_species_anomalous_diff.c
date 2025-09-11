@@ -120,12 +120,22 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     // doesn't actually mean there is no flux due to this term, we simply use
     // it as a way to trigger use of boundary flux kernels.
     int pdim = app->cdim + app->vdim;
-    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-    is_zero_flux[0] = true;
-    is_zero_flux[0+pdim] = true;
+    bool is_zero_flux[2*GKYL_MAX_DIM] = {false}, is_absorb[2*GKYL_MAX_DIM] = {false};
+    for (int dir=0; dir<app->cdim; ++dir) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+        is_zero_flux[dir] = true;
+      else if (gks->lower_bc[dir].type == GKYL_SPECIES_ABSORB)
+        is_absorb[dir] = true;
+
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+        is_zero_flux[dir+pdim] = true;
+      else if (gks->upper_bc[dir].type == GKYL_SPECIES_ABSORB)
+        is_absorb[dir+pdim] = true;
+
+    }
 
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      &app->local, is_zero_flux, gks->info.skip_cell_threshold,
+      &app->local, is_zero_flux, is_absorb, gks->info.skip_cell_threshold,
       gkad->diffD, app->gk_geom->jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {

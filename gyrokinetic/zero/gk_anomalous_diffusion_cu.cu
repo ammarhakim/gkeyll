@@ -31,7 +31,7 @@ gkyl_gk_anomalous_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn* eqn,
 
 __global__ void static
 gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion, enum gkyl_basis_type b_type,
-  int cdim, int vdim, int poly_order)
+  int cdim, int vdim, int poly_order, bool use_bound_local)
 {
   diffusion->auxfields.nu = 0; 
   diffusion->auxfields.jacobgeo_inv = 0; 
@@ -45,8 +45,10 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels            = ser_vol_kernels;
       surfx_kernels          = ser_gyrokinetic_surfx_kernels;
-      boundary_surfx_kernels = ser_gyrokinetic_boundary_surfx_kernels;
-      boundary_diagx_kernels = ser_gyrokinetic_boundary_diagx_kernels;
+      boundary_surfx_kernels = use_bound_local? ser_gyrokinetic_boundary_surfx_boundlocal_kernels
+                                              : ser_gyrokinetic_boundary_surfx_zeroflux_kernels;
+      boundary_diagx_kernels = use_bound_local? ser_gyrokinetic_boundary_diagx_boundlocal_kernels
+                                              : ser_gyrokinetic_boundary_diagx_boundrecovery_kernels;
       break;
 
     default:
@@ -67,7 +69,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *diff_range, double skip_cell_threshold)
+  const struct gkyl_range *diff_range, bool use_bound_local, double skip_cell_threshold)
 {
   struct gk_anomalous_diffusion* diffusion = (struct gk_anomalous_diffusion*) gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
@@ -89,7 +91,7 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
   // Copy the host struct to device struct.
   struct gk_anomalous_diffusion* diffusion_cu = (struct gk_anomalous_diffusion*) gkyl_cu_malloc(sizeof(struct gk_anomalous_diffusion));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion), GKYL_CU_MEMCPY_H2D);
-  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order);
+  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, use_bound_local);
 
   // Set parent on_dev pointer.
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

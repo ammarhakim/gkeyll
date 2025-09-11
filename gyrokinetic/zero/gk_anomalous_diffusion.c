@@ -40,17 +40,19 @@ gkyl_gk_anomalous_diffusion_set_auxfields(const struct gkyl_dg_eqn *eqn, struct 
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, double skip_cell_threshold, bool use_gpu)
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_absorb_bc,
+  double skip_cell_threshold, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, skip_cell_threshold);
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, is_zero_flux_bc, is_absorb_bc, skip_cell_threshold);
 #endif
   
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
+  int pdim = cdim + vdim;
   int poly_order = cbasis->poly_order;
 
   if (skip_cell_threshold > 0.0)
@@ -60,15 +62,34 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
 
   const gkyl_gk_anomalous_diffusion_vol_kern_list *vol_kernels;
   const gkyl_gk_anomalous_diffusion_surf_kern_list *surfx_kernels;
-  const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list *boundary_surfx_kernels;
-  const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list *boundary_diagx_kernels;
+  const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list *boundary_surfx_lower_kernels, *boundary_surfx_upper_kernels;
+  const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list *boundary_diagx_lower_kernels, *boundary_diagx_upper_kernels;
+
+  // Choice of boundary_surf and boundary_diag kernels:
+  //   boundary_surf: zero_flux or local
+  //   boundary_diag: local or recovery
+  // MF 2025/09/10: as of now these options are meant for (here
+  // N/A means not applicable):
+  //            bound_surf  bound_diag  hyper_dg-zero_flux
+  // PERIODIC:  N/A         N/A         no
+  // COPY:      N/A         recovery    no
+  // SKIP:      N/A         recovery    no
+  // ABSORB:    local       local       yes
+  // FUNC:      N/A         recovery    no
+  // ZERO_FLUX: zero_flux   N/A         yes
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels            = ser_vol_kernels;
       surfx_kernels          = ser_gyrokinetic_surfx_kernels;
-      boundary_surfx_kernels = ser_gyrokinetic_boundary_surfx_kernels;
-      boundary_diagx_kernels = ser_gyrokinetic_boundary_diagx_kernels;
+      boundary_surfx_lower_kernels = is_zero_flux_bc[0]? ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels
+                                                       : ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
+      boundary_surfx_upper_kernels = is_zero_flux_bc[0+pdim]? ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels
+                                                            : ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels;
+      boundary_diagx_lower_kernels = is_absorb_bc[0]? ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels
+                                                    : ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      boundary_diagx_upper_kernels = is_absorb_bc[0+pdim]? ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels
+                                                         : ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
       break;
   
     default:
@@ -83,13 +104,17 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
 
   diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim+vdim,  poly_order);
   diffusion->surf = CKSURF(surfx_kernels, cdim+vdim,  poly_order);
-  diffusion->boundary_surf = CKSURF(boundary_surfx_kernels, cdim+vdim,  poly_order);
-  diffusion->boundary_diag = CKSURF(boundary_diagx_kernels, cdim+vdim,  poly_order);
+  diffusion->boundary_surf[0] = CKSURF(boundary_surfx_lower_kernels, pdim,  poly_order);
+  diffusion->boundary_surf[1] = CKSURF(boundary_surfx_upper_kernels, pdim,  poly_order);
+  diffusion->boundary_diag[0] = CKSURF(boundary_diagx_lower_kernels, pdim,  poly_order);
+  diffusion->boundary_diag[1] = CKSURF(boundary_diagx_upper_kernels, pdim,  poly_order);
 
   // Ensure non-NULL pointers.
   assert(diffusion->surf);
-  assert(diffusion->boundary_surf);
-  assert(diffusion->boundary_diag);
+  for (int i=0; i<2; i++) {
+    assert(diffusion->boundary_surf[i]);
+    assert(diffusion->boundary_diag[i]);
+  }
 
   diffusion->auxfields.nu = 0;
   diffusion->auxfields.jacobgeo_inv = 0;

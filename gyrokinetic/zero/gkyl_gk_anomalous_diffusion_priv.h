@@ -16,8 +16,8 @@ typedef double (*gk_anom_diff_boundary_surf_t)(const double *wSkin, const double
 struct gk_anomalous_diffusion {
   struct gkyl_dg_eqn eqn;
   gk_anom_diff_surf_t surf;
-  gk_anom_diff_boundary_surf_t boundary_surf;
-  gk_anom_diff_boundary_surf_t boundary_diag;
+  gk_anom_diff_boundary_surf_t boundary_surf[2]; // 2=lower,upper.
+  gk_anom_diff_boundary_surf_t boundary_diag[2]; // 2=lower,upper.
   const struct gkyl_range *conf_range;
   struct gkyl_gk_anomalous_diffusion_auxfields auxfields;
   double skip_cell_thresh;
@@ -63,19 +63,59 @@ GKYL_CU_D static const gkyl_gk_anomalous_diffusion_surf_kern_list ser_gyrokineti
   { NULL, NULL }, // 3x2v
 };
 
-// Boundary surface kernel list: x-direction
-GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_kernels[] = {
+// Zero-flux boundary surface kernel list: x-direction
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels[] = {
   { NULL, NULL }, // 1x1v
   { NULL, NULL }, // 1x2v
-  { gk_anomalous_diffusion_boundary_surfx_2x2v_ser_p1, NULL }, // 2x2v
+  { gk_anomalous_diffusion_boundary_surfx_lower_zero_flux_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_surfx_upper_zero_flux_2x2v_ser_p1, NULL }, // 2x2v
   { NULL, NULL }, // 3x2v
 };
 
-// Boundary diagnostic kernel list: x-direction
-GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_kernels[] = {
+// Boundary-local boundary surface kernel list: x-direction
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels[] = {
   { NULL, NULL }, // 1x1v
   { NULL, NULL }, // 1x2v
-  { gk_anomalous_diffusion_boundary_diagx_2x2v_ser_p1, NULL }, // 2x2v
+  { gk_anomalous_diffusion_boundary_surfx_lower_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_surfx_upper_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+
+// Bound-local boundary diagnostic kernel list: x-direction
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_diagx_lower_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_diagx_upper_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+
+// Bound-recovery boundary diagnostic kernel list: x-direction
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_diagx_lower_bound_recovery_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_diagx_upper_bound_recovery_2x2v_ser_p1, NULL }, // 2x2v
   { NULL, NULL }, // 3x2v
 };
 
@@ -112,8 +152,10 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   if (fabs(qInEdge[0]) < gkad->skip_cell_thresh && fabs(qInSkin[0]) < gkad->skip_cell_thresh) {
     return 0.;
   }
-  if (dir == 0)
-    gkad->boundary_surf(xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+  if (edge == -1)
+    gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+  else
+    gkad->boundary_surf[1](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
 
   return 0.;  // CFL frequency computed in volume term.
 }
@@ -131,8 +173,10 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   if (fabs(qInEdge[0]) < gkad->skip_cell_thresh) {
     return 0.;
   }
-  if (dir == 0)
-    gkad->boundary_diag(xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+  if (edge == -1)
+    gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+  else
+    gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
 
   return 0.;  // CFL frequency computed in volume term.
 }
@@ -159,5 +203,6 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count* ref);
  */
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, double skip_cell_threshold);
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_absorb_bc, 
+  double skip_cell_threshold);
 #endif
