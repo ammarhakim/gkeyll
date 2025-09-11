@@ -246,7 +246,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_gen_vol_kernels[] =
   { NULL, vlasov_nc_hamil_gen_vol_2x2v_ser_p1, vlasov_nc_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_nc_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_nc_hamil_gen_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Hamiltonian, velocity space only, volume kernels (Tensor basis).  
@@ -861,7 +861,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_nc_hamil_g
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1, vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_nc_hamil_gen_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space (NC) Hamiltonian boundary surface kernel list: y-direction (Serendipity basis)
@@ -876,7 +876,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_nc_hamil_g
   { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x2v_ser_p1, vlasov_nc_hamil_gen_boundary_surfy_2x2v_ser_p2, NULL }, // 4
   { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_nc_hamil_gen_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space (NC) Hamiltonian boundary surface kernel list: z-direction (Serendipity basis)
@@ -891,7 +891,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_nc_hamil_g
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_nc_hamil_gen_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 
