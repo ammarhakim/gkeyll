@@ -212,7 +212,7 @@ evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 
   double Lz = app->Lz;
 
-  double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
+  double src_density = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))), floor_src) * n_src;
   double src_temp = 0.0;
   double n = 0;
 
@@ -284,7 +284,7 @@ evalElcSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) < 0.25 * Lz) {
-    n = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
+    n = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
       floor_src) * n_src; // Electron source total number density (left).
   }
   else {
@@ -341,7 +341,7 @@ evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 
   double Lz = app->Lz;
 
-  double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
+  double src_density = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))), floor_src) * n_src;
   double src_temp = 0.0;
   double n = 0;
 
@@ -413,7 +413,7 @@ evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) < 0.25 * Lz) {
-    n = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
+    n = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
       floor_src) * n_src; // Ion source total number density (left).
   }
   else {
@@ -474,6 +474,14 @@ evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
+}
+
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 1.0; // Diffusivity [m^2/s].
 }
 
 static inline void
@@ -634,11 +642,10 @@ main(int argc, char **argv)
       }
     },
     
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 1. },
-      .order = 2,
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
 
     .bcx = {
@@ -714,11 +721,10 @@ main(int argc, char **argv)
       }
     },
 
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 1. },
-      .order = 2,
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+      .write_diagnostics = true,
     },
 
     .bcx = {

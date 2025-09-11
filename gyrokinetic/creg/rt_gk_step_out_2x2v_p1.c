@@ -184,6 +184,14 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 }
 
 void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_step_ctx *app = ctx;
+
+  fout[0] = 0.3; // Diffusivity [m^2/s].
+}
+
+void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_step_ctx *app = ctx;
@@ -406,6 +414,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -427,12 +436,11 @@ main(int argc, char **argv)
       }
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .bcx = {
       .lower={.type = GKYL_SPECIES_ABSORB,},
@@ -487,6 +495,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -507,12 +516,12 @@ main(int argc, char **argv)
 //        .time_integrated = true,
       }
     },
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .bcx = {
       .lower={.type = GKYL_SPECIES_ABSORB,},

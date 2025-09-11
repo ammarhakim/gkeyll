@@ -129,12 +129,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
   
-  if (species->has_diffusion) {
-    struct timespec wst = gkyl_wall_clock();
-    gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
-      fin, species->cflrate, rhs);
-    app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
-  }
+  // Anomalous diffusion.
+  gk_species_anomalous_diff_rhs(app, species, &species->anom_diff, fin, rhs);
 
   if (species->rad.radiation_id == GKYL_GK_RADIATION) {
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
@@ -761,6 +757,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gk_species_bgk_release(app, &s->bgk);
   }
 
+  gk_species_anomalous_diff_release(app, &s->anom_diff);
+
   if (s->react.num_react) {
     gk_species_react_release(app, &s->react);
   }
@@ -957,6 +955,9 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   if (gks->info.react_neut.num_react) {
     gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
   }
+
+  // Initialize an anomalous diffusion term.
+  gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
@@ -1716,43 +1717,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_init(&gks->local_par_ext_core, &gks->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
   }
 
-  // Initialize diffusion if present.
-  gks->has_diffusion = false;  
-  if (gks->info.diffusion.num_diff_dir) {
-    gks->has_diffusion = true;
-    int diffusion_order = gks->info.diffusion.order ? gks->info.diffusion.order : 2;
-
-    int szD = cdim*app->basis.num_basis;
-    gks->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
-    bool diff_dir[GKYL_MAX_CDIM] = {false};
-
-    int num_diff_dir = gks->info.diffusion.num_diff_dir ? gks->info.diffusion.num_diff_dir : app->cdim;
-    // Assuming diffusion along x only for now.
-    assert(num_diff_dir == 1);
-    assert(gks->info.diffusion.diff_dirs[0] == 0);
-    for (int d=0; d<num_diff_dir; ++d) {
-      int dir = gks->info.diffusion.diff_dirs[d]; 
-      diff_dir[dir] = 1; 
-      gkyl_array_shiftc(gks->diffD, gks->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
-    }
-    // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gks->diffD, 0, app->gk_geom->gxxj, 0, gks->diffD);
-
-    // By default, we do not have zero-flux boundary conditions in any direction
-    // Determine which directions are zero-flux.
-    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-    for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir] = true;
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir+pdim] = true;
-    }
-
-    gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux, gks->info.skip_cell_threshold,
-      gks->diffD, app->gk_geom->jacobgeo_inv, app->use_gpu);
-  }
-  
   // Initialize boundary fluxes.
   gks->bflux = (struct gk_boundary_fluxes) { };
   // Additional bflux moments to step in time.
@@ -2056,11 +2020,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);
   
-  if (s->has_diffusion) {
-    gkyl_array_release(s->diffD);
-    gkyl_dg_updater_diffusion_gyrokinetic_release(s->diff_slvr);
-  }
-
   gk_species_lte_release(app, &s->lte);
 
   gkyl_array_release(s->m0_gyroavg);

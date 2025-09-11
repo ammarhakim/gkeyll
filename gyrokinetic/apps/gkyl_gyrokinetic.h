@@ -124,6 +124,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+// Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
+struct gkyl_gyrokinetic_anomalous_diffusion {
+  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
+  void *D_profile_ctx;
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
 //
 struct gkyl_gyrokinetic_emission_inp {
   int num_species;
@@ -302,6 +310,9 @@ struct gkyl_gyrokinetic_species {
 
   // Source to include.
   struct gkyl_gyrokinetic_source source;
+
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
