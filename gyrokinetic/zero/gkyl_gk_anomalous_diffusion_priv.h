@@ -6,12 +6,13 @@
 
 // Types for various kernels
 typedef double (*gk_anom_diff_surf_t)(const double *wc, const double *dxc,
-  const double *nul, const double *nuc, const double *nur, const double *jacobgeo_inv,
+  const double *nul, const double *nuc, const double *nur,
+  const double *jacobgeo_invl, const double *jacobgeo_invc, const double *jacobgeo_invr,
   const double *Jfl, const double *Jfc, const double *Jfr, double* GKYL_RESTRICT out);
 
 typedef double (*gk_anom_diff_boundary_surf_t)(const double *wSkin, const double *dxSkin,
-  const double *nuEdge, const double *nuSkin, const double *jacobgeo_inv, int edge,
-  const double *JfEdge, const double *JfSkin, double* GKYL_RESTRICT out);
+  const double *nuEdge, const double *nuSkin, const double *jacobgeo_invEdge, const double *jacobgeo_invSkin,
+  int edge, const double *JfEdge, const double *JfSkin, double* GKYL_RESTRICT out);
 
 struct gk_anomalous_diffusion {
   struct gkyl_dg_eqn eqn;
@@ -137,7 +138,7 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   }
   
   if (dir == 0)
-    gkad->surf(xcC, dxC, _cfnu(idxL), _cfnu(idxC), _cfnu(idxR), _cfJacInv(idxC), qInL, qInC, qInR, qRhsOut);
+    gkad->surf(xcC, dxC, _cfnu(idxL), _cfnu(idxC), _cfnu(idxR), _cfJacInv(idxL), _cfJacInv(idxC), _cfJacInv(idxR), qInL, qInC, qInR, qRhsOut);
 
   return 0.;  // CFL frequency computed in volume term.
 }
@@ -153,9 +154,9 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
     return 0.;
   }
   if (edge == -1)
-    gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
-  else
-    gkad->boundary_surf[1](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+    gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+  else                                                                                   
+    gkad->boundary_surf[1](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
 
   return 0.;  // CFL frequency computed in volume term.
 }
@@ -175,9 +176,9 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   }
   if (dir == 0) {
     if (edge == -1)
-      gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
-    else
-      gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+      gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+    else                                                                                       
+      gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
   }
 
   return 0.;  // CFL frequency computed in volume term.
