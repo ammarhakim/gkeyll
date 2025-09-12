@@ -13,8 +13,11 @@ gk_species_anomalous_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // Copy fin into local of fghost_vol.
+  gkyl_array_copy_range(species->fghost_vol, fin, &species->local);
+  // Pass fghost_vol instead of fin.
   gkyl_dg_updater_gk_anomalous_diffusion_advance(gkad->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+    species->fghost_vol, species->cflrate, rhs);
 
   app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -45,7 +48,7 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
       .stime = stime,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
   // Construct the file handles for collision frequency and primitive moments.
   const char *fmt = "%s-%s_%s_%d.gkyl";
@@ -114,7 +117,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     gkyl_array_release(diffD_ho);
 
     // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gkad->diffD, 0, app->gk_geom->gxxj, 0, gkad->diffD);
+    gkyl_dg_mul_op(app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
 
     // Use zero-flux BCs for the anomalous diffusion updater. NOTE: this
     // doesn't actually mean there is no flux due to this term, we simply use
@@ -136,7 +139,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
       &app->local, is_zero_flux, is_absorb, gks->info.skip_cell_threshold,
-      gkad->diffD, app->gk_geom->jacobgeo_inv, app->use_gpu);
+      gkad->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {
       // Write out the diffusivity.

@@ -180,10 +180,14 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct boundary_ctx *app = ctx;
-  fout[0] = app->B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 void
@@ -310,8 +314,8 @@ main(int argc, char **argv)
       .world = { 0.0, 0.0 },
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx,
       .position_map_info = {
         .maps[2] = nonuniform_position_map_z,
         .ctxs[2] = &ctx,

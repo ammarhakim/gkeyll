@@ -166,7 +166,7 @@ deflated_dg_bin_ops_advance(enum deflated_dg_bin_ops_type op_type, struct gkyl_d
     }
   }
 
-  gkyl_nodal_ops_n2m(up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, out);
+  gkyl_nodal_ops_n2m(up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, out, false);
 
 }
 

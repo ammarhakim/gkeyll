@@ -62,7 +62,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
     long loc = gkyl_range_idx(&node_range, iter.idx);
 
     const double *rz =
-      gkyl_array_cfetch(geom->nodes_rz, loc);
+      gkyl_array_cfetch(geom->nodes_rza, loc);
 
     const struct gkyl_mirror_grid_gen_geom *g =
       gkyl_array_cfetch(geom->nodes_geom, loc);
@@ -227,7 +227,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     long loc = gkyl_range_idx(&node_range, iter.idx);
 
     const double *rz =
-      gkyl_array_cfetch(geom->nodes_rz, loc);
+      gkyl_array_cfetch(geom->nodes_rza, loc);
 
     double r = rz[0], z = rz[1];
 

@@ -173,10 +173,12 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   if (fabs(qInEdge[0]) < gkad->skip_cell_thresh) {
     return 0.;
   }
-  if (edge == -1)
-    gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
-  else
-    gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+  if (dir == 0) {
+    if (edge == -1)
+      gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+    else
+      gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), edge, qInEdge, qInSkin, qRhsOut);
+  }
 
   return 0.;  // CFL frequency computed in volume term.
 }

@@ -14,13 +14,11 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha, 
+  const struct gkyl_array *flux_surf, 
   const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  gyrokinetic->auxfields.alpha_surf = alpha_surf;
-  gyrokinetic->auxfields.sgn_alpha_surf = sgn_alpha_surf;
-  gyrokinetic->auxfields.const_sgn_alpha = const_sgn_alpha;
+  gyrokinetic->auxfields.flux_surf = flux_surf;
   gyrokinetic->auxfields.phi = phi;
   gyrokinetic->auxfields.apar = apar;
   gyrokinetic->auxfields.apardot = apardot;
@@ -31,7 +29,7 @@ void
 gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
   gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-    auxin.alpha_surf->on_dev, auxin.sgn_alpha_surf->on_dev, auxin.const_sgn_alpha->on_dev, 
+    auxin.flux_surf->on_dev, 
     auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
 }
 
@@ -41,9 +39,7 @@ __global__ static void
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gkmodel_id gkmodel_id)
 {
-  gyrokinetic->auxfields.alpha_surf = 0; 
-  gyrokinetic->auxfields.sgn_alpha_surf = 0; 
-  gyrokinetic->auxfields.const_sgn_alpha = 0; 
+  gyrokinetic->auxfields.flux_surf = 0; 
   gyrokinetic->auxfields.phi = 0; 
   gyrokinetic->auxfields.apar = 0; 
   gyrokinetic->auxfields.apardot= 0; 

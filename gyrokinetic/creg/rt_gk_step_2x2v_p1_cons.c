@@ -185,13 +185,6 @@ diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
   fout[0] = 0.03; // Diffusivity [m^2/s].
 }
 
-void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  fout[0] = app->B0;
-}
-
 double plasma_frequency(double n, double m)
 {
   double eps0 = GKYL_EPSILON0;
@@ -464,6 +457,7 @@ main(int argc, char **argv)
     }, 
 
     .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
 //      .write_diagnostics = true,
@@ -579,6 +573,7 @@ main(int argc, char **argv)
     },
 
     .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
 //      .write_diagnostics = true,
@@ -701,7 +696,7 @@ main(int argc, char **argv)
   };
 
 struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT, // type of geometry
+    .ftype = GKYL_DN_SOL_OUT, // type of geometry
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
     .rleft= 2.0,              // closest R to inboard SOL
