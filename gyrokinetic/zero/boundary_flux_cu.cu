@@ -27,7 +27,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
     up->skip_cell_threshold = -1.0;
 
   up->num_eqns = num_eqns;
-  up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
+  up->eqns = (struct gkyl_dg_eqn **) gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
   for (int i=0; i<up->num_eqns; i++) {
     struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(eqns[i]);
     up->eqns[i] = eqn->on_dev;
@@ -40,8 +40,6 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   struct gkyl_boundary_flux *up_cu = (struct gkyl_boundary_flux*) gkyl_cu_malloc(sizeof(struct gkyl_boundary_flux));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_boundary_flux), GKYL_CU_MEMCPY_H2D);
   up->on_dev = up_cu;
-  
-  up->equation = eqn;
   
   return up;
 }
