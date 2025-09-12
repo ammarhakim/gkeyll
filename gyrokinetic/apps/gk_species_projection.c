@@ -325,7 +325,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
 
   // Density
-  gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles, proj->gaussian_profile, 0*app->basis.num_basis);
+  gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles + inp.f_floor, proj->gaussian_profile, 0*app->basis.num_basis);
 
   // Parallel velocity
   gkyl_array_set_offset(proj->prim_moms, 0.0, proj->gaussian_profile, 1*app->basis.num_basis);
