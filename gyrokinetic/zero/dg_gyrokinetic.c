@@ -37,9 +37,7 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  gyrokinetic->auxfields.alpha_surf = auxin.alpha_surf;
-  gyrokinetic->auxfields.sgn_alpha_surf = auxin.sgn_alpha_surf;
-  gyrokinetic->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
+  gyrokinetic->auxfields.flux_surf = auxin.flux_surf;
   gyrokinetic->auxfields.phi = auxin.phi;
   gyrokinetic->auxfields.apar = auxin.apar;
   gyrokinetic->auxfields.apardot = auxin.apardot;
@@ -162,9 +160,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->phase_range = *phase_range;
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   gyrokinetic->vel_map = gkyl_velocity_map_acquire(vel_map);
-  gyrokinetic->auxfields.alpha_surf = 0;
-  gyrokinetic->auxfields.sgn_alpha_surf = 0;
-  gyrokinetic->auxfields.const_sgn_alpha = 0;
+  gyrokinetic->auxfields.flux_surf = 0;
   gyrokinetic->auxfields.phi = 0;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;

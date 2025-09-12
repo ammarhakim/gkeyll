@@ -1,4 +1,12 @@
 #include <gkyl_level_set.h>
+#include <gkyl_wv_euler_rgfm_priv.h>
+#include <gkyl_wv_gr_maxwell_priv.h>
+#include <gkyl_wv_gr_maxwell_tetrad_priv.h>
+#include <gkyl_wv_gr_euler_priv.h>
+#include <gkyl_wv_gr_euler_tetrad_priv.h>
+#include <gkyl_wv_gr_ultra_rel_euler_priv.h>
+#include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
+#include <gkyl_wv_gr_twofluid_priv.h>
 
 struct gkyl_wave_prop {
   struct gkyl_rect_grid grid; // Grid object.

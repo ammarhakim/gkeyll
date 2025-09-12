@@ -1,0 +1,9 @@
+Collection of sample GEQDSK files
+
+Put the geqdsk file you want in this folder and name it 'input.geqdsk' in order to run g0 unit tests with it
+
+File descriptions:
+
+- wham.geqdsk: case with beams and ~0.8 T central field.
+- straight_cylinder.geqdsk: A uniform magnetic field of 0.5 T in cylindrical coordinates pointing in the Z direction
+- single_coil: Like a mirror, but only has 1 coil. Magnetic nozle.

@@ -29,54 +29,54 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
   char fileNm[sz+1]; // ensure no buffer overflow
 
   sprintf(fileNm, fmt, name, "mapc2p");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2p, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_corn.mc2p, fileNm);
   sprintf(fileNm, fmt, name, "bmag");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_corn.bmag, fileNm);
   sprintf(fileNm, fmt, name, "g_ij");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->g_ij, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.g_ij, fileNm);
   sprintf(fileNm, fmt, name, "dxdz");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dxdz, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.dxdz, fileNm);
   sprintf(fileNm, fmt, name, "dzdx");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dzdx, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.dzdx, fileNm);
   sprintf(fileNm, fmt, name, "normals");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->normals, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.normals, fileNm);
   sprintf(fileNm, fmt, name, "jacobgeo");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobgeo, fileNm);
   sprintf(fileNm, fmt, name, "jacobgeo_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobgeo_inv, fileNm);
   sprintf(fileNm, fmt, name, "gij");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gij, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gij, fileNm);
   sprintf(fileNm, fmt, name, "b_i");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->b_i, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.b_i, fileNm);
   sprintf(fileNm, fmt, name, "bcart");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bcart, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bcart, fileNm);
   sprintf(fileNm, fmt, name, "cmag");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->cmag, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.cmag, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
   sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
   sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv_sq, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxxj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxyj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxyj, fileNm);
   sprintf(fileNm, fmt, name, "gyyj");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gyyj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gyyj, fileNm);
   sprintf(fileNm, fmt, name, "gxzj");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxzj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxzj, fileNm);
   sprintf(fileNm, fmt, name, "eps2");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->eps2, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.eps2, fileNm);
 
   // Write Nodal Coordinates
   struct gkyl_range nrange;
   gkyl_gk_geometry_init_nodal_range(&nrange, &local, 1);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &local, 3, mc2p_nodal, up->mc2p);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_release(n2m);
   struct gkyl_rect_grid ngrid;
   gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
@@ -330,7 +330,7 @@ test_outer()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_MID,
+    .ftype = GKYL_DN_SOL_OUT_MID,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -383,7 +383,7 @@ test_upper()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_UP,
+    .ftype = GKYL_DN_SOL_OUT_UP,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -437,7 +437,7 @@ test_lower()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_LO,
+    .ftype = GKYL_DN_SOL_OUT_LO,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -708,7 +708,7 @@ test_inner_upper()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_UP,
+    .ftype = GKYL_DN_SOL_IN_UP,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
@@ -762,7 +762,7 @@ test_inner_middle()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_MID,
+    .ftype = GKYL_DN_SOL_IN_MID,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
@@ -815,7 +815,7 @@ test_inner_lower()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_LO,
+    .ftype = GKYL_DN_SOL_IN_LO,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
