@@ -1,8 +1,5 @@
 local Vlasov = G0.Vlasov
 
--- Mathematical constants (dimensionless).
-pi = math.pi
-
 -- Physical constants (using normalized code units).
 mass = 1.0 -- Neutral mass.
 charge = 0.0 -- Neutral charge.
@@ -12,8 +9,8 @@ Tl = 1.0 -- Left/inner temperature.
 V_r_drift_l = 0.0 -- Left/inner drift velocity (radial direction).
 V_theta_drift_l = 0.0 -- Left/inner drift velocity (angular direction).
 
-nr = 0.125 -- Right/outer number density.
-Tr = math.sqrt(0.1 / 0.125) -- Right/outer temperature.
+nr = 1.0 -- Right/outer number density.
+Tr = 1.0 -- Right/outer temperature.
 V_r_drift_r = 0.0 -- Right/outer drift velocity (radial direction).
 V_theta_drift_r = 0.0 -- Right/outer drift velocity (angular direction).
 
@@ -22,11 +19,9 @@ nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nr = 128 -- Cell count (configuration space: radial direction).
-Ntheta = 1 -- Cell count (configuration space: angular direction).
 Nvr = 12 -- Cell count (velocity space: radial direction).
 Nvtheta = 12 -- Cell count (velocity space: angular direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
-Ltheta = 2.0 * pi -- Domain size (configuration space: angular direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
 poly_order = 2 -- Polynomial order.
@@ -53,9 +48,9 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.5, 0.0 },
-  upper = { 0.5 + Lr, Ltheta },
-  cells = { Nr, Ntheta },
+  lower = { 0.5 },
+  upper = { 0.5 + Lr },
+  cells = { Nr },
   cflFrac = cfl_frac,
 
   basis = basis_type,
@@ -66,51 +61,60 @@ vlasovApp = Vlasov.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 2 }, -- Periodic directions (angular direction only).
+  periodicDirs = { }, -- Periodic directions (none).
 
   -- Neutral species.
   neut = Vlasov.Species.new {
-    modelID = G0.Model.CanonicalPB,
+    modelID = G0.Model.Triad,
     charge = charge, mass = mass,
 
-    hamiltonian = function (t, xn)
-      local q_r, p_r_dot, p_theta_dot = xn[1], xn[3], xn[4]
-
-      local inv_metric_r_r = 1.0
-      local inv_metric_r_theta = 0.0
-      local inv_metric_theta_theta = 1.0 / (q_r * q_r)
-
-      local hamiltonian = (0.5 * inv_metric_r_r * p_r_dot * p_r_dot) + (0.5 * (2.0 * inv_metric_r_theta * p_r_dot * p_theta_dot)) +
-        (0.5 * inv_metric_theta_theta * p_theta_dot * p_theta_dot) -- Canonical Hamiltonian.
-
-      return hamiltonian
-    end,
-    inverseMetric = function (t, xn)
+    -- vals_ij = e_{r,\theta} . \sigma_{x,y}
+    covTangentBasis = function (t, xn)
       local q_r = xn[1]
+      local q_theta = 0.0
 
-      local inv_metric_r_r = 1.0 -- Inverse metric tensor (radial-radial component).
-      local inv_metric_r_theta = 0.0 -- Inverse metric tensor (radial-angular component).
-      local inv_metric_theta_theta = 1.0 / (q_r * q_r) -- Inverse metric tensor (angular-angular component).
+      local e_rx = math.cos(q_theta) -- Covariant Tangent Basis Coefficients (r-x coefficient).
+      local e_ry = math.sin(q_theta) -- Covariant Tangent Basis Coefficients (r-y coefficient).
+      local e_tx = - q_r * math.sin(q_theta) -- Covariant Tangent Basis Coefficients (theta-x coefficient).
+      local e_ty = q_r * math.cos(q_theta)-- Covariant Tangent Basis Coefficients (theta-y coefficient).
 
-      return inv_metric_r_r, inv_metric_r_theta, inv_metric_theta_theta
+      return e_rx, e_ry, e_tx, e_ty
     end,
-    metric = function (t, xn)
+
+    -- vals_ij = \sigma_{r,\theta} . \sigma_{x,y}
+    triadBasis = function (t, xn)
       local q_r = xn[1]
+      local q_theta = 0.0
 
-      local metric_r_r = 1.0 -- Metric tensor (radial-radial component).
-      local metric_r_theta = 0.0 -- Metric tensor (radial-angular component).
-      local metric_theta_theta = q_r * q_r -- Metric tensor (angular-angular component).
+      local sigma_rx = math.cos(q_theta) -- Triad Basis Coefficients (r-x coefficient).
+      local sigma_ry = math.sin(q_theta) -- Triad Basis Coefficients (r-y coefficient).
+      local sigma_tx = - math.sin(q_theta) -- Triad Basis Coefficients (theta-x coefficient).
+      local sigma_ty = math.cos(q_theta)-- Triad Basis Coefficients (theta-y coefficient).
 
-      return metric_r_r, metric_r_theta, metric_theta_theta
+      return sigma_rx, sigma_ry, sigma_tx, sigma_ty
     end,
-    metricDeterminant = function (t, xn)
+
+    -- d(vals_ij)/dx^k = d(\sigma_{r, \theta} . \sigma_{x,y})/dx^k
+    -- x^k = { r, \theta }
+    triadBasisGradient = function (t, xn)
       local q_r = xn[1]
+      local q_theta = 0.0
 
-      local metric_det = q_r -- Metric tensor determinant.
+      -- d/dr components
+      local d_sigma_rx_dr = 0.0 -- Triad Basis Gradient Coefficients (r-x coefficient).
+      local d_sigma_ry_dr = 0.0 -- Triad Basis Gradient Coefficients (r-y coefficient).
+      local d_sigma_tx_dr = 0.0 -- Triad Basis Gradient Coefficients (theta-x coefficient).
+      local d_sigma_ty_dr = 0.0-- Triad Basis Gradient Coefficients (theta-y coefficient).
 
-      return metric_det
+      -- d/dtheta components
+      local d_sigma_rx_dtheta = - math.sin(q_theta) -- Triad Basis Gradient Coefficients (r-x coefficient).
+      local d_sigma_ry_dtheta = math.cos(q_theta) -- Triad Basis Gradient Coefficients (r-y coefficient).
+      local d_sigma_tx_dtheta = - math.cos(q_theta) -- Triad Basis Gradient Coefficients (theta-x coefficient).
+      local d_sigma_ty_dtheta = - math.sin(q_theta)-- Triad Basis Gradient Coefficients (theta-y coefficient).
+
+      return d_sigma_rx_dr, d_sigma_ry_dr, d_sigma_tx_dr, d_sigma_ty_dr, d_sigma_rx_dtheta, d_sigma_ry_dtheta, d_sigma_tx_dtheta, d_sigma_ty_dtheta
     end,
-    
+
     -- Velocity space grid.
     lower = { -vr_max, -vtheta_max },
     upper = { vr_max, vtheta_max },
@@ -132,35 +136,29 @@ vlasovApp = Vlasov.App.new {
             n = nr -- Total number density (right/outer).
           end
 
-          local metric_det = r
+          local det_factor = r
 
-          return metric_det * n
+          return n * det_factor
         end,
         temperatureInit = function (t, xn)
           local r = xn[1]
 
-          local T = 0.0
-          if r < midplane then
-            T = Tl -- Isotropic temperature (left/inner).
-          else
-            T = Tr -- Isotropic temperature (right/outer).
-          end
+          local T = r * math.sqrt(r)
 
           return T
         end,
         driftVelocityInit = function (t, xn)
           local r = xn[1]
 
-          local V_r_drift = 0.0
-          local V_theta_drift = 0.0
-
+          local n = 0.0
           if r < midplane then
-            V_r_drift = V_r_drift_l -- Radial drift velocity (left/inner).
-            V_theta_drift = V_theta_drift_l -- Angular drift velocity (left/inner).
+            n = nl -- Total number density (left/inner).
           else
-            V_r_drift = V_r_drift_r -- Radial drift velocity (right/outer).
-            V_theta_drift = V_theta_drift_r --Angular drift velocity (right/outer).
+            n = nr -- Total number density (right/outer).
           end
+
+          local V_r_drift = 0.0
+          local V_theta_drift = math.sqrt( 3 * r * math.sqrt(r) / ( 2 * n ) )
 
           return V_r_drift, V_theta_drift
         end,

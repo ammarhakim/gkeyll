@@ -111,7 +111,14 @@ vlasovApp = Vlasov.App.new {
         return nu -- Collision frequency.
       end,
       
-      correctAllMoments = true
+      useImplicitCollisionScheme = false
+    },
+
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1e-12,
+      maxIterations = 100,
+      useLastConverged = false
     },
 
     evolve = true, -- Evolve species?
