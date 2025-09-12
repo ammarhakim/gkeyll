@@ -17,7 +17,6 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
   GKYL_BC_GK_SPECIES_RECYCLE, // Recycling BCs
   GKYL_BC_GK_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
-
   GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet boundary conditions
   GKYL_BC_GK_FIELD_NEUMANN, // Nemann boundary conditions
 };
@@ -74,8 +73,8 @@ struct gkyl_gyrokinetic_multib_species {
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;

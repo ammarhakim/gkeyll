@@ -93,14 +93,6 @@ struct gkyl_gyrokinetic_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 };
 
-// Parameters for species diffusion
-struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // number of diffusion directions
-  int diff_dirs[3]; // list of diffusion directions
-  double D[3]; // constant diffusion coefficient in each direction
-  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
-};
-
 // Structure to hold parameters for adaptive source
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
@@ -304,9 +296,6 @@ struct gkyl_gyrokinetic_species {
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
-
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
 
   // Source to include.
   struct gkyl_gyrokinetic_source source;

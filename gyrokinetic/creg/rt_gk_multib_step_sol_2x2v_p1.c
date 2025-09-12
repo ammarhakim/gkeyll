@@ -402,6 +402,14 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 }
 
 void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_step_ctx *app = ctx;
+
+  fout[0] = 0.03; // Diffusivity [m^2/s].
+}
+
+void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
   double t_curr, bool is_restart_IC, bool force_calc, double dt)
 {
@@ -553,11 +561,9 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-//    .diffusion = {
-//      .num_diff_dir = 1, 
-//      .diff_dirs = { 0 },
-//      .D = { 0.03 }, 
-//      .order = 2, 
+//    .anomalous_diffusion = {
+//      .D_profile = diffusion_D_func,
+//      .D_profile_ctx = &ctx,
 //    }, 
 
     .duplicate_across_blocks = true,
@@ -654,11 +660,9 @@ main(int argc, char **argv)
       .collide_with = { "elc"},
     },
 
-//    .diffusion = {
-//      .num_diff_dir = 1, 
-//      .diff_dirs = { 0 },
-//      .D = { 0.03 }, 
-//      .order = 2, 
+//    .anomalous_diffusion = {
+//      .D_profile = diffusion_D_func,
+//      .D_profile_ctx = &ctx,
 //    }, 
   
     .duplicate_across_blocks = true,

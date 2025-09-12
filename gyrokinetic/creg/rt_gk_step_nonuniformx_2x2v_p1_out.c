@@ -462,7 +462,6 @@ main(int argc, char **argv)
       },
     }, 
 
-
     .anomalous_diffusion = {
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
@@ -525,12 +524,12 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .bcx = {
       .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
@@ -602,12 +601,11 @@ main(int argc, char **argv)
       },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .bcx = {
       .lower={.type = GKYL_SPECIES_ABSORB,},

@@ -281,7 +281,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
     // Species physics modules
     species_inp.collisions = sp->collisions;
-    species_inp.diffusion = sp->diffusion;
+    species_inp.anomalous_diffusion = sp->anomalous_diffusion;
     species_inp.radiation = sp->radiation;
     species_inp.react = sp->react;
     species_inp.react_neut = sp->react_neut; 
