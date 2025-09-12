@@ -1034,17 +1034,19 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     for (int b=0; b<app->num_local_blocks; ++b) {
       int bid = app->local_blocks[b];
       struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-      int li_charged = b * app->num_species;
-      gkyl_array_copy(sbapp->species[i].fghost_vol, distf[li_charged+i]);
-      // rescale fghost_vol in the ghost ...
-      for (int e=0; e<2; ++e) {
-        int dir  = 0;
-        if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
-          gkyl_dg_mul_conf_phase_op_range(&sbapp->basis, 
-              &sbapp->species[i].basis, sbapp->species[i].fghost_vol, 
-              sbapp->gk_geom->geo_int.jacobgeo_ghost, sbapp->species[i].fghost_vol,
-              e ==0 ? &sbapp->lower_ghost[dir] : &sbapp->upper_ghost[dir],
-              e == 0 ? &sbapp->species[i].lower_ghost[dir] : &sbapp->species[i].upper_ghost[dir]);
+      if (sbapp->species[i].info.diffusion.num_diff_dir) {
+        int li_charged = b * app->num_species;
+        gkyl_array_copy(sbapp->species[i].fghost_vol, distf[li_charged+i]);
+        // rescale fghost_vol in the ghost ...
+        for (int e=0; e<2; ++e) {
+          int dir = 0;
+          if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
+            gkyl_dg_mul_conf_phase_op_range(&sbapp->basis, 
+                &sbapp->species[i].basis, sbapp->species[i].fghost_vol, 
+                sbapp->gk_geom->geo_int.jacobgeo_ghost, sbapp->species[i].fghost_vol,
+                e ==0 ? &sbapp->lower_ghost[dir] : &sbapp->upper_ghost[dir],
+                e == 0 ? &sbapp->species[i].lower_ghost[dir] : &sbapp->species[i].upper_ghost[dir]);
+          }
         }
       }
     }
