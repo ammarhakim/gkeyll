@@ -51,6 +51,8 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   loss_cone_mask_gyrokinetic_c2p_t c2p_pos; // Function transforming position comp to phys coords.
   void *c2p_pos_ctx; // Context for the c2p_pos mapping.
 
+  bool cellwise_trap_loss; // Whether a whole cell is trapped/lost, or whether
+                           // high-order distinction within a cell is allowed.
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
 

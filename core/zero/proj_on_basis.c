@@ -85,7 +85,7 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
       gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
     }
   }
-  else {
+  else if (inp->qtype == GKYL_GAUSS_LOBATTO_QUAD) {
     assert( (num_quad > 1) && (num_quad <= gkyl_gauss_max) );
     
     // Gauss-Lobatto quadrature

@@ -69,7 +69,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     weights1_v[1] = -4.0;
     weights1_v[2] = 3.0;
   }
-  else {
+  else if (quad_type == GKYL_GAUSS_QUAD) {
     if (num_quad <= gkyl_gauss_max) {
       // use pre-computed values if possible (these are more accurate
     // than computing them on the fly)
@@ -517,7 +517,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
         fq[0] = T_over_m_quad[cqidx] > 0.0 ? f_floor + 
           jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact) : f_floor;
       }
-      // compute expansion coefficients of Maxwellian distribution function on basis
+      // Compute expansion coefficients of Maxwellian distribution function on basis.
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_maxwellian, lidx));
     }
   }
@@ -525,12 +525,12 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
   gkyl_gk_maxwellian_density_moment_advance(up->moments_up, phase_range, conf_range, 
     f_maxwellian, up->num_ratio);
 
-  // compute number density ratio: num_ratio = n/n0
-  // 0th component of moms_target is the target density
+  // Compute number density ratio: num_ratio = n/n0.
+  // The 0th component of moms_target is the target density.
   gkyl_dg_div_op_range(up->mem, up->conf_basis, 0, up->num_ratio,
     0, moms_maxwellian, 0, up->num_ratio, conf_range);
 
-  // rescale distribution function
+  // Rescale distribution function.
   gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis,
     f_maxwellian, up->num_ratio, f_maxwellian, conf_range, phase_range);
 }

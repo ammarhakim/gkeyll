@@ -286,7 +286,8 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type;
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
   void *profile_ctx; // Context for profile function.
-  int num_quad; // Number of quadrature points in each direction to use in projecting profile.
+  bool cellwise_const; // Whether the multiplier has a single value per cell.
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for gk species.
