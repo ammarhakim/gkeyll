@@ -137,6 +137,8 @@ test_func(int cdim, int vdim, int poly_order,
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
@@ -149,6 +151,10 @@ test_func(int cdim, int vdim, int poly_order,
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = {0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[GKYL_MAX_DIM];
   for (int i=0; i<pdim; ++i) {
@@ -190,13 +196,6 @@ test_func(int cdim, int vdim, int poly_order,
 
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
-  
-  struct gkyl_rect_grid vel_grid;
-  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
-
-  int velGhost[] = {0};
-  struct gkyl_range velLocal, velLocal_ext;
-  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
@@ -364,9 +363,10 @@ test_func_cu(int cdim, int vdim, int poly_order,
   evalf_t evalDistFunc, double f_check[], double vf_check[], 
   double u_check[], double vth_check[], double ucross_check[], double vthcross_check[])
 {
-  int pdim = cdim + vdim;  
+  int pdim = cdim + vdim;    
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
-  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM];
+  double velLower[GKYL_MAX_DIM], velUpper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM], velCells[GKYL_MAX_DIM];
   
   double v_bounds[2*vdim];
   
@@ -384,6 +384,9 @@ test_func_cu(int cdim, int vdim, int poly_order,
       upper[i] = 2.0;
       v_bounds[i - cdim] = lower[i];
       v_bounds[i - cdim + vdim] = upper[i];
+      velLower[i - cdim] = lower[i];
+      velUpper[i - cdim] = upper[i];
+      velCells[i - cdim] = cells[i];
     }
   }
 
@@ -392,10 +395,13 @@ test_func_cu(int cdim, int vdim, int poly_order,
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -403,6 +409,10 @@ test_func_cu(int cdim, int vdim, int poly_order,
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = {0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[GKYL_MAX_DIM];
   for (int i=0; i<pdim; ++i) {
@@ -448,8 +458,21 @@ test_func_cu(int cdim, int vdim, int poly_order,
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0M1M2, 
+    .use_gpu = true,
+  };
   
-  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, true);
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_inew(&inp_mom);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, true);
 
   // create moment arrays
