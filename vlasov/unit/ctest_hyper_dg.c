@@ -3,13 +3,14 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
-#include <gkyl_dg_vlasov_calc_hamil.h>
-#include <gkyl_rect_grid.h>
-#include <gkyl_rect_decomp.h>
-#include <gkyl_range.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 
 static struct gkyl_array*
 mkarr1(bool use_gpu, long nc, long size)
@@ -66,8 +67,6 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize eqn
-  struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
 
@@ -101,10 +100,26 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
   struct gkyl_array *poisson_tensor_conf = mkarr1(use_gpu, confBasis.num_basis*num_pt_indices[vdim-1], confRange.volume );
-  const struct gkyl_array *pot_tot = mkarr1(use_gpu, confBasis.num_basis*4, confRange_ext.volume );
-  const struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, basis.num_basis*vdim, phaseRange_ext.volume );
-  const struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
-  const struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
+  struct gkyl_array *pot_tot = mkarr1(use_gpu, confBasis.num_basis*4, confRange_ext.volume );
+  struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, basis.num_basis*vdim, phaseRange_ext.volume );
+  struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
+  struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
+
+  struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
+    .phase_grid = &phaseGrid, 
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velRange,
+    .hamil_range = &velRange,
+    .skip_cell_thresh = 0.0, 
+    .model_id = model_id,
+    .has_E = true, 
+    .has_phi = false, 
+    .has_B = true, 
+    .has_rad = false, 
+    .use_gpu = use_gpu,
+  }; 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
 
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &confBasis,
@@ -131,7 +146,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     .use_gpu = use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 
-  eqn = gkyl_dg_vlasov_inew(&inp_eqn); 
+  struct gkyl_dg_eqn *eqn = gkyl_dg_vlasov_inew(&inp_eqn); 
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
@@ -159,6 +174,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     fin_d[i] = (double)(2*i+11 % nf) / nf  * ((i%2 == 0) ? 1 : -1);
   }
   if (use_gpu) gkyl_array_copy(fin, fin_h);
+  gkyl_array_set(f_no_J, 1.0, fin);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -166,6 +182,9 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
 
+    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange, 
+     0, poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
+     f_no_J, cflrate, vel_flux_surf);    
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
