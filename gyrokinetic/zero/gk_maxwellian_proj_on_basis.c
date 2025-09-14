@@ -87,6 +87,10 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
       gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
     }
   }
+  else {
+    fprintf(stderr, "Quadrature type not available. Exiting... \n");
+    assert(false);
+  }
 
   struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
 

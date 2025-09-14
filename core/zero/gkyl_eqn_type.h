@@ -153,7 +153,6 @@ enum gkyl_geometry_id {
 
 // type of quadrature to use
 enum gkyl_quad_type {
-  GKYL_NO_QUAD = 0, // No quadrature.
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
   GKYL_POSITIVITY_QUAD // Positivity quadrature nodes

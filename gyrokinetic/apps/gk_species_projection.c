@@ -251,7 +251,6 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
       .vel_range = &s->local_vel, 
       .gk_geom = app->gk_geom,
       .vel_map = s->vel_map,
-      .quad_type = inp.quad_type,
       .mass = s->info.mass,
       .bimaxwellian = bimaxwellian, 
       .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
