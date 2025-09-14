@@ -300,7 +300,7 @@ gk_multib_field_new_par_smooth(const struct gkyl_gyrokinetic_multib *mbinp,
     enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
     const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
     enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
-    if (mbf->cdim == 2 && (ftype == GKYL_CORE || ftype == GKYL_CORE_R || ftype == GKYL_CORE_L))
+    if (mbf->cdim == 2 && (ftype == GKYL_CORE || ftype == GKYL_CORE_R || ftype == GKYL_CORE_L) && !mbf->info.half_domain)
       fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
 
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
@@ -436,6 +436,7 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   mbf->gkfield_id = mbf->info.gkfield_id? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
   mbf->num_local_blocks = mbapp->num_local_blocks;
   mbf->cdim = mbapp->block_topo->ndim;
+  mbf->half_domain = mbf->info.half_domain ? mbf->info.half_domain : false;
 
   // Allocate local arrays for charge density and potential.
   mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
@@ -493,18 +494,6 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     }
   }
   else {
-//    // Copy continuous charge density back to apps.
-//    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-//      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-//      gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
-//        mbf->rho_c_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
-//    }
-//    // Every block Solves the poisson equation.
-//    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-//      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-//      gkyl_deflated_fem_poisson_advance(sbapp->field->deflated_fem_poisson, 
-//        sbapp->field->rho_c_global_smooth, 0, sbapp->field->phi_smooth);
-//    }
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
       // Copy continuous charge density back to apps.
@@ -545,6 +534,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     // Copy continuous potential back to apps.
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+      // Copy from multib to block global.
       gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
         mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
       // Copy from block-global to block local.

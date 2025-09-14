@@ -94,7 +94,7 @@ gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments *up,
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian
     gkyl_dg_div_op_range(up->mem, up->conf_basis, 
-      0, density_out, 0, up->M0, 0, up->gk_geom->jacobgeo, conf_range);  
+      0, density_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {
     gkyl_array_set_range(density_out, 1.0, up->M0, conf_range);
@@ -135,7 +135,7 @@ gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian and store in moms_out
     gkyl_dg_div_op_range(up->mem, up->conf_basis, 
-      0, moms_out, 0, up->M0, 0, up->gk_geom->jacobgeo, conf_range);  
+      0, moms_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {
     gkyl_array_set_range(moms_out, 1.0, up->M0, conf_range);
@@ -187,7 +187,7 @@ gkyl_gk_bimaxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian and store in moms_out
     gkyl_dg_div_op_range(up->mem, up->conf_basis, 
-      0, moms_out, 0, up->M0, 0, up->gk_geom->jacobgeo, conf_range);  
+      0, moms_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {
     gkyl_array_set_range(moms_out, 1.0, up->M0, conf_range);

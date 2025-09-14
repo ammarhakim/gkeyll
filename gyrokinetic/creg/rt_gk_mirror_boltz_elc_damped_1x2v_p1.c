@@ -352,6 +352,25 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = Bmag;
 }
 
+// bfield_func must assume a 3d input xc
+void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double z = xc[2];
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double Z = Z_psiz(psi, z, ctx);
+  double BRad, BZ, Bmag;
+  Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
+
+  double phi = xc[1];
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = BRad*cos(phi);
+  fout[1] = BRad*sin(phi);
+  fout[2] = BZ;
+}
+
 void
 loss_cone_damping_rate_profile(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -717,10 +736,10 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
-      .mapc2p = mapc2p, // mapping of computational to physical space
+      .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func, // Magnetic field.
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 0,

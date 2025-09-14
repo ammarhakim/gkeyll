@@ -19,9 +19,11 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 1.0;
 }
 
 static struct gkyl_array*
@@ -90,8 +92,8 @@ test_3x2v_p1(bool use_gpu)
       .world = {0.0, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = 0,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx =0 ,
+      .bfield_func = bfield_func, // magnetic field magnitude
+      .bfield_ctx =0 ,
       .grid = confGrid,
       .local = confRange,
       .local_ext = confRange_ext,
@@ -109,14 +111,11 @@ test_3x2v_p1(bool use_gpu)
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
   // Initialize gyrokinetic variables
-  struct gkyl_array *alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
-  struct gkyl_array *sgn_alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
-  struct gkyl_array *const_sgn_alpha = mkarr1(use_gpu, 4, phaseRange_ext.volume);
+  struct gkyl_array *flux_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
   struct gkyl_array *phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  struct gkyl_dg_gyrokinetic_auxfields aux = { .alpha_surf = alpha_surf, 
-    .sgn_alpha_surf = sgn_alpha_surf, .const_sgn_alpha = const_sgn_alpha, 
+  struct gkyl_dg_gyrokinetic_auxfields aux = { .flux_surf = flux_surf, 
     .phi = phi, .apar = apar, .apardot = apardot };
 
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -157,9 +156,7 @@ test_3x2v_p1(bool use_gpu)
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
-  gkyl_array_release(alpha_surf);
-  gkyl_array_release(sgn_alpha_surf);
-  gkyl_array_release(const_sgn_alpha);
+  gkyl_array_release(flux_surf);
   gkyl_array_release(phi);
   gkyl_array_release(apar);
   gkyl_array_release(apardot);

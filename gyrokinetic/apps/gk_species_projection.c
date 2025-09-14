@@ -59,7 +59,7 @@ gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_specie
   }
   // Multiply by the gyrocenter coord jacobian (bmag).
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-      app->gk_geom->bmag, f, &app->local, &s->local); 
+      app->gk_geom->geo_corn.bmag, f, &app->local, &s->local); 
   // Multiply by the velocity-space jacobian. 
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
 }
@@ -302,7 +302,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
   double red_integral_ho[1];
 
-  gkyl_dg_mul_op_range(app->basis, 0, integrant, 0, app->gk_geom->jacobgeo, 0, proj->gaussian_profile, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, integrant, 0, app->gk_geom->geo_int.jacobgeo, 0, proj->gaussian_profile, &app->local);
   gkyl_array_integrate_advance(int_op, integrant, 1.0, NULL, &app->local, NULL, integral);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, integral, red_integral);
   
@@ -385,7 +385,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
   proj->moms_correct(app, s, proj, f, tm);  
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-    app->gk_geom->jacobgeo, f, &app->local, &s->local);
+    app->gk_geom->geo_int.jacobgeo, f, &app->local, &s->local);      
 }
 
 void

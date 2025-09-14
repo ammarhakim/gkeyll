@@ -38,7 +38,9 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // Get the dimensions
   size_t status;
 
-  status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
+  char header[49];   // case in eqdsk header
+  int idum; // idum in eqdsk header
+  status = fscanf(ptr, "%48c%4d%4d%4d", header, &idum, &up->nr, &up->nz);
 
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;
@@ -117,6 +119,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->psizr_cubic = gkyl_array_new(GKYL_DOUBLE, up->rzbasis_cubic.num_basis, up->rzlocal_cubic_ext.volume);
   up->bmagzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis.num_basis, up->rzlocal_ext.volume);
   up->fpolflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
+  up->fpolprimeflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
 
   // Read fpol because we do want that
@@ -143,12 +146,43 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(&up->fluxbasis, &up->fluxgrid, false);
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
-    &flux_nrange, &up->fluxlocal, 1, fpolflux_n, up->fpolflux);
+    &flux_nrange, &up->fluxlocal, 1, fpolflux_n, up->fpolflux, false);
 
-  // Now we 3 of the 1d arrays, all of length nr :
+  // Now we have 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
-  // I don't actually care about these so just read 4*nr times
-  for(int i = 0; i<3*up->nr; i++){
+  // I don't actually care about pres or pprime, so skip those
+
+  //skip pres
+  for(int i = 0; i<up->nr; i++){
+    status = fscanf(ptr, "%lf", &up->xdum);
+  }
+
+  // read ffprime and divide out f
+  struct gkyl_array *fpolprimeflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
+  // fpol*fpolprime is given on a uniform flux grid from the magnetic axis to plasma boundary
+  if (step_convention) {
+    for (int i = up->nr-1; i>=0; i--){
+      fidx[0] = i;
+      double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpolprime_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+    }
+  }
+  else {
+    for(int i = 0; i<up->nr; i++){
+      fidx[0] = i;
+      double *fpolprime_n= gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpolprime_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+    }
+  }
+  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
+    &flux_nrange, &up->fluxlocal, 1, fpolprimeflux_n, up->fpolprimeflux, false);
+
+  // skip pprime
+  for(int i = 0; i<up->nr; i++){
     status = fscanf(ptr, "%lf", &up->xdum);
   }
 
@@ -176,7 +210,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr);
+  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false);
 
   // Reflect psi for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
@@ -201,7 +235,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     status = fscanf(ptr,"%lf", q_n);
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
-    &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux);
+    &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
 
 
   // Make the cubic interpolator
@@ -269,7 +303,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       bmag_n[0] = sqrt(bpol_n[0]*bpol_n[0] + bphi_n[0]*bphi_n[0]);
     }
   }
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr);
+  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false);
 
   // Reflect B for double null.
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion.
@@ -291,6 +325,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_nodal_ops_release(n2m_rz);
   // Free nodal arrays
   gkyl_array_release(fpolflux_n);
+  gkyl_array_release(fpolprimeflux_n);
   gkyl_array_release(psizr_n);
   gkyl_array_release(qflux_n);
   gkyl_array_release(bpolzr_n);
@@ -337,6 +372,7 @@ void gkyl_efit_release(gkyl_efit* up){
   gkyl_array_release(up->bmagzr);
   gkyl_dg_basis_ops_evalf_release(up->evf);
   gkyl_array_release(up->fpolflux);
+  gkyl_array_release(up->fpolprimeflux);
   gkyl_array_release(up->qflux);
   gkyl_free(up);
 }

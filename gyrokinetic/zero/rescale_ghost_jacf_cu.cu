@@ -63,7 +63,7 @@ __global__ static void
 gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *kers,
   int dir, enum gkyl_edge_loc edge,
   const struct gkyl_range conf_skin_r, const struct gkyl_range conf_ghost_r,
-  const struct gkyl_range phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
+  const struct gkyl_range phase_ghost_r, const struct gkyl_array *jac_sync, struct gkyl_array *jf)
 {
   int sidx[GKYL_MAX_DIM]; // skin idx
   int gidx[GKYL_MAX_DIM]; // ghost idx
@@ -88,17 +88,12 @@ gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *k
     long clinidx_skin = gkyl_range_idx(&conf_skin_r, sidx);
     long clinidx_ghost = gkyl_range_idx(&conf_ghost_r, gidx);
 
-    const double *jacskin_c = (const double *) gkyl_array_cfetch(jac, clinidx_skin);
-    const double *jacghost_c = (const double *) gkyl_array_cfetch(jac, clinidx_ghost);
+    const double *jacskin_surf_c = (const double *) gkyl_array_cfetch(jac_sync, clinidx_skin);
+    const double *jacghost_surf_c = (const double *) gkyl_array_cfetch(jac_sync, clinidx_ghost);
 
-    // Deflate the jacobian in the ghost cell and compute its reciprocal.
-    double jacghost_surf_c[num_basis_conf_surf], jacghost_surf_inv_c[num_basis_conf_surf];
-    kers->deflate_conf_ghost_op(jacghost_c, jacghost_surf_c);
+    // Compute the reciprocal of the ghost cell jacobian.
+    double jacghost_surf_inv_c[num_basis_conf_surf];
     kers->conf_inv_op(jacghost_surf_c, jacghost_surf_inv_c);
-
-    // Deflate the jacobian in the skin cell.
-    double jacskin_surf_c[num_basis_conf_surf];
-    kers->deflate_conf_skin_op(jacskin_c, jacskin_surf_c);
 
     long plinidx_ghost = gkyl_range_idx(&phase_ghost_r, gidx);
     double *jf_c = (double *) gkyl_array_fetch(jf, plinidx_ghost);
@@ -122,12 +117,12 @@ gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *k
 void
 gkyl_rescale_ghost_jacf_advance_cu(const struct gkyl_rescale_ghost_jacf *up,
   const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
-  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
+  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac_sync, struct gkyl_array *jf)
 {
   // Only proceed if the skin range has a non-zero volume (i.e., there are skin cells to update).
   int nblocks = phase_ghost_r->nblocks, nthreads = phase_ghost_r->nthreads; // CUDA grid configuration.
 
   // Launch the CUDA kernel to advance the ghost-to-skin update.
   gkyl_rescale_ghost_jacf_advance_cu_ker<<<nblocks, nthreads>>>(up->kernels, up->dir, up->edge,
-    *conf_skin_r, *conf_ghost_r, *phase_ghost_r, jac->on_dev, jf->on_dev);
+    *conf_skin_r, *conf_ghost_r, *phase_ghost_r, jac_sync->on_dev, jf->on_dev);
 }

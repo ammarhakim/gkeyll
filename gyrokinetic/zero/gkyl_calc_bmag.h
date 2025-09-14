@@ -58,12 +58,13 @@ void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
  * @param bmagrz DG B(R,Z) on the RZ grid
  * @param bmag_compdg output field where DG bmag on the computational basis/grid will be plaed
  * @param mapc2p DG rep of mapc2p on the computational grid
+* @param bool use_quad flag to indicate whether to use quadrature points or not
  */
 
 void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
     const struct gkyl_range *crange_ext,  const struct gkyl_range *crange_global,
     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, 
-    const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p);
+    const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p, bool use_quad);
 
 /**
  * Delete updater.
