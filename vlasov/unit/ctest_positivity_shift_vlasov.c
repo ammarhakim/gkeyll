@@ -12,6 +12,11 @@
 #include <gkyl_array_rio.h>
 #include <acutest.h>
 
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_mom_vlasov_priv.h>
+
 // Allocate array (filled with zeros).
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
@@ -100,11 +105,9 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // Basis functions.
-  struct gkyl_basis basis, confBasis;
-  if (poly_order == 1)
-    gkyl_cart_modal_tensor(&basis, ndim, poly_order);
-  else
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis basis, confBasis, velBasis;
+  gkyl_cart_modal_tensor(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
@@ -133,22 +136,52 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+
   // Compute M0 of the original f.
-  struct gkyl_dg_updater_moment *m0_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu);
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0, 
+    .use_gpu = use_gpu,
+  };
+
+
   struct gkyl_array *m0_pre = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_pre);
+  struct gkyl_mom_type *m0_mom_up = gkyl_mom_vlasov_inew(&inp_mom);
+  struct gkyl_mom_calc *mom_calc = gkyl_mom_calc_new(&grid, m0_mom_up, use_gpu);
+  gkyl_mom_calc_advance(mom_calc, &local, &confLocal, distf, m0_pre);
+
+  // struct gkyl_dg_updater_moment *m0_mom_up = gkyl_dg_updater_moment_new(
+  //   &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu);
+  // struct gkyl_array *m0_pre = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  // gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_pre);
 
 //  // Write m0 to file.
 //  char fname0M0[1024];
 //  sprintf(fname0M0, "ctest_positivity_shift_vlasov_1x2v_p%d_m0_pre.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, m0_pre, fname0M0);
 
-  // Compute the integrated moments of the original f.
-  struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
+  inp_mom.mom_type = GKYL_F_MOMENT_M0M1M2;
+  struct gkyl_mom_type *int_mom_up = gkyl_int_mom_vlasov_inew(&inp_mom);
+  struct gkyl_mom_calc *int_mom_calc = gkyl_mom_calc_new(&grid, int_mom_up, use_gpu);
 
-  int num_mom = gkyl_dg_updater_moment_num_mom(int_mom_up);
+  // Compute the integrated moments of the original f.
+  //struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_new(
+  //  &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
+
+  int num_mom = int_mom_up->num_mom;
+  //int num_mom = gkyl_dg_updater_moment_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   double *red_intmom;
   if (use_gpu)
@@ -156,7 +189,8 @@ test_1x2v(int poly_order, bool use_gpu)
   else
     red_intmom = gkyl_malloc(sizeof(double[num_mom]));
 
-  gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
+  gkyl_mom_calc_advance(int_mom_calc, &local, &confLocal, distf, intmom_grid);
+  //gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_pre[num_mom];
   if (use_gpu)
@@ -192,7 +226,8 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute M0 after the positivity shift.
   struct gkyl_array *m0_post = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_post);
+  gkyl_mom_calc_advance(mom_calc, &local, &confLocal, distf, m0_post);
+  //gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_post);
 
 //  // Write m0 to file after the positivity shift.
 //  char fname1M0[1024];
@@ -200,7 +235,8 @@ test_1x2v(int poly_order, bool use_gpu)
 //  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, m0_post, fname1M0);
 
   // Compute the integrated moments after the positivity shift.
-  gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
+  gkyl_mom_calc_advance(int_mom_calc, &local, &confLocal, distf, intmom_grid);
+  //gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_post[num_mom];
   if (use_gpu)
@@ -210,7 +246,8 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the shift.
   struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
+  gkyl_mom_calc_advance(int_mom_calc, &local, &confLocal, deltaf, ps_intmom_grid);
+  //gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
   gkyl_array_reduce_range(red_intmom, ps_intmom_grid, GKYL_SUM, &confLocal);
   double intmom_shift[num_mom];
   if (use_gpu)
@@ -232,8 +269,9 @@ test_1x2v(int poly_order, bool use_gpu)
   TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 4.16333634234434e-16);
   TEST_CHECK( gkyl_compare( intmom_shift[2], 1.38777878078145e-17, 1e-10));
   TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.38777878078145e-17);
-  TEST_CHECK( gkyl_compare( intmom_shift[3], 2.09905432920501e+01, 1e-10));
-  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01);
+  // note: half the original value because this is now <H> instead of <T>.
+  TEST_CHECK( gkyl_compare( intmom_shift[3], 1.04952716460250e+01, 1e-10));
+  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 1.04952716460250e+01);
 
   gkyl_array_release(distf);
   gkyl_array_release(intmom_grid);
@@ -249,8 +287,8 @@ test_1x2v(int poly_order, bool use_gpu)
     gkyl_free(red_intmom);
   }
   gkyl_proj_on_basis_release(proj_distf);
-  gkyl_dg_updater_moment_release(m0_mom_up);
-  gkyl_dg_updater_moment_release(int_mom_up);
+  gkyl_mom_type_release(m0_mom_up);
+  gkyl_mom_type_release(int_mom_up);
   gkyl_positivity_shift_vlasov_release(pos_shift);
 }
 
