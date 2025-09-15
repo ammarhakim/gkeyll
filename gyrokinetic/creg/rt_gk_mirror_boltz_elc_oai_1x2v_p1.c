@@ -671,9 +671,9 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
-      .profile = loss_cone_mask_profile,
-      .profile_ctx = &ctx,
+      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, //GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
+//      .profile = loss_cone_mask_profile,
+//      .profile_ctx = &ctx,
       .cellwise_const = true,
       .write_diagnostics = true,
     },

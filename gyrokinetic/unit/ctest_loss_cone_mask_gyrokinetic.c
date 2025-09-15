@@ -47,7 +47,7 @@ mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
 
@@ -55,7 +55,9 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   double R_m = params->R_m; // Mirror ratio.
   double B_m = params->B_m; // Maximum magnetic field amplitude.
 
-  fout[0] = B_m * (1.0 - ((R_m-1.0)/R_m)*pow(cos(z), 2.0));
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B_m * (1.0 - ((R_m-1.0)/R_m)*pow(cos(z), 2.0));
 //  fout[0] = (B_m/R_m) * (1.0 + (R_m-1.0)*pow(sin(z), 2.0));
 }
 
@@ -86,11 +88,15 @@ mask_ref_1x2v(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   phi_func_1x(t, xc, &phi, ctx);
   phi_func_1x(t, &z_m, &phi_m, ctx);
 
-  double bmag, bmag_m;
+  double bfield[3], bmag;
   double zinfl[3] = {0.0}, z_minfl[3] = {0.0};
   zinfl[2] = z, z_minfl[2] = z_m;
-  bmag_func_3x(t, zinfl, &bmag, ctx);
-  bmag_func_3x(t, z_minfl, &bmag_m, ctx);
+  bfield_func_3x(t, zinfl, bfield, ctx);
+  bmag = bfield[2];
+
+  double bfield_m[3], bmag_m;
+  bfield_func_3x(t, z_minfl, bfield_m, ctx);
+  bmag_m = bfield_m[2];
 
   // mu_bound = (0.5*m*vpar^2+q*(phi-phi_m))/(B*(B_max/B-1))
   double mu_bound = (0.5*mass*pow(vpar,2)+charge*(phi-phi_m))/(bmag*(bmag_m/bmag-1));
@@ -205,8 +211,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x, // magnetic field magnitude
-    .bmag_ctx = &ctx,
+    .bfield_func = bfield_func_3x, // magnetic field magnitude
+    .bfield_ctx = &ctx,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -258,9 +264,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   }
 
   // Get the magnetic field at the mirror throat.
-  double bmag_max_ho[1];
+  double bfield_max_ho[3], bmag_max_ho[1];
   double xc_infl[] = {0.0,0.0,ctx.z_m};
-  bmag_func_3x(0.0, xc_infl, bmag_max_ho, &ctx);
+  bfield_func_3x(0.0, xc_infl, bfield_max_ho, &ctx);
+  bmag_max_ho[0] = bfield_max_ho[2];
   double *bmag_max;
   if (use_gpu) {
     bmag_max = gkyl_cu_malloc(sizeof(double));
@@ -310,7 +317,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .conf_range_ext = &local_ext_conf,
     .vel_range = &local_vel, 
     .vel_map = gvm,
-    .bmag = gk_geom->bmag,
+    .bmag = gk_geom->geo_int.bmag,
     .bmag_max = bmag_max,
     .bmag_max_loc = bmag_max_loc,
     .mass = ctx.mass,

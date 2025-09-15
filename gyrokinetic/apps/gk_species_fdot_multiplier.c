@@ -220,6 +220,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics)
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
+      else
+        gkyl_array_release(fdmul->multiplier_host);
     }
   }
 }
