@@ -696,7 +696,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = { 
-    .name = "gk_mirror_boltz_elc_damped_1x2v_p1",
+    .name = "gk_mirror_boltz_elc_oai_1x2v_p1",
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},

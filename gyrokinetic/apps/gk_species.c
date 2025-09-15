@@ -882,14 +882,6 @@ gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_speci
 {
 }
 
-static void
-proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
-{
-  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
-  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
-  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
-}
-
 // Initialize species object.
 static void
 gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)

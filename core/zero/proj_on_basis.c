@@ -93,7 +93,7 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
     memcpy(weights1, gkyl_gauss_lobatto_weights[num_quad], sizeof(double[num_quad]));
   }
   else {
-    printf(stderr, "Quadrature type not available. Exiting... \n");
+    fprintf(stderr, "Quadrature type not available. Exiting... \n");
     assert(false);
   }
 
