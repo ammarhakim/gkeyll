@@ -819,6 +819,8 @@ struct gk_species {
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   // Pointer to various functions selected at runtime.
+  void (*fdot_collisionless_scaling)(struct gk_species *gks, struct gkyl_array *rhs,
+    struct gkyl_array *cflrate, struct gkyl_range *rng);
   void (*collisionless_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,

@@ -75,6 +75,21 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   }
 }
 
+
+static void
+gk_species_fdot_collisionless_scaling_disabled(struct gk_species *gks, struct gkyl_array *rhs,
+  struct gkyl_array *cflrate, struct gkyl_range *rng)
+{
+}
+
+static void
+gk_species_fdot_collisionless_scaling_enabled(struct gk_species *gks, struct gkyl_array *rhs,
+  struct gkyl_array *cflrate, struct gkyl_range *rng)
+{
+  gkyl_array_scale_range(rhs, gks->collisionless_scale_fac, rng);
+  gkyl_array_scale_range(cflrate, gks->collisionless_scale_fac, rng);
+}
+
 static void
 gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
@@ -94,8 +109,7 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  gkyl_array_scale_range(rhs, species->collisionless_scale_fac, &species->local);
-  gkyl_array_scale_range(species->cflrate, species->collisionless_scale_fac, &species->local);
+  species->fdot_collisionless_scaling(species, rhs, species->cflrate, &species->local);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -1698,9 +1712,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (gks->info.no_collisionless_terms)
     gks->collisionless_rhs_func = gk_species_collisionless_rhs_empty;
 
-  gks->collisionless_scale_fac = 1.0;
-  if (gks->info.collisionless_scale_factor)
+  gks->collisionless_scale_fac = 0.0;
+  gks->fdot_collisionless_scaling = gk_species_fdot_collisionless_scaling_disabled;
+  if (gks->info.collisionless_scale_factor) {
     gks->collisionless_scale_fac = gks->info.collisionless_scale_factor;
+    gks->fdot_collisionless_scaling = gk_species_fdot_collisionless_scaling_enabled;
+  }
 
   // Damping term -nu*f on RHS.
   gk_species_damping_init(app, gks, &gks->damping);
