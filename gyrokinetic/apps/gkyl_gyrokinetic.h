@@ -651,6 +651,42 @@ void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int s
 void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 /**
+ * Set the scale factor for the collisionless terms for a species.
+ *
+ * @param app App object.
+ * @param sidx Index of species to set scale factor for.
+ * @param alpha Scale factor to use.
+ * @param type Type of scale factor to use.
+ */
+void gkyl_gyrokinetic_app_reset_fdot_mult(gkyl_gyrokinetic_app* app, int sidx, double alpha, enum gkyl_gyrokinetic_fdot_multiplier_type type);
+
+/**
+ * Set whether to enforce positivity for all species.
+ *
+ * @param app App object.
+ * @param enforce_positivity Whether to enforce positivity.
+ */
+void gkyl_gyrokinetic_app_reset_enforce_positivity(gkyl_gyrokinetic_app* app, bool enforce_positivity);
+
+/**
+ * Reset the update field flag for the app.
+ *
+ * @param app App object.
+ * @param update_field Whether to update the field.
+ */
+void gkyl_gyrokinetic_app_reset_update_field(gkyl_gyrokinetic_app* app, bool update_field);
+
+
+/**
+ * Reset the update species flag for a species.
+ *
+ * @param app App object.
+ * @param sidx Index of species to set update flag for.
+ * @param update_species Whether to update the species.
+ */
+void gkyl_gyrokinetic_app_reset_update_species(gkyl_gyrokinetic_app* app, int sidx, bool update_species);
+
+/**
  * Write geometry file.
  *
  * @param app App object.

@@ -2434,6 +2434,14 @@ double gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *spe
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
 
 /**
+ * Reset whether species is static or dynamic.
+ * @param gks Pointer to species.
+ * @param is_static Boolean indicating if species is static (true) or dynamic (false).
+ */
+
+void gk_species_reset_static(struct gk_species *gks, bool update_species);
+
+/**
  * Scale and accumulate for forward euler method.
  *
  * @param species Pointer to species.

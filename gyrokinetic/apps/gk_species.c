@@ -1244,6 +1244,27 @@ gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_none;
 }
 
+void
+gk_species_reset_static(struct gk_species *gks, bool update_species)
+{
+  // Always initilize the simulation first with a dynamic species.
+  if (update_species) {
+    gks->rhs_func = gk_species_rhs_dynamic;
+    gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
+    gks->bc_func = gk_species_apply_bc_dynamic;
+    if (gks->enforce_positivity)
+      gks->apply_pos_shift_func = gk_species_apply_pos_shift_enabled;
+    else
+      gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
+  }
+  else {
+    gks->rhs_func = gk_species_rhs_static;
+    gks->rhs_implicit_func = gk_species_rhs_implicit_static;
+    gks->bc_func = gk_species_apply_bc_static;
+    gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
+  }
+}
+
 // End static function definitions.
 
 void
