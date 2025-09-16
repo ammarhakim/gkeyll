@@ -257,10 +257,10 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   if (up->cellwise_trap_loss) {
     // Don't do quadrature.
     int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
-    gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<nblocks, nthreads>>>(*up->grid_phase, *phase_range, *conf_range,
+    gkyl_loss_cone_mask_gyrokinetic_ker<<<nblocks, nthreads>>>(*up->grid_phase, *phase_range, *conf_range,
       gvm->local_ext_vel, up->mass, up->ordinates_phase->on_dev,
       up->bmag_max_loc, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
-      gvm->vmap_basis, up->mask_out->on_dev);
+      gvm->vmap_basis, mask_out->on_dev);
   }
   else {
     // Use quadrature.

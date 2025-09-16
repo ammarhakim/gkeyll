@@ -14,16 +14,6 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-static void
-gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
-{
-  // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
-  dimBlock->y = ncomp;
-  dimGrid->y = 1;
-  dimBlock->x = gkyl_int_div_up(252, ncomp);
-  dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
-}
-
 __global__ void
 gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
@@ -34,7 +24,6 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
   int idxL[GKYL_MAX_DIM];
-  int idx_velL[2];
   double xc[GKYL_MAX_DIM];
 
   // 2D thread grid
@@ -114,7 +103,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel(struct gkyl_dg_calc_gyroki
 { 
   int pdim = up->pdim;
   int cdim = up->cdim;
-  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
+  int idx[GKYL_MAX_DIM], idx_vel[2];
   int idxL[GKYL_MAX_DIM];
   int idx_velL[2];
   double xc[GKYL_MAX_DIM];
