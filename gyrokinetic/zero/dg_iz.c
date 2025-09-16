@@ -98,7 +98,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers

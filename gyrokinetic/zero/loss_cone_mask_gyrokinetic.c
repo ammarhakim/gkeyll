@@ -59,21 +59,21 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
   double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
 
   if (qtype == GKYL_GAUSS_QUAD) {
-  if (num_quad <= gkyl_gauss_max) {
-    // Use pre-computed values if possible (these are more accurate than computing them on the fly).
-    memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
-    memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-  }
-  else {
-    gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
-  }
-  if (num_quad_v <= gkyl_gauss_max) {
-    memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
-    memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
-  }
-  else {
-    gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
-  }
+    if (num_quad <= gkyl_gauss_max) {
+      // Use pre-computed values if possible (these are more accurate than computing them on the fly).
+      memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+      memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
+    }
+    else {
+      gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+    }
+    if (num_quad_v <= gkyl_gauss_max) {
+      memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
+      memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
+    }
+    else {
+      gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
+    }
   }
   else if (qtype == GKYL_GAUSS_LOBATTO_QUAD) {
     assert( (num_quad > 1) && (num_quad <= gkyl_gauss_max) );
@@ -201,10 +201,20 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->cdim = inp->conf_basis->ndim;
   up->pdim = inp->phase_basis->ndim;
 
+  up->cellwise_trap_loss = inp->cellwise_trap_loss;
   int num_quad = inp->num_quad? inp->num_quad : inp->phase_basis->poly_order+1;
-  up->norm_fac = num_quad == 1? 1.0/pow(sqrt(2.0),up->pdim) : 1.0;
-  up->num_basis_conf = inp->conf_basis->num_basis;
-  up->num_basis_phase = num_quad == 1? 1 : inp->phase_basis->num_basis;
+  up->norm_fac = 1;
+  if (!up->cellwise_trap_loss)
+    up->norm_fac = num_quad == 1? 1.0/pow(sqrt(2.0),up->pdim) : 1.0;
+
+  if (num_quad == 1) {
+    up->num_basis_conf = 1;
+    up->num_basis_phase = 1;
+  }
+  else {
+    up->num_basis_conf = inp->conf_basis->num_basis;
+    up->num_basis_phase = inp->phase_basis->num_basis;
+  }
   up->use_gpu = inp->use_gpu;
 
   if (inp->c2p_pos_func == 0) {
@@ -330,7 +340,7 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
   for (int imu=0; imu<tot_quad; ++imu) {
     double tmp = weights[imu]*func_at_ords[imu];
     for (int k=0; k<num_basis; ++k)
-      f[k] += tmp*basis_at_ords[k+num_basis*imu] * up->norm_fac;
+      f[k] += tmp*basis_at_ords[k+num_basis*imu];
   }
 }
 
@@ -354,7 +364,6 @@ nod_to_mod_reduce(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_a
     }
   }
 }
-
 
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
@@ -452,13 +461,15 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
 	if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < up->bmag_max_loc[cdim-1]) 
-          fq[0] = 1.0;
+          fq[0] = 1.0 * up->norm_fac;
         else
           fq[0] = 0.0;
       }
       // Compute DG expansion coefficients of the mask.
-      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
-      //nod_to_mod_reduce(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
+      if (up->cellwise_trap_loss)
+        nod_to_mod_reduce(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
+      else
+        proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
     }
   }
 }

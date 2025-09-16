@@ -18,7 +18,7 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
       .stime = tm,
       .poly_order = 0,
       .basis_type = "tensor",
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   // Write out the damping rate.
@@ -109,7 +109,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         bmag_max_local = gkyl_malloc(sizeof(double));
         damp->bmag_max = gkyl_malloc(sizeof(double));
       }
-      gkyl_array_dg_reducec_range(bmag_max_local, app->gk_geom->bmag, 0, GKYL_MAX, app->basis_on_dev, &app->local);
+      gkyl_array_dg_reducec_range(bmag_max_local, app->gk_geom->geo_int.bmag, 0, GKYL_MAX, app->basis_on_dev, &app->local);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, bmag_max_local, damp->bmag_max);
       if (app->use_gpu)
         gkyl_cu_free(bmag_max_local);
@@ -146,7 +146,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .conf_range_ext = &app->local_ext,
         .vel_range = &gks->local_vel, 
         .vel_map = gks->vel_map,
-        .bmag = app->gk_geom->bmag,
+        .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = damp->bmag_max,
         .mass = gks->info.mass,
         .charge = gks->info.charge,

@@ -291,11 +291,15 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   xp[0] = x; xp[1] = y; xp[2] = z;
 }
 
-void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+void bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct slab_ctx *app = ctx;
   double B0 = app->B0;
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 void
@@ -513,8 +517,8 @@ main(int argc, char **argv)
       .geometry_id = GKYL_MAPC2P,
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 0,

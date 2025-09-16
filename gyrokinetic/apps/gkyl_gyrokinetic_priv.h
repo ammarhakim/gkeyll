@@ -108,6 +108,17 @@ struct gyrokinetic_output_meta {
   char basis_type_nm[64]; // used during read
 };
 
+enum gk_extra_meta_type {
+  GKYL_GK_META_NONE = 0,
+  GKYL_GK_META_GEO,
+  GKYL_GK_META_SOURCE,
+  GKYL_GK_META_RECYCLING,
+};
+
+struct gyrokinetic_output_meta_geo {
+  int geqdsk_sign_convention; // sign convention for geqdsk
+};
+
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -621,6 +632,7 @@ struct gk_damping {
 
 struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
+  bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
@@ -686,23 +698,16 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  struct gkyl_array *f, *f1, *fnew, *fghost_vol; // Arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
-  struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic).
+  struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
-  struct gkyl_array *alpha_surf; // Surface phase space flux.
-  struct gkyl_array *sgn_alpha_surf; // Sign of the surface phase space flux at quadrature points
-                                     // utilized for numerical flux function
-                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) ).
-  struct gkyl_array *const_sgn_alpha; // If the surface phase space flux is single signed
-                                      // if true, numerical flux function inside kernels simplifies to
-                                      // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
-                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1).
-  
+  struct gkyl_array *flux_surf; // Array for surface phase space flux.
+
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
   // Organization of the different equation objects and the required data and solvers
   union {
@@ -814,6 +819,8 @@ struct gk_species {
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   // Pointer to various functions selected at runtime.
+  void (*fdot_collisionless_scaling)(struct gk_species *gks, struct gkyl_array *rhs,
+    struct gkyl_array *cflrate, struct gkyl_range *rng);
   void (*collisionless_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -1129,6 +1136,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis *basis_on_dev; 
 
   struct gk_geometry *gk_geom;
+  struct gkyl_dg_geom *dg_geom;
+  struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
   
@@ -1168,10 +1177,12 @@ struct gkyl_gyrokinetic_app {
  * gk_array_meta_release.
  *
  * @param meta Gyrokinetic metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return Array metadata object.
  */
 struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta);
+gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Free memory for array metadata object.
@@ -1185,10 +1196,12 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt);
  * Return the metadata for outputing gyrokinetic data.
  *
  * @param mt Array metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

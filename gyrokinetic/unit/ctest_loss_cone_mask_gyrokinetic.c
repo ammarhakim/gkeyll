@@ -26,7 +26,9 @@ struct loss_cone_mask_test_ctx {
   double phi_fac; // phi(z=0) = phi_fac*T0/e;
   double z_max, vpar_max, mu_max; // Upper grid extents.
   int Nz, Nvpar, Nmu; // Number of cells in each direction.
+  enum gkyl_quad_type quad_type; // Type of quadrature/nodes.
   int num_quad; // Number of quadrature points to use in projection, 1 or p+1.
+  bool cellwise_trap_loss; // Whether a whole cell is either trapped or lost.
 };
 
 // allocate array (filled with zeros)
@@ -45,7 +47,7 @@ mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
 
@@ -53,7 +55,9 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   double R_m = params->R_m; // Mirror ratio.
   double B_m = params->B_m; // Maximum magnetic field amplitude.
 
-  fout[0] = B_m * (1.0 - ((R_m-1.0)/R_m)*pow(cos(z), 2.0));
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B_m * (1.0 - ((R_m-1.0)/R_m)*pow(cos(z), 2.0));
 //  fout[0] = (B_m/R_m) * (1.0 + (R_m-1.0)*pow(sin(z), 2.0));
 }
 
@@ -84,16 +88,20 @@ mask_ref_1x2v(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   phi_func_1x(t, xc, &phi, ctx);
   phi_func_1x(t, &z_m, &phi_m, ctx);
 
-  double bmag, bmag_m;
+  double bfield[3], bmag;
   double zinfl[3] = {0.0}, z_minfl[3] = {0.0};
   zinfl[2] = z, z_minfl[2] = z_m;
-  bmag_func_3x(t, zinfl, &bmag, ctx);
-  bmag_func_3x(t, z_minfl, &bmag_m, ctx);
+  bfield_func_3x(t, zinfl, bfield, ctx);
+  bmag = bfield[2];
+
+  double bfield_m[3], bmag_m;
+  bfield_func_3x(t, z_minfl, bfield_m, ctx);
+  bmag_m = bfield_m[2];
 
   // mu_bound = (0.5*m*vpar^2+q*(phi-phi_m))/(B*(B_max/B-1))
   double mu_bound = (0.5*mass*pow(vpar,2)+charge*(phi-phi_m))/(bmag*(bmag_m/bmag-1));
   if (mu_bound < mu && fabs(z) < z_m)
-    fout[0] = 1/pow(sqrt(2.0),3);
+    fout[0] = 1.0;
   else
     fout[0] = 0;
 }
@@ -119,9 +127,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .phi_fac = 3.0,
     .z_max = M_PI,
     .Nz = 8,
-    .Nvpar = 16,
-    .Nmu = 8,
-    .num_quad = 1,
+    .Nvpar = 8,
+    .Nmu = 4,
+    .quad_type = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 2,
+    .cellwise_trap_loss = true,
   };
   ctx.B0 = ctx.B_m/2.0;
   ctx.vpar_max = 6.0*sqrt(ctx.T0/ctx.mass);
@@ -201,8 +211,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x, // magnetic field magnitude
-    .bmag_ctx = &ctx,
+    .bfield_func = bfield_func_3x, // magnetic field magnitude
+    .bfield_ctx = &ctx,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -254,9 +264,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   }
 
   // Get the magnetic field at the mirror throat.
-  double bmag_max_ho[1];
+  double bfield_max_ho[3], bmag_max_ho[1];
   double xc_infl[] = {0.0,0.0,ctx.z_m};
-  bmag_func_3x(0.0, xc_infl, bmag_max_ho, &ctx);
+  bfield_func_3x(0.0, xc_infl, bfield_max_ho, &ctx);
+  bmag_max_ho[0] = bfield_max_ho[2];
   double *bmag_max;
   if (use_gpu) {
     bmag_max = gkyl_cu_malloc(sizeof(double));
@@ -281,9 +292,9 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     memcpy(phi_m, phi_m_ho, sizeof(double));
   }
 
-  // Basis used for the mask.
+  // Basis used to project the mask.
   struct gkyl_basis basis_mask;
-  if (ctx.num_quad == 1)
+  if (ctx.num_quad == 1 || ctx.cellwise_trap_loss)
     gkyl_cart_modal_serendip(&basis_mask, ndim, 0);
   else {
     if (poly_order == 1) 
@@ -306,13 +317,14 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .conf_range_ext = &local_ext_conf,
     .vel_range = &local_vel, 
     .vel_map = gvm,
-    .bmag = gk_geom->bmag,
+    .bmag = gk_geom->geo_int.bmag,
     .bmag_max = bmag_max,
     .bmag_max_loc = bmag_max_loc,
     .mass = ctx.mass,
     .charge = ctx.charge,
-    .qtype = GKYL_GAUSS_QUAD,
+    .qtype = ctx.quad_type,
     .num_quad = ctx.num_quad,
+    .cellwise_trap_loss = ctx.cellwise_trap_loss,
     .use_gpu = use_gpu,
   };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
@@ -326,6 +338,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis *evmask_ref = gkyl_proj_on_basis_new(&grid, &basis_mask, basis_mask.poly_order+1, 1, mask_ref_1x2v, &ctx);
   gkyl_proj_on_basis_advance(evmask_ref, 0.0, &local, mask_ref_ho);
   gkyl_proj_on_basis_release(evmask_ref);
+  if (ctx.num_quad == 1) {
+    // Rescale to deal with normalization.
+    gkyl_array_scale(mask_ref_ho, 1.0/pow(sqrt(2.0),cdim+vdim));
+  }
 
 //  // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
 //  double p1_vals[] = {  

@@ -20,7 +20,6 @@ struct gkyl_gk_maxwellian_correct_inp {
   const struct gkyl_range *vel_range; // velocity space range
   const struct gk_geometry *gk_geom; // Geometry object.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  enum gkyl_quad_type quad_type; // Quadrature type (default: Gauss-Legendre, see gkyl_eqn_type.h)
   double mass; // Mass factor
   bool bimaxwellian; // Bool for whether we are projecting a bi-Maxwellian instead of a Maxwellian.
   bool divide_jacobgeo; // Bool for whether to divide out the conf-space Jacobian from density.

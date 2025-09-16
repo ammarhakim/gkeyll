@@ -167,9 +167,9 @@ struct gkyl_gyrokinetic_geometry {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  void *bmag_ctx; // context for bmag function
-  // pointer to bmag function
-  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+  void *bfield_ctx; // context for bfield function
+  // pointer to bfield function
+  void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
@@ -286,7 +286,8 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type;
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
   void *profile_ctx; // Context for profile function.
-  int num_quad; // Number of quadrature points in each direction to use in projecting profile.
+  bool cellwise_const; // Whether the multiplier has a single value per cell.
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for gk species.
@@ -608,6 +609,15 @@ typedef struct gkyl_gyrokinetic_app gkyl_gyrokinetic_app;
  * @return New gk app object.
  */
 gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new(struct gkyl_gk *gk);
+
+/**
+ * Construct a new gk app (geometry only).
+ *
+ * @param gk App inputs. See struct docs. All struct params MUST be
+ *     initialized
+ * @return New gk app object.
+ */
+gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
 
 /**
  * Initialize species and field by projecting initial conditions on
@@ -1314,3 +1324,10 @@ void gkyl_gyrokinetic_app_species_ktm_rhs(gkyl_gyrokinetic_app* app, int update_
  * @param app App to release.
  */
 void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
+
+/**
+ * Free gk app (geom only).
+ *
+ * @param app App to release.
+ */
+void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
