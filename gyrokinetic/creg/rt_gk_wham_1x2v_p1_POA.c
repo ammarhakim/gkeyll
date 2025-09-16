@@ -11,7 +11,6 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_math.h>
 
 #include <rt_arg_parse.h>
