@@ -7,6 +7,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_range.h>
@@ -147,6 +149,10 @@ main(int argc, char **argv)
   int ghost[6];
   double lower[6];
   double upper[6];
+  int velcells[6];
+  int velghost[6];
+  double vellower[6];
+  double velupper[6];
   int up_dirs[GKYL_MAX_DIM];
   int zero_flux_flags[GKYL_MAX_DIM];
   
@@ -169,6 +175,11 @@ main(int argc, char **argv)
     ghost[d+cdim] = 0;
     up_dirs[d+cdim] = d+cdim;
     zero_flux_flags[d+cdim] = 1;
+
+    velcells[d] = inp.vcells[d];
+    vellower[d] = 0.;
+    velupper[d] = 1.;
+    velghost[d] = 0;
   }
   printf("]\n");
     
@@ -182,29 +193,101 @@ main(int argc, char **argv)
   gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
   gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
+  struct gkyl_rect_grid velGrid;
+  struct gkyl_range velRange, velRange_ext;
+  gkyl_rect_grid_init(&velGrid, vdim, vellower, velupper, velcells);
+  gkyl_create_grid_ranges(&velGrid, velghost, &velRange_ext, &velRange);
+
   struct gkyl_rect_grid phaseGrid;
   struct gkyl_range phaseRange, phaseRange_ext;
   gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
   // initialize basis
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
-
+  struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // initialize eqn
-  struct gkyl_dg_eqn *eqn;
-  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
-
-  gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
-
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
+  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+
+  int nem = confRange_ext.volume*confBasis.num_basis;
+  double *qmem_d;
+  if (use_gpu) {
+    qmem_h = mkarr1(false, 8*confBasis.num_basis, confRange_ext.volume);
+    qmem_d = qmem_h->data;
+  } else {
+    qmem_d = qmem->data;
+  }
+  for(int i=0; i< nem; i++) {
+    qmem_d[i] = (double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
+  }
+  if (use_gpu) gkyl_array_copy(qmem, qmem_h);
+
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
+  struct gkyl_array *gamma_inv = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velRange, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+
+  // Sturcture pointers for input objects (but not used)
+  int num_pt_indices[3] = { 1 , 6, 18 }; 
+  struct gkyl_array *poisson_tensor_conf = mkarr1(use_gpu, confBasis.num_basis*num_pt_indices[vdim-1], confRange.volume );
+  struct gkyl_array *pot_tot = mkarr1(use_gpu, confBasis.num_basis*4, confRange_ext.volume );
+  struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, basis.num_basis*vdim, phaseRange_ext.volume );
+  struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
+  struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
+
+  struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
+    .phase_grid = &phaseGrid, 
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velRange,
+    .hamil_range = &velRange,
+    .skip_cell_thresh = 0.0, 
+    .model_id = model_id,
+    .has_E = true, 
+    .has_phi = false, 
+    .has_B = true, 
+    .has_rad = false, 
+    .use_gpu = use_gpu,
+  }; 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
+
+  struct gkyl_dg_vlasov_inp inp_eqn = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confRange,
+    .hamil_range = &velRange,
+    .phase_range = &phaseRange,
+    .vel_range = &velRange,
+    .use_vmap = false, 
+    .jacob_vel = false, 
+    .skip_cell_thresh = 0.0, 
+    .model_id = model_id,
+    .has_E = true, 
+    .has_phi = false, 
+    .has_B = true, 
+    .has_rad = false, 
+    .poisson_tensor_conf = poisson_tensor_conf,
+    .hamil = hamil,
+    .qmem = qmem, 
+    .pot_tot = pot_tot, 
+    .vel_flux_surf = vel_flux_surf, 
+    .f_no_J = f_no_J, 
+    .rad = rad, 
+    .use_gpu = use_gpu,
+  };  
+  // Construct Vlasov equation and Hyper DG object for updating equation. 
+  struct gkyl_dg_eqn *eqn = gkyl_dg_vlasov_inew(&inp_eqn); 
+
+  gkyl_hyper_dg *slvr;
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
   
   fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
@@ -225,31 +308,19 @@ main(int argc, char **argv)
   }
   if (use_gpu) gkyl_array_copy(fin, fin_h);
 
-  int nem = confRange_ext.volume*confBasis.num_basis;
-  double *qmem_d;
-  if (use_gpu) {
-    qmem_h = mkarr1(false, 8*confBasis.num_basis, confRange_ext.volume);
-    qmem_d = qmem_h->data;
-  } else {
-    qmem_d = qmem->data;
-  }
-  for(int i=0; i< nem; i++) {
-    qmem_d[i] = (double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
-  }
-  if (use_gpu) gkyl_array_copy(qmem, qmem_h);
-
   // run hyper_dg_advance
   int nrep = inp.nloop;
 #ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
 #endif
   struct timespec tm_start = gkyl_wall_clock();
-  for(int n=0; n<nrep; n++) {
+  for(int n=0; n<nrep; n++) { 
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields) {.field = qmem, .cot_vec = 0, 
-      .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 }); // must set EM fields to use
-    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange, 
+     0, poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
+     f_no_J, cflrate, vel_flux_surf);  
+    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs); 
   }
 
 #ifdef GKYL_HAVE_CUDA

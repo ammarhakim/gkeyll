@@ -485,7 +485,6 @@ main(int argc, char **argv)
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,
     .det_h_ctx = &ctx,
-    .output_f_lte = true,
 
     .num_init = 1, 
     .projection[0] = {
@@ -501,15 +500,20 @@ main(int argc, char **argv)
       .max_iter = 0,
       .use_last_converged = false,
     },
+    
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
       .ctx = &ctx,
       .has_implicit_coll_scheme = true,
+    },
+
+    .correct = {
       .correct_all_moms = true,
-      .iter_eps = 0.0,
-      .max_iter = 0,
+      .iter_eps = 1.0e-12,
+      .max_iter = 100,
       .use_last_converged = false,
+    .output_f_lte = true,
     },
 
     .bcx = {
@@ -677,7 +681,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  double io_tm =  stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.
