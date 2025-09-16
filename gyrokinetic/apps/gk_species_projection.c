@@ -45,7 +45,6 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
   fout[0] = envelope + inp->f_floor;
 }
 
-
 static void
 gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm) 
@@ -111,8 +110,11 @@ static void
 gk_species_projection_calc_max_gauss(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
+  bool correct_mom_setting = s->lte.correct_all_moms;
+  s->lte.correct_all_moms = false; // Turn off moment correction for the max gauss projection.
   gk_species_lte_from_moms(app, s, &s->lte, proj->prim_moms);
   gkyl_array_copy(f, s->lte.f_lte);
+  s->lte.correct_all_moms = correct_mom_setting; // Reset to original setting.
 }
 
 static void
