@@ -321,16 +321,11 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // If we have implicit fluid-EM coupling or implicit BGK collisions, 
   // we perform a first-order operator split and treat those terms implicitly.
   // Otherwise, we default to an SSP-RK3 method. 
-  if (vm->is_electrostatic) {
-    app->update_func = vlasov_poisson_update_ssp_rk3;
+  if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
+    app->update_func = vlasov_update_op_split;
   }
   else {
-    if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
-      app->update_func = vlasov_update_op_split;
-    }
-    else {
-      app->update_func = vlasov_update_ssp_rk3;
-    }
+    app->update_func = vlasov_update_ssp_rk3;
   }
 
   // initialize stat object

@@ -41,12 +41,10 @@
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
-#include <gkyl_dg_updater_vlasov_poisson.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
 #include <gkyl_dg_vlasov_divide_Jv.h>
-#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -813,10 +811,6 @@ struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app,  double d
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app,
-  double dt0);
-
-// Take a single time-step in Vlasov-Poisson using a SSP-RK3 stepper.
-struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app,
   double dt0);
 
 /** gkyl_vlasov_app private API */
