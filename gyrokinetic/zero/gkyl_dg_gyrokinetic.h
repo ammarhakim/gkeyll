@@ -11,9 +11,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_gyrokinetic_auxfields {
-  const struct gkyl_array *alpha_surf; // Pointer to surface expansion of phase space flux alpha.
-  const struct gkyl_array *sgn_alpha_surf; // Pointer to sign(alpha_surf) at quadrature points.
-  const struct gkyl_array *const_sgn_alpha; // Pointer to integer array for if sign(alpha_surf) is single-signed.
+  const struct gkyl_array *flux_surf; // Pointer to surface expansion of phase space flux.
   const struct gkyl_array *phi; // Pointer to electrostatic potential.
   const struct gkyl_array *apar; // Pointer to A_\parallel.
   const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.
@@ -25,7 +23,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
  * @param conf_range Configuration space range for use in indexing EM field
- * @param phase_range Phase space range for use in indexing surface expansion of alpha
+ * @param phase_range Phase space range for use in indexing surface expansion of flx
  * @param charge Species charge
  * @param mass Species mass
  * @param skip_cell_threshold Threshold for skipping cells in the gyrokinetic equation

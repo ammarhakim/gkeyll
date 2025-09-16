@@ -17,8 +17,8 @@ BUILD_SUPERLU_DIST=no
 BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
 BUILD_LUAJIT=no
+BUILD_TCC=no
 BUILD_CUDSS=no
-USE_ADAS=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -59,7 +59,8 @@ The following flags specify the libraries to build.
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
 --build-cudss               [no] Should we build cuDSS?
---use-adas                  [no] Should we download ADAS data? (uses python, needs the `requests, os, shutil, sys` modules)
+--build-tcc                 [no] Should we build tcc?
+--build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
 
 EOF
 }
@@ -164,13 +165,17 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
       ;;
+   --build-tcc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_TCC="$value"
+      ;;
    --build-cudss)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_CUDSS="$value"
       ;;   
-   --use-adas)
+   --build-adas)
       [ -n "$value" ] || die "Missing value in flag $key."
-      USE_ADAS="$value"
+      BUILD_ADAS="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -251,6 +256,14 @@ build_luajit() {
     fi
 }
 
+build_tcc() {
+    if [ "$BUILD_TCC" = "yes" ]
+    then    
+	echo "Building TCC"
+	./build-tcc.sh
+    fi
+}
+
 build_cudss() {
     if [ "$BUILD_CUDSS" = "yes" ]
     then    
@@ -259,9 +272,9 @@ build_cudss() {
     fi
 }
 
-use_adas() {
-    if [ "$USE_ADAS" = "yes" ]
-    then    
+build_adas() {
+    if [ "$BUILD_ADAS" = "yes" ]
+    then
 	echo "Downloading ADAS data for neutral reactions"
 	./download-adas.sh
     fi
@@ -271,8 +284,9 @@ echo "Installations will be in  $PREFIX"
 
 build_openmpi
 build_luajit
+build_tcc
 build_openblas
 build_superlu
 build_superlu_dist
 build_cudss
-use_adas
+build_adas

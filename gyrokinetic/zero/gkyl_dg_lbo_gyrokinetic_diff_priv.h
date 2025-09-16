@@ -85,7 +85,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
     return lbo_gyrokinetic_diff_vol_1x1v_ser_p1(dx, 
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
@@ -120,7 +120,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
     return lbo_gyrokinetic_diff_vol_1x2v_ser_p1(dx, 
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
@@ -155,7 +155,7 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   return lbo_gyrokinetic_diff_vol_2x2v_ser_p1(dx, 
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
@@ -190,7 +190,7 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   return lbo_gyrokinetic_diff_vol_3x2v_ser_p1(dx, 
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
@@ -349,7 +349,7 @@ surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxC),
       (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxR),
       lbo->mass,
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
   return 0.;
@@ -397,7 +397,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxSkin),
       (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxEdge),
       (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxSkin), lbo->mass,
-      (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;

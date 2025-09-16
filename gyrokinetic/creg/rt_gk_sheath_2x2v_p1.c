@@ -212,7 +212,7 @@ evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 
   double Lz = app->Lz;
 
-  double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
+  double src_density = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))), floor_src) * n_src;
   double src_temp = 0.0;
   double n = 0;
 
@@ -284,7 +284,7 @@ evalElcSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) < 0.25 * Lz) {
-    n = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
+    n = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
       floor_src) * n_src; // Electron source total number density (left).
   }
   else {
@@ -341,7 +341,7 @@ evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 
   double Lz = app->Lz;
 
-  double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
+  double src_density = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))), floor_src) * n_src;
   double src_temp = 0.0;
   double n = 0;
 
@@ -413,7 +413,7 @@ evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) < 0.25 * Lz) {
-    n = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
+    n = GKYL_MAX2(exp(-pow(x - xmu_src,2.0) / (2.0 * pow(xsigma_src,2.0))),
       floor_src) * n_src; // Ion source total number density (left).
   }
   else {
@@ -497,7 +497,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = zc[0];
@@ -505,9 +505,11 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
   double B0 = app->B0;
   double R = app->R;
 
-  // Set magnetic field strength.
-//  fout[0] = B0 * R / x;
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B0;
 }
 
 void
@@ -763,8 +765,8 @@ main(int argc, char **argv)
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 0,

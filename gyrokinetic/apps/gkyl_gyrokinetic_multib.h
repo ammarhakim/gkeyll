@@ -165,6 +165,8 @@ struct gkyl_gyrokinetic_multib_field {
 
   bool duplicate_across_blocks; // set to true if all blocks are identical  
   // field inputs per-block: only one is needed if duplicate_across_blocks = true
+  bool half_domain; // For use in double null simulations. 
+                    // If true core BCs will be set for simulation of lower half of domain (Z < 0)
   const struct gkyl_gyrokinetic_multib_field_pb *blocks;
 
   // Physical boundary conditions
@@ -187,6 +189,7 @@ struct gkyl_gyrokinetic_multib {
   struct gkyl_gk_block_geom *gk_block_geom;
 
   double cfl_frac; // CFL fraction to use (default 1.0)
+  double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
@@ -214,6 +217,15 @@ struct gkyl_gyrokinetic_multib {
  * @return New multi-block gk app object.
  */
 gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
+
+/**
+ * Construct a new gk multi-block app (geom only).
+ *
+ * @param mbinp App inputs. See struct docs. All struct params MUST be
+ *     initialized
+ * @return New multi-block gk app object.
+ */
+gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp);
 
 /**
  * Initialize species by projecting initial conditions on
@@ -852,3 +864,10 @@ void gkyl_gyrokinetic_multib_app_species_ktm_rhs(gkyl_gyrokinetic_multib_app* ap
  * @param app App to release.
  */
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Free gk app (geom only).
+ *
+ * @param app App to release.
+ */
+void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* app);

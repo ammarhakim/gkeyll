@@ -73,6 +73,8 @@ struct gk_multib_field {
   enum gkyl_gkfield_id gkfield_id; // type of field
   int num_local_blocks; // total number of blocks on current rank
   int cdim; // number of configuration space dimensions
+  bool half_domain; // For use in double null
+                    // Whether to set BCs for simulation of lower half (Z<0)
 
   struct gkyl_array **phi_local;
   struct gkyl_array **rho_c_local;

@@ -128,7 +128,7 @@ gk_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 
     0, species->lte.moms.marr, 0, species->lte.moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local);  
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   // Calculate self_nu if using spitzer nu
   if (bgk->normNu) {
@@ -181,7 +181,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Multiply the Maxwellian by the configuration-space Jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-    app->gk_geom->jacobgeo, species->lte.f_lte, &app->local, &species->local);
+    app->gk_geom->geo_int.jacobgeo, species->lte.f_lte, &app->local, &species->local);
 
   // Obtain and accumulate the self-collisions nu*fmax
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, bgk->nu_fmax, 
@@ -194,7 +194,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
     // Multiply the Maxwellian by the configuration-space Jacobian.
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-      app->gk_geom->jacobgeo, species->lte.f_lte, &app->local, &species->local);
+      app->gk_geom->geo_int.jacobgeo, species->lte.f_lte, &app->local, &species->local);
 
     // Compute and accumulate nu*fmax.
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
@@ -216,7 +216,7 @@ gk_species_bgk_write_cross_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   if (gks->bgk.num_cross_collisions && gks->bgk.write_diagnostics) {
