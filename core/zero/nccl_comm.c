@@ -90,6 +90,33 @@ comm_state_wait(struct gkyl_comm_state *state)
   checkCuda(cudaStreamSynchronize(*(state->custream)));
 }
 
+// Ensure completion of NCCL collectives that are expected to behave synchronously.
+static inline void
+wait_for_nccl_collective(struct nccl_comm *nccl, ncclResult_t status)
+{
+  if (status == ncclInProgress) {
+    ncclResult_t async_stat = status;
+    do {
+      checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &async_stat));
+    } while (async_stat == ncclInProgress);
+    status = async_stat;
+  }
+
+  checkNCCL(status);
+
+  // NCCL operations enqueue GPU work on the provided stream. Wait here so that
+  // the result is ready for immediate consumption by callers expecting
+  // synchronous semantics.
+  checkCuda(cudaStreamSynchronize(nccl->custream));
+
+  // Surface any asynchronous errors that occurred during execution.
+  ncclResult_t final_stat = ncclSuccess;
+  do {
+    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &final_stat));
+  } while (final_stat == ncclInProgress);
+  checkNCCL(final_stat);
+}
+
 static void
 comm_free(const struct gkyl_ref_count *ref)
 {
@@ -228,7 +255,9 @@ allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   void *out)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
-  checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
+  ncclResult_t status = ncclAllReduce(inp, out, nelem,
+    g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream);
+  wait_for_nccl_collective(nccl, status);
   return 0;
 }
 
@@ -273,9 +302,11 @@ array_allgather(struct gkyl_comm *comm,
 
   size_t nelem = array_local->esznc*nccl->decomp->ranges[rank].volume;
   // gather data into global buffer
-  checkNCCL(ncclAllGather(gkyl_mem_buff_data(nccl->allgather_buff_local.buff),
-                          gkyl_mem_buff_data(nccl->allgather_buff_global.buff),
-			  nelem, ncclChar, nccl->ncomm, nccl->custream));
+  ncclResult_t status = ncclAllGather(
+    gkyl_mem_buff_data(nccl->allgather_buff_local.buff),
+    gkyl_mem_buff_data(nccl->allgather_buff_global.buff),
+    nelem, ncclChar, nccl->ncomm, nccl->custream);
+  wait_for_nccl_collective(nccl, status);
 
   // copy data to global array
   int idx = 0;
@@ -310,8 +341,9 @@ array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
 
   size_t nelem = asend->ncomp*asend->size;
 
-  checkNCCL(ncclBroadcast(asend->data, arecv->data, nelem, g2_nccl_datatype[asend->type],
-      root, nccl->ncomm, nccl->custream));
+  ncclResult_t status = ncclBroadcast(asend->data, arecv->data, nelem,
+    g2_nccl_datatype[asend->type], root, nccl->ncomm, nccl->custream);
+  wait_for_nccl_collective(nccl, status);
 
   return 0;
 }
