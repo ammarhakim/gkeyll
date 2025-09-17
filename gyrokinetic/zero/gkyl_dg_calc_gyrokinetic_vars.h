@@ -2,12 +2,13 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_geom.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_dg_geom.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_dg_calc_gyrokinetic_vars_priv.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;

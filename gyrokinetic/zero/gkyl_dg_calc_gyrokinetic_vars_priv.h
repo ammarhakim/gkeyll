@@ -2,13 +2,13 @@
 #pragma once
 
 #include <math.h>
+#include <assert.h>
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
-#include <assert.h>
 
 typedef double (*gyrokinetic_flux_surf_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
