@@ -459,6 +459,12 @@ test_func_cu(int cdim, int vdim, int poly_order,
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
 
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, false); 
+
   struct gkyl_mom_vlasov_inp inp_mom = {
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -575,6 +581,8 @@ test_func_cu(int cdim, int vdim, int poly_order,
   }}
 
   // release memory for objects
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(moms_cu);
   gkyl_mom_calc_release(moms_calc);
   gkyl_mom_type_release(vm_moms_t);
