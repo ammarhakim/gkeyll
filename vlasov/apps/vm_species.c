@@ -1622,6 +1622,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     vm_species_projection_release(app, &vms->proj_init[k]);
   }
 
+  gkyl_dg_vlasov_vel_flux_surf_release(vms->calc_vel_flux);
   gkyl_array_release(vms->qmem); 
   gkyl_array_release(vms->pot_tot); 
   gkyl_array_release(vms->app_accel);
@@ -1629,6 +1630,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_array_release(vms->app_accel_host);
     gkyl_proj_on_basis_release(vms->app_accel_proj);
   } 
+  if (vms->has_rad) {
+    gkyl_array_release(vms->rad);
+  }
   gkyl_array_release(vms->vel_flux_surf); 
   gkyl_array_release(vms->f_no_J); 
 
@@ -1645,9 +1649,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   gkyl_array_release(vms->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations.
-  if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR) {
+  if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR || vms->model_id  == GKYL_MODEL_TRIAD) {
     if (vms->model_id == GKYL_MODEL_SR) {
       gkyl_dg_calc_sr_vars_release(vms->sr_vars);
+    }
+    if (vms->model_id == GKYL_MODEL_SR || vms->model_id  == GKYL_MODEL_TRIAD) {
       gkyl_array_release(vms->gamma_inv);   
     }
   }

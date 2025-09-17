@@ -82,14 +82,15 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, crange);
   
+  // Grab the local node list
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, cgrid->ndim, cbasis.num_basis);
+  cbasis.node_list(gkyl_array_fetch(nodes, 0));
+
   while (gkyl_range_iter_next(&iter)) {
     gkyl_rect_grid_cell_center(cgrid, iter.idx, xc);
 
     for (int i=0; i<num_basis; ++i) {
 
-      // Grab the local node list
-      struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, cgrid->ndim, cbasis.num_basis);
-      cbasis.node_list(gkyl_array_fetch(nodes, 0));
       log_to_comp(cgrid->ndim, gkyl_array_cfetch(nodes, i),
         cgrid->dx, xc, xmu);
       c2p_identity(xmu, xmu, cgrid->ndim);
@@ -130,7 +131,7 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
     gkyl_eval_on_nodes_nod2mod(conf_poisson_tensor_proj, conf_poisson_tensor_at_nodes, gkyl_array_fetch(conf_poisson_tensor, lidx));
   }
 
-
+  gkyl_array_release(nodes);
   gkyl_eval_on_nodes_release(h_ij_proj);
   gkyl_eval_on_nodes_release(h_ij_inv_proj);
   gkyl_eval_on_nodes_release(det_h_proj);
