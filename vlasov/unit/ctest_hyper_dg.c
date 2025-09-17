@@ -272,6 +272,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(rhs_d[19],  4.1758987770172105e+01, 1e-12) );
 
   // clean up
+  gkyl_dg_vlasov_vel_flux_surf_release(calc_vel_flux);
+
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
   gkyl_array_release(poisson_tensor_conf);
@@ -518,6 +520,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   }
 
   // clean up
+  gkyl_dg_vlasov_vel_flux_surf_release(calc_vel_flux);
+  
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
   gkyl_array_release(poisson_tensor_conf);

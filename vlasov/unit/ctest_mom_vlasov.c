@@ -279,6 +279,9 @@ test_1x1v_p1()
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(int_mom);
   
@@ -461,6 +464,9 @@ test_1x1v_p2()
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(int_mom);
   
@@ -607,6 +613,9 @@ test_1x2v_p1()
   }}
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -748,6 +757,8 @@ test_1x2v_p2()
   }}
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -893,6 +904,8 @@ test_2x2v_p1()
   }}}
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -1041,6 +1054,9 @@ test_big_2x2v_p2()
   }}}
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -1185,6 +1201,9 @@ test_2x3v_p1()
   }}}
 
   // release memory for moment data object
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -1377,6 +1396,9 @@ test_1x1v_p1_cu()
   TEST_CHECK( gkyl_compare(  1.102270384252430e+01, m23[1], 1e-12) );
 
   // free allocated memory.
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
+
   gkyl_array_release(distf); gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);

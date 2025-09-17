@@ -255,6 +255,8 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   }
 
   // clean up
+  gkyl_dg_vlasov_vel_flux_surf_release(calc_vel_flux);
+
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
   gkyl_array_release(poisson_tensor_conf);

@@ -233,3 +233,9 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
     }
   }
 }
+
+void
+gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up)
+{
+  gkyl_free(up);
+}
