@@ -14,12 +14,12 @@
 
 // Function pointer types for FEM object initialization
 typedef void (*gk_field_fem_init_func_t)(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
-  double polarization_weight, struct gkyl_array **epsilon_global);
+  double polarization_weight);
 
 // FEM initialization functions for different field types and dimensions
 static void
 gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
-  double polarization_weight, struct gkyl_array **epsilon_global)
+  double polarization_weight)
 {
   f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
     f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
@@ -33,7 +33,7 @@ gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f
 
 static void
 gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
-  double polarization_weight, struct gkyl_array **epsilon_global)
+  double polarization_weight)
 {
   // Allocate array for the polarization weight times geometric coefficients.
   f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
@@ -56,34 +56,31 @@ gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
     gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
     gkyl_array_release(epsilon_adiab);
   }
-
   // Gather epsilon for (global) smoothing in z.
-  *epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, *epsilon_global);
+  f->epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, f->epsilon_global);
 }
 
 static void
 gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
-  double polarization_weight, struct gkyl_array **epsilon_global)
+  double polarization_weight)
 {
-  
   // Initialize the polarization weight.
   struct gkyl_array *Jgij[3];
   if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
-    struct gkyl_array *epsilon_local = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
     // Must do an all gather on these variables
     Jgij[0] = app->gk_geom->gxxj;
     Jgij[1] = app->gk_geom->gxzj;
     Jgij[2] = app->gk_geom->eps2;
     for (int i=0; i<3; i++) {
-      gkyl_array_set_offset(epsilon_local, polarization_weight, Jgij[i], i*app->basis.num_basis);
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
-    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, epsilon_local, f->epsilon);
+    f->epsilon_global = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, f->epsilon_global);
 
     f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
-      &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
-    gkyl_array_release(epsilon_local);
+      &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon_global, 0, FALSE, app->use_gpu);
   } else {
     f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
     Jgij[0] = app->gk_geom->gxxj;
@@ -97,8 +94,10 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
       app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
     f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
       &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
-  }
 
+    f->epsilon_global = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, f->epsilon_global);
+  }
 
   // Handle Dirichlet varying BC
   f->phi_bc = 0;
@@ -159,7 +158,6 @@ gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field,
 {
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
 }
-
 
 void
 gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
@@ -490,7 +488,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // Initialize FEM objects and polarization weights
   f->epsilon = 0;
-  struct gkyl_array *epsilon_global = 0;
+  f->epsilon_global = 0;
+
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
   double es_energy_fac_1d_adiabatic = 0.0;
@@ -517,16 +516,16 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
-    gk_field_fem_init_boltzmann(app, f, polarization_weight, &epsilon_global);
+    gk_field_fem_init_boltzmann(app, f, polarization_weight);
     f->field_solve = gk_field_boltzmann_solve;
   }
   else {
     if (app->cdim == 1) {
-      gk_field_fem_init_1d(app, f, polarization_weight, &epsilon_global);
+      gk_field_fem_init_1d(app, f, polarization_weight);
       f->field_solve = gk_field_poisson_solve_1x;
     }
     else if (app->cdim > 1) {
-      gk_field_fem_init_2d3d(app, f, polarization_weight, &epsilon_global);
+      gk_field_fem_init_2d3d(app, f, polarization_weight);
       if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X && app->cdim == 2) {
         f->field_solve = gk_field_poisson_solve_full_2x;
       } else if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
@@ -559,11 +558,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
 
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-      fem_parproj_bc, epsilon_global, 0, app->use_gpu);
+      fem_parproj_bc, f->epsilon_global, 0, app->use_gpu);
   }
-
-  if (epsilon_global)
-    gkyl_array_release(epsilon_global);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -858,7 +854,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->sheath_vals[i]);
   } 
   else {
-    gkyl_array_release(f->epsilon);
+    if (f->epsilon)
+      gkyl_array_release(f->epsilon);
+    if (f->epsilon_global)
+      gkyl_array_release(f->epsilon_global);
     if (app->cdim > 1) {
       if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
         gkyl_fem_poisson_release(f->fem_poisson);
@@ -930,4 +929,3 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 
   gkyl_free(f);
 }
-
