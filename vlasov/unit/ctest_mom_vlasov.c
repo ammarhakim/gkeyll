@@ -809,7 +809,7 @@ test_2x2v_p1()
   struct gkyl_rect_grid velGrid;
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0};
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -953,7 +953,7 @@ test_big_2x2v_p2()
   struct gkyl_rect_grid velGrid;
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0};
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -1250,8 +1250,6 @@ test_1x1v_p1_cu()
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
-  struct gkyl_rect_grid velGrid;
-  gkyl_rect_grid_init(&velGrid, cdim, velLower, velUpper, velCells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
   struct gkyl_rect_grid velGrid;
@@ -1268,6 +1266,10 @@ test_1x1v_p1_cu()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1353,26 +1355,26 @@ test_1x1v_p1_cu()
   // Check M1i.
   double *m1i0 = gkyl_array_fetch(m1i, 0+confGhost[0]); double *m1i1 = gkyl_array_fetch(m1i, 1+confGhost[0]);
   double *m1i2 = gkyl_array_fetch(m1i, 2+confGhost[0]); double *m1i3 = gkyl_array_fetch(m1i, 3+confGhost[0]);
-  TEST_CHECK( gkyl_compare( -17.599102109531849, m1i0[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(   6.531972647421810, m1i0[1], 1e-12) );
-  TEST_CHECK( gkyl_compare(  -2.514157444218835, m1i1[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(   2.177324215807269, m1i1[1], 1e-12) );
-  TEST_CHECK( gkyl_compare(  -2.514157444218835, m1i2[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(  -2.177324215807269, m1i2[1], 1e-12) );
-  TEST_CHECK( gkyl_compare( -17.599102109531849, m1i3[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(  -6.531972647421808, m1i3[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.319932658214889e+01, m1i0[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  4.898979485566356e+00, m1i0[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.885618083164127e+00, m1i1[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  1.632993161855452e+00, m1i1[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.885618083164127e+00, m1i2[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.632993161855452e+00, m1i2[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.319932658214889e+01, m1i3[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -4.898979485566354e+00, m1i3[1], 1e-12) );
 
   // Check M2.
   double *m20 = gkyl_array_fetch(m2, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2, 1+confGhost[0]);
   double *m22 = gkyl_array_fetch(m2, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2, 3+confGhost[0]);
-  TEST_CHECK( gkyl_compare(  45.464347116290611, m20[0], 1e-12) );
-  TEST_CHECK( gkyl_compare( -16.874262672506337, m20[1], 1e-12) );
-  TEST_CHECK( gkyl_compare(   6.494906730898657, m21[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(  -5.624754224168777, m21[1], 1e-12) );
-  TEST_CHECK( gkyl_compare(   6.494906730898657, m22[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(   5.624754224168777, m22[1], 1e-12) );
-  TEST_CHECK( gkyl_compare(  45.464347116290611, m23[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(  16.874262672506337, m23[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(  2.969848480983499e+01, m20[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.102270384252430e+01, m20[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(  4.242640687119285e+00, m21[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -3.674234614174766e+00, m21[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(  4.242640687119285e+00, m22[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  3.674234614174766e+00, m22[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(  2.969848480983499e+01, m23[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  1.102270384252430e+01, m23[1], 1e-12) );
 
   // free allocated memory.
   gkyl_array_release(distf); gkyl_array_release(distf_cu);
@@ -1390,18 +1392,22 @@ test_1x2v_p1_cu()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
-  int cells[] = {4, 2, 2};
+  int cells[] = {4, 64, 64};
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 2, cdim = 1;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
+  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
+  int velCells[] = {cells[1], cells[2]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
@@ -1414,6 +1420,10 @@ test_1x2v_p1_cu()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1434,10 +1444,35 @@ test_1x2v_p1_cu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
 
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0, 
+    .use_gpu = true,
+  };
+
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_inew(&inp_mom);
+
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
+  //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
+  //struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
+  //struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
   gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
   gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
   gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
@@ -1483,12 +1518,16 @@ test_1x2v_p1_cu()
     int cidx[2] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
-    TEST_CHECK( gkyl_compare( 15.084944665313010, m2ptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 7.5461551804752e+00, m2ptr[0], 1e-12) );
+    TEST_MSG("Expected: %.13e in cell (%d)", 7.5461551804752e+00, i);
+    TEST_MSG("Produced: %.13e", m2ptr[0]);
     for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}
 
   // free allocated memory.
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(distf);
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -1505,18 +1544,22 @@ test_2x2v_p1_cu()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
-  int cells[] = {4, 4, 2, 2};
+  int cells[] = {4, 4, 64, 64};
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 2, cdim = 2;
 
   double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
   int confCells[] = {cells[0], cells[1]};
+  double velLower[] = {lower[2], lower[3]}, velUpper[] = {upper[2], upper[3]};
+  int velCells[] = {cells[2], cells[3]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
@@ -1529,6 +1572,10 @@ test_2x2v_p1_cu()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1549,10 +1596,35 @@ test_2x2v_p1_cu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
 
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0, 
+    .use_gpu = true,
+  };
+
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_inew(&inp_mom);
+
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
+  //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
+  //struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
+  //struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
   gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
   gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
   gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
@@ -1601,12 +1673,16 @@ test_2x2v_p1_cu()
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
-      TEST_CHECK( gkyl_compare( 21.333333333333336, m2ptr[0], 1e-12) );
+      TEST_CHECK( gkyl_compare( 1.0671875000000e+01, m2ptr[0], 1e-12) );
+      TEST_MSG("Expected: %.13e in cell (%d)", 1.0671875000000e+01, i);
+      TEST_MSG("Produced: %.13e", m2ptr[0]);
       for (unsigned int k=1; k<m2->ncomp; ++k) {
         TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}}
 
   // free allocated memory.
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(distf);
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -1623,18 +1699,22 @@ test_2x3v_p1_cu()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
-  int cells[] = {4, 4, 2, 2, 2};
+  int cells[] = {4, 4, 64, 64, 64};
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 3, cdim = 2;
 
   double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
   int confCells[] = {cells[0], cells[1]};
+  double velLower[] = {lower[2], lower[3], lower[4]}, velUpper[] = {upper[2], upper[3], upper[4]};
+  int velCells[] = {cells[2], cells[3], cells[4]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
@@ -1647,6 +1727,10 @@ test_2x3v_p1_cu()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = { 0, 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[] = { confGhost[0], confGhost[1], 0, 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1667,10 +1751,36 @@ test_2x3v_p1_cu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
 
+
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0, 
+    .use_gpu = true,
+  };
+
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_inew(&inp_mom);
+
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
+  //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
+  //struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
+  //struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
   gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
   gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
   gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
@@ -1719,12 +1829,16 @@ test_2x3v_p1_cu()
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
-      TEST_CHECK( gkyl_compare( 127.999999999999972, m2ptr[0], 1e-12) );
+      TEST_CHECK( gkyl_compare( 6.4031250000000e+01, m2ptr[0], 1e-12) );
+      TEST_MSG("Expected: %.13e in cell (%d)", 6.4031250000000e+01, i);
+      TEST_MSG("Produced: %.13e", m2ptr[0]);
       for (unsigned int k=1; k<m2->ncomp; ++k) {
         TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}}
 
   // free allocated memory.
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(distf);
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -1747,12 +1861,16 @@ test_big_2x2v_p2_cu()
 
   double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
   int confCells[] = {cells[0], cells[1]};
+  double velLower[] = {lower[2], lower[3]}, velUpper[] = {upper[2], upper[3]};
+  int velCells[] = {cells[2], cells[3]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
@@ -1766,6 +1884,10 @@ test_big_2x2v_p2_cu()
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+  
   int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
@@ -1785,10 +1907,36 @@ test_big_2x2v_p2_cu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
 
+
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .use_vmap = 0, 
+    .vmap = 0, 
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mom_type = GKYL_F_MOMENT_M0, 
+    .use_gpu = true,
+  };
+
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_inew(&inp_mom);
+
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
+  //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0, true);
+  //struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M1, true);
+  //struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M2, true);
   gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
   gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
   gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
@@ -1844,6 +1992,8 @@ test_big_2x2v_p2_cu()
   }}}
 
   // free allocated memory.
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(distf);
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
