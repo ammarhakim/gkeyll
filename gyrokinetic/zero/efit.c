@@ -41,7 +41,13 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   char header[49];   // case in eqdsk header
   int idum; // idum in eqdsk header
   status = fscanf(ptr, "%48c%4d%4d%4d", header, &idum, &up->nr, &up->nz);
-
+  
+  // If the first 48 characters of the eqdsk file contain a newline, then the EQDSK file lacks a header.
+  if(strchr(header,'\n')!=NULL)
+  {
+      fprintf(stderr, "Warning: %s likely lacks a header on the first line and may not be parsed correctly. Parsed dimensions are (nr=%s,nz=%s)\n", up->filepath, up->nr, up->nz);
+  }
+  
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;
   // rmaxis,zmaxis,simag,sibry,bcentr;
