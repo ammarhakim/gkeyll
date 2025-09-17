@@ -39,7 +39,7 @@ gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
 
   // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-  gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
+  gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
   gkyl_array_scale(f->epsilon, polarization_weight);
   gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
@@ -51,7 +51,7 @@ gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
     double quasineut_contr = q_s*n_s0*q_s/T_s;
     
     struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
-    gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
+    gkyl_array_copy(epsilon_adiab, app->gk_geom->geo_int.jacobgeo);
     gkyl_array_scale(epsilon_adiab, quasineut_contr);
     gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
     gkyl_array_release(epsilon_adiab);
@@ -70,9 +70,9 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
     f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
     // Must do an all gather on these variables
-    Jgij[0] = app->gk_geom->gxxj;
-    Jgij[1] = app->gk_geom->gxzj;
-    Jgij[2] = app->gk_geom->eps2;
+    Jgij[0] = app->gk_geom->geo_int.gxxj;
+    Jgij[1] = app->gk_geom->geo_int.gxzj;
+    Jgij[2] = app->gk_geom->geo_int.eps2;
     for (int i=0; i<3; i++) {
       gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
@@ -83,9 +83,9 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
       &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon_global, 0, FALSE, app->use_gpu);
   } else {
     f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
-    Jgij[0] = app->gk_geom->gxxj;
-    Jgij[1] = app->gk_geom->gxyj;
-    Jgij[2] = app->gk_geom->gyyj;
+    Jgij[0] = app->gk_geom->geo_int.gxxj;
+    Jgij[1] = app->gk_geom->geo_int.gxyj;
+    Jgij[2] = app->gk_geom->geo_int.gyyj;
     for (int i=0; i<app->cdim-2/app->cdim; i++) {
       gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
@@ -189,7 +189,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       // times the conf-space Jacobian), not charge density.
       // Rescale moment by inverse of Jacobian.
       gkyl_dg_div_op_range(s->m0.mem_geo, app->basis, 0, field->rho_c, 0, s->m0.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);  
+        app->gk_geom->geo_int.jacobgeo, &app->local);  
 
       // We also need the M0 flux of the boundary flux through the z
       // boundaries. Put it in the ghost cells of f and take its moment.
@@ -232,11 +232,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->cmag, 
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->geo_int.cmag, 
+      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->cmag,
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->geo_int.cmag,
+      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
@@ -743,7 +743,9 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }, GKYL_GK_META_NONE, 0
+        }, 
+        GKYL_GK_META_NONE,
+        0
       );
 
     rstat.frame = meta.frame;
