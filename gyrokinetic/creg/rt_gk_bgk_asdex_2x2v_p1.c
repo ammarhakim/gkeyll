@@ -560,7 +560,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_SN_LO,                   // type of geometry
+    .ftype = GKYL_LSN_SOL,                     // type of geometry
     .rclose = 2.5,                             // closest R to region of interest
     .rright = 2.5,                             // Closest R to outboard SOL
     .rleft = 0.7,                              // closest R to inboard SOL

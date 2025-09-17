@@ -31,7 +31,7 @@ gk_species_heating_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *spe
   // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
-    0, species->lte.moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   // Volume integrate Jrate times the thermal M2.
   gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate, 0, species->lte.moms.marr, &app->local);
@@ -107,7 +107,7 @@ gk_heating_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
       .stime = stime,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
   // Construct the file handles for collision frequency and primitive moments.
   const char *fmt = "%s-%s_%s_%d.gkyl";
@@ -162,7 +162,7 @@ gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     gkyl_array_release(rate_host);
     // Multiply the rate by the conf-space Jacobian.
     src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->jacobgeo, 0, src->rate, &app->local);
+    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
 
     // Heating rate.
     src->vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

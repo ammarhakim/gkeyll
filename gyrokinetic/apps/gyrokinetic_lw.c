@@ -1149,7 +1149,7 @@ struct gyrokinetic_app_lw {
   gkyl_gyrokinetic_app *app; // Gyrokinetic app object.
 
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
-  struct lua_func_ctx bmag_ctx; // Function context for bmag.
+  struct lua_func_ctx bfield_ctx; // Function context for bmag.
 
   struct lua_func_ctx nonuniform_position_map_ctx[3]; // Function context for nonuniform position maps.
 
@@ -1616,13 +1616,13 @@ gk_app_new(lua_State *L)
       mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
-    gk.geometry.bmag_ctx = 0;
-    gk.geometry.bmag_func = 0;
-    bool has_bmag_func = false;
-    int bmag_func_ref = LUA_NOREF;
-    if (glua_tbl_get_func(L, "bmagFunc")) {
-      has_bmag_func = true;
-      bmag_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    gk.geometry.bfield_ctx = 0;
+    gk.geometry.bfield_func = 0;
+    bool has_bfield_func = false;
+    int bfield_func_ref = LUA_NOREF;
+    if (glua_tbl_get_func(L, "bfieldFunc")) {
+      has_bfield_func = true;
+      bfield_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
     with_lua_tbl_tbl(L, "positionMap") {
@@ -1669,15 +1669,15 @@ gk_app_new(lua_State *L)
       gk.geometry.c2p_ctx = &app_lw->mapc2p_ctx;
     }
 
-    if (has_bmag_func) {
-      app_lw->bmag_ctx = (struct lua_func_ctx) {
-        .func_ref = bmag_func_ref,
+    if (has_bfield_func) {
+      app_lw->bfield_ctx = (struct lua_func_ctx) {
+        .func_ref = bfield_func_ref,
         .ndim = 3,
-        .nret = 1,
+        .nret = 3,
         .L = L,
       };
-      gk.geometry.bmag_func = gkyl_lw_eval_cb;
-      gk.geometry.bmag_ctx = &app_lw->bmag_ctx;
+      gk.geometry.bfield_func = gkyl_lw_eval_cb;
+      gk.geometry.bfield_ctx = &app_lw->bfield_ctx;
     }
   }
 

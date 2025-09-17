@@ -418,7 +418,7 @@ gk_neut_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *species
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   int rank, comm_size;
@@ -447,7 +447,7 @@ gk_neut_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *species
         // the density (the 0th component).
         gkyl_dg_div_op_range(bflux->moms_op[mom_idx].mem_geo, app->basis, 
           0, bflux->moms_op[mom_idx].marr, 0, bflux->moms_op[mom_idx].marr, 0, 
-          app->gk_geom->jacobgeo, &app->local);  // It fails if one uses the skin range here.
+          app->gk_geom->geo_int.jacobgeo, &app->local);  // It fails if one uses the skin range here.
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
         gkyl_array_scale_range(bflux->moms_op[mom_idx].marr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);

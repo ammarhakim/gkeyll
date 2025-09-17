@@ -676,10 +676,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     // Initialize the weight in the Laplacian operator.
     f->flr_rhoSq_sum = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxxj, 0*app->basis.num_basis);
+    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj, 0*app->basis.num_basis);
     if (app->cdim > 2) {
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxyj, 1*app->basis.num_basis);
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gyyj, 2*app->basis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj, 1*app->basis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj, 2*app->basis.num_basis);
     }
     // Initialize the factor multiplying the field in the FLR operator.
     f->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -743,7 +743,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }
+        }, GKYL_GK_META_NONE, 0
       );
 
     rstat.frame = meta.frame;

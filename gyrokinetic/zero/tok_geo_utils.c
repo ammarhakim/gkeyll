@@ -218,7 +218,9 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     .geo = geo
   };
 
-  if (inp->ftype == GKYL_SOL_DN_OUT || inp->ftype == GKYL_SOL_DN_OUT_LO || inp->ftype == GKYL_SOL_DN_OUT_MID || inp->ftype == GKYL_SOL_DN_OUT_UP) {
+  double del = 1.0e-14;
+
+  if (inp->ftype == GKYL_DN_SOL_OUT || inp->ftype == GKYL_DN_SOL_OUT_LO || inp->ftype == GKYL_DN_SOL_OUT_MID || inp->ftype == GKYL_DN_SOL_OUT_UP) {
     // Immediately set rclose
     arc_ctx.rclose = inp->rright;
     // Set zmin and zmax either fixed or with plate
@@ -237,25 +239,25 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_lo = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin, zxpt_lo, arc_ctx.rclose, false, false, arc_memo);
     double arcL_mid = integrate_psi_contour_memo(geo, geo->psisep, zxpt_lo, zxpt_up, arc_ctx.rclose, false, false, arc_memo);
     double arcL_up = integrate_psi_contour_memo(geo, geo->psisep, zxpt_up, arc_ctx.zmax, arc_ctx.rclose, false, false, arc_memo);
-    if (inp->ftype == GKYL_SOL_DN_OUT) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = M_PI-1e-14;
+    if (inp->ftype == GKYL_DN_SOL_OUT) {
+      *theta_lo = -M_PI+del;
+      *theta_up = M_PI-del;
     }
-    else if (inp->ftype == GKYL_SOL_DN_OUT_LO) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
+    else if (inp->ftype == GKYL_DN_SOL_OUT_LO) {
+      *theta_lo = -M_PI+del;
+      *theta_up = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
     }
-    else if (inp->ftype == GKYL_SOL_DN_OUT_MID) {
-      *theta_lo = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
+    else if (inp->ftype == GKYL_DN_SOL_OUT_MID) {
+      *theta_lo = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
+      *theta_up = inp->half_domain ? 0.0 : M_PI-del - arcL_up/arcL_tot*2.0*M_PI;
     }
-    else if (inp->ftype == GKYL_SOL_DN_OUT_UP) {
-      *theta_lo = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14;
+    else if (inp->ftype == GKYL_DN_SOL_OUT_UP) {
+      *theta_lo = M_PI-del - arcL_up/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
     }
   }
 
-  else if(inp->ftype==GKYL_SOL_DN_IN || inp->ftype==GKYL_SOL_DN_IN_LO || inp->ftype==GKYL_SOL_DN_IN_MID || inp->ftype==GKYL_SOL_DN_IN_UP){
+  else if(inp->ftype==GKYL_DN_SOL_IN || inp->ftype==GKYL_DN_SOL_IN_LO || inp->ftype==GKYL_DN_SOL_IN_MID || inp->ftype==GKYL_DN_SOL_IN_UP){
     // Immediately set rclose
     arc_ctx.rclose = inp->rleft;
     // Set zmin and zmax either fixed or with plate
@@ -274,21 +276,21 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_lo = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin, zxpt_lo, arc_ctx.rclose, false, false, arc_memo);
     double arcL_mid = integrate_psi_contour_memo(geo, geo->psisep, zxpt_lo, zxpt_up, arc_ctx.rclose, false, false, arc_memo);
     double arcL_up = integrate_psi_contour_memo(geo, geo->psisep, zxpt_up, arc_ctx.zmax, arc_ctx.rclose, false, false, arc_memo);
-    if (inp->ftype == GKYL_SOL_DN_IN) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = M_PI-1e-14;
+    if (inp->ftype == GKYL_DN_SOL_IN) {
+      *theta_lo = -M_PI+del;
+      *theta_up = M_PI-del;
     }
-    else if (inp->ftype == GKYL_SOL_DN_IN_UP) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
+    else if (inp->ftype == GKYL_DN_SOL_IN_UP) {
+      *theta_lo = -M_PI+del;
+      *theta_up = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
     }
-    else if (inp->ftype == GKYL_SOL_DN_IN_MID) {
-      *theta_lo = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
+    else if (inp->ftype == GKYL_DN_SOL_IN_MID) {
+      *theta_lo = inp->half_domain ? 0.0 : -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del - arcL_up/arcL_tot*2.0*M_PI;
     }
-    else if (inp->ftype == GKYL_SOL_DN_IN_LO) {
-      *theta_lo = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14;
+    else if (inp->ftype == GKYL_DN_SOL_IN_LO) {
+      *theta_lo = M_PI-del - arcL_up/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
     }
   }
   else if(inp->ftype == GKYL_CORE || inp->ftype == GKYL_CORE_R || inp->ftype ==  GKYL_CORE_L){
@@ -315,16 +317,90 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_tot = arcL_l + arcL_r;
 
     if (inp->ftype == GKYL_CORE) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = M_PI-1e-14;
+      *theta_lo = -M_PI+del;
+      *theta_up = M_PI-del;
     }
     else if (inp->ftype == GKYL_CORE_R) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = -M_PI+1e-14 + arcL_r/arcL_tot*2.0*M_PI;
+      *theta_lo = -M_PI+del;
+      *theta_up = inp->half_domain? -M_PI+del + arcL_r/arcL_tot*2.0*M_PI/2.0 : -M_PI+del + arcL_r/arcL_tot*2.0*M_PI;
     }
     else if (inp->ftype == GKYL_CORE_L) {
-      *theta_lo = M_PI-1e-14 - arcL_l/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14;
+      *theta_lo = inp->half_domain ? M_PI-del - arcL_l/arcL_tot*2.0*M_PI/2.0 : M_PI-del - arcL_l/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
+    }
+  }
+  else if(inp->ftype==GKYL_LSN_SOL || inp->ftype == GKYL_LSN_SOL_LO || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_LSN_SOL_UP){
+    // Immediately set rleft and rright. Will need both
+    arc_ctx.rright = inp->rright;
+    arc_ctx.rleft = inp->rleft;
+
+    //Find the  upper turning point
+    arc_ctx.zmax = inp->zmax; // Initial guess
+    double zlo = fmax(inp->zmin_left, inp->zmin_right);
+    find_upper_turning_point(geo, geo->psisep, zlo, &arc_ctx.zmax, 0);
+
+    // Set zmin left and zmin right wither with plate or fixed
+    // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right
+    if (geo->plate_spec){
+      double rzplate[2];
+      pctx.psi_curr = geo->psisep;
+      pctx.lower=false;
+      double a = 0;
+      double b = 1;
+      double fa = tok_plate_psi_func(a, &pctx);
+      double fb = tok_plate_psi_func(b, &pctx);
+      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smax = res.res;
+      geo->plate_func_upper(smax, rzplate);
+      arc_ctx.zmin_left = rzplate[1];
+
+      pctx.lower=true;
+      a = 0;
+      b = 1;
+      fa = tok_plate_psi_func(a, &pctx);
+      fb = tok_plate_psi_func(b, &pctx);
+      res = gkyl_ridders(tok_plate_psi_func, &pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smin = res.res;
+      geo->plate_func_lower(smin, rzplate);
+      arc_ctx.zmin_right = rzplate[1];
+    }
+    else{
+      arc_ctx.zmin_left = inp->zmin_left;
+      arc_ctx.zmin_right = inp->zmin_right;
+    }
+
+    // Done finding turning points
+    double zxpt = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+
+    arc_ctx.right = true;
+    double arcL_mid_r = integrate_psi_contour_memo(geo, geo->psisep, zxpt, arc_ctx.zmax, arc_ctx.rright,
+      false, false, arc_memo_right);
+    double arcL_lo = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin_right, zxpt, arc_ctx.rright,
+      false, false, arc_memo_right);
+    arc_ctx.right = false;
+    double arcL_mid_l = integrate_psi_contour_memo(geo, geo->psisep, zxpt, arc_ctx.zmax, arc_ctx.rleft,
+      false, false, arc_memo_right);
+    double arcL_up = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin_left, zxpt, arc_ctx.rleft,
+      false, false, arc_memo_left);
+    double arcL_tot = arcL_lo + arcL_mid_l + arcL_mid_r + arcL_up;
+
+    if (inp->ftype == GKYL_LSN_SOL) {
+      *theta_lo = -M_PI+del;
+      *theta_up = M_PI-del;
+    }
+    else if (inp->ftype == GKYL_LSN_SOL_LO) {
+      *theta_lo = -M_PI+del;
+      *theta_up = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
+    }
+    else if (inp->ftype == GKYL_LSN_SOL_MID) {
+      *theta_lo = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI+del - arcL_up/arcL_tot*2.0*M_PI;
+    }
+    else if (inp->ftype == GKYL_LSN_SOL_UP) {
+      *theta_lo = M_PI+del - arcL_up/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
     }
   }
 
@@ -385,12 +461,12 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_tot = arcL_l + arcL_r;
 
     if (inp->ftype == GKYL_PF_LO_R) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = -M_PI+1e-14 + arcL_r/arcL_tot*2.0*M_PI;
+      *theta_lo = -M_PI+del;
+      *theta_up = -M_PI+del + arcL_r/arcL_tot*2.0*M_PI;
     }
     else if (inp->ftype == GKYL_PF_LO_L) {
-      *theta_lo = M_PI-1e-14 - arcL_l/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14;
+      *theta_lo = M_PI-del - arcL_l/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
     }
   }
 
@@ -450,12 +526,12 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_tot = arcL_r + arcL_l;
 
     if (inp->ftype == GKYL_PF_UP_L) {
-      *theta_lo = -M_PI+1e-14;
-      *theta_up = -M_PI+1e-14 + arcL_l/arcL_tot*2.0*M_PI;
+      *theta_lo = -M_PI+del;
+      *theta_up = -M_PI+del + arcL_l/arcL_tot*2.0*M_PI;
     }
     else if (inp->ftype == GKYL_PF_UP_R) {
-      *theta_lo = M_PI-1e-14 - arcL_r/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI-1e-14;
+      *theta_lo = M_PI-del - arcL_r/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-del;
     }
 
   }
@@ -493,9 +569,27 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->arcL_right = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright,
       true, true, arc_memo_right);
     arc_ctx->right = false;
-    double arcL_l = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rleft,
+    arc_ctx->arcL_left = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rleft,
       true, true, arc_memo_left);
-    arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
+    arc_ctx->arcL_tot = arc_ctx->arcL_left + arc_ctx->arcL_right;
+
+
+    // Adjust the starting point (theta=0) so that the core blocks
+    // are up-down symmetric
+    if (inp->ftype == GKYL_CORE_R) {
+      double theta_extent = inp->half_domain ?  2.0*(inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX]) : inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX];
+      double arcL_extent = theta_extent/(2.0*M_PI)*arc_ctx->arcL_tot;
+      double extra_arcL = arcL_extent - arc_ctx->arcL_right;
+      arc_ctx->arcL_start = extra_arcL/2.0;
+    }
+    else if (inp->ftype == GKYL_CORE_L){
+      double theta_extent = inp->half_domain ? 2.0*M_PI - 2.0*(inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX]) : 2.0*M_PI - (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX]);
+      double arcL_extent = theta_extent/(2.0*M_PI)*arc_ctx->arcL_tot;
+      double extra_arcL = arcL_extent - arc_ctx->arcL_right;
+      arc_ctx->arcL_start = extra_arcL/2.0;
+    }
+
+
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
@@ -641,7 +735,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
   }
 
-  else if(inp->ftype==GKYL_SOL_DN_OUT || inp->ftype==GKYL_SOL_DN_OUT_LO || inp->ftype==GKYL_SOL_DN_OUT_MID || inp->ftype==GKYL_SOL_DN_OUT_UP){
+  else if(inp->ftype==GKYL_DN_SOL_OUT || inp->ftype==GKYL_DN_SOL_OUT_LO || inp->ftype==GKYL_DN_SOL_OUT_MID || inp->ftype==GKYL_DN_SOL_OUT_UP){
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Set zmin and zmax either fixed or with plate
@@ -657,7 +751,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
   }
 
-  else if(inp->ftype==GKYL_SOL_DN_IN || inp->ftype==GKYL_SOL_DN_IN_LO || inp->ftype==GKYL_SOL_DN_IN_MID || inp->ftype==GKYL_SOL_DN_IN_UP){
+  else if(inp->ftype==GKYL_DN_SOL_IN || inp->ftype==GKYL_DN_SOL_IN_LO || inp->ftype==GKYL_DN_SOL_IN_MID || inp->ftype==GKYL_DN_SOL_IN_UP){
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Set zmin and zmax either fixed or with plate
@@ -673,7 +767,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
   }
 
-  else if(inp->ftype == GKYL_SOL_SN_LO){
+  else if(inp->ftype==GKYL_LSN_SOL || inp->ftype == GKYL_LSN_SOL_LO || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_LSN_SOL_UP){
     // Immediately set rleft and rright. Will need both
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
@@ -769,7 +863,7 @@ void
 tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr,double* rclose, double *ridders_min, double* ridders_max){
 
 
-  if(inp->ftype==GKYL_CORE || inp->ftype==GKYL_CORE_R || inp->ftype==GKYL_CORE_L){
+  if(inp->ftype==GKYL_CORE){
     if(arcL_curr <= arc_ctx->arcL_right){
       *rclose = arc_ctx->rright;
       arc_ctx->right = true;
@@ -781,6 +875,30 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       arc_ctx->right = false;
       *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+    }
+  }
+
+  if(inp->ftype==GKYL_CORE_R || inp->ftype==GKYL_CORE_L){
+    if(arcL_curr <= arc_ctx->arcL_start){
+      *rclose = arc_ctx->rleft;
+      arc_ctx->right = false;
+      arc_ctx->pre= true;
+      *ridders_min = arc_ctx->arcL_start-arcL_curr;
+      *ridders_max = arc_ctx->arcL_start - arc_ctx->arcL_left - arcL_curr;
+    }
+    else if(arcL_curr <= arc_ctx->arcL_right + arc_ctx->arcL_start){
+      *rclose = arc_ctx->rright;
+      arc_ctx->right = true;
+      arc_ctx->pre= false;
+      *ridders_min = arc_ctx->arcL_start -arcL_curr;
+      *ridders_max = arc_ctx->arcL_right + arc_ctx->arcL_start - arcL_curr;
+    }
+    else{
+      *rclose = arc_ctx->rleft;
+      arc_ctx->right = false;
+      arc_ctx->pre= false;
+      *ridders_min = arc_ctx->arcL_tot + arc_ctx->arcL_start - arcL_curr;
+      *ridders_max = -arcL_curr + arc_ctx->arcL_right+arc_ctx->arcL_start;
     }
   }
 
@@ -819,17 +937,17 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
     }
   }
 
-  else if( (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_LO) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_MID) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_UP) ){
+  else if( (arc_ctx->ftype==GKYL_DN_SOL_OUT) || (arc_ctx->ftype==GKYL_DN_SOL_OUT) || (arc_ctx->ftype==GKYL_DN_SOL_OUT_LO) || (arc_ctx->ftype==GKYL_DN_SOL_OUT_MID) || (arc_ctx->ftype==GKYL_DN_SOL_OUT_UP) ){
     *ridders_min = -arcL_curr;
     *ridders_max = arc_ctx->arcL_tot-arcL_curr;
     *rclose = arc_ctx->rclose;
   }
-  else if( (arc_ctx->ftype==GKYL_SOL_DN_IN) || (arc_ctx->ftype==GKYL_SOL_DN_IN) || (arc_ctx->ftype==GKYL_SOL_DN_IN_LO) || (arc_ctx->ftype==GKYL_SOL_DN_IN_MID) || (arc_ctx->ftype==GKYL_SOL_DN_IN_UP) ){
+  else if( (arc_ctx->ftype==GKYL_DN_SOL_IN) || (arc_ctx->ftype==GKYL_DN_SOL_IN) || (arc_ctx->ftype==GKYL_DN_SOL_IN_LO) || (arc_ctx->ftype==GKYL_DN_SOL_IN_MID) || (arc_ctx->ftype==GKYL_DN_SOL_IN_UP) ){
     *ridders_min = arc_ctx->arcL_tot-arcL_curr;
     *ridders_max = -arcL_curr;
     *rclose = arc_ctx->rclose;
   }
-  else if(arc_ctx->ftype==GKYL_SOL_SN_LO){
+  else if(arc_ctx->ftype==GKYL_LSN_SOL || arc_ctx->ftype == GKYL_LSN_SOL_LO || arc_ctx->ftype == GKYL_LSN_SOL_MID || arc_ctx->ftype == GKYL_LSN_SOL_UP){
     if(arcL_curr <= arc_ctx->arcL_right){
       *rclose = arc_ctx->rright;
       arc_ctx->right = true;
