@@ -42,7 +42,9 @@ NOTE: At present, the configure script DOES NOT check if you have
 specified valid paths. YOU are responsible for setting them correctly!
 
 CC                         C compiler to use. Default is system cc
-ARCH_FLAGS                 Architecture flags to use. Default '-march=native'
+ARCH_FLAGS                 Architecture flags to use. Default '-march=native'.
+													 To disable AVX-512 instructions, which valgrind does
+													 not support, use '-march=skylake'.
 CUDA_ARCH                  CUDA architecture flag to specify compute capability. 
                            Use CUDA_ARCH=70 for V100, CUDA_ARCH=80 for A100, etc. 
                            Default is CUDA_ARCH=70.

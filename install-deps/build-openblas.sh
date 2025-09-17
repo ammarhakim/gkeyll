@@ -24,8 +24,8 @@ then
     gunzip -f OpenBLAS-0.3.30.tar.gz
     tar xvf OpenBLAS-0.3.30.tar
     cd OpenBLAS-0.3.30
-    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 -j 32
-    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 install PREFIX=$PREFIX -j 32
+    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 NO_AVX512=1 -j 32
+    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 NO_AVX512=1 install PREFIX=$PREFIX -j 32
 
     # soft-link 
     ln -sfn $PREFIX $GKYLSOFT/OpenBLAS
