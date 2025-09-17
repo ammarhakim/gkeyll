@@ -59,27 +59,6 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
       GKYL_MODEL_DEFAULT, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu);
 
-    // Allocate arrays for specified metric inverse
-    vms->h_ij = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
-    vms->h_ij_host = vms->h_ij;
-    if (app->use_gpu){
-      vms->h_ij_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
-    }
-
-    // Allocate arrays for specified metric inverse
-    vms->h_ij_inv = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
-    vms->h_ij_inv_host = vms->h_ij_inv;
-    if (app->use_gpu){
-      vms->h_ij_inv_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
-    }
-
-    // Allocate arrays for specified metric determinant
-    vms->det_h = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    vms->det_h_host = vms->det_h;
-    if (app->use_gpu){
-      vms->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    } 
-
     struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
     if ((vms->info.triad_basis && vms->info.triad_basis_gradient) 
       && (vms->info.cov_tangent_basis))  {
@@ -93,14 +72,10 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
-      &vms->grid, &vms->local, vms->basis,  inp_basis_vectors, vms->h_ij, 
-      vms->h_ij_inv, vms->det_h, vms->conf_poisson_tensor);
+      &vms->grid, &vms->local, vms->basis,  inp_basis_vectors, vms->conf_poisson_tensor);
 
     // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
     if (app->use_gpu) {
-      gkyl_array_copy(vms->h_ij, vms->h_ij_host); 
-      gkyl_array_copy(vms->h_ij_inv, vms->h_ij_inv_host); 
-      gkyl_array_copy(vms->det_h, vms->det_h_host); 
       gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host); 
     }
 
@@ -875,6 +850,7 @@ vm_species_release_dynamic(const gkyl_vlasov_app* app, const struct vm_species *
   gkyl_array_release(vms->f1);
   gkyl_array_release(vms->fnew);
   gkyl_array_release(vms->cflrate);
+  gkyl_array_release(vms->cflrate_host);
   gkyl_array_release(vms->bc_buffer);
   gkyl_array_release(vms->bc_buffer_lo_fixed);
   gkyl_array_release(vms->bc_buffer_up_fixed);
@@ -1613,8 +1589,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   // Release resources for Vlasov species.
   gkyl_array_release(vms->f);
   gkyl_comm_release(vms->comm);
+  gkyl_array_release(vms->f_host);
   if (app->use_gpu) {
-    gkyl_array_release(vms->f_host);
     gkyl_cu_free(vms->basis_on_dev);
   }
 
@@ -1630,9 +1606,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_array_release(vms->app_accel_host);
     gkyl_proj_on_basis_release(vms->app_accel_proj);
   } 
-  if (vms->has_rad) {
-    gkyl_array_release(vms->rad);
-  }
+  gkyl_array_release(vms->rad);
   gkyl_array_release(vms->vel_flux_surf); 
   gkyl_array_release(vms->f_no_J); 
 
@@ -1653,9 +1627,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     if (vms->model_id == GKYL_MODEL_SR) {
       gkyl_dg_calc_sr_vars_release(vms->sr_vars);
     }
-    if (vms->model_id == GKYL_MODEL_SR || vms->model_id  == GKYL_MODEL_TRIAD) {
-      gkyl_array_release(vms->gamma_inv);   
-    }
+    gkyl_array_release(vms->gamma_inv);   
   }
   else  { 
     gkyl_array_release(vms->h_ij);

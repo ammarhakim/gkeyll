@@ -30,8 +30,7 @@ c2p_identity(const double *xcomp, double *xphys, int ndim)
 void
 gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *h_ij,
-  struct gkyl_array *h_ij_inv, struct gkyl_array *det_h, struct gkyl_array *conf_poisson_tensor)
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *conf_poisson_tensor)
 {
 
   int num_pt_indices[3] = { 1 , 6, 18 };
@@ -125,9 +124,6 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
     }
 
     long lidx = gkyl_range_idx(crange, iter.idx);
-    gkyl_eval_on_nodes_nod2mod(h_ij_proj, h_ij_at_nodes, gkyl_array_fetch(h_ij, lidx));
-    gkyl_eval_on_nodes_nod2mod(h_ij_inv_proj, h_ij_inv_at_nodes, gkyl_array_fetch(h_ij_inv, lidx));
-    gkyl_eval_on_nodes_nod2mod(det_h_proj, det_h_at_nodes, gkyl_array_fetch(det_h, lidx));
     gkyl_eval_on_nodes_nod2mod(conf_poisson_tensor_proj, conf_poisson_tensor_at_nodes, gkyl_array_fetch(conf_poisson_tensor, lidx));
   }
 

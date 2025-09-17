@@ -26,12 +26,8 @@ struct gkyl_vlasov_triad_geom_inp {
  * @param prange Phase-space range
  * @param pbasis Phase-space basis
  * @param inp_basis_vectors Basis mapping input (function and context) cov_tangent_basis, traid_basis
- * @param h_ij The metric, covariant components
- * @param h_ij_inv The metric, contravariant components
- * @param det_h Squareroot of the determinant of the spatial metric
  * @param conf_poisson_tensor The configuration component of the Poisson tensor
  */
 void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *h_ij,
-  struct gkyl_array *h_ij_inv, struct gkyl_array *det_h, struct gkyl_array *conf_poisson_tensor);
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *conf_poisson_tensor);
