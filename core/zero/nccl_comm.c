@@ -625,6 +625,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
   strcpy(nccl->priv_comm.pub_comm.id, "nccl_comm");
   
+  nccl->has_decomp = false; // will be set to true if decomp is provided
   nccl->is_mcomm_allocated = extra_inp->is_comm_allocated;
   nccl->mcomm = inp->mpi_comm;
 
@@ -680,6 +681,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   else {
     nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   }
+  nccl->has_decomp = true;
 
   nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
   for (int d=0; d<nccl->decomp->ndim; ++d)
