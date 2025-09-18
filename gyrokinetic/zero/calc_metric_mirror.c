@@ -81,7 +81,7 @@ void gkyl_calc_metric_mirror_advance(
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1, gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
 }
