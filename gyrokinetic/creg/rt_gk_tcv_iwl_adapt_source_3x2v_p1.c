@@ -480,7 +480,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc   = 1.*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion   = 1.*mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-6;
+  double final_time = .5e-6;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
@@ -835,7 +835,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "rt_gk_tcv_iwl_adapt_source_3x2v_p1",
+    .name = "gk_tcv_iwl_adapt_source_3x2v_p1",
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
     .cdim = ctx.cdim,
