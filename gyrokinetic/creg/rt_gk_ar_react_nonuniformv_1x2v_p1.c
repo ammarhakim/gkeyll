@@ -143,7 +143,7 @@ create_ctx(void)
   double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  int Nz = 2; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
