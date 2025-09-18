@@ -429,6 +429,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     struct gkyl_dg_geom* dg_geom_dev = gkyl_dg_geom_new_from_host(&dg_geom_inp, app->dg_geom, true);
     struct gkyl_gk_dg_geom* gk_dg_geom_dev = gkyl_gk_dg_geom_new_from_host(&gk_dg_geom_inp, app->gk_dg_geom, true);
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
+
     gkyl_gk_geometry_release(app->gk_geom);
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
