@@ -868,8 +868,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_array_release(s->fdot_mom_new);
     gkyl_dynvec_release(s->fdot_integ_diag);
   }
-
-  gk_species_heating_release(app, &s->heat_src);
 }
 
 static void
@@ -1148,9 +1146,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       }
     }
   }
-
-  // Initialize a heating source.
-  gk_species_heating_init(app, gks, &gks->heat_src);
 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
@@ -1793,6 +1788,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->react_neut = (struct gk_react) { };
   gks->rad = (struct gk_rad_drag) { };
 
+  // Initialize a heating source.
+  gk_species_heating_init(app, gks, &gks->heat_src);
+
   if (gks->info.flr.type) {
     // Create operator needed for FLR effects.
     assert(app->cdim > 1);
@@ -2012,7 +2010,6 @@ void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
   // Release resources for charged species.
-
   gkyl_array_release(s->f);
   gkyl_array_release(s->cflrate);
   if (s->info.diffusion.num_diff_dir)
@@ -2050,6 +2047,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_free(s->moms);
 
   gk_species_source_release(app, &s->src);
+
+  gk_species_heating_release(app, &s->heat_src);
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);
