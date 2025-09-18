@@ -38,8 +38,7 @@ gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs(int dir, enum gkyl_edge_loc edg
       break;
 
     default:
-      fprintf(stderr, "bctype %d not supported in bc_basic_gyrokinetic. Exiting.\n",bctype);
-      assert(false);
+      assert(false); // bctype not supported in bc_basic_gyrokinetic.
       break;
   }
   fout->ctx = ctx;
