@@ -751,7 +751,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   // Release various arrays and objects for a dynamic species.
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
-  gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
@@ -898,9 +897,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
   gks->fnew = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
-
-  // Allocate cflrate (scalar array).
-  gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
@@ -1610,6 +1606,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->f_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
   }
 
+  // Allocate cflrate (scalar array).
+  gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
+
   // Need to figure out size of flux_surf by finding size of surface basis set 
   struct gkyl_basis surf_quad_basis;
   struct gkyl_basis surf_basis;
@@ -2015,6 +2014,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   // Release resources for charged species.
 
   gkyl_array_release(s->f);
+  gkyl_array_release(s->cflrate);
   if (s->info.diffusion.num_diff_dir)
     gkyl_array_release(s->fghost_vol);
 
