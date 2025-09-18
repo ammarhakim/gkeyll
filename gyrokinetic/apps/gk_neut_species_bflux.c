@@ -665,8 +665,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir]
                                                                               : &gkns->upper_skin[dir];
     
-        bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
-          GKYL_BC_REFLECT, &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu);
+        bflux->gfss_bc_op[b] = gkyl_bc_basic_gyrokinetic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
+          GKYL_BC_GK_SPECIES_REFLECT, &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu);
         
         long vol = skin_r->volume;
         buff_sz = buff_sz > vol ? buff_sz : vol;
@@ -675,11 +675,11 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     
       // Fill ghost cell of H.
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, gkns->hamil);
+        gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, gkns->hamil);
 
       gkyl_array_release(bflux->bc_buffer);
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_release(bflux->gfss_bc_op[b]);
+        gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
     }
   
     bflux->f = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
@@ -950,7 +950,7 @@ gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void
     if (bflux->a_hamiltonian_mom) {
       gkyl_array_release(bflux->bc_buffer);
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_release(bflux->gfss_bc_op[b]);
+        gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
     }
     for (int b=0; b<bflux->num_boundaries; ++b) {
       for (int m=0; m<bflux->num_calc_moms; m++) {

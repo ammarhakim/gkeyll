@@ -667,12 +667,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,},
-      .upper = {.type = GKYL_SPECIES_GK_IWL,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_IWL,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_IWL,},
     },
 
     .num_diag_moments = 4,
@@ -753,12 +753,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,},
-      .upper = {.type = GKYL_SPECIES_GK_IWL,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_IWL,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_IWL,},
     },
 
     .num_diag_moments = 4,

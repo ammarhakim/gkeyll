@@ -700,9 +700,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Initialize wall emission terms.
     for (int d=0; d<app->cdim; ++d) {
       if (gkns->bc_is_np[d]) {
-        if (gkns->lower_bc[d].type == GKYL_SPECIES_RECYCLE)
+        if (gkns->lower_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE)
           gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
-        if (gkns->upper_bc[d].type == GKYL_SPECIES_RECYCLE)
+        if (gkns->upper_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE)
           gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
       }
     }
@@ -1558,9 +1558,9 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
 
-  if (gkns->lower_bc[app->cdim-1].type == GKYL_SPECIES_RECYCLE)
+  if (gkns->lower_bc[app->cdim-1].type == GKYL_BC_GK_SPECIES_RECYCLE)
     gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
-  if (gkns->upper_bc[app->cdim-1].type == GKYL_SPECIES_RECYCLE)
+  if (gkns->upper_bc[app->cdim-1].type == GKYL_BC_GK_SPECIES_RECYCLE)
     gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
 
   gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, sidx, tm, frame);

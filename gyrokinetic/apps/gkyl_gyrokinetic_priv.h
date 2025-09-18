@@ -19,6 +19,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_basic_gyrokinetic.h>
 #include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
@@ -362,7 +363,7 @@ struct gk_boundary_fluxes {
   enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
-  struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
   struct gk_species_moment *moms_op; // Moments calculator.
@@ -707,17 +708,17 @@ struct gk_species {
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
   
   int num_periodic_dir; // Number of periodic directions.
-  int periodic_dirs[3]; // List of periodic directions.
-  bool bc_is_np[3]; // Whether BC is nonperiodic.
+  int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
+  bool bc_is_np[GKYL_MAX_CDIM]; // Whether BC is nonperiodic.
 
   // Boundary conditions on lower/upper edges in each direction.
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
   // Pointers to updaters that apply (non-sheath) BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
+  struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
@@ -885,14 +886,14 @@ struct gk_neut_species {
   bool recyc_up;
   
   int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
-  bool bc_is_np[3]; // whether BC is nonperiodic.
+  int periodic_dirs[GKYL_MAX_CDIM]; // list of periodic directions
+  bool bc_is_np[GKYL_MAX_CDIM]; // whether BC is nonperiodic.
 
   // boundary conditions on lower/upper edges in each direction  
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
   // Pointers to updaters that apply BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_bc_basic *bc_lo[GKYL_MAX_CDIM];
+  struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];

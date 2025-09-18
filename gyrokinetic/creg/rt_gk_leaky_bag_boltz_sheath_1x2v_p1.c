@@ -266,8 +266,8 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ABSORB, },
     },
     
     .num_diag_moments = 6,

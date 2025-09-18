@@ -589,7 +589,7 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
+    //.bcx = { GKYL_BC_GK_SPECIES_ABSORB, GKYL_BC_GK_SPECIES_ABSORB},
     .react_neut = {
       .num_react = 3,
       .react_type = {

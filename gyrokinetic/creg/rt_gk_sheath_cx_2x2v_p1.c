@@ -535,12 +535,12 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 5,
@@ -622,12 +622,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
     
     .num_diag_moments = 5,
@@ -651,8 +651,8 @@ main(int argc, char **argv)
       .temp = evalTempNeutInit,      
     },
 
-    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
-    //.bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    //.bcx = { GKYL_BC_GK_SPECIES_ABSORB, GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    //.bcy = { GKYL_BC_GK_SPECIES_ZERO_FLUX, GKYL_BC_GK_SPECIES_ZERO_FLUX },
     
     .num_diag_moments = 3,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_M2},

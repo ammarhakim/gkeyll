@@ -468,14 +468,14 @@ main(int argc, char **argv)
     
     .bcx = {
       .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
         .projection = elc_ic,
       },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 7,
@@ -526,14 +526,14 @@ main(int argc, char **argv)
     
     .bcx = {
       .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
         .projection = ion_ic,
       },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 7,

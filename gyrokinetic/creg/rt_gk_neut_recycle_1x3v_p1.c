@@ -538,12 +538,12 @@ main(int argc, char **argv)
 
     .bcx = {
       .lower = {
-        .type = GKYL_SPECIES_RECYCLE,
+        .type = GKYL_BC_GK_SPECIES_RECYCLE,
     	.emission = neut_bc,
         .write_diagnostics = true,
       },
       .upper = {
-        .type = GKYL_SPECIES_RECYCLE,
+        .type = GKYL_BC_GK_SPECIES_RECYCLE,
     	.emission = neut_bc,
         .write_diagnostics = true,
       },

@@ -388,16 +388,16 @@ main(int argc, char **argv)
     }, 
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+      .lower={.type = GKYL_BC_GK_SPECIES_SHEATH,},
+      .upper={.type = GKYL_BC_GK_SPECIES_SHEATH,},
     },
     
     .num_diag_moments = 7,
@@ -462,16 +462,16 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_BC_GK_SPECIES_ZERO_FLUX,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+      .lower={.type = GKYL_BC_GK_SPECIES_SHEATH,},
+      .upper={.type = GKYL_BC_GK_SPECIES_SHEATH,},
     },
     
     .num_diag_moments = 5,
@@ -497,16 +497,16 @@ main(int argc, char **argv)
     },
 
     .bcx = { 
-      .lower = { .type = GKYL_SPECIES_REFLECT },
-      .upper = { .type = GKYL_SPECIES_REFLECT },
+      .lower = { .type = GKYL_BC_GK_SPECIES_REFLECT },
+      .upper = { .type = GKYL_BC_GK_SPECIES_REFLECT },
     },
     .bcy = { 
-      .lower = { .type = GKYL_SPECIES_REFLECT },
-      .upper = { .type = GKYL_SPECIES_REFLECT },
+      .lower = { .type = GKYL_BC_GK_SPECIES_REFLECT },
+      .upper = { .type = GKYL_BC_GK_SPECIES_REFLECT },
     },
     .bcz = { 
-      .lower = { .type = GKYL_SPECIES_REFLECT },
-      .upper = { .type = GKYL_SPECIES_REFLECT },
+      .lower = { .type = GKYL_BC_GK_SPECIES_REFLECT },
+      .upper = { .type = GKYL_BC_GK_SPECIES_REFLECT },
     },
     
     .num_diag_moments = 3,

@@ -738,15 +738,15 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,
+      .lower = {.type = GKYL_BC_GK_SPECIES_IWL,
                 .aux_profile = bc_shift_func_lo,
                 .aux_ctx = &ctx,
       },
-      .upper = {.type = GKYL_SPECIES_GK_IWL,
+      .upper = {.type = GKYL_BC_GK_SPECIES_IWL,
                 .aux_profile = bc_shift_func_up,
                 .aux_ctx = &ctx,
       },
@@ -828,15 +828,15 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_BC_GK_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,
+      .lower = {.type = GKYL_BC_GK_SPECIES_IWL,
                 .aux_profile = bc_shift_func_lo,
                 .aux_ctx = &ctx,
       },
-      .upper = {.type = GKYL_SPECIES_GK_IWL,
+      .upper = {.type = GKYL_BC_GK_SPECIES_IWL,
                 .aux_profile = bc_shift_func_up,
                 .aux_ctx = &ctx,
       },

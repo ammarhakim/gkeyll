@@ -278,10 +278,10 @@ int main(int argc, char **argv)
 
     .bcx = {
       .lower={
-          .type = GKYL_SPECIES_FIXED_FUNC,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
           .projection = proj_init,
       },
-      .upper={.type = GKYL_SPECIES_ABSORB},
+      .upper={.type = GKYL_BC_GK_SPECIES_ABSORB},
     },
     .num_diag_moments = 6,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},

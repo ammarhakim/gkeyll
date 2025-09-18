@@ -560,8 +560,8 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     .num_diag_moments = 5,
@@ -599,8 +599,8 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     .num_diag_moments = 5,
@@ -665,8 +665,8 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     .num_diag_moments = 5,
@@ -731,8 +731,8 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     .num_diag_moments = 5,

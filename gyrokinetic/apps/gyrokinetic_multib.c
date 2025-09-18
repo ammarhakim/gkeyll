@@ -111,65 +111,6 @@ gyrokinetic_multib_data_write(const char *fname, struct gyrokinetic_multib_outpu
   return status;
 }
 
-// Translates gyrokinetic bc type into species bc type.
-static int
-choose_species_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
-{
-  switch (bc_type) {
-    case GKYL_BC_GK_SKIP:
-      return 1;
-      break;
-    case GKYL_BC_GK_SPECIES_REFLECT:
-      return 2;
-      break;
-    case GKYL_BC_GK_SPECIES_ABSORB:
-      return 3;
-      break;
-    case GKYL_BC_GK_SPECIES_FUNC:
-      return 6;
-      break;
-    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-      return 7;
-      break;
-    case GKYL_BC_GK_SPECIES_EMISSION:
-      return 8;
-      break;
-    case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-      return 9;
-      break;
-    case GKYL_BC_GK_SPECIES_GK_SHEATH:
-      return 10;
-      break;
-    case GKYL_BC_GK_SPECIES_RECYCLE:
-      return 11;
-      break;
-    case GKYL_BC_GK_SPECIES_GK_IWL:
-      return 12;
-      break;
-    default:
-      assert(false);
-      break;
-  }
-}
-
-// Translates gyrokinetic bc type into field bc type
-static int
-choose_field_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
-{
-  switch (bc_type) {
-    case GKYL_BC_GK_FIELD_DIRICHLET:
-      return 1;
-      break;
-    case GKYL_BC_GK_FIELD_NEUMANN:
-      return 2;
-      break;
-    default:
-      assert(false);
-      break;
-  }
-}
-
-
 // Construct single-block App geometry for given block ID.
 static struct gkyl_gyrokinetic_app *
 singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
@@ -315,12 +256,10 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.polarization_density = sp_pb->polarization_density;  
 
     // By default, skip BCs altogether.
-    species_inp.bcx.lower.type = GKYL_SPECIES_SKIP;
-    species_inp.bcx.upper.type = GKYL_SPECIES_SKIP;
-    species_inp.bcy.lower.type = GKYL_SPECIES_SKIP;
-    species_inp.bcy.upper.type = GKYL_SPECIES_SKIP;
-    species_inp.bcz.lower.type = GKYL_SPECIES_SKIP;
-    species_inp.bcz.upper.type = GKYL_SPECIES_SKIP;
+    for (int d=0; d<GKYL_MAX_CDIM; d++) {
+      species_inp.bcs.lower[d].type = GKYL_BC_GK_SKIP;
+      species_inp.bcs.upper[d].type = GKYL_BC_GK_SKIP;
+    }
 
     // Set species physical BCs: we need to search through the list of
     // physical BCs and set the appropriate input to single-block
@@ -328,55 +267,23 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     for (int i=0; i<sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
 
-        int bc_type = choose_species_bc_type(sp->bcs[i].bc_type);
+        int dir = sp->bcs[i].dir;
         int e = sp->bcs[i].edge;
-        if (sp->bcs[i].dir == 0) {
-          if (e == 0) {
-            species_inp.bcx.lower.type = bc_type;
-            species_inp.bcx.lower.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcx.lower.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcx.lower.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcx.lower.projection = sp->bcs[i].projection;
-          }
-          else {
-            species_inp.bcx.upper.type = bc_type;
-            species_inp.bcx.upper.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcx.upper.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcx.upper.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcx.upper.projection = sp->bcs[i].projection;
-          }
-        }
-        else if (sp->bcs[i].dir == 1) {
-          if (e == 0) {
-            species_inp.bcy.lower.type = bc_type;
-            species_inp.bcy.lower.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcy.lower.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcy.lower.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcy.lower.projection = sp->bcs[i].projection;
-          }
-          else {
-            species_inp.bcy.upper.type = bc_type;
-            species_inp.bcy.upper.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcy.upper.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcy.upper.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcy.upper.projection = sp->bcs[i].projection;
-          }
+        if (e == 0) {
+          species_inp.bcs.lower[dir].type = sp->bcs[i].type;
+          species_inp.bcs.lower[dir].aux_profile = sp->bcs[i].aux_profile;
+          species_inp.bcs.lower[dir].aux_ctx = sp->bcs[i].aux_ctx;
+          species_inp.bcs.lower[dir].projection = sp->bcs[i].projection;
+          for (int k=0; k<3; ++k)
+            species_inp.bcs.lower[dir].value[k] = sp->bcs[i].value[k];
         }
         else {
-          if (e == 0) {
-            species_inp.bcz.lower.type = bc_type;
-            species_inp.bcz.lower.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcz.lower.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcz.lower.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcz.lower.projection = sp->bcs[i].projection;
-          }
-          else {
-            species_inp.bcz.upper.type = bc_type;
-            species_inp.bcz.upper.aux_profile = sp->bcs[i].aux_profile;
-            species_inp.bcz.upper.aux_ctx = sp->bcs[i].aux_ctx;
-            species_inp.bcz.upper.aux_parameter = sp->bcs[i].aux_parameter;
-            species_inp.bcz.upper.projection = sp->bcs[i].projection;
-          }
+          species_inp.bcs.upper[dir].type = sp->bcs[i].type;
+          species_inp.bcs.upper[dir].aux_profile = sp->bcs[i].aux_profile;
+          species_inp.bcs.upper[dir].aux_ctx = sp->bcs[i].aux_ctx;
+          species_inp.bcs.upper[dir].projection = sp->bcs[i].projection;
+          for (int k=0; k<3; ++k)
+            species_inp.bcs.upper[dir].value[k] = sp->bcs[i].value[k];
         }
       }
     }
@@ -425,12 +332,10 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.source = nsp_pb->source;
 
     // By default, skip BCs altogether.
-    neut_species_inp.bcx.lower.type = GKYL_SPECIES_SKIP;
-    neut_species_inp.bcx.upper.type = GKYL_SPECIES_SKIP;
-    neut_species_inp.bcy.lower.type = GKYL_SPECIES_SKIP;
-    neut_species_inp.bcy.upper.type = GKYL_SPECIES_SKIP;
-    neut_species_inp.bcz.lower.type = GKYL_SPECIES_SKIP;
-    neut_species_inp.bcz.upper.type = GKYL_SPECIES_SKIP;
+    for (int d=0; d<GKYL_MAX_CDIM; d++) {
+      neut_species_inp.bcs.lower[d].type = GKYL_BC_GK_SKIP;
+      neut_species_inp.bcs.upper[d].type = GKYL_BC_GK_SKIP;
+    }
 
     // Set species physical BCs: we need to search through the list of
     // physical BCs and set the appropriate input to single-block
@@ -438,55 +343,23 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     for (int i=0; i<nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
 
-        int bc_type = choose_species_bc_type(nsp->bcs[i].bc_type);
+        int dir = nsp->bcs[i].dir;
         int e = nsp->bcs[i].edge;
-        if (nsp->bcs[i].dir == 0) {
-          if (e == 0) {
-            neut_species_inp.bcx.lower.type = bc_type;
-            neut_species_inp.bcx.lower.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcx.lower.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcx.lower.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcx.lower.projection = nsp->bcs[i].projection;
-          }
-          else {
-            neut_species_inp.bcx.upper.type = bc_type;
-            neut_species_inp.bcx.upper.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcx.upper.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcx.upper.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcx.upper.projection = nsp->bcs[i].projection;
-          }
-        }
-        else if (nsp->bcs[i].dir == 1) {
-          if (e == 0) {
-            neut_species_inp.bcy.lower.type = bc_type;
-            neut_species_inp.bcy.lower.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcy.lower.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcy.lower.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcy.lower.projection = nsp->bcs[i].projection;
-          }
-          else {
-            neut_species_inp.bcy.upper.type = bc_type;
-            neut_species_inp.bcy.upper.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcy.upper.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcy.upper.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcy.upper.projection = nsp->bcs[i].projection;
-          }
+        if (e == 0) {
+          neut_species_inp.bcs.lower[dir].type = nsp->bcs[i].type;
+          neut_species_inp.bcs.lower[dir].aux_profile = nsp->bcs[i].aux_profile;
+          neut_species_inp.bcs.lower[dir].aux_ctx = nsp->bcs[i].aux_ctx;
+          neut_species_inp.bcs.lower[dir].projection = nsp->bcs[i].projection;
+          for (int k=0; k<3; ++k)
+            neut_species_inp.bcs.lower[dir].value[k] = nsp->bcs[i].value[k];
         }
         else {
-          if (e == 0) {
-            neut_species_inp.bcz.lower.type = bc_type;
-            neut_species_inp.bcz.lower.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcz.lower.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcz.lower.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcz.lower.projection = nsp->bcs[i].projection;
-          }
-          else {
-            neut_species_inp.bcz.upper.type = bc_type;
-            neut_species_inp.bcz.upper.aux_profile = nsp->bcs[i].aux_profile;
-            neut_species_inp.bcz.upper.aux_ctx = nsp->bcs[i].aux_ctx;
-            neut_species_inp.bcz.upper.aux_parameter = nsp->bcs[i].aux_parameter;
-            neut_species_inp.bcz.upper.projection = nsp->bcs[i].projection;
-          }
+          neut_species_inp.bcs.upper[dir].type = nsp->bcs[i].type;
+          neut_species_inp.bcs.upper[dir].aux_profile = nsp->bcs[i].aux_profile;
+          neut_species_inp.bcs.upper[dir].aux_ctx = nsp->bcs[i].aux_ctx;
+          neut_species_inp.bcs.upper[dir].projection = nsp->bcs[i].projection;
+          for (int k=0; k<3; ++k)
+            neut_species_inp.bcs.upper[dir].value[k] = nsp->bcs[i].value[k];
         }
       }
     }
@@ -509,27 +382,29 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   field_inp.electron_temp = fld->electron_temp; 
 
   // BCs.
-  // MF 2024/10/20: hardcode the BC value here because input file infra doesn't
-  // support passing a value yet.
   for (int d=0; d<cdim-1; d++) {
     // Set it to Dirichlet first, reset below. This avoids problems in
     // creating the single block field solve, which may not be used.
-    field_inp.poisson_bcs.lo_type[d] = GKYL_POISSON_DIRICHLET;
-    field_inp.poisson_bcs.lo_value[d].v[0] = -1.0e3;
-    field_inp.poisson_bcs.up_type[d] = GKYL_POISSON_DIRICHLET;
-    field_inp.poisson_bcs.up_value[d].v[0] = -1.0e3;
+    field_inp.poisson_bcs.lower[d].type = GKYL_BC_GK_FIELD_DIRICHLET;
+    for (int k=0; k<3; ++k)
+      field_inp.poisson_bcs.lower[d].value[k] = -1.0e3;
+
+    field_inp.poisson_bcs.upper[d].type = GKYL_BC_GK_FIELD_DIRICHLET;
+    for (int k=0; k<3; ++k)
+      field_inp.poisson_bcs.upper[d].value[k] = -1.0e3;
   }
   for (int d=0; d<cdim-1; d++) {
     for (int k=0; k<fld->num_physical_bcs; k++) { 
       if (bid == fld->bcs[k].bidx) {
-        int bc_type = choose_field_bc_type(fld->bcs[k].bc_type);
         if (fld->bcs[k].edge == GKYL_LOWER_EDGE) {
-          field_inp.poisson_bcs.lo_type[d] = bc_type;
-          field_inp.poisson_bcs.lo_value[d].v[0] = 0.0;
+          field_inp.poisson_bcs.lower[d].type = fld->bcs[k].type;
+          for (int j=0; j<3; ++j)
+            field_inp.poisson_bcs.lower[d].value[j] = fld->bcs[k].value[j];
         }
         if (fld->bcs[k].edge == GKYL_UPPER_EDGE) {
-          field_inp.poisson_bcs.up_type[d] = bc_type;
-          field_inp.poisson_bcs.up_value[d].v[0] = 0.0;
+          field_inp.poisson_bcs.upper[d].type = fld->bcs[k].type;
+          for (int j=0; j<3; ++j)
+            field_inp.poisson_bcs.upper[d].value[j] = fld->bcs[k].value[j];
         }
       }
     }

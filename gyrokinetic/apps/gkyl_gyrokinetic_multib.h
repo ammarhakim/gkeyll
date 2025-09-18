@@ -5,32 +5,15 @@
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
-// Boundary conditions on fields and particles
-enum gkyl_gyrokinetic_bc_type {
-  GKYL_BC_GK_SKIP, // Do not apply any BCs 
-  GKYL_BC_GK_SPECIES_REFLECT, // perfect reflector
-  GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs
-  GKYL_BC_GK_SPECIES_FUNC, // Function boundary conditions
-  GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
-  GKYL_BC_GK_SPECIES_EMISSION, // Emission spectrum BCs
-  GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
-  GKYL_BC_GK_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
-  GKYL_BC_GK_SPECIES_RECYCLE, // Recycling BCs
-  GKYL_BC_GK_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
-
-  GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet boundary conditions
-  GKYL_BC_GK_FIELD_NEUMANN, // Nemann boundary conditions
-};
-
 // BC for blocks
 struct gkyl_gyrokinetic_block_physical_bcs {
-  int bidx; // block index
-  int dir;  // direction in which BC is specified
-  enum gkyl_edge_loc edge; // which edge this BC is for
-  enum gkyl_gyrokinetic_bc_type bc_type; // BC type flag.
+  int bidx; // Block index.
+  int dir;  // Direction in which BC is specified.
+  enum gkyl_edge_loc edge; // Which edge this BC is for.
+  enum gkyl_gyrokinetic_bc_type type; // BC type flag.
+  double value[3]; // Meaning depends on type.
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
-  double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
 };
 

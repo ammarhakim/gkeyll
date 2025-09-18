@@ -341,33 +341,19 @@ gyrokinetic_species_lw_new(lua_State *L)
     gk_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
+  with_lua_tbl_tbl(L, "bcs") {
     with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+      int cdim = glua_objlen(L);
+      for (int d = 0; d < cdim; d++) {
+        gk_species.bcs.lower[d].type = glua_tbl_get_integer(L, "type", 0);
+      }
     }
     
     with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+      int cdim = glua_objlen(L);
+      for (int d = 0; d < cdim; d++) {
+        gk_species.bcs.upper[d].type = glua_tbl_get_integer(L, "type", 0);
+      }
     }
   }
 
@@ -943,36 +929,22 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
     gk_neut_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
+  with_lua_tbl_tbl(L, "bcs") {
     with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+      int cdim = glua_objlen(L);
+      for (int d = 0; d < cdim; d++) {
+        gk_neut_species.bcs.lower[d].type = glua_tbl_get_integer(L, "type", 0);
+      }
     }
     
     with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
+      int cdim = glua_objlen(L);
+      for (int d = 0; d < cdim; d++) {
+        gk_neut_species.bcs.upper[d].type = glua_tbl_get_integer(L, "type", 0);
+      }
     }
   }
 
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-  
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
   bool has_density_init_func = false;
@@ -1082,7 +1054,7 @@ gyrokinetic_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
       
       for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+        gk_field.poisson_bcs.lower[i].type = glua_tbl_iget_integer(L, i + 1, 0);
       }
     }
 
@@ -1090,7 +1062,7 @@ gyrokinetic_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
 
       for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+        gk_field.poisson_bcs.upper[i].type = glua_tbl_iget_integer(L, i + 1, 0);
       }
     }
 
@@ -1098,11 +1070,11 @@ gyrokinetic_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
 
       for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value lower_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.lo_value[i] = lower_bc;
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          for (int k = 0; k < 3; k++) {
+            gk_field.poisson_bcs.lower[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+          }
+        }
       }
     }
 
@@ -1110,11 +1082,11 @@ gyrokinetic_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
 
       for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value upper_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.up_value[i] = upper_bc;
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          for (int k = 0; k < 3; k++) {
+            gk_field.poisson_bcs.upper[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+          }
+        }
       }
     }
   }

@@ -357,12 +357,12 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     //Emissivity for all three of these should be 0
@@ -415,12 +415,12 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
 
     //Emissivity of ion and test_sp_1 should be 0
@@ -473,12 +473,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
     },
     
     .num_diag_moments = 7,
