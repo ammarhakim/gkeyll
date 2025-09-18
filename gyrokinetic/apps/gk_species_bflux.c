@@ -581,8 +581,8 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         if ( gk_s->bc_is_np[d] &&
-             ((e == 0 && gk_s->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX) ||
-              (e == 1 && gk_s->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX)) ) {
+             ((e == 0 && gk_s->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
+              (e == 1 && gk_s->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) ) {
           bflux->boundaries_dir[num_bound] = d;
           bflux->boundaries_edge[num_bound] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
 
@@ -591,7 +591,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->lower_skin[d] : &gk_s->upper_skin[d];
           bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
           bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
-          if (e == 0? gk_s->lower_bc[d].type == GKYL_SPECIES_GK_IWL : gk_s->upper_bc[d].type == GKYL_SPECIES_GK_IWL) {
+          if (e == 0? gk_s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL : gk_s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
             // Use SOL ranges only for parallel boundary fluxes.
             bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin_par_sol : &app->upper_skin_par_sol;
             bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost_par_sol : &app->upper_ghost_par_sol;

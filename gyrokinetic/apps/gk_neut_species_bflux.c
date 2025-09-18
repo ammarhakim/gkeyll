@@ -575,8 +575,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         if ( gkns->bc_is_np[d] &&
-             ((e == 0 && gkns->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX) ||
-              (e == 1 && gkns->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX)) ) {
+             ((e == 0 && gkns->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
+              (e == 1 && gkns->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) ) {
           bflux->boundaries_dir[bflux->num_boundaries] = d;
           bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
           bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
