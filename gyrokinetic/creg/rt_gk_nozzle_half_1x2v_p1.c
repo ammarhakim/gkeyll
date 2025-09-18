@@ -276,13 +276,11 @@ int main(int argc, char **argv)
       .self_nu = eval_nu_ion,
     },
 
-    .bcx = {
-      .lower={
-          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-          .projection = proj_init,
-      },
-      .upper={.type = GKYL_BC_GK_SPECIES_ABSORB},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = proj_init, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
     },
+
     .num_diag_moments = 6,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };

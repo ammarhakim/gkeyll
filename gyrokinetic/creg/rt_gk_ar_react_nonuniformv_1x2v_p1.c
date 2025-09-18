@@ -559,11 +559,6 @@ main(int argc, char **argv)
       },
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-    },
-
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
@@ -598,11 +593,6 @@ main(int argc, char **argv)
       .collide_with = { "elc", "Ar1", "Ar2" },
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-    },
-
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
@@ -664,11 +654,6 @@ main(int argc, char **argv)
       },
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-    },
-
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
@@ -730,11 +715,6 @@ main(int argc, char **argv)
       },
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-    },
-
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
