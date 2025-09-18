@@ -141,13 +141,10 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
     data->NT = 48;
     data->NN = 26;
     snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/ioniz_ar.npy");
-    printf("fname = %s\n",fname);
     data->logData = fopen(fname,"rb");
     snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logT_ar.npy");
-    printf("fname = %s\n",fname);
     data->logT = fopen(fname, "rb");
     snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_ar.npy");
-    printf("fname = %s\n",fname);
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 18;
     data->Eiz[0] = 15.8;

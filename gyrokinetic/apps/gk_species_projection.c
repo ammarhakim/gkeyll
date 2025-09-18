@@ -125,7 +125,7 @@ gk_species_projection_correct_all_moms(gkyl_gyrokinetic_app *app, struct gk_spec
 {
   struct gkyl_gk_maxwellian_correct_status status_corr;
   status_corr = gkyl_gk_maxwellian_correct_all_moments(proj->corr_max, 
-  f, proj->prim_moms, &s->local, &app->local);
+    f, proj->prim_moms, &s->local, &app->local);
 }
 
 static void
@@ -360,21 +360,24 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
       }
     );
-    if (app->use_gpu) {
+    if (app->use_gpu)
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-    }
+
     proj->projection_calc = gk_species_projection_calc_proj_func;
+    proj->moms_correct = gk_species_projection_correct_all_moms_none;
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    init_maxwellian_bimaxwellian(app, s, inp, proj);
-    proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
-      gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
-  } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-    init_maxwellian_gaussian(app, s, inp, proj);
-    proj->projection_calc = gk_species_projection_calc_max_gauss;
+  else {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+      init_maxwellian_bimaxwellian(app, s, inp, proj);
+      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
+        gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
+    } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+      init_maxwellian_gaussian(app, s, inp, proj);
+      proj->projection_calc = gk_species_projection_calc_max_gauss;
+    }
+    proj->moms_correct = proj->correct_all_moms ? 
+      gk_species_projection_correct_all_moms : gk_species_projection_correct_all_moms_none;
   }
-  proj->moms_correct = proj->correct_all_moms ? 
-    gk_species_projection_correct_all_moms : gk_species_projection_correct_all_moms_none;
 }
 
 void
