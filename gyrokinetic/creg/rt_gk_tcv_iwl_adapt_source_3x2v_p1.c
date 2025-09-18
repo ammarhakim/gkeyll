@@ -660,20 +660,13 @@ main(int argc, char **argv)
       }
     },
 
-    .bcx = {
-      .lower={.type = GKYL_BC_GK_SPECIES_ABSORB,},
-      .upper={.type = GKYL_BC_GK_SPECIES_ABSORB,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .aux_profile = bc_shift_func_lo, .aux_ctx = &ctx, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .aux_profile = bc_shift_func_up, .aux_ctx = &ctx, },
     },
-    .bcz = {
-      .lower={.type = GKYL_BC_GK_SPECIES_IWL,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
-      },
-      .upper={.type = GKYL_BC_GK_SPECIES_IWL,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
-      },
-    },
+
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -778,20 +771,14 @@ main(int argc, char **argv)
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       }
     },
-    .bcx = {
-      .lower={.type = GKYL_BC_GK_SPECIES_ABSORB,},
-      .upper={.type = GKYL_BC_GK_SPECIES_ABSORB,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .aux_profile = bc_shift_func_lo, .aux_ctx = &ctx, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .aux_profile = bc_shift_func_up, .aux_ctx = &ctx, },
     },
-    .bcz = {
-      .lower={.type = GKYL_BC_GK_SPECIES_IWL,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
-      },
-      .upper={.type = GKYL_BC_GK_SPECIES_IWL,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
-      },
-    },
+
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -819,10 +806,10 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .polarization_bmag = ctx.Bref,
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
-                    .up_type = {GKYL_POISSON_DIRICHLET},
-                    .lo_value = {0.0}, .up_value = {0.0},
-                   },
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    },
     .bias_plane_list = &bias_plane_list,
     .time_rate_diagnostics = true,
   };
