@@ -21,8 +21,9 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm {
  * @param basis Basis functions of the equation system.
  * @param cbasis Configuration space basis.
  * @param conf_range Conf-space range object.
+ * @param is_periodic_bc Whether each boundary has periodic BCs.
  * @param is_zero_flux_bc Whether each boundary has zero-flux BCs.
- * @param is_absorb_bc Whether each boundary has absorb BCs.
+ * @param is_skip_bc Whether each boundary has skip BCs.
  * @param skip_cell_threshold Threshold which to skip cells
  * @param nu Diffusivity.
  * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
@@ -31,7 +32,7 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm {
  */
 struct gkyl_dg_updater_gk_anomalous_diffusion* gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const bool *is_zero_flux_bc, const bool *is_absorb_bc, double skip_cell_threshold,
+  const bool *is_periodic_bc, const bool *is_zero_flux_bc, const bool *is_skip_bc, double skip_cell_threshold,
   const struct gkyl_array *nu, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
 
 /**

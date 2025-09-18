@@ -40,12 +40,12 @@ gkyl_gk_anomalous_diffusion_set_auxfields(const struct gkyl_dg_eqn *eqn, struct 
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_absorb_bc,
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_skip_bc,
   double skip_cell_threshold, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, is_zero_flux_bc, is_absorb_bc, skip_cell_threshold);
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, is_zero_flux_bc, is_skip_bc, skip_cell_threshold);
 #endif
   
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
@@ -71,12 +71,10 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   // MF 2025/09/10: as of now these options are meant for (here
   // N/A means not applicable):
   //            bound_surf  bound_diag  hyper_dg-zero_flux
-  // PERIODIC:  N/A         N/A         no
-  // COPY:      N/A         recovery    no
   // SKIP:      N/A         recovery    no
-  // ABSORB:    local       local       yes
-  // FUNC:      N/A         recovery    no
+  // PERIODIC:  N/A         N/A         no
   // ZERO_FLUX: zero_flux   N/A         yes
+  // ELSE:      local       local       yes
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -86,10 +84,10 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
                                                        : ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
       boundary_surfx_upper_kernels = is_zero_flux_bc[0+pdim]? ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels
                                                             : ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels;
-      boundary_diagx_lower_kernels = is_absorb_bc[0]? ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels
-                                                    : ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-      boundary_diagx_upper_kernels = is_absorb_bc[0+pdim]? ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels
-                                                         : ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      boundary_diagx_lower_kernels = is_skip_bc[0]? ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels
+                                                  : ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
+      boundary_diagx_upper_kernels = is_skip_bc[0+pdim]? ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels
+                                                         : ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels;
       break;
   
     default:

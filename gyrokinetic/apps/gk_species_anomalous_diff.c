@@ -119,26 +119,36 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     // Multiply diffD by g^xx*jacobgeo.
     gkyl_dg_mul_op(app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
 
+    // Sync diffusivity.
+    int num_periodic_dir = app->num_periodic_dir;
+    gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+      num_periodic_dir, app->periodic_dirs, gkad->diffD); 
+    gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, gkad->diffD);
+
     // Use zero-flux BCs for the anomalous diffusion updater. NOTE: this
     // doesn't actually mean there is no flux due to this term, we simply use
     // it as a way to trigger use of boundary flux kernels.
     int pdim = app->cdim + app->vdim;
-    bool is_zero_flux[2*GKYL_MAX_DIM] = {false}, is_absorb[2*GKYL_MAX_DIM] = {false};
+    bool is_periodic[2*GKYL_MAX_DIM] = {false}, is_zero_flux[2*GKYL_MAX_DIM] = {false}, is_skip[2*GKYL_MAX_DIM] = {false};
     for (int dir=0; dir<app->cdim; ++dir) {
+      if (!gks->bc_is_np[dir]) {
+        is_periodic[dir]      = true;
+        is_periodic[dir+pdim] = true;
+      }
+
       if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
-      else if (gks->lower_bc[dir].type == GKYL_SPECIES_ABSORB)
-        is_absorb[dir] = true;
+      else if (gks->lower_bc[dir].type == GKYL_SPECIES_SKIP)
+        is_skip[dir] = true;
 
       if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir+pdim] = true;
-      else if (gks->upper_bc[dir].type == GKYL_SPECIES_ABSORB)
-        is_absorb[dir+pdim] = true;
-
+      else if (gks->upper_bc[dir].type == GKYL_SPECIES_SKIP)
+        is_skip[dir+pdim] = true;
     }
 
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      &app->local, is_zero_flux, is_absorb, gks->info.skip_cell_threshold,
+      &app->local, is_periodic, is_zero_flux, is_skip, gks->info.skip_cell_threshold,
       gkad->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {

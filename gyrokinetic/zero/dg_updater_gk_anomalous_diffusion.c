@@ -19,8 +19,8 @@ gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(const struct gkyl_dg_updater_
 struct gkyl_dg_updater_gk_anomalous_diffusion*
 gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const bool *is_zero_flux_bc, const bool *is_absorb_bc, double skip_cell_threshold, const struct gkyl_array *nu,
-  const struct gkyl_array *jacobgeo_inv, bool use_gpu)
+  const bool *is_periodic_bc, const bool *is_zero_flux_bc, const bool *is_skip_bc, double skip_cell_threshold,
+  const struct gkyl_array *nu, const struct gkyl_array *jacobgeo_inv, bool use_gpu)
 {
   struct gkyl_dg_updater_gk_anomalous_diffusion *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gk_anomalous_diffusion));
 
@@ -34,15 +34,13 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   // MF 2025/09/10: as of now these options are meant for (here
   // N/A means not applicable):
   //            bound_surf  bound_diag  hyper_dg-zero_flux
-  // PERIODIC:  N/A         N/A         no
-  // COPY:      N/A         recovery    no
   // SKIP:      N/A         recovery    no
-  // ABSORB:    local       local       yes
-  // FUNC:      N/A         recovery    no
+  // PERIODIC:  N/A         N/A         no
   // ZERO_FLUX: zero_flux   N/A         yes
+  // ELSE:      local       local       yes
 
   up->dgeqn = gkyl_gk_anomalous_diffusion_new(basis, cbasis,
-    conf_range, is_zero_flux_bc, is_absorb_bc, skip_cell_threshold, up->use_gpu);
+    conf_range, is_zero_flux_bc, is_skip_bc, skip_cell_threshold, up->use_gpu);
 
   gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn, (struct gkyl_gk_anomalous_diffusion_auxfields) {
     .nu = nu, .jacobgeo_inv = jacobgeo_inv });
@@ -53,8 +51,8 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
 
   // Determine if hyper_dg should apply boundary_surf kernels.
   int use_boundary_surf[2*GKYL_MAX_DIM] = {0};
-  use_boundary_surf[0]      = is_zero_flux_bc[0]      || is_absorb_bc[0]?      1 : 0;
-  use_boundary_surf[0+pdim] = is_zero_flux_bc[0+pdim] || is_absorb_bc[0+pdim]? 1 : 0;
+  use_boundary_surf[0]      = !is_periodic_bc[0]      && !is_skip_bc[0]?      1 : 0;
+  use_boundary_surf[0+pdim] = !is_periodic_bc[0+pdim] && !is_skip_bc[0+pdim]? 1 : 0;
 
   up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, use_boundary_surf, 1, up->use_gpu);
 

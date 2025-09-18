@@ -31,7 +31,7 @@ gkyl_gk_anomalous_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn* eqn,
 
 __global__ void static
 gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion, enum gkyl_basis_type b_type,
-  int cdim, int vdim, int poly_order, const bool *is_zero_flux_bc, const bool *is_absorb_bc)
+  int cdim, int vdim, int poly_order, const bool *is_zero_flux_bc, const bool *is_skip_bc)
 {
   int pdim = cdim + vdim;
 
@@ -49,12 +49,10 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
   // MF 2025/09/10: as of now these options are meant for (here
   // N/A means not applicable):
   //            bound_surf  bound_diag  hyper_dg-zero_flux
-  // PERIODIC:  N/A         N/A         no
-  // COPY:      N/A         recovery    no
   // SKIP:      N/A         recovery    no
-  // ABSORB:    local       local       yes
-  // FUNC:      N/A         recovery    no
+  // PERIODIC:  N/A         N/A         no
   // ZERO_FLUX: zero_flux   N/A         yes
+  // ELSE:      local       local       yes
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -64,10 +62,10 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
                                                        : ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
       boundary_surfx_upper_kernels = is_zero_flux_bc[0+pdim]? ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels
                                                             : ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels;
-      boundary_diagx_lower_kernels = is_absorb_bc[0]? ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels
-                                                    : ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-      boundary_diagx_upper_kernels = is_absorb_bc[0+pdim]? ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels
-                                                         : ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      boundary_diagx_lower_kernels = is_skip_bc[0]? ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels
+                                                  : ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
+      boundary_diagx_upper_kernels = is_skip_bc[0+pdim]? ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels
+                                                         : ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels;
       break;
 
     default:
@@ -90,7 +88,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_absorb_bc, double skip_cell_threshold)
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_skip_bc, double skip_cell_threshold)
 {
   struct gk_anomalous_diffusion* diffusion = (struct gk_anomalous_diffusion*) gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
@@ -112,16 +110,16 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
 
   // Create device copies of BC flags.
   bool *is_zero_flux_bc_dev = (bool *) gkyl_cu_malloc(2*pdim*sizeof(bool));
-  bool *is_absorb_bc_dev = (bool *) gkyl_cu_malloc(2*pdim*sizeof(bool));
+  bool *is_skip_bc_dev = (bool *) gkyl_cu_malloc(2*pdim*sizeof(bool));
   gkyl_cu_memcpy(is_zero_flux_bc_dev, is_zero_flux_bc, 2*pdim*sizeof(bool), GKYL_CU_MEMCPY_H2D);
-  gkyl_cu_memcpy(is_absorb_bc_dev, is_absorb_bc, 2*pdim*sizeof(bool), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(is_skip_bc_dev, is_skip_bc, 2*pdim*sizeof(bool), GKYL_CU_MEMCPY_H2D);
 
   // Copy the host struct to device struct.
   struct gk_anomalous_diffusion* diffusion_cu = (struct gk_anomalous_diffusion*) gkyl_cu_malloc(sizeof(struct gk_anomalous_diffusion));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion), GKYL_CU_MEMCPY_H2D);
-  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, is_zero_flux_bc_dev, is_absorb_bc_dev);
+  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, is_zero_flux_bc_dev, is_skip_bc_dev);
 
-  gkyl_cu_free(is_absorb_bc_dev);
+  gkyl_cu_free(is_skip_bc_dev);
   gkyl_cu_free(is_zero_flux_bc_dev);
 
   // Set parent on_dev pointer.
