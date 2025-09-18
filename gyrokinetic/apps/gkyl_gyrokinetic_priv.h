@@ -1133,6 +1133,24 @@ struct gkyl_gyrokinetic_app {
 
 /** gkyl_gyrokinetic_app private API */
 
+inline struct gkyl_gyrokinetic_bc *
+gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
+  int dir, enum gkyl_edge_loc edge)
+{
+  // Given a list of gyrokinetic BCs `bc_list` of length `num_bcs`, return the
+  // entry corresponding to the BC in the `dir` direction and the `edge` edge.
+  // It omits GKYL_BC_GK_SKIP BCs.
+  struct gkyl_gyrokinetic_bc *out = 0;
+  for (int i=0; i<num_bcs; ++i) {
+    struct gkyl_gyrokinetic_bc *bc_curr = &bc_list[i];
+    if (bc_curr->dir == dir && bc_curr->edge == edge && bc_curr->type != GKYL_BC_GK_SKIP) {
+      out = bc_curr;
+      break;
+    }
+  }
+  return out;
+}
+ 
 /**
  * Create a new array metadata object. It must be freed using
  * gk_array_meta_release.

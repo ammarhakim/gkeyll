@@ -256,39 +256,32 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.polarization_density = sp_pb->polarization_density;  
 
     // By default, skip BCs altogether.
-    for (int d=0; d<GKYL_MAX_CDIM; d++) {
-      species_inp.bcs.lower[d].type = GKYL_BC_GK_SKIP;
-      species_inp.bcs.upper[d].type = GKYL_BC_GK_SKIP;
+    for (int i=0; i<2*GKYL_MAX_CDIM; i++) {
+      species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
+      species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
-    // Set species physical BCs: we need to search through the list of
-    // physical BCs and set the appropriate input to single-block
-    // species inp.
+    // Set species physical BCs.
+    int bc_count_sp[num_blocks];
+    for (int i=0; i<num_blocks; i++)
+      bc_count_sp[i] = 0;
+
     for (int i=0; i<sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
+        species_inp.bcs[bc_count_sp[bid]].dir = sp->bcs[i].dir;
+        species_inp.bcs[bc_count_sp[bid]].edge = sp->bcs[i].edge;
+        species_inp.bcs[bc_count_sp[bid]].type = sp->bcs[i].type;
+        species_inp.bcs[bc_count_sp[bid]].aux_profile = sp->bcs[i].aux_profile;
+        species_inp.bcs[bc_count_sp[bid]].aux_ctx = sp->bcs[i].aux_ctx;
+        species_inp.bcs[bc_count_sp[bid]].projection = sp->bcs[i].projection;
+        for (int k=0; k<3; ++k)
+          species_inp.bcs[bc_count_sp[bid]].value[k] = sp->bcs[i].value[k];
 
-        int dir = sp->bcs[i].dir;
-        int e = sp->bcs[i].edge;
-        if (e == 0) {
-          species_inp.bcs.lower[dir].type = sp->bcs[i].type;
-          species_inp.bcs.lower[dir].aux_profile = sp->bcs[i].aux_profile;
-          species_inp.bcs.lower[dir].aux_ctx = sp->bcs[i].aux_ctx;
-          species_inp.bcs.lower[dir].projection = sp->bcs[i].projection;
-          for (int k=0; k<3; ++k)
-            species_inp.bcs.lower[dir].value[k] = sp->bcs[i].value[k];
-        }
-        else {
-          species_inp.bcs.upper[dir].type = sp->bcs[i].type;
-          species_inp.bcs.upper[dir].aux_profile = sp->bcs[i].aux_profile;
-          species_inp.bcs.upper[dir].aux_ctx = sp->bcs[i].aux_ctx;
-          species_inp.bcs.upper[dir].projection = sp->bcs[i].projection;
-          for (int k=0; k<3; ++k)
-            species_inp.bcs.upper[dir].value[k] = sp->bcs[i].value[k];
-        }
+        bc_count_sp[bid] += 1;
       }
     }
 
-    // copy species input into app input
+    // Copy species input into app input.
     memcpy(&app_inp.species[i], &species_inp, sizeof(struct gkyl_gyrokinetic_species));
   }
 
@@ -332,35 +325,28 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.source = nsp_pb->source;
 
     // By default, skip BCs altogether.
-    for (int d=0; d<GKYL_MAX_CDIM; d++) {
-      neut_species_inp.bcs.lower[d].type = GKYL_BC_GK_SKIP;
-      neut_species_inp.bcs.upper[d].type = GKYL_BC_GK_SKIP;
+    for (int i=0; i<2*GKYL_MAX_CDIM; i++) {
+      neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
+      neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
-    // Set species physical BCs: we need to search through the list of
-    // physical BCs and set the appropriate input to single-block
-    // species inp.
+    // Set species physical BCs.
+    int bc_count_nsp[num_blocks];
+    for (int i=0; i<num_blocks; i++)
+      bc_count_nsp[i] = 0;
+
     for (int i=0; i<nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
+        neut_species_inp.bcs[bc_count_nsp[bid]].dir = nsp->bcs[i].dir;
+        neut_species_inp.bcs[bc_count_nsp[bid]].edge = nsp->bcs[i].edge;
+        neut_species_inp.bcs[bc_count_nsp[bid]].type = nsp->bcs[i].type;
+        neut_species_inp.bcs[bc_count_nsp[bid]].aux_profile = nsp->bcs[i].aux_profile;
+        neut_species_inp.bcs[bc_count_nsp[bid]].aux_ctx = nsp->bcs[i].aux_ctx;
+        neut_species_inp.bcs[bc_count_nsp[bid]].projection = nsp->bcs[i].projection;
+        for (int k=0; k<3; ++k)
+          neut_species_inp.bcs[bc_count_nsp[bid]].value[k] = nsp->bcs[i].value[k];
 
-        int dir = nsp->bcs[i].dir;
-        int e = nsp->bcs[i].edge;
-        if (e == 0) {
-          neut_species_inp.bcs.lower[dir].type = nsp->bcs[i].type;
-          neut_species_inp.bcs.lower[dir].aux_profile = nsp->bcs[i].aux_profile;
-          neut_species_inp.bcs.lower[dir].aux_ctx = nsp->bcs[i].aux_ctx;
-          neut_species_inp.bcs.lower[dir].projection = nsp->bcs[i].projection;
-          for (int k=0; k<3; ++k)
-            neut_species_inp.bcs.lower[dir].value[k] = nsp->bcs[i].value[k];
-        }
-        else {
-          neut_species_inp.bcs.upper[dir].type = nsp->bcs[i].type;
-          neut_species_inp.bcs.upper[dir].aux_profile = nsp->bcs[i].aux_profile;
-          neut_species_inp.bcs.upper[dir].aux_ctx = nsp->bcs[i].aux_ctx;
-          neut_species_inp.bcs.upper[dir].projection = nsp->bcs[i].projection;
-          for (int k=0; k<3; ++k)
-            neut_species_inp.bcs.upper[dir].value[k] = nsp->bcs[i].value[k];
-        }
+        bc_count_nsp[bid] += 1;
       }
     }
 
@@ -382,31 +368,32 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   field_inp.electron_temp = fld->electron_temp; 
 
   // BCs.
-  for (int d=0; d<cdim-1; d++) {
+  for (int i=0; i<2*cdim; i++) {
     // Set it to Dirichlet first, reset below. This avoids problems in
     // creating the single block field solve, which may not be used.
-    field_inp.poisson_bcs.lower[d].type = GKYL_BC_GK_FIELD_DIRICHLET;
+    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
     for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs.lower[d].value[k] = -1.0e3;
+      field_inp.poisson_bcs[i].value[k] = -1.0e3;
 
-    field_inp.poisson_bcs.upper[d].type = GKYL_BC_GK_FIELD_DIRICHLET;
+    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
     for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs.upper[d].value[k] = -1.0e3;
+      field_inp.poisson_bcs[i].value[k] = -1.0e3;
   }
-  for (int d=0; d<cdim-1; d++) {
-    for (int k=0; k<fld->num_physical_bcs; k++) { 
-      if (bid == fld->bcs[k].bidx) {
-        if (fld->bcs[k].edge == GKYL_LOWER_EDGE) {
-          field_inp.poisson_bcs.lower[d].type = fld->bcs[k].type;
-          for (int j=0; j<3; ++j)
-            field_inp.poisson_bcs.lower[d].value[j] = fld->bcs[k].value[j];
-        }
-        if (fld->bcs[k].edge == GKYL_UPPER_EDGE) {
-          field_inp.poisson_bcs.upper[d].type = fld->bcs[k].type;
-          for (int j=0; j<3; ++j)
-            field_inp.poisson_bcs.upper[d].value[j] = fld->bcs[k].value[j];
-        }
-      }
+  int bc_count_fld[num_blocks];
+  for (int i=0; i<num_blocks; i++)
+    bc_count_fld[i] = 0;
+
+  for (int i=0; i<fld->num_physical_bcs; i++) { 
+    if (bid == fld->bcs[i].bidx) {
+      field_inp.poisson_bcs[bc_count_fld[bid]].dir = fld->bcs[i].dir;
+      field_inp.poisson_bcs[bc_count_fld[bid]].edge = fld->bcs[i].edge;
+      field_inp.poisson_bcs[bc_count_fld[bid]].type = fld->bcs[i].type;
+      field_inp.poisson_bcs[bc_count_fld[bid]].aux_profile = fld->bcs[i].aux_profile;
+      field_inp.poisson_bcs[bc_count_fld[bid]].aux_ctx = fld->bcs[i].aux_ctx;
+      for (int k=0; k<3; ++k)
+        field_inp.poisson_bcs[bc_count_fld[bid]].value[k] = fld->bcs[i].value[k];
+
+      bc_count_fld[bid] += 1;
     }
   }
 

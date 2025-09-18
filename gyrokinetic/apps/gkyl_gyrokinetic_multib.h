@@ -5,18 +5,6 @@
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
-// BC for blocks
-struct gkyl_gyrokinetic_block_physical_bcs {
-  int bidx; // Block index.
-  int dir;  // Direction in which BC is specified.
-  enum gkyl_edge_loc edge; // Which edge this BC is for.
-  enum gkyl_gyrokinetic_bc_type type; // BC type flag.
-  double value[3]; // Meaning depends on type.
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
-  void *aux_ctx; // Context for aux_profile.
-  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
-};
-
 // Species input per block
 struct gkyl_gyrokinetic_multib_species_pb {
   int block_id; // block ID
@@ -75,7 +63,7 @@ struct gkyl_gyrokinetic_multib_species {
 
   // Physical boundary conditions.
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 };
 
 // Neutral species input per block
@@ -113,7 +101,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 };
 
 // Field input per block 
@@ -154,7 +142,7 @@ struct gkyl_gyrokinetic_multib_field {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 };

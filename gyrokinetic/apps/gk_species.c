@@ -1438,15 +1438,11 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   bool recycling_bcs = false;
   int neuts = app->num_neut_species;
   for (int i=0; i<neuts; ++i) {
-    for (int d=0; d<app->cdim; d++) {
-      const struct gkyl_gyrokinetic_bcs *bc = &app->neut_species[i].info.bcs;
-      if (bc->lower[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-         for (int j=0; j<bc->lower[d].emission.num_species; j++)
-           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->lower[d].emission.in_species[j]);
-      }
-      if (bc->upper[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-         for (int j=0; j<bc->upper[d].emission.num_species; j++)
-           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->upper[d].emission.in_species[j]);
+    for (int k=0; k<2*app->cdim; k++) {
+      const struct gkyl_gyrokinetic_bc *bc = &app->neut_species[i].info.bcs[k];
+      if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
+        for (int j=0; j<bc->emission.num_species; j++)
+          recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->emission.in_species[j]);
       }
     }
   }
@@ -1571,14 +1567,18 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->bc_is_np[gks->periodic_dirs[d]] = false;
 
   // Store the BCs from the input file.
-  // MF 2025/11/19: With new BC input file specification this separate storage
-  // is redundant and could be eliminated. But we leave it for now for
-  // simplicity.
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (gks->bc_is_np[dir]) {
-      gks->lower_bc[dir] = gks->info.bcs.lower[dir];
-      gks->upper_bc[dir] = gks->info.bcs.upper[dir];
-    }
+  for (int d=0; d<app->cdim; ++d) {
+    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+    if (bc_lo != 0)
+      gks->lower_bc[d] = *bc_lo;
+    else
+      gks->lower_bc[d].type = GKYL_BC_GK_SKIP;
+
+    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+    if (bc_up != 0)
+      gks->upper_bc[d] = *bc_up;
+    else
+      gks->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
  
   // Determine which directions are zero-flux. By default
@@ -1819,17 +1819,21 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     // If domain is not periodic use Dirichlet BCs.
     struct gkyl_poisson_bc flr_bc;
     for (int d=0; d<app->cdim-1; d++) {
-      enum gkyl_gyrokinetic_bc_type species_bc_lo = app->field->info.poisson_bcs.lower[d].type;
-      if (species_bc_lo == GKYL_BC_GK_SPECIES_PERIODIC)
-        flr_bc.lo_type[d] = GKYL_POISSON_PERIODIC;
-      else
-        flr_bc.lo_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0) {
+        if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC)
+          flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        else
+          flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      }
 
-      enum gkyl_gyrokinetic_bc_type species_bc_up = app->field->info.poisson_bcs.upper[d].type;
-      if (species_bc_up == GKYL_BC_GK_SPECIES_PERIODIC)
-        flr_bc.up_type[d] = GKYL_POISSON_PERIODIC;
-      else
-        flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0) {
+        if (bc_up->type == GKYL_BC_GK_FIELD_PERIODIC)
+          flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        else
+          flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      }
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
     gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,

@@ -637,14 +637,10 @@ main(int argc, char **argv)
     },
     
     .bcs = {
-      .lower = {
-        { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-        { .type = GKYL_BC_GK_SPECIES_SHEATH, },
-      },
-      .upper = {
-        { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-        { .type = GKYL_BC_GK_SPECIES_SHEATH, },
-      },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     },
 
     .num_diag_moments = 5,
@@ -712,14 +708,10 @@ main(int argc, char **argv)
     },
 
     .bcs = {
-      .lower = {
-        { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-        { .type = GKYL_BC_GK_SPECIES_SHEATH, },
-      },
-      .upper = {
-        { .type = GKYL_BC_GK_SPECIES_ZERO_FLUX, },
-        { .type = GKYL_BC_GK_SPECIES_SHEATH, },
-      },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     },
 
     .num_diag_moments = 5,
@@ -740,12 +732,8 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
-      .lower = {
-        { .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      },
-      .upper = {
-        { .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
-      },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
 
     .time_rate_diagnostics = true,

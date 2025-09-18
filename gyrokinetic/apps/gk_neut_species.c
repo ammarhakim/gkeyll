@@ -1012,14 +1012,18 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->bc_is_np[s->periodic_dirs[d]] = false;
 
   // Store the BCs from the input file.
-  // MF 2025/11/19: With new BC input file specification this separate storage
-  // is redundant and could be eliminated. But we leave it for now for
-  // simplicity.
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (s->bc_is_np[dir]) {
-      s->lower_bc[dir] = s->info.bcs.lower[dir];
-      s->upper_bc[dir] = s->info.bcs.upper[dir];
-    }
+  for (int d=0; d<app->cdim; ++d) {
+    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+    if (bc_lo != 0)
+      s->lower_bc[d] = *bc_lo;
+    else
+      s->lower_bc[d].type = GKYL_BC_GK_SKIP;
+
+    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+    if (bc_up != 0)
+      s->upper_bc[d] = *bc_up;
+    else
+      s->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
   // Determine which directions are zero-flux. By default

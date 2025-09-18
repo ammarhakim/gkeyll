@@ -342,17 +342,16 @@ gyrokinetic_species_lw_new(lua_State *L)
   }
 
   with_lua_tbl_tbl(L, "bcs") {
-    with_lua_tbl_tbl(L, "lower") {
-      int cdim = glua_objlen(L);
-      for (int d = 0; d < cdim; d++) {
-        gk_species.bcs.lower[d].type = glua_tbl_get_integer(L, "type", 0);
-      }
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      int cdim = glua_objlen(L);
-      for (int d = 0; d < cdim; d++) {
-        gk_species.bcs.upper[d].type = glua_tbl_get_integer(L, "type", 0);
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
       }
     }
   }
@@ -930,20 +929,20 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
   }
 
   with_lua_tbl_tbl(L, "bcs") {
-    with_lua_tbl_tbl(L, "lower") {
-      int cdim = glua_objlen(L);
-      for (int d = 0; d < cdim; d++) {
-        gk_neut_species.bcs.lower[d].type = glua_tbl_get_integer(L, "type", 0);
-      }
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      int cdim = glua_objlen(L);
-      for (int d = 0; d < cdim; d++) {
-        gk_neut_species.bcs.upper[d].type = glua_tbl_get_integer(L, "type", 0);
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_neut_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_neut_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_neut_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_neut_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
       }
     }
   }
+
 
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
@@ -1050,42 +1049,15 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
   with_lua_tbl_tbl(L, "poissonBcs") {
-    with_lua_tbl_tbl(L, "lowerType") {
-      int nbc = glua_objlen(L);
-      
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.lower[i].type = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperType") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.upper[i].type = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "lowerValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        if (glua_tbl_iget_tbl(L, i + 1)) {
-          for (int k = 0; k < 3; k++) {
-            gk_field.poisson_bcs.lower[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
-          }
-        }
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        if (glua_tbl_iget_tbl(L, i + 1)) {
-          for (int k = 0; k < 3; k++) {
-            gk_field.poisson_bcs.upper[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
-          }
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_field.poisson_bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_field.poisson_bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_field.poisson_bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_field.poisson_bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
         }
       }
     }

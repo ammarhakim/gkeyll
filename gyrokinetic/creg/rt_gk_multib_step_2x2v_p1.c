@@ -1024,7 +1024,7 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_SHEATH},
@@ -1497,7 +1497,7 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_SHEATH},
@@ -1588,7 +1588,7 @@ main(int argc, char **argv)
 
   };
 
-  struct gkyl_gyrokinetic_block_physical_bcs Ar1_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc Ar1_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_SHEATH},
@@ -1704,7 +1704,7 @@ main(int argc, char **argv)
 
   };
 
-  struct gkyl_gyrokinetic_block_physical_bcs Ar0_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc Ar0_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
@@ -1763,7 +1763,7 @@ main(int argc, char **argv)
     // No block specific field info for this simulation
   };
 
-  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
     //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},

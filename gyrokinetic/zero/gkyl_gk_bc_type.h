@@ -7,7 +7,7 @@
 // Boundary conditions on fields and particles in the gyrokinetic solver.
 enum gkyl_gyrokinetic_bc_type {
   // Particle BCs.
-  GKYL_BC_GK_SKIP, // Do not apply any BCs 
+  GKYL_BC_GK_SKIP = 0, // Do not apply any BCs 
   GKYL_BC_GK_SPECIES_COPY, // Copy skin into ghost.
   GKYL_BC_GK_SPECIES_REFLECT, // Reflect particles.
   GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs.
