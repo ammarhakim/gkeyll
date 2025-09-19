@@ -733,6 +733,126 @@ test_3x_p1_straight_cylinder()
 
   // Finally, surface geometry must be tested
 
+  // It's much easier to generate and find the nodes using the grid generators
+  struct gkyl_rect_grid psi_grid;
+  struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, ginp.filename_psi);
+  // create mirror geometry for surfaces
+  struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
+  for (int dir = 0; dir < cdim; dir++) {
+    mirror_grid_surf[dir] =
+      gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp) {
+          .comp_grid = &grid,
+          .nrange = gk_geom->nrange_surf[dir],
+          .local = gk_geom->local,
+          .global = gk_geom->global,
+          .dir = dir,
+          
+          .R = { psi_grid.lower[0], psi_grid.upper[0] },
+          .Z = { psi_grid.lower[1], psi_grid.upper[1] },
+          
+          // psi(R,Z) grid size
+          .nrcells = psi_grid.cells[0]-1, // cells and not nodes
+          .nzcells = psi_grid.cells[1]-1, // cells and not nodes
+
+          .psiRZ = psi,
+          .fl_coord = ginp.fl_coord,
+          .include_axis = ginp.include_axis,
+          .write_psi_cubic = false,
+        }
+      );
+  }
+
+  for (int dir = 0; dir < cdim; dir++){
+    enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+    enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+    int cidx[3];
+    for(int ia=gk_geom->nrange_surf[dir].lower[AL_IDX]; ia<=gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia){
+      for (int ip=gk_geom->nrange_surf[dir].lower[PSI_IDX]; ip<=gk_geom->nrange_surf[dir].upper[PSI_IDX]; ++ip) {
+        for (int it=gk_geom->nrange_surf[dir].lower[TH_IDX]; it<=gk_geom->nrange_surf[dir].upper[TH_IDX]; ++it) {
+          cidx[PSI_IDX] = ip;
+          cidx[AL_IDX] = ia;
+          cidx[TH_IDX] = it;
+
+          // First fetch the mirror stuff at this location
+          const double *mirror_rza_n = gkyl_array_cfetch(mirror_grid_surf[dir]->nodes_rza, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          const double *mirror_psi_n = gkyl_array_cfetch(mirror_grid_surf[dir]->nodes_psi, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          const struct gkyl_mirror_grid_gen_geom *mirror_geo_n = gkyl_array_cfetch(mirror_grid_surf[dir]->nodes_geom, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+
+          const double psi = mirror_psi_n[0];
+          const double alpha = mirror_rza_n[2];
+          const double theta = mirror_rza_n[1];
+
+          // Next fetch the gk_geometry nodal values at this location
+          double *mc2p_n = gkyl_array_fetch(gk_geom->geo_surf[dir].mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *gFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *biFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].b_i_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *cmagFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].cmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *bcartFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].bcart_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *dualFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *normFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normals_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+
+          // Check mapc2p
+          double fout[8];
+          mapc2p(0.0, (double[]){psi, -alpha, theta}, fout, 0);
+          for (int i=0; i<3; ++i)
+            TEST_CHECK( gkyl_compare( fout[i], mc2p_n[i], 1e-8) );
+
+          // Check Jacobian
+          double jgeo;
+          exact_jacobian(0, (double[]){psi, -alpha, theta}, &jgeo, 0);
+          TEST_CHECK( gkyl_compare( jgeo, jFld_n[0], 1e-6) );
+
+          // Check bmag
+          double bmag_anal[1];
+          bmag_func(0, (double[]){psi, -alpha, theta}, bmag_anal, 0);
+          TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-7) );
+
+          // Check b_i (magnetic unit vector should have magnitude 1)
+          double bi_mag = sqrt(biFld_n[0]*biFld_n[0] + biFld_n[1]*biFld_n[1] + biFld_n[2]*biFld_n[2]);
+          TEST_CHECK( gkyl_compare( bi_mag, 1.0, 1e-8) );
+
+          // Check cmag (curvature magnitude should be 1 for straight cylinder)
+          TEST_CHECK( gkyl_compare( cmagFld_n[0], 1.0, 1e-8) );
+
+          // Check bcart (cartesian components of magnetic field)
+          // For a straight cylinder with bmag=0.5 and unit vector b_i, bcart = bmag * b_i
+          // for (int i = 0; i < 3; i++) {
+          //   TEST_CHECK( gkyl_compare( bcartFld_n[i], bmag_anal[0] * biFld_n[i], 1e-7) );
+          // }
+
+          // Check normals (surface normal vectors)
+          double norm_mag = sqrt(normFld_n[0]*normFld_n[0] + normFld_n[1]*normFld_n[1] + normFld_n[2]*normFld_n[2]);
+          TEST_CHECK( gkyl_compare( norm_mag, 1.0, 1e-8) );
+
+          // // Check that tangent and dual vectors are orthogonal to normals
+          // double tan_dot_norm = tanvecFld_n[0]*normFld_n[0] + tanvecFld_n[1]*normFld_n[1] + tanvecFld_n[2]*normFld_n[2];
+          // TEST_CHECK( gkyl_compare( tan_dot_norm, 0.0, 1e-8) );
+          
+          // double dual_dot_norm = dualFld_n[0]*normFld_n[0] + dualFld_n[1]*normFld_n[1] + dualFld_n[2]*normFld_n[2];
+          // TEST_CHECK( gkyl_compare( dual_dot_norm, 0.0, 1e-8) );
+
+          // Check that dual magnitude is consistent
+          double dual_mag = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
+          TEST_CHECK( gkyl_compare( dual_mag, dualmagFld_n[0], 1e-8) );
+
+          // // Check B3 component consistency
+          // TEST_CHECK( gkyl_compare( B3_n[0], bcartFld_n[2], 1e-7) );
+
+          // // Check that curlbhat magnitude equals normcurlbhat
+          // double curlbhat_mag = sqrt(curlbhat_n[0]*curlbhat_n[0] + curlbhat_n[1]*curlbhat_n[1] + curlbhat_n[2]*curlbhat_n[2]);
+          // TEST_CHECK( gkyl_compare( curlbhat_mag, normcurlbhat_n[0], 1e-8) );
+        }
+      }
+    }
+  }
   gkyl_array_release(bhat_nodal);
   gkyl_array_release(dualmag_nodal);
   gkyl_array_release(bmag_nodal);
