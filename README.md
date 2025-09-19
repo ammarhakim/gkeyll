@@ -369,8 +369,16 @@ on CPUs with e.g.
 valgrind --leak-check=full <executable> <command_line_arguments>
 ```
 
-and compute-sanitizer clean on GPUs with e.g.
+and compute-sanitizer clean on one GPU with e.g.
 
 ```
-compute-sanitizer --tool memcheck <executable> <command_line_arguments>
+compute-sanitizer --tool memcheck --leak-check full <executable> <command_line_arguments>
 ```
+
+To check using multiple GPUs on a Perlmuttter node with SLURM e.g.
+
+```
+srun -N 1 --ntasks=2 --gpus-per-task=1 --gpu-bind=closest compute-sanitizer --tool memcheck --leak-check full <executable> <command_line_arguments>
+```
+
+where the command line arguments must at least contain `-g -M -direction 2` with `direction` being the direction along which the domain is decomposed, e.g. `-e 2` for 3x2v gk simulations.

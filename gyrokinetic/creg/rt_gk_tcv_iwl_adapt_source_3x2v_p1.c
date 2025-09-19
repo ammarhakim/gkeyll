@@ -435,7 +435,7 @@ struct gk_app_ctx create_ctx(void)
   double z_max     =  Lz/2.;
 
   // Collision frequencies
-  double nuFrac = 0.5;
+  double nuFrac = 0.1;
   // Electron-electron collision freq.
   double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
   double nuElc = nuFrac * logLambdaElc * pow(eV, 4) * n0 /
@@ -468,19 +468,19 @@ struct gk_app_ctx create_ctx(void)
   double sigma_srcRECY[3] = {0.25*x_LCFS, 0.0, 0.05*Lz};
   double floor_srcRECY = 1e-10;
 
-  // Grid parameters
-  int num_cell_x = 9; // The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
-  int num_cell_y = 6;
-  int num_cell_z = 6;
-  int num_cell_vpar = 6;
-  int num_cell_mu = 4;
+  // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
+  int num_cell_x = 9; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int num_cell_y = 8; // (16)
+  int num_cell_z = 8; // (12)
+  int num_cell_vpar = 8; // (12)
+  int num_cell_mu = 8; // (8)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
   double mu_max_elc   = 1.*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion   = 1.*mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-6;
+  double final_time = 1.e-7; // Should be reached in 13 steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
