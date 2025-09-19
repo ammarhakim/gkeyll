@@ -13,11 +13,8 @@ gk_species_anomalous_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Copy fin into local of fghost_vol.
-  gkyl_array_copy_range(species->fghost_vol, fin, &species->local);
-  // Pass fghost_vol instead of fin.
   gkyl_dg_updater_gk_anomalous_diffusion_advance(gkad->slvr, &species->local, 
-    species->fghost_vol, species->cflrate, rhs);
+    fin, species->cflrate, rhs);
 
   app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }

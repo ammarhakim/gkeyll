@@ -211,12 +211,12 @@ create_gk_block_geom(void *ctx)
    x  
    ^  
    |
-   1  +------------------+------------------+
-   |  |b0                |b1                |
-   |  |lower SOL         |upper             |
-   |  |                  |                  |
-   0  +------------------+------------------+
-      0 -----------------1------------------2----> z
+   1  +------------------+------------------+------------------+
+   |  |b0                |b1                |b2                |
+   |  |lower SOL         |upper             |upper             |
+   |  |                  |                  |                  |
+   0  +------------------+------------------+------------------+
+      0 -----------------1------------------2------------------3 ----> z
 
       Edges that touch coincide are physically connected unless
       otherwise indicated by a special symbol. Edges with a special
@@ -245,7 +245,6 @@ create_gk_block_geom(void *ctx)
         .bfield_func = bfield_func,
         .bfield_ctx = app 
       },
-
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -272,7 +271,6 @@ create_gk_block_geom(void *ctx)
         .bfield_ctx = app
       },
 
-
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -298,7 +296,6 @@ create_gk_block_geom(void *ctx)
         .bfield_func = bfield_func,
         .bfield_ctx = app
       },
-
 
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -524,7 +521,6 @@ main(int argc, char **argv)
 
   };
 
-
   struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
     // block 1 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
@@ -573,7 +569,6 @@ main(int argc, char **argv)
     .bcs = elc_phys_bcs,
   };
 
-
   // Ion Species
   // all data is common across blocks
   struct gkyl_gyrokinetic_multib_species_pb ion_blocks[1];
@@ -608,7 +603,6 @@ main(int argc, char **argv)
     },
 
   };
-
 
   struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
     // block 1 BCs
@@ -657,8 +651,6 @@ main(int argc, char **argv)
     .num_physical_bcs = 8,
     .bcs = ion_phys_bcs,
   };
-
- 
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];

@@ -679,7 +679,7 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew, *fghost_vol; // Arrays for updates
+  struct gkyl_array *f, *f1, *fnew; // Arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)

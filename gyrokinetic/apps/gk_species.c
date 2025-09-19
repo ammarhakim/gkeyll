@@ -1638,8 +1638,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Initialize an anomalous diffusion term.
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
-  if (gks->anom_diff.anom_diff_id)
-    gks->fghost_vol = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
@@ -2012,8 +2010,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_dg_calc_gyrokinetic_vars_release(s->calc_gk_vars);
   gkyl_dg_updater_gyrokinetic_release(s->slvr);
 
-  if (s->anom_diff.anom_diff_id)
-    gkyl_array_release(s->fghost_vol);
   gk_species_anomalous_diff_release(app, &s->anom_diff);
 
   // Release moment data.

@@ -89,7 +89,7 @@ create_gk_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        //.geometry_id = GKYL_GEOMETRY_FROMFILE,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_LO,
@@ -125,7 +125,7 @@ create_gk_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        //.geometry_id = GKYL_GEOMETRY_FROMFILE,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_MID,
@@ -161,7 +161,7 @@ create_gk_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        //.geometry_id = GKYL_GEOMETRY_FROMFILE,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_UP,
@@ -537,6 +537,7 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .no_by = true,
+
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .num_integrated_diag_moments = 1,
@@ -561,11 +562,11 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-//    .anomalous_diffusion = {
-//      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-//      .D_profile = diffusion_D_func,
-//      .D_profile_ctx = &ctx,
-//    }, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+    }, 
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
@@ -635,6 +636,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .no_by = true,
 
     .num_diag_moments = 7,
@@ -661,12 +663,12 @@ main(int argc, char **argv)
       .collide_with = { "elc"},
     },
 
-//    .anomalous_diffusion = {
-//      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-//      .D_profile = diffusion_D_func,
-//      .D_profile_ctx = &ctx,
-//    }, 
-  
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+    }, 
+
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
     .num_physical_bcs = 8,
