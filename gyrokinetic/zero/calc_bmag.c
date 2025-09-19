@@ -5,6 +5,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_proj_on_basis.h>
 
 #include <gkyl_array_ops_priv.h>
 
@@ -107,7 +108,7 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
 void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, 
   const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global, 
   const struct gkyl_range *prange, const struct gkyl_range *prange_ext, 
-  const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p)
+  const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p, bool use_quad)
 {
   // Convert bmag into computational coordinates
   struct gkyl_bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
@@ -120,9 +121,16 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up,
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
   ctx->mapc2p = mapc2p;
-  gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
-  gkyl_eval_on_nodes_release(eval_bmag_comp);
+  if (use_quad) {
+    gkyl_proj_on_basis *eval_bmag_comp = gkyl_proj_on_basis_new(up->cgrid, up->cbasis, 2, 1, bmag_comp, ctx);
+    gkyl_proj_on_basis_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
+    gkyl_proj_on_basis_release(eval_bmag_comp);
+  }
+  else {
+    gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
+    gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
+    gkyl_eval_on_nodes_release(eval_bmag_comp);
+  }
 
   // Free allocated memory
   gkyl_free(ctx);

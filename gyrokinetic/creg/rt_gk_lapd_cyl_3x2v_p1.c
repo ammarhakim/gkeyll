@@ -338,14 +338,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lapd_cyl_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B0;
 }
 
 void
@@ -450,6 +453,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempElcInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -466,6 +476,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Ion species.
@@ -508,6 +529,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempIonInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -524,6 +552,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Field.
@@ -533,6 +572,7 @@ main(int argc, char **argv)
       .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
       .lo_value = { 0.0, 0.0 }, .up_value = { 0.0, 0.0}
     },
+    .time_rate_diagnostics = true,
   };
 
   // GK app.
@@ -550,8 +590,8 @@ main(int argc, char **argv)
       .geometry_id = GKYL_MAPC2P,
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 1,

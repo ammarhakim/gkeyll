@@ -59,7 +59,7 @@ gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_specie
   }
   // Multiply by the gyrocenter coord jacobian (bmag).
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-      app->gk_geom->bmag, f, &app->local, &s->local); 
+      app->gk_geom->geo_corn.bmag, f, &app->local, &s->local); 
   // Multiply by the velocity-space jacobian. 
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
 }
@@ -125,7 +125,7 @@ gk_species_projection_correct_all_moms(gkyl_gyrokinetic_app *app, struct gk_spec
 {
   struct gkyl_gk_maxwellian_correct_status status_corr;
   status_corr = gkyl_gk_maxwellian_correct_all_moments(proj->corr_max, 
-  f, proj->prim_moms, &s->local, &app->local);
+    f, proj->prim_moms, &s->local, &app->local);
 }
 
 static void
@@ -302,7 +302,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
   double red_integral_ho[1];
 
-  gkyl_dg_mul_op_range(app->basis, 0, integrant, 0, app->gk_geom->jacobgeo, 0, proj->gaussian_profile, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, integrant, 0, app->gk_geom->geo_int.jacobgeo, 0, proj->gaussian_profile, &app->local);
   gkyl_array_integrate_advance(int_op, integrant, 1.0, NULL, &app->local, NULL, integral);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, integral, red_integral);
   
@@ -360,21 +360,24 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
       }
     );
-    if (app->use_gpu) {
+    if (app->use_gpu)
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-    }
+
     proj->projection_calc = gk_species_projection_calc_proj_func;
+    proj->moms_correct = gk_species_projection_correct_all_moms_none;
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    init_maxwellian_bimaxwellian(app, s, inp, proj);
-    proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
-      gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
-  } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-    init_maxwellian_gaussian(app, s, inp, proj);
-    proj->projection_calc = gk_species_projection_calc_max_gauss;
+  else {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+      init_maxwellian_bimaxwellian(app, s, inp, proj);
+      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
+        gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
+    } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+      init_maxwellian_gaussian(app, s, inp, proj);
+      proj->projection_calc = gk_species_projection_calc_max_gauss;
+    }
+    proj->moms_correct = proj->correct_all_moms ? 
+      gk_species_projection_correct_all_moms : gk_species_projection_correct_all_moms_none;
   }
-  proj->moms_correct = proj->correct_all_moms ? 
-    gk_species_projection_correct_all_moms : gk_species_projection_correct_all_moms_none;
 }
 
 void
@@ -385,7 +388,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
   proj->moms_correct(app, s, proj, f, tm);  
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-    app->gk_geom->jacobgeo, f, &app->local, &s->local);
+    app->gk_geom->geo_int.jacobgeo, f, &app->local, &s->local);      
 }
 
 void

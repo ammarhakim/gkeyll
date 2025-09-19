@@ -104,8 +104,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
-      return B0
+    bfieldFunc = function (t, zc)
+      return 0.0, 0.0, B0
     end
   },
 

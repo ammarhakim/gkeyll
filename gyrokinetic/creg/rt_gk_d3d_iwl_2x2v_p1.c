@@ -361,16 +361,31 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
-void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
+  double r0 = app->r0;
+  double q0 = app->q0;
 
   double x = xc[0], y = xc[1], z = xc[2];
   double r = r_x(x,a_mid);
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
   double Bp = dPsidr(r,z,ctx)/R_rtheta(r,z,ctx)*gradr(r,z,ctx);
-  fout[0] = sqrt(Bt*Bt + Bp*Bp);
+
+  double drdtheta = dRdtheta(r,z,ctx);
+  double dzdtheta = dZdtheta(r,z,ctx);
+  double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
+  double B_r = Bp*drdtheta/den;
+  double B_z = Bp*dzdtheta/den;
+  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double R   = R_rtheta(r, z, ctx);
+
+  // xc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = B_r * cos(phi) - Bt * sin(phi);
+  fout[1] = B_r * sin(phi) + Bt * cos(phi);
+  fout[2] = B_z;
 }
 
 struct gk_app_ctx
@@ -789,8 +804,8 @@ main(int argc, char **argv)
       .world = {0.},
       .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // Magnetic field magnitude.
-      .bmag_ctx = &ctx,
+      .bfield_func = bfield_func, // Magnetic field
+      .bfield_ctx = &ctx,
       .has_LCFS = true,
       .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },

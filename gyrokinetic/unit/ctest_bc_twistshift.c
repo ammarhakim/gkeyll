@@ -122,14 +122,16 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
 }
 
-void eval_bmag_3x(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+void eval_bfield_3x(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
   struct test_bc_twistshift_ctx *pars = ctx;
   double B0 = pars->B0;
 
-  fout[0] = B0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B0;
 }
 
 void
@@ -623,8 +625,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .geometry_id = GKYL_MAPC2P,
     .c2p_ctx = 0,
     .mapc2p = mapc2p,
-    .bmag_ctx = &proj_ctx,
-    .bmag_func = eval_bmag_3x,
+    .bfield_ctx = &proj_ctx,
+    .bfield_func = eval_bfield_3x,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -650,8 +652,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
@@ -660,15 +662,15 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
   if (use_gpu) {
-    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[num_mom]));
+    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[num_mom]));
   }
   else {
-    red_integ_mom_skin = gkyl_malloc(sizeof(double[vdim+2]));
-    red_integ_mom_ghost = gkyl_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_skin = gkyl_malloc(sizeof(double[num_mom]));
+    red_integ_mom_ghost = gkyl_malloc(sizeof(double[num_mom]));
   }
-  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[vdim+2]));
-  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[vdim+2]));
+  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
+  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
       &skin_rng, &skin_rng_conf, distf, marr);
@@ -679,15 +681,15 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
-    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
   }
   else {
-    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]));
-    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[num_mom]));
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]));
   }
 
-  for (int k=0; k<vdim+2; k++) {
+  for (int k=0; k<num_mom; k++) {
     TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
     TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }
@@ -750,11 +752,11 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu)
-    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
   else
-    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]));
 
-  for (int k=0; k<vdim+2; k++) {
+  for (int k=0; k<num_mom; k++) {
     TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
     TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }
@@ -1364,8 +1366,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .geometry_id = GKYL_MAPC2P,
     .c2p_ctx = 0,
     .mapc2p = mapc2p,
-    .bmag_ctx = &proj_ctx,
-    .bmag_func = eval_bmag_3x,
+    .bfield_ctx = &proj_ctx,
+    .bfield_func = eval_bfield_3x,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -1391,8 +1393,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
@@ -1401,15 +1403,15 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
   if (use_gpu) {
-    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[num_mom]));
+    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[num_mom]));
   }
   else {
-    red_integ_mom_skin = gkyl_malloc(sizeof(double[vdim+2]));
-    red_integ_mom_ghost = gkyl_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_skin = gkyl_malloc(sizeof(double[num_mom]));
+    red_integ_mom_ghost = gkyl_malloc(sizeof(double[num_mom]));
   }
-  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[vdim+2]));
-  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[vdim+2]));
+  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
+  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
       &skin_rng, &skin_rng_conf, distf, marr);
@@ -1420,15 +1422,15 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
-    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
   }
   else {
-    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]));
-    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[num_mom]));
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[num_mom]));
   }
 
-  for (int k=0; k<vdim+2; k++) {
+  for (int k=0; k<num_mom; k++) {
     TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
     TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }

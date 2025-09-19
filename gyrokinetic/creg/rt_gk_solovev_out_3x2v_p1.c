@@ -184,13 +184,6 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = app->nuIon;
 }
 
-void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_solovev_ctx *gc = ctx;
-  fout[0] = gc->B0;
-}
-
 struct gk_solovev_ctx
 create_ctx(void)
 {
@@ -243,10 +236,10 @@ create_ctx(void)
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
   int Nx = 4; // Number of cells in x.
-  int Ny = 1; // Number of cells in y.
+  int Ny = 2; // Number of cells in y.
   int Nz = 8; // Number of cells in z.
-  int Nvpar = 16; // Number of cells in vpar.
-  int Nmu = 8; // Number of cells in mu.
+  int Nvpar = 6; // Number of cells in vpar.
+  int Nmu = 4; // Number of cells in mu.
 
   double t_end = 4.0e-7; 
   double num_frames = 1;
@@ -393,6 +386,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_elc_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -406,6 +406,17 @@ main(int argc, char **argv)
         
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // ions
@@ -445,6 +456,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_ion_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -458,6 +476,17 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // field
@@ -465,6 +494,7 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -475,7 +505,7 @@ main(int argc, char **argv)
   };
   
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT,    // type of geometry
+    .ftype = GKYL_DN_SOL_OUT,    // type of geometry
     .rclose = 3.0,               // closest R to region of interest
     .rright = 3.0,               // Closest R to outboard SOL
     .rleft = 0.1,                // closest R to inboard SOL
@@ -511,6 +541,8 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm,
     },
   };
 

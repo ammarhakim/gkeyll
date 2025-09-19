@@ -32,7 +32,7 @@ void eval_T_over_m_neut(double t, const double *xn, double* restrict fout, void 
   double x = xn[0];
   fout[0] = 4.*echarge/d_ion_mass;  
 }
-void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
@@ -212,11 +212,9 @@ void coll_cx_d_gpu() { test_coll_cx_d(true); }
 #endif
 
 TEST_LIST = {
-#ifdef GKYL_HAVE_ADAS
   { "coll_cx_d", coll_cx_d },
 #ifdef GKYL_HAVE_CUDA
   { "coll_cx_d_gpu", coll_cx_d_gpu },
-#endif
 #endif
   { NULL, NULL },
 };

@@ -264,7 +264,7 @@ test_gr_mhd_tetrad_basic_minkowski()
         gkyl_wv_eqn_rotate_to_local(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 75; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
@@ -272,7 +272,7 @@ test_gr_mhd_tetrad_basic_minkowski()
         gr_mhd_tetrad->cons_to_riem(gr_mhd_tetrad, q_local, q_local, w1);
         gr_mhd_tetrad->riem_to_cons(gr_mhd_tetrad, q_local, w1, q1);
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 75; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -566,7 +566,7 @@ test_gr_mhd_tetrad_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_local(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 9; i++) {
+          for (int i = 0; i < 75; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -574,7 +574,7 @@ test_gr_mhd_tetrad_basic_schwarzschild()
           gr_mhd_tetrad->cons_to_riem(gr_mhd_tetrad, q_local, q_local, w1);
           gr_mhd_tetrad->riem_to_cons(gr_mhd_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 9; i++) {
+          for (int i = 0; i < 75; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -869,7 +869,7 @@ test_gr_mhd_tetrad_basic_kerr()
           gkyl_wv_eqn_rotate_to_local(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_mhd_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 9; i++) {
+          for (int i = 0; i < 75; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -877,7 +877,7 @@ test_gr_mhd_tetrad_basic_kerr()
           gr_mhd_tetrad->cons_to_riem(gr_mhd_tetrad, q_local, q_local, w1);
           gr_mhd_tetrad->riem_to_cons(gr_mhd_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 9; i++) {
+          for (int i = 0; i < 75; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -926,7 +926,7 @@ test_gr_mhd_tetrad_waves_minkowski()
     for (int y_ind = -10; y_ind < 11; y_ind++) {
       double x = 0.1 * x_ind;
       double y = 0.1 * y_ind;
-
+      
       double rho_l = 1.0, u_l = 0.1, v_l = 0.2, w_l = 0.3, p_l = 1.5;
       double mag_x_l = 0.3, mag_y_l = 0.2, mag_z_l = 0.1, psi_l = 0.05;
       double rho_r = 0.1, u_r = 0.2, v_r = 0.3, w_r = 0.4, p_r = 0.15;

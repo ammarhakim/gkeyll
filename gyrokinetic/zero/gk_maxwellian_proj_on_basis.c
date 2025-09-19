@@ -337,7 +337,7 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
   gkyl_array_clear(up->bmag_quad, 0.0); 
   gkyl_array_clear(up->jacobtot_quad, 0.0); 
   gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(up, inp->conf_range, 
-    inp->gk_geom->bmag, inp->gk_geom->jacobtot);
+    inp->gk_geom->geo_int.bmag, inp->gk_geom->geo_int.jacobtot);
     
   // Store a Maxwellian moment calculation updater to compute and correct the density
   struct gkyl_gk_maxwellian_moments_inp inp_mom = {
