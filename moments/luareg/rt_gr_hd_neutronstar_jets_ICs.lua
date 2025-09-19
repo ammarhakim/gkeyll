@@ -1,3 +1,112 @@
+-- ==========================================
+-- Load MESA profile .data file
+-- ==========================================
+
+-- Change this to your MESA profile filename
+local mesa_file = "/Users/nikolabukowiecka/Desktop/Nikola/Gkyell/MESAfiles/CHE_test.data"
+
+-- Debug print: make sure this path is exactly what you expect
+print("Attempting to open MESA file:", mesa_file)
+
+-- Try to open file
+local f, err = io.open(mesa_file, "r")
+if not f then
+    io.stderr:write("ERROR: Could not open MESA profile file!\n")
+    io.stderr:write("Path checked: " .. mesa_file .. "\n")
+    io.stderr:write("System error message: " .. tostring(err) .. "\n")
+    os.exit(1)
+end
+
+-- Skip header lines until we find the column names
+local header_found = false
+local col_names = {}
+while true do
+   local line = f:read("*l")
+   if not line then break end
+   if string.find(line, "logR") then
+      for name in string.gmatch(line, "[^%s]+") do
+         table.insert(col_names, name)
+      end
+      header_found = true
+      break
+   end
+end
+
+if not header_found then
+    io.stderr:write("ERROR: Could not find column names in MESA profile file!\n")
+    os.exit(1)
+end
+
+-- Build a map from column names to their indices
+local col_index = {}
+for i, name in ipairs(col_names) do
+   col_index[name] = i
+end
+
+-- Tables for variables we care about
+local radius = {}
+local rhoStar = {}
+local pStar = {}
+local vphiStar = {}
+
+if not f then
+   io.stderr:write("INTERNAL ERROR: f was nil before reading lines.\n")
+   os.exit(1)
+end
+
+-- Read rest of file line by line
+for line in f:lines() do
+   local values = {}
+   for value in string.gmatch(line, "[^%s]+") do
+      table.insert(values, tonumber(value))
+   end
+
+   -- Convert radius: MESA gives logR in log10(cm)
+   local r = 10^(values[col_index["logR"]]) -- cm
+   table.insert(radius, r)
+
+   -- Density: logRho is log10(g/cm^3)
+   local d = 10^(values[col_index["logRho"]]) -- g/cm^3
+   table.insert(rhoStar, d)
+
+   -- Pressure: logP is log10(dyn/cm^2)
+   local p = 10^(values[col_index["logP"]]) -- dyn/cm^2
+   table.insert(pStar, p)
+
+   -- Azimuthal velocity: assuming MESA has v_rot column (cm/s)
+   local v = values[col_index["v_rot"]] or 0.0
+   table.insert(vphiStar, v)
+end
+
+f:close()
+
+
+
+-- ==========================================
+-- Your existing interpolation functions below
+-- ==========================================
+local findNearestIndex = function(x, x0)
+   local nx = #x
+   local idxLo = 1
+   while (idxLo+1 < nx and x[idxLo+1] <= x0) do
+      idxLo = idxLo + 1
+   end
+   local idxUp = math.min(idxLo + 1, nx)
+   return idxLo, idxUp
+end
+
+local linearInterp = function(fun, x, x0)
+   local idxLo, idxUp = findNearestIndex(x, x0)
+   local x0l = math.min(x0, x[#x])
+   local y = fun[idxLo] + (x0l - x[idxLo]) * (fun[idxUp] - fun[idxLo]) / (x[idxUp] - x[idxLo])
+   return y
+end
+
+-- Now radius, rho, press, vphi are 1D tables ready for interpolation
+
+-- Example: nearest neighbor/linear interpolation (reuse your function below)
+-- local density_at_r = linearInterp(rho, radius, 1.0e10)
+
 local Moments = G0.Moments
 local GRMHD = G0.Moments.Eq.GRMHD
 local NeutronStar = G0.Moments.Spacetime.NeutronStar
@@ -10,7 +119,7 @@ b_fact = 0.85 -- Factor of speed of light for magnetic field correction.
 
 -- Spacetime parameters (using geometric units).
 mass = 1.0 -- Mass of the neutron star.
-spin = -0.069 -- Spin of the neutron star.
+spin = -0.11 -- Spin of the neutron star.
 
 pos_x = 20.0 -- Position of the neutron star (x-direction).
 pos_y = 2.0 -- Position of the neutron star (y-direction).
@@ -40,7 +149,7 @@ cfl_frac = 0.9 -- CFL coefficient.
 spacetime_gauge = G0.SpacetimeGauge.Static -- Spacetime gauge choice.
 reinit_freq = 10 -- Spacetime reinitialization frequency.
 
-t_end = 150.0 -- Final simulation time.
+t_end = 600.0 -- Final simulation time.
 num_frames = 100 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -95,15 +204,29 @@ momentApp = Moments.App.new {
       local r = math.sqrt(((x - (0.5 * Lx)) * (x - (0.5 * Lx))) + ((y - (0.5 * Ly)) * (y - (0.5 * Ly))) + ((z - (0.5 * Lz)) * (z - (0.5 * Lz))))
       local theta = math.atan2((y - (0.5 * Ly)), (x - (0.5 * Lx)))
       local phi = math.atan2(math.sqrt(((x - (0.5 * Lx)) * (x - (0.5 * Lx))) + ((y - (0.5 * Ly)) * (y - (0.5 * Ly)))), (z - (0.5 * Lz)))
+      
+      local function velocity_cartesian(x, y, z)
+        local r = math.sqrt(((x - (0.5 * Lx)) * (x - (0.5 * Lx))) + ((y - (0.5 * Ly)) * (y - (0.5 * Ly))) + ((z - (0.5 * Lz)) * (z - (0.5 * Lz))))
+        if r == 0 then 
+          return 0.0, 0.0, 0.0 
+        end
+
+        local phi = math.atan2((y - (0.5 * Ly)), (x - (0.5 * Lx)))
+        local vphi_val = linearInterp(vphiStar, radius, r) -- interpolate v_phi(r)
+          -- radius: the table of radii you read from the MESA profile file. It is an array of sampled radii where you know v_phi
+          -- r: the specific radius at the grid point you’re evaluating the velocity for
+
+          -- Convert to Cartesian
+        local vx = -vphi_val * math.sin(phi)
+        local vy =  vphi_val * math.cos(phi)
+        local vz = 0.0
+
+        return vx, vy, vz
+      end
+      
       --print(theta)
-      local rho = 0.0
-      local p = 0.0
-      local rho0 = 10
-      local r_star = 150740.0
-      --local omega0 = -6.08113e-6
-      local omega0 = -6.08113e-6
-      local rc = 1507.4
-      local Rhe = 21103.5
+
+      local r_star = radius[#radius]
       local ux = 0.0
       local uy = 0.0
 
@@ -111,38 +234,17 @@ momentApp = Moments.App.new {
       local By = 0.0
       local Bz = 0.0
 
+      local vx, vy, vz = velocity_cartesian(x, y, z)
+
       if r < r_star then
-        rho = rho0 * math.pow(1.21052e38 / (math.pow(r, 2) + 3.63155e37) , 1.25) * math.pow((1 - (r / r_star)) , 5)
-        --rho = rho0 * math.pow(1e16 / (math.pow(r, 2) + 1e16) , 1.25) * math.pow((1 - (r / r_star)) , 5)
-        p = 3.64945e10 * rho / r
-        --p = 1e-6 * rho / r
-
-        local omega = 0.0
-        if r < rc then
-          omega = omega0 * (r * r) * (math.sin(theta) * math.sin(theta))
-          --ux = - omega0 * (r * r * math.pow(math.sin(theta), 2)) * math.sin(theta) * r * math.sin(phi)
-          --uy = omega0 * (r * r * math.pow(math.sin(theta), 2)) * r * math.cos(theta) * math.sin(phi)
-          --ux = 0.0
-          --uy = 0.0
-        elseif r < Rhe then
-          omega = omega0 * (rc * rc) * (math.sin(theta) * math.sin(theta))
-          --ux = - omega0 * (rc * rc * math.pow(math.sin(theta), 2)) * r * math.sin(theta) * math.sin(phi)
-          --uy = omega0 * (rc * rc * math.pow(math.sin(theta), 2)) * r * math.cos(theta) * math.sin(phi)
-        end
-
-        ux = -omega * (y - (0.5 * Ly))
-        uy = omega * (x - (0.5 * Lx))
-
-        if r < 2.4 then
-          Bz = 8.54651e-8
-          --Bz = 1e6
-        end
+        rho = linearInterp(rhoStar, radius, r)
+        p = linearInterp(pStar, radius, r)
+        ux = vx
+        uy = vy
+        uz = vz
+    
       else
-        --rho = 1e-20
         rho = 121.052
-        ux = 0.0
-        uy = 0.0
-        -- p = rho / 1e6
         p = rho / 3.64945e22
       end
 
