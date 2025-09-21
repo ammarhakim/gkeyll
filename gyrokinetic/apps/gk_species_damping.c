@@ -99,31 +99,35 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
 
-      // Maximum bmag.
-      double *bmag_max_local;
-      if (app->use_gpu) {
-        bmag_max_local = gkyl_cu_malloc(sizeof(double));
-        damp->bmag_max = gkyl_cu_malloc(sizeof(double));
+      // Maximum bmag and its location.
+      // NOTE: if the same max bmag occurs at multiple locations,
+      // bmag_max_coord may have different values on different MPI processes.
+      double bmag_max_coord_ho[GKYL_MAX_CDIM];
+      double bmag_max_ho = gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX, bmag_max_coord_ho);
+      double bmag_max_local = bmag_max_ho;
+      double bmag_max_global;
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
+      double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
+      if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
+        for (int d=0; d<app->cdim; d++)
+          bmag_max_coord_local[d] = bmag_max_coord_ho[d];
       }
       else {
-        bmag_max_local = gkyl_malloc(sizeof(double));
-        damp->bmag_max = gkyl_malloc(sizeof(double));
+        for (int d=0; d<app->cdim; d++)
+          bmag_max_coord_local[d] = -DBL_MAX;
       }
-      gkyl_array_dg_reducec_range(bmag_max_local, app->gk_geom->geo_int.bmag, 0, GKYL_MAX, app->basis_on_dev, &app->local);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, bmag_max_local, damp->bmag_max);
-      if (app->use_gpu)
-        gkyl_cu_free(bmag_max_local);
-      else
-        gkyl_free(bmag_max_local);
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
 
-      // Get the location of maximum bmag.
-      double bmag_max_coord_ho[] = {0.98};
       if (app->use_gpu) {
+        damp->bmag_max = gkyl_cu_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
+	gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
 	gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
+        damp->bmag_max = gkyl_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
+	memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
 	memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
       }
 

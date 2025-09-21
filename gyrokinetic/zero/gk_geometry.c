@@ -245,14 +245,83 @@ gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op)
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&up->local, iter.idx);
     double *b_d = gkyl_array_fetch(bmag_ho, linidx);
-    double blog[cdim];
+    double nod_log[cdim];
     for (int n = 0; n < up->basis.num_basis; n++) {
-      const double *blog = gkyl_array_cfetch(nodes,n);
-      double b = up->basis.eval_expand(blog, b_d);
+      const double *nod_log = gkyl_array_cfetch(nodes,n);
+      double b = up->basis.eval_expand(nod_log, b_d);
       if (op == GKYL_MIN)
         b_m = GKYL_MIN2(b_m, b);
       else if (op == GKYL_MAX)
         b_m = GKYL_MAX2(b_m, b);
+    }
+  }
+
+  gkyl_array_release(nodes);
+  gkyl_array_release(bmag_ho);
+
+  return b_m;
+}
+
+static inline void
+log_to_comp(int ndim, const double *eta,
+  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
+  double* GKYL_RESTRICT xout)
+{
+  // Convert logical to computational coordinates.
+  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+}
+
+double
+gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry* up, enum gkyl_array_op op, double *coord)
+{
+  int cdim = up->grid.ndim;
+  for (int d=0; d<cdim; d++)
+    coord[d] = DBL_MAX; 
+
+  double b_m;
+  if (op == GKYL_MIN)
+    b_m = DBL_MAX;
+  else if (op == GKYL_MAX)
+    b_m = -DBL_MAX;
+  else
+    assert(false);
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, cdim, up->basis.num_basis);
+  up->basis.node_list(gkyl_array_fetch(nodes, 0));
+
+  struct gkyl_array *bmag_ho = gkyl_array_new(GKYL_DOUBLE, up->geo_int.bmag->ncomp, up->geo_int.bmag->size);
+  gkyl_array_copy(bmag_ho, up->geo_int.bmag);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&up->local, iter.idx);
+    double *b_d = gkyl_array_fetch(bmag_ho, linidx);
+
+    double xc[cdim];
+    gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
+
+    double nod_log[cdim], nod_phys[cdim];
+    for (int n = 0; n < up->basis.num_basis; n++) {
+      const double *nod_log = gkyl_array_cfetch(nodes,n);
+      double b = up->basis.eval_expand(nod_log, b_d);
+
+      log_to_comp(cdim, nod_log, up->grid.dx, xc, nod_phys);
+
+      if (op == GKYL_MIN) {
+        if (b < b_m) {
+          b_m = b;
+          for (int d=0; d<cdim; d++)
+            coord[d] = nod_phys[d];
+        }
+      }
+      else if (op == GKYL_MAX) {
+        if (b_m < b) {
+          b_m = b;
+          for (int d=0; d<cdim; d++)
+            coord[d] = nod_phys[d];
+        }
+      }
     }
   }
 
