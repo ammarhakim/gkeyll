@@ -4,6 +4,7 @@
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
+#include <gkyl_const.h>
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -890,6 +891,26 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
       p = pow(10.0, -8.0);
     }
 
+    double c1 = -0.1551;
+    double c2 = 0.4603;
+    double c2m = 0.7418;
+    double baryonic_mass_density = 0.0;
+    double epsilon = 0.0;
+    double p_update = 0.0;
+    double normal_nuclear_density = 0.16; // fm^-3
+
+    baryonic_mass_density = rho / (GKYL_PROTON_MASS * 5.61e26); // * 5.61e26 does kg -> GeV/c^2; rho is GeV/fm^3
+    //printf("Baryonic mass density: %f\n", baryonic_mass_density); // (c^2 / fm^3)
+    if (baryonic_mass_density > 7 * normal_nuclear_density) {
+      epsilon = 3 * c1 * pow(baryonic_mass_density, (4/3)) + 3 * c2 * pow(baryonic_mass_density, (2/3)) + 3 * c2m * baryonic_mass_density * baryonic_mass_density; //could be just Etot, but it's given like that in the paper
+    //epsilon = Etot;
+      p_update = epsilon / 3.0 - (2 / 3.0) * c2 * pow(baryonic_mass_density, (2/3.0)) + (2 / 3.0) * c2m * pow(baryonic_mass_density, 2);
+    //p += p_update;
+      //printf("p: %f, p_update: %f\n", p, p_update);
+    } else if (baryonic_mass_density < 7 * normal_nuclear_density) {
+      //printf("NO p_update");
+    }
+
     double spacetime_vel[4];
     spacetime_vel[0] = W / lapse;
     spacetime_vel[1] = (W * vx) - (shift_x * (W / lapse));
@@ -914,7 +935,7 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
     double stress_energy[4][4];
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
-        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + (p * inv_spacetime_metric[i][j]);
+        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + ((p + p_update) * inv_spacetime_metric[i][j]);
       }
     }
 
@@ -979,6 +1000,20 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
         }
       }
     }
+
+    double p_new = p;
+    p_new += dt * p_update;
+
+    h = 1.0 + ((p_new / rho) * (gas_gamma / (gas_gamma - 1.0)));
+
+    fluid_new[1] = rho * h * (W * W) * vx;
+    fluid_new[2] = rho * h * (W * W) * vy;
+    fluid_new[3] = rho * h * (W * W) * vz;
+
+    //local h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)))
+    fluid_new[4] =  (rho * h * (W * W)) - p_new - (rho * W);
+    //fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
+    //fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
   }
   else {
     for (int i = 0; i < 71; i++) {
