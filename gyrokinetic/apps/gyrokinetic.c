@@ -960,44 +960,6 @@ gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx,
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-void
-gkyl_gyrokinetic_app_reset_fdot_mult(gkyl_gyrokinetic_app* app, int sidx, double alpha, enum gkyl_gyrokinetic_fdot_multiplier_type type)
-{
-  assert(sidx < app->num_species);
-  struct gk_species *gk_s = &app->species[sidx];
-  gk_s->info.collisionless_scale_factor = alpha;
-  gk_s->collisionless_scale_fac = alpha;
-  gk_s->info.time_rate_multiplier.type = type;
-  gk_species_fdot_multiplier_init(app, gk_s, &gk_s->fdot_mult);
-}
-
-void
-gkyl_gyrokinetic_app_reset_enforce_positivity(gkyl_gyrokinetic_app* app, bool enforce_positivity)
-{
-  app->enforce_positivity = enforce_positivity;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *gk_s = &app->species[i];
-    gk_s->enforce_positivity = enforce_positivity;
-  }
-}
-
-void
-gkyl_gyrokinetic_app_reset_update_field(gkyl_gyrokinetic_app* app, bool update_field)
-{
-  if (update_field)
-    app->calc_field_func = gyrokinetic_calc_field_update;
-  else
-    app->calc_field_func = gyrokinetic_calc_field_none;
-}
-
-void
-gkyl_gyrokinetic_app_reset_update_species(gkyl_gyrokinetic_app* app, int sidx, bool update_species)
-{
-  assert(sidx < app->num_species);
-  struct gk_species *gk_s = &app->species[sidx];
-  gk_species_reset_static(gk_s, update_species);
-}
-
 //
 // ............. Geometry outputs ............... //
 // 
@@ -2897,4 +2859,40 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_dynvec_release(app->dts);
 
   gkyl_free(app);
+}
+
+void
+gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
+  const char* species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp)
+{
+  struct gk_species *gks = gk_find_species(app, species_name);
+  gk_species_fdot_multiplier_reset(app, tm, gks, &gks->fdot_mult, fdot_mult_inp);
+}
+
+void
+gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, double collisionless_fac)
+{
+  struct gk_species *gks = gk_find_species(app, species_name);
+  gk_species_collisionless_reset(app, tm, gks, collisionless_fac);
+}
+
+void
+gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, bool enforce_positivity)
+{
+  struct gk_species *gks = gk_find_species(app, species_name);
+  gk_species_positivity_reset(app, tm, gks, enforce_positivity);
+}
+
+void
+gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
+  struct gkyl_gyrokinetic_field field_inp)
+{
+  app->field->info.is_static = field_inp.is_static;
+  app->field->update_field = !field_inp.is_static;
+  if (app->field->update_field)
+    app->calc_field_func = gyrokinetic_calc_field_update;
+  else
+    app->calc_field_func = gyrokinetic_calc_field_none;
 }

@@ -2346,6 +2346,18 @@ void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_speci
  */
 void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul);
 
+/**
+ * Reset the df/dt multiplier operator.
+ *
+ * @param app gyrokinetic app object.
+ * @param tm Current simulation time.
+ * @param gks Pointer to species.
+ * @param fdmul Species df/dt multiplier object.
+ * @param fdot_mult_inp New input struct for the fdot_multiplier.
+ */
+void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+
 /** gk_heating API */
 
 /**
@@ -2445,14 +2457,6 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
  */
 double gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
-
-/**
- * Reset whether species is static or dynamic.
- * @param gks Pointer to species.
- * @param is_static Boolean indicating if species is static (true) or dynamic (false).
- */
-
-void gk_species_reset_static(struct gk_species *gks, bool update_species);
 
 /**
  * Scale and accumulate for forward euler method.
@@ -2597,6 +2601,28 @@ gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
  * @param species Species object to delete.
  */
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/**
+ * Reset the collisionless scaling.
+ *
+ * @param app gyrokinetic app object.
+ * @param tm Time-stamp.
+ * @param gks Species object to delete.
+ * @param collisionless_fac Factor multiplying collisionless terms.
+ */
+void gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm,
+  struct gk_species *gks, double collisionless_fac);
+
+/**
+ * Reset the positivity operator.
+ *
+ * @param app gyrokinetic app object.
+ * @param tm Time-stamp.
+ * @param gks Species object to delete.
+ * @param enforce_positivity Whether to enforce positivity.
+ */
+void gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
+  struct gk_species *gks, bool enforce_positivity);
 
 /** gk_neut_species_moment API */
 
