@@ -181,19 +181,24 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 
   int ghost[3] = { 1, 1, 1 };
   // create non-ideal local extended range from local range
-  // has one additional cell in each direction because non-ideal variables are stored at cell vertices
-  gkyl_create_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
+  // has one additional cell in each direction because non-ideal
+  // variables are stored at cell vertices
+  gkyl_create_vertex_ranges(&app->local, ghost, &src->non_ideal_local_ext,
+    &src->non_ideal_local);
 
-  // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
-  for (int n=0;  n<app->num_species; ++n)
-    src->non_ideal_vars[n] = mkarr(false, 10, src->non_ideal_local_ext.volume);
-
-  // Check whether gradient-based closure is present.
-  for (int i = 0; i < app->num_species; i++) {
+  // check if gradient-closure is present
+  for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
+      int nadj[3] = { 1, 4, 8 }; // cells adjacent to a vertex
+      src->non_ideal_vars[i] = mkarr(false, nadj[app->ndim - 1]*10,
+        src->non_ideal_local_ext.volume);
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
         .k0 = app->species[i].k0,
+        .cfl = app->cfl,
+        .comm = app->comm,
+        .update_range = &app->local,
+        .heat_flux_range = &src->non_ideal_local,
       };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
     }
@@ -269,7 +274,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local_ext, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
-        src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
+        src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
     }
 
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
