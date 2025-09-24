@@ -52,9 +52,10 @@ double r_x(double x, double a_mid, double x_inner)
 // cubic polynomial fit to TCV NT q profile (discharge #65130)
 double qprofile(double r, double R_axis) {
   double R = r + R_axis;
-  double qfit[4] = {484.0615913225881, -1378.25993228584, 
-                    1309.3099150729233, -414.13270311478726};
-  return qfit[0] + qfit[1]*R + qfit[2]*R*R + qfit[3]*R*R*R;
+  double qfit[4] = {
+    -414.13270311478726, 1309.3099150729233, -1378.25993228584, 484.0615913225881
+  };
+  return qfit[3]*R*R*R + qfit[2]*R*R + qfit[1]*R + qfit[0];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
