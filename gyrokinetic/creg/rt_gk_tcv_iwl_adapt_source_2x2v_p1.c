@@ -53,7 +53,7 @@ double qprofile(double R) {
   double qfit[4] = {
     497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
   };
-  return qfit[0]*R*R*R + qfit[1]*R*R + qfit[2]*R + qfit[3];
+  return qfit[0]*pow(R,3) + qfit[1]*pow(R,2) + qfit[2]*R + qfit[3];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
