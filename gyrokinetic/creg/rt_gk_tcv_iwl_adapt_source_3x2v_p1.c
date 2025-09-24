@@ -50,12 +50,11 @@ double r_x(double x, double a_mid, double x_inner)
 }
 
 // cubic polynomial fit to TCV NT q profile (discharge #65130)
-double qprofile(double r, double R_axis) {
-  double R = r + R_axis;
+double qprofile(double R) {
   double qfit[4] = {
-    -414.13270311478726, 1309.3099150729233, -1378.25993228584, 484.0615913225881
+    497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
   };
-  return qfit[3]*R*R*R + qfit[2]*R*R + qfit[1]*R + qfit[0];
+  return qfit[0]*R*R*R + qfit[1]*R*R + qfit[2]*R + qfit[3];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
@@ -135,7 +134,7 @@ double dPsidr(double r, double theta, void *ctx)
   double B0 = app->B0;
   double R_axis = app->R_axis;
   double R = R_rtheta(r, 0.0, ctx);
-  return ( B0*R_axis/(2.*M_PI*qprofile(0,R)))*integral.res;
+  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -417,7 +416,7 @@ struct gk_app_ctx create_ctx(void)
   double x_min = 0.;
   double x_max = Lx;
   double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
-  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid,x_inner),R_axis); // Safety factor in the center of domain.
+  double q0 = qprofile(R0); // Safety factor in the center of domain.
 
   double Ly = 150*rho_s; // Domain size along y.
   // Adjust the domain size along y to have integer toroidal mode number.
