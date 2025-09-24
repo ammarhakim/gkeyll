@@ -101,7 +101,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
 }
 
 static void
-gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
   // Apply the periodicity to fill the ghost cells
   int num_periodic_dir = 1; // we need only periodicity in z
@@ -123,23 +123,24 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *fie
 }
 
 static void
-gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
 }
 
 // Ensure that the value at the lower x boundary matches the Dirichlet boundary condition value.
 static void 
-gk_field_enforce_xbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_xbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
   gkyl_array_clear_range(finout, 0.0, &app->lower_skin[0]);
-  double dg_norm = pow(sqrt(2),app->basis.ndim);
-  gkyl_array_shiftc_range(finout, dg_norm*field->info.poisson_bcs.lo_value[0].v[0], 0, &app->lower_skin[0]);
+  double dg_norm = pow(sqrt(2.0),app->basis.ndim);
+  struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(field->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
+  gkyl_array_shiftc_range(finout, dg_norm*bc_lo_x->value[0], 0, &app->lower_skin[0]);
   // Update the lower x skin surface value to match the ghost cell at the node position.
   gkyl_skin_surf_from_ghost_advance(field->ssfg_x_lo, finout);
 }
 
 static void
-gk_field_enforce_xbc_none(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_xbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
 }
 
@@ -512,10 +513,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
   f->enforce_zbc = gk_field_enforce_zbc_none;
   f->enforce_xbc = gk_field_enforce_xbc_none;
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL){
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_zbc = gk_field_enforce_zbc;
-    if(f->info.poisson_bcs.lo_type[0] == GKYL_POISSON_DIRICHLET)
+    struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
+    if (bc_lo_x->type == GKYL_BC_GK_FIELD_DIRICHLET)
       f->enforce_xbc = gk_field_enforce_xbc;
   }
   
