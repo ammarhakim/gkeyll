@@ -49,11 +49,11 @@ double r_x(double x, double a_mid, double x_inner)
 }
 
 // cubic polynomial fit to TCV NT q profile (discharge #65130)
-double qprofile(double r, double R_axis) {
-  double R = r + R_axis;
-  double qfit[4] = {484.0615913225881, -1378.25993228584, 
-                    1309.3099150729233, -414.13270311478726};
-  return qfit[0] + qfit[1]*R + qfit[2]*R*R + qfit[3]*R*R*R;
+double qprofile(double R) {
+  double qfit[4] = {
+    497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
+  };
+  return qfit[0]*pow(R,3) + qfit[1]*pow(R,2) + qfit[2]*R + qfit[3];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
@@ -131,9 +131,9 @@ double dPsidr(double r, double theta, void *ctx)
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
   double B0 = app->B0;
-  double a_mid = app->a_mid;
   double R_axis = app->R_axis;
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,R_axis)))*integral.res;
+  double R = R_rtheta(r, 0.0, ctx);
+  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -396,13 +396,15 @@ struct gk_app_ctx create_ctx(void)
   double x_min = 0.;
   double x_max = Lx;
   double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
-  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid,x_inner),R_axis); // Safety factor in the center of domain.
+  double q0 = qprofile(R0); // Safety factor in the center of domain.
 
   double Lz = 2.*M_PI-1e-10; // Domain size along magnetic field.
   double z_min = -Lz/2.;
   double z_max = Lz/2.;
 
   // Collision frequencies
+  // We note that initial profile are unstable for the full collision frequency (nu=1.0).
+  // This factor can be increased once a saturated state is reached.
   double nuFrac = 0.1;
   // Electron-electron collision freq.
   double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
@@ -448,7 +450,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 1.*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion = 1.*mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-7; // Should take 28 time steps
+  double final_time = 1.e-7; // Should take 8 time steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;

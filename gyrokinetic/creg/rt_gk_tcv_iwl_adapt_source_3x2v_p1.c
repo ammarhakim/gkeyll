@@ -50,11 +50,11 @@ double r_x(double x, double a_mid, double x_inner)
 }
 
 // cubic polynomial fit to TCV NT q profile (discharge #65130)
-double qprofile(double r, double R_axis) {
-  double R = r + R_axis;
-  double qfit[4] = {484.0615913225881, -1378.25993228584, 
-                    1309.3099150729233, -414.13270311478726};
-  return qfit[0] + qfit[1]*R + qfit[2]*R*R + qfit[3]*R*R*R;
+double qprofile(double R) {
+  double qfit[4] = {
+    497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
+  };
+  return qfit[0]*pow(R,3) + qfit[1]*pow(R,2) + qfit[2]*R + qfit[3];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
@@ -132,9 +132,9 @@ double dPsidr(double r, double theta, void *ctx)
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
   double B0 = app->B0;
-  double a_mid = app->a_mid;
   double R_axis = app->R_axis;
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,R_axis)))*integral.res;
+  double R = R_rtheta(r, 0.0, ctx);
+  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -416,7 +416,7 @@ struct gk_app_ctx create_ctx(void)
   double x_min = 0.;
   double x_max = Lx;
   double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
-  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid,x_inner),R_axis); // Safety factor in the center of domain.
+  double q0 = qprofile(R0); // Safety factor in the center of domain.
 
   double Ly = 150*rho_s; // Domain size along y.
   // Adjust the domain size along y to have integer toroidal mode number.
@@ -478,7 +478,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc   = 1.*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion   = 1.*mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-7; // Should be reached in 44 steps
+  double final_time = 1.e-7; // Should be reached in 14 steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
@@ -621,6 +621,12 @@ main(int argc, char **argv)
       .ctx = &ctx,
     },
 
+    // .init_from_file = {
+    //    .type = GKYL_IC_IMPORT_F,
+    //    .file_name = "restart-elc.gkyl",
+    //    .jacobtot_inv_file_name = "restart-jacobtot_inv.gkyl",
+    // },
+
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .ctx_density = &ctx,
@@ -739,6 +745,12 @@ main(int argc, char **argv)
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
+
+    // .init_from_file = {
+    //    .type = GKYL_IC_IMPORT_F,
+    //    .file_name = "restart-ion.gkyl",
+    //    .jacobtot_inv_file_name = "restart-jacobtot_inv.gkyl",
+    // },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
