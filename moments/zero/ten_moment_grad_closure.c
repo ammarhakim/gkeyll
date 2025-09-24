@@ -57,6 +57,12 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   double *cfla = gces->cfla;
   double cfl = gces->cfl, cflm = 1.1*cfl;
   double is_cfl_violated = 0.0; // deliberately a double
+
+  long offsets_vertices[sz[ndim-1]];
+  create_offsets_vertices(update_range, offsets_vertices);
+
+  long offsets_centers[sz[ndim-1]];
+  create_offsets_centers(heat_flux_range, offsets_centers);
   
   const double* fluid_d[sz[ndim-1]];
   const double* em_tot_d[sz[ndim-1]];
@@ -72,8 +78,8 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
     long linc_center = gkyl_range_idx(update_range, iter_vertex.idx);
 
     for (int i=0; i<sz[ndim-1]; ++i) {
-      em_tot_d[i] =  gkyl_array_cfetch(em_tot, linc_center + gces->offsets_vertices[i]);
-      fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + gces->offsets_vertices[i]);
+      em_tot_d[i] =  gkyl_array_cfetch(em_tot, linc_center + offsets_vertices[i]);
+      fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
     }
 
     heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
@@ -90,7 +96,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
     for (int i=0; i<sz[ndim-1]; ++i)
       heat_flux_up[i] = gkyl_array_fetch(heat_flux,
-        linc_vertex + gces->offsets_centers[i]);
+        linc_vertex + offsets_centers[i]);
 
     rhs_d = gkyl_array_fetch(rhs, linc_center);
 

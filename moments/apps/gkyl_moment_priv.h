@@ -474,8 +474,8 @@ void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
-  int nstrang, double tcurr, double dt);
+struct gkyl_update_status moment_coupling_update(gkyl_moment_app *app,
+  struct moment_coupling *src, int nstrang, double tcurr, double dt);
 
 // Release coupling sources
 void moment_coupling_release(const struct gkyl_moment_app *app,
