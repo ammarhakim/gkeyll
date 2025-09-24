@@ -83,11 +83,10 @@ double r_x(double x, double a_mid, double x_inner)
   return x+a_mid-x_inner;
 }
 
-double qprofile(double r, double R_axis) 
+double qprofile(double R) 
 {
   // Magnetic safety factor as a function of minor radius r.
   double a[] = {49.46395467479657, -260.79513158768754, 458.42618139184754, -267.63441353752336};
-  double R = r+R_axis+0.15;
   return a[0]*pow(R,3) + a[1]*pow(R,2) + a[2]*R + a[3];
 }
 
@@ -164,7 +163,8 @@ double dPsidr(double r, double theta, void *ctx)
 
   double B0 = app->B0;
   double R_axis = app->R_axis;
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,R_axis)) )*integral.res;
+  double R = R_rtheta(r,0.0,ctx);
+  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -523,7 +523,7 @@ create_ctx(void)
   double z_min = -Lz/2.;
   double z_max = Lz/2.;
 
-  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid,x_inner),R_axis); // Magnetic safety factor in the center of domain.
+  double q0 = qprofile(R0); // Magnetic safety factor in the center of domain.
 
   double nuFrac = 0.1;
   // Electron-electron collision freq.
@@ -562,7 +562,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 1.e-7; // End time, should terminate in 20 steps.
+  double t_end = 1.e-7; // End time, should terminate in 43 steps.
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
