@@ -22,7 +22,7 @@ enum gk_oai_state {
 struct gk_oai_phase_params {
   enum gk_oai_state phase; // Type of phase.
   int num_frames; // Number of frames.
-  int duration; // Duration.
+  double duration; // Duration.
   double alpha; // Factor multiplying collisionless terms.
   bool is_static_field; // Whether to evolve the field.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type; // Type of df/dt multipler.
@@ -507,8 +507,8 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 6.0e-7;
-  int num_frames = 1;
+  double t_end = (2400.0e-6 + 24.0e-6 + 2*24.0e-6)*0.1;
+  int num_frames = 4+4+2*4;
 
   // Factor multiplying collisionless terms.
   double alpha_oap = 0.01;
@@ -528,13 +528,15 @@ create_ctx(void)
   // Split the time before fdp_extra in OAP+FDP pairs.
   double tau_pair = tau_oap+tau_fdp; // Duration of an OAP+FDP pair.
   int num_pairs = floor((t_end-tau_fdp_extra)/tau_pair); // Number of OAP+FDP pairs.
+  int num_phases = 2*num_pairs + 1;
+  int num_phases_eff = num_phases-1 + tau_fdp_extra/tau_fdp;
   // Number of frames in each phase.
-  int num_frames_fdp_extra = (tau_fdp_extra/t_end)*num_frames;
+  int num_frames_per_phase = floor(num_frames/num_phases_eff);
+  int num_frames_fdp_extra = (tau_fdp_extra/tau_fdp)*num_frames_per_phase;
   int num_frames_pair = (num_frames-num_frames_fdp_extra)/num_pairs;
   int num_frames_oap = num_frames_pair/2;
   int num_frames_fdp = num_frames_pair - num_frames_oap;
 
-  int num_phases = 2*num_pairs + 1; 
   struct gk_oai_phase_params *oai_phases = gkyl_malloc(num_phases * sizeof(struct gk_oai_phase_params));
   for (int i=0; i<(num_phases-1)/2; i++) {
     // OAPs.
