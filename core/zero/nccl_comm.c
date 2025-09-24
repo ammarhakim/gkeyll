@@ -96,23 +96,21 @@ comm_free(const struct gkyl_ref_count *ref)
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
-  if (nccl->has_decomp) {
-    int ndim = nccl->decomp->ndim;
-    gkyl_rect_decomp_release(nccl->decomp);
+  int ndim = nccl->decomp->ndim;
+  gkyl_rect_decomp_release(nccl->decomp);
 
-    gkyl_rect_decomp_neigh_release(nccl->neigh);
-    for (int d=0; d<ndim; ++d)
-      gkyl_rect_decomp_neigh_release(nccl->per_neigh[d]);
+  gkyl_rect_decomp_neigh_release(nccl->neigh);
+  for (int d=0; d<ndim; ++d)
+    gkyl_rect_decomp_neigh_release(nccl->per_neigh[d]);
 
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      gkyl_mem_buff_release(nccl->recv[i].buff);
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    gkyl_mem_buff_release(nccl->recv[i].buff);
 
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      gkyl_mem_buff_release(nccl->send[i].buff);
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    gkyl_mem_buff_release(nccl->send[i].buff);
 
-    gkyl_mem_buff_release(nccl->allgather_buff_local.buff);
-    gkyl_mem_buff_release(nccl->allgather_buff_global.buff);
-  }
+  gkyl_mem_buff_release(nccl->allgather_buff_local.buff);
+  gkyl_mem_buff_release(nccl->allgather_buff_global.buff);
 
   // Finalize NCCL comm.
   checkCuda(cudaStreamSynchronize(nccl->custream));
@@ -625,7 +623,6 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
   strcpy(nccl->priv_comm.pub_comm.id, "nccl_comm");
   
-  nccl->has_decomp = false; // will be set to true if decomp is provided
   nccl->is_mcomm_allocated = extra_inp->is_comm_allocated;
   nccl->mcomm = inp->mpi_comm;
 
@@ -681,7 +678,6 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   else {
     nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   }
-  nccl->has_decomp = true;
 
   nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
   for (int d=0; d<nccl->decomp->ndim; ++d)
