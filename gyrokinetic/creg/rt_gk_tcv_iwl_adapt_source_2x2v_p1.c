@@ -132,9 +132,9 @@ double dPsidr(double r, double theta, void *ctx)
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
   double B0 = app->B0;
-  double a_mid = app->a_mid;
   double R_axis = app->R_axis;
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,R_axis)))*integral.res;
+  double R = R_rtheta(r, 0.0, ctx);
+  return ( B0*R_axis/(2.*M_PI*qprofile(0,R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -449,7 +449,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 1.*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion = 1.*mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-7; // Should take 28 time steps
+  double final_time = 1.e-7; // Should take 8 time steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
