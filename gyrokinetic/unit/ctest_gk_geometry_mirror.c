@@ -392,61 +392,7 @@ test_3x_p1_straight_cylinder()
     }
   }
 
-//   // Second let's validate geo_int. Remaining ones are ones that need to be added
-
-//   struct gkyl_array* dxdz; // 9 components.
-//                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
-//   struct gkyl_array* dzdx; // 9 components.
-//                            // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
-
-//   struct gkyl_array* jacobgeo_ghost; // 1 component. Configuration space jacobian J
-//   struct gkyl_array* b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
-//   struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
-//   struct gkyl_array* bmag_inv; // 1 component. 1/B.
-//   struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
-//   struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
-//   struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
-//   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
-//   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
-//   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
-//   struct gkyl_array* dualcurlbhat; // 3 components, e^m \dot curl(bhat)
-//   struct gkyl_array* dualcurlbhatoverB; // 3 components, e^m \dot curl(bhat)/|B|
-//   struct gkyl_array* rtg33inv; // 1 component 1/sqrt(g_33)
-//   struct gkyl_array*  bioverJB; // 1 component b_i/J/|B|
-//   struct gkyl_array* B3; // 1 component e^3 \dot \vec{B} = 1/g_33 
-  
-//   // Arrays below are just for computation of arrays above
-//   struct gkyl_array *ddtheta_nodal;
-//   struct gkyl_array* mc2p_nodal_fd; // 39 components. Cartesian X,Y, and Z at nodes and FD nodes.
-//   /* Array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
-//   *    At each array location 39 values are stored.
-//   *    The arrangement is as follows: X_c, Y_c, Z_c, 
-//   *    X_L1, Y_L1, Z_L1, X_R1, Y_R1, Z_R1,
-//   *    X_L2, Y_L2, Z_L2, X_R2, Y_R2, Z_R2,
-//   *    X_L3, Y_L3, Z_L3, X_R3, Y_R3, Z_R3,
-//   *    X_LL1, Y_LL1, Z_LL1, X_RR1, Y_RR1, Z_RR1,
-//   *    X_LL2, Y_LL2, Z_LL2, X_RR2, Y_RR2, Z_RR2,
-//   *    X_LL3, Y_LL3, Z_LL3, X_RR3, Y_RR3, Z_RR3
-//   *    where L#/R# indicates a node shifted to the left/right by epsilon in coordinate #
-//   *    and LL#/RR# indicates a node shifted to the left/right by 2 epsilon in coordinate #
-//   */
-//   struct gkyl_array *curlbhat_nodal; // Cartesian components of curl(bhat)
-//   struct gkyl_array* dualcurlbhat_nodal; // 3 components, e^m \dot curl(bhat)
-
-//                            // Calculated with coord definition alpha = phi for tokamak geometry
-//   struct gkyl_array* dxdz_nodal; // 9 components.
-//                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
-//   struct gkyl_array* dzdx_nodal; // 9 components.
-//                            // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
-//   struct gkyl_array* gij_neut_nodal; // Metric coefficients g^{ij}. See g_ij for order. 
-//                                // Calculated with coord definition alpha = phi for tokamak geometry
-//   struct gkyl_array* b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
-//   struct gkyl_array* b_i_nodal_fd; // 3 components. b_i at interior quad nodes and nodes epsilon away
-//   struct gkyl_array* B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33 
-//   struct gkyl_array* dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
-//   struct gkyl_array* rtg33inv_nodal; // 1 component 1/sqrt(g_33)
-//   struct gkyl_array*  bioverJB_nodal; // 3 components b_i/J/|B|
-// };
+  // Second let's validate geo_int. Many coponents still need to be added
 
   // Plus 3 away from axis to avoid errors
   double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
@@ -822,33 +768,14 @@ test_3x_p1_straight_cylinder()
           // Check cmag (curvature magnitude should be 1 for straight cylinder)
           TEST_CHECK( gkyl_compare( cmagFld_n[0], 1.0, 1e-8) );
 
-          // Check bcart (cartesian components of magnetic field)
-          // For a straight cylinder with bmag=0.5 and unit vector b_i, bcart = bmag * b_i
-          // for (int i = 0; i < 3; i++) {
-          //   TEST_CHECK( gkyl_compare( bcartFld_n[i], bmag_anal[0] * biFld_n[i], 1e-7) );
-          // }
-
           // Check normals (surface normal vectors)
           double norm_mag = sqrt(normFld_n[0]*normFld_n[0] + normFld_n[1]*normFld_n[1] + normFld_n[2]*normFld_n[2]);
           TEST_CHECK( gkyl_compare( norm_mag, 1.0, 1e-8) );
-
-          // // Check that tangent and dual vectors are orthogonal to normals
-          // double tan_dot_norm = tanvecFld_n[0]*normFld_n[0] + tanvecFld_n[1]*normFld_n[1] + tanvecFld_n[2]*normFld_n[2];
-          // TEST_CHECK( gkyl_compare( tan_dot_norm, 0.0, 1e-8) );
-          
-          // double dual_dot_norm = dualFld_n[0]*normFld_n[0] + dualFld_n[1]*normFld_n[1] + dualFld_n[2]*normFld_n[2];
-          // TEST_CHECK( gkyl_compare( dual_dot_norm, 0.0, 1e-8) );
 
           // Check that dual magnitude is consistent
           double dual_mag = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
           TEST_CHECK( gkyl_compare( dual_mag, dualmagFld_n[0], 1e-8) );
 
-          // // Check B3 component consistency
-          // TEST_CHECK( gkyl_compare( B3_n[0], bcartFld_n[2], 1e-7) );
-
-          // // Check that curlbhat magnitude equals normcurlbhat
-          // double curlbhat_mag = sqrt(curlbhat_n[0]*curlbhat_n[0] + curlbhat_n[1]*curlbhat_n[1] + curlbhat_n[2]*curlbhat_n[2]);
-          // TEST_CHECK( gkyl_compare( curlbhat_mag, normcurlbhat_n[0], 1e-8) );
         }
       }
     }
