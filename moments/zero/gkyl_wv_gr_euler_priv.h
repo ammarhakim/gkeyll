@@ -28,11 +28,12 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71]);
+gkyl_gr_euler_flux(const struct gkyl_wv_eqn* eqn, double gas_gamma, const double q[71], double flux[71]);
 
 /**
 * Compute primitive variables given the conserved variables.
 *
+* @param eqn
 * @param gas_gamma Adiabatic index.
 * @param q Conserved variable vector.
 * @param v Primitive variable vector (output).

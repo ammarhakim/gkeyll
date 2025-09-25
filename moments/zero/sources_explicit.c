@@ -935,7 +935,7 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
     double stress_energy[4][4];
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
-        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + ((p + p_update) * inv_spacetime_metric[i][j]);
+        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + (p * inv_spacetime_metric[i][j]);
       }
     }
 

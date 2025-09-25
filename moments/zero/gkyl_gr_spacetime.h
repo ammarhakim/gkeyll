@@ -7,7 +7,8 @@
 // Spacetime gauge choices.
 enum gkyl_spacetime_gauge {
   GKYL_STATIC_GAUGE = 0, // Default
-  GKYL_BLACKHOLE_COLLAPSE_GAUGE
+  GKYL_BLACKHOLE_COLLAPSE_GAUGE,
+  GKYL_NEUTRONSTAR_COLLAPSE_GAUGE
 };
 
 // Forward declare the spacetime struct, for use in future function pointers.

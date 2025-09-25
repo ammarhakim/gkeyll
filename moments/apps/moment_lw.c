@@ -112,7 +112,8 @@ static const struct gkyl_str_int_pair braginskii_type[] = {
 static const struct gkyl_str_int_pair spacetime_gauge_type[] = {
   { "Static", GKYL_STATIC_GAUGE },
   { "BlackHoleCollapse", GKYL_BLACKHOLE_COLLAPSE_GAUGE },
-  { 0, 0 }
+  { "NeutronStarCollapse", GKYL_NEUTRONSTAR_COLLAPSE_GAUGE},
+  { 0, 0}
 };
 
 void

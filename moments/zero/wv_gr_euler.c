@@ -5,10 +5,16 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
+#include <gkyl_level_set.h>
 
 void
-gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
+gkyl_gr_euler_flux(const struct gkyl_wv_eqn* eqn, double gas_gamma, const double q[71], double flux[71])
 {
+
+  //const struct gkyl_wv_eqn* eqn = wv->equation;
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  const enum gkyl_spacetime_gauge spacetime_gauge = gr_euler->spacetime_gauge;
+
   double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho =  v[0];
@@ -67,6 +73,135 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
       flux[i] = 0.0;
     }
   }
+
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = q[10]; extrinsic_curvature[0][1] = q[11]; extrinsic_curvature[0][2] = q[12];
+  extrinsic_curvature[1][0] = q[13]; extrinsic_curvature[1][1] = q[14]; extrinsic_curvature[1][2] = q[15];
+  extrinsic_curvature[2][0] = q[16]; extrinsic_curvature[2][1] = q[17]; extrinsic_curvature[2][2] = q[18];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = q[19]; spatial_metric_der[0][0][1] = q[20]; spatial_metric_der[0][0][2] = q[21];
+  spatial_metric_der[0][1][0] = q[22]; spatial_metric_der[0][1][1] = q[23]; spatial_metric_der[0][1][2] = q[24];
+  spatial_metric_der[0][2][0] = q[25]; spatial_metric_der[0][2][1] = q[26]; spatial_metric_der[0][2][2] = q[27];
+
+  spatial_metric_der[1][0][0] = q[28]; spatial_metric_der[1][0][1] = q[29]; spatial_metric_der[1][0][2] = q[30];
+  spatial_metric_der[1][1][0] = q[31]; spatial_metric_der[1][1][1] = q[32]; spatial_metric_der[1][1][2] = q[33];
+  spatial_metric_der[1][2][0] = q[34]; spatial_metric_der[1][2][1] = q[35]; spatial_metric_der[1][2][2] = q[36];
+
+  spatial_metric_der[2][0][0] = q[37]; spatial_metric_der[2][0][1] = q[38]; spatial_metric_der[2][0][2] = q[39];
+  spatial_metric_der[2][1][0] = q[40]; spatial_metric_der[2][1][1] = q[41]; spatial_metric_der[2][1][2] = q[42];
+  spatial_metric_der[2][2][0] = q[43]; spatial_metric_der[2][2][1] = q[44]; spatial_metric_der[2][2][2] = q[45];
+
+  double lapse_der[3];
+  lapse_der[0] = q[46];
+  lapse_der[1] = q[47];
+  lapse_der[2] = q[48];
+
+  double shift_vect[3];
+  shift_vect[0] = q[52];
+  shift_vect[1] = q[53];
+  shift_vect[2] = q[54];
+
+  double shift_vect_der[3][3];
+  shift_vect_der[0][0] = q[55]; shift_vect_der[0][1] = q[56]; shift_vect_der[0][2] = q[57];
+  shift_vect_der[1][0] = q[58]; shift_vect_der[1][1] = q[59]; shift_vect_der[1][2] = q[60];
+  shift_vect_der[2][0] = q[61]; shift_vect_der[2][1] = q[62]; shift_vect_der[2][2] = q[63];
+
+//bool in_excision_region = false;
+  if (lapse < 0.3) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+    for (int i = 0; i < 3; i++) {
+      inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    }
+
+    gkyl_gr_euler_inv_spatial_metric(q, &inv_spatial_metric);
+  
+    double extrinsic_curvature_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        extrinsic_curvature_trace += inv_spatial_metric[i][j] * extrinsic_curvature[i][j];
+      }
+    }
+
+    double slicing_func = 0.0;
+    if (spacetime_gauge == GKYL_NEUTRONSTAR_COLLAPSE_GAUGE) { //GKYL_HARMONIC_SLICING
+      //printf("Harmonic slicing \n");
+      slicing_func = extrinsic_curvature_trace;
+    }
+
+    double shift_vect_der_lowered[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        shift_vect_der_lowered[i][j] = 0.0;
+
+        for (int k = 0; k < 3; k++) {
+          shift_vect_der_lowered[i][j] += spatial_metric[k][j] * shift_vect_der[i][k];
+        }
+      }
+    }
+
+
+    double symmetrized_shift[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        symmetrized_shift[i][j] = (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
+      }
+    }
+
+    double spatial_metric_der_flux[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_flux[k][i][j] = 0.0;
+        }
+
+        for (int r = 0; r < 3; r++) {
+          spatial_metric_der_flux[0][i][j] -= shift_vect[r] * spatial_metric_der[r][i][j];
+        }
+
+        spatial_metric_der_flux[0][i][j] += lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
+      }
+    }
+
+    double lapse_der_flux[3];
+    for (int i = 0; i < 3; i++) {
+      lapse_der_flux[i] = 0.0;
+    }
+    for (int r = 0; r < 3; r++) {
+      lapse_der_flux[0] -= shift_vect[r] * lapse_der[r];
+    }
+    lapse_der_flux[0] += lapse * slicing_func;
+
+    
+    for (int i = 0; i < 46; i++) {
+      flux[i] = 0.0;
+    }
+
+    flux[46] = lapse_der_flux[0];
+    flux[47] = lapse_der_flux[1];
+    flux[48] = lapse_der_flux[2];
+
+    for (int i = 49; i < 64; i++) {
+      flux[i] = 0.0;
+    }
+    
+    for (int i = 0; i < 3; i++) {
+      gkyl_free(inv_spatial_metric[i]);
+    }
+    gkyl_free(inv_spatial_metric);
+    }
+    else {
+      for (int i = 0; i < 64; i++) {
+        flux[i] = 0.0;
+      }
+    }
+
+
 }
 
 void
@@ -1047,8 +1182,8 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double amax = fmax(sl, sr);
 
   double fl[71], fr[71];
-  gkyl_gr_euler_flux(gas_gamma, ql, fl);
-  gkyl_gr_euler_flux(gas_gamma, qr, fr);
+  gkyl_gr_euler_flux(eqn, gas_gamma, ql, fl);
+  gkyl_gr_euler_flux(eqn, gas_gamma, qr, fr);
 
   bool in_excision_region_l = false;
   if (ql[27] < pow(10.0, -8.0)) {
@@ -1446,8 +1581,8 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   }
 
   double fl[71], fr[71];
-  gkyl_gr_euler_flux(gas_gamma, ql, fl);
-  gkyl_gr_euler_flux(gas_gamma, qr, fr);
+  gkyl_gr_euler_flux(eqn, gas_gamma, ql, fl);
+  gkyl_gr_euler_flux(eqn, gas_gamma, qr, fr);
 
   double qm[71];
   for (int i = 0; i < 71; i++) {
@@ -1519,8 +1654,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double gas_gamma = gr_euler->gas_gamma;
 
   double fr[71], fl[71];
-  gkyl_gr_euler_flux(gas_gamma, ql, fl);
-  gkyl_gr_euler_flux(gas_gamma, qr, fr);
+  gkyl_gr_euler_flux(eqn, gas_gamma, ql, fl);
+  gkyl_gr_euler_flux(eqn, gas_gamma, qr, fr);
 
   bool in_excision_region_l = false;
   if (ql[27] < pow(10.0, -8.0)) {
