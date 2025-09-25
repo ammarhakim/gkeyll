@@ -93,6 +93,10 @@ struct gkyl_pkpm_field {
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
   
+  void *sigma_ctx; // context for resistive layer to damp EM fields
+  // pointer to resistive layer function to damp EM fields
+  void (*sigma)(double t, const double *xn, double *fout, void *ctx);
+
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
   

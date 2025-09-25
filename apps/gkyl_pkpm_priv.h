@@ -288,6 +288,10 @@ struct pkpm_field {
   bool limit_em; // boolean for whether or not we are limiting EM fields
   struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields 
 
+  bool has_sigma; // flag to indicate there is a resistive layer
+  struct gkyl_array *sigma; // resistive layer for damping EM fields
+  struct gkyl_array *sigmaEM; // resistivity*E/B for incrementing onto RHS
+
   gkyl_hyper_dg *slvr; // Maxwell solver
 
   struct gkyl_array *em_energy; // EM energy components in each cell

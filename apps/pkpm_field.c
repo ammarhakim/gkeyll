@@ -81,6 +81,25 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
       3, f->info.app_current, f->info.app_current_ctx);
   }
 
+  // Initialize resistive layer for damping EM fields 
+  f->sigma = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->sigmaEM = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->sigma, 0.0);
+  gkyl_array_clear(f->sigmaEM, 0.0);
+  f->has_sigma = false;
+  // Setup resistive layer.
+  if (f->info.sigma) {
+    f->has_sigma = true;
+    struct gkyl_array* sigma_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    // Evaluate resistive layer function at nodes to insure positivite-definiteness of resistivity
+    struct gkyl_eval_on_nodes* sigma_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, 
+      f->info.sigma, f->info.sigma_ctx);
+    gkyl_eval_on_nodes_advance(sigma_proj, 0.0, &app->local_ext, sigma_host);
+    gkyl_array_copy(f->sigma, sigma_host);
+    gkyl_eval_on_nodes_release(sigma_proj); 
+    gkyl_array_release(sigma_host); 
+  }
+
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
@@ -344,7 +363,16 @@ pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field,
 
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
-    
+
+    // Accumulate resistive layer to EM fields if present. 
+    if (app->field->has_sigma) {
+      for (int i = 0; i < 6; ++i) {
+        gkyl_dg_mul_op_range(app->basis, i, field->sigmaEM, 0,
+          app->field->sigma, i, em, &app->local);
+      }
+      gkyl_array_accumulate_range(rhs, -1.0, field->sigmaEM, &app->local); 
+    }         
+
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
     app->stat.n_field_omega_cfl += 1;
@@ -477,6 +505,9 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
     }
     gkyl_proj_on_basis_release(f->app_current_proj);
   }
+
+  gkyl_array_release(f->sigma);
+  gkyl_array_release(f->sigmaEM);
 
   gkyl_hyper_dg_release(f->slvr);
 
