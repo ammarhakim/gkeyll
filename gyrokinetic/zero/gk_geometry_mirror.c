@@ -65,7 +65,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // create mirror geometry for corners
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
-        .comp_grid = &up->grid,
+        .comp_grid = &comp_grid,
         .nrange = up->nrange_corn,
         .local = up->local,
         .global = up->global,
@@ -87,7 +87,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // create mirror geometry for interior
   struct gkyl_mirror_grid_gen *mirror_grid_int =
     gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp) {
-        .comp_grid = &up->grid,
+        .comp_grid = &comp_grid,
         .nrange = up->nrange_int,
         .local = up->local,
         .global = up->global,
@@ -111,7 +111,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     mirror_grid_surf[dir] =
       gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp) {
-          .comp_grid = &up->grid,
+          .comp_grid = &comp_grid,
           .nrange = up->nrange_surf[dir],
           .local = up->local,
           .global = up->global,
@@ -134,11 +134,11 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required
   // Now calculate the metrics at corner and interior nodes
-  struct gkyl_calc_metric_mirror* mcalc = gkyl_calc_metric_mirror_new(&up->basis, &up->grid, &up->local, &up->local_ext, false);
+  struct gkyl_calc_metric_mirror* mcalc = gkyl_calc_metric_mirror_new(&up->basis, &comp_grid, &up->local, &up->local_ext, false);
   gkyl_calc_metric_mirror_advance(mcalc, up, mirror_grid_corn);
   gkyl_calc_metric_mirror_advance_interior(mcalc, up, mirror_grid_int);
   // calculate the derived geometric quantities at interior nodes
-  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
+  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &comp_grid, 1, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
     up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, 
     up->geo_int.jacobtot, up->geo_int.jacobtot_inv, up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, 
