@@ -1054,6 +1054,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
 
+      if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)
+        assert(d == cdim-1); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+
       gks->bc_lo[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->lower_bc[d].type, gks->basis_on_dev,
         &gks->lower_skin[d], &gks->lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
@@ -1103,6 +1106,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
+
+      if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)
+        assert(d == cdim-1); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+
       gks->bc_up[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->upper_bc[d].type, gks->basis_on_dev,
         &gks->upper_skin[d], &gks->upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 

@@ -665,6 +665,10 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir]
                                                                               : &gkns->upper_skin[dir];
     
+        // MF 2025/09/29: The option `GKYL_BC_GK_SPECIES_REFLECT` here is a
+        // just a place holder and almost certainly wrong. Currently REFLECT is
+        // meant to reflect particles. Need something that mirrors the
+        // Hamiltonian into the ghost cell.
         bflux->gfss_bc_op[b] = gkyl_bc_basic_gyrokinetic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
           GKYL_BC_GK_SPECIES_REFLECT, &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu);
         

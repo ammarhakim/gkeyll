@@ -101,7 +101,7 @@ gkyl_bc_basic_gyrokinetic_advance(const struct gkyl_bc_basic_gyrokinetic *up,
       break;
 
     case GKYL_BC_GK_SPECIES_REFLECT:
-      gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
+      gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
       break;
 
