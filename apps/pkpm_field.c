@@ -82,17 +82,17 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   }
 
   // Initialize resistive layer for damping EM fields 
-  f->sigma = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->sigmaEM = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  f->sigma = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->sigmaEM = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->sigma, 0.0);
   gkyl_array_clear(f->sigmaEM, 0.0);
   f->has_sigma = false;
   // Setup resistive layer.
   if (f->info.sigma) {
     f->has_sigma = true;
-    struct gkyl_array* sigma_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array* sigma_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     // Evaluate resistive layer function at nodes to insure positivite-definiteness of resistivity
-    struct gkyl_eval_on_nodes* sigma_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, 
+    struct gkyl_eval_on_nodes* sigma_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, 
       f->info.sigma, f->info.sigma_ctx);
     gkyl_eval_on_nodes_advance(sigma_proj, 0.0, &app->local_ext, sigma_host);
     gkyl_array_copy(f->sigma, sigma_host);
@@ -367,7 +367,7 @@ pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field,
     // Accumulate resistive layer to EM fields if present. 
     if (app->field->has_sigma) {
       for (int i = 0; i < 6; ++i) {
-        gkyl_dg_mul_op_range(app->basis, i, field->sigmaEM, 0,
+        gkyl_dg_mul_op_range(app->confBasis, i, field->sigmaEM, 0,
           app->field->sigma, i, em, &app->local);
       }
       gkyl_array_accumulate_range(rhs, -1.0, field->sigmaEM, &app->local); 
