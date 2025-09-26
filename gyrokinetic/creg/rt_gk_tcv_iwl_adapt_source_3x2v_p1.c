@@ -568,7 +568,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // Electron core source:
+  // Definition of the sources projections.
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
     .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], -ctx.center_srcCORE[2]},
@@ -576,17 +576,19 @@ main(int argc, char **argv)
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
+    .temp_min = 0.1*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
-      .adapt_to_species = "elc",
-      .adapt_particle = ctx.adapt_particle_srcCORE,
-      .adapt_energy = ctx.adapt_energy_srcCORE,
-      .num_boundaries = 1,
-      .dir = {0},
-      .edge = {GKYL_LOWER_EDGE},
+  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+    .total_num_particles = ctx.particle_srcCORE,
+    .total_kin_energy = ctx.energy_srcCORE,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 0.1*ctx.Ti0,
+    .f_floor = ctx.floor_srcCORE,
   };
-  // Electron recycling source:
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
@@ -594,19 +596,55 @@ main(int argc, char **argv)
     .total_num_particles = ctx.particle_srcRECY,
     .total_kin_energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
+    .temp_min = 0.1*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
-  // The recycling source is adapting to the ion losses 
-  // for ambipolarity (neutral ionization process).
+  struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
+    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
+    .total_num_particles = ctx.particle_srcRECY,
+    .total_kin_energy = ctx.energy_srcRECY,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 0.1*ctx.Ti0,
+    .f_floor = ctx.floor_srcRECY,
+  };
+
+  // Definition of the source adaptation structures.
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
+      .adapt_to_species = "elc",
+      .adapt_particle = ctx.adapt_particle_srcCORE,
+      .adapt_energy = ctx.adapt_energy_srcCORE,
+      .num_boundaries = 1, // Only the inner radial boundary.
+      .dir = {0},
+      .edge = {GKYL_LOWER_EDGE},
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
+    .adapt_to_species = "ion",
+    .adapt_particle = ctx.adapt_particle_srcCORE,
+    .adapt_energy = ctx.adapt_energy_srcCORE,
+    .num_boundaries = 1, // Only the inner radial boundary.
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
+  };
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
+    .adapt_to_species = "ion", // Adapted to ions to maintain neutrality.
+    .adapt_particle = ctx.adapt_particle_srcRECY,
+    .adapt_energy = ctx.adapt_energy_srcRECY,
+    .num_boundaries = 3, // outer radial boundary + both z boundaries. 
+    .dir = {0, 2, 2},
+    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
-    .num_boundaries = 3,
+    .num_boundaries = 3, // outer radial boundary + both z boundaries.
     .dir = {0, 2, 2},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
   };
 
+  // Species definitions
   // electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
@@ -676,53 +714,18 @@ main(int argc, char **argv)
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
       GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+
     .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
-  };
-
-  // Ion core source:
-  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
-    .temp_max = 5.0*ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-  // The core source is adapting to the ion losses through the inner radial boundary.
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
-  };
-
-  // Ion recycling source:
-  struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
-    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
-    .total_num_particles = ctx.particle_srcRECY,
-    .total_kin_energy = ctx.energy_srcRECY,
-    .temp_max = 5.0*ctx.Te0,
-    .f_floor = ctx.floor_srcRECY,
-  };
-  // As for the electrons, the ion recycling source is adapting to the ion losses for maintaining
-  // ambipolarity (neutral ionization process).
-  struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcRECY,
-    .adapt_energy = ctx.adapt_energy_srcRECY,
-    .num_boundaries = 3,
-    .dir = {0, 2, 2},
-    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+    
+    .time_rate_diagnostics = true,
   };
 
   // ions
@@ -794,12 +797,18 @@ main(int argc, char **argv)
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
       GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+
     .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+    
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {
@@ -824,7 +833,7 @@ main(int argc, char **argv)
     .bias_plane_list = &bias_plane_list,
     .time_rate_diagnostics = true,
   };
-
+  
   // Geometry
   struct gkyl_gyrokinetic_geometry geometry = {
     .geometry_id = GKYL_MAPC2P,
