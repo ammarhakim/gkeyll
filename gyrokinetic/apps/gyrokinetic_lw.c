@@ -340,33 +340,18 @@ gyrokinetic_species_lw_new(lua_State *L)
     gk_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
@@ -942,36 +927,22 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
     gk_neut_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_neut_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_neut_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_neut_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_neut_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
 
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-  
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
   bool has_density_init_func = false;
@@ -1077,43 +1048,16 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
   with_lua_tbl_tbl(L, "poissonBcs") {
-    with_lua_tbl_tbl(L, "lowerType") {
-      int nbc = glua_objlen(L);
-      
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperType") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "lowerValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value lower_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.lo_value[i] = lower_bc;
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value upper_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.up_value[i] = upper_bc;
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_field.poisson_bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_field.poisson_bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_field.poisson_bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_field.poisson_bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
       }
     }
   }

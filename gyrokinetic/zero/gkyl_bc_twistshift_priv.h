@@ -27,36 +27,71 @@ typedef struct { twistshift_ylimdg_t kernels[3]; }   twistshift_ylimdg_kern_list
 typedef struct { twistshift_fullcell_t kernels[3]; } twistshift_fullcell_kern_list;  // For use in kernel tables.
 
 // Serendipity  kernels.
-static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v[] = {
+// p=1 representation of the shift:
+static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v_yShp1[] = {
   {NULL, twistshift_xlimdg_2x_ser_p1_yshift_p1, NULL,},
   {NULL, twistshift_xlimdg_3x_ser_p1_yshift_p1, NULL,},
 };
-static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_0v[] = {
+static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_0v_yShp1[] = {
   {NULL, twistshift_ylimdg_2x_ser_p1_yshift_p1, NULL,},
   {NULL, twistshift_ylimdg_3x_ser_p1_yshift_p1, NULL,},
 };
-static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v[] = {
+static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp1[] = {
   {NULL, twistshift_fullcell_2x_ser_p1_yshift_p1, NULL,},
   {NULL, twistshift_fullcell_3x_ser_p1_yshift_p1, NULL,},
 };
 
-static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v[] = {
+static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp1[] = {
   {NULL, NULL, NULL,},
   {NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL,},
 };
-static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v[] = {
+static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp1[] = {
   {NULL, NULL, NULL,},
   {NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL,},
 };
-static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v[] = {
+static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp1[] = {
   {NULL, NULL, NULL,},
   {NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL,},
 };
+// p=2 representation of the shift:
+static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v_yShp2[] = {
+  {NULL, twistshift_xlimdg_2x_ser_p1_yshift_p2, NULL,},
+  {NULL, twistshift_xlimdg_3x_ser_p1_yshift_p2, NULL,},
+};
+static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_0v_yShp2[] = {
+  {NULL, twistshift_ylimdg_2x_ser_p1_yshift_p2, NULL,},
+  {NULL, twistshift_ylimdg_3x_ser_p1_yshift_p2, NULL,},
+};
+static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp2[] = {
+  {NULL, twistshift_fullcell_2x_ser_p1_yshift_p2, NULL,},
+  {NULL, twistshift_fullcell_3x_ser_p1_yshift_p2, NULL,},
+};
+
+static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp2[] = {
+  {NULL, NULL, NULL,},
+  {NULL, NULL, NULL,},
+};
+static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp2[] = {
+  {NULL, NULL, NULL,},
+  {NULL, NULL, NULL,},
+};
+static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp2[] = {
+  {NULL, NULL, NULL,},
+  {NULL, NULL, NULL,},
+};
+
 
 struct gkyl_bc_twistshift_kernels {
   twistshift_xlimdg_t xlimdg;
   twistshift_ylimdg_t ylimdg;
   twistshift_fullcell_t fullcell;
+};
+
+struct ts_shift_dg_eval_ctx {
+  struct gkyl_array *shift_dg; // DG representation of the shift function.
+  struct gkyl_basis *shift_b; // Basis for the shift.
+  struct gkyl_rect_grid *shear_grid; // shear grid along x.
+  struct gkyl_range *shear_r; // Shear grid range.
 };
 
 // Primary struct in this updater.
@@ -70,6 +105,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_rect_grid grid; // Grid the shifted field is defined in.
   evalf_t shift_func; // Function defining the shift.
   void *shift_func_ctx; // Context for shift_func.
+  struct ts_shift_dg_eval_ctx shift_dg_eval_ctx; // Context for DG shift_func.
   bool use_gpu; // Whether to apply the BC on the GPU.
 
   struct gkyl_rect_grid shift_grid; // 1D grid in the direction of the shift.
@@ -85,7 +121,7 @@ struct gkyl_bc_twistshift {
 
   int shift_poly_order; // Poly order of the DG representation of the shift.
   struct gkyl_basis shift_b; // 1D Basis for the DG shift.
-  struct gkyl_array *shift; // DG shift.
+  struct gkyl_array *shift_dg; // DG shift.
 
   int *num_do; // Number of donors at each cell in shear_dir;
   int *shift_dir_idx_do; // Indices of donor cells, in the direction of the

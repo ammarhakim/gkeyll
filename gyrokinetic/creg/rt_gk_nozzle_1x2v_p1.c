@@ -253,6 +253,7 @@ int main(int argc, char **argv)
     .lower = {- ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .density = eval_density_ion_init,
@@ -265,15 +266,18 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .correct_all_moms = true,
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = eval_nu_ion,
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_REFLECT,},
-      .upper={.type = GKYL_SPECIES_REFLECT,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT, },
     },
+
     .num_diag_moments = 6,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };
