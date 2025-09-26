@@ -59,4 +59,12 @@ gkyl_register_mhd_divb_types(lua_State *L);
 void
 gkyl_register_braginskii_types(lua_State *L);
 
+/**
+* Add spacetime gauge type flags for moment equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_spacetime_gauge_types(lua_State *L);
+
 #endif
