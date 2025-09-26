@@ -19,6 +19,7 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 struct func_gaussian_ctx {
+  int cdim; // Configuration space dimension.
   bool is_dir_periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
   double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
   double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
@@ -30,7 +31,7 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct func_gaussian_ctx *inp = ctx;
   double envelope = 1.0;
-  for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
+  for (int dir = 0; dir < inp->cdim; ++dir) {
     double dx = xn[dir] - inp->gaussian_mean[dir];
     double L = inp->box_size[dir];
     if (inp->is_dir_periodic[dir]) { 
@@ -273,6 +274,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 {
   // Fill the box_size attribute of the projection (used for periodicity).
   struct func_gaussian_ctx fg_ctx;
+  fg_ctx.cdim = app->cdim;
   fg_ctx.f_floor = inp.f_floor;
   for (int dir = 0; dir < app->cdim; ++dir) {
     fg_ctx.gaussian_mean[dir] = inp.gaussian_mean[dir];
