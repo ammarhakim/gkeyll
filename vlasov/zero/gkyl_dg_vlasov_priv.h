@@ -259,9 +259,9 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_gen_vol_kernels[
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_vol_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_vol_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_vol_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Hamiltonian, velocity space only, volume kernels (Tensor basis).  
@@ -649,9 +649,9 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_nc_hamil_gen_sur
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_surfx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_surfx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: y-direction (Tensor basis)
@@ -664,9 +664,9 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_nc_hamil_gen_sur
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
   { NULL, vlasov_nc_hamil_gen_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_surfy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_surfy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: z-direction (Tensor basis)
@@ -681,7 +681,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_nc_hamil_gen_sur
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_surfz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Acceleration surface kernel list: vx-direction (Serendipity basis)
@@ -951,7 +951,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_nc_hamil_g
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space (NC) Hamiltonian boundary surface kernel list: x-direction (Tensor basis)
@@ -964,9 +964,9 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_nc_hami
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_boundary_surfx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space (NC) Hamiltonian boundary surface kernel list: y-direction (Tensor basis)
@@ -979,9 +979,9 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_nc_hami
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
   { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_boundary_surfy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Streaming phase-space (NC) Hamiltonian boundary surface kernel list: z-direction (Tensor basis)
@@ -996,7 +996,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_nc_hami
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_gen_boundary_surfz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 

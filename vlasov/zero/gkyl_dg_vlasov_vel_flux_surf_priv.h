@@ -766,9 +766,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vx_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -780,9 +780,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vy_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -794,9 +794,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vz_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for the electric field Lorentz force (Serendipity basis). 
