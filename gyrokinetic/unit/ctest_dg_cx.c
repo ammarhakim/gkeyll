@@ -44,16 +44,6 @@ void eval_T_over_m_neut(double t, const double *xn, double* restrict fout, void 
   double x = xn[0];
   fout[0] = 4.*echarge/d_ion_mass;  
 }
-void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 1.0;
-}
-void eval_jac(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 1.0;
-}
 
 static inline
 void proj_on_basis_copy(const struct gkyl_proj_on_basis *proj_op, double tm, struct gkyl_range *rng,

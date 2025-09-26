@@ -5,35 +5,6 @@
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
-// Boundary conditions on fields and particles
-enum gkyl_gyrokinetic_bc_type {
-  GKYL_BC_GK_SKIP, // Do not apply any BCs 
-  GKYL_BC_GK_SPECIES_REFLECT, // perfect reflector
-  GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs
-  GKYL_BC_GK_SPECIES_FUNC, // Function boundary conditions
-  GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
-  GKYL_BC_GK_SPECIES_EMISSION, // Emission spectrum BCs
-  GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
-  GKYL_BC_GK_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
-  GKYL_BC_GK_SPECIES_RECYCLE, // Recycling BCs
-  GKYL_BC_GK_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
-
-  GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet boundary conditions
-  GKYL_BC_GK_FIELD_NEUMANN, // Nemann boundary conditions
-};
-
-// BC for blocks
-struct gkyl_gyrokinetic_block_physical_bcs {
-  int bidx; // block index
-  int dir;  // direction in which BC is specified
-  enum gkyl_edge_loc edge; // which edge this BC is for
-  enum gkyl_gyrokinetic_bc_type bc_type; // BC type flag.
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
-  void *aux_ctx; // Context for aux_profile.
-  double aux_parameter; // Parameter for aux_profile (maybe redundant).
-  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
-};
-
 // Species input per block
 struct gkyl_gyrokinetic_multib_species_pb {
   int block_id; // block ID
@@ -92,7 +63,7 @@ struct gkyl_gyrokinetic_multib_species {
 
   // Physical boundary conditions.
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 };
 
 // Neutral species input per block
@@ -130,7 +101,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 };
 
 // Field input per block 
@@ -165,11 +136,13 @@ struct gkyl_gyrokinetic_multib_field {
 
   bool duplicate_across_blocks; // set to true if all blocks are identical  
   // field inputs per-block: only one is needed if duplicate_across_blocks = true
+  bool half_domain; // For use in double null simulations. 
+                    // If true core BCs will be set for simulation of lower half of domain (Z < 0)
   const struct gkyl_gyrokinetic_multib_field_pb *blocks;
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_bc *bcs;
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 };
@@ -187,6 +160,7 @@ struct gkyl_gyrokinetic_multib {
   struct gkyl_gk_block_geom *gk_block_geom;
 
   double cfl_frac; // CFL fraction to use (default 1.0)
+  double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
@@ -214,6 +188,15 @@ struct gkyl_gyrokinetic_multib {
  * @return New multi-block gk app object.
  */
 gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
+
+/**
+ * Construct a new gk multi-block app (geom only).
+ *
+ * @param mbinp App inputs. See struct docs. All struct params MUST be
+ *     initialized
+ * @return New multi-block gk app object.
+ */
+gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp);
 
 /**
  * Initialize species by projecting initial conditions on
@@ -852,3 +835,10 @@ void gkyl_gyrokinetic_multib_app_species_ktm_rhs(gkyl_gyrokinetic_multib_app* ap
  * @param app App to release.
  */
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Free gk app (geom only).
+ *
+ * @param app App to release.
+ */
+void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* app);

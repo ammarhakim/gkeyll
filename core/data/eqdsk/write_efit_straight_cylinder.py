@@ -21,8 +21,8 @@ def psi_f(R, Z):
     return Bmag/2 * R**2
 
 #RZ box
-NW = 257
-NH = 257
+NW = 129
+NH = 129
 RMIN,RMAX = .001, 1
 ZMIN,ZMAX = -1, 1
 RDIM = RMAX - RMIN
@@ -94,7 +94,7 @@ PSIGRID = np.linspace(SIMAG, SIBRY,NPSI)
 FPOL = (B0*R0/Rgrid)*Rgrid # F = RBphi
 FFPRIM = np.repeat(0.0, NPSI)
 PPRIME = np.repeat(0.0,NPSI)
-PRES = integrate.cumtrapz(PPRIME,PSIGRID,initial=0)
+PRES = integrate.cumulative_trapezoid(PPRIME,PSIGRID,initial=0)
 PSIZR = psiRZ.T
 
 
@@ -114,7 +114,7 @@ writeList = [NW, NH,                                        #3i4
 
 #Header stuff
 header_fmt = "(a48,3i4)"
-label = 'FREEGS'
+label = 'GKEYLL'
 creation_date = date.today().strftime("%d/%m/%Y")
 shot = int(0)
 time = int(0)

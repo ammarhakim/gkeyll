@@ -21,28 +21,18 @@ gkyl_radiation_read_two_numbers(FILE *fptr, int *num1, int *num2)
   }
 }
 
-/* Concatenate two strings 
- */
-static inline char *
-gkyl_radiation_read_concat(const char *s1, const char *s2)
-{
-  char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
-  strcpy(result, s1);
-  strcat(result, s2);
-  return result;
-}
-
 struct all_radiation_states*
 gkyl_radiation_read_rad_fit_params()
 {
+  char fname[4000];
+  const char *fmt = "%s/%s";
+  snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/radiation_fit_parameters.txt");
 
-  char *filepath=gkyl_radiation_read_concat(GKYL_SHARE_DIR,"/adas/radiation_fit_parameters.txt");
-  FILE *fptr = fopen(filepath,"r");
+  FILE *fptr = fopen(fname,"r");
   if (fptr == NULL){
-    printf("Error opening radiation fit file: %s\n", filepath);
+    printf("Error opening radiation fit file: %s\n", fname);
     exit(EXIT_FAILURE);
   }
-  free(filepath);
   // Read header: Max z of elements, number of elements
   int number_elements, max_atomic_number;
   gkyl_radiation_read_two_numbers(fptr, &max_atomic_number, &number_elements);

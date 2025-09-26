@@ -172,7 +172,7 @@ test_gr_ultra_rel_euler_tetrad_basic_minkowski()
         gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 70; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
@@ -180,7 +180,7 @@ test_gr_ultra_rel_euler_tetrad_basic_minkowski()
         gr_ultra_rel_euler_tetrad->cons_to_riem(gr_ultra_rel_euler_tetrad, q_local, q_local, w1);
         gr_ultra_rel_euler_tetrad->riem_to_cons(gr_ultra_rel_euler_tetrad, q_local, w1, q1);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 70; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -385,7 +385,7 @@ test_gr_ultra_rel_euler_tetrad_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -393,7 +393,7 @@ test_gr_ultra_rel_euler_tetrad_basic_schwarzschild()
           gr_ultra_rel_euler_tetrad->cons_to_riem(gr_ultra_rel_euler_tetrad, q_local, q_local, w1);
           gr_ultra_rel_euler_tetrad->riem_to_cons(gr_ultra_rel_euler_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -434,7 +434,7 @@ test_gr_ultra_rel_euler_tetrad_basic_kerr()
 
   TEST_CHECK( gr_ultra_rel_euler_tetrad->num_equations == 70 );
   TEST_CHECK( gr_ultra_rel_euler_tetrad->num_waves == 2 );
-
+  
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
       double x = 0.1 * x_ind;
@@ -601,7 +601,7 @@ test_gr_ultra_rel_euler_tetrad_basic_kerr()
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -609,7 +609,7 @@ test_gr_ultra_rel_euler_tetrad_basic_kerr()
           gr_ultra_rel_euler_tetrad->cons_to_riem(gr_ultra_rel_euler_tetrad, q_local, q_local, w1);
           gr_ultra_rel_euler_tetrad->riem_to_cons(gr_ultra_rel_euler_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }

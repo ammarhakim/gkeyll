@@ -196,7 +196,7 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
         up->nodal_fld, up->d_fem_data[ctr].deflated_phi, ctr);
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
+  gkyl_nodal_ops_n2m(up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi, false);
 }
 
 void gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson* up){

@@ -217,7 +217,7 @@ test_2()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_LO,
+    .ftype = GKYL_DN_SOL_OUT_LO,
     .rright = 6.0,
     .rleft = 0.25,
     .zmin = -5.8,
@@ -274,7 +274,7 @@ test_3()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_MID,
+    .ftype = GKYL_DN_SOL_OUT_MID,
     .rright = 6.0,
     .rleft = 0.25,
     .zmin = -5.8,
@@ -331,7 +331,7 @@ test_4()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_UP,
+    .ftype = GKYL_DN_SOL_OUT_UP,
     .rright = 6.0,
     .rleft = 0.25,
     .zmin = -5.8,
@@ -388,7 +388,7 @@ test_7()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_UP,
+    .ftype = GKYL_DN_SOL_IN_UP,
     .rleft = 0.25,
     .rright= 6.0,
     .zmin = -5.8,
@@ -446,7 +446,7 @@ test_8()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_MID,
+    .ftype = GKYL_DN_SOL_IN_MID,
     .rleft = 0.25,
     .rright= 6.0,
     .zmin = -5.8,
@@ -503,7 +503,7 @@ test_9()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_LO,
+    .ftype = GKYL_DN_SOL_IN_LO,
     .rleft = 0.25,
     .rright= 6.0,
     .zmin = -5.8,
