@@ -165,6 +165,12 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
       up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
       
+      if (model_id == GKYL_MODEL_TRIAD) {
+        up->hamil_alpha_quad[0] = tensor_nc_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->hamil_alpha_quad[1] = tensor_nc_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->hamil_alpha_quad[2] = tensor_nc_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+      }
+
       // Only have Hamiltonian forces in general geometry. 
       if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
         assert(false);

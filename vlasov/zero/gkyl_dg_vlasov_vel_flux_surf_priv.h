@@ -756,6 +756,49 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_alpha_quad_vz_kernels[
   { NULL, nc_hamil_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
+// alpha_v evaluated at quadrature points for general (NC) Hamiltonian forces (Tensor basis). 
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, nc_hamil_alpha_quad_vx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, nc_hamil_alpha_quad_vx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, nc_hamil_alpha_quad_vy_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vy_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vz_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+};
+
 // alpha_v evaluated at quadrature points for the electric field Lorentz force (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_E_alpha_quad_kern_list ser_E_alpha_quad_vx_kernels[] = {

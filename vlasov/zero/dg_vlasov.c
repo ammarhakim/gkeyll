@@ -188,7 +188,15 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_z_kernels = tensor_stream_hamil_vel_boundary_surf_z_kernels;         
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD) {
-        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!"); 
+        vlasov->hamil_vol = tensor_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+
+        stream_surf_x_kernels = tensor_stream_nc_hamil_gen_surf_x_kernels;
+        stream_surf_y_kernels = tensor_stream_nc_hamil_gen_surf_y_kernels;
+        stream_surf_z_kernels = tensor_stream_nc_hamil_gen_surf_z_kernels;
+        
+        stream_boundary_surf_x_kernels = tensor_stream_nc_hamil_gen_boundary_surf_x_kernels;
+        stream_boundary_surf_y_kernels = tensor_stream_nc_hamil_gen_boundary_surf_y_kernels;
+        stream_boundary_surf_z_kernels = tensor_stream_nc_hamil_gen_boundary_surf_z_kernels; 
       }
       else {
         gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
