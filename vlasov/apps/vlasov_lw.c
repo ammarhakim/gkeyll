@@ -340,7 +340,7 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
-  luaL_register(L, "G0.Vlasov.Eq.Advect", eqn_advect_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.LinearAdvection", eqn_advect_ctor);
   luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
@@ -1017,10 +1017,13 @@ struct vlasov_fluid_species_lw {
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
   bool has_app_advect_func; // Is there an applied advection function?
-  struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function. 
+  struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function.
 
   bool has_n0_func; // Is there a background density function?
-  struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.     
+  struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.
+  
+  bool has_diffusion_func; // Is there a diffusion tensor function?
+  struct lua_func_ctx diffusion_func_ref; // Lua registry reference to diffusion tensor function.
 };
 
 static int
@@ -1081,6 +1084,19 @@ vlasov_fluid_species_lw_new(lua_State *L)
     has_n0_func = true;
   }
 
+  bool has_diffusion_func = false;
+  int diffusion_func_ref = LUA_NOREF;
+
+  with_lua_tbl_tbl(L, "diffusion") {
+    vm_fluid_species.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+    vm_fluid_species.diffusion.order = glua_tbl_get_integer(L, "diffusionOrder", 2);
+    
+    if (glua_tbl_get_func(L, "diffusionTensor")) {
+      diffusion_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_diffusion_func = true;
+    }
+  }
+
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
 
@@ -1129,6 +1145,14 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .func_ref = n0_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
+    .L = L,
+  };
+
+  vmfs_lw->has_diffusion_func = has_diffusion_func;
+  vmfs_lw->diffusion_func_ref = (struct lua_func_ctx) {
+    .func_ref = diffusion_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1, // This will be set later.
     .L = L,
   };
   
@@ -1470,6 +1494,7 @@ struct vlasov_app_lw {
 
   struct lua_func_ctx app_advect_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species applied advection.
   struct lua_func_ctx n0_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species background density.
+  struct lua_func_ctx diffusion_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species diffusion tensor.
 
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
@@ -2088,6 +2113,19 @@ vm_app_new(lua_State *L)
       app_lw->n0_func_ctx[s] = fluid_species[s]->n0_func_ref;
       vm.fluid_species[s].can_pb_n0 = gkyl_lw_eval_cb;
       vm.fluid_species[s].can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
+    }
+
+    if (fluid_species[s]->has_diffusion_func) {
+      fluid_species[s]->diffusion_func_ref.ndim = cdim;
+      if (cdim == 2) {
+        fluid_species[s]->diffusion_func_ref.nret = 3;
+      }
+      else {
+        fluid_species[s]->diffusion_func_ref.nret = 6;
+      }
+      app_lw->diffusion_func_ctx[s] = fluid_species[s]->diffusion_func_ref;
+      vm.fluid_species[s].diffusion.Dij = gkyl_lw_eval_cb;
+      vm.fluid_species[s].diffusion.Dij_ctx = &app_lw->diffusion_func_ctx[s];
     }
   }
 
