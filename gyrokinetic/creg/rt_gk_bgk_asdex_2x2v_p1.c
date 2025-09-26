@@ -456,16 +456,11 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
       
-    .bcx = {
-      .lower={
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = elc_ic,
-      },
-      .upper={.type = GKYL_SPECIES_ABSORB,}, // Changed from ZERO_FLUX on 07/03/2024.
-    },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_ic, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 9,
@@ -537,16 +532,11 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
     
-    .bcx = {
-      .lower={
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = ion_ic,
-      },
-      .upper={.type = GKYL_SPECIES_ABSORB,}, // Changed from ZERO_FLUX on 07/03/2024.
-    },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_ic, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 9,
@@ -555,9 +545,10 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
-                    .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+    },
   };
 
   struct gkyl_efit_inp efit_inp = {

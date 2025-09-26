@@ -110,7 +110,6 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     upper[dir]+=1;
     gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
-
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
@@ -491,7 +490,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
 
-  for(int dir = 0; dir < up->grid.ndim; dir++) {
+  for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
     gkyl_array_release(up->geo_surf[dir].jacobgeo_sync);
     gkyl_array_release(up->geo_surf[dir].bmag);
