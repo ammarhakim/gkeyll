@@ -124,36 +124,36 @@ gk_neut_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_neut
     if (species->bc_is_np[d]) {
 
       switch (species->lower_bc[d].type) {
-        case GKYL_SPECIES_RECYCLE:
+        case GKYL_BC_GK_SPECIES_RECYCLE:
           gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_lo, species, f);
           break;
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_FIXED_FUNC:
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
-        case GKYL_SPECIES_ZERO_FLUX:
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
       }
 
       switch (species->upper_bc[d].type) {
-        case GKYL_SPECIES_RECYCLE:
+        case GKYL_BC_GK_SPECIES_RECYCLE:
           gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_up, species, f);
           break;
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_FIXED_FUNC:
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
           break;
-        case GKYL_SPECIES_ZERO_FLUX:
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
@@ -506,16 +506,22 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
+    if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       gk_neut_species_recycle_release(app, &s->bc_recycle_lo);
     }
-    else { 
+    else if ( (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_release(s->bc_lo[d]);
     }
-    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
+    if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       gk_neut_species_recycle_release(app, &s->bc_recycle_up);
     }
-    else {
+    else if ( (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_release(s->bc_up[d]);
     }
   }
@@ -594,29 +600,19 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->bc_recycle_up = (struct gk_recycle_wall) {};
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
-    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
+    if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, &s->lower_bc[d].emission, s, app->use_gpu);
     }
-    else { 
-      if (s->lower_bc[d].type == GKYL_SPECIES_COPY) {
-        bctype = GKYL_BC_COPY;
-      }
-      else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) {
-        bctype = GKYL_BC_ABSORB;
-      }
-      else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_DISTF_REFLECT;
-      }
-      else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
-        bctype = GKYL_BC_FIXED_FUNC;
-      }
-
+    else if ( (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
+      enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->lower_bc[d].type);
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, s->basis_on_dev,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
-      if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
         struct gk_proj gk_proj_bc_lo;
         gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
@@ -627,29 +623,20 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       }
     }
 
-    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
+    if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, &s->upper_bc[d].emission, s, app->use_gpu);
     }
-    else {
+    else if ( (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       // Upper BC updater. Copy BCs by default.
-      if (s->upper_bc[d].type == GKYL_SPECIES_COPY) {
-        bctype = GKYL_BC_COPY;
-      }
-      else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) {
-        bctype = GKYL_BC_ABSORB;
-      }
-      else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_DISTF_REFLECT;
-      }
-      else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
-        bctype = GKYL_BC_FIXED_FUNC;
-      }
-
+      enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->upper_bc[d].type);
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, s->basis_on_dev,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
-      if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
         struct gk_proj gk_proj_bc_up;
         gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
@@ -1025,29 +1012,27 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->bc_is_np[s->periodic_dirs[d]] = false;
 
   // Store the BCs from the input file.
-  for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
-    if (s->bc_is_np[dir]) {
-      const struct gkyl_gyrokinetic_bcs *bc;
-      if (dir == 0)
-        bc = &s->info.bcx;
-      else if (dir == 1)
-        bc = &s->info.bcy;
-      else
-        bc = &s->info.bcz;
+  for (int d=0; d<app->cdim; ++d) {
+    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+    if (bc_lo != 0)
+      s->lower_bc[d] = *bc_lo;
+    else
+      s->lower_bc[d].type = GKYL_BC_GK_SKIP;
 
-      s->lower_bc[dir] = bc->lower;
-      s->upper_bc[dir] = bc->upper;
-    }
+    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+    if (bc_up != 0)
+      s->upper_bc[d] = *bc_up;
+    else
+      s->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
   // Determine which directions are zero-flux. By default
   // we do not have zero-flux boundary conditions in any direction.
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
   for (int dir=0; dir<app->cdim; ++dir) {
-    if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+    if (s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
       is_zero_flux[dir] = true;
-    if (s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+    if (s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
       is_zero_flux[dir+pdim] = true;
   }
 

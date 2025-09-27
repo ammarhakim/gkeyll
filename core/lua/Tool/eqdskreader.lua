@@ -13,6 +13,7 @@ local Grid = require "Grid"
 local argparse = require "Lib.argparse"
 local Proto = require "Lib.Proto"
 local Mpi = require "Comm.Mpi"
+local xsys = require "xsys"
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
@@ -36,14 +37,11 @@ GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. args.input
 -- Reads and returns header information
 local function readHeader(fh)
    local ln1 = fh:read()
-   local n = ln1:len()
-   
-   local s,e = ln1:find("%d+")
-   local nx = tonumber(ln1:sub(s,e))
-
-   ln1 = ln1:sub(e+1, n)
-   local s,e = ln1:find("%d+")
-   local ny = tonumber(ln1:sub(s,e))
+   print(ln1)
+   local split_ln1 = xsys.string.split(ln1, "[ ]+")
+   local len = #split_ln1
+   local nx = tonumber(split_ln1[len-1])
+   local ny = tonumber(split_ln1[len])
 
    return nx, ny
 end

@@ -1,5 +1,4 @@
-// WARNING: This regression test currently (as of March 21st, 2024) fails.
-// There is an unhandled segmentation fault occurring somewhere in the Vlasov app for the case of the linear advection equation.
+// Constant 6th-order diffusion of a 3D sine wave using a p2 DG discretization of the advection-diffusion equation.
 
 #include <math.h>
 #include <stdio.h>
@@ -23,27 +22,36 @@
 
 #include <rt_arg_parse.h>
 
-struct advect_ctx
+struct diffusion_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
+  double diffusion_coeff; // Diffusion coefficient.
+  int diffusion_order; // Order of diffusion.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Ny; // Cell count (configuration space: y-direciton).
+  int Nz; // Cell count (configuration space: z-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double Ly; // Domain size (configuration space: y-direction).
+  double Lz; // Domain size (configuration space: z-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct advect_ctx
+struct diffusion_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -51,27 +59,45 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
+  double diffusion_coeff = 1.0; // Diffusion coefficient.
+  int diffusion_order = 6; // Order of diffusion.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Nx = 4; // Cell count (configuration space: x-direction).
+  int Ny = 4; // Cell count (configuration space: y-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  double Ly = 2.0 * pi; // Domain size (configuration space: y-direction).
+  double Lz = 2.0 * pi; // Domain size (configuration space: z-direction).
   int poly_order = 2; // Polynomial order.
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 20.0 * pi; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
+  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct advect_ctx ctx = {
+  struct diffusion_ctx ctx = {
     .pi = pi,
     .v_advect = v_advect,
+    .diffusion_coeff = diffusion_coeff,
+    .diffusion_order = diffusion_order,
     .Nx = Nx,
+    .Ny = Ny,
+    .Nz = Nz,
     .Lx = Lx,
+    .Ly = Ly,
+    .Lz = Lz,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -80,38 +106,67 @@ create_ctx(void)
 }
 
 void
-evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  double f = sin(x) * sin(y) * sin(z); // Advected quantity.
 
   // Set advected quantity.
-  fout[0] = sin(x);
+  fout[0] = f;
 }
 
 void
-eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectVel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct advect_ctx *app = ctx;
-
-  double v_advect = app->v_advect;
+  double ux = 0.0; // Advection velocity (x-direction).
+  double uy = 0.0; // Advection velocity (y-direction).
+  double uz = 0.0; // Advection velocity (z-direction).
 
   // Set advection velocity.
-  fout[0] = v_advect;
-  fout[1] = 0.0; 
-  fout[2] = 0.0; 
+  fout[0] = ux; fout[1] = uy; fout[2] = uz;
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
     }
 
-    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
-    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_field_energy(app);
+    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
+
+    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
+  }
+}
+
+void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);
+  }
+}
+
+void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
+    gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -131,27 +186,29 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct advect_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct diffusion_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
 
-  // Equation object for getting equation type, 
-  // advection velocity is set by eval_advect_vel function. 
-  double c = 1.0;
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
+  // Linear advection equation.
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
 
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "q",
-    .charge = 0.0, .mass = 1.0,
-
-    .init = evalInit,
-    .ctx = &ctx,
-
     .equation = advect,
     .advection = {
-      .velocity = eval_advect_vel,
+      .velocity = evalAdvectVel,
       .velocity_ctx = &ctx,
     },
+    .diffusion = {
+      .D = ctx.diffusion_coeff,
+      .order = ctx.diffusion_order,
+    },
+
+    .init = evalAdvectInit,
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processors in simulation.
@@ -161,31 +218,25 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
-  int ccells[] = { NX };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+int ccells[] = { NX, NY, NZ };
+int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
-  // Create decomposition.
-  int cuts[cdim];
+int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
+for (int d = 0; d < cdim; d++) {
+  if (app_args.use_mpi) {
+    cuts[d] = app_args.cuts[d];
   }
-#else
-  for (int d = 0; d < cdim; d++) {
+  else {
     cuts[d] = 1;
   }
-#endif  
+}
+#else
+for (int d = 0; d < cdim; d++) {
+  cuts[d] = 1;
+}
+#endif
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -193,7 +244,6 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -204,20 +254,17 @@ main(int argc, char **argv)
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -242,19 +289,19 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "advect_1x",
+    .name = "dg_diffusion6_const_3x",
 
-    .cdim = 1, .vdim = 0,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx},
-    .cells = { NX },
+    .cdim = 3, .vdim = 0,
+    .lower = { 0.0, 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly, ctx.Lz },
+    .cells = { NX, NY, NZ },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 3,
+    .periodic_dirs = { 0, 1, 2 },
 
     .num_species = 0,
     .species = { },
@@ -266,23 +313,59 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
       .comm = comm,
     },
   };
-  
+
   // Create app object.
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Initialize simulation.
+  int frame_curr = 0;
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_vlasov_app_apply_ic(app, t_curr);
+  }
+  
+  // Create trigger for field energy.
+  int field_energy_calcs = ctx.field_energy_calcs;
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_field_energy(&fe_trig, app, t_curr, false);
+
+  // Create trigger for integrated moments.
+  int integrated_mom_calcs = ctx.integrated_mom_calcs;
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+
+  // Create trigger for integrated L2 norm of the distribution function.
+  int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
+  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
+
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
-  // Initialize simulation.
-  gkyl_vlasov_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
@@ -306,6 +389,9 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -320,6 +406,12 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -330,6 +422,9 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
@@ -351,12 +446,11 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  double io_tm =  stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(advect);
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 
