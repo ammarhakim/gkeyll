@@ -122,17 +122,10 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
       frame = iot->curr;
     }
 
-<<<<<<< HEAD:vlasov/creg/rt_vlasov_advect_1x.c
-    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
-    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
-=======
     gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
-
-    gkyl_vlasov_app_calc_mom(app);
-    gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
 
@@ -157,7 +150,6 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
->>>>>>> main:vlasov/creg/rt_dg_advect_1x_p2.c
   }
 }
 
