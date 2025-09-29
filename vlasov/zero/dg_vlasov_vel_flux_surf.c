@@ -237,5 +237,10 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
 void
 gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up)
 {
+  // Release memory associated with this updater.
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
+#endif
   gkyl_free(up);
 }
