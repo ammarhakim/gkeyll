@@ -517,8 +517,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_zbc = gk_field_enforce_zbc;
     struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
-    if (bc_lo_x->type == GKYL_BC_GK_FIELD_DIRICHLET)
-      f->enforce_xbc = gk_field_enforce_xbc;
+    // if (bc_lo_x->type == GKYL_BC_GK_FIELD_DIRICHLET)
+      // f->enforce_xbc = gk_field_enforce_xbc;
   }
   
   return f;
