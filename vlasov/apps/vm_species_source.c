@@ -60,6 +60,20 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       src->adapt_source[i] = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume); 
       src->adapt_proj_source[i] = vms->info.source.source_with_proj[i];
     }
+    src->filter = false;
+    if (vms->info.source.filter) {
+      src->filter = true;
+      // Create Gaussian filter for use with adaptive density source. 
+      struct gkyl_dg_gaussian_filter_inp inp = {
+        .conf_grid = &app->grid,
+        .conf_basis = &app->basis,
+        .conf_range = &app->local,
+        .conf_range_ext = &app->local_ext,
+        .extend_filter = false,
+        .use_gpu = app->use_gpu,
+      };
+      src->gauss_filter = gkyl_dg_gaussian_filter_inew(&inp);
+    }    
   }
 
   // We need to ensure source has same shape as distribution function. 
@@ -125,6 +139,9 @@ vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {  
     for (int i=0; i<src->num_cross_source; i++) {
       gkyl_mom_calc_advance(src->m0_reduced[i], &vms->local, &app->local, fin, src->scale_m0[i]);
+      if (src->filter) {
+        gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
+      }
     }  
   }
 }
@@ -353,6 +370,15 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     else {
       gkyl_free(src->scale_ptr);
     }
+  }
+
+  if (src->rescale_m0) {
+    for (int i=0; i<src->num_cross_source; i++) {
+      gkyl_mom_calc_release(src->m0_reduced[i]);
+      gkyl_array_release(src->scale_m0[i]);
+      gkyl_array_release(src->adapt_source[i]);
+    }
+    gkyl_dg_gaussian_filter_release(src->gauss_filter);
   }
 
   for (int k=0; k<src->num_sources; k++) {

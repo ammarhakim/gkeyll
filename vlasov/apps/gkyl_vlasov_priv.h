@@ -34,6 +34,7 @@
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
+#include <gkyl_dg_gaussian_filter.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
@@ -312,6 +313,9 @@ struct vm_source {
   struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
   int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
 
+  bool filter; // boolean for if we are filtering recaled M0
+  gkyl_dg_gaussian_filter *gauss_filter; // updater for filtering rescaled M0
+  
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO 
   struct gkyl_array *source_tmp; // temporary array for sources for accumulation if num_sources>1
