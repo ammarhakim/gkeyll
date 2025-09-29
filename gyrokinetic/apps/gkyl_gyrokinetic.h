@@ -236,9 +236,17 @@ struct gkyl_gyrokinetic_react {
   bool write_diagnostics; // Whether to write diagnostics.
 };
 
+// Types of scaling operations for a species.
+enum gkyl_gk_species_scaling_type {
+  GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
+  GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
+  GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
+};
+
 // Input parameters for scaling a species according to recycling at specified
 // boundaries balanced by reactions.
 struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
+  enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
   int num_boundaries; // Number of boundaries.
   int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
   enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.

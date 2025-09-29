@@ -153,11 +153,12 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
   struct gk_recycle_react_scale *rrs)
 {
   struct gkyl_gyrokinetic_recycling_reaction_scaling_inp *rrs_inp = &ns->info.recycling_reaction_scaling;
-  rrs->num_boundaries = rrs_inp->num_boundaries;
-  rrs->recycling_coeff = rrs_inp->recycling_coeff;
 
-  if (rrs->num_boundaries > 0) {
+  if (rrs_inp->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     assert(ns->is_fluid);
+
+    rrs->num_boundaries = rrs_inp->num_boundaries;
+    rrs->recycling_coeff = rrs_inp->recycling_coeff;
     rrs->write_diagnostics = rrs_inp->write_diagnostics;
 
     // Initial number density times conf-space Jacobian.
@@ -186,6 +187,7 @@ gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struc
       rrs->write_func = gk_neut_species_rrs_write_disabled;
   }
   else {
+    rrs->num_boundaries = 0;
     rrs->cross_moms_func = gk_neut_species_rrs_cross_moms_disabled;
     rrs->rhs_func = gk_neut_species_rrs_rhs_disabled;
     rrs->apply_func = gk_neut_species_rrs_apply_disabled;

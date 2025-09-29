@@ -585,10 +585,6 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
     gkyl_dynvec_release(s->ps_integ_diag);
   }
 
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
-
 }
 
 static void
@@ -603,10 +599,6 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
   else {
     gkyl_free(ns->omega_cfl);
   }
-
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
 
   // Release integrated mom data.
   gk_neut_species_moment_release(app, &ns->integ_moms); 
@@ -674,6 +666,10 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   if (app->use_gpu)
     gkyl_array_release(s->hamil_host);
 
+  // Free memory for the object that scales the species according to a balance
+  // between recycling and reactions.
+  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
+
   s->release_is_static_func(app, s);
 }
 
@@ -699,6 +695,10 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
   gk_neut_species_bflux_release(app, s, &s->bflux);
 
   gk_neut_species_lte_release(app, &s->lte);
+
+  // Free memory for the object that scales the species according to a balance
+  // between recycling and reactions.
+  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
 
   s->release_is_static_func(app, s);
 }
@@ -829,10 +829,6 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
     }
   }
 
-  // Initialize the object that scales the species according to a balance
-  // between recycling and reactions (meant for fluid neutrals for now).
-  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
-
   if (app->enforce_positivity || s->info.enforce_positivity) {
     s->enforce_positivity = true;
 
@@ -908,10 +904,6 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 
   ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
                               : gkyl_malloc(sizeof(double));
-
-  // Initialize the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
 
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
@@ -1459,11 +1451,15 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   s->enforce_positivity = false;
   
+  // Initialize the object that scales the species according to a balance
+  // between recycling and reactions (meant for fluid neutrals for now).
+  s->rrs = (struct gk_recycle_react_scale) { };
+  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
+
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
   s->bgk = (struct gk_bgk_collisions) { };
   s->react_neut = (struct gk_react) { };
-  s->rrs = (struct gk_recycle_react_scale) { };
   if (!s->info.is_static) {
     gk_neut_species_kinetic_init_dynamic(gk, app, s);
   }
@@ -1585,6 +1581,11 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   ns->enforce_positivity = false;
   
+  // Initialize the object that scales the species according to a balance
+  // between recycling and reactions.
+  ns->rrs = (struct gk_recycle_react_scale) { };
+  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+
   ns->src = (struct gk_source) { };
   ns->react_neut = (struct gk_react) { };
   if (!ns->info.is_static) {
