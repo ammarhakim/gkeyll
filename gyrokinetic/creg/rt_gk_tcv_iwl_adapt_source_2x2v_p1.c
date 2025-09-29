@@ -688,6 +688,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+    .time_rate_diagnostics = true,
   };
 
   // ions
@@ -766,6 +767,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {
