@@ -29,14 +29,6 @@ typedef double (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
 
-// Function pointer type for additional kernel used for boundary diagnostics.
-typedef double (*boundary_diag_termf_t)(const struct gkyl_dg_eqn *eqn,
-  int dir,
-  const double*  xcEdge, const double*  xcSkin,
-  const double*  dxEdge, const double* dxSkin,
-  const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
-
 // Function pointer type for generic stencil kernel
 // Similar to surface kernel, but size of input arrays unspecified
 // Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
@@ -56,7 +48,7 @@ struct gkyl_dg_eqn {
   vol_termf_t vol_term; // Volume term kernel.
   surf_termf_t surf_term; // Surface term kernel.
   boundary_surf_termf_t boundary_surf_term; // Boundary surface term kernel.
-  boundary_diag_termf_t boundary_diag_term; // Boundary diagnotic kernel.
+  boundary_surf_termf_t boundary_diag_term; // Boundary diagnotic kernel.
   gen_termf_t gen_surf_term; // Generic stencil kernel with input variable size unspecified.
   gen_termf_t gen_boundary_surf_term; // Generic stencil kernel with input variable size unspecified
                                       // for boundary surface updates.

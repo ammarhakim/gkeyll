@@ -5,6 +5,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_gk_bc_type.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_gk_anomalous_diffusion_auxfields { 
@@ -18,15 +19,15 @@ struct gkyl_gk_anomalous_diffusion_auxfields {
  * @param basis Basis functions of the equation system.
  * @param cbasis Configuration space basis.
  * @param conf_range Conf-space range object.
- * @param is_zero_flux_bc Whether each boundary has zero-flux BCs.
- * @param is_skip_bc Whether each boundary has skip BCs.
+ * @param bc_x_lower Boundary condition at lower x boundary.
+ * @param bc_x_upper Boundary condition at upper x boundary.
  * @param skip_cell_threshold Threshold which to skip cells
  * @param use_gpu Whether to run on host or device.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn* gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const bool *is_zero_flux_bc, const bool *is_skip_bc, 
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
   double skip_cell_threshold, bool use_gpu);
 
 /**

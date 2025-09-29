@@ -1117,40 +1117,40 @@ main(int argc, char **argv)
       .D_profile_ctx = &ctx,
     }, 
 
-    .radiation = {
-      .radiation_id = GKYL_GK_RADIATION, 
-      .num_cross_collisions = 1, 
-      .collide_with = { "Ar1" },
-      .z = 18,
-      .charge_state = 1,
-      .num_of_densities = 1, // Must be 1 for now
-    },
-
-    .react_neut = {
-      .num_react = 2,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1", // ion is always the higher charge state
-          .donor_nm = "Ar0", // interacts with elc to give up charge
-          .charge_state = 0, // corresponds to lower charge state (donor)
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .recvr_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-      },
-    }, 
+//    .radiation = {
+//      .radiation_id = GKYL_GK_RADIATION, 
+//      .num_cross_collisions = 1, 
+//      .collide_with = { "Ar1" },
+//      .z = 18,
+//      .charge_state = 1,
+//      .num_of_densities = 1, // Must be 1 for now
+//    },
+//
+//    .react_neut = {
+//      .num_react = 2,
+//      .react_type = {
+//        { .react_id = GKYL_REACT_IZ,
+//          .type_self = GKYL_SELF_ELC,
+//          .ion_id = GKYL_ION_AR,
+//          .elc_nm = "elc",
+//          .ion_nm = "Ar1", // ion is always the higher charge state
+//          .donor_nm = "Ar0", // interacts with elc to give up charge
+//          .charge_state = 0, // corresponds to lower charge state (donor)
+//          .ion_mass = ctx.massAr,
+//          .elc_mass = ctx.massElc,
+//        },
+//        { .react_id = GKYL_REACT_RECOMB,
+//          .type_self = GKYL_SELF_ELC,
+//          .ion_id = GKYL_ION_AR,
+//          .elc_nm = "elc",
+//          .ion_nm = "Ar1",
+//          .recvr_nm = "Ar0",
+//          .charge_state = 0,
+//          .ion_mass = ctx.massAr,
+//          .elc_mass = ctx.massElc,
+//        },
+//      },
+//    }, 
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
@@ -1779,31 +1779,31 @@ main(int argc, char **argv)
       .D_profile_ctx = &ctx,
     }, 
 
-    .react_neut = {
-      .num_react = 2,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .donor_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .recvr_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-      },
-    },
+//    .react_neut = {
+//      .num_react = 2,
+//      .react_type = {
+//        { .react_id = GKYL_REACT_IZ,
+//          .type_self = GKYL_SELF_ION,
+//          .ion_id = GKYL_ION_AR,
+//          .elc_nm = "elc",
+//          .ion_nm = "Ar1",
+//          .donor_nm = "Ar0",
+//          .charge_state = 0,
+//          .ion_mass = ctx.massAr,
+//          .elc_mass = ctx.massElc,
+//        },
+//        { .react_id = GKYL_REACT_RECOMB,
+//          .type_self = GKYL_SELF_ION,
+//          .ion_id = GKYL_ION_AR,
+//          .elc_nm = "elc",
+//          .ion_nm = "Ar1",
+//          .recvr_nm = "Ar0",
+//          .charge_state = 0,
+//          .ion_mass = ctx.massAr,
+//          .elc_mass = ctx.massElc,
+//        },
+//      },
+//    },
   
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
@@ -1813,73 +1813,73 @@ main(int argc, char **argv)
 
   // Neutral Ar0 Species
   // all data is common across blocks
-  struct gkyl_gyrokinetic_multib_neut_species_pb Ar0_blocks[1];
-  Ar0_blocks[0] = (struct gkyl_gyrokinetic_multib_neut_species_pb) {
-
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .ctx_density = &ctx,
-      .density = initDensityNeutral,
-      .ctx_udrift = &ctx,
-      .udrift = initUDriftNeutral,
-      .ctx_temp = &ctx,
-      .temp = initTempAr,
-    },
-
-  };
-
-  struct gkyl_gyrokinetic_bc Ar0_phys_bcs[] = {
-    // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 10 BCs
-    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    // block 11 BCs
-    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-  };
-
-  struct gkyl_gyrokinetic_multib_neut_species Ar0 = {
-    .name = "Ar0",
-    .mass = ctx.massAr,
-    .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
-    .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
-    .cells = { cells_v[0], cells_v[0], cells_v[0] },
-    .is_static = true,
-    .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
-
-    .duplicate_across_blocks = true,
-    .blocks = Ar0_blocks,
-    .num_physical_bcs = 20,
-    .bcs = Ar0_phys_bcs,
-  };
+//  struct gkyl_gyrokinetic_multib_neut_species_pb Ar0_blocks[1];
+//  Ar0_blocks[0] = (struct gkyl_gyrokinetic_multib_neut_species_pb) {
+//
+//    .projection = {
+//      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+//      .ctx_density = &ctx,
+//      .density = initDensityNeutral,
+//      .ctx_udrift = &ctx,
+//      .udrift = initUDriftNeutral,
+//      .ctx_temp = &ctx,
+//      .temp = initTempAr,
+//    },
+//
+//  };
+//
+//  struct gkyl_gyrokinetic_bc Ar0_phys_bcs[] = {
+//    // block 0 BCs
+//    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 1 BCs
+//    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 2 BCs
+//    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    // block 3 BCs
+//    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    // block 4 BCs
+//    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 5 BCs
+//    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    // block 6 BCs
+//    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    // block 7 BCs
+//    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 8 BCs
+//    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 9 BCs
+//    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+//    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 10 BCs
+//    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+//    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//    // block 11 BCs
+//    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+//    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+//  };
+//
+//  struct gkyl_gyrokinetic_multib_neut_species Ar0 = {
+//    .name = "Ar0",
+//    .mass = ctx.massAr,
+//    .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
+//    .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
+//    .cells = { cells_v[0], cells_v[0], cells_v[0] },
+//    .is_static = true,
+//    .num_diag_moments = 3,
+//    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
+//
+//    .duplicate_across_blocks = true,
+//    .blocks = Ar0_blocks,
+//    .num_physical_bcs = 20,
+//    .bcs = Ar0_phys_bcs,
+//  };
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
@@ -1890,37 +1890,37 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
-    //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0}},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
-    //{ .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0}},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
-    //{ .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
-    //{ .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
-    //{ .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET },
-    //{ .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET },
-    //{ .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET },
-    //{ .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    //{ .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NONE, .value = {0.0} },
     // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
     // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -1948,8 +1948,8 @@ main(int argc, char **argv)
     .num_species = 3,
     .species = { elc, ion, Ar1},
 
-    .num_neut_species = 1,
-    .neut_species = { Ar0 },
+//    .num_neut_species = 1,
+//    .neut_species = { Ar0 },
 
     .field = field,
 

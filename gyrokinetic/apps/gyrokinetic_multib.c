@@ -354,80 +354,71 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     memcpy(&app_inp.neut_species[i], &neut_species_inp, sizeof(struct gkyl_gyrokinetic_neut_species));
   } 
 
-  // Initialize field.
+  // Initialize the single-block field solver (only used for num_blocks=1).
   const struct gkyl_gyrokinetic_multib_field *fld = &mbinp->field;
   struct gkyl_gyrokinetic_field field_inp = { };
-  field_inp.gkfield_id = fld->gkfield_id;
-  field_inp.kperpSq = fld->kperpSq; 
-  field_inp.time_rate_diagnostics = fld->time_rate_diagnostics; 
-
-  // Adiabatic electron inputs.
-  field_inp.electron_mass = fld->electron_mass;
-  field_inp.electron_charge = fld->electron_charge;
-  field_inp.electron_density = fld->electron_density; 
-  field_inp.electron_temp = fld->electron_temp; 
-
-  // BCs.
-  for (int i=0; i<2*cdim; i++) {
-    // Set it to Dirichlet first, reset below. This avoids problems in
-    // creating the single block field solve, which may not be used.
-    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
-    for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs[i].value[k] = -1.0e3;
-
-    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
-    for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs[i].value[k] = -1.0e3;
-  }
-  int bc_count_fld[num_blocks];
-  for (int i=0; i<num_blocks; i++)
-    bc_count_fld[i] = 0;
-
-  for (int i=0; i<fld->num_physical_bcs; i++) { 
-    if (bid == fld->bcs[i].bidx) {
-      field_inp.poisson_bcs[bc_count_fld[bid]].dir = fld->bcs[i].dir;
-      field_inp.poisson_bcs[bc_count_fld[bid]].edge = fld->bcs[i].edge;
-      field_inp.poisson_bcs[bc_count_fld[bid]].type = fld->bcs[i].type;
-      field_inp.poisson_bcs[bc_count_fld[bid]].aux_profile = fld->bcs[i].aux_profile;
-      field_inp.poisson_bcs[bc_count_fld[bid]].aux_ctx = fld->bcs[i].aux_ctx;
-      for (int k=0; k<3; ++k)
-        field_inp.poisson_bcs[bc_count_fld[bid]].value[k] = fld->bcs[i].value[k];
-
-      bc_count_fld[bid] += 1;
-    }
-  }
-
-  const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
-  // Choose proper block-specific field input.
-  if (!fld->duplicate_across_blocks) {
-    for (int i=0; i<num_blocks; ++i) {
-      if (bid == fld->blocks[i].block_id) {
-        const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
-        break;
+  if (num_blocks == 1) { 
+    field_inp.gkfield_id = fld->gkfield_id;
+    field_inp.kperpSq = fld->kperpSq; 
+    field_inp.time_rate_diagnostics = fld->time_rate_diagnostics; 
+  
+    // Adiabatic electron inputs.
+    field_inp.electron_mass = fld->electron_mass;
+    field_inp.electron_charge = fld->electron_charge;
+    field_inp.electron_density = fld->electron_density; 
+    field_inp.electron_temp = fld->electron_temp; 
+  
+    // BCs.
+    int bc_count_fld[num_blocks];
+    for (int i=0; i<num_blocks; i++)
+      bc_count_fld[i] = 0;
+  
+    for (int i=0; i<fld->num_physical_bcs; i++) { 
+      if (bid == fld->bcs[i].bidx) {
+        field_inp.poisson_bcs[bc_count_fld[bid]].dir = fld->bcs[i].dir;
+        field_inp.poisson_bcs[bc_count_fld[bid]].edge = fld->bcs[i].edge;
+        field_inp.poisson_bcs[bc_count_fld[bid]].type = fld->bcs[i].type;
+        field_inp.poisson_bcs[bc_count_fld[bid]].aux_profile = fld->bcs[i].aux_profile;
+        field_inp.poisson_bcs[bc_count_fld[bid]].aux_ctx = fld->bcs[i].aux_ctx;
+        for (int k=0; k<3; ++k)
+          field_inp.poisson_bcs[bc_count_fld[bid]].value[k] = fld->bcs[i].value[k];
+  
+        bc_count_fld[bid] += 1;
       }
     }
-  }
-
-  if (!fld->duplicate_across_blocks) {
-    for (int i=0; i<num_blocks; ++i) {
-      if (bid == fld->blocks[i].block_id) {
-        fld_pb = &fld->blocks[i];
-        break;
+  
+    const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
+    // Choose proper block-specific field input.
+    if (!fld->duplicate_across_blocks) {
+      for (int i=0; i<num_blocks; ++i) {
+        if (bid == fld->blocks[i].block_id) {
+          const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
+          break;
+        }
       }
     }
+  
+    if (!fld->duplicate_across_blocks) {
+      for (int i=0; i<num_blocks; ++i) {
+        if (bid == fld->blocks[i].block_id) {
+          fld_pb = &fld->blocks[i];
+          break;
+        }
+      }
+    }
+  
+    field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
+    field_inp.kperpSq = fld_pb->kperpSq;
+    field_inp.time_rate_diagnostics = fld_pb->time_rate_diagnostics; 
+  
+    field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
+    field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
+    field_inp.phi_wall_lo_evolve = fld_pb->phi_wall_lo_evolve; 
+  
+    field_inp.phi_wall_up_ctx = fld_pb->phi_wall_up_ctx; 
+    field_inp.phi_wall_up = fld_pb->phi_wall_up; 
+    field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;   
   }
-
-  field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
-  field_inp.kperpSq = fld_pb->kperpSq;
-  field_inp.time_rate_diagnostics = fld_pb->time_rate_diagnostics; 
-
-  field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
-  field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
-  field_inp.phi_wall_lo_evolve = fld_pb->phi_wall_lo_evolve; 
-
-  field_inp.phi_wall_up_ctx = fld_pb->phi_wall_up_ctx; 
-  field_inp.phi_wall_up = fld_pb->phi_wall_up; 
-  field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;   
 
   // Copy field input into app input.
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  

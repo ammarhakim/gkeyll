@@ -201,13 +201,13 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count* ref);
  * @param basis Basis functions of the equation system.
  * @param cbasis Configuration space basis.
  * @param conf_range Conf-space range object.
- * @param is_zero_flux_bc Whether each boundary has zero-flux BCs.
- * @param is_skip_bc Whether each boundary has skip BCs.
+ * @param bc_x_lower Boundary condition at lower x boundary.
+ * @param bc_x_upper Boundary condition at upper x boundary.
  * @param skip_cell_threshold Threshold which to skip cells
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_skip_bc, 
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
   double skip_cell_threshold);
 #endif
