@@ -70,6 +70,9 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfx_kernels;
   const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfy_kernels;
   const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfz_kernels; 
+  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagx_kernels;
+  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagy_kernels;
+  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagz_kernels; 
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -80,6 +83,9 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
       boundary_surfx_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfx_kernels_constcoeff : ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
       boundary_surfy_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfy_kernels_constcoeff : ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
       boundary_surfz_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfz_kernels_constcoeff : ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
+      boundary_diagx_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_diagx_kernels_constcoeff : ser_gyrokinetic_boundary_diagx_kernels_varcoeff;
+      boundary_diagy_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_diagy_kernels_constcoeff : ser_gyrokinetic_boundary_diagy_kernels_varcoeff;
+      boundary_diagz_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_diagz_kernels_constcoeff : ser_gyrokinetic_boundary_diagz_kernels_varcoeff;
       break;
   
     default:
@@ -92,6 +98,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   diffusion->eqn.num_equations = 1;
   diffusion->eqn.surf_term = surf;
   diffusion->eqn.boundary_surf_term = boundary_surf;
+  diffusion->eqn.boundary_diag_term = boundary_diag;
 
   diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, diff_order, poly_order, dirs_linidx);
 
@@ -106,6 +113,12 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
     diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, cdim, vdim, poly_order);
   if (cdim>2)
     diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, vdim, poly_order);
+
+  diffusion->boundary_diag[0] = CKSURF(boundary_diagx_kernels, diff_order, cdim, vdim, poly_order);
+  if (cdim>1)
+    diffusion->boundary_diag[1] = CKSURF(boundary_diagy_kernels, diff_order, cdim, vdim, poly_order);
+  if (cdim>2)
+    diffusion->boundary_diag[2] = CKSURF(boundary_diagz_kernels, diff_order, cdim, vdim, poly_order);
 
   // Ensure non-NULL pointers.
   for (int i=0; i<cdim; ++i) assert(diffusion->surf[i]);

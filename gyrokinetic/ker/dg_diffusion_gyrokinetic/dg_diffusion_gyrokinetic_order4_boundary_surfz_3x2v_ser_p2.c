@@ -1,6 +1,6 @@
 #include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
 
-GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_boundary_surfz_3x2v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, int edge, const double *qSkin, const double *qEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_boundary_surfz_3x2v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, int edge, const double *qEdge, const double *qSkin, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinate.
   // dxv[NDIM]: Cell length.

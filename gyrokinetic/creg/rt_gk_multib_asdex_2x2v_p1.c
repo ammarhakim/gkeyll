@@ -863,6 +863,14 @@ init_nu_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   fout[0] = params->nu_ion;
 }
 
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.3; // Diffusivity [m^2/s].
+}
+
 struct gk_asdex_ctx
 create_ctx(void)
 {
@@ -1226,12 +1234,12 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .num_physical_bcs = 10,
     .bcs = elc_phys_bcs,
@@ -1346,12 +1354,12 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .num_physical_bcs = 10,
     .bcs = ion_phys_bcs,

@@ -20,7 +20,8 @@ struct gkyl_dg_updater_diffusion_gyrokinetic*
 gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, 
   const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_bc, double skip_cell_threshold, bool use_gpu)
+  const bool *is_zero_flux_bc, double skip_cell_threshold,
+  const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gyrokinetic));
 
@@ -32,6 +33,9 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
   up->dgeqn = gkyl_dg_diffusion_gyrokinetic_new(basis, cbasis, is_diff_const, is_dir_diffusive,
     diff_order, diff_range, skip_cell_threshold, up->use_gpu);
+
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) {
+    .D = coeff, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 0;
   for (int d=0; d<cdim; d++) num_up_dirs += is_dir_diffusive[d]? 1 : 0;
@@ -54,14 +58,10 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
+  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  // Set arrays needed and call the specific advance method required
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) {
-    .D = coeff, .jacobgeo_inv = jacobgeo_inv });
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }

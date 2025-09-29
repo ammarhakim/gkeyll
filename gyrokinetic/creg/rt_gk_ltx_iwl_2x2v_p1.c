@@ -131,6 +131,14 @@ void evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = app->nuIon;
 }
 
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.3; // Diffusivity [m^2/s].
+}
+
 struct gk_app_ctx
 create_ctx(void)
 {
@@ -323,12 +331,12 @@ int main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -383,12 +391,12 @@ int main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,

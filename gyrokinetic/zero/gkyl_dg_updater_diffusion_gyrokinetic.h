@@ -26,12 +26,25 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  * @param diff_range Range object to index the diffusion coefficient.
  * @param is_zero_flux_bc True for boundaries with zero flux BCs.
  * @param skip_cell_threshold Threshold which to skip cells
+ * @param coeff Diffusion coefficient/tensor.
+ * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
  * @param use_gpu Whether to run on host or device.
  * @return New diff updater object
  */
 struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, double skip_cell_threshold, bool use_gpu);
+  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, double skip_cell_threshold,
+  const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
+
+/**
+ * Acquire gyrokinetic diffusion equation object.
+ *
+ * @param up gyrokinetic diffusion updater object.
+ * 
+ * @return gyrokinetic diffusion equation object.
+ */
+struct gkyl_dg_eqn* 
+gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(const gkyl_dg_updater_diffusion_gyrokinetic* up);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -41,16 +54,13 @@ struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokine
  *
  * @param up diffusion updater object.
  * @param update_rng Range on which to compute.
- * @param coeff Diffusion coefficient/tensor.
- * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
  * @param fIn Input to updater.
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs);
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
+  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
  * Return total time spent in diffusion terms

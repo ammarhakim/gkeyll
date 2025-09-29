@@ -166,6 +166,14 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = app->nuIon;
 }
 
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.1; // Diffusivity [m^2/s].
+}
+
 // Velocity space mappings.
 void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
@@ -443,11 +451,11 @@ main(int argc, char **argv)
       }, 
     },
 
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 0.1 },
-      .order = 2,
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
       
     .bcs = {
@@ -520,11 +528,11 @@ main(int argc, char **argv)
       }, 
     },
 
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 0.1 },
-      .order = 2,
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
 
     .bcs = {

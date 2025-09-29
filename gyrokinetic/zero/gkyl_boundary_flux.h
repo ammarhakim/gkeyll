@@ -11,21 +11,22 @@ typedef struct gkyl_boundary_flux gkyl_boundary_flux;
 
 /**
  * Create new updater to compute fluxes through the boundary surface due to the
- * surface terms in a given equation system.
+ * surface terms in one or more equation systems (terms).
  *
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
  * @param grid_cu Grid object (on device)
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
- * @param equation Equation object
+ * @param num_eqns Number of equation objects.
+ * @param eqns Equation objects.
  * @param skip_cell_threshold Threshold for skipping cells in the skin range.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_boundary_flux* gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_gpu);
+  int num_equations, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold, bool use_gpu);
 
 /**
  * Compute the boundary flux.

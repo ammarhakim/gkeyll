@@ -45,8 +45,8 @@ struct gkyl_gyrokinetic_multib_species {
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
