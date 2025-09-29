@@ -1747,6 +1747,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
+  // Check if other species use the recycle_react_scale operation.
+  bool recycle_react_scale = false;//gk_species_do_I_recycle_react_scale(app, gks);
+  // Check if other species have recycling BCs.
+  bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+  // Check if sources are adaptive.
+  bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
     bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
@@ -1757,17 +1763,28 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
     
-    // Boltzmann elc model requires the fluxes.
+    // Check if using Boltzmann elc.
     bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
-    // Recycling BCs require the fluxes. Since this depends on other species,
-    // it'll be checked in .
-    bool recycling_bcs = gk_species_do_I_recycle(app, gks);
-    // Check if any of the sources are adaptive.
-    bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
    
     if (boltz_elc_field || recycling_bcs || adaptive_sources) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
+    if (recycle_react_scale) {
+      // This is within an if-statement instead of an else if because it
+      // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
+      bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
+    }
+  }
+  if (recycle_react_scale) {
+    // Neutral scaling due to balance of recycling and reactions needs particle flux.
+    add_bflux_moms_inp.num_diag_moments = 1;
+    add_bflux_moms_inp.diag_moments[0] = GKYL_F_MOMENT_M0;
+  }
+  if (adaptive_sources) {
+    // Adaptive sources need particle and energy fluxes.
+    add_bflux_moms_inp.num_diag_moments = 2;
+    add_bflux_moms_inp.diag_moments[0] = GKYL_F_MOMENT_M0;
+    add_bflux_moms_inp.diag_moments[1] = GKYL_F_MOMENT_M2;
   }
 
   // Introduce new moments into moms_inp if needed.

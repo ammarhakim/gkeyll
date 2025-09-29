@@ -199,49 +199,65 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm) 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm) 
 {  
   struct timespec wst = gkyl_wall_clock();
 
-  src->adapt_func(app, s, src, f_buffer, tm);
+  src->adapt_func(app, s, src, f_buffer, bflux_moms, tm);
   
   app->stat.species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void 
 gk_species_source_adapt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm)
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
 {}
 
 static void
 gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm) 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
 {
   for (int k=0; k < s->info.source.num_adapt_sources; ++k) {
     struct gk_adapt_source *adapt_src = &src->adapt[k];
     struct gk_species *s_adapt = adapt_src->adapt_species;
+    struct gkyl_array **s_adapt_bflux_moms = bflux_moms[adapt_src->adapt_species_idx];
 
-    adapt_src->particle_rate_loss = 0.0;
-    adapt_src->energy_rate_loss = 0.0;
-    int num_mom = adapt_src->integ_threemoms.num_mom;
     // Accumulate energy and particle losses through the boundaries considered by the current adaptive source.
+    double sum_particle_loss_local = 0.0;
+    double sum_energy_loss_local = 0.0;
     for (int j=0; j < adapt_src->num_boundaries; ++j) {
-      // Compute the moment of the bflux to get the integrated loss.
-      gk_species_bflux_get_flux(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source, &adapt_src->boundaries_phase_ghost[j]);
-      gk_species_moment_calc(&adapt_src->integ_threemoms, adapt_src->boundaries_phase_ghost[j], adapt_src->boundaries_conf_ghost[j], src->source);
-      app->stat.n_mom += 1;
-      
-      // Reduce the moment over the specified range and store it in the global array.
-      double red_int_mom_global[num_mom];
-      gkyl_array_reduce_range(adapt_src->red_integ_mom, adapt_src->integ_threemoms.marr, GKYL_SUM, &adapt_src->boundaries_conf_ghost[j]);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, adapt_src->red_integ_mom, adapt_src->red_integ_mom_global);
-      if (app->use_gpu)
-        gkyl_cu_memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-      else
-        memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]));
-      adapt_src->particle_rate_loss += red_int_mom_global[0] * adapt_src->mass_ratio; // n
-      adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1] * adapt_src->mass_ratio; // 1/2 * m * v^2
+
+      double integ_m0_local_j, integ_m2_local_j; // To hold the integrated boundary flux moments summed over the boundaries.
+
+      // Get the index of the desired boundary flux moments and copy them to the arrays in adapt_src.
+      int bflux_m0_idx = gk_species_bflux_get_mom_idx(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], GKYL_F_MOMENT_M0);
+      int bflux_m2_idx = gk_species_bflux_get_mom_idx(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], GKYL_F_MOMENT_M2);
+      gkyl_array_copy_range_to_range(adapt_src->bflux_m0, s_adapt_bflux_moms[bflux_m0_idx], 
+        &adapt_src->boundaries_conf_ghost[j], &adapt_src->boundaries_conf_ghost[j]);
+      gkyl_array_copy_range_to_range(adapt_src->bflux_m2, s_adapt_bflux_moms[bflux_m2_idx], 
+        &adapt_src->boundaries_conf_ghost[j], &adapt_src->boundaries_conf_ghost[j]);
+
+      // Integrate the boundary flux moments to get the total loss through the j-th boundary.
+      gkyl_array_integrate_advance(adapt_src->integrate_op, adapt_src->bflux_m0, 1.0, 0,
+        &adapt_src->boundaries_conf_ghost[j], 0, adapt_src->integ_m0);
+      gkyl_array_integrate_advance(adapt_src->integrate_op, adapt_src->bflux_m2, 1.0, 0,
+        &adapt_src->boundaries_conf_ghost[j], 0, adapt_src->integ_m2);
+      // Copy the integrated moments to host.
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(&integ_m0_local_j, adapt_src->integ_m0, sizeof(double), GKYL_CU_MEMCPY_D2H);
+        gkyl_cu_memcpy(&integ_m2_local_j, adapt_src->integ_m2, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        memcpy(&integ_m0_local_j, adapt_src->integ_m0, sizeof(double));
+        memcpy(&integ_m2_local_j, adapt_src->integ_m2, sizeof(double));
+      }
+      // Accumulate to the total losses.
+      sum_particle_loss_local += integ_m0_local_j; // n
+      sum_energy_loss_local += 0.5 * s_adapt->info.mass * integ_m2_local_j; // 1/2 * m * v^2
     }
+    // Sum over all MPI processes.
+    double total_particle_loss, total_energy_loss;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_particle_loss_local, &adapt_src->particle_rate_loss);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_energy_loss_local, &adapt_src->energy_rate_loss);
 
     double particle_input = s->info.source.projection[k].total_num_particles;
     double energy_input = s->info.source.projection[k].total_kin_energy;
@@ -378,8 +394,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_to_species);
         assert(adapt_src->adapt_species != NULL); // Make sure the adaptive species is found.
-
-        adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
+        adapt_src->adapt_species_idx = gk_find_species_idx(app, adapt_src->adapt_species->info.name);
 
         adapt_src->particle_src_curr = s->info.source.projection[k].total_num_particles;
         adapt_src->energy_src_curr = s->info.source.projection[k].total_kin_energy;
@@ -387,16 +402,25 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
 
-        gk_species_moment_init(app, s, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
+        gk_species_moment_init(app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
+
+        // Initialize the infrastructure to compute integrated moments of the boundary fluxes.
+        adapt_src->bflux_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+        adapt_src->bflux_m2 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+        adapt_src->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
 
         int num_mom = adapt_src->integ_threemoms.num_mom;
         if (app->use_gpu){
           adapt_src->red_integ_mom = gkyl_cu_malloc(sizeof(double[num_mom]));
           adapt_src->red_integ_mom_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+          adapt_src->integ_m0 = gkyl_cu_malloc(sizeof(double));
+          adapt_src->integ_m2 = gkyl_cu_malloc(sizeof(double));
         }
         else {
           adapt_src->red_integ_mom = gkyl_malloc(sizeof(double[num_mom]));
           adapt_src->red_integ_mom_global = gkyl_malloc(sizeof(double[num_mom]));
+          adapt_src->integ_m0 = gkyl_malloc(sizeof(double));
+          adapt_src->integ_m2 = gkyl_malloc(sizeof(double));
         }
 
         adapt_src->num_boundaries = s->info.source.adapt[k].num_boundaries;
@@ -506,13 +530,20 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       for (int k=0; k < src->num_adapt_sources; ++k) {
         const struct gk_adapt_source *adapt_src = &src->adapt[k];
         gk_species_moment_release(app, &adapt_src->integ_threemoms);
+        gkyl_array_integrate_release(adapt_src->integrate_op);
+        gkyl_array_release(adapt_src->bflux_m0);
+        gkyl_array_release(adapt_src->bflux_m2);
         if (app->use_gpu) {
           gkyl_cu_free(adapt_src->red_integ_mom);
           gkyl_cu_free(adapt_src->red_integ_mom_global);
+          gkyl_cu_free(adapt_src->integ_m0);
+          gkyl_cu_free(adapt_src->integ_m2);
         }
         else {
           gkyl_free(adapt_src->red_integ_mom);
           gkyl_free(adapt_src->red_integ_mom_global);
+          gkyl_free(adapt_src->integ_m0);
+          gkyl_free(adapt_src->integ_m2);
         }
       }
     }

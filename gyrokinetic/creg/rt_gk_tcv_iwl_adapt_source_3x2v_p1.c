@@ -443,7 +443,7 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
-  double vol_frac = 1.0/(2.*M_PI*r0/q0/Ly); // Volume fraction of the simulation box.
+  double vol_frac = 1.0/(2.*M_PI*r0/q0/Ly); // Volume fraction of the simulation box (=0.5 here).
   double P_inj = P_exp * vol_frac / num_species; // Injection power normalized to the volume fraction and per species [W]
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).

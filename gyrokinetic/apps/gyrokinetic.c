@@ -860,8 +860,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
 
-        // Adapt the source term to the initial condition.
-        gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
       }
     }
 
@@ -1764,6 +1762,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute plasma source term.
   // Done here as the RHS update for all species should be complete before
   // in case we are using boundary fluxes as a component of our source function
+  for (int i=0; i<app->num_species; ++i) {
+    gk_species_source_adapt(app, &app->species[i], &app->species[i].src, 
+      app->species[i].lte.f_lte, bflux_out, tcurr);
+  }
   for (int i=0; i<app->num_species; ++i) {
     gk_species_source_rhs(app, &app->species[i], 
       &app->species[i].src, fin[i], fout[i]);
@@ -2728,8 +2730,6 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
 
-      // Adapt the source term to the restart condition.
-      gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
     }
 
     // Apply boundary conditions.

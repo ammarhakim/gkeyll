@@ -574,9 +574,9 @@ struct gk_proj {
 
 struct gk_adapt_source {
   bool adapt_particle, adapt_energy; // Adaptation flags.
-  struct gk_species *adapt_species; // Pointer to the species to adapt the particle loss to ensure quasi-neutrality.
-  double mass_ratio; // Mass ratio of the species to adapt to.
-  
+  struct gk_species *adapt_species; // Non-owning pointer to the species whose particle loss is being adapted; lifetime managed elsewhere.
+  int adapt_species_idx; // Index of the species whose particle loss is being adapted.
+
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[2*GKYL_MAX_CDIM]; // Edge to adapt.
@@ -585,6 +585,10 @@ struct gk_adapt_source {
 
   struct gk_species_moment integ_threemoms; // Integrated moment updater.
   double *red_integ_mom, *red_integ_mom_global; // For reduction.
+
+  struct gkyl_array_integrate *integrate_op; // Operator that integrates an array.
+  struct gkyl_array *bflux_m0, *bflux_m2; // Boundary flux moments.
+  double *integ_m0, *integ_m2; // Integrated boundary flux moments for one boundary and one mpi process. (on device)
 
   double particle_src_curr, energy_src_curr; // current injection rates of the source.
   double particle_rate_loss, energy_rate_loss; // Loss rates we adapt to.
@@ -613,7 +617,8 @@ struct gk_source {
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
-  void (*adapt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_source *src, struct gkyl_array *f_buffer, double tm);
+  void (*adapt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_source *src, 
+    struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm);
 };
 
 struct gk_heating {
@@ -1737,6 +1742,18 @@ void gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Return index of the boundary flux moment in a specific boundary
+ * @param bflux Species boundary flux object.
+ * @param dir Direction of the boundary.
+ * @param edge Edge of the boundary.
+ * @param mom_type Name of the moment desired.
+ * @return Index of boundary flux in bflux->bflux array.
+ */
+int
+gk_species_bflux_get_mom_idx(struct gk_boundary_fluxes *bflux, int dir, 
+  enum gkyl_edge_loc edge, enum gkyl_distribution_moments mom_type);
+
+/**
  * Copy the boundary fluxes into a given range of a given phase-space array.
  *
  * @param bflux Species boundary flux object.
@@ -2161,14 +2178,17 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *specie
 /**
  * Adapt source to maintain input power and/or particle content constant.
  * 
- * @param app Gyrokinetic app object.
+ * @param app gyrokinetic app object.
  * @param s Species object.
  * @param src Species source object.
+ * @param f_buffer Phase-space buffer used to accumulate the source.
+ * @param bflux_moms Moments of boundary fluxes passed in through the gyrokinetic rhs routine.
  * @param tm Time for use in source.
  */
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, 
+  struct gkyl_array **bflux_moms[], double tm);
 
 /**
  * Compute RHS contribution from source.
