@@ -79,7 +79,7 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Write out the source distribution function
@@ -110,7 +110,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {
@@ -123,7 +123,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       // the density (the 0th component).
       gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
         0, gkns->src.moms[m].marr, 0, gkns->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+        app->gk_geom->geo_int.jacobgeo, &app->local);      
       app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
       struct timespec wtm = gkyl_wall_clock();

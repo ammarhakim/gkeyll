@@ -19,6 +19,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_basic_gyrokinetic.h>
 #include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
@@ -106,6 +107,17 @@ struct gyrokinetic_output_meta {
   int poly_order; // polynomial order
   const char *basis_type; // name of basis functions
   char basis_type_nm[64]; // used during read
+};
+
+enum gk_extra_meta_type {
+  GKYL_GK_META_NONE = 0,
+  GKYL_GK_META_GEO,
+  GKYL_GK_META_SOURCE,
+  GKYL_GK_META_RECYCLING,
+};
+
+struct gyrokinetic_output_meta_geo {
+  int geqdsk_sign_convention; // sign convention for geqdsk
 };
 
 // struct for holding moment correction inputs
@@ -386,7 +398,7 @@ struct gk_boundary_fluxes {
   enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
-  struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
   struct gk_species_moment *moms_op; // Moments calculator.
@@ -723,22 +735,15 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
-  struct gkyl_array *cflrate; // CFL rate in each cell.
-  struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
-  struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic).
-  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
+  struct gkyl_array *f, *f1, *fnew, *fghost_vol; // Arrays for updates
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side
+  struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs 
 
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
-  struct gkyl_array *alpha_surf; // Surface phase space flux.
-  struct gkyl_array *sgn_alpha_surf; // Sign of the surface phase space flux at quadrature points
-                                     // utilized for numerical flux function
-                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) ).
-  struct gkyl_array *const_sgn_alpha; // If the surface phase space flux is single signed
-                                      // if true, numerical flux function inside kernels simplifies to
-                                      // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
-                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1).
+  struct gkyl_array *flux_surf; // Array for surface phase space flux
   
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
   // Organization of the different equation objects and the required data and solvers
@@ -772,17 +777,17 @@ struct gk_species {
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
   
   int num_periodic_dir; // Number of periodic directions.
-  int periodic_dirs[3]; // List of periodic directions.
-  bool bc_is_np[3]; // Whether BC is nonperiodic.
+  int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
+  bool bc_is_np[GKYL_MAX_CDIM]; // Whether BC is nonperiodic.
 
   // Boundary conditions on lower/upper edges in each direction.
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
   // Pointers to updaters that apply (non-sheath) BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
+  struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
@@ -939,9 +944,9 @@ struct gk_neut_species {
     
   bool enforce_positivity; // Enforces positivity of f or mass/energy density.
 
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
-  bool bc_is_np[3]; // whether BC is nonperiodic.
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
+  bool bc_is_np[GKYL_MAX_CDIM]; // Whether BC is nonperiodic.
     
   double *omega_cfl;
 
@@ -978,10 +983,10 @@ struct gk_neut_species {
       bool recyc_lo, recyc_up;
       
       // Boundary conditions on lower/upper edges in each direction.
-      struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+      struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
       // Pointers to updaters that apply BC.
-      struct gkyl_bc_basic *bc_lo[3];
-      struct gkyl_bc_basic *bc_up[3];
+      struct gkyl_bc_basic *bc_lo[GKYL_MAX_CDIM];
+      struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
 
       // Collisions.
       union {
@@ -1118,10 +1123,14 @@ struct gk_field {
   // Objects used in IWL simulations and TS BCs.
   struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
-  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+  struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
+  // radial skin & ghost ranges and ssfg operator for BC of phi
+  struct gkyl_range lower_skin_x, lower_ghost_x;
+  struct gkyl_skin_surf_from_ghost *ssfg_x_lo;
   
-  // Pointer to function for the twist-and-shift BCs.
-  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
+  // Pointer to functions for the twist-and-shift BCs.
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*enforce_xbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -1177,6 +1186,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis *basis_on_dev; 
 
   struct gk_geometry *gk_geom;
+  struct gkyl_dg_geom *dg_geom;
+  struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
   
@@ -1211,15 +1222,35 @@ struct gkyl_gyrokinetic_app {
 
 /** gkyl_gyrokinetic_app private API */
 
+inline struct gkyl_gyrokinetic_bc *
+gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
+  int dir, enum gkyl_edge_loc edge)
+{
+  // Given a list of gyrokinetic BCs `bc_list` of length `num_bcs`, return the
+  // entry corresponding to the BC in the `dir` direction and the `edge` edge.
+  // It omits GKYL_BC_GK_SKIP BCs.
+  struct gkyl_gyrokinetic_bc *out = 0;
+  for (int i=0; i<num_bcs; ++i) {
+    struct gkyl_gyrokinetic_bc *bc_curr = &bc_list[i];
+    if (bc_curr->dir == dir && bc_curr->edge == edge && bc_curr->type != GKYL_BC_GK_SKIP) {
+      out = bc_curr;
+      break;
+    }
+  }
+  return out;
+}
+ 
 /**
  * Create a new array metadata object. It must be freed using
  * gk_array_meta_release.
  *
  * @param meta Gyrokinetic metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return Array metadata object.
  */
 struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta);
+gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Free memory for array metadata object.
@@ -1233,10 +1264,12 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt);
  * Return the metadata for outputing gyrokinetic data.
  *
  * @param mt Array metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

@@ -15,7 +15,7 @@ gk_neut_species_rrs_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct g
 
   // Divide the electron density by the Jacobian.
   gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
-    0, gks_elc->lte.moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+    0, gks_elc->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
 
   // Compute ionization reactivity <sigma v>_iz.
   gkyl_dg_iz_coll(rrs->iz_react_calc, gks_elc->lte.moms.marr, 

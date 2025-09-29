@@ -117,8 +117,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
-      return B0
+    bfieldFunc = function (t, zc)
+      return 0.0, 0.0, B0
     end
   },
 
@@ -214,13 +214,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -267,13 +263,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "elc", "Ar1", "Ar2" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
     },
 
     evolve = true, -- Evolve species?

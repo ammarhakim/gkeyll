@@ -86,7 +86,7 @@ struct gkyl_efit_inp inp = {
 };
 
 struct gkyl_tok_geo_grid_inp ginp = {
-  .ftype = GKYL_SOL_DN_OUT, // type of geometry
+  .ftype = GKYL_DN_SOL_OUT, // type of geometry
   .rclose = 6.2,            // closest R to region of interest
   .rright= 6.2,             // Closest R to outboard SOL
   .rleft= 2.0,              // closest R to inboard SOL
@@ -337,13 +337,6 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = nu_ion;
 }
 
-static inline void
-mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
-{
-  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
-}
-
 void
 nonuniform_position_map_z(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -359,17 +352,6 @@ nonuniform_position_map_z(double t, const double *GKYL_RESTRICT xn, double *GKYL
   else
     fout[0] = z;
 };
-
-void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct sheath_ctx *app = ctx;
-
-  double B0 = app->B0;
-
-  // Set magnetic field strength.
-  fout[0] = B0;
-}
 
 void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app,
@@ -643,12 +625,10 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .lo_value = { 0.0 }, .up_value = { 0.0 }
-      //.lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      //.up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      ////.lo_value = { 0.0 }, .up_value = { 0.0 }
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
     },
   };
 

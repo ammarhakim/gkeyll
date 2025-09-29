@@ -31,7 +31,7 @@ gk_neut_species_projection_kinetic_calc(gkyl_gyrokinetic_app *app, struct gk_neu
 
     // Multiply density by the conf-space jacobian.
     gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
-      0, app->gk_geom->jacobgeo, 0, proj->prim_moms, &app->local);
+      0, app->gk_geom->geo_int.jacobgeo, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
     // Projection routine also corrects the density of the projected distribution function.
@@ -120,7 +120,7 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
       .phase_range = &s->local,
       .h_ij = s->g_ij,
       .h_ij_inv = s->gij,
-      .det_h = app->gk_geom->jacobgeo,
+      .det_h = app->gk_geom->geo_int.jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
@@ -142,7 +142,7 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
         .phase_range = &s->local,
         .h_ij = s->g_ij,
         .h_ij_inv = s->gij,
-        .det_h = app->gk_geom->jacobgeo,
+        .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,	
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
@@ -201,7 +201,7 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
 
     // Multiply moments by the conf-space Jacobian.
     for (int d=0; d<s->num_moments; d++) {
-      gkyl_dg_mul_op_range(app->basis, d, f, 0, app->gk_geom->jacobgeo, d, f, &app->local);
+      gkyl_dg_mul_op_range(app->basis, d, f, 0, app->gk_geom->geo_int.jacobgeo, d, f, &app->local);
     }
 
   }

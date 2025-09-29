@@ -40,7 +40,7 @@ gk_neut_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 
     0, species->lte.moms.marr, 0, species->lte.moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local);  
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   app->stat.neut_species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -58,7 +58,7 @@ gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *speci
 
   // Multiply the Maxwellian by the configuration-space Jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-    app->gk_geom->jacobgeo, species->lte.f_lte, &app->local, &species->local);
+    app->gk_geom->geo_int.jacobgeo, species->lte.f_lte, &app->local, &species->local);
 
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, bgk->nu_fmax, 
     bgk->self_nu, species->lte.f_lte, &app->local, &species->local);

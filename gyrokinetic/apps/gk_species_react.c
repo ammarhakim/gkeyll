@@ -174,7 +174,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Divide the electron density by the Jacobian for reaction rates.
       gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local); 
+        app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       if (react->all_gk) {
         struct gk_species *gks_donor = &app->species[react->donor_idx[i]];
@@ -187,7 +187,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         // Divide the donor density by the Jacobian for Maxwellian projection.
         gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, app->basis, 
           0, gks_donor->lte.moms.marr, 0, gks_donor->lte.moms.marr, 0, 
-          app->gk_geom->jacobgeo, &app->local); 
+          app->gk_geom->geo_int.jacobgeo, &app->local); 
 
         // If all interacting species are GK, u_i . b_i is simply upar of the donor species
         gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_donor->lte.moms.marr, 1*app->basis.num_basis); 
@@ -203,7 +203,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         // Divide the donor density by the Jacobian for Maxwellian projection.
         gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
           0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
-          app->gk_geom->jacobgeo, &app->local); 
+          app->gk_geom->geo_int.jacobgeo, &app->local); 
 
         // Select component parallel to b.
 	// If cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3.
@@ -227,7 +227,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Divide the electron density by the Jacobian for reaction rates.
       gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local); 
+        app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // Compute needed ion Maxwellian moments (J*n, u_par, T/m).
       gk_species_moment_calc(&gks_ion->lte.moms, 
@@ -239,7 +239,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Divide the ion density by the Jacobian for Maxwellian projection.
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local); 
+        app->gk_geom->geo_int.jacobgeo, &app->local); 
       
       // Compute recombination reaction rate.
       gkyl_dg_recomb_coll(react->recomb[i], gks_elc->lte.moms.marr, 
@@ -256,7 +256,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Divide the ion density by the Jacobian.
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local); 
+        app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // Construct ion vector velocity upar b_i with same order as can pb.
       // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
@@ -273,7 +273,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Divide the partner density by the Jacobian.
       gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
         0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local); 
+        app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i).
       // If cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
@@ -442,7 +442,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     if (app->use_gpu)

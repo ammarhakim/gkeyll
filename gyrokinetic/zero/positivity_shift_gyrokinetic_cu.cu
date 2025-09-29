@@ -249,7 +249,7 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
-     up->cellav_fac, up->mass, up->gk_geom->bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
+     up->cellav_fac, up->mass, up->gk_geom->geo_int.bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
      distf->on_dev, m0->on_dev, delta_m0->on_dev);
 
   // If a shift took place, rescale f so it keeps the same M0.

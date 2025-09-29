@@ -15,7 +15,7 @@ gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gk
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = gks->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   // Write out the source distribution function
@@ -57,7 +57,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   for (int m=0; m<gks->src.num_diag_mom; ++m) {
@@ -70,7 +70,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
     // the density (the 0th component).
     gkyl_dg_div_op_range(gks->src.moms[m].mem_geo, app->basis, 
       0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
-      app->gk_geom->jacobgeo, &app->local);      
+      app->gk_geom->geo_int.jacobgeo, &app->local);      
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
@@ -411,11 +411,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
           assert(is_dir_periodic[dir] == 0);
           if (edge == GKYL_LOWER_EDGE) {
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
-          } else {
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_REFLECT);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
+          } else {                                     
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
           }
 
           // Default scenario: we set the ranges to the full range of the ghost cells.
@@ -425,7 +425,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) 
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
           {
             adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
             adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;

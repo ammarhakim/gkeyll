@@ -302,14 +302,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 static inline void
@@ -466,11 +469,10 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
-
-      .lo_value = { 0.0, 0.0 },
-      .up_value = { 0.0, 0.0 },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, },
     },
     
     .zero_init_field = true, // Don't compute the field at t = 0.
@@ -496,8 +498,8 @@ main(int argc, char **argv)
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 3,
