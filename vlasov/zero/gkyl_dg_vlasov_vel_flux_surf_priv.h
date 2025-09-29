@@ -79,6 +79,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
   vel_flux_surf_edge_t vel_flux_surf_edge; // Edge-of-velocity-space Assembly function for computing velocity-space fluxes. 
 
   uint32_t flags;
+  bool use_gpu;
   struct gkyl_dg_vlasov_vel_flux_surf *on_dev; // pointer to itself or device data.  
 };
 

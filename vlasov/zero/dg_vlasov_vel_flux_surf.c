@@ -23,7 +23,8 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
-  up->pdim = pdim; 
+  up->pdim = pdim;
+  up->use_gpu = inp->use_gpu; 
 
   // Are we skipping cells with small phase space density?
   if (inp->skip_cell_thresh > 0.0) {
@@ -243,5 +244,10 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
 void
 gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up)
 {
+  // Release memory associated with this updater.
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
+#endif
   gkyl_free(up);
 }

@@ -626,11 +626,14 @@ int main(int argc, char **argv)
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
+
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -642,6 +645,7 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,   
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -649,6 +653,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -662,10 +667,12 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .num_diag_moments = 8,
     .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
@@ -677,11 +684,14 @@ int main(int argc, char **argv)
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
+
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -693,6 +703,7 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion, 
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -700,6 +711,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -713,10 +725,12 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .num_diag_moments = 8,
     .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };

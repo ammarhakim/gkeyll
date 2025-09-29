@@ -171,7 +171,7 @@ test_gr_ultra_rel_euler_basic_minkowski()
         gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 70; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
@@ -179,7 +179,7 @@ test_gr_ultra_rel_euler_basic_minkowski()
         gr_ultra_rel_euler->cons_to_riem(gr_ultra_rel_euler, q_local, q_local, w1);
         gr_ultra_rel_euler->riem_to_cons(gr_ultra_rel_euler, q_local, w1, q1);
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 70; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -383,7 +383,7 @@ test_gr_ultra_rel_euler_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -391,7 +391,7 @@ test_gr_ultra_rel_euler_basic_schwarzschild()
           gr_ultra_rel_euler->cons_to_riem(gr_ultra_rel_euler, q_local, q_local, w1);
           gr_ultra_rel_euler->riem_to_cons(gr_ultra_rel_euler, q_local, w1, q1);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -598,7 +598,7 @@ test_gr_ultra_rel_euler_basic_kerr()
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -606,12 +606,12 @@ test_gr_ultra_rel_euler_basic_kerr()
           gr_ultra_rel_euler->cons_to_riem(gr_ultra_rel_euler, q_local, q_local, w1);
           gr_ultra_rel_euler->riem_to_cons(gr_ultra_rel_euler, q_local, w1, q1);
 
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 70; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
       }
-
+      
       for (int i = 0; i < 3; i++) {
         gkyl_free(spatial_metric[i]);
         gkyl_free(extrinsic_curvature[i]);
