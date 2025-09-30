@@ -993,6 +993,7 @@ struct gk_field {
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
+  struct gkyl_array *epsilon_global;
   struct gkyl_array *kSq; 
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
@@ -1000,8 +1001,8 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_sol;
   struct gkyl_fem_parproj *fem_parproj_core;
 
-  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves
-  struct gkyl_fem_poisson_perp *fem_poisson; // poisson solver which solves
+  struct gkyl_deflated_fem_poisson *fem_poisson_deflated; // poisson solver which solves
+  struct gkyl_fem_poisson_perp *fem_poisson_perp; // poisson solver which solves
                                              // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   // Objects needed for FLR effects.
@@ -1045,6 +1046,9 @@ struct gk_field {
   
   // Pointer to functions for the twist-and-shift BCs.
   void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+
+  // Pointer to function to solve the poisson equation
+  void (*field_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
