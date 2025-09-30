@@ -1003,8 +1003,8 @@ create_ctx(void)
   printf("  Ntheta_divertor = %d\n",Ntheta_divertor);
   printf("  Ntheta_sol      = %d\n",Ntheta_sol     );
 
-  double t_end = 1.0e-6;
-  double num_frames = 10;
+  double t_end = 1.0e-7;
+  double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -1074,24 +1074,32 @@ create_ctx(void)
 }
 
 void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
+  double t_curr, bool is_restart_IC, bool force_calc, double dt)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+  if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+
+    if ( !(dt < 0.0) )
+      gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
   }
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_phase,
-  gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_write)
+  gkyl_gyrokinetic_multib_app* app, double t_curr, bool is_restart_IC, bool force_write)
 {
   bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
   if (trig_now_conf || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
     gkyl_gyrokinetic_multib_app_write_conf(app, t_curr, frame);
-    gkyl_gyrokinetic_multib_app_write_field_energy(app);
-    gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
+
+    if (!is_restart_IC) {
+      gkyl_gyrokinetic_multib_app_write_field_energy(app);
+      gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
+      gkyl_gyrokinetic_multib_app_write_dt(app);
+    }
   }
 
   bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
@@ -1183,9 +1191,12 @@ main(int argc, char **argv)
         .temp = init_source_temp_elc,
       }, 
       .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP, },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
-      }
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      },
     },
 
   };
@@ -1249,6 +1260,14 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Ions.
@@ -1303,9 +1322,12 @@ main(int argc, char **argv)
         .temp = init_source_temp_ion,
       }, 
       .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP, },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
-      }
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      },
     },
 
   };
@@ -1369,12 +1391,21 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Field object.
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     // No block specific field info for this simulation
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
@@ -1447,8 +1478,8 @@ main(int argc, char **argv)
     .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
-  write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, app_args.is_restart, false, -1.0);
+  write_data(&trig_write_conf, &trig_write_phase, app, t_curr, app_args.is_restart, false);
 
   // start, end and initial time-step
   double dt = t_end-t_curr;
@@ -1458,7 +1489,7 @@ main(int argc, char **argv)
 
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
     gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
@@ -1469,8 +1500,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
-    write_data(&trig_write_conf, &trig_write_phase, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
+    write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -1484,8 +1515,8 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
-        write_data(&trig_write_conf, &trig_write_phase, app, t_curr, true);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
+        write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
         break;
       }
     }
