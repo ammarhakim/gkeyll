@@ -258,7 +258,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_gen_vol_kernels[
   { NULL, vlasov_nc_hamil_gen_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, vlasov_nc_hamil_gen_vol_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -648,7 +648,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_nc_hamil_gen_sur
   { NULL, vlasov_nc_hamil_gen_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, vlasov_nc_hamil_gen_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -663,7 +663,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_nc_hamil_gen_sur
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
-  { NULL, vlasov_nc_hamil_gen_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -963,7 +963,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_nc_hami
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -978,7 +978,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_nc_hami
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
-  { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6

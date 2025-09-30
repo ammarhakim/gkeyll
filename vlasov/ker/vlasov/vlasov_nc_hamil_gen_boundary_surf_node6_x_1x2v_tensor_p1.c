@@ -1,0 +1,34 @@
+#include <gkyl_nc_hamil_surf_comps_kernels.h> 
+GKYL_CU_DH void vlasov_nc_hamil_gen_boundary_surf_node6_x_1x2v_tensor_p1(const double *w, const double *dxv, const int edge,
+   const double *poisson_tensor_conf, const double *hamil, const double *fl, 
+   const double *fr, double* GKYL_RESTRICT Ghat) 
+{ 
+  const double dv10 = 2.0/dxv[1]; 
+  const double dv11 = 2.0/dxv[2]; 
+  double f_l_quad = 0.0; 
+  double f_r_quad = 0.0; 
+  const double *poisson_tensor_conf_0 = &poisson_tensor_conf[0]; 
+  const double *poisson_tensor_conf_1 = &poisson_tensor_conf[2]; 
+
+  double alpha_quad = 0.0; 
+  if (edge == -1) { 
+    alpha_quad = (1.224744871391589*poisson_tensor_conf_1[1]+0.7071067811865475*poisson_tensor_conf_1[0])*((-0.8328328677734793*hamil[8])-0.6715004280822172*hamil[7]-0.6324956225107456*hamil[6]+1.140331086775586*hamil[5]-0.5099715653772844*hamil[3]+0.8660254037844386*hamil[2])*dv11+(1.224744871391589*poisson_tensor_conf_0[1]+0.7071067811865475*poisson_tensor_conf_0[0])*(0.8328328677734793*hamil[8]-0.6324956225107456*hamil[7]-0.6715004280822172*hamil[6]-1.140331086775586*hamil[4]+0.5099715653772844*hamil[3]+0.8660254037844386*hamil[1])*dv10; 
+  } else { 
+
+    alpha_quad = (0.7071067811865475*poisson_tensor_conf_1[0]-1.224744871391589*poisson_tensor_conf_1[1])*((-0.8328328677734793*hamil[8])-0.6715004280822172*hamil[7]-0.6324956225107456*hamil[6]+1.140331086775586*hamil[5]-0.5099715653772844*hamil[3]+0.8660254037844386*hamil[2])*dv11+(0.7071067811865475*poisson_tensor_conf_0[0]-1.224744871391589*poisson_tensor_conf_0[1])*(0.8328328677734793*hamil[8]-0.6324956225107456*hamil[7]-0.6715004280822172*hamil[6]-1.140331086775586*hamil[4]+0.5099715653772844*hamil[3]+0.8660254037844386*hamil[1])*dv10; 
+  } 
+ 
+  f_l_quad = 0.3266400389500767*fl[17]+0.1885857144159367*fl[16]+0.2633648772414038*fl[15]-0.2633648772414038*fl[14]+0.1520537827704173*fl[13]-0.4472419437481548*fl[12]-0.1520537827704172*fl[11]-0.4472419437481548*fl[10]-0.2123470802517898*fl[9]-0.2582152566158886*fl[8]-0.2582152566158886*fl[7]-0.1225986439450019*fl[6]+0.3606043520905964*fl[5]-0.3606043520905964*fl[4]+0.2081950197504564*fl[3]-0.2081950197504564*fl[2]+0.6123724356957944*fl[1]+0.3535533905932737*fl[0]; 
+  f_r_quad = (-0.3266400389500767*fr[17])+0.1885857144159367*fr[16]-0.2633648772414038*fr[15]+0.2633648772414038*fr[14]+0.1520537827704173*fr[13]+0.4472419437481548*fr[12]-0.1520537827704172*fr[11]+0.4472419437481548*fr[10]+0.2123470802517898*fr[9]-0.2582152566158886*fr[8]-0.2582152566158886*fr[7]-0.1225986439450019*fr[6]-0.3606043520905964*fr[5]+0.3606043520905964*fr[4]+0.2081950197504564*fr[3]-0.2081950197504564*fr[2]-0.6123724356957944*fr[1]+0.3535533905932737*fr[0]; 
+  double Ghat_nodal = 0.5*(alpha_quad*(f_r_quad + f_l_quad) - fabs(alpha_quad)*(f_r_quad - f_l_quad)); 
+  Ghat[0] = 0.2126466515053471*Ghat_nodal; 
+  Ghat[1] = -0.1252200515903251*Ghat_nodal; 
+  Ghat[2] = 0.1252200515903251*Ghat_nodal; 
+  Ghat[3] = -0.07373763569415766*Ghat_nodal; 
+  Ghat[4] = -0.1553050010207066*Ghat_nodal; 
+  Ghat[5] = -0.1553050010207066*Ghat_nodal; 
+  Ghat[6] = -0.09145359262597844*Ghat_nodal; 
+  Ghat[7] = 0.09145359262597844*Ghat_nodal; 
+  Ghat[8] = 0.1134259259259259*Ghat_nodal; 
+
+} 

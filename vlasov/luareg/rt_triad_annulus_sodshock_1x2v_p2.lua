@@ -24,8 +24,8 @@ Nvtheta = 12 -- Cell count (velocity space: angular direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
-poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+poly_order = 1 -- Polynomial order.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
