@@ -65,40 +65,59 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   double polarization_weight)
 {
   // Initialize the polarization weight.
-  struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
-  for (int i=0; i<app->cdim-2/app->cdim; i++) {
-    gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
-  }
+  struct gkyl_array *Jgij[3];
+  if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
+    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    // Must do an all gather on these variables
+    Jgij[0] = app->gk_geom->geo_int.gxxj;
+    Jgij[1] = app->gk_geom->geo_int.gxzj;
+    Jgij[2] = app->gk_geom->geo_int.eps2;
+    for (int i=0; i<3; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+    }
+    f->epsilon_global = mkarr(app->use_gpu, 3*app->basis.num_basis, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, f->epsilon_global);
 
-  // Translate input file BCs into Poisson BCs.
-  struct gkyl_poisson_bc poisson_bcs = { };
-  for (int d=0; d<app->cdim-1; d++) {
-    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
-    if (bc_lo != 0) {
-      poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
-      for (int i=0; i<3; i++)
-        poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+    f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
+      &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon_global, 0, FALSE, app->use_gpu);
+  } else {
+    f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+    // Initialize the polarization weight.
+    struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+    for (int i=0; i<app->cdim-2/app->cdim; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
 
-    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
-    if (bc_up != 0) {
-      poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
-      for (int i=0; i<3; i++)
-        poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+    // Translate input file BCs into Poisson BCs.
+    struct gkyl_poisson_bc poisson_bcs = { };
+    for (int d=0; d<app->cdim-1; d++) {
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0) {
+        poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+        for (int i=0; i<3; i++)
+          poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+      }
+
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0) {
+        poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+        for (int i=0; i<3; i++)
+          poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+      }
     }
+    // Detect if this process contains an edge in the z dimension.
+    // for applying bias at the extremal z planes only.
+    int ndim = app->grid.ndim;
+    poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
+    poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
+
+    // Initialize the Poisson solver.
+    f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+      app->local, f->global_sub_range, f->epsilon, 0, poisson_bcs, f->info.bias_plane_list, app->use_gpu);
+    f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
+      &poisson_bcs, f->epsilon, NULL, app->use_gpu);
   }
-  // Detect if this process contains an edge in the z dimension.
-  // for applying bias at the extremal z planes only.
-  int ndim = app->grid.ndim;
-  poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
-  poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
-
-  // Initialize the Poisson solver.
-  f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-    app->local, f->global_sub_range, f->epsilon, 0, poisson_bcs, f->info.bias_plane_list, app->use_gpu);
-  f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &poisson_bcs, f->epsilon, NULL, app->use_gpu);
-
+  
   f->phi_bc = 0;
   f->is_dirichletvar = false;
   for (int i=0; i<2*app->cdim; i++)
