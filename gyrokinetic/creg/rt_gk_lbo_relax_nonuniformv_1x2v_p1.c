@@ -72,7 +72,7 @@ create_ctx(void)
   double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2.0)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
-  int Nz = 2; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: x-direction).

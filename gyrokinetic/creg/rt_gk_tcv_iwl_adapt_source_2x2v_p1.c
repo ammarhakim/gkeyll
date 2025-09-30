@@ -536,7 +536,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // electrons sources
+  // Projection parameters for the sources.
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
     .gaussian_mean = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
@@ -544,18 +544,19 @@ main(int argc, char **argv)
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
+    .temp_min = 0.1*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
-
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
-    .adapt_to_species = "elc",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
+  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .total_num_particles = ctx.particle_srcCORE,
+    .total_kin_energy = ctx.energy_srcCORE,
+    .temp_max = 5.0*ctx.Te0,
+    .temp_min = 0.1*ctx.Te0,
+    .f_floor = ctx.floor_srcCORE,
   };
-
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
@@ -563,20 +564,55 @@ main(int argc, char **argv)
     .total_num_particles = ctx.particle_srcRECY,
     .total_kin_energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
+    .temp_min = 0.1*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
-  //The electron recycling source is adapting to the ion losses for maintaining
-  // ambipolarity (neutral ionization process).
+  struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
+    .total_num_particles = ctx.particle_srcRECY,
+    .total_kin_energy = ctx.energy_srcRECY,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 0.1*ctx.Ti0,
+    .f_floor = ctx.floor_srcRECY,
+  };
+  
+  // Source adaptation parameters.
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
+    .adapt_to_species = "elc",
+    .adapt_particle = ctx.adapt_particle_srcCORE,
+    .adapt_energy = ctx.adapt_energy_srcCORE,
+    .num_boundaries = 1, // Only the inner radial boundary.
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
+    .adapt_to_species = "ion",
+    .adapt_particle = ctx.adapt_particle_srcCORE,
+    .adapt_energy = ctx.adapt_energy_srcCORE,
+    .num_boundaries = 1, // Only the inner radial boundary.
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
+  };
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
+    .adapt_to_species = "ion", // Adapt to ion losses to maintain ambipolarity.
+    .adapt_particle = ctx.adapt_particle_srcRECY,
+    .adapt_energy = ctx.adapt_energy_srcRECY,
+    .num_boundaries = 3, // Outer radial boundary and both z boundaries.
+    .dir = {0, 1, 1},
+    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
-    .num_boundaries = 3,
+    .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
   };
 
-  // electrons
+  // Fill the species structures.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
@@ -635,14 +671,13 @@ main(int argc, char **argv)
       .order = 2,
     },
 
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL },
     },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL},
-      .upper={.type = GKYL_SPECIES_GK_IWL},
-    },
+
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -653,45 +688,6 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
-  };
-
-  // ions sources
-  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
-    .temp_max = 5.0*ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
-  };
-
-  struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
-    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
-    .total_num_particles = ctx.particle_srcRECY,
-    .total_kin_energy = ctx.energy_srcRECY,
-    .temp_max = 5.0*ctx.Te0,
-    .f_floor = ctx.floor_srcRECY,
-  };
-
-  struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcRECY,
-    .adapt_energy = ctx.adapt_energy_srcRECY,
-    .num_boundaries = 3,
-    .dir = {0, 1, 1},
-    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
   };
 
   // ions
@@ -753,14 +749,13 @@ main(int argc, char **argv)
       .order = 2,
     },
 
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL },
     },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL},
-      .upper={.type = GKYL_SPECIES_GK_IWL},
-    },
+
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -788,10 +783,10 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .polarization_bmag = ctx.Bref,
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
-                    .up_type = {GKYL_POISSON_DIRICHLET},
-                    .lo_value = {0.0}, .up_value = {0.0},
-                   },
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    },
     .bias_plane_list = &bias_plane_list,
     .time_rate_diagnostics = true,
   };
@@ -817,7 +812,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "rt_gk_tcv_iwl_adapt_source_2x2v_p1",
+    .name = "gk_tcv_iwl_adapt_source_2x2v_p1",
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
     .cdim = ctx.cdim,

@@ -322,8 +322,8 @@ main(int argc, char **argv)
       .bfield_ctx = &ctx
     },
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .num_species = 1,
     .species = { ion },
