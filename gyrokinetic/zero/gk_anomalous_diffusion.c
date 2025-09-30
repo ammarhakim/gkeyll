@@ -45,7 +45,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, is_zero_flux_bc, is_skip_bc, skip_cell_threshold);
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper, skip_cell_threshold);
 #endif
   
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
