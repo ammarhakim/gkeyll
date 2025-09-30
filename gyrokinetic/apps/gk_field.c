@@ -64,6 +64,9 @@ static void
 gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
   double polarization_weight)
 {
+  // Allocate array for the polarization weight times geometric coefficients.
+  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+  
   // Initialize the polarization weight.
   struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
   for (int i=0; i<app->cdim-2/app->cdim; i++) {
