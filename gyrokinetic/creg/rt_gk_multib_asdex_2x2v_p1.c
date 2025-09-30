@@ -904,7 +904,7 @@ create_ctx(void)
   double nu_ion = nu_frac*logLambda_ion*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*pow(eps0,2)*sqrt(mi)*pow(Ti,3.0/2.0));
 
   // Location of the numerical equilibrium.
-  char geqdsk_file[128] = "./data/eqdsk/asdex.geqdsk";
+  char geqdsk_file[128] = "gyrokinetic/data/eqdsk/asdex.geqdsk";
 
   // Position space parameters.
   double num_blocks = 6;
