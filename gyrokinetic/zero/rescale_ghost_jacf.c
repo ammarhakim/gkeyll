@@ -53,9 +53,6 @@ gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
   int rem_dir[GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; ++d) rem_dir[d] = 1;
 
-  const int num_basis_conf_surf = 8; // MF 2024/11/12: Hardcoded to 2x p2 for now.
-  const int num_basis_phase_surf = 24; // MF 2024/11/12: Hardcoded to 2x2v GkHybrid for now.
- 
   gkyl_range_iter_init(&conf_iter, conf_ghost_r);
   while (gkyl_range_iter_next(&conf_iter)) {
 
@@ -70,7 +67,7 @@ gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
     const double *jacghost_surf_c = gkyl_array_cfetch(jac_sync, clinidx_ghost);
 
     // Compute the reciprocal of the ghost cell jacobian.
-    double jacghost_surf_inv_c[num_basis_conf_surf];
+    double jacghost_surf_inv_c[8]; // MF 2024/11/12: Hardcoded to 2x p2 for now.
     up->kernels->conf_inv_op(jacghost_surf_c, jacghost_surf_inv_c);
 
     gkyl_range_deflate(&vel_rng, phase_ghost_r, rem_dir, conf_iter.idx);
@@ -80,7 +77,7 @@ gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
       double *jf_c = gkyl_array_fetch(jf, plinidx_ghost);
 
       // Deflate Jf in the ghost cell.
-      double jf_surf_c[num_basis_phase_surf];
+      double jf_surf_c[24]; // MF 2024/11/12: Hardcoded to 2x2v GkHybrid for now.
       up->kernels->deflate_phase_ghost_op(jf_c, jf_surf_c);
 
       // Multiply the surface Jf by the surface 1/J_ghost and by the surface J_skin.
