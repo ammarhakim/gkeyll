@@ -19,10 +19,10 @@ GKYL_CU_DH void hamil_sr_1v_ser_p2(const double *w, const double *dxv, const dou
 
   hamil[0] = 0.2357022603955158*hamil_nodal[2]+0.9428090415820636*hamil_nodal[1]+0.2357022603955158*hamil_nodal[0]; 
   hamil[1] = 0.408248290463863*hamil_nodal[2]-0.408248290463863*hamil_nodal[0]; 
-  hamil[2] = 0.21081851067789195*hamil_nodal[2]-0.421637021355784*hamil_nodal[1]+0.21081851067789195*hamil_nodal[0]; 
+  hamil[2] = 0.210818510677892*hamil_nodal[2]-0.421637021355784*hamil_nodal[1]+0.210818510677892*hamil_nodal[0]; 
 
   hamil_inv[0] = 0.2357022603955158*hamil_inv_nodal[2]+0.9428090415820636*hamil_inv_nodal[1]+0.2357022603955158*hamil_inv_nodal[0]; 
   hamil_inv[1] = 0.408248290463863*hamil_inv_nodal[2]-0.408248290463863*hamil_inv_nodal[0]; 
-  hamil_inv[2] = 0.21081851067789195*hamil_inv_nodal[2]-0.421637021355784*hamil_inv_nodal[1]+0.21081851067789195*hamil_inv_nodal[0]; 
+  hamil_inv[2] = 0.210818510677892*hamil_inv_nodal[2]-0.421637021355784*hamil_inv_nodal[1]+0.210818510677892*hamil_inv_nodal[0]; 
 
 } 

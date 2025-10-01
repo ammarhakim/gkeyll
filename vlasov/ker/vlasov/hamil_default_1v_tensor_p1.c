@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void hamil_default_1v_ser_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv) 
+GKYL_CU_DH void hamil_default_1v_tensor_p1(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv) 
 { 
   // w:   Cell-center coordinates of velocity grid.
   // dxv: Cell spacing of velocity grid.
