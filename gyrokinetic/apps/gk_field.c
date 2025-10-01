@@ -31,7 +31,7 @@ gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f
 }
 
 static void
-gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
+gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   double polarization_weight)
 {
   // Allocate array for the polarization weight times geometric coefficients.
@@ -61,7 +61,7 @@ gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
 }
 
 static void
-gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
+gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
   double polarization_weight)
 {
   // Allocate array for the polarization weight times geometric coefficients.
@@ -528,11 +528,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
   else {
     if (app->cdim == 1) {
-      gk_field_fem_init_1d(app, f, polarization_weight);
+      gk_field_fem_init_1x(app, f, polarization_weight);
       f->field_solve = gk_field_poisson_solve_1x;
     }
     else if (app->cdim > 1) {
-      gk_field_fem_init_2d3d(app, f, polarization_weight);
+      gk_field_fem_init_2x3x(app, f, polarization_weight);
       if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
         f->field_solve = gk_field_poisson_deflate_solve_es_iwl;
       } else {
@@ -719,7 +719,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_zbc = gk_field_enforce_zbc;
-    struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
   }
   
   return f;
