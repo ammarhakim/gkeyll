@@ -14,6 +14,7 @@ enum gkyl_wv_euler_rp {
 struct gkyl_wv_euler_inp {
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_euler_rp rp_type; // type of RP to use
+  struct gkyl_wv_embed_geo *embed_geo; // embedded geometry
   bool use_gpu; // Boolean to determine whether wave equation object is on host or device
 };
 
@@ -24,7 +25,8 @@ struct gkyl_wv_euler_inp {
  * @param use_gpu   Boolean to determine whether wave equation object is on host or device
  * @return Pointer to Euler equation object.
  */
-struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma,
+  struct gkyl_wv_embed_geo *embed_geo, bool use_gpu);
 
 /**
  * Create a new Euler equation object.

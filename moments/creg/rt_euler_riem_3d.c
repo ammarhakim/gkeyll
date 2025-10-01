@@ -206,7 +206,7 @@ main(int argc, char **argv)
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, NULL, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "euler",

@@ -39,6 +39,7 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
@@ -130,6 +131,9 @@ struct moment_species {
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
+  bool has_embed_geo;
+  struct gkyl_array *embed_mask;
+
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
@@ -198,6 +202,9 @@ struct moment_field {
   double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
+
+  bool has_embed_geo;
+  struct gkyl_array *embed_mask;
 
  // scheme to update equations solvers and data to update fluid
  // equations
@@ -310,7 +317,7 @@ struct gkyl_moment_app {
     struct gkyl_array *ql, *qr;     // expansions on left/right edge of cell
     struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
-
+  
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
 

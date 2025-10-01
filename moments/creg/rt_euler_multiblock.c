@@ -308,7 +308,7 @@ update_block_job_func(void *ctx)
 
   // run wave-prop updater
   ubctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], tcurr, dt,
-    &bdata->range, bdata->f[d], bdata->f[d+1]);
+    &bdata->range, NULL, bdata->f[d], bdata->f[d+1]);
 
   // apply block-local boundary conditions
   block_bc_updaters_apply(bdata, tcurr, bdata->f[d+1]);
@@ -560,7 +560,7 @@ main(int argc, char **argv)
 
   // create FV updaters for dimensional sweeps
   for (int i=0; i<num_blocks; ++i) {
-    bdata[i].euler = gkyl_wv_euler_new(1.4, false);
+    bdata[i].euler = gkyl_wv_euler_new(1.4, NULL, false);
 
     for (int d=0; d<2; ++d)
       bdata[i].slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {

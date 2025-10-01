@@ -108,9 +108,9 @@ GKYL_CU_DH void em_vars_limiterx_2x_tensor_p2(double limiter_fac, const struct g
   double waves_slope_c[48] = {0.0}; 
   double waves_slope_r[48] = {0.0}; 
   double speeds[6] = {0.0}; 
-  double my_max_speed_l = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
-  double my_max_speed_c = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
-  double my_max_speed_r = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
+  double my_max_speed_l = wave(wv_eqn, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
+  double my_max_speed_c = wave(wv_eqn, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
+  double my_max_speed_r = wave(wv_eqn, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
 
   double mm[48] = {0.0}; 
   double slope[8] = {0.0}; 

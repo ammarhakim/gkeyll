@@ -296,8 +296,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, NULL, app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, NULL, app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",

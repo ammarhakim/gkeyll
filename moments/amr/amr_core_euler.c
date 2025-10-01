@@ -68,7 +68,7 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
       mesh_pdata[i].euler = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
 
     mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -280,7 +280,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
       mesh_pdata[i].euler = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
 
     mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -528,7 +528,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
       mesh_bdata[i].euler = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
 
     for (int d = 0; d < ndim; d++) {
@@ -813,7 +813,7 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
       mesh_bdata[i].euler = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
 
     for (int d = 0; d < ndim; d++) {

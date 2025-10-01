@@ -3421,6 +3421,8 @@ struct moment_app_lw {
   
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
 
+  struct lua_func_ctx embed_ctx; // Function context for embedded geometry.
+
   struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES]; // Function context for species initial conditions.
   struct lua_func_ctx applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
   struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES]; // Function context for temperature sources.
@@ -3592,6 +3594,27 @@ mom_app_new(lua_State *L)
     };
     mom.mapc2p = gkyl_lw_eval_cb;
     mom.c2p_ctx = &app_lw->mapc2p_ctx;
+  }
+
+  // embed function.
+  mom.embed_ctx = 0;
+  mom.embed_geo = 0;
+  bool has_embed_geo = false;
+  int embed_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "embed_geo")) {
+    has_embed_geo = true;
+    embed_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+
+  if (has_embed_geo) {
+    app_lw->embed_ctx = (struct lua_func_ctx) {
+      .func_ref = embed_ref,
+      .ndim = cdim,
+      .nret = cdim,
+      .L = L,
+    };
+    mom.embed_geo = gkyl_lw_eval_cb;
+    mom.embed_ctx = &app_lw->embed_ctx;
   }
 
   struct moment_species_lw *species[GKYL_MAX_SPECIES];

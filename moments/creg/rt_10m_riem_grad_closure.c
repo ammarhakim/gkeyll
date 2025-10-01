@@ -357,6 +357,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
   struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
 
+
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,

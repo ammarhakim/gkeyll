@@ -84,15 +84,37 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
   euler->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_free);
   euler->eqn.on_dev = &euler->eqn; // CPU eqn obj points to itself
 
+  euler->eqn.embed_geo = inp->embed_geo;
+  if (euler->eqn.embed_geo) {
+    switch (euler->eqn.embed_geo->type) {
+      case GKYL_EMBED_ABSORB:
+        euler->eqn.embed_geo->embed_func = wave_embed_absorb;
+        break;
+
+      case GKYL_EMBED_REFLECT:
+        euler->eqn.embed_geo->embed_func = wave_embed_reflect;
+        break;
+
+      case GKYL_EMBED_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+  } 
+
   return &euler->eqn;  
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_euler_new(double gas_gamma, bool use_gpu)
+gkyl_wv_euler_new(double gas_gamma, struct gkyl_wv_embed_geo* embed_geo,
+  bool use_gpu)
 {
   return gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
       .gas_gamma = gas_gamma,
-      .rp_type = WV_EULER_RP_ROE, 
+      .rp_type = WV_EULER_RP_ROE,
+      .embed_geo = embed_geo, 
       .use_gpu = use_gpu
     }
   );

@@ -290,7 +290,7 @@ main(int argc, char **argv)
   }
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, NULL, app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",

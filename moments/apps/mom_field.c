@@ -21,7 +21,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact,
+    mom_fld->embed_geo, false);
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   
@@ -195,6 +196,16 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
 
+  if (maxwell->embed_geo)
+    fld->has_embed_geo = true;
+  fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
+  gkyl_array_clear(fld->embed_mask, 1.0);
+
+  if (fld->has_embed_geo) {
+    gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
+      &app->local, fld->embed_mask);
+  }
+
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   gkyl_array_clear(fld->ext_em, 0.0);
   fld->has_ext_em = false;
@@ -318,7 +329,7 @@ moment_field_update(gkyl_moment_app *app,
   if (!fld->is_static) {
     for (int d=0; d<ndim; ++d) {
       // update solution
-      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
+      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->embed_mask, fld->f[d], fld->f[d+1]);
 
       if (!stat.success)
         return (struct gkyl_update_status) {
@@ -348,7 +359,7 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
 
   gkyl_mp_scheme_advance(fld->mp_slvr, &app->local, fin,
     app->ql, app->qr, app->amdq, app->apdq,
-    fld->cflrate, rhs);
+    fld->cflrate, fld->embed_mask, rhs);
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, &(app->local));
@@ -400,6 +411,8 @@ moment_field_release(const struct moment_field *fld)
   if (fld->has_app_current) {
     gkyl_fv_proj_release(fld->app_current_proj);
   }
+
+  gkyl_array_release(fld->embed_mask);
 
   gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
