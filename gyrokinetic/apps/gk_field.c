@@ -71,7 +71,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
-  for (int i=0; i<app->num_species; ++i) {
+  for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
     field->accumulate_rhoc(app, field, s);
@@ -104,7 +104,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // Take the TS function from the parallel BC of the first species.
   struct gk_species *gks = &app->species[0];
   const struct gkyl_gyrokinetic_bc *par_lower_bc;
-  for (int i=0; i<2*app->cdim; i++) {
+  for (int i = 0; i < 2*app->cdim; i++) {
     if (gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
       par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
       break;
@@ -114,8 +114,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // TSBC updaters
   int ghost[] = {1, 1, 1};
   if (app->cdim == 3) {
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_LU(ghost_L)
+    // TS BC updater for up to low TS for the lower edge
+    // this sets ghost_L = T_LU(ghost_L)
     struct gkyl_bc_twistshift_inp T_LU_lo = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
@@ -157,7 +157,7 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, st
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
   
-  // // Update the lower z ghosts with twist-and-shift if we are in 3x2v
+  // Update the lower z ghosts with twist-and-shift if we are in 3x2v
   if (app->cdim == 3) {
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
   }
@@ -239,14 +239,13 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->epsilon = 0;
   f->epsilon_global = 0;
-
   f->kSq = 0;  // not currently used by fem_perp_poisson
-
 
   // Factors for ES energy. 
   f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
   f->es_energy_fac_1d = 0.0;
 
+  // Initialize the individual field solvers.
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
     gk_field_fem_init_boltzmann(app, f);
   else {
@@ -287,7 +286,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->is_first_energy_dot_write_call = true;
   }
 
-  // setup biased lower wall (same size as electrostatic potential), by default is 0.0
+  // Set up biased lower wall (same size as electrostatic potential), by default is 0.0
   f->phi_wall_lo = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_lo = false;
   f->phi_wall_lo_evolve = false;
@@ -309,7 +308,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->phi_wall_lo, f->phi_wall_lo_host);
   }
 
-  // setup biased upper wall (same size as electrostatic potential), by default is 0.0
+  // Set up biased upper wall (same size as electrostatic potential), by default is 0.0
   f->phi_wall_up = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_up = false;
   f->phi_wall_up_evolve = false;
@@ -344,7 +343,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->invert_flr = gk_field_invert_flr;
 
     double flr_weight = 0.0; 
-    for (int i=0; i<app->num_species; ++i) {
+    for (int i = 0; i < app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
       double gyroradius_bmag = s->info.flr.bmag ? s->info.flr.bmag : app->bmag_ref;
       flr_weight += s->info.flr.Tperp*s->info.mass/(pow(s->info.charge*gyroradius_bmag,2.0));
@@ -362,7 +361,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
     // If domain is not periodic use Dirichlet BCs.
     struct gkyl_poisson_bc flr_bc = { };
-    for (int d=0; d<app->cdim-1; d++) {
+    for (int d = 0; d < app->cdim-1; d++) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
         if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC)
@@ -399,7 +398,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Compute the electrostatic potential.
   struct timespec wst = gkyl_wall_clock();
-  field->field_solve(app, field);
+  field->field_solve(app, field); // set inside the initialization function
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -532,7 +531,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->es_energy_fac);
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     gkyl_ambi_bolt_potential_release(f->ambi_pot);
-    for (int i=0; i<2*app->cdim; ++i) 
+    for (int i = 0; i < 2*app->cdim; ++i) 
       gkyl_array_release(f->sheath_vals[i]);
   } 
   else {
@@ -558,7 +557,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 
   // Release TS BS and SSFG updater
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    if(app->cdim == 3) {
+    if (app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
