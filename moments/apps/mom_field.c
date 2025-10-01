@@ -21,8 +21,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact,
-    mom_fld->embed_geo, false);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   

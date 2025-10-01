@@ -108,13 +108,11 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_euler_new(double gas_gamma, struct gkyl_wv_embed_geo* embed_geo,
-  bool use_gpu)
+gkyl_wv_euler_new(double gas_gamma, bool use_gpu)
 {
   return gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
       .gas_gamma = gas_gamma,
-      .rp_type = WV_EULER_RP_ROE,
-      .embed_geo = embed_geo, 
+      .rp_type = WV_EULER_RP_ROE, 
       .use_gpu = use_gpu
     }
   );

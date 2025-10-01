@@ -79,7 +79,7 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
   ten_moment->eqn.ref_count = gkyl_ref_count_init(gkyl_ten_moment_free);
   ten_moment->eqn.on_dev = &ten_moment->eqn; // CPU eqn obj points to itself
 
-  ten_moment->eqn.embed_geo = embed_geo;
+  ten_moment->eqn.embed_geo = inp->embed_geo;
   if (ten_moment->eqn.embed_geo) {
     switch (ten_moment->eqn.embed_geo->type) {
       case GKYL_EMBED_ABSORB:

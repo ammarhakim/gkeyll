@@ -25,8 +25,7 @@ struct gkyl_wv_euler_inp {
  * @param use_gpu   Boolean to determine whether wave equation object is on host or device
  * @return Pointer to Euler equation object.
  */
-struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma,
-  struct gkyl_wv_embed_geo *embed_geo, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma, bool use_gpu);
 
 /**
  * Create a new Euler equation object.

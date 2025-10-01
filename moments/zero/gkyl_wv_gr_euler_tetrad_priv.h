@@ -337,7 +337,7 @@ qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_D
 static double
-wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using HLL fluxes (with potential fallback),
@@ -353,7 +353,7 @@ wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**
