@@ -487,6 +487,7 @@ main(int argc, char **argv)
 freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(euler);
+  gkyl_wv_embed_geo_release(embed_geo);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
   

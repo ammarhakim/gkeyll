@@ -30,6 +30,5 @@ gkyl_wv_embed_geo_new_mask(struct gkyl_wv_embed_geo *geo, struct gkyl_rect_grid 
 void
 gkyl_wv_embed_geo_release(gkyl_wv_embed_geo* geo)
 {
-  // gkyl_array_release(geo->mask);
   gkyl_free(geo);
 }
