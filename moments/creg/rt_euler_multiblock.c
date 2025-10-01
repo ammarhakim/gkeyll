@@ -560,7 +560,7 @@ main(int argc, char **argv)
 
   // create FV updaters for dimensional sweeps
   for (int i=0; i<num_blocks; ++i) {
-    bdata[i].euler = gkyl_wv_euler_new(1.4, NULL, false);
+    bdata[i].euler = gkyl_wv_euler_new(1.4, false);
 
     for (int d=0; d<2; ++d)
       bdata[i].slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
