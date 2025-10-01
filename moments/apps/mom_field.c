@@ -98,7 +98,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   for (int i=0; i<3; ++i) {
     fld->lower_bc[i] = 0;
     fld->upper_bc[i] = 0;
-  }  
+  }
 
   int nghost[3] = {2, 2, 2};
   for (int dir=0; dir<app->ndim; ++dir) {
@@ -195,12 +195,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
 
-  if (maxwell->embed_geo)
-    fld->has_embed_geo = true;
   fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(fld->embed_mask, 1.0);
 
-  if (fld->has_embed_geo) {
+  if (mom_fld->embed_geo) {
+    fld->has_embed_geo = true;
     gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
       &app->local, fld->embed_mask);
   }
