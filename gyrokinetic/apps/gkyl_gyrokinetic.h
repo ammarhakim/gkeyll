@@ -646,7 +646,7 @@ void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, 
  *
  * @param app App object.
  * @param sidx Index of neutral species to initialize.
- * @param t0 Time for initial conditions
+ * @param t0 Time for initial conditions.
  */
 void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
@@ -656,7 +656,7 @@ void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int s
  *
  * @param app App object.
  * @param sidx Index of species to initialize.
- * @param t0 Time for initial conditions
+ * @param t0 Time for initial conditions.
  */
 void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
@@ -671,8 +671,8 @@ void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app, struct gkyl_
  * Write field data to file.
  * 
  * @param app App object.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
 void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame);
 
@@ -1295,3 +1295,45 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
  * @param app App to release.
  */
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
+
+/**
+ * Reset the df/dt multiplier operator for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param fdot_mult_inp Input struct for the fdot_multiplier.
+ */
+void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+
+/**
+ * Reset the collisionless multiplier for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param collisionless_fac Factor multiplying collisionless terms.
+ */
+void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, double collisionless_fac);
+
+/**
+ * Reset enforce_positivity for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param enforce_positivity Whether to enforce positivity.
+ */
+void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, bool enforce_positivity);
+
+/**
+ * Reset the field solver.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param field_inp Input struct for the field object.
+ */
+void gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
+  struct gkyl_gyrokinetic_field field_inp);

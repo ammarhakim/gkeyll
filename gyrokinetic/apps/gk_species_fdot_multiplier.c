@@ -280,3 +280,13 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
     }
   }
 }
+
+void
+gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp)
+{
+  gk_species_fdot_multiplier_release(app, fdmul);
+
+  gks->info.time_rate_multiplier = fdot_mult_inp;
+  gk_species_fdot_multiplier_init(app, gks, fdmul);
+}
