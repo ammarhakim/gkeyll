@@ -73,35 +73,8 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-      // For Boltzmann electrons, we only need ion density (and the ion density
-      // times the conf-space Jacobian), not charge density.
-      // Rescale moment by inverse of Jacobian.
-      gkyl_dg_div_op_range(s->m0.mem_geo, app->basis, 0, field->rho_c, 0, s->m0.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local);  
-
-      // We also need the M0 flux of the boundary flux through the z
-      // boundaries. Put it in the ghost cells of f and take its moment.
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, s->f1, &s->lower_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim-1], app->lower_ghost[app->cdim-1], s->f1);
-
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, s->f1, &s->upper_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim-1], app->upper_ghost[app->cdim-1], s->f1);
-    } else {
-      // Gyroaverage the density if needed.
-      s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-
-      gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
-      if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-        // Add the background (electron) charge density.
-        double n_s0 = field->info.electron_density;
-        double q_s = field->info.electron_charge;
-        double dg_norm = pow(sqrt(2),app->basis.ndim);
-        gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*dg_norm, 0, &app->local);
-      }
-    }
+    field->accumulate_rhoc(app, field, s);
   } 
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }

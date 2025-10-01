@@ -1049,6 +1049,8 @@ struct gk_field {
 
   // Pointer to function to solve the poisson equation
   void (*field_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+  void (*accumulate_rhoc) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

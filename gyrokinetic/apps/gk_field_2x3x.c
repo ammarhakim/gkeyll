@@ -13,6 +13,25 @@
 #include <time.h>
 
 
+void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s)
+{
+  // Gyroaverage the density if needed.
+  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
+  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
+}
+
+void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s)
+{
+  // Gyroaverage the density if needed.
+  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
+  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
+  // Add the background (electron) charge density.
+  double n_s0 = field->info.electron_density;
+  double q_s = field->info.electron_charge;
+  double dg_norm = pow(sqrt(2), app->basis.ndim);
+  gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
+}
+
 void
 gk_field_poisson_deflate_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
@@ -60,6 +79,10 @@ gk_field_poisson_perp_solve_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fie
 void
 gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+    f->accumulate_rhoc = gk_field_accumulate_rho_c_adiabatic;
+  else
+    f->accumulate_rhoc = gk_field_accumulate_rho_c_poisson;
 
   double polarization_weight = 0.0;
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
