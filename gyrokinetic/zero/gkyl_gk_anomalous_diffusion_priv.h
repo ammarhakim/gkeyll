@@ -19,15 +19,15 @@ struct gk_anomalous_diffusion {
   gk_anom_diff_surf_t surf;
   gk_anom_diff_boundary_surf_t boundary_surf[2]; // 2=lower,upper.
   gk_anom_diff_boundary_surf_t boundary_diag[2]; // 2=lower,upper.
-  const struct gkyl_range *conf_range;
+  struct gkyl_range conf_range;
   struct gkyl_gk_anomalous_diffusion_auxfields auxfields;
   double skip_cell_thresh;
   int num_basis;
 };
 
-#define _cfnu(idx) (const double *) gkyl_array_cfetch(gkad->auxfields.nu, gkyl_range_idx(gkad->conf_range, idx))
+#define _cfnu(idx) (const double *) gkyl_array_cfetch(gkad->auxfields.nu, gkyl_range_idx(&gkad->conf_range, idx))
 
-#define _cfJacInv(idx) (const double *) gkyl_array_cfetch(gkad->auxfields.jacobgeo_inv, gkyl_range_idx(gkad->conf_range, idx))
+#define _cfJacInv(idx) (const double *) gkyl_array_cfetch(gkad->auxfields.jacobgeo_inv, gkyl_range_idx(&gkad->conf_range, idx))
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[2]; } gkyl_gk_anomalous_diffusion_vol_kern_list;
@@ -153,10 +153,12 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   if (fabs(qInEdge[0]) < gkad->skip_cell_thresh && fabs(qInSkin[0]) < gkad->skip_cell_thresh) {
     return 0.;
   }
-  if (edge == -1)
-    gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
-  else                                                                                   
-    gkad->boundary_surf[1](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+  if (dir == 0) {
+    if (edge == -1)
+      gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+    else                                                                                   
+      gkad->boundary_surf[1](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+  }
 
   return 0.;  // CFL frequency computed in volume term.
 }
@@ -201,13 +203,23 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count* ref);
  * @param basis Basis functions of the equation system.
  * @param cbasis Configuration space basis.
  * @param conf_range Conf-space range object.
- * @param is_zero_flux_bc Whether each boundary has zero-flux BCs.
- * @param is_skip_bc Whether each boundary has skip BCs.
+ * @param bc_x_lower Boundary condition at lower x boundary.
+ * @param bc_x_upper Boundary condition at upper x boundary.
  * @param skip_cell_threshold Threshold which to skip cells
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_bc, const bool *is_skip_bc, 
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
   double skip_cell_threshold);
+
+/**
+ * CUDA device function to set auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.
+ * 
+ * @param eqn Equation pointer.
+ * @param auxfields Pointer to struct of aux fields.
+ */
+void gkyl_gk_anomalous_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
+  struct gkyl_gk_anomalous_diffusion_auxfields auxin);
+
 #endif

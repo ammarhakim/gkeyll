@@ -9,6 +9,7 @@ struct gkyl_boundary_flux {
   struct gkyl_range skin_r, ghost_r; // Skin and ghost ranges.
   int num_eqns; // Number of equation objects.
   struct gkyl_dg_eqn **eqns; // Equation objects.
+  struct gkyl_dg_eqn **eqns_ho; // Equation objects on the host.
   bool use_gpu; // Whether to run on GPU.
   double skip_cell_threshold; // Threshold for skipping cells in the skin range.
 
