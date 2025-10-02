@@ -917,16 +917,16 @@ gkyl_array_error_denom_fac_range_cu_kernel(struct gkyl_array* out, double eps_re
     long start = gkyl_range_idx(&range, idx);
 
     double* out_d = (double*) gkyl_array_fetch(out, start);
-    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
 
-    double sqsum = 0.0;
-    for (size_t k=0; k<inp->ncomp; ++k)
-      sqsum += pow(inp_d[k],2);
-
-    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
-
-    // do operation on contiguous data block
+    // Do operation on contiguous data block.
     if (linc2*ncomp < ncomp*ac1) {
+      double sqsum = 0.0;
+      for (size_t k=0; k<inp->ncomp; ++k)
+        sqsum += pow(inp_d[linc2*ncomp+k],2);
+
+      double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+
       for (size_t k=0; k<out->ncomp; ++k)
         out_d[linc2*ncomp+k] = error_denom_fac;
     }
@@ -1136,7 +1136,7 @@ gkyl_array_error_denom_fac_range_cu(struct gkyl_array* out, double eps_rel, doub
   const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, 1);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, inp->ncomp);
 
   gkyl_array_error_denom_fac_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, eps_rel, eps_abs, inp->on_dev, *range);
 }

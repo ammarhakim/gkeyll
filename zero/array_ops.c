@@ -807,7 +807,7 @@ gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel, double 
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(range, iter.idx);
     double *out_d = gkyl_array_fetch(out, start);
-    double *inp_d = gkyl_array_cfetch(inp, start);
+    const double *inp_d = gkyl_array_cfetch(inp, start);
 
     double sqsum = 0.0;
     for (size_t k=0; k<inp->ncomp; ++k)

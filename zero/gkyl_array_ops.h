@@ -358,7 +358,7 @@ struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
  * Return a cell-wise factor used in computing an error norm,
  * dependent on a relative and an absolute tolerance.
  *
- *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_k^{(i)} )^2 )+eps_abs]
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_i^{(k)} )^2 )+eps_abs]
  *
  * @param out Array to hold the output.
  * @param eps_rel Relative tolerance.
@@ -373,7 +373,7 @@ struct gkyl_array* gkyl_array_error_denom_fac(struct gkyl_array* out,
  * Return a cell-wise factor used in computing an error norm,
  * dependent on a relative and an absolute tolerance, in specified range.
  *
- *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_k^{(i)} )^2 )+eps_abs]
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_i^{(k)} )^2 )+eps_abs]
  *
  * @param out Array to hold the output.
  * @param eps_rel Relative tolerance.
