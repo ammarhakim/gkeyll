@@ -65,7 +65,7 @@ ellip_unit(void)
       .rzbasis = &rzbasis,
       .psiRZ = psiRZ,
       .rzlocal = &rzlocal,
-
+      .quad_param = { .eps = 1e-14 }
     }
   );
 
@@ -90,7 +90,7 @@ ellip_unit(void)
     double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
-    TEST_CHECK( gkyl_compare(8.382428377712543, arcL, 1e-6) );
+    TEST_CHECK( gkyl_compare(8.382428377712543, arcL, 1e-12) );
     
   } while(0);
 
@@ -99,7 +99,7 @@ ellip_unit(void)
     double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
-    TEST_CHECK( gkyl_compare(8.172574228918158, arcL, 1e-6) );
+    TEST_CHECK( gkyl_compare(8.172574228918158, arcL, 1e-12) );
     
   } while(0);    
   
