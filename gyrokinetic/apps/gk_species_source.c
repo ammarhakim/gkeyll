@@ -145,6 +145,16 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
 
   gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
+  // Adaptive sources diagnostic.
+  double temp[gks->src.num_adapt_sources];
+  double part[gks->src.num_adapt_sources];
+  for (int k=0; k < gks->src.num_adapt_sources; ++k) {
+    temp[k] = gks->src.adapt[k].temperature_curr;
+    part[k] = gks->src.adapt[k].particle_src_curr;
+  }
+  gkyl_dynvec_append(gks->src.part_diag, tm, part);
+  gkyl_dynvec_append(gks->src.temp_diag, tm, temp);
+  
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
 }
@@ -178,6 +188,42 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
     }
   }
   gkyl_dynvec_clear(gks->src.integ_diag);
+
+  if (rank == 0) {
+    // Write out particle diagnostics for adaptive sources.
+    const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "particle");
+    char fileNm[sz+1]; // Ensures no buffer overflow.
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
+
+    if (gks->src.is_first_integ_write_call) {
+      gkyl_dynvec_write(gks->src.part_diag, fileNm);
+      gks->src.is_first_integ_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(gks->src.part_diag, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(gks->src.part_diag);
+
+  if (rank == 0) {
+    // Write out temperature diagnostics for adaptive sources.
+    const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "temperature");
+    char fileNm[sz+1]; // Ensures no buffer overflow.
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
+
+    if (gks->src.is_first_integ_write_call) {
+      gkyl_dynvec_write(gks->src.temp_diag, fileNm);
+      gks->src.is_first_integ_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(gks->src.temp_diag, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(gks->src.temp_diag);
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag_io += 1;
@@ -382,6 +428,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->num_adapt_sources = s->info.source.num_adapt_sources;
     assert(src->num_adapt_sources <= src->num_sources); // Adaptive source should be a subset of the sources.
     if(src->num_adapt_sources > 0){
+      if (src->num_diag_int_mom > 0){
+        // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
+        src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+        src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+      }
       src->adapt_func = gk_species_source_adapt_dynamic;
       for (int k = 0; k < src->num_adapt_sources; ++k) {
         // Adaptive source must be a Maxwellian Gaussian projection.
@@ -400,7 +451,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->energy_src_curr = s->info.source.projection[k].total_kin_energy;
         // The temperature computation makes sense only if we inject particles.
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
-          2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
+          2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : s->info.source.projection[k].temp_min;
 
         gk_species_moment_init(app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
 
@@ -527,6 +578,10 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_dynvec_release(src->integ_diag);
     }
     if (src->num_adapt_sources > 0) {
+      if (src->num_diag_int_mom > 0){
+        gkyl_dynvec_release(src->part_diag);
+        gkyl_dynvec_release(src->temp_diag);
+      }
       for (int k=0; k < src->num_adapt_sources; ++k) {
         const struct gk_adapt_source *adapt_src = &src->adapt[k];
         gk_species_moment_release(app, &adapt_src->integ_threemoms);
