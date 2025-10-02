@@ -124,7 +124,7 @@ psi_cerfon(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-cerforn_unit(void)
+cerfon_unit(void)
 {
   // Cerfon Double Null Configuration
   
@@ -493,7 +493,7 @@ wham_beta0_rt(void)
 
 TEST_LIST = {
   { "ellip", ellip_unit },
-  { "cerforn", cerforn_unit },
+  { "cerfon", cerfon_unit },
   { "wham", wham_2l_unit },
   { NULL, NULL }
 };
