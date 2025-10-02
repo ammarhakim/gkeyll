@@ -63,11 +63,11 @@ create_ctx(void)
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 200; // Cell count (x-direction).
+  int Nx = 50; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 50.0; // Final simulation time.
+  double t_end = 1000.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -340,7 +340,7 @@ main(int argc, char **argv)
     .equation = vacuum_einstein,
     
     .init = evalVacuumEinsteinInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
     .has_vacuum_einstein = true,
@@ -419,8 +419,8 @@ main(int argc, char **argv)
     .name = "vacuum_einstein_linearwave",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
