@@ -8,9 +8,6 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_gr_minkowski.h>
-#include <gkyl_gr_blackhole.h>
-#include <gkyl_gr_blackhole_isotropic.h>
-#include <gkyl_gr_brill_lindquist.h>
 
 #include <gkyl_null_comm.h>
 
@@ -21,15 +18,13 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_schwarzschild_ctx
+struct einstein_linearwave_ctx
 {
-  // Spacetime parameters (using geometric units).
-  double mass; // Mass of the black hole.
-  double spin; // Spin of the black hole.
+  // Mathematical constants (dimensionless).
+  double pi;
 
-  double pos_x; // Position of the black hole (x-direction).
-  double pos_y; // Position of the black hole (y-direction).
-  double pos_z; // Position of the black hole (z-direction).
+  // Physical constants (using normalized code units).
+  double amp; // Wave amplitude.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -40,11 +35,7 @@ struct einstein_schwarzschild_ctx
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
-  int Ny; // Cell count (y-direction).
-  int Nz; // Cell count (z-direction).
   double Lx; // Domain size (x-direction).
-  double Ly; // Domain size (y-direction).
-  double Lz; // Domain size (z-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -55,57 +46,42 @@ struct einstein_schwarzschild_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_schwarzschild_ctx
+struct einstein_linearwave_ctx
 create_ctx(void)
 {
-  // Spacetime parameters (using geometric units).
-  double mass = 0.5; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
 
-  double pos_x = 5.0; // Position of the black hole (x-direction).
-  double pos_y = 5.0; // Position of the black hole (y-direction).
-  double pos_z = 5.0; // Position of the black hole (z-direction).
+  // Physical constants (using normalized code units).
+  double amp = pow(10.0, -8.0); // Wave amplitude.
 
   // Pointer to spacetime metric.
-  //struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_isotropic_new(false, mass, spin, pos_x, pos_y, pos_z);
-  //struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_new(false, 0.6, 0.6, 2.5, 5.0, 5.0, 7.5, 5.0, 5.0);
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Evolution parameters.
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
-  int Nz = 64; // Cell count (z-direction).
-  double Lx = 10.0; // Domain size (x-direction).
-  double Ly = 10.0; // Domain size (y-direction).
-  double Lz = 10.0; // Domain size (z-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  int Nx = 200; // Cell count (x-direction).
+  double Lx = 1.0; // Domain size (x-direction).
+  double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 50.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_schwarzschild_ctx ctx = {
-    .mass = mass,
-    .spin = spin,
-    .pos_x = pos_x,
-    .pos_y = pos_y,
-    .pos_z = pos_z,
+  struct einstein_linearwave_ctx ctx = {
+    .pi = pi,
+    .amp = amp,
     .spacetime = spacetime,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
     .Nx = Nx,
-    .Ny = Ny,
-    .Nz = Nz,
     .Lx = Lx,
-    .Ly = Ly,
-    .Lz = Lz,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -121,9 +97,11 @@ create_ctx(void)
 void
 evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1], z = 5.0;
-  struct einstein_schwarzschild_ctx *app = ctx;
+  double x = xn[0];
+  struct einstein_linearwave_ctx *app = ctx;
 
+  double pi = app->pi;
+  double amp = app->amp;
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
   double spatial_det, lapse;
@@ -160,18 +138,31 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
     }
   }
 
-  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, z, &spatial_det);
-  spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
   
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, z, &inv_spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
+  double b = amp * sin(2.0 * pi * x);
+  spatial_metric[1][1] = 1.0 + b;
+  spatial_metric[2][2] = 1.0 - b;
+
+  extrinsic_curvature[1][1] = -amp * pi * cos(2.0 * pi * x);
+  extrinsic_curvature[2][2] = amp * pi * cos(2.0 * pi * x);
+
+  spatial_metric_der[0][1][1] = amp * pi * cos(2.0 * pi * x);
+  spatial_metric_der[0][2][2] = -amp * pi * cos(2.0 * pi * x);
+
+  spatial_det = 1.0 - (b * b);
+  inv_spatial_metric[1][1] = 1.0 / (1.0 + b);
+  inv_spatial_metric[2][2] = 1.0 / (1.0 + b);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -337,11 +328,9 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_schwarzschild_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_linearwave_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
-  //int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
 
   // Einstein equations.
   struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
@@ -357,10 +346,6 @@ main(int argc, char **argv)
     .has_vacuum_einstein = true,
     .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
     .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    //.bcz = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -371,7 +356,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX, NY };
+  int cells[] = { NX };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -431,12 +416,12 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_schwarzschild",
+    .name = "vacuum_einstein_linearwave",
 
-    .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly },
-    .cells = { NX, NY },
+    .ndim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -446,12 +431,12 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { einstein },
 
-    //.num_periodic_dir = 2,
-    //.periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
