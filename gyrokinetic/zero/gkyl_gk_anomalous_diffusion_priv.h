@@ -164,23 +164,23 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 }
 
 GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
-  const double* xcEdge, const double* xcSkin, const double* dxEdge, const double* dxSkin,
-  const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+  const double* xcSkin, const double* xcGhost, const double* dxSkin, const double* dxGhost,
+  const int* idxSkin, const int* idxGhost, const int edge,
+  const double* qInSkin, const double* qInGhost, double* GKYL_RESTRICT qRhsGhost)
 { 
-  // This function is based on boundary_surf above, but notice we use Edge
-  // where the boundary_surf used Skin, because we assume this kernel is called
+  // This function is based on boundary_surf above, but notice we use Skin
+  // where the boundary_surf used Ghost, because we assume this kernel is called
   // in the ghost range (e.g. by the boundary_flux updater).
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
   
-  if (fabs(qInEdge[0]) < gkad->skip_cell_thresh) {
+  if (fabs(qInSkin[0]) < gkad->skip_cell_thresh) {
     return 0.;
   }
   if (dir == 0) {
     if (edge == -1)
-      gkad->boundary_diag[0](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+      gkad->boundary_diag[0](xcSkin, dxSkin, _cfnu(idxSkin), _cfnu(idxGhost), _cfJacInv(idxSkin), _cfJacInv(idxGhost), edge, qInSkin, qInGhost, qRhsGhost);
     else                                                                                       
-      gkad->boundary_diag[1](xcEdge, dxEdge, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+      gkad->boundary_diag[1](xcSkin, dxSkin, _cfnu(idxSkin), _cfnu(idxGhost), _cfJacInv(idxSkin), _cfJacInv(idxGhost), edge, qInSkin, qInGhost, qRhsGhost);
   }
 
   return 0.;  // CFL frequency computed in volume term.
