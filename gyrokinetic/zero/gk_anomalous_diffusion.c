@@ -140,6 +140,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   diffusion->boundary_diag[1] = CKSURF(boundary_diagx_upper_kernels, pdim,  poly_order);
 
   // Ensure non-NULL pointers.
+  assert(diffusion->eqn.vol_term);
   assert(diffusion->surf);
   for (int i=0; i<2; i++) {
     assert(diffusion->boundary_surf[i]);
@@ -148,7 +149,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
 
   diffusion->auxfields.nu = 0;
   diffusion->auxfields.jacobgeo_inv = 0;
-  diffusion->conf_range = conf_range;
+  diffusion->conf_range = *conf_range;
 
   diffusion->eqn.flags = 0;
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_gk_anomalous_diffusion_free);

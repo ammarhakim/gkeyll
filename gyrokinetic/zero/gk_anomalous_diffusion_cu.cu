@@ -115,6 +115,14 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
   diffusion->boundary_surf[1] = CKSURF(boundary_surfx_upper_kernels, pdim,  poly_order);
   diffusion->boundary_diag[0] = CKSURF(boundary_diagx_lower_kernels, pdim,  poly_order);
   diffusion->boundary_diag[1] = CKSURF(boundary_diagx_upper_kernels, pdim,  poly_order);
+
+  // Ensure non-NULL pointers.
+  assert(diffusion->eqn.vol_term);
+  assert(diffusion->surf);
+  for (int i=0; i<2; i++) {
+    assert(diffusion->boundary_surf[i]);
+    assert(diffusion->boundary_diag[i]);
+  }
 }
 
 struct gkyl_dg_eqn*
@@ -134,16 +142,16 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
   else
     diffusion->skip_cell_thresh = -1.0;
 
-  diffusion->conf_range = conf_range;
+  diffusion->conf_range = *conf_range;
 
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_gk_anomalous_diffusion_free);
 
-
   // Copy the host struct to device struct.
   struct gk_anomalous_diffusion* diffusion_cu = (struct gk_anomalous_diffusion*) gkyl_cu_malloc(sizeof(struct gk_anomalous_diffusion));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion), GKYL_CU_MEMCPY_H2D);
+
   gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, bc_x_lower, bc_x_upper);
 
   // Set parent on_dev pointer.

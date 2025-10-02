@@ -612,7 +612,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     if (gk_s->anom_diff.anom_diff_id)
       bflux->num_eqns += 1; // Diffusion term.
  
-      bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
+    bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
 
     int eqc = 0;
     if (!gk_s->info.no_collisionless_terms)

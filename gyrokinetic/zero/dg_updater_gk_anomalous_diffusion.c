@@ -42,8 +42,8 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   up->dgeqn = gkyl_gk_anomalous_diffusion_new(basis, cbasis,
     conf_range, bc_x_lower, bc_x_upper, skip_cell_threshold, up->use_gpu);
 
-  gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn, (struct gkyl_gk_anomalous_diffusion_auxfields) {
-    .nu = nu, .jacobgeo_inv = jacobgeo_inv });
+  gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn,
+    (struct gkyl_gk_anomalous_diffusion_auxfields) {.nu = nu, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 1;
   int up_dirs[GKYL_MAX_DIM];

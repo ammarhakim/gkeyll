@@ -38,16 +38,3 @@ struct gkyl_dg_eqn* gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *bas
  */
 void gkyl_gk_anomalous_diffusion_set_auxfields(const struct gkyl_dg_eqn* eqn,
   struct gkyl_gk_anomalous_diffusion_auxfields auxin);
-
-#ifdef GKYL_HAVE_CUDA
-
-/**
- * CUDA device function to set auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.
- * 
- * @param eqn Equation pointer.
- * @param auxfields Pointer to struct of aux fields.
- */
-void gkyl_gk_anomalous_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-  struct gkyl_gk_anomalous_diffusion_auxfields auxin);
-
-#endif

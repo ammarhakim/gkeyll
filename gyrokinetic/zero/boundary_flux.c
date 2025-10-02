@@ -38,6 +38,8 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
   for (int i=0; i<up->num_eqns; i++)
     up->eqns[i] = gkyl_dg_eqn_acquire(eqns[i]);
+
+  up->eqns_ho = up->eqns;
   
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -97,10 +99,14 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
 void
 gkyl_boundary_flux_release(gkyl_boundary_flux* up)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->eqns);
+  } 
+#endif
   for (int i=0; i<up->num_eqns; i++)
-    gkyl_dg_eqn_release(up->eqns[i]);
-
-  gkyl_free(up->eqns);
+    gkyl_dg_eqn_release(up->eqns_ho[i]);
+  gkyl_free(up->eqns_ho);
 
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
