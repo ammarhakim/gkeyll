@@ -19,6 +19,7 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 struct func_gaussian_ctx {
+  int cdim; // Configuration space dimension.
   bool is_dir_periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
   double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
   double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
@@ -30,7 +31,7 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct func_gaussian_ctx *inp = ctx;
   double envelope = 1.0;
-  for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
+  for (int dir = 0; dir < inp->cdim; ++dir) {
     double dx = xn[dir] - inp->gaussian_mean[dir];
     double L = inp->box_size[dir];
     if (inp->is_dir_periodic[dir]) { 
@@ -44,7 +45,6 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
   }
   fout[0] = envelope + inp->f_floor;
 }
-
 
 static void
 gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_species *s, 
@@ -111,8 +111,11 @@ static void
 gk_species_projection_calc_max_gauss(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
+  bool correct_mom_setting = s->lte.correct_all_moms;
+  s->lte.correct_all_moms = false; // Turn off moment correction for the max gauss projection.
   gk_species_lte_from_moms(app, s, &s->lte, proj->prim_moms);
   gkyl_array_copy(f, s->lte.f_lte);
+  s->lte.correct_all_moms = correct_mom_setting; // Reset to original setting.
 }
 
 static void
@@ -271,6 +274,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 {
   // Fill the box_size attribute of the projection (used for periodicity).
   struct func_gaussian_ctx fg_ctx;
+  fg_ctx.cdim = app->cdim;
   fg_ctx.f_floor = inp.f_floor;
   for (int dir = 0; dir < app->cdim; ++dir) {
     fg_ctx.gaussian_mean[dir] = inp.gaussian_mean[dir];
@@ -325,7 +329,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
 
   // Density
-  gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles, proj->gaussian_profile, 0*app->basis.num_basis);
+  gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles + inp.f_floor, proj->gaussian_profile, 0*app->basis.num_basis);
 
   // Parallel velocity
   gkyl_array_set_offset(proj->prim_moms, 0.0, proj->gaussian_profile, 1*app->basis.num_basis);

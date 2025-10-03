@@ -17,29 +17,33 @@ mass_ion = 1.0 -- Ion mass.
 charge_ion = 1.0 -- Ion charge.
 mass_elc = 1.0 / 25.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
-Ti_over_Te = 5.0 -- Ion temperature / electron temperature.
-lambda = 0.5 -- Wavelength.
-n0 = 1.0 -- Reference number density.
+
+di = 1.0 -- Ion skin depth.
+n0 = 1.0 -- Reference in-plane number density.
 nb_over_n0 = 0.2 -- Background number density / reference number density.
 B0 = 0.1 -- Reference magnetic field strength.
-beta = 1.0 -- Plasma beta.
+Ti_over_Te = 5.0 -- Ion temperature / electron temperature.
+beta = 1.0 -- Total plasma beta.
 
 -- Derived physical quantities (using normalized code units).
-psi0 = 0.1 * B0 -- Reference magnetic scalar potential.
+lambda = 0.5 * di -- Current sheet width.
+psi0 = 0.1 * B0 * di -- Reference magnetic scalar potential.
 
 Ti_frac = Ti_over_Te / (1.0 + Ti_over_Te) -- Fraction of total temperature from ions.
 Te_frac = 1.0 / (1.0 + Ti_over_Te) -- Fraction of total temperature from electrons.
 T_tot = beta * (B0 * B0) / 2.0 / n0 -- Total temperature.
 
+omega_ci = math.abs(charge_ion * B0 / mass_ion) -- Ion cyclotron frequency.
+
 -- Simulation parameters.
 Nx = 128 -- Cell count (x-direction).
 Ny = 64 -- Cell count (y-direction).
-Lx = 25.6 -- Domain size (x-direction).
-Ly = 12.8 -- Domain size (y-direction).
+Lx = 25.6 * di -- Domain size (x-direction).
+Ly = 12.8 * di -- Domain size (y-direction).
 k0 = 5.0 -- Closure parameter.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 250.0 -- Final simulation time.
+t_end = 25.0 / omega_ci -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

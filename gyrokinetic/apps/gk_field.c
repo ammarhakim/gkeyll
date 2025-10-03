@@ -127,23 +127,6 @@ gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *fiel
 {
 }
 
-// Ensure that the value at the lower x boundary matches the Dirichlet boundary condition value.
-static void 
-gk_field_enforce_xbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
-{
-  gkyl_array_clear_range(finout, 0.0, &app->lower_skin[0]);
-  double dg_norm = pow(sqrt(2.0),app->basis.ndim);
-  struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(field->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
-  gkyl_array_shiftc_range(finout, dg_norm*bc_lo_x->value[0], 0, &app->lower_skin[0]);
-  // Update the lower x skin surface value to match the ghost cell at the node position.
-  gkyl_skin_surf_from_ghost_advance(field->ssfg_x_lo, finout);
-}
-
-static void
-gk_field_enforce_xbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
-{
-}
-
 // Initialize field object.
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -512,13 +495,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
   f->enforce_zbc = gk_field_enforce_zbc_none;
-  f->enforce_xbc = gk_field_enforce_xbc_none;
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_zbc = gk_field_enforce_zbc;
     struct gkyl_gyrokinetic_bc *bc_lo_x = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*(app->cdim-1), 0, GKYL_LOWER_EDGE);
-    if (bc_lo_x->type == GKYL_BC_GK_FIELD_DIRICHLET)
-      f->enforce_xbc = gk_field_enforce_xbc;
   }
   
   return f;
@@ -691,10 +671,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 
       // Enforce a BC of the field in the parallel direction.
       field->enforce_zbc(app, field, field->phi_smooth);
-
-      // Correct the radial BC (needed if TSBC was applied).
-      field->enforce_xbc(app, field, field->phi_smooth);
-
     }
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
