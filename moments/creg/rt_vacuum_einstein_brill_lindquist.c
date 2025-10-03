@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_gr_minkowski.h>
-#include <gkyl_gr_blackhole.h>
+#include <gkyl_gr_brill_lindquist.h>
 
 #include <gkyl_null_comm.h>
 
@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_kerr_ctx
+struct einstein_brill_lindquist_ctx
 {
   // Spacetime parameters (using geometric units).
   double mass; // Mass of the black hole.
@@ -52,19 +52,19 @@ struct einstein_kerr_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_kerr_ctx
+struct einstein_brill_lindquist_ctx
 create_ctx(void)
 {
   // Spacetime parameters (using geometric units).
   double mass = 0.5; // Mass of the black hole.
-  double spin = -0.3; // Spin of the black hole.
+  double spin = 0.0; // Spin of the black hole.
 
   double pos_x = 5.0; // Position of the black hole (x-direction).
   double pos_y = 5.0; // Position of the black hole (y-direction).
   double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_new(false, 0.5, 0.5, 2.5, 5.0, 0.0, 7.5, 5.0, 0.0);
 
   // Evolution parameters.
   double excision_threshold = 0.3; // Excision threshold (lapse).
@@ -78,14 +78,14 @@ create_ctx(void)
   double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
-  double t_end = 1.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 10.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_kerr_ctx ctx = {
+  struct einstein_brill_lindquist_ctx ctx = {
     .mass = mass,
     .spin = spin,
     .pos_x = pos_x,
@@ -115,7 +115,7 @@ void
 evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct einstein_kerr_ctx *app = ctx;
+  struct einstein_brill_lindquist_ctx *app = ctx;
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
@@ -330,7 +330,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_kerr_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_brill_lindquist_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -422,7 +422,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_kerr",
+    .name = "vacuum_einstein_brill_lindquist",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },

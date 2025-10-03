@@ -7,7 +7,8 @@
 #include <gkyl_wv_vacuum_einstein_priv.h>
 
 void
-gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, const double q[64], double flux[64])
+gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
+  const double q[64], double flux[64])
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[0]; spatial_metric[0][1] = q[1]; spatial_metric[0][2] = q[2];
@@ -55,7 +56,7 @@ gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gk
   shift_vect_der[2][0] = q[61]; shift_vect_der[2][1] = q[62]; shift_vect_der[2][2] = q[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.3) {
+  if (lapse < excision_threshold) {
     in_excision_region = true;
   }
 
@@ -317,7 +318,7 @@ gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatia
 }
 
 static inline double
-gkyl_vacuum_einstein_max_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing, const double q[64])
+gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64])
 {
   double lapse = q[9];
 
@@ -345,7 +346,7 @@ gkyl_vacuum_einstein_max_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing
   }
 
   bool in_excision_region = false;
-  if (lapse < 0.3) {
+  if (lapse < excision_threshold) {
     in_excision_region = true;
   }
 
@@ -921,24 +922,25 @@ static double
 wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
-  double sl = gkyl_vacuum_einstein_max_abs_speed(spacetime_slicing, ql);
-  double sr = gkyl_vacuum_einstein_max_abs_speed(spacetime_slicing, qr);
+  double sl = gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, ql);
+  double sr = gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, qr);
   double amax = fmax(sl, sr);
 
   double fl[64], fr[64];
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, ql, fl);
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, qr, fr);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, ql, fl);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, qr, fr);
 
   bool in_excision_region_l = false;
-  if (ql[9] < 0.3) {
+  if (ql[9] < excision_threshold) {
     in_excision_region_l = true;
   }
 
   bool in_excision_region_r = false;
-  if (qr[9] < 0.3) {
+  if (qr[9] < excision_threshold) {
     in_excision_region_r = true;
   }
 
@@ -992,6 +994,7 @@ static double
 wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
@@ -1017,7 +1020,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   gkyl_vacuum_einstein_inv_spatial_metric(ql, &inv_spatial_metric_l);
 
   bool in_excision_region_l = false;
-  if (lapse_l < 0.3) {
+  if (lapse_l < excision_threshold) {
     in_excision_region_l = true;
   }
 
@@ -1043,7 +1046,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   gkyl_vacuum_einstein_inv_spatial_metric(qr, &inv_spatial_metric_r);
 
   bool in_excision_region_r = false;
-  if (lapse_r < 0.3) {
+  if (lapse_r < excision_threshold) {
     in_excision_region_r = true;
   }
 
@@ -1059,8 +1062,8 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = (vx_avg + cs_avg) / (1.0 + (vx_avg * cs_avg));
 
   double fl[64], fr[64];
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, ql, fl);
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, qr, fr);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, ql, fl);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, qr, fr);
 
   double qm[64];
   for (int i = 0; i < 64; i++) {
@@ -1129,20 +1132,21 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
   double fr[64], fl[64];
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, ql, fl);
-  gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, qr, fr);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, ql, fl);
+  gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, qr, fr);
 
   bool in_excision_region_l = false;
-  if (ql[9] < 0.3) {
+  if (ql[9] < excision_threshold) {
     in_excision_region_l = true;
   }
 
   bool in_excision_region_r = false;
-  if (qr[9] < 0.3) {
+  if (qr[9] < excision_threshold) {
     in_excision_region_r = true;
   }
 
@@ -1157,8 +1161,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     }
   }
 
-  double amaxl = gkyl_vacuum_einstein_max_abs_speed(spacetime_slicing, ql);
-  double amaxr = gkyl_vacuum_einstein_max_abs_speed(spacetime_slicing, qr);
+  double amaxl = gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, ql);
+  double amaxr = gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, qr);
 
   return fmax(amaxl, amaxr);
 }
@@ -1178,9 +1182,10 @@ static double
 max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 {
   const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
 
-  return gkyl_vacuum_einstein_max_abs_speed(spacetime_slicing, q);
+  return gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, q);
 }
 
 static inline void
@@ -1193,6 +1198,7 @@ static inline void
 vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 {
   const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
@@ -1242,7 +1248,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
   shift_vect_der[2][0] = qin[61]; shift_vect_der[2][1] = qin[62]; shift_vect_der[2][2] = qin[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.3) {
+  if (lapse < excision_threshold) {
     in_excision_region = true;
   }
 
@@ -1575,9 +1581,10 @@ gkyl_vacuum_einstein_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_vacuum_einstein_new(enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, bool use_gpu)
+gkyl_wv_vacuum_einstein_new(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, bool use_gpu)
 {
   return gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp) {
+      .excision_threshold = excision_threshold,
       .spacetime_slicing = spacetime_slicing,
       .spacetime_evolution = spacetime_evolution,
       .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
@@ -1595,6 +1602,7 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
   vacuum_einstein->eqn.num_equations = 64;
   vacuum_einstein->eqn.num_diag = 1;
 
+  vacuum_einstein->excision_threshold = inp->excision_threshold;
   vacuum_einstein->spacetime_slicing = inp->spacetime_slicing;
   vacuum_einstein->spacetime_evolution = inp->spacetime_evolution;
 

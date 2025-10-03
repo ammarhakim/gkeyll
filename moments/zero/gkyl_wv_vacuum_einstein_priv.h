@@ -13,6 +13,7 @@
 struct wv_vacuum_einstein {
   struct gkyl_wv_eqn eqn; // Base equation object.
 
+  double excision_threshold; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution; // Spacetime evolution system.
 };
@@ -20,6 +21,7 @@ struct wv_vacuum_einstein {
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
 *
+* @param excision_threshold Excision threshold (lapse).
 * @param spacetime_slicing Spacetime slicing condition.
 * @param spacetime_evolution Spacetime evolution system.
 * @param q Conserved variable vector.
@@ -27,7 +29,8 @@ struct wv_vacuum_einstein {
 */
 GKYL_CU_D
 void
-gkyl_vacuum_einstein_flux(enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, const double q[64], double flux[64]);
+gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
+  const double q[64], double flux[64]);
 
 /**
 * Compute inverse spatial metric tensor (in contravariant component form) given the conserved variables.
@@ -42,13 +45,14 @@ gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatia
 /**
 * Compute maximum absolute wave speed.
 *
+* @param excision_threshold Excision threshold (lapse).
 * @param spacetime_slicing Spacetime slicing condition.
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
 GKYL_CU_D
 static inline double
-gkyl_vacuum_einstein_abs_speed(enum gkyl_spacetime_slicing spacetime_slicing, const double q[64]);
+gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64]);
 
 /**
 * Compute Riemann variables given the conserved variables.

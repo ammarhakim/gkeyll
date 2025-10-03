@@ -9,10 +9,11 @@
 void
 test_vacuum_einstein_basic_minkowski()
 {
+  double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING;
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(spacetime_slicing, spacetime_evolution, false);
+  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(excision_threshold, spacetime_slicing, spacetime_evolution, false);
 
   TEST_CHECK( vacuum_einstein->num_equations == 64 );
   TEST_CHECK( vacuum_einstein->num_waves == 2 );
@@ -332,7 +333,7 @@ test_vacuum_einstein_basic_minkowski()
       double q_local[64], flux_local[64], flux[64];
       for (int d = 0; d < 3; d++) {
         vacuum_einstein->rotate_to_local_func(vacuum_einstein, tau1[d], tau2[d], norm[d], q, q_local);
-        gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, q_local, flux_local);
+        gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
         vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
 
         for (int i = 0; i < 42; i++) {
@@ -386,10 +387,11 @@ test_vacuum_einstein_basic_minkowski()
 void
 test_vacuum_einstein_basic_schwarzschild()
 {
+  double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(spacetime_slicing, spacetime_evolution, false);
+  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(excision_threshold, spacetime_slicing, spacetime_evolution, false);
 
   TEST_CHECK( vacuum_einstein->num_equations == 64 );
   TEST_CHECK( vacuum_einstein->num_waves == 2 );
@@ -710,7 +712,7 @@ test_vacuum_einstein_basic_schwarzschild()
         double q_local[64], flux_local[64], flux[64];
         for (int d = 0; d < 3; d++) {
           vacuum_einstein->rotate_to_local_func(vacuum_einstein, tau1[d], tau2[d], norm[d], q, q_local);
-          gkyl_vacuum_einstein_flux(spacetime_slicing, spacetime_evolution, q_local, flux_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
           vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 42; i++) {

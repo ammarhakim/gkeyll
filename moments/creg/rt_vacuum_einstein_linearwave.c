@@ -30,6 +30,7 @@ struct einstein_linearwave_ctx
   struct gkyl_gr_spacetime *spacetime;
 
   // Evolution parameters.
+  double excision_threshold; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution; // Spacetime evolution system.
 
@@ -59,6 +60,7 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Evolution parameters.
+  double excision_threshold = 0.3; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
@@ -78,6 +80,7 @@ create_ctx(void)
     .pi = pi,
     .amp = amp,
     .spacetime = spacetime,
+    .excision_threshold = excision_threshold,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
     .Nx = Nx,
@@ -333,7 +336,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Einstein equations.
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species einstein = {
     .name = "vacuum_einstein",

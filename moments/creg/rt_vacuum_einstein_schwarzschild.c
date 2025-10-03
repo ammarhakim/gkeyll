@@ -33,6 +33,7 @@ struct einstein_schwarzschild_ctx
   struct gkyl_gr_spacetime *spacetime;
 
   // Evolution parameters.
+  double excision_threshold; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution; // Spacetime evolution system.
 
@@ -66,6 +67,7 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Evolution parameters.
+  double excision_threshold = 0.3; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
@@ -77,7 +79,7 @@ create_ctx(void)
   double cfl_frac = 0.8; // CFL coefficient.
 
   double t_end = 1.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -90,6 +92,7 @@ create_ctx(void)
     .pos_y = pos_y,
     .pos_z = pos_z,
     .spacetime = spacetime,
+    .excision_threshold = excision_threshold,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
     .Nx = Nx,
@@ -333,7 +336,7 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Einstein equations.
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species einstein = {
     .name = "vacuum_einstein",
