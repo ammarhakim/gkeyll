@@ -6,10 +6,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   double dx11 = 2.0/dxv[1]; 
   double dv11 = 2.0/dxv[3]; 
 
-  double Ghat_r[8] = {0.0}; 
-  double Ghat_l[8] = {0.0}; 
-  double Ghat_l_nodal[8] = {0.0}; 
-  double Ghat_r_nodal[8] = {0.0}; 
+  double Fhat_l_nodal[8] = {0.0}; 
+  double Fhat_r_nodal[8] = {0.0}; 
   double alpha_l_quad = 0.0; 
   double alpha_r_quad = 0.0; 
   double alpha_max = 0.0; 
@@ -24,8 +22,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = 0.4330127018922193*fc[15]-0.4330127018922193*fc[14]-0.25*fc[13]-0.4330127018922193*fc[12]-0.4330127018922193*fc[11]+0.25*fc[10]+0.4330127018922193*fc[9]+0.25*fc[8]+0.4330127018922193*fc[7]+0.25*fc[6]+0.4330127018922193*fc[5]-0.25*fc[4]-0.25*fc[3]-0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = (-0.4330127018922193*fc[15])+0.4330127018922193*fc[14]-0.25*fc[13]+0.4330127018922193*fc[12]+0.4330127018922193*fc[11]+0.25*fc[10]-0.4330127018922193*fc[9]+0.25*fc[8]-0.4330127018922193*fc[7]+0.25*fc[6]-0.4330127018922193*fc[5]-0.25*fc[4]-0.25*fc[3]+0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = 0.4330127018922193*fr[15]-0.4330127018922193*fr[14]-0.25*fr[13]-0.4330127018922193*fr[12]-0.4330127018922193*fr[11]+0.25*fr[10]+0.4330127018922193*fr[9]+0.25*fr[8]+0.4330127018922193*fr[7]+0.25*fr[6]+0.4330127018922193*fr[5]-0.25*fr[4]-0.25*fr[3]-0.4330127018922193*fr[2]-0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[0] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[0] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[0] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[0] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = (-0.75*hamil[15])+0.75*hamil[14]+0.4330127018922193*hamil[13]+0.75*hamil[12]-0.4330127018922193*hamil[10]-0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = 0.75*hamil[15]-0.75*hamil[14]+0.4330127018922193*hamil[13]-0.75*hamil[12]-0.4330127018922193*hamil[10]+0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -34,8 +32,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = (-0.4330127018922193*fc[15])+0.4330127018922193*fc[14]+0.25*fc[13]+0.4330127018922193*fc[12]-0.4330127018922193*fc[11]-0.25*fc[10]-0.4330127018922193*fc[9]-0.25*fc[8]+0.4330127018922193*fc[7]+0.25*fc[6]+0.4330127018922193*fc[5]+0.25*fc[4]-0.25*fc[3]-0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = 0.4330127018922193*fc[15]-0.4330127018922193*fc[14]+0.25*fc[13]-0.4330127018922193*fc[12]+0.4330127018922193*fc[11]-0.25*fc[10]+0.4330127018922193*fc[9]-0.25*fc[8]-0.4330127018922193*fc[7]+0.25*fc[6]-0.4330127018922193*fc[5]+0.25*fc[4]-0.25*fc[3]+0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = (-0.4330127018922193*fr[15])+0.4330127018922193*fr[14]+0.25*fr[13]+0.4330127018922193*fr[12]-0.4330127018922193*fr[11]-0.25*fr[10]-0.4330127018922193*fr[9]-0.25*fr[8]+0.4330127018922193*fr[7]+0.25*fr[6]+0.4330127018922193*fr[5]+0.25*fr[4]-0.25*fr[3]-0.4330127018922193*fr[2]-0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[1] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[1] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[1] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[1] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = 0.75*hamil[15]-0.75*hamil[14]-0.4330127018922193*hamil[13]+0.75*hamil[12]+0.4330127018922193*hamil[10]-0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = (-0.75*hamil[15])+0.75*hamil[14]-0.4330127018922193*hamil[13]-0.75*hamil[12]+0.4330127018922193*hamil[10]+0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -44,8 +42,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = (-0.4330127018922193*fc[15])+0.4330127018922193*fc[14]+0.25*fc[13]-0.4330127018922193*fc[12]+0.4330127018922193*fc[11]-0.25*fc[10]+0.4330127018922193*fc[9]+0.25*fc[8]-0.4330127018922193*fc[7]-0.25*fc[6]+0.4330127018922193*fc[5]-0.25*fc[4]+0.25*fc[3]-0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = 0.4330127018922193*fc[15]-0.4330127018922193*fc[14]+0.25*fc[13]+0.4330127018922193*fc[12]-0.4330127018922193*fc[11]-0.25*fc[10]-0.4330127018922193*fc[9]+0.25*fc[8]+0.4330127018922193*fc[7]-0.25*fc[6]-0.4330127018922193*fc[5]-0.25*fc[4]+0.25*fc[3]+0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = (-0.4330127018922193*fr[15])+0.4330127018922193*fr[14]+0.25*fr[13]-0.4330127018922193*fr[12]+0.4330127018922193*fr[11]-0.25*fr[10]+0.4330127018922193*fr[9]+0.25*fr[8]-0.4330127018922193*fr[7]-0.25*fr[6]+0.4330127018922193*fr[5]-0.25*fr[4]+0.25*fr[3]-0.4330127018922193*fr[2]-0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[2] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[2] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[2] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[2] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = 0.75*hamil[15]-0.75*hamil[14]-0.4330127018922193*hamil[13]+0.75*hamil[12]+0.4330127018922193*hamil[10]-0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = (-0.75*hamil[15])+0.75*hamil[14]-0.4330127018922193*hamil[13]-0.75*hamil[12]+0.4330127018922193*hamil[10]+0.75*hamil[9]-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -54,8 +52,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = 0.4330127018922193*fc[15]-0.4330127018922193*fc[14]-0.25*fc[13]+0.4330127018922193*fc[12]+0.4330127018922193*fc[11]+0.25*fc[10]-0.4330127018922193*fc[9]-0.25*fc[8]-0.4330127018922193*fc[7]-0.25*fc[6]+0.4330127018922193*fc[5]+0.25*fc[4]+0.25*fc[3]-0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = (-0.4330127018922193*fc[15])+0.4330127018922193*fc[14]-0.25*fc[13]-0.4330127018922193*fc[12]-0.4330127018922193*fc[11]+0.25*fc[10]+0.4330127018922193*fc[9]-0.25*fc[8]+0.4330127018922193*fc[7]-0.25*fc[6]-0.4330127018922193*fc[5]+0.25*fc[4]+0.25*fc[3]+0.4330127018922193*fc[2]-0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = 0.4330127018922193*fr[15]-0.4330127018922193*fr[14]-0.25*fr[13]+0.4330127018922193*fr[12]+0.4330127018922193*fr[11]+0.25*fr[10]-0.4330127018922193*fr[9]-0.25*fr[8]-0.4330127018922193*fr[7]-0.25*fr[6]+0.4330127018922193*fr[5]+0.25*fr[4]+0.25*fr[3]-0.4330127018922193*fr[2]-0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[3] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[3] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[3] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[3] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = 0.75*hamil[15]+0.75*hamil[14]-0.4330127018922193*hamil[13]-0.75*hamil[12]-0.4330127018922193*hamil[10]-0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = (-0.75*hamil[15])-0.75*hamil[14]-0.4330127018922193*hamil[13]+0.75*hamil[12]-0.4330127018922193*hamil[10]+0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -64,8 +62,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = (-0.4330127018922193*fc[15])-0.4330127018922193*fc[14]+0.25*fc[13]+0.4330127018922193*fc[12]+0.4330127018922193*fc[11]+0.25*fc[10]+0.4330127018922193*fc[9]-0.25*fc[8]+0.4330127018922193*fc[7]-0.25*fc[6]-0.4330127018922193*fc[5]-0.25*fc[4]-0.25*fc[3]-0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = 0.4330127018922193*fc[15]+0.4330127018922193*fc[14]+0.25*fc[13]-0.4330127018922193*fc[12]-0.4330127018922193*fc[11]+0.25*fc[10]-0.4330127018922193*fc[9]-0.25*fc[8]-0.4330127018922193*fc[7]-0.25*fc[6]+0.4330127018922193*fc[5]-0.25*fc[4]-0.25*fc[3]+0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = (-0.4330127018922193*fr[15])-0.4330127018922193*fr[14]+0.25*fr[13]+0.4330127018922193*fr[12]+0.4330127018922193*fr[11]+0.25*fr[10]+0.4330127018922193*fr[9]-0.25*fr[8]+0.4330127018922193*fr[7]-0.25*fr[6]-0.4330127018922193*fr[5]-0.25*fr[4]-0.25*fr[3]-0.4330127018922193*fr[2]+0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[4] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[4] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[4] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[4] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = 0.75*hamil[15]+0.75*hamil[14]-0.4330127018922193*hamil[13]-0.75*hamil[12]-0.4330127018922193*hamil[10]-0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = (-0.75*hamil[15])-0.75*hamil[14]-0.4330127018922193*hamil[13]+0.75*hamil[12]-0.4330127018922193*hamil[10]+0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -74,8 +72,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = 0.4330127018922193*fc[15]+0.4330127018922193*fc[14]-0.25*fc[13]-0.4330127018922193*fc[12]+0.4330127018922193*fc[11]-0.25*fc[10]-0.4330127018922193*fc[9]+0.25*fc[8]+0.4330127018922193*fc[7]-0.25*fc[6]-0.4330127018922193*fc[5]+0.25*fc[4]-0.25*fc[3]-0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = (-0.4330127018922193*fc[15])-0.4330127018922193*fc[14]-0.25*fc[13]+0.4330127018922193*fc[12]-0.4330127018922193*fc[11]-0.25*fc[10]+0.4330127018922193*fc[9]+0.25*fc[8]-0.4330127018922193*fc[7]-0.25*fc[6]+0.4330127018922193*fc[5]+0.25*fc[4]-0.25*fc[3]+0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = 0.4330127018922193*fr[15]+0.4330127018922193*fr[14]-0.25*fr[13]-0.4330127018922193*fr[12]+0.4330127018922193*fr[11]-0.25*fr[10]-0.4330127018922193*fr[9]+0.25*fr[8]+0.4330127018922193*fr[7]-0.25*fr[6]-0.4330127018922193*fr[5]+0.25*fr[4]-0.25*fr[3]-0.4330127018922193*fr[2]+0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[5] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[5] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[5] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[5] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = (-0.75*hamil[15])-0.75*hamil[14]+0.4330127018922193*hamil[13]-0.75*hamil[12]+0.4330127018922193*hamil[10]-0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = 0.75*hamil[15]+0.75*hamil[14]+0.4330127018922193*hamil[13]+0.75*hamil[12]+0.4330127018922193*hamil[10]+0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -84,8 +82,8 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = 0.4330127018922193*fc[15]+0.4330127018922193*fc[14]-0.25*fc[13]+0.4330127018922193*fc[12]-0.4330127018922193*fc[11]-0.25*fc[10]+0.4330127018922193*fc[9]-0.25*fc[8]-0.4330127018922193*fc[7]+0.25*fc[6]-0.4330127018922193*fc[5]-0.25*fc[4]+0.25*fc[3]-0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = (-0.4330127018922193*fc[15])-0.4330127018922193*fc[14]-0.25*fc[13]-0.4330127018922193*fc[12]+0.4330127018922193*fc[11]-0.25*fc[10]-0.4330127018922193*fc[9]-0.25*fc[8]+0.4330127018922193*fc[7]+0.25*fc[6]+0.4330127018922193*fc[5]-0.25*fc[4]+0.25*fc[3]+0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = 0.4330127018922193*fr[15]+0.4330127018922193*fr[14]-0.25*fr[13]+0.4330127018922193*fr[12]-0.4330127018922193*fr[11]-0.25*fr[10]+0.4330127018922193*fr[9]-0.25*fr[8]-0.4330127018922193*fr[7]+0.25*fr[6]-0.4330127018922193*fr[5]-0.25*fr[4]+0.25*fr[3]-0.4330127018922193*fr[2]+0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[6] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[6] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[6] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[6] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
   alpha_l_quad = (-0.75*hamil[15])-0.75*hamil[14]+0.4330127018922193*hamil[13]-0.75*hamil[12]+0.4330127018922193*hamil[10]-0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
   alpha_r_quad = 0.75*hamil[15]+0.75*hamil[14]+0.4330127018922193*hamil[13]+0.75*hamil[12]+0.4330127018922193*hamil[10]+0.75*hamil[9]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[4]; 
@@ -94,43 +92,25 @@ GKYL_CU_DH double vlasov_hamil_gen_surfy_2x2v_ser_p1(const double *w, const doub
   f_cl_quad = (-0.4330127018922193*fc[15])-0.4330127018922193*fc[14]+0.25*fc[13]-0.4330127018922193*fc[12]-0.4330127018922193*fc[11]+0.25*fc[10]-0.4330127018922193*fc[9]+0.25*fc[8]-0.4330127018922193*fc[7]+0.25*fc[6]-0.4330127018922193*fc[5]+0.25*fc[4]+0.25*fc[3]-0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_cr_quad = 0.4330127018922193*fc[15]+0.4330127018922193*fc[14]+0.25*fc[13]+0.4330127018922193*fc[12]+0.4330127018922193*fc[11]+0.25*fc[10]+0.4330127018922193*fc[9]+0.25*fc[8]+0.4330127018922193*fc[7]+0.25*fc[6]+0.4330127018922193*fc[5]+0.25*fc[4]+0.25*fc[3]+0.4330127018922193*fc[2]+0.25*fc[1]+0.25*fc[0]; 
   f_rl_quad = (-0.4330127018922193*fr[15])-0.4330127018922193*fr[14]+0.25*fr[13]-0.4330127018922193*fr[12]-0.4330127018922193*fr[11]+0.25*fr[10]-0.4330127018922193*fr[9]+0.25*fr[8]-0.4330127018922193*fr[7]+0.25*fr[6]-0.4330127018922193*fr[5]+0.25*fr[4]+0.25*fr[3]-0.4330127018922193*fr[2]+0.25*fr[1]+0.25*fr[0]; 
-  Ghat_l_nodal[7] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
-  Ghat_r_nodal[7] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
+  Fhat_l_nodal[7] = 0.5*(alpha_l_quad*(f_cl_quad + f_lr_quad) - fabs(alpha_l_quad)*(f_cl_quad - f_lr_quad)); 
+  Fhat_r_nodal[7] = 0.5*(alpha_r_quad*(f_rl_quad + f_cr_quad) - fabs(alpha_r_quad)*(f_rl_quad - f_cr_quad)); 
 
-  Ghat_l[0] = 0.3535533905932737*Ghat_l_nodal[7]+0.3535533905932737*Ghat_l_nodal[6]+0.3535533905932737*Ghat_l_nodal[5]+0.3535533905932737*Ghat_l_nodal[4]+0.3535533905932737*Ghat_l_nodal[3]+0.3535533905932737*Ghat_l_nodal[2]+0.3535533905932737*Ghat_l_nodal[1]+0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[1] = 0.3535533905932737*Ghat_l_nodal[7]+0.3535533905932737*Ghat_l_nodal[6]+0.3535533905932737*Ghat_l_nodal[5]+0.3535533905932737*Ghat_l_nodal[4]-0.3535533905932737*Ghat_l_nodal[3]-0.3535533905932737*Ghat_l_nodal[2]-0.3535533905932737*Ghat_l_nodal[1]-0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[2] = 0.3535533905932737*Ghat_l_nodal[7]+0.3535533905932737*Ghat_l_nodal[6]-0.3535533905932737*Ghat_l_nodal[5]-0.3535533905932737*Ghat_l_nodal[4]+0.3535533905932737*Ghat_l_nodal[3]+0.3535533905932737*Ghat_l_nodal[2]-0.3535533905932737*Ghat_l_nodal[1]-0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[3] = 0.3535533905932737*Ghat_l_nodal[7]-0.3535533905932737*Ghat_l_nodal[6]+0.3535533905932737*Ghat_l_nodal[5]-0.3535533905932737*Ghat_l_nodal[4]+0.3535533905932737*Ghat_l_nodal[3]-0.3535533905932737*Ghat_l_nodal[2]+0.3535533905932737*Ghat_l_nodal[1]-0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[4] = 0.3535533905932737*Ghat_l_nodal[7]+0.3535533905932737*Ghat_l_nodal[6]-0.3535533905932737*Ghat_l_nodal[5]-0.3535533905932737*Ghat_l_nodal[4]-0.3535533905932737*Ghat_l_nodal[3]-0.3535533905932737*Ghat_l_nodal[2]+0.3535533905932737*Ghat_l_nodal[1]+0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[5] = 0.3535533905932737*Ghat_l_nodal[7]-0.3535533905932737*Ghat_l_nodal[6]+0.3535533905932737*Ghat_l_nodal[5]-0.3535533905932737*Ghat_l_nodal[4]-0.3535533905932737*Ghat_l_nodal[3]+0.3535533905932737*Ghat_l_nodal[2]-0.3535533905932737*Ghat_l_nodal[1]+0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[6] = 0.3535533905932737*Ghat_l_nodal[7]-0.3535533905932737*Ghat_l_nodal[6]-0.3535533905932737*Ghat_l_nodal[5]+0.3535533905932737*Ghat_l_nodal[4]+0.3535533905932737*Ghat_l_nodal[3]-0.3535533905932737*Ghat_l_nodal[2]-0.3535533905932737*Ghat_l_nodal[1]+0.3535533905932737*Ghat_l_nodal[0]; 
-  Ghat_l[7] = 0.3535533905932737*Ghat_l_nodal[7]-0.3535533905932737*Ghat_l_nodal[6]-0.3535533905932737*Ghat_l_nodal[5]+0.3535533905932737*Ghat_l_nodal[4]-0.3535533905932737*Ghat_l_nodal[3]+0.3535533905932737*Ghat_l_nodal[2]+0.3535533905932737*Ghat_l_nodal[1]-0.3535533905932737*Ghat_l_nodal[0]; 
-
-  Ghat_r[0] = 0.3535533905932737*Ghat_r_nodal[7]+0.3535533905932737*Ghat_r_nodal[6]+0.3535533905932737*Ghat_r_nodal[5]+0.3535533905932737*Ghat_r_nodal[4]+0.3535533905932737*Ghat_r_nodal[3]+0.3535533905932737*Ghat_r_nodal[2]+0.3535533905932737*Ghat_r_nodal[1]+0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[1] = 0.3535533905932737*Ghat_r_nodal[7]+0.3535533905932737*Ghat_r_nodal[6]+0.3535533905932737*Ghat_r_nodal[5]+0.3535533905932737*Ghat_r_nodal[4]-0.3535533905932737*Ghat_r_nodal[3]-0.3535533905932737*Ghat_r_nodal[2]-0.3535533905932737*Ghat_r_nodal[1]-0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[2] = 0.3535533905932737*Ghat_r_nodal[7]+0.3535533905932737*Ghat_r_nodal[6]-0.3535533905932737*Ghat_r_nodal[5]-0.3535533905932737*Ghat_r_nodal[4]+0.3535533905932737*Ghat_r_nodal[3]+0.3535533905932737*Ghat_r_nodal[2]-0.3535533905932737*Ghat_r_nodal[1]-0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[3] = 0.3535533905932737*Ghat_r_nodal[7]-0.3535533905932737*Ghat_r_nodal[6]+0.3535533905932737*Ghat_r_nodal[5]-0.3535533905932737*Ghat_r_nodal[4]+0.3535533905932737*Ghat_r_nodal[3]-0.3535533905932737*Ghat_r_nodal[2]+0.3535533905932737*Ghat_r_nodal[1]-0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[4] = 0.3535533905932737*Ghat_r_nodal[7]+0.3535533905932737*Ghat_r_nodal[6]-0.3535533905932737*Ghat_r_nodal[5]-0.3535533905932737*Ghat_r_nodal[4]-0.3535533905932737*Ghat_r_nodal[3]-0.3535533905932737*Ghat_r_nodal[2]+0.3535533905932737*Ghat_r_nodal[1]+0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[5] = 0.3535533905932737*Ghat_r_nodal[7]-0.3535533905932737*Ghat_r_nodal[6]+0.3535533905932737*Ghat_r_nodal[5]-0.3535533905932737*Ghat_r_nodal[4]-0.3535533905932737*Ghat_r_nodal[3]+0.3535533905932737*Ghat_r_nodal[2]-0.3535533905932737*Ghat_r_nodal[1]+0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[6] = 0.3535533905932737*Ghat_r_nodal[7]-0.3535533905932737*Ghat_r_nodal[6]-0.3535533905932737*Ghat_r_nodal[5]+0.3535533905932737*Ghat_r_nodal[4]+0.3535533905932737*Ghat_r_nodal[3]-0.3535533905932737*Ghat_r_nodal[2]-0.3535533905932737*Ghat_r_nodal[1]+0.3535533905932737*Ghat_r_nodal[0]; 
-  Ghat_r[7] = 0.3535533905932737*Ghat_r_nodal[7]-0.3535533905932737*Ghat_r_nodal[6]-0.3535533905932737*Ghat_r_nodal[5]+0.3535533905932737*Ghat_r_nodal[4]-0.3535533905932737*Ghat_r_nodal[3]+0.3535533905932737*Ghat_r_nodal[2]+0.3535533905932737*Ghat_r_nodal[1]-0.3535533905932737*Ghat_r_nodal[0]; 
-
-  out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*dv11*dx11; 
-  out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv11*dx11; 
-  out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv11*dx11; 
-  out[3] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*dv11*dx11; 
-  out[4] += (0.7071067811865475*Ghat_l[3]-0.7071067811865475*Ghat_r[3])*dv11*dx11; 
-  out[5] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv11*dx11; 
-  out[6] += (0.7071067811865475*Ghat_l[4]-0.7071067811865475*Ghat_r[4])*dv11*dx11; 
-  out[7] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv11*dx11; 
-  out[8] += (0.7071067811865475*Ghat_l[5]-0.7071067811865475*Ghat_r[5])*dv11*dx11; 
-  out[9] += -1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dv11*dx11; 
-  out[10] += (0.7071067811865475*Ghat_l[6]-0.7071067811865475*Ghat_r[6])*dv11*dx11; 
-  out[11] += -1.224744871391589*(Ghat_r[4]+Ghat_l[4])*dv11*dx11; 
-  out[12] += -1.224744871391589*(Ghat_r[5]+Ghat_l[5])*dv11*dx11; 
-  out[13] += (0.7071067811865475*Ghat_l[7]-0.7071067811865475*Ghat_r[7])*dv11*dx11; 
-  out[14] += -1.224744871391589*(Ghat_r[6]+Ghat_l[6])*dv11*dx11; 
-  out[15] += -1.224744871391589*(Ghat_r[7]+Ghat_l[7])*dv11*dx11; 
+  out[0] += ((-0.25*Fhat_r_nodal[7])+0.25*Fhat_l_nodal[7]-0.25*Fhat_r_nodal[6]+0.25*Fhat_l_nodal[6]-0.25*Fhat_r_nodal[5]+0.25*Fhat_l_nodal[5]-0.25*Fhat_r_nodal[4]+0.25*Fhat_l_nodal[4]-0.25*Fhat_r_nodal[3]+0.25*Fhat_l_nodal[3]-0.25*Fhat_r_nodal[2]+0.25*Fhat_l_nodal[2]-0.25*Fhat_r_nodal[1]+0.25*Fhat_l_nodal[1]-0.25*Fhat_r_nodal[0]+0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[1] += ((-0.25*Fhat_r_nodal[7])+0.25*Fhat_l_nodal[7]-0.25*Fhat_r_nodal[6]+0.25*Fhat_l_nodal[6]-0.25*Fhat_r_nodal[5]+0.25*Fhat_l_nodal[5]-0.25*Fhat_r_nodal[4]+0.25*(Fhat_l_nodal[4]+Fhat_r_nodal[3])-0.25*Fhat_l_nodal[3]+0.25*Fhat_r_nodal[2]-0.25*Fhat_l_nodal[2]+0.25*Fhat_r_nodal[1]-0.25*Fhat_l_nodal[1]+0.25*Fhat_r_nodal[0]-0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[2] += -0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]+Fhat_r_nodal[6]+Fhat_l_nodal[6]+Fhat_r_nodal[5]+Fhat_l_nodal[5]+Fhat_r_nodal[4]+Fhat_l_nodal[4]+Fhat_r_nodal[3]+Fhat_l_nodal[3]+Fhat_r_nodal[2]+Fhat_l_nodal[2]+Fhat_r_nodal[1]+Fhat_l_nodal[1]+Fhat_r_nodal[0]+Fhat_l_nodal[0])*dv11*dx11; 
+  out[3] += ((-0.25*Fhat_r_nodal[7])+0.25*Fhat_l_nodal[7]-0.25*Fhat_r_nodal[6]+0.25*(Fhat_l_nodal[6]+Fhat_r_nodal[5])-0.25*Fhat_l_nodal[5]+0.25*Fhat_r_nodal[4]-0.25*(Fhat_l_nodal[4]+Fhat_r_nodal[3])+0.25*Fhat_l_nodal[3]-0.25*Fhat_r_nodal[2]+0.25*(Fhat_l_nodal[2]+Fhat_r_nodal[1])-0.25*Fhat_l_nodal[1]+0.25*Fhat_r_nodal[0]-0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[4] += ((-0.25*Fhat_r_nodal[7])+0.25*(Fhat_l_nodal[7]+Fhat_r_nodal[6])-0.25*(Fhat_l_nodal[6]+Fhat_r_nodal[5])+0.25*(Fhat_l_nodal[5]+Fhat_r_nodal[4])-0.25*(Fhat_l_nodal[4]+Fhat_r_nodal[3])+0.25*(Fhat_l_nodal[3]+Fhat_r_nodal[2])-0.25*(Fhat_l_nodal[2]+Fhat_r_nodal[1])+0.25*(Fhat_l_nodal[1]+Fhat_r_nodal[0])-0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[5] += (0.4330127018922193*(Fhat_r_nodal[3]+Fhat_l_nodal[3]+Fhat_r_nodal[2]+Fhat_l_nodal[2]+Fhat_r_nodal[1]+Fhat_l_nodal[1]+Fhat_r_nodal[0]+Fhat_l_nodal[0])-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]+Fhat_r_nodal[6]+Fhat_l_nodal[6]+Fhat_r_nodal[5]+Fhat_l_nodal[5]+Fhat_r_nodal[4]+Fhat_l_nodal[4]))*dv11*dx11; 
+  out[6] += ((-0.25*Fhat_r_nodal[7])+0.25*Fhat_l_nodal[7]-0.25*Fhat_r_nodal[6]+0.25*(Fhat_l_nodal[6]+Fhat_r_nodal[5])-0.25*Fhat_l_nodal[5]+0.25*Fhat_r_nodal[4]-0.25*Fhat_l_nodal[4]+0.25*Fhat_r_nodal[3]-0.25*Fhat_l_nodal[3]+0.25*Fhat_r_nodal[2]-0.25*(Fhat_l_nodal[2]+Fhat_r_nodal[1])+0.25*Fhat_l_nodal[1]-0.25*Fhat_r_nodal[0]+0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[7] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]+Fhat_r_nodal[6]+Fhat_l_nodal[6]))+0.4330127018922193*(Fhat_r_nodal[5]+Fhat_l_nodal[5]+Fhat_r_nodal[4]+Fhat_l_nodal[4])-0.4330127018922193*(Fhat_r_nodal[3]+Fhat_l_nodal[3]+Fhat_r_nodal[2]+Fhat_l_nodal[2])+0.4330127018922193*(Fhat_r_nodal[1]+Fhat_l_nodal[1]+Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
+  out[8] += ((-0.25*Fhat_r_nodal[7])+0.25*(Fhat_l_nodal[7]+Fhat_r_nodal[6])-0.25*(Fhat_l_nodal[6]+Fhat_r_nodal[5])+0.25*(Fhat_l_nodal[5]+Fhat_r_nodal[4])-0.25*Fhat_l_nodal[4]+0.25*Fhat_r_nodal[3]-0.25*(Fhat_l_nodal[3]+Fhat_r_nodal[2])+0.25*(Fhat_l_nodal[2]+Fhat_r_nodal[1])-0.25*(Fhat_l_nodal[1]+Fhat_r_nodal[0])+0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[9] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]))+0.4330127018922193*(Fhat_r_nodal[6]+Fhat_l_nodal[6])-0.4330127018922193*(Fhat_r_nodal[5]+Fhat_l_nodal[5])+0.4330127018922193*(Fhat_r_nodal[4]+Fhat_l_nodal[4])-0.4330127018922193*(Fhat_r_nodal[3]+Fhat_l_nodal[3])+0.4330127018922193*(Fhat_r_nodal[2]+Fhat_l_nodal[2])-0.4330127018922193*(Fhat_r_nodal[1]+Fhat_l_nodal[1])+0.4330127018922193*(Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
+  out[10] += ((-0.25*Fhat_r_nodal[7])+0.25*(Fhat_l_nodal[7]+Fhat_r_nodal[6])-0.25*Fhat_l_nodal[6]+0.25*Fhat_r_nodal[5]-0.25*(Fhat_l_nodal[5]+Fhat_r_nodal[4])+0.25*Fhat_l_nodal[4]-0.25*Fhat_r_nodal[3]+0.25*(Fhat_l_nodal[3]+Fhat_r_nodal[2])-0.25*Fhat_l_nodal[2]+0.25*Fhat_r_nodal[1]-0.25*(Fhat_l_nodal[1]+Fhat_r_nodal[0])+0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[11] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]+Fhat_r_nodal[6]+Fhat_l_nodal[6]))+0.4330127018922193*(Fhat_r_nodal[5]+Fhat_l_nodal[5]+Fhat_r_nodal[4]+Fhat_l_nodal[4]+Fhat_r_nodal[3]+Fhat_l_nodal[3]+Fhat_r_nodal[2]+Fhat_l_nodal[2])-0.4330127018922193*(Fhat_r_nodal[1]+Fhat_l_nodal[1]+Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
+  out[12] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]))+0.4330127018922193*(Fhat_r_nodal[6]+Fhat_l_nodal[6])-0.4330127018922193*(Fhat_r_nodal[5]+Fhat_l_nodal[5])+0.4330127018922193*(Fhat_r_nodal[4]+Fhat_l_nodal[4]+Fhat_r_nodal[3]+Fhat_l_nodal[3])-0.4330127018922193*(Fhat_r_nodal[2]+Fhat_l_nodal[2])+0.4330127018922193*(Fhat_r_nodal[1]+Fhat_l_nodal[1])-0.4330127018922193*(Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
+  out[13] += ((-0.25*Fhat_r_nodal[7])+0.25*(Fhat_l_nodal[7]+Fhat_r_nodal[6])-0.25*Fhat_l_nodal[6]+0.25*Fhat_r_nodal[5]-0.25*(Fhat_l_nodal[5]+Fhat_r_nodal[4])+0.25*(Fhat_l_nodal[4]+Fhat_r_nodal[3])-0.25*(Fhat_l_nodal[3]+Fhat_r_nodal[2])+0.25*Fhat_l_nodal[2]-0.25*Fhat_r_nodal[1]+0.25*(Fhat_l_nodal[1]+Fhat_r_nodal[0])-0.25*Fhat_l_nodal[0])*dv11*dx11; 
+  out[14] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]))+0.4330127018922193*(Fhat_r_nodal[6]+Fhat_l_nodal[6]+Fhat_r_nodal[5]+Fhat_l_nodal[5])-0.4330127018922193*(Fhat_r_nodal[4]+Fhat_l_nodal[4]+Fhat_r_nodal[3]+Fhat_l_nodal[3])+0.4330127018922193*(Fhat_r_nodal[2]+Fhat_l_nodal[2]+Fhat_r_nodal[1]+Fhat_l_nodal[1])-0.4330127018922193*(Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
+  out[15] += ((-0.4330127018922193*(Fhat_r_nodal[7]+Fhat_l_nodal[7]))+0.4330127018922193*(Fhat_r_nodal[6]+Fhat_l_nodal[6]+Fhat_r_nodal[5]+Fhat_l_nodal[5])-0.4330127018922193*(Fhat_r_nodal[4]+Fhat_l_nodal[4])+0.4330127018922193*(Fhat_r_nodal[3]+Fhat_l_nodal[3])-0.4330127018922193*(Fhat_r_nodal[2]+Fhat_l_nodal[2]+Fhat_r_nodal[1]+Fhat_l_nodal[1])+0.4330127018922193*(Fhat_r_nodal[0]+Fhat_l_nodal[0]))*dv11*dx11; 
 
   return fabs(1.5*dv11*dx11*alpha_max);
 

@@ -10,13 +10,13 @@ GKYL_CU_DH void E_alpha_quad_vy_2x3v_ser_p1(const double *dxv, const double *qme
   alpha_quad[2] += force_quad;
   alpha_quad[3] += force_quad;
 
-  force_quad = -(0.5*Ey[3])+0.5*Ey[2]-0.5*Ey[1]+0.5*Ey[0];
+  force_quad = (-0.5*Ey[3])+0.5*Ey[2]-0.5*Ey[1]+0.5*Ey[0];
   alpha_quad[4] += force_quad;
   alpha_quad[5] += force_quad;
   alpha_quad[6] += force_quad;
   alpha_quad[7] += force_quad;
 
-  force_quad = -(0.5*Ey[3])-0.5*Ey[2]+0.5*Ey[1]+0.5*Ey[0];
+  force_quad = (-0.5*Ey[3])-0.5*Ey[2]+0.5*Ey[1]+0.5*Ey[0];
   alpha_quad[8] += force_quad;
   alpha_quad[9] += force_quad;
   alpha_quad[10] += force_quad;

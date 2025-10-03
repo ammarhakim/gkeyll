@@ -4,28 +4,28 @@ GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_ser_p1(const double *w, const doub
 { 
   double dv11 = 2.0/dxv[2]; 
 
-  const double *Ghat = &flux[4]; 
+  const double *Fhat_nodal = &flux[4]; 
   if (edge == -1) { 
 
-  out[0] += -(0.7071067811865475*Ghat[0]*dv11); 
-  out[1] += -(0.7071067811865475*Ghat[1]*dv11); 
-  out[2] += -(0.7071067811865475*Ghat[2]*dv11); 
-  out[3] += -(1.224744871391589*Ghat[0]*dv11); 
-  out[4] += -(0.7071067811865475*Ghat[3]*dv11); 
-  out[5] += -(1.224744871391589*Ghat[1]*dv11); 
-  out[6] += -(1.224744871391589*Ghat[2]*dv11); 
-  out[7] += -(1.224744871391589*Ghat[3]*dv11); 
+  out[0] += -0.3535533905932737*(Fhat_nodal[3]+Fhat_nodal[2]+Fhat_nodal[1]+Fhat_nodal[0])*dv11; 
+  out[1] += (0.3535533905932737*(Fhat_nodal[1]+Fhat_nodal[0])-0.3535533905932737*(Fhat_nodal[3]+Fhat_nodal[2]))*dv11; 
+  out[2] += ((-0.3535533905932737*Fhat_nodal[3])+0.3535533905932737*Fhat_nodal[2]-0.3535533905932737*Fhat_nodal[1]+0.3535533905932737*Fhat_nodal[0])*dv11; 
+  out[3] += -0.6123724356957944*(Fhat_nodal[3]+Fhat_nodal[2]+Fhat_nodal[1]+Fhat_nodal[0])*dv11; 
+  out[4] += ((-0.3535533905932737*Fhat_nodal[3])+0.3535533905932737*(Fhat_nodal[2]+Fhat_nodal[1])-0.3535533905932737*Fhat_nodal[0])*dv11; 
+  out[5] += (0.6123724356957944*(Fhat_nodal[1]+Fhat_nodal[0])-0.6123724356957944*(Fhat_nodal[3]+Fhat_nodal[2]))*dv11; 
+  out[6] += ((-0.6123724356957944*Fhat_nodal[3])+0.6123724356957944*Fhat_nodal[2]-0.6123724356957944*Fhat_nodal[1]+0.6123724356957944*Fhat_nodal[0])*dv11; 
+  out[7] += ((-0.6123724356957944*Fhat_nodal[3])+0.6123724356957944*(Fhat_nodal[2]+Fhat_nodal[1])-0.6123724356957944*Fhat_nodal[0])*dv11; 
 
   } else { 
 
-  out[0] += 0.7071067811865475*Ghat[0]*dv11; 
-  out[1] += 0.7071067811865475*Ghat[1]*dv11; 
-  out[2] += 0.7071067811865475*Ghat[2]*dv11; 
-  out[3] += -(1.224744871391589*Ghat[0]*dv11); 
-  out[4] += 0.7071067811865475*Ghat[3]*dv11; 
-  out[5] += -(1.224744871391589*Ghat[1]*dv11); 
-  out[6] += -(1.224744871391589*Ghat[2]*dv11); 
-  out[7] += -(1.224744871391589*Ghat[3]*dv11); 
+  out[0] += 0.3535533905932737*(Fhat_nodal[3]+Fhat_nodal[2]+Fhat_nodal[1]+Fhat_nodal[0])*dv11; 
+  out[1] += (0.3535533905932737*(Fhat_nodal[3]+Fhat_nodal[2])-0.3535533905932737*(Fhat_nodal[1]+Fhat_nodal[0]))*dv11; 
+  out[2] += (0.3535533905932737*Fhat_nodal[3]-0.3535533905932737*Fhat_nodal[2]+0.3535533905932737*Fhat_nodal[1]-0.3535533905932737*Fhat_nodal[0])*dv11; 
+  out[3] += -0.6123724356957944*(Fhat_nodal[3]+Fhat_nodal[2]+Fhat_nodal[1]+Fhat_nodal[0])*dv11; 
+  out[4] += (0.3535533905932737*Fhat_nodal[3]-0.3535533905932737*(Fhat_nodal[2]+Fhat_nodal[1])+0.3535533905932737*Fhat_nodal[0])*dv11; 
+  out[5] += (0.6123724356957944*(Fhat_nodal[1]+Fhat_nodal[0])-0.6123724356957944*(Fhat_nodal[3]+Fhat_nodal[2]))*dv11; 
+  out[6] += ((-0.6123724356957944*Fhat_nodal[3])+0.6123724356957944*Fhat_nodal[2]-0.6123724356957944*Fhat_nodal[1]+0.6123724356957944*Fhat_nodal[0])*dv11; 
+  out[7] += ((-0.6123724356957944*Fhat_nodal[3])+0.6123724356957944*(Fhat_nodal[2]+Fhat_nodal[1])-0.6123724356957944*Fhat_nodal[0])*dv11; 
 
   } 
   return 0.0;

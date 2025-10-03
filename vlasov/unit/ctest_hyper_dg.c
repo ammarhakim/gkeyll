@@ -221,26 +221,17 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   //printf("first cell rhs\n");
   //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-  TEST_CHECK( gkyl_compare_double(rhs_d[0],   1.2236372998891958e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[1],   2.0105903561583763e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[2],  -5.1419282362326753e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[3],  -2.0352048757787333e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[4],  -3.1394800811609201e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[5],  -5.8085102299277480e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[6],  -5.1728224653103201e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[7],   1.6650094262740243e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[8],  -5.0331198175173064e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[9],   6.1804101443921522e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[10], -3.0931309818069451e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[11], -2.4166487365871351e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[12], -1.1949509605874356e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[13],  9.2106442019431967e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[14], -6.6446814763038498e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[15],  1.2077341612159545e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[16],  3.4825387939850700e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[17], -2.3867523859361569e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[18], -1.1804252614108304e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[19],  1.8849579738214938e+01, 1e-12) );
+  const double exp0[] = {
+    1.2236372998891958e+00, 2.0105903561583763e-01, -5.1419282362326753e+00, -2.0352048757787333e+00,
+    -3.1394800811609201e+01, -5.8085102299277480e+00, -5.1728224653103201e+00, 1.6650094262740243e+01,
+    -5.0331198175173064e-01, 6.1804101443921522e-01, -3.0931309818069451e+01, -2.4166487365871351e+01,
+    -1.1949509605874356e+01, 9.2106442019431967e+00, -6.6446814763038498e-01, 1.2077341612159545e+01,
+    3.4825387939850700e+00, -2.3867523859361569e+01, -1.1804252614108304e+01, 1.8849579738214938e+01
+  };
+  for (int j = 0; j < rhs->ncomp; ++j) {
+    TEST_CHECK(gkyl_compare_double(rhs_d[j], exp0[j], 1e-12));
+    TEST_MSG("rhs_d[%d]=%.16e, expected=%.16e", j, rhs_d[j], exp0[j]);
+  }
 
   // get linear index of some other cell
   // 1-indexed for interfacing with G2 Lua layer
@@ -250,26 +241,17 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   //printf("second cell rhs\n");
   //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-  TEST_CHECK( gkyl_compare_double(rhs_d[0],  7.9777292154304547e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[1],  -2.7182122357080729e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[2],  -3.1823319852967562e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[3],  -1.3560732323031073e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[4],  -9.3361523823747120e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[5],  -6.4546439524194774e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[6],  -3.0046857486230238e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[7],  5.7739758711920011e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[8],  -5.5255780047650804e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[9],  5.4569313596808011e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[10],  -9.3082985569032914e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[11],  -5.9264062443889756e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[12],  -3.4252162191461366e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[13],  5.2936631523369066e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[14],  -5.5255780047650571e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[15],  3.7711009940704315e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[16],  2.8771855264879638e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[17],  -5.8883885687489283e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[18],  -3.4263348605987986e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[19],  4.1758987770172105e+01, 1e-12) );
+  const double exp1[] = {
+    7.9777292154304547e-01, -2.7182122357080729e+00, -3.1823319852967562e+00, -1.3560732323031073e+00,
+    -9.3361523823747120e+01, -6.4546439524194774e+00, -3.0046857486230238e+00, 5.7739758711920011e+01,
+    -5.5255780047650804e-01, 5.4569313596808011e-01, -9.3082985569032914e+01, -5.9264062443889756e+01,
+    -3.4252162191461366e+01, 5.2936631523369066e+01, -5.5255780047650571e-01, 3.7711009940704315e+01,
+    2.8771855264879638e+00, -5.8883885687489283e+01, -3.4263348605987986e+01, 4.1758987770172105e+01
+  };
+  for (int j = 0; j < rhs->ncomp; ++j) {
+    TEST_CHECK(gkyl_compare_double(rhs_d[j], exp1[j], 1e-12));
+    TEST_MSG("rhs_d[%d]=%.16e, expected=%.16e", j, rhs_d[j], exp1[j]);
+  }
 
   // clean up
   gkyl_dg_vlasov_vel_flux_surf_release(calc_vel_flux);

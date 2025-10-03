@@ -1256,10 +1256,12 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     }
   }
 
-  gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
-    vms->basis_vel.poly_order, inp_vmap, 
-    vms->vmap_host, vms->jacob_vel_host, vms->jacob_vel_surf_host, 
-    vms->vmap_pgkyl_host, vms->vmap_avg_pgkyl_host, vms->jacob_vel_gauss_host);
+  if ( vms->model_id != GKYL_MODEL_TRIAD && vms->model_id != GKYL_MODEL_CANONICAL_PB ) {
+    gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
+      vms->basis_vel.poly_order, inp_vmap, 
+      vms->vmap_host, vms->jacob_vel_host, vms->jacob_vel_surf_host, 
+      vms->vmap_pgkyl_host, vms->vmap_avg_pgkyl_host, vms->jacob_vel_gauss_host);
+  }
   
   // Copy the mapping and velocity space Jacobian onto device. 
   if (app->use_gpu) {
@@ -1325,8 +1327,15 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Determine whether we have radiation. 
   vm_species_new_radiation(vm_app_inp, app, vms); 
 
-  // Allocate modal surface expansion of velocity space flux array. 
-  vms->vel_flux_surf = mkarr(app->use_gpu, vdim*vms->basis_surf.num_basis, vms->local_ext.volume);
+  // Select the number of nodes, with case for hybrid-tensor.
+  vms->num_surf_nodes = vdim*pow(app->poly_order+1,pdim - 1);
+  if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
+    vms->num_surf_nodes = (int) vdim*(pow(app->poly_order + 1,vdim - 1) + pow(app->poly_order,cdim));
+  }
+
+  // Allocate nodal surface expansion of velocity space flux array. 
+  vms->vel_flux_surf = mkarr(app->use_gpu, vms->num_surf_nodes, vms->local_ext.volume);
+  printf("(1332 vm_species) Size of vms->vel_flux_surf: (%d x %ld)\n",vms->num_surf_nodes,vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &vms->grid, 
     .conf_basis = &app->basis,

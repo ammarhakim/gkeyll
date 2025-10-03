@@ -26,10 +26,10 @@ GKYL_CU_DH double vlasov_hamil_vel_boundary_surfx_1x1v_ser_p1(const double *w, c
   Ghat[0] = 1.224744871391589*fUpwind[0]*hamil[1]; 
   Ghat[1] = 1.224744871391589*fUpwind[1]*hamil[1]; 
 
-  out[0] += -(0.7071067811865475*Ghat[0]*dv10*dx10); 
-  out[1] += -(1.224744871391589*Ghat[0]*dv10*dx10); 
-  out[2] += -(0.7071067811865475*Ghat[1]*dv10*dx10); 
-  out[3] += -(1.224744871391589*Ghat[1]*dv10*dx10); 
+  out[0] += -0.7071067811865475*Ghat[0]*dv10*dx10; 
+  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
+  out[2] += -0.7071067811865475*Ghat[1]*dv10*dx10; 
+  out[3] += -1.224744871391589*Ghat[1]*dv10*dx10; 
 
   } else { 
 
@@ -48,9 +48,9 @@ GKYL_CU_DH double vlasov_hamil_vel_boundary_surfx_1x1v_ser_p1(const double *w, c
   Ghat[1] = 1.224744871391589*fUpwind[1]*hamil[1]; 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv10*dx10; 
-  out[1] += -(1.224744871391589*Ghat[0]*dv10*dx10); 
+  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
   out[2] += 0.7071067811865475*Ghat[1]*dv10*dx10; 
-  out[3] += -(1.224744871391589*Ghat[1]*dv10*dx10); 
+  out[3] += -1.224744871391589*Ghat[1]*dv10*dx10; 
 
   } 
   return 0.0;

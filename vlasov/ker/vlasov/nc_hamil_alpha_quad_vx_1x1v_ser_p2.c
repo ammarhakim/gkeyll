@@ -9,6 +9,5 @@ GKYL_CU_DH void nc_hamil_alpha_quad_vx_1x1v_ser_p2(const double *w, const double
   alpha_quad[0] += 0.0; 
   alpha_quad[1] += 0.0; 
   alpha_quad[2] += 0.0; 
-  alpha_quad[3] += 0.0; 
 
 } 

@@ -383,6 +383,7 @@ struct vm_species {
   bool has_B; // Do we have magnetic fields? 
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
+  int num_surf_nodes; // number of surface nodes at velocity-space surfaces
 
   // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
