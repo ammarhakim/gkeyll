@@ -143,18 +143,20 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
       avals_global[k] = avals_global_prev[k] + tau*avals_global[k];
   }
 
-  gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
+  if (gks->src.num_adapt_sources > 0) {
+    gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
-  // Adaptive sources diagnostic.
-  double temp[gks->src.num_adapt_sources];
-  double part[gks->src.num_adapt_sources];
-  for (int k=0; k < gks->src.num_adapt_sources; ++k) {
-    temp[k] = gks->src.adapt[k].temperature_curr;
-    part[k] = gks->src.adapt[k].particle_src_curr;
+    // Adaptive sources diagnostic.
+    double temp[gks->src.num_adapt_sources];
+    double part[gks->src.num_adapt_sources];
+    for (int k=0; k < gks->src.num_adapt_sources; ++k) {
+      temp[k] = gks->src.adapt[k].temperature_curr;
+      part[k] = gks->src.adapt[k].particle_src_curr;
+    }
+    gkyl_dynvec_append(gks->src.part_diag, tm, part);
+    gkyl_dynvec_append(gks->src.temp_diag, tm, temp);
   }
-  gkyl_dynvec_append(gks->src.part_diag, tm, part);
-  gkyl_dynvec_append(gks->src.temp_diag, tm, temp);
-  
+
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
 }
@@ -189,41 +191,43 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
   }
   gkyl_dynvec_clear(gks->src.integ_diag);
 
-  if (rank == 0) {
-    // Write out particle diagnostics for adaptive sources.
-    const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+  if (gks->src.num_adapt_sources > 0) {
+    if (rank == 0) {
+      // Write out particle diagnostics for adaptive sources.
+      const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
 
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "particle");
-    char fileNm[sz+1]; // Ensures no buffer overflow.
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "particle");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
 
-    if (gks->src.is_first_integ_write_call) {
-      gkyl_dynvec_write(gks->src.part_diag, fileNm);
-      gks->src.is_first_integ_write_call = false;
+      if (gks->src.is_first_integ_write_call) {
+        gkyl_dynvec_write(gks->src.part_diag, fileNm);
+        gks->src.is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(gks->src.part_diag, fileNm);
+      }
     }
-    else {
-      gkyl_dynvec_awrite(gks->src.part_diag, fileNm);
+    gkyl_dynvec_clear(gks->src.part_diag);
+
+    if (rank == 0) {
+      // Write out temperature diagnostics for adaptive sources.
+      const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "temperature");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
+
+      if (gks->src.is_first_integ_write_call) {
+        gkyl_dynvec_write(gks->src.temp_diag, fileNm);
+        gks->src.is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(gks->src.temp_diag, fileNm);
+      }
     }
+    gkyl_dynvec_clear(gks->src.temp_diag);
   }
-  gkyl_dynvec_clear(gks->src.part_diag);
-
-  if (rank == 0) {
-    // Write out temperature diagnostics for adaptive sources.
-    const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
-
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "temperature");
-    char fileNm[sz+1]; // Ensures no buffer overflow.
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
-
-    if (gks->src.is_first_integ_write_call) {
-      gkyl_dynvec_write(gks->src.temp_diag, fileNm);
-      gks->src.is_first_integ_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(gks->src.temp_diag, fileNm);
-    }
-  }
-  gkyl_dynvec_clear(gks->src.temp_diag);
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag_io += 1;
