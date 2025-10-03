@@ -244,7 +244,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_gen_vol_kernels[] =
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_vol_2x2v_ser_p1, vlasov_nc_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_vol_2x3v_ser_p1, vlasov_nc_hamil_gen_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_nc_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_gen_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
