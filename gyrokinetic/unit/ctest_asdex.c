@@ -153,7 +153,7 @@ test_fixed_z()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -161,7 +161,7 @@ test_fixed_z()
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 1, 1, 32 };
+  int ccells[] = { 2, 1, 2 };
 
 
 
@@ -222,7 +222,7 @@ test_shaped_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -230,7 +230,7 @@ test_shaped_plate()
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 2, 1, 16 };
+  int ccells[] = { 2, 1, 2 };
 
 
 
@@ -292,14 +292,14 @@ test_lower()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/asdex.geqdsk",
+      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
 
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
-  int ccells[] = { 2, 1, 16 };
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_LSN_SOL_LO,
@@ -362,14 +362,14 @@ test_middle()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/asdex.geqdsk",
+      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
 
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
-  int ccells[] = { 2, 1, 16 };
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_LSN_SOL_MID,
@@ -432,14 +432,14 @@ test_upper()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/asdex.geqdsk",
+      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
 
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
-  int ccells[] = { 2, 1, 16 };
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_LSN_SOL_UP,
