@@ -18,13 +18,13 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_linearwave_ctx
+struct einstein_gowdywave_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double amp; // Wave amplitude.
+  double tau0; // Reparameterized initial time.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -46,14 +46,14 @@ struct einstein_linearwave_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_linearwave_ctx
+struct einstein_gowdywave_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double amp = pow(10.0, -8.0); // Wave amplitude.
+  double tau0 = 9.8753205829098; // Reparameterized initial time.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -63,20 +63,20 @@ create_ctx(void)
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 200; // Cell count (x-direction).
+  int Nx = 1024; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double cfl_frac = 0.25; // CFL coefficient.
 
-  double t_end = 1000.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 2.0; // Final simulation time.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_linearwave_ctx ctx = {
+  struct einstein_gowdywave_ctx ctx = {
     .pi = pi,
-    .amp = amp,
+    .tau0 = tau0,
     .spacetime = spacetime,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
@@ -98,10 +98,10 @@ void
 evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct einstein_linearwave_ctx *app = ctx;
+  struct einstein_gowdywave_ctx *app = ctx;
 
   double pi = app->pi;
-  double amp = app->amp;
+  double tau0 = app->tau0;
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
   double spatial_det, lapse;
@@ -150,19 +150,37 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
-  double b = amp * sin(2.0 * pi * x);
-  spatial_metric[1][1] = 1.0 + b;
-  spatial_metric[2][2] = 1.0 - b;
+  double lambda = (-2.0 * pi * tau0 * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * (cos(2.0 * pi * x) * cos(2.0 * pi * x)))
+    + (2.0 * (pi * pi) * (tau0 * tau0) * ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) + (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0))))
+    - (0.5 * (((2.0 * pi) * (2.0 * pi)) * ((jn(0, 2.0 * pi) * jn(0, 2.0 * pi)) + (jn(1, 2.0 * pi) * jn(1, 2.0 * pi)))))
+    + (pi * jn(0, 2.0 * pi) * jn(1, 2.0 * pi));
+  double lambda_dt = 2.0 * (pi * pi) * tau0 * ((jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)) * (1.0 + cos(4.0 * pi * x))
+    + (2.0 * (jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) * (sin(2.0 * pi * x) * sin(2.0 * pi * x))));
+  double lambda_dx = 4.0 * (pi * pi * tau0) * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * sin(4.0 * pi * x);
 
-  extrinsic_curvature[1][1] = -amp * pi * cos(2.0 * pi * x);
-  extrinsic_curvature[2][2] = amp * pi * cos(2.0 * pi * x);
+  double P = jn(0, 2.0 * pi * tau0) * cos(2.0 * pi * x);
+  double P_dt = -2.0 * pi * jn(1, 2.0 * pi * tau0) * cos(2.0 * pi * x);
+  double P_dx = -2.0 * pi * jn(0, 2.0 * pi * tau0) * sin(2.0 * pi * x);
 
-  spatial_metric_der[0][1][1] = 2.0 * amp * pi * cos(2.0 * pi * x);
-  spatial_metric_der[0][2][2] = -2.0 * amp * pi * cos(2.0 * pi * x);
+  spatial_metric[0][0] = (1.0 / sqrt(tau0)) * exp(0.5 * lambda);
+  spatial_metric[1][1] = tau0 * exp(P);
+  spatial_metric[2][2] = tau0 * exp(-P);
 
-  spatial_det = 1.0 - (b * b);
-  inv_spatial_metric[1][1] = 1.0 / (1.0 + b);
-  inv_spatial_metric[2][2] = 1.0 / (1.0 + b);
+  lapse = (1.0 / pow(tau0, 0.25)) * exp(0.25 * lambda);
+  lapse_der[0] = (exp(0.25 * lambda) * lambda_dx) / (4.0 * pow(tau0, 0.25));
+
+  extrinsic_curvature[0][0] = 0.25 * (1.0 / pow(tau0, 0.25)) * exp(0.25 * lambda) * ((1.0 / tau0) - lambda_dt);
+  extrinsic_curvature[1][1] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(P) * (1.0 + (tau0 * P_dt));
+  extrinsic_curvature[2][2] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(-P) * (1.0 - (tau0 * P_dt));
+
+  spatial_metric_der[0][0][0] = (exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0));
+  spatial_metric_der[0][1][1] = exp(P) * tau0 * P_dx;
+  spatial_metric_der[0][2][2] = -exp(-P) * tau0 * P_dx;
+
+  spatial_det = exp(0.5 * lambda) * pow(tau0, 1.5);
+  inv_spatial_metric[0][0] = exp(-0.5 * lambda) * sqrt(tau0);
+  inv_spatial_metric[1][1] = exp(-P) / tau0;
+  inv_spatial_metric[2][2] = exp(P) / tau0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -328,7 +346,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_linearwave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_gowdywave_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
@@ -416,7 +434,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_linearwave",
+    .name = "vacuum_einstein_gowdywave",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },
