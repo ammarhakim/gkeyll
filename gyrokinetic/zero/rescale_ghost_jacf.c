@@ -53,6 +53,7 @@ gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
   int rem_dir[GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; ++d) rem_dir[d] = 1;
 
+ 
   gkyl_range_iter_init(&conf_iter, conf_ghost_r);
   while (gkyl_range_iter_next(&conf_iter)) {
 
