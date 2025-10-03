@@ -2014,8 +2014,9 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
 }
 
 void
-explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_em, const enum gkyl_spacetime_slicing spacetime_slicing,
-  const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt, double* fluid_old, double* fluid_new)
+explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double excision_threshold,
+  const enum gkyl_spacetime_slicing spacetime_slicing, const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = fluid_old[0]; spatial_metric[0][1] = fluid_old[1]; spatial_metric[0][2] = fluid_old[2];
@@ -2063,7 +2064,7 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
   shift_vect_der[2][0] = fluid_old[61]; shift_vect_der[2][1] = fluid_old[62]; shift_vect_der[2][2] = fluid_old[63];
 
   bool in_excision_region = false;
-  if (lapse < 0.3) {
+  if (lapse < excision_threshold) {
     in_excision_region = true;
   }
 
@@ -2405,6 +2406,12 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
     fluid_new[49] += dt * aux_vect_source[0];
     fluid_new[50] += dt * aux_vect_source[1];
     fluid_new[51] += dt * aux_vect_source[2];
+
+    if (fluid_new[9] < excision_threshold) {
+      for (int i = 0; i < 64; i++) {
+        fluid_new[i] = 0.0;
+      }
+    }
   }
   else {
     for (int i = 0; i < 64; i++) {
@@ -2418,6 +2425,7 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, do
 {
   int nfluids = mom_em->nfluids;
 
+  double excision_threshold = mom_em->vacuum_einstein_excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein_spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_spacetime_evolution;
 
@@ -2430,17 +2438,17 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, do
       f_old[j] = f[j];
     }
 
-    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
+    explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
     for (int j = 0; j < 64; j++) {
       f_stage1[j] = f_new[j];
     }
 
-    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
+    explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 64; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_vacuum_einstein_source_update_euler(mom_em, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 64; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }

@@ -117,6 +117,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->has_vacuum_einstein_sources = inp.has_vacuum_einstein_sources;
   if (mom_em->has_vacuum_einstein_sources) {
+    mom_em->vacuum_einstein_excision_threshold = inp.vacuum_einstein_excision_threshold;
     mom_em->vacuum_einstein_spacetime_slicing = inp.vacuum_einstein_spacetime_slicing;
     mom_em->vacuum_einstein_spacetime_evolution = inp.vacuum_einstein_spacetime_evolution;
   }

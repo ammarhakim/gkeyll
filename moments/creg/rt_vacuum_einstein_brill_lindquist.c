@@ -347,6 +347,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .has_vacuum_einstein = true,
+    .vacuum_einstein_excision_threshold = ctx.excision_threshold,
     .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
     .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
 

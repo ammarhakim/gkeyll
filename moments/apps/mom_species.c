@@ -124,6 +124,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->update_sources = true;
     sp->has_vacuum_einstein = true;
 
+    sp->vacuum_einstein_excision_threshold = mom_sp->vacuum_einstein_excision_threshold;
     sp->vacuum_einstein_spacetime_slicing = mom_sp->vacuum_einstein_spacetime_slicing;
     sp->vacuum_einstein_spacetime_evolution = mom_sp->vacuum_einstein_spacetime_evolution;
   }
