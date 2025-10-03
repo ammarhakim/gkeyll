@@ -80,16 +80,16 @@ create_ctx(void)
   double mass = 1.0; // Neutral mass.
   double charge = 0.0; // Neutral charge.
 
-  // Outer Material
+  // Inner Material
   double nl = 1.0; // Left/inner number density.
-  double Tl = 1.0; // Left/inner temperature.
+  double Tl = 5.0; // Left/inner temperature.
   double V_r_drift_l = 0.0; // Left/inner drift velocity (radial direction).
   double V_z_drift_l = 0.0; // Left/inner drift velocity (z-direction).
   double V_theta_drift_l = 0.0; // Left/inner drift velocity (angular direction).
 
-  // Inner Material
+  // Outer Material
   double nr = 1.0; // Right/outer number density.
-  double Tr = 5.0; // Right/outer temperature.
+  double Tr = 1.0; // Right/outer temperature.
   double V_r_drift_r = 0.0; // Right/outer drift velocity (radial direction).
   double V_z_drift_r = 0.0; // Right/outer drift velocity (z-direction).
   double V_theta_drift_r = 0.0; // Right/outer drift velocity (angular direction).
