@@ -68,15 +68,15 @@ void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_fi
 void
 gk_field_boltzmann_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
-    // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
-    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+  // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
+  gk_field_calc_ambi_pot_sheath_vals(app, app->field);
 
-    // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
-    gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
-      field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
+  // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
+  gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
+    field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
 
-    // Smooth the potential along z.
-    gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
+  // Smooth the potential along z.
+  gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
 }
 
 // FEM initialization functions for different field types and dimensions
