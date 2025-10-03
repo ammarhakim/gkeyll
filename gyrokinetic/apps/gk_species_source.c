@@ -142,9 +142,9 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
     for (int k=0; k<num_mom; k++)
       avals_global[k] = avals_global_prev[k] + tau*avals_global[k];
   }
+  gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
   if (gks->src.num_adapt_sources > 0) {
-    gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
     // Adaptive sources diagnostic.
     double temp[gks->src.num_adapt_sources];
