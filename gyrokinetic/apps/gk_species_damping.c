@@ -121,14 +121,14 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       if (app->use_gpu) {
         damp->bmag_max = gkyl_cu_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-	gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-	gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         damp->bmag_max = gkyl_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-	memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
-	memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+        memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
+        memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.

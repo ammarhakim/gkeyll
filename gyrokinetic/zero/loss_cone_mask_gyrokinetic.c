@@ -415,6 +415,11 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m[0])/Dbmag_quad[n];
       else
         qDphiDbmag_quad[n] = 0.0;
+
+      // We want to compute here the trapping condition for the expanders too.
+      // Not sure whether it's inside the for loop or not
+      // We need phi_sheath here. Not sure how to get it
+
     }
 
     // Inner loop over velocity space.
@@ -457,11 +462,12 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         else
           KEparDbmag = 0.0;
 
-	double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
+        double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-	if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
+        if (up->charge > 0 && mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
           fq[0] = 1.0 * up->norm_fac;
+        // else if ((up->charge < 0 )
         else
           fq[0] = 0.0;
       }

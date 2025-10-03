@@ -168,17 +168,42 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       }
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
 
+      printf("Species %s: bmag_max=%g at (", gks->info.name, bmag_max_global);
+      for (int d=0; d<app->cdim; d++)
+        printf("%g%s", bmag_max_coord_global[d], d==app->cdim-1? ")\n" : ", ");
+
+      struct gkyl_position_map_inp pmap_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.0,
+      };
+      struct gkyl_position_map *gpm = gkyl_position_map_new( pmap_info, app->grid, \
+        app->local, app->local_ext, app->global, app->global_ext, app->basis);
+      gkyl_position_map_optimize(gpm, app->grid, app->global);
+      
+      // Extract variables from position map context
+      double *bmag_extrema = gpm->constB_ctx->bmag_extrema;
+      int num_extrema = gpm->constB_ctx->num_extrema;
+      
+      // Identify walls (endpoints)
+      double bmag_left_wall = bmag_extrema[0];
+      double bmag_right_wall = bmag_extrema[num_extrema - 1];
+      double bmag_mirror = fmin(bmag_extrema[1], bmag_extrema[num_extrema - 2]);
+
+      printf("Species %s: bmag_left_wall=%g, bmag_right_wall=%g, bmag_mirror=%g, bmag_max=%g\n", 
+        gks->info.name, bmag_left_wall, bmag_right_wall, bmag_mirror, bmag_max_global);
+      
+
       if (app->use_gpu) {
         fdmul->bmag_max = gkyl_cu_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-	gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-	gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         fdmul->bmag_max = gkyl_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-	memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
-	memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
+        memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.
