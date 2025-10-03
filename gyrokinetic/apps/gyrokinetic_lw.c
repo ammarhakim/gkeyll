@@ -341,33 +341,18 @@ gyrokinetic_species_lw_new(lua_State *L)
     gk_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
@@ -943,36 +928,22 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
     gk_neut_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_neut_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_neut_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_neut_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_neut_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
 
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-  
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
   bool has_density_init_func = false;
@@ -1078,43 +1049,16 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
   with_lua_tbl_tbl(L, "poissonBcs") {
-    with_lua_tbl_tbl(L, "lowerType") {
-      int nbc = glua_objlen(L);
-      
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperType") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "lowerValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value lower_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.lo_value[i] = lower_bc;
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value upper_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.up_value[i] = upper_bc;
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_field.poisson_bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_field.poisson_bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_field.poisson_bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_field.poisson_bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
       }
     }
   }
@@ -1149,7 +1093,7 @@ struct gyrokinetic_app_lw {
   gkyl_gyrokinetic_app *app; // Gyrokinetic app object.
 
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
-  struct lua_func_ctx bmag_ctx; // Function context for bmag.
+  struct lua_func_ctx bfield_ctx; // Function context for bmag.
 
   struct lua_func_ctx nonuniform_position_map_ctx[3]; // Function context for nonuniform position maps.
 
@@ -1616,13 +1560,13 @@ gk_app_new(lua_State *L)
       mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
-    gk.geometry.bmag_ctx = 0;
-    gk.geometry.bmag_func = 0;
-    bool has_bmag_func = false;
-    int bmag_func_ref = LUA_NOREF;
-    if (glua_tbl_get_func(L, "bmagFunc")) {
-      has_bmag_func = true;
-      bmag_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    gk.geometry.bfield_ctx = 0;
+    gk.geometry.bfield_func = 0;
+    bool has_bfield_func = false;
+    int bfield_func_ref = LUA_NOREF;
+    if (glua_tbl_get_func(L, "bfieldFunc")) {
+      has_bfield_func = true;
+      bfield_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
     with_lua_tbl_tbl(L, "positionMap") {
@@ -1669,15 +1613,15 @@ gk_app_new(lua_State *L)
       gk.geometry.c2p_ctx = &app_lw->mapc2p_ctx;
     }
 
-    if (has_bmag_func) {
-      app_lw->bmag_ctx = (struct lua_func_ctx) {
-        .func_ref = bmag_func_ref,
+    if (has_bfield_func) {
+      app_lw->bfield_ctx = (struct lua_func_ctx) {
+        .func_ref = bfield_func_ref,
         .ndim = 3,
-        .nret = 1,
+        .nret = 3,
         .L = L,
       };
-      gk.geometry.bmag_func = gkyl_lw_eval_cb;
-      gk.geometry.bmag_ctx = &app_lw->bmag_ctx;
+      gk.geometry.bfield_func = gkyl_lw_eval_cb;
+      gk.geometry.bfield_ctx = &app_lw->bfield_ctx;
     }
   }
 

@@ -29,12 +29,25 @@
 #include <gkyl_lua_utils.h>
 #include <gkyl_util.h>
 
-#include <gkyl_gyrokinetic_lw.h>
-#include <gkyl_lw_priv.h>
-#include <gkyl_moment_lw.h>
-#include <gkyl_pkpm_lw.h>
-#include <gkyl_vlasov_lw.h>
+
 #include <gkyl_zero_lw.h>
+#include <gkyl_lw_priv.h>
+
+#ifdef GKYL_HAVE_MOMENTS
+#include <gkyl_moment_lw.h>
+#endif
+
+#ifdef GKYL_HAVE_VLASOV
+#include <gkyl_vlasov_lw.h>
+#endif
+
+#ifdef GKYL_HAVE_PKPM
+#include <gkyl_pkpm_lw.h>
+#endif
+
+#ifdef GKYL_HAVE_GYROKINETIC
+#include <gkyl_gyrokinetic_lw.h>
+#endif
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -142,10 +155,24 @@ show_banner(FILE *fp)
     fprintf(fp, "Built without NCCL\n");
 #endif
 #ifdef GKYL_HAVE_MPI
-    fprintf(fp, "Built with MPI\n\n");
+    fprintf(fp, "Built with MPI\n");
 #else
-    fprintf(fp, "Built without MPI\n\n");
-#endif    
+    fprintf(fp, "Built without MPI\n");
+#endif
+
+#ifdef GKYL_HAVE_MOMENTS
+    fprintf(fp, "Moments App enabled\n");
+#endif
+#ifdef GKYL_HAVE_VLASOV
+    fprintf(fp, "Vlasov App enabled\n");
+#endif
+#ifdef GKYL_HAVE_GYROKINETIC
+    fprintf(fp, "Gyrokinetic App enabled\n");
+#endif
+#ifdef GKYL_HAVE_PKPM
+    fprintf(fp, "PKPM App enabled\n");
+#endif
+    fprintf(fp, "\n");
   }
 }
 
@@ -344,10 +371,18 @@ main(int argc, char **argv)
 
   // G0 librararies
   gkyl_zero_lw_openlibs(L);
-  gkyl_vlasov_lw_openlibs(L);
+#ifdef GKYL_HAVE_MOMENTS 
   gkyl_moment_lw_openlibs(L);
-  gkyl_pkpm_lw_openlibs(L);
+#endif
+#ifdef GKYL_HAVE_VLASOV
+  gkyl_vlasov_lw_openlibs(L);
+#endif
+#ifdef GKYL_HAVE_GYROKINETIC  
   gkyl_gyrokinetic_lw_openlibs(L);
+#endif
+#ifdef GKYL_HAVE_PKPM  
+  gkyl_pkpm_lw_openlibs(L);
+#endif  
   lua_gc(L, LUA_GCRESTART, -1);
 
 #ifdef GKYL_HAVE_MPI

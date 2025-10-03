@@ -7,6 +7,12 @@ echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Defaults
 PREFIX=${HOME}/gkylsoft
+APP=pkpm
+ALLTARGETS=gkeyll
+INSTALLTARGET=gkeyll
+
+FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/pkpm"
+FIN_APP_LIB="-lg0pkpm"
 
 # default build options
 CC=cc
@@ -15,7 +21,6 @@ CUDA_ARCH=70
 
 USE_MPI=
 USE_LUA=
-USE_ADAS=
 CONF_LUA_LIB=luajit-5.1
 
 # Location of CUDA math libraries
@@ -51,7 +56,8 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
---use-adas                 [no] Build adas dependent code
+--app                      [all] What app to build? One of
+			   core, moments, vlasov, gyrokinetic, pkpm, all
 
 Library Includes and Locations
 
@@ -138,6 +144,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
+   --app)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      APP="$value"
+      ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_INC="$value"
@@ -206,10 +216,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CUDAMATH_LIBDIR="$value"
       ;;
-   --use-adas)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      USE_ADAS="$value"
-      ;;  
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -245,11 +251,40 @@ else
     USE_LUA=
 fi
 
-if [ "$USE_ADAS" = "yes" ]
+echo "Building APP " $APP
+
+if [ "$APP" = "core" ]
 then
-    USE_ADAS=1
+    ALLTARGETS="core core-unit core-regression"
+    INSTALLTARGET="core-install"
+    FIN_APP_LIB_DIR=""
+    FIN_APP_LIB=""
+elif [ "$APP" = "moments" ]
+then
+    ALLTARGETS="moments moments-unit moments-regression"
+    INSTALLTARGET="moments-install"
+    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/moments"
+    FIN_APP_LIB="-lg0moments"
+elif [ "$APP" = "vlasov" ]
+then
+    ALLTARGETS="vlasov vlasov-unit vlasov-regression"
+    INSTALLTARGET="vlasov-install"
+    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/vlasov"
+    FIN_APP_LIB="-lg0vlasov"
+elif [ "$APP" = "gyrokinetic" ]
+then
+    ALLTARGETS="gyrokinetic gyrokinetic-unit gyrokinetic-regression"
+    INSTALLTARGET="gyrokinetic-install"
+    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/gyrokinetic"
+    FIN_APP_LIB="-lg0gyrokinetic"
+elif [ "$APP" = "pkpm" ]
+then
+    ALLTARGETS="pkpm pkpm-unit pkpm-regression"
+    INSTALLTARGET="pkpm-install"
 else
-    USE_ADAS=
+    APP=all
+    ALLTARGETS=gkeyll
+    INSTALLTARGET=gkeyll
 fi
 
 # Default lapack include and libraries: we prefer linking to static library
@@ -288,6 +323,9 @@ CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
 CUDA_ARCH=$CUDA_ARCH
 
+# App to build
+BUILD_APP=$APP
+
 # Library paths
 LAPACK_INC=$LAPACK_INC
 LAPACK_LIB=$LAPACK_LIB
@@ -314,7 +352,15 @@ CONF_LUA_LIB=$CONF_LUA_LIB
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
-USE_ADAS=$USE_ADAS
+FIN_APP_LIB_DIR=$FIN_APP_LIB_DIR
+FIN_APP_LIB=$FIN_APP_LIB
+
+.PHONY:
+all: $ALLTARGETS ## Build only specified Apps ($APP)
+
+.PHONY: install
+install: $INSTALLTARGET ## Install gkeyll executable
+	cd gkeyll && \${MAKE} -f Makefile-gkeyll install
 
 EOF1
 

@@ -15,8 +15,11 @@ APP_LW_INCS := -I../core/apps -I../moments/apps -I../vlasov/apps -I../pkpm/apps 
 
 CORE_INCS := -I../core/minus -I../core/zero
 
-# Project install directory for all libraries
+# Project install directory for all libraries and includes
 PROJ_INSTALL_LIB_DIR := ${INSTALL_PREFIX}/${PROJ_NAME}/lib
+PROJ_INSTALL_INC := -I${INSTALL_PREFIX}/${PROJ_NAME}/include
+TCC_EXEC := ${PREFIX}/tcc/bin/tcc
+TCC_RUN_CMD := -run $$\@
 
 # Core libraries to link to
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
@@ -24,8 +27,8 @@ CORE_LIB_INSTALL_DIR :=
 CORE_LIB := -lg0core
 
 # We need to link to the most dependent App
-FINAL_APP_LIB_DIR := -L../${BUILD_DIR}/pkpm
-FINAL_APP_LIB := -lg0pkpm
+FINAL_APP_LIB_DIR := ${FIN_APP_LIB_DIR}
+FINAL_APP_LIB := ${FIN_APP_LIB}
 
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
@@ -48,11 +51,28 @@ gkeyll-install: gkeyll.c
 	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
 	${CC} ${CFLAGS} ${LDFLAGS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS}
 
+.PHONY: cgkeyll-install
+cgkeyll-install:
+	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
+	rm -rf ../${BUILD_DIR}/gkeyll/cgkeyll
+	echo "#!/bin/sh" >> ../${BUILD_DIR}/gkeyll/cgkeyll
+	echo ${TCC_EXEC} ${CFLAGS} ${EXT_INCS} ${PROJ_INSTALL_INC} ${PROJ_INSTALL_INC_DIR} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS} ${TCC_RUN_CMD} >> ../${BUILD_DIR}/gkeyll/cgkeyll
+
+.PHONY: gkeyll-header
+gkeyll-header:
+	$(MKDIR_P) ${BUILD_DIR}
+	../core/minus/gengkylzeroh.sh ${INSTALL_PREFIX}/${PROJ_NAME}/include > ${INSTALL_PREFIX}/${PROJ_NAME}/include/gkylzero.h
+
 .PHONY: install
-install: gkeyll-install
-# Construct install 
+install: gkeyll-install cgkeyll-install gkeyll-header
+# Construct install dir
 	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+# Install rt_ary_parse.h
+	cp ../moments/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include
+# Install executables
 	cp ../${BUILD_DIR}/gkeyll/gkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/gkeyll
+	cp ../${BUILD_DIR}/gkeyll/cgkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
+	chmod u+x ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
 
 .PHONY: clean
 clean: ## Clean build output

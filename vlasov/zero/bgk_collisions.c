@@ -55,7 +55,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
 
 
     // Add contribution to CFL frequency.
-    if(implicit_step){
+    if (implicit_step) {
 
       // Add nu*f_M.
       array_acc1(up->pnum_basis, out_d, 1./(1.0 + nu_d[0]*up->cellav_fac*dt), gkyl_array_cfetch(nufM, ploc));

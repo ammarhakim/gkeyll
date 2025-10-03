@@ -114,6 +114,9 @@ struct moment_species {
   bool has_vacuum_einstein; // Run with vacuum Einstein sources using the Bona-Masso formalism.
   enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
   enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
+  
+  bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
+  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function

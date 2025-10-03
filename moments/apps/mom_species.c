@@ -127,6 +127,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->vacuum_einstein_spacetime_slicing = mom_sp->vacuum_einstein_spacetime_slicing;
     sp->vacuum_einstein_spacetime_evolution = mom_sp->vacuum_einstein_spacetime_evolution;
   }
+  
+  sp->has_gr_mhd = false;
+  if (mom_sp->has_gr_mhd) {
+    sp->update_sources = true; 
+    sp->has_gr_mhd = true;
+
+    sp->gr_mhd_gas_gamma = mom_sp->gr_mhd_gas_gamma;
+  }
 
   sp->scheme_type = mom->scheme_type;
 

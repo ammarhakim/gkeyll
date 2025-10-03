@@ -182,13 +182,6 @@ evalNuD0(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
   fout[0] = app->nuD0;
 }
 
-void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  fout[0] = app->B0;
-}
-
 double plasma_frequency(double n, double m)
 {
   double eps0 = GKYL_EPSILON0;
@@ -403,13 +396,11 @@ main(int argc, char **argv)
     //  //.has_implicit_coll_scheme = true, 
     //}, 
 
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
-    },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
     },
     
     .num_diag_moments = 4,
@@ -420,9 +411,10 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .is_static = true,
     .zero_init_field = true,
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET}, 
-                    .lo_value = {0.0}, .up_value = {0.0}}, 
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+    },
     .time_rate_diagnostics = false,
   };
 
@@ -434,8 +426,8 @@ main(int argc, char **argv)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
   };
 
-struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT, // type of geometry
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+    .ftype = GKYL_DN_SOL_OUT, // type of geometry
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
     .rleft= 2.0,              // closest R to inboard SOL

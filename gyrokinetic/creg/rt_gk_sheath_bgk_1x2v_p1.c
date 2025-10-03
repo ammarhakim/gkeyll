@@ -389,14 +389,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = B0;
 }
 
 void
@@ -500,9 +503,9 @@ main(int argc, char **argv)
       }, 
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 5,
@@ -547,9 +550,9 @@ main(int argc, char **argv)
       }, 
     },
 
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
     
     .num_diag_moments = 5,
@@ -580,8 +583,8 @@ main(int argc, char **argv)
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 0,

@@ -3,21 +3,23 @@
 #include <gkyl_array.h>
 #include <gkyl_math.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_range.h>
 
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
 
 // Geometric quantities: various vectors are stored as contravariant
 // components
-struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
+struct gkyl_mirror_grid_gen_geom {
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
   struct gkyl_vec3 B; // Magnetic field
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
+  struct gkyl_vec3 curlbhat; // \nabla X \hat{b}
 };
 
 struct gkyl_mirror_grid_gen {
-  struct gkyl_array *nodes_rz; // r,z coordinates of corner nodes of cells
+  struct gkyl_array *nodes_rza; // r,z,phi coordinates of corner nodes of cells
   struct gkyl_array *nodes_psi; // psi values at nodes
   struct gkyl_array *nodes_geom; // geometric quantities at nodes: 
   // this is an array of gkyl_mirror_grid_gen_geom objects
@@ -35,6 +37,10 @@ enum gkyl_mirror_grid_gen_field_line_coord {
 // input struct to construct the mirror geometry
 struct gkyl_mirror_grid_gen_inp {
   const struct gkyl_rect_grid *comp_grid; // Computational space grid (psi, phi, z)
+  const struct gkyl_range nrange; // Nodal range
+  const struct gkyl_range local; // local range
+  const struct gkyl_range global; //global range
+  int dir; // Surface direction
   enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
   
@@ -54,6 +60,10 @@ struct gkyl_mirror_grid_gen_inp {
  * @return newly create mirror geometry object
  */
 struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp);
+
+struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp);
+
+struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
 /**
  * Does the grid include the axis?

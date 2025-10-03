@@ -79,11 +79,11 @@ double r_x(double x, double a_mid)
   return x+a_mid-0.1;
 }
 
-double qprofile(double r, double R_axis) 
+double qprofile(double R) 
 {
   // Magnetic safety factor as a function of minor radius r.
   double a[] = {384.2108662176567, -2417.1050263480997, 5079.5143390131225, -3563.038325842346};
-  return a[0]*pow(r+R_axis,3) + a[1]*pow(r+R_axis,2) + a[2]*(r+R_axis) + a[3];
+  return a[0]*pow(R,3) + a[1]*pow(R,2) + a[2]*(R) + a[3];
 }
 
 double R_rtheta(double r, double theta, void *ctx)
@@ -159,7 +159,8 @@ double dPsidr(double r, double theta, void *ctx)
 
   double B0 = app->B0;
   double R_axis = app->R_axis;
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,R_axis)) )*integral.res;
+  double R = R_rtheta(r,0.0,ctx);
+  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -361,16 +362,31 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
-void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
+  double r0 = app->r0;
+  double q0 = app->q0;
 
   double x = xc[0], y = xc[1], z = xc[2];
   double r = r_x(x,a_mid);
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
   double Bp = dPsidr(r,z,ctx)/R_rtheta(r,z,ctx)*gradr(r,z,ctx);
-  fout[0] = sqrt(Bt*Bt + Bp*Bp);
+
+  double drdtheta = dRdtheta(r,z,ctx);
+  double dzdtheta = dZdtheta(r,z,ctx);
+  double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
+  double B_r = Bp*drdtheta/den;
+  double B_z = Bp*dzdtheta/den;
+  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double R   = R_rtheta(r, z, ctx);
+
+  // xc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = B_r * cos(phi) - Bt * sin(phi);
+  fout[1] = B_r * sin(phi) + Bt * cos(phi);
+  fout[2] = B_z;
 }
 
 struct gk_app_ctx
@@ -411,7 +427,7 @@ create_ctx(void)
 
   double x_LCFS    = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
 
-  double q0        = qprofile(r_x(0.5*(x_min+x_max),a_mid),R_axis);    // Magnetic safety factor in the center of domain.
+  double q0        = qprofile(R0);    // Magnetic safety factor in the center of domain.
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
@@ -464,7 +480,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 1.e-6;
+  double t_end = 1.e-7; // Should terminate in 111 steps.
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -651,13 +667,11 @@ main(int argc, char **argv)
       .order = 2,
     },
 
-    .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
-    },
-    .bcy = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,},
-      .upper = {.type = GKYL_SPECIES_GK_IWL,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
     },
 
     .num_diag_moments = 4,
@@ -737,13 +751,11 @@ main(int argc, char **argv)
       .order = 2,
     },
 
-    .bcx = {
-      .lower = {.type = GKYL_SPECIES_ABSORB,},
-      .upper = {.type = GKYL_SPECIES_ABSORB,},
-    },
-    .bcy = {
-      .lower = {.type = GKYL_SPECIES_GK_IWL,},
-      .upper = {.type = GKYL_SPECIES_GK_IWL,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
     },
 
     .num_diag_moments = 4,
@@ -764,9 +776,10 @@ main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
-                    .up_type = {GKYL_POISSON_DIRICHLET},
-                    .lo_value = {0.0}, .up_value = {0.0}},
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+    },
     .time_rate_diagnostics = true,
   };
 
@@ -789,8 +802,8 @@ main(int argc, char **argv)
       .world = {0.},
       .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // Magnetic field magnitude.
-      .bmag_ctx = &ctx,
+      .bfield_func = bfield_func, // Magnetic field
+      .bfield_ctx = &ctx,
       .has_LCFS = true,
       .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },

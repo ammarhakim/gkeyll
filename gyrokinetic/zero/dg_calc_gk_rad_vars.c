@@ -150,7 +150,7 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
     long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(phase_range, idx);
 
-    const double *bmag_d = gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
+    const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_int.bmag, loc_conf);
 
     double* vnu_surf_d = gkyl_array_fetch(vnu_surf, loc_phase);
     double* vnu_d = gkyl_array_fetch(vnu, loc_phase);

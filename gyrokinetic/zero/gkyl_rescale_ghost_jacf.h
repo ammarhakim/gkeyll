@@ -36,7 +36,7 @@ struct gkyl_rescale_ghost_jacf* gkyl_rescale_ghost_jacf_new(int dir,
  */
 void gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
   const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
-  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf);
+  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac_sync, struct gkyl_array *jf);
 
 /**
  * Release the memory associated with rescale_ghost_jacf updater.

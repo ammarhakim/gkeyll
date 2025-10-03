@@ -59,6 +59,10 @@ struct gkyl_wave_geom* gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg);
 /**
  * Get pointer to geometry in a cell given by idx into the range over
  * which the geometry was constructed.
+ *
+ * @param wg Wave geometry object
+ * @param idx Index into grid
+ * @return cell geometry in cell @a idx
  */
 GKYL_CU_DH
 static inline const struct gkyl_wave_cell_geom*

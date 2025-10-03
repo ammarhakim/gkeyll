@@ -13,11 +13,12 @@ typedef struct gkyl_tok_calc_derived_geo gkyl_tok_calc_derived_geo;
  *
  * @param cbasis Basis object (configuration space).
  * @param grid computational grid
+ * @param node_type 0 for serendipity, 1 for gauss-legendre quadrature nodes
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_tok_calc_derived_geo* gkyl_tok_calc_derived_geo_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, int node_type, bool use_gpu);
 
 /**
  * Advance tok_calc_derived_geo (compute the derived_geo coefficients).

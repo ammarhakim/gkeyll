@@ -1,8 +1,7 @@
 #!/bin/sh
 
 # list of header files, excluding private headers
-zero_header_list=`cd zero; ls gkyl_*.h | grep -v "priv" | sort; cd ..`
-app_header_list=`cd apps; ls gkyl_*.h | grep -v "priv" | sort; cd ..`
+header_list=`cd $1; ls gkyl_*.h | grep -v "priv" | sort`
 
 cat <<EOF
 #pragma once
@@ -15,12 +14,7 @@ extern "C" {
 
 EOF
 
-for head in $zero_header_list
-do
-echo "#include <${head}>"
-done
-
-for head in $app_header_list
+for head in $header_list
 do
 echo "#include <${head}>"
 done

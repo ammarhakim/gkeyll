@@ -62,6 +62,7 @@ choose_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
       assert(false);
       break;  
   }
+  return 0;
 }
 
 #ifdef GKYL_HAVE_CUDA

@@ -12,10 +12,10 @@ extern "C" {
 
 __global__ void
 gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis basis, double betap1,
+  struct gkyl_basis basis, bool normNu, double betap1T2,
   double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
   double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
-  struct gkyl_array* prem0s, struct gkyl_range range, struct gkyl_array* out)
+  struct gkyl_range range, struct gkyl_array* out)
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
@@ -44,22 +44,38 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
     const double *nuself_d = (const double*) gkyl_array_cfetch(nuself, start);
     const double *m0other_d = (const double*) gkyl_array_cfetch(m0other, start);
     const double *nuother_d = (const double*) gkyl_array_cfetch(nuother, start);
-    const double *prem0s_d = (const double*) gkyl_array_cfetch(prem0s, start);
 
-    // compute the numerator and denominator in:
-    //   m0_s*delta_s = m0_s*2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs)
-
-    mul_op(nuself_d, m0self_d, denom);
-    mul_op(nuother_d, m0other_d, numer);
-
-    for (int k=0; k<num_basis; k++) {
-      denom[k] *= massself;
-      numer[k] *= 2.*betap1*massother;
+    if (nuself_d[0] > 0.0 && nuother_d[0] > 0.0) {
+      // compute the numerator and denominator, if collision frequency is
+      // constant, in
+      //   n_s*delta_s*(beta+1) = 2*(beta+1) * n_s * m_r * n_r * nu_rs / (m_s * n_s * nu_sr + m_r * n_r * nu_rs)
+      // or, if the collision frequency varies in space and time, in:
+      //   nu_sr*n_s*delta_s*(beta+1) = 2*(beta+1) * n_s * nu_sr * m_r * n_r * nu_rs / (m_s * n_s * nu_sr + m_r * n_r * nu_rs)
+      mul_op(nuself_d, m0self_d, denom);
+      mul_op(nuother_d, m0other_d, numer);
+  
+      for (int k=0; k<num_basis; k++) {
+        denom[k] *= massself;
+        numer[k] *= betap1T2*massother;
+      }
+  
+      array_acc1(num_basis, denom, 1.0/betap1T2, numer);
+  
+      mul_op(m0self_d, numer, numer);
+      if (normNu)
+        mul_op(nuself_d, numer, numer);
     }
-
-    array_acc1(num_basis, denom, 0.5/betap1, numer);
-
-    mul_op(prem0s_d, numer, numer);
+    else {
+      // Both collision frequencies are zero, so set the numerator and
+      // denominator to 1. In this case the collision operator will be turned
+      // off anyway, so we just want to avoid a division by 0 here.
+      denom[0] = 1.0;
+      numer[0] = 1.0;
+      for (int k=1; k<num_basis; k++) {
+        denom[k] = 0.0;
+        numer[k] = 0.0;
+      }
+    }
 
     struct gkyl_mat A = gkyl_nmat_get(As, linc1);
     struct gkyl_mat x = gkyl_nmat_get(xs, linc1);
@@ -98,29 +114,27 @@ gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(struct gkyl_nmat *xs,
   }
 }
 
-// Host-side wrapper for range-based dg division operation
-void
-gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up, struct gkyl_basis basis,
+void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up,
   double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
   double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
-  const struct gkyl_array* prem0s, const struct gkyl_range *range, struct gkyl_array* out)
+  struct gkyl_array* out)
 {
-  int nblocks = range->nblocks;
-  int nthreads = range->nthreads;
-  // allocate memory for use in kernels
+  int nblocks = up->range->nblocks;
+  int nthreads = up->range->nthreads;
+  // Allocate memory for use in kernels.
   struct gkyl_nmat *A_d = up->mem->As;
   struct gkyl_nmat *x_d = up->mem->xs;
 
-  // construct matrices using CUDA kernel
+  // Construct matrices using CUDA kernel.
   gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
-    x_d->on_dev, basis, up->betap1, massself, m0self->on_dev, nuself->on_dev,
-    massother, m0other->on_dev, nuother->on_dev, prem0s->on_dev, *range, out->on_dev);
+    x_d->on_dev, *up->basis, up->normNu, up->betap1T2, massself, m0self->on_dev, nuself->on_dev,
+    massother, m0other->on_dev, nuother->on_dev, *up->range, out->on_dev);
 
-  // invert all matrices in batch mode
+  // Invert all matrices in batch mode.
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem->lu_mem, A_d, x_d);
   assert(status);
 
-  // copy solution into array (also lives on the device)
+  // Copy solution into array (also lives on the device).
   gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
-    basis, out->on_dev, *range);
+    *up->basis, out->on_dev, *up->range);
 }

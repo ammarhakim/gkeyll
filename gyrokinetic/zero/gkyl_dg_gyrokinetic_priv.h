@@ -15,19 +15,15 @@
 typedef double (*gyrokinetic_step2_vol_t)(const double *w, const double *dxv, const double q_, const double m_,
   const double *apardot, const double *f, double* GKYL_RESTRICT out);
 
-typedef double (*gyrokinetic_surf_t)(const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r,
-  const double *alpha_surf_l, const double *alpha_surf_r, 
-  const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
-  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
-  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out);
+typedef double (*gyrokinetic_surf_t)( const double *w, const double *dxv,
+  const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
+  const double *flux_surf_l, const double *flux_surf_r, double* GKYL_RESTRICT out
+); 
 
 typedef double (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv,
   const double *vmap_prime_edge, const double *vmap_prime_skin,
-  const double *alpha_surf_edge, const double *alpha_surf_skin, 
-  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
-  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
-  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
+  const double *flux_surf_edge, const double *flux_surf_skin, 
+  const int edge, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -87,13 +83,11 @@ kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx), 
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -118,13 +112,11 @@ kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -149,13 +141,11 @@ kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -180,13 +170,11 @@ kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -240,13 +228,11 @@ kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -271,13 +257,11 @@ kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
     qIn, qRhsOut);
 }
 
@@ -552,13 +536,9 @@ surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxR),
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxC), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxR), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxC), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxR), 
-      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxC), 
-      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxR), 
-      qInL, qInC, qInR, qRhsOut);
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxC), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxR), 
+      qRhsOut);
   }
   return 0.;
 }
@@ -594,13 +574,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxEdge), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxSkin), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxEdge), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxSkin), 
-      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxEdge), 
-      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxSkin), 
-      edge, qInEdge, qInSkin, qRhsOut);
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxSkin), 
+      edge, qRhsOut);
   }
   return 0.;
 }

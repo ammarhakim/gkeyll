@@ -39,7 +39,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
         .phase_range = &s->local,
         .h_ij = s->g_ij,
         .h_ij_inv = s->gij,
-        .det_h = app->gk_geom->jacobgeo,
+        .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,

@@ -2,8 +2,6 @@ import requests
 import os
 import shutil
 import numpy
-import matplotlib.pyplot as plt
-from matplotlib import cm
 
 adas_data_dir = "."
 
@@ -96,77 +94,6 @@ class adas_adf11:
 
         def data_for_charge_state(self, charge_state):
             return self.logdata[int(charge_state),:,:]
-
-
-    def plot(self, fig=None, axes=None):
-        """Plot data from input ADAS file. If provided, the arguments allow users to overplot
-        and compare data from multiple files.
-
-        Parameters
-        ----------
-        fig : matplotlib Figure object
-            If provided, add specification as to which ADAS file is being plotted.
-        axes : matplotlib Axes object (or equivalent)
-            If provided, plot on these axes. Note that this typically needs to be a set of axes
-            for each plotted charge state. Users may want to call this function once first to get
-            some axes, and then pass those same axes to a second call for another file to compare with.
-        """
-
-        # settings for plotting
-        self.ncol = numpy.ceil(numpy.sqrt(len(self.Z)))
-        self.nrow = numpy.ceil(len(self.Z) / self.ncol)
-
-        if fig is None or axes is None:
-            fig, axes = plt.subplots(
-                int(self.ncol), int(self.nrow), sharex=True, sharey=True
-            )
-
-        axes = numpy.atleast_2d(axes)
-        colormap = cm.rainbow
-        colors = cm.rainbow(numpy.linspace(0, 1, len(self.logNe)))
-
-        if fig is not None:
-            fig.suptitle(self.filename + "  " + self.file_type)
-
-        for i, ax in enumerate(axes.flatten()):
-            if i >= len(self.Z):
-                break
-            if all(self.logdata[i].std(1) == 0):  # independent of density
-                ax.plot(self.logT, self.logdata[i, :, 0])
-            else:
-                ax.set_prop_cycle("color", colors)
-                ax.plot(self.logT, self.logdata[i])
-                ax.text(
-                    0.1,
-                    0.8,
-                    "$n_e = 10^{%.0f-%.0f}\mathrm{[cm^{-3}]}$"
-                    % (self.logNe[0], self.logNe[-1]),
-                    horizontalalignment="left",
-                    transform=ax.transAxes,
-                )
-
-            ax.grid(True)
-
-            if self.file_type != "brs":
-                charge = self.Z[i]
-                meta = self.MPRT[i], self.MGRD[i]
-                if self.file_type in ["scd", "prs", "ccd", "prb", "qcd"]:
-                    charge -= 1
-                title = self.imp + "$^{%d\!+}$" % charge
-                if any(self.metastables > 1):
-                    title += str(meta)
-                ax.set_title(title)
-
-        for ax in axes[-1]:
-            ax.set_xlabel("$\log\ T_e\ \mathrm{[eV]}$")
-        for ax in axes[:, 0]:
-            if self.file_type in ["scd", "acd", "ccd"]:
-                ax.set_ylabel("$\log(" + self.file_type + ")\ \mathrm{[cm^3/s]}$")
-            elif self.file_type in ["prb", "plt", "prc", "pls", "brs", "prs"]:
-                ax.set_ylabel("$\log(" + self.file_type + ")\ \mathrm{[W\cdot cm^3]}$")        
-        plt.show()
-        
-
 
 #Return full path for specific file and download if necessary
 def get_adas_file_loc(filename):

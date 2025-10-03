@@ -67,3 +67,4 @@ gyrokinetic/data/adas/*.npy
 
 # Adas data files
 data/adas/*.npy
+install-deps/*.npy

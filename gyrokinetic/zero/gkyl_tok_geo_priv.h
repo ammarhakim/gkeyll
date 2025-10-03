@@ -1,6 +1,7 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_efit.h>
+#include <complex.h>
 
 // Function context to pass to root finder
 struct arc_length_ctx {
@@ -16,14 +17,17 @@ struct arc_length_ctx {
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
+  double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
+                     // measured counterclockwise from left side
+  double phi_right; // this is for when we need to switch sides
+  double phi_left; // this is for when we need to switch sides
+  double phi_bot; // For new way of trying to do core
+  bool right; // on right side of turning points
+  bool pre; // on left side starting from theta=0
   double arcL_q1; // For IWL, arc length in quadrant 1
   double arcL_q2; // For IWL, arc length in quadrant 2
   double arcL_q3; // For IWL, arc length in quadrant 3
   double arcL_q4; // For IWL, arc length in quadrant 4
-  double phi_right; // this is for when we need to switch sides
-  double phi_left; // this is for when we need to switch sides
-  double phi_bot; // For new way of trying to do core
-  bool right;
   bool q1, q2, q3, q4; // For IWL
   double zmaxis;
   enum gkyl_tok_geo_type ftype; // type of geometry
@@ -55,6 +59,10 @@ choose_closest(double ref, double* R, double* out, int nr)
 
 static inline double SQ(double x) { return x*x; }
 static inline double CUB(double x) { return x*x*x; }
+static inline double complex cSQ(double complex x) { return cpow(x,2.0+0.0*I); }
+static double complex cCUB(double complex x) { return cpow(x,3.0+0.0*I); }
+static double complex croot(double complex x, double n) { double complex power = 1.0/n + 0.0*I; return cpow(x,power); }
+
 
 static inline int
 get_idx(int dir, double x, const struct gkyl_rect_grid *grid, const struct gkyl_range *range)
@@ -268,6 +276,91 @@ calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 
   return sol;
 }
+
+// hyperbolic roots version
+static inline struct RdRdZ_sol
+calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+  double coeffs[4];
+  // coeffs = [x^0, x^1, x^2, x^3]
+  coeffs[3] = 0.125*(175.0*psi[15]*CUB(y)+88.74119674649424*psi[13]*SQ(y)+(45.8257569495584*psi[11]-105.0*psi[15])*y+26.45751311064591*psi[8]-29.58039891549808*psi[13]);
+  coeffs[2] = 0.125*(88.74119674649424*psi[14]*CUB(y)+45.0*psi[10]*SQ(y)+(23.2379000772445*psi[6]-53.24471804789655*psi[14])*y+13.41640786499874*psi[4]-15.0*psi[10]);
+  coeffs[1] = 0.125*((45.8257569495584*psi[12]-105.0*psi[15])*CUB(y)+(23.2379000772445*psi[7]-53.24471804789655*psi[13])*SQ(y)+(12.0*psi[3]+63.0*psi[15]-27.49545416973504*psi[12]-27.49545416973504*psi[11])*y-15.87450786638754*psi[8]-7.745966692414834*psi[7]+17.74823934929885*psi[13]+6.928203230275509*psi[1]);
+  coeffs[0] = 0.125*((26.45751311064591*psi[9]-29.58039891549808*psi[14])*CUB(y)+(13.41640786499874*psi[5]-15.0*psi[10])*SQ(y)+(-15.87450786638754*psi[9]-7.745966692414834*psi[6]+6.928203230275509*psi[2]+17.74823934929885*psi[14])*y-4.47213595499958*psi[5]-4.47213595499958*psi[4]+5.0*psi[10]+4.0*psi[0]) - psi0;
+  double A = coeffs[3];
+  double B = coeffs[2]/3.0;
+  double C = coeffs[1];
+  double D = coeffs[0];
+  if(A<1e-10) { // We have a quadratic, use quadratic solve
+    double aq = coeffs[2];
+    double bq = coeffs[1];
+    double cq = coeffs[0];
+    double delta2 = bq*bq - 4*aq*cq;
+    if (delta2 > 0) {
+      double r1, r2;
+      double delta = sqrt(delta2);
+      //// compute both roots
+      double qq = -0.5*(bq + (bq/fabs(bq)) * delta);
+      r1 = qq/aq;
+      r2 = cq/qq;
+      int sidx = 0;
+      if ((-1<=r1) && (r1 < 1)) {
+        sol.nsol += 1;
+        sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+        double x = r1;
+        double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
+        double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
+        sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+        sidx += 1;
+      }
+      if ((-1<=r2) && (r2 < 1)) {
+        sol.nsol += 1;
+        sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+        double x = r2;
+        double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
+        double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
+        sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+        sidx += 1;
+      }
+    }
+    return sol;
+  }
+  double gamma = B/A;
+  double a = C/3/A - SQ(gamma);
+  double b = 2*CUB(gamma) -C*gamma/A + D/A;
+  double complex rho = -4.0*a + 0.0*I;
+  double complex s = -4.0*b + 0.0*I;
+  double complex t = csqrt(cSQ(s) - cCUB(rho));
+  double complex alpha = -0.5 + 0.5*sqrt(3.0)*I;
+  double complex alpha_0 = 1.0;
+  double complex alpha_1 = alpha;
+  double complex alpha_2 = cSQ(alpha);
+  double complex x_0 = (0.5 + 0.0*I)* (alpha_0*croot(s+t, 3.0) + rho/alpha_0/croot(s+t,3.0) );
+  double complex x_1 = (0.5 + 0.0*I)* (alpha_1*croot(s+t, 3.0) + rho/alpha_1/croot(s+t,3.0) );
+  double complex x_2 = (0.5 + 0.0*I)* (alpha_2*croot(s+t, 3.0) + rho/alpha_2/croot(s+t,3.0) );
+  double complex r0 = x_0 - (gamma + 0.0*I);
+  double complex r1 = x_1 - (gamma + 0.0*I);
+  double complex r2 = x_2 - (gamma + 0.0*I);
+  double complex roots[3] = {r0, r1, r2};
+  int sidx = 0;
+  for(int i =0; i<3; i++){
+    double rpart = creal(roots[i]);
+    double impart = cimag(roots[i]);
+    if(rpart < 1.0 && rpart > -1.0 && fabs(impart)<1e-10){
+      sol.nsol += 1;
+      sol.R[sidx] = rpart*dx[0]*0.5 + xc[0];
+      double x = rpart;
+      double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
+      double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
+      sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+      sidx+=1;
+    }
+  }
+  return sol;
+}
+
 
 // Compute R(psi,Z) given a psi and Z. Can return multiple solutions
 // or no solutions. The number of roots found is returned and are

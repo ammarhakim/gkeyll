@@ -176,7 +176,6 @@ void coll_recomb_o_gpu() { test_coll_recomb(true, GKYL_ION_O); }
 #endif
 
 TEST_LIST = {
-#ifdef GKYL_HAVE_ADAS
   { "coll_recomb_h", coll_recomb_h },
   { "coll_recomb_li", coll_recomb_li },
   { "coll_recomb_ar", coll_recomb_ar },
@@ -184,7 +183,6 @@ TEST_LIST = {
   { "coll_recomb_h_gpu", coll_recomb_h_gpu },
   { "coll_recomb_li_gpu", coll_recomb_li_gpu },
   { "coll_recomb_ar_gpu", coll_recomb_ar_gpu },
-#endif
 #endif
   { NULL, NULL },
 };

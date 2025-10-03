@@ -103,7 +103,7 @@ create_ctx(void)
   double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  int Nz = 2; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 100.0 * rho_s; // Domain size (configuration space: z-direction).
@@ -255,14 +255,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct rad_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 static inline void
@@ -458,8 +461,8 @@ main(int argc, char **argv)
       
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx,
     },
 
     .num_periodic_dir = 1,

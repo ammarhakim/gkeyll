@@ -107,8 +107,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
-      return B0
+    bfieldFunc = function (t, zc)
+      return 0.0, 0.0, B0
     end,
 
     positionMap = {
@@ -219,13 +219,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "ion" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcGkSheath },
     },
 
     evolve = true, -- Evolve species?
