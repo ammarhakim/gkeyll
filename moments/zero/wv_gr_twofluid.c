@@ -1264,119 +1264,119 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   double r21[3], r22[3], r23[3];
   double r31[3], r32[3], r33[3];
 
-  r11[0] = (qlocal[53] * norm[0]) + (qlocal[62] * tau1[0]) + (qlocal[71] * tau2[0]);
-  r11[1] = (qlocal[53] * norm[1]) + (qlocal[62] * tau1[1]) + (qlocal[71] * tau2[1]);
-  r11[2] = (qlocal[53] * norm[2]) + (qlocal[62] * tau1[2]) + (qlocal[71] * tau2[2]);
+  r11[0] = (qlocal[53] * norm[0]) + (qlocal[54] * tau1[0]) + (qlocal[55] * tau2[0]);
+  r11[1] = (qlocal[53] * norm[1]) + (qlocal[54] * tau1[1]) + (qlocal[55] * tau2[1]);
+  r11[2] = (qlocal[53] * norm[2]) + (qlocal[54] * tau1[2]) + (qlocal[55] * tau2[2]);
 
-  r12[0] = (qlocal[54] * norm[0]) + (qlocal[63] * tau1[0]) + (qlocal[72] * tau2[0]);
-  r12[1] = (qlocal[54] * norm[1]) + (qlocal[63] * tau1[1]) + (qlocal[72] * tau2[1]);
-  r12[2] = (qlocal[54] * norm[2]) + (qlocal[63] * tau1[2]) + (qlocal[72] * tau2[2]);
+  r12[0] = (qlocal[56] * norm[0]) + (qlocal[57] * tau1[0]) + (qlocal[58] * tau2[0]);
+  r12[1] = (qlocal[56] * norm[1]) + (qlocal[57] * tau1[1]) + (qlocal[58] * tau2[1]);
+  r12[2] = (qlocal[56] * norm[2]) + (qlocal[57] * tau1[2]) + (qlocal[58] * tau2[2]);
 
-  r13[0] = (qlocal[55] * norm[0]) + (qlocal[64] * tau1[0]) + (qlocal[73] * tau2[0]);
-  r13[1] = (qlocal[55] * norm[1]) + (qlocal[64] * tau1[1]) + (qlocal[73] * tau2[1]);
-  r13[2] = (qlocal[55] * norm[2]) + (qlocal[64] * tau1[2]) + (qlocal[73] * tau2[2]);
+  r13[0] = (qlocal[59] * norm[0]) + (qlocal[60] * tau1[0]) + (qlocal[61] * tau2[0]);
+  r13[1] = (qlocal[59] * norm[1]) + (qlocal[60] * tau1[1]) + (qlocal[61] * tau2[1]);
+  r13[2] = (qlocal[59] * norm[2]) + (qlocal[60] * tau1[2]) + (qlocal[61] * tau2[2]);
 
-  r21[0] = (qlocal[56] * norm[0]) + (qlocal[65] * tau1[0]) + (qlocal[74] * tau2[0]);
-  r21[1] = (qlocal[56] * norm[1]) + (qlocal[65] * tau1[1]) + (qlocal[74] * tau2[1]);
-  r21[2] = (qlocal[56] * norm[2]) + (qlocal[65] * tau1[2]) + (qlocal[74] * tau2[2]);
+  r21[0] = (qlocal[62] * norm[0]) + (qlocal[63] * tau1[0]) + (qlocal[64] * tau2[0]);
+  r21[1] = (qlocal[62] * norm[1]) + (qlocal[63] * tau1[1]) + (qlocal[64] * tau2[1]);
+  r21[2] = (qlocal[62] * norm[2]) + (qlocal[63] * tau1[2]) + (qlocal[64] * tau2[2]);
 
-  r22[0] = (qlocal[57] * norm[0]) + (qlocal[66] * tau1[0]) + (qlocal[75] * tau2[0]);
-  r22[1] = (qlocal[57] * norm[1]) + (qlocal[66] * tau1[1]) + (qlocal[75] * tau2[1]);
-  r22[2] = (qlocal[57] * norm[2]) + (qlocal[66] * tau1[2]) + (qlocal[75] * tau2[2]);
+  r22[0] = (qlocal[65] * norm[0]) + (qlocal[66] * tau1[0]) + (qlocal[67] * tau2[0]);
+  r22[1] = (qlocal[65] * norm[1]) + (qlocal[66] * tau1[1]) + (qlocal[67] * tau2[1]);
+  r22[2] = (qlocal[65] * norm[2]) + (qlocal[66] * tau1[2]) + (qlocal[67] * tau2[2]);
 
-  r23[0] = (qlocal[58] * norm[0]) + (qlocal[67] * tau1[0]) + (qlocal[76] * tau2[0]);
-  r23[1] = (qlocal[58] * norm[1]) + (qlocal[67] * tau1[1]) + (qlocal[76] * tau2[1]);
-  r23[2] = (qlocal[58] * norm[2]) + (qlocal[67] * tau1[2]) + (qlocal[76] * tau2[2]);
+  r23[0] = (qlocal[68] * norm[0]) + (qlocal[69] * tau1[0]) + (qlocal[70] * tau2[0]);
+  r23[1] = (qlocal[68] * norm[1]) + (qlocal[69] * tau1[1]) + (qlocal[70] * tau2[1]);
+  r23[2] = (qlocal[68] * norm[2]) + (qlocal[69] * tau1[2]) + (qlocal[70] * tau2[2]);
 
-  r31[0] = (qlocal[59] * norm[0]) + (qlocal[68] * tau1[0]) + (qlocal[77] * tau2[0]);
-  r31[1] = (qlocal[59] * norm[1]) + (qlocal[68] * tau1[1]) + (qlocal[77] * tau2[1]);
-  r31[2] = (qlocal[59] * norm[2]) + (qlocal[68] * tau1[2]) + (qlocal[77] * tau2[2]);
+  r31[0] = (qlocal[71] * norm[0]) + (qlocal[72] * tau1[0]) + (qlocal[73] * tau2[0]);
+  r31[1] = (qlocal[71] * norm[1]) + (qlocal[72] * tau1[1]) + (qlocal[73] * tau2[1]);
+  r31[2] = (qlocal[71] * norm[2]) + (qlocal[72] * tau1[2]) + (qlocal[73] * tau2[2]);
 
-  r32[0] = (qlocal[60] * norm[0]) + (qlocal[69] * tau1[0]) + (qlocal[78] * tau2[0]);
-  r32[1] = (qlocal[60] * norm[1]) + (qlocal[69] * tau1[1]) + (qlocal[78] * tau2[1]);
-  r32[2] = (qlocal[60] * norm[2]) + (qlocal[69] * tau1[2]) + (qlocal[78] * tau2[2]);
+  r32[0] = (qlocal[74] * norm[0]) + (qlocal[75] * tau1[0]) + (qlocal[76] * tau2[0]);
+  r32[1] = (qlocal[74] * norm[1]) + (qlocal[75] * tau1[1]) + (qlocal[76] * tau2[1]);
+  r32[2] = (qlocal[74] * norm[2]) + (qlocal[75] * tau1[2]) + (qlocal[76] * tau2[2]);
 
-  r33[0] = (qlocal[61] * norm[0]) + (qlocal[70] * tau1[0]) + (qlocal[79] * tau2[0]);
-  r33[1] = (qlocal[61] * norm[1]) + (qlocal[70] * tau1[1]) + (qlocal[79] * tau2[1]);
-  r33[2] = (qlocal[61] * norm[2]) + (qlocal[70] * tau1[2]) + (qlocal[79] * tau2[2]);
+  r33[0] = (qlocal[77] * norm[0]) + (qlocal[78] * tau1[0]) + (qlocal[79] * tau2[0]);
+  r33[1] = (qlocal[77] * norm[1]) + (qlocal[78] * tau1[1]) + (qlocal[79] * tau2[1]);
+  r33[2] = (qlocal[77] * norm[2]) + (qlocal[78] * tau1[2]) + (qlocal[79] * tau2[2]);
 
   // Temporary arrays to store rotated row vectors.
   double s11[3], s12[3], s13[3];
   double s21[3], s22[3], s23[3];
   double s31[3], s32[3], s33[3];
 
-  s11[0] = (r11[0] * norm[0]) + (r21[0] * tau1[0]) + (r31[0] * tau2[0]);
-  s11[1] = (r11[1] * norm[0]) + (r21[1] * tau1[0]) + (r31[1] * tau2[0]);
-  s11[2] = (r11[2] * norm[0]) + (r21[2] * tau1[0]) + (r31[2] * tau2[0]);
+  s11[0] = (r11[0] * norm[0]) + (r12[0] * tau1[0]) + (r13[0] * tau2[0]);
+  s11[1] = (r11[1] * norm[0]) + (r12[1] * tau1[0]) + (r13[1] * tau2[0]);
+  s11[2] = (r11[2] * norm[0]) + (r12[2] * tau1[0]) + (r13[2] * tau2[0]);
 
-  s12[0] = (r11[0] * norm[1]) + (r21[0] * tau1[1]) + (r31[0] * tau2[1]);
-  s12[1] = (r11[1] * norm[1]) + (r21[1] * tau1[1]) + (r31[1] * tau2[1]);
-  s12[2] = (r11[2] * norm[1]) + (r21[2] * tau1[1]) + (r31[2] * tau2[1]);
+  s12[0] = (r11[0] * norm[1]) + (r12[0] * tau1[1]) + (r13[0] * tau2[1]);
+  s12[1] = (r11[1] * norm[1]) + (r12[1] * tau1[1]) + (r13[1] * tau2[1]);
+  s12[2] = (r11[2] * norm[1]) + (r12[2] * tau1[1]) + (r13[2] * tau2[1]);
 
-  s13[0] = (r11[0] * norm[2]) + (r21[0] * tau1[2]) + (r31[0] * tau2[2]);
-  s13[1] = (r11[1] * norm[2]) + (r21[1] * tau1[2]) + (r31[1] * tau2[2]);
-  s13[2] = (r11[2] * norm[2]) + (r21[2] * tau1[2]) + (r31[2] * tau2[2]);
+  s13[0] = (r11[0] * norm[2]) + (r12[0] * tau1[2]) + (r13[0] * tau2[2]);
+  s13[1] = (r11[1] * norm[2]) + (r12[1] * tau1[2]) + (r13[1] * tau2[2]);
+  s13[2] = (r11[2] * norm[2]) + (r12[2] * tau1[2]) + (r13[2] * tau2[2]);
 
-  s21[0] = (r12[0] * norm[0]) + (r22[0] * tau1[0]) + (r32[0] * tau2[0]);
-  s21[1] = (r12[1] * norm[0]) + (r22[1] * tau1[0]) + (r32[1] * tau2[0]);
-  s21[2] = (r12[2] * norm[0]) + (r22[2] * tau1[0]) + (r32[2] * tau2[0]);
+  s21[0] = (r21[0] * norm[0]) + (r22[0] * tau1[0]) + (r23[0] * tau2[0]);
+  s21[1] = (r21[1] * norm[0]) + (r22[1] * tau1[0]) + (r23[1] * tau2[0]);
+  s21[2] = (r21[2] * norm[0]) + (r22[2] * tau1[0]) + (r23[2] * tau2[0]);
 
-  s22[0] = (r12[0] * norm[1]) + (r22[0] * tau1[1]) + (r32[0] * tau2[1]);
-  s22[1] = (r12[1] * norm[1]) + (r22[1] * tau1[1]) + (r32[1] * tau2[1]);
-  s22[2] = (r12[2] * norm[1]) + (r22[2] * tau1[1]) + (r32[2] * tau2[1]);
+  s22[0] = (r21[0] * norm[1]) + (r22[0] * tau1[1]) + (r23[0] * tau2[1]);
+  s22[1] = (r21[1] * norm[1]) + (r22[1] * tau1[1]) + (r23[1] * tau2[1]);
+  s22[2] = (r21[2] * norm[1]) + (r22[2] * tau1[1]) + (r23[2] * tau2[1]);
 
-  s23[0] = (r12[0] * norm[2]) + (r22[0] * tau1[2]) + (r32[0] * tau2[2]);
-  s23[1] = (r12[1] * norm[2]) + (r22[1] * tau1[2]) + (r32[1] * tau2[2]);
-  s23[2] = (r12[2] * norm[2]) + (r22[2] * tau1[2]) + (r32[2] * tau2[2]);
+  s23[0] = (r21[0] * norm[2]) + (r22[0] * tau1[2]) + (r23[0] * tau2[2]);
+  s23[1] = (r21[1] * norm[2]) + (r22[1] * tau1[2]) + (r23[1] * tau2[2]);
+  s23[2] = (r21[2] * norm[2]) + (r22[2] * tau1[2]) + (r23[2] * tau2[2]);
 
-  s31[0] = (r13[0] * norm[0]) + (r23[0] * tau1[0]) + (r33[0] * tau2[0]);
-  s31[1] = (r13[1] * norm[0]) + (r23[1] * tau1[0]) + (r33[1] * tau2[0]);
-  s31[2] = (r13[2] * norm[0]) + (r23[2] * tau1[0]) + (r33[2] * tau2[0]);
+  s31[0] = (r31[0] * norm[0]) + (r32[0] * tau1[0]) + (r33[0] * tau2[0]);
+  s31[1] = (r31[1] * norm[0]) + (r32[1] * tau1[0]) + (r33[1] * tau2[0]);
+  s31[2] = (r31[2] * norm[0]) + (r32[2] * tau1[0]) + (r33[2] * tau2[0]);
 
-  s32[0] = (r13[0] * norm[1]) + (r23[0] * tau1[1]) + (r33[0] * tau2[1]);
-  s32[1] = (r13[1] * norm[1]) + (r23[1] * tau1[1]) + (r33[1] * tau2[1]);
-  s32[2] = (r13[2] * norm[1]) + (r23[2] * tau1[1]) + (r33[2] * tau2[1]);
+  s32[0] = (r31[0] * norm[1]) + (r32[0] * tau1[1]) + (r33[0] * tau2[1]);
+  s32[1] = (r31[1] * norm[1]) + (r32[1] * tau1[1]) + (r33[1] * tau2[1]);
+  s32[2] = (r31[2] * norm[1]) + (r32[2] * tau1[1]) + (r33[2] * tau2[1]);
 
-  s33[0] = (r13[0] * norm[2]) + (r23[0] * tau1[2]) + (r33[0] * tau2[2]);
-  s33[1] = (r13[1] * norm[2]) + (r23[1] * tau1[2]) + (r33[1] * tau2[2]);
-  s33[2] = (r13[2] * norm[2]) + (r23[2] * tau1[2]) + (r33[2] * tau2[2]);
+  s33[0] = (r31[0] * norm[2]) + (r32[0] * tau1[2]) + (r33[0] * tau2[2]);
+  s33[1] = (r31[1] * norm[2]) + (r32[1] * tau1[2]) + (r33[1] * tau2[2]);
+  s33[2] = (r31[2] * norm[2]) + (r32[2] * tau1[2]) + (r33[2] * tau2[2]);
 
   // Rotate spatial metric tensor derivative back to global coordinate frame.
-  qglobal[53] = (s11[0] * norm[0]) + (s12[0] * tau1[0]) + (s13[0] * tau2[0]);
-  qglobal[54] = (s11[1] * norm[0]) + (s12[1] * tau1[0]) + (s13[1] * tau2[0]);
-  qglobal[55] = (s11[2] * norm[0]) + (s12[2] * tau1[0]) + (s13[2] * tau2[0]);
+  qglobal[53] = (s11[0] * norm[0]) + (s21[0] * tau1[0]) + (s31[0] * tau2[0]);
+  qglobal[54] = (s11[1] * norm[0]) + (s21[1] * tau1[0]) + (s31[1] * tau2[0]);
+  qglobal[55] = (s11[2] * norm[0]) + (s21[2] * tau1[0]) + (s31[2] * tau2[0]);
 
-  qglobal[56] = (s11[0] * norm[1]) + (s12[0] * tau1[1]) + (s13[0] * tau2[1]);
-  qglobal[57] = (s11[1] * norm[1]) + (s12[1] * tau1[1]) + (s13[1] * tau2[1]);
-  qglobal[58] = (s11[2] * norm[1]) + (s12[2] * tau1[1]) + (s13[2] * tau2[1]);
+  qglobal[56] = (s12[0] * norm[0]) + (s22[0] * tau1[0]) + (s32[0] * tau2[0]);
+  qglobal[57] = (s12[1] * norm[0]) + (s22[1] * tau1[0]) + (s32[1] * tau2[0]);
+  qglobal[58] = (s12[2] * norm[0]) + (s22[2] * tau1[0]) + (s32[2] * tau2[0]);
 
-  qglobal[59] = (s11[0] * norm[2]) + (s12[0] * tau1[2]) + (s13[0] * tau2[2]);
-  qglobal[60] = (s11[1] * norm[2]) + (s12[1] * tau1[2]) + (s13[1] * tau2[2]);
-  qglobal[61] = (s11[2] * norm[2]) + (s12[2] * tau1[2]) + (s13[2] * tau2[2]);
+  qglobal[59] = (s13[0] * norm[0]) + (s23[0] * tau1[0]) + (s33[0] * tau2[0]);
+  qglobal[60] = (s13[1] * norm[0]) + (s23[1] * tau1[0]) + (s33[1] * tau2[0]);
+  qglobal[61] = (s13[2] * norm[0]) + (s23[2] * tau1[0]) + (s33[2] * tau2[0]);
 
-  qglobal[62] = (s21[0] * norm[0]) + (s22[0] * tau1[0]) + (s23[0] * tau2[0]);
-  qglobal[63] = (s21[1] * norm[0]) + (s22[1] * tau1[0]) + (s23[1] * tau2[0]);
-  qglobal[64] = (s21[2] * norm[0]) + (s22[2] * tau1[0]) + (s23[2] * tau2[0]);
+  qglobal[62] = (s11[0] * norm[1]) + (s21[0] * tau1[1]) + (s31[0] * tau2[1]);
+  qglobal[63] = (s11[1] * norm[1]) + (s21[1] * tau1[1]) + (s31[1] * tau2[1]);
+  qglobal[64] = (s11[2] * norm[1]) + (s21[2] * tau1[1]) + (s31[2] * tau2[1]);
 
-  qglobal[65] = (s21[0] * norm[1]) + (s22[0] * tau1[1]) + (s23[0] * tau2[1]);
-  qglobal[66] = (s21[1] * norm[1]) + (s22[1] * tau1[1]) + (s23[1] * tau2[1]);
-  qglobal[67] = (s21[2] * norm[1]) + (s22[2] * tau1[1]) + (s23[2] * tau2[1]);
+  qglobal[65] = (s12[0] * norm[1]) + (s22[0] * tau1[1]) + (s32[0] * tau2[1]);
+  qglobal[66] = (s12[1] * norm[1]) + (s22[1] * tau1[1]) + (s32[1] * tau2[1]);
+  qglobal[67] = (s12[2] * norm[1]) + (s22[2] * tau1[1]) + (s32[2] * tau2[1]);
 
-  qglobal[68] = (s21[0] * norm[2]) + (s22[0] * tau1[2]) + (s23[0] * tau2[2]);
-  qglobal[69] = (s21[1] * norm[2]) + (s22[1] * tau1[2]) + (s23[1] * tau2[2]);
-  qglobal[70] = (s21[2] * norm[2]) + (s22[2] * tau1[2]) + (s23[2] * tau2[2]);
+  qglobal[68] = (s13[0] * norm[1]) + (s23[0] * tau1[1]) + (s33[0] * tau2[1]);
+  qglobal[69] = (s13[1] * norm[1]) + (s23[1] * tau1[1]) + (s33[1] * tau2[1]);
+  qglobal[70] = (s13[2] * norm[1]) + (s23[2] * tau1[1]) + (s33[2] * tau2[1]);
 
-  qglobal[71] = (s31[0] * norm[0]) + (s32[0] * tau1[0]) + (s33[0] * tau2[0]);
-  qglobal[72] = (s31[1] * norm[0]) + (s32[1] * tau1[0]) + (s33[1] * tau2[0]);
-  qglobal[73] = (s31[2] * norm[0]) + (s32[2] * tau1[0]) + (s33[2] * tau2[0]);
+  qglobal[71] = (s11[0] * norm[2]) + (s21[0] * tau1[2]) + (s31[0] * tau2[2]);
+  qglobal[72] = (s11[1] * norm[2]) + (s21[1] * tau1[2]) + (s31[1] * tau2[2]);
+  qglobal[73] = (s11[2] * norm[2]) + (s21[2] * tau1[2]) + (s31[2] * tau2[2]);
 
-  qglobal[74] = (s31[0] * norm[1]) + (s32[0] * tau1[1]) + (s33[0] * tau2[1]);
-  qglobal[75] = (s31[1] * norm[1]) + (s32[1] * tau1[1]) + (s33[1] * tau2[1]);
-  qglobal[76] = (s31[2] * norm[1]) + (s32[2] * tau1[1]) + (s33[2] * tau2[1]);
+  qglobal[74] = (s12[0] * norm[2]) + (s22[0] * tau1[2]) + (s32[0] * tau2[2]);
+  qglobal[75] = (s12[1] * norm[2]) + (s22[1] * tau1[2]) + (s32[1] * tau2[2]);
+  qglobal[76] = (s12[2] * norm[2]) + (s22[2] * tau1[2]) + (s32[2] * tau2[2]);
 
-  qglobal[77] = (s31[0] * norm[2]) + (s32[0] * tau1[2]) + (s33[0] * tau2[2]);
-  qglobal[78] = (s31[1] * norm[2]) + (s32[1] * tau1[2]) + (s33[1] * tau2[2]);
-  qglobal[79] = (s31[2] * norm[2]) + (s32[2] * tau1[2]) + (s33[2] * tau2[2]);
+  qglobal[77] = (s13[0] * norm[2]) + (s23[0] * tau1[2]) + (s33[0] * tau2[2]);
+  qglobal[78] = (s13[1] * norm[2]) + (s23[1] * tau1[2]) + (s33[1] * tau2[2]);
+  qglobal[79] = (s13[2] * norm[2]) + (s23[2] * tau1[2]) + (s33[2] * tau2[2]);
 
   qglobal[80] = qlocal[80];
   qglobal[81] = (qlocal[81] * norm[0]) + (qlocal[82] * tau1[0]) + (qlocal[83] * tau2[0]);

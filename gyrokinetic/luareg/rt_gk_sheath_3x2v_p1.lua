@@ -387,21 +387,11 @@ gyrokineticApp = Gyrokinetic.App.new {
     femParBc = G0.ParProjBc.None,
 
     poissonBcs = {
-      lowerType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      upperType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      lowerValue = {
-        0.0
-      },
-      upperValue = {
-        0.0
-      }
-    }
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
+      { dir = 1, edge = 0, type = G0.SpeciesBc.bcPeriodic },
+      { dir = 1, edge = 1, type = G0.SpeciesBc.bcPeriodic },
+    },
   }
 }
 

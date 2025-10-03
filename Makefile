@@ -44,8 +44,6 @@ ifeq (${BUILD_APP}, pkpm)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 endif
 
-CFLAGS += ${HAVE_APP_FLAGS}
-
 INSTALL_PREFIX ?= ${PREFIX}
 PROJ_NAME ?= gkeyll
 
@@ -77,6 +75,8 @@ ifeq ($(CC), nvcc)
 	CUDA_LIBS += -lcublas -lcusparse -lcusolver
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
+
+CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"

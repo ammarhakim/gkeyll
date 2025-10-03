@@ -575,8 +575,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         if ( gkns->bc_is_np[d] &&
-             ((e == 0 && gkns->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX) ||
-              (e == 1 && gkns->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX)) ) {
+             ((e == 0 && gkns->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
+              (e == 1 && gkns->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) ) {
           bflux->boundaries_dir[bflux->num_boundaries] = d;
           bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
           bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
@@ -665,8 +665,12 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir]
                                                                               : &gkns->upper_skin[dir];
     
-        bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
-          GKYL_BC_REFLECT, &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu);
+        // MF 2025/09/29: The option `GKYL_BC_GK_SPECIES_REFLECT` here is a
+        // just a place holder and almost certainly wrong. Currently REFLECT is
+        // meant to reflect particles. Need something that mirrors the
+        // Hamiltonian into the ghost cell.
+        bflux->gfss_bc_op[b] = gkyl_bc_basic_gyrokinetic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
+          GKYL_BC_GK_SPECIES_REFLECT, &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu);
         
         long vol = skin_r->volume;
         buff_sz = buff_sz > vol ? buff_sz : vol;
@@ -675,11 +679,11 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     
       // Fill ghost cell of H.
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, gkns->hamil);
+        gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, gkns->hamil);
 
       gkyl_array_release(bflux->bc_buffer);
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_release(bflux->gfss_bc_op[b]);
+        gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
     }
   
     bflux->f = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
@@ -950,7 +954,7 @@ gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void
     if (bflux->a_hamiltonian_mom) {
       gkyl_array_release(bflux->bc_buffer);
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_release(bflux->gfss_bc_op[b]);
+        gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
     }
     for (int b=0; b<bflux->num_boundaries; ++b) {
       for (int m=0; m<bflux->num_calc_moms; m++) {

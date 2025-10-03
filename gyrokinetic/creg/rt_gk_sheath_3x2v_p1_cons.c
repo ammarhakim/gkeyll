@@ -589,7 +589,7 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
+    //.bcx = { GKYL_BC_GK_SPECIES_ABSORB, GKYL_BC_GK_SPECIES_ABSORB},
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -633,12 +633,10 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .lo_value = { 0.0 }, .up_value = { 0.0 }
-      //.lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      //.up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      ////.lo_value = { 0.0 }, .up_value = { 0.0 }
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
     },
   };
 

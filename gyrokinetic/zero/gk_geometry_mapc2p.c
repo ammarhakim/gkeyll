@@ -355,8 +355,6 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
   gk_geometry_surf_calc_expansions(up, dir, *nrange);
 }
 
-
-
 struct gk_geometry*
 gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {

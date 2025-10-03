@@ -411,11 +411,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
           assert(is_dir_periodic[dir] == 0);
           if (edge == GKYL_LOWER_EDGE) {
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
-          } else {
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_REFLECT);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
+          } else {                                     
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
           }
 
           // Default scenario: we set the ranges to the full range of the ghost cells.
@@ -425,7 +425,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) 
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
           {
             adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
             adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
