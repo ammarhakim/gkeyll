@@ -9,8 +9,6 @@
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
-#include <gkyl_gr_blackhole_isotropic.h>
-#include <gkyl_gr_brill_lindquist.h>
 
 #include <gkyl_null_comm.h>
 
@@ -41,10 +39,8 @@ struct einstein_schwarzschild_ctx
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   int Ny; // Cell count (y-direction).
-  int Nz; // Cell count (z-direction).
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
-  double Lz; // Domain size (z-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -64,28 +60,24 @@ create_ctx(void)
 
   double pos_x = 5.0; // Position of the black hole (x-direction).
   double pos_y = 5.0; // Position of the black hole (y-direction).
-  double pos_z = 5.0; // Position of the black hole (z-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  //struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_isotropic_new(false, mass, spin, pos_x, pos_y, pos_z);
-  //struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_new(false, 0.6, 0.6, 2.5, 5.0, 5.0, 7.5, 5.0, 5.0);
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Evolution parameters.
-  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
+  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
   int Nx = 256; // Cell count (x-direction).
   int Ny = 256; // Cell count (y-direction).
-  int Nz = 64; // Cell count (z-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
-  double Lz = 10.0; // Domain size (z-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 1.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -102,10 +94,8 @@ create_ctx(void)
     .spacetime_evolution = spacetime_evolution,
     .Nx = Nx,
     .Ny = Ny,
-    .Nz = Nz,
     .Lx = Lx,
     .Ly = Ly,
-    .Lz = Lz,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -121,7 +111,7 @@ create_ctx(void)
 void
 evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1], z = 5.0;
+  double x = xn[0], y = xn[1];
   struct einstein_schwarzschild_ctx *app = ctx;
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
@@ -160,18 +150,18 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
     }
   }
 
-  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, z, &spatial_det);
-  spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
   
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, z, &inv_spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -341,7 +331,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
-  //int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
 
   // Einstein equations.
   struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
@@ -351,7 +340,7 @@ main(int argc, char **argv)
     .equation = vacuum_einstein,
     
     .init = evalVacuumEinsteinInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
     .has_vacuum_einstein = true,
@@ -360,7 +349,6 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    //.bcz = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -445,9 +433,6 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { einstein },
-
-    //.num_periodic_dir = 2,
-    //.periodic_dirs = { 0, 1 },
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

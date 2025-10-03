@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_gr_minkowski.h>
-#include <gkyl_gr_blackhole_isotropic.h>
+#include <gkyl_gr_blackhole.h>
 
 #include <gkyl_null_comm.h>
 
@@ -55,18 +55,18 @@ struct einstein_kerr_ctx
 create_ctx(void)
 {
   // Spacetime parameters (using geometric units).
-  double mass = 0.1; // Mass of the black hole.
-  double spin = 0.2; // Spin of the black hole.
+  double mass = 0.5; // Mass of the black hole.
+  double spin = -0.3; // Spin of the black hole.
 
   double pos_x = 5.0; // Position of the black hole (x-direction).
   double pos_y = 5.0; // Position of the black hole (y-direction).
   double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_isotropic_new(false, mass, spin, pos_x, pos_y, pos_z);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Evolution parameters.
-  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
+  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
@@ -74,10 +74,10 @@ create_ctx(void)
   int Ny = 256; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
-  double cfl_frac = 0.1; // CFL coefficient.
+  double cfl_frac = 0.8; // CFL coefficient.
 
-  double t_end = 0.1; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 1.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -189,7 +189,7 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
       }
     }
   }
-
+  
   double spatial_metric_der_raised3[3][3][3];
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -340,12 +340,15 @@ main(int argc, char **argv)
     .equation = vacuum_einstein,
     
     .init = evalVacuumEinsteinInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
     .has_vacuum_einstein = true,
     .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
     .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -430,9 +433,6 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { einstein },
-
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

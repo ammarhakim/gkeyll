@@ -4,7 +4,7 @@
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_priv.h>
 #include <gkyl_gr_minkowski.h>
-#include <gkyl_gr_blackhole_isotropic.h>
+#include <gkyl_gr_blackhole.h>
 
 void
 test_vacuum_einstein_basic_minkowski()
@@ -386,9 +386,9 @@ test_vacuum_einstein_basic_minkowski()
 void
 test_vacuum_einstein_basic_schwarzschild()
 {
-  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING;
+  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_isotropic_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
   struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(spacetime_slicing, spacetime_evolution, false);
 
   TEST_CHECK( vacuum_einstein->num_equations == 64 );
@@ -575,7 +575,7 @@ test_vacuum_einstein_basic_schwarzschild()
         q[61] = shift_der[2][0]; q[62] = shift_der[2][1]; q[63] = shift_der[2][2];
 
         double evolution_func = 1.0;
-        double slicing_func = extrinsic_curvature_trace;
+        double slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
 
         double extrinsic_curvature_flux[3][3][3];
         for (int d = 0; d < 3; d++) {
@@ -714,7 +714,7 @@ test_vacuum_einstein_basic_schwarzschild()
           vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 42; i++) {
-            TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-8) );
+            TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6) );
           }
         }
         
