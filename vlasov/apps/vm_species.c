@@ -72,7 +72,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
-      &vms->grid, &vms->local, vms->basis,  inp_basis_vectors, vms->conf_poisson_tensor);
+      &vms->grid, &vms->local, vms->basis, inp_basis_vectors, vms->conf_poisson_tensor_host);
 
     // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
     if (app->use_gpu) {
