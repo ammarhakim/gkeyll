@@ -213,6 +213,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.mass = sp->mass;
     species_inp.gkmodel_id = sp->gkmodel_id;
     species_inp.no_by = sp->no_by;
+    species_inp.no_collisionless_terms = sp->no_collisionless_terms;
 
     // Velocity-space information
     for (int v=0; v<vdim; ++v) {
