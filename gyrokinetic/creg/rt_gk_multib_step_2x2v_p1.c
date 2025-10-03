@@ -667,7 +667,7 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 12;
 
-  double t_end = 100.0e-12; 
+  double t_end = 100.0e-10; 
   double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
