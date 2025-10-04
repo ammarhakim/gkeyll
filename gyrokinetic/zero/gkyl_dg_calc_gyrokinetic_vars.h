@@ -22,7 +22,7 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
  * @param phase_basis Phase space basis functions
  * @param charge Species charge
  * @param mass Species mass
- * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
+ * @param collless_type Type of collisionless terms.
  * @param gk_geom Geometry struct
  * @param vel_map Velocity space mapping object.
  * @param use_gpu bool to determine if on GPU
@@ -31,7 +31,7 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
 struct gkyl_dg_calc_gyrokinetic_vars* 
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, 
   const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, 

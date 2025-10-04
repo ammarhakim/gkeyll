@@ -27,21 +27,21 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
 
   if (edge == -1) { 
 
-  out[0] += -0.7071067811865475*GhatR[0]*rdvpar2; 
-  out[1] += -0.7071067811865475*GhatR[1]*rdvpar2; 
-  out[2] += -1.224744871391589*GhatR[0]*rdvpar2; 
-  out[3] += -1.224744871391589*GhatR[1]*rdvpar2; 
-  out[4] += -1.58113883008419*GhatR[0]*rdvpar2; 
-  out[5] += -1.58113883008419*GhatR[1]*rdvpar2; 
+  out[0] += -(0.7071067811865475*GhatR[0]*rdvpar2); 
+  out[1] += -(0.7071067811865475*GhatR[1]*rdvpar2); 
+  out[2] += -(1.224744871391589*GhatR[0]*rdvpar2); 
+  out[3] += -(1.224744871391589*GhatR[1]*rdvpar2); 
+  out[4] += -(1.5811388300841895*GhatR[0]*rdvpar2); 
+  out[5] += -(1.5811388300841898*GhatR[1]*rdvpar2); 
 
   } else { 
 
   out[0] += 0.7071067811865475*GhatL[0]*rdvpar2; 
   out[1] += 0.7071067811865475*GhatL[1]*rdvpar2; 
-  out[2] += -1.224744871391589*GhatL[0]*rdvpar2; 
-  out[3] += -1.224744871391589*GhatL[1]*rdvpar2; 
-  out[4] += 1.58113883008419*GhatL[0]*rdvpar2; 
-  out[5] += 1.58113883008419*GhatL[1]*rdvpar2; 
+  out[2] += -(1.224744871391589*GhatL[0]*rdvpar2); 
+  out[3] += -(1.224744871391589*GhatL[1]*rdvpar2); 
+  out[4] += 1.5811388300841895*GhatL[0]*rdvpar2; 
+  out[5] += 1.5811388300841898*GhatL[1]*rdvpar2; 
 
   } 
 

@@ -211,9 +211,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
     species_inp.charge = sp->charge;
     species_inp.mass = sp->mass;
-    species_inp.gkmodel_id = sp->gkmodel_id;
-    species_inp.no_by = sp->no_by;
-    species_inp.no_collisionless_terms = sp->no_collisionless_terms;
 
     // Velocity-space information
     for (int v=0; v<vdim; ++v) {
@@ -223,7 +220,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     }
     species_inp.mapc2p = sp->mapc2p;
 
-    // Species physics modules
+    // Species physics modules.
+    species_inp.collisionless = sp->collisionless;
     species_inp.collisions = sp->collisions;
     species_inp.anomalous_diffusion = sp->anomalous_diffusion;
     species_inp.radiation = sp->radiation;
@@ -770,7 +768,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       }
     }
   }
-
 
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.

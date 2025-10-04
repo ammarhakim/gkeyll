@@ -307,7 +307,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   gk_species.mass = glua_tbl_get_number(L, "mass", 1.0);
   gk_species.polarization_density = glua_tbl_get_number(L, "polarizationDensity", 0.0);
-  gk_species.no_by = glua_tbl_get_bool(L, "noBy", false);
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);

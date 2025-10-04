@@ -12,14 +12,14 @@
 gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, gkmodel_id,
+      charge, mass, collless_type,
       gk_geom, dg_geom, gk_dg_geom, vel_map);
 #endif     
 
@@ -40,18 +40,19 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
-    for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
-    }
-    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-  } else {
+  if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
     for (int d=0; d<cdim; ++d) {
       up->flux_surf[d] = choose_gyrokinetic_flux_surf_conf_kern(d, cdim, vdim, poly_order);
       up->flux_edge_surf[d] = choose_gyrokinetic_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
     up->flux_surfvpar[0] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
+  }
+  else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+    for (int d=0; d<cdim; ++d) {
+      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+    }
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   }
 
   up->flags = 0;

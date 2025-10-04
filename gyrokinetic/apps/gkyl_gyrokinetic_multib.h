@@ -22,7 +22,6 @@ struct gkyl_gyrokinetic_multib_species_pb {
 struct gkyl_gyrokinetic_multib_species {
   char name[128]; // Species name.
 
-  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
 
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
@@ -42,6 +41,9 @@ struct gkyl_gyrokinetic_multib_species {
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
+
+  // Collisionless terms.
+  struct gkyl_gyrokinetic_collisionless collisionless;
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;

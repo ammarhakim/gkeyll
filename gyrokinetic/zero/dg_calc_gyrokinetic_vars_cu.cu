@@ -187,28 +187,28 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  int cdim, int vdim, int poly_order, enum gkyl_gkmodel_id gkmodel_id)
+  int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type)
 {
-  if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
-    for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
-    }
-    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-  }
-  else {
+  if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
     for (int d=0; d<cdim; ++d) {
       up->flux_surf[d] = choose_gyrokinetic_flux_surf_conf_kern(d, cdim, vdim, poly_order);
       up->flux_edge_surf[d] = choose_gyrokinetic_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
     up->flux_surfvpar[0] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
+  else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+    for (int d=0; d<cdim; ++d) {
+      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+    }
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+  }
 }
 
 gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map)
 {
@@ -241,7 +241,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   struct gkyl_dg_calc_gyrokinetic_vars *up_cu = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gyrokinetic_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, gkmodel_id);
+  dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, collless_type);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
