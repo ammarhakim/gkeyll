@@ -36,7 +36,7 @@ static struct { int vdim[3]; } cv_index[] = {
 typedef struct { gyrokinetic_flux_surf_t kernels[3]; } gkyl_dg_gyrokinetic_flux_surf_kern_list;
 typedef struct { gyrokinetic_flux_surfvpar_t kernels[3]; } gkyl_dg_gyrokinetic_flux_surfvpar_kern_list;
 
-struct gkyl_dg_calc_gyrokinetic_vars {
+struct gkyl_gk_collisionless_flux {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
@@ -51,7 +51,7 @@ struct gkyl_dg_calc_gyrokinetic_vars {
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 
   uint32_t flags;
-  struct gkyl_dg_calc_gyrokinetic_vars *on_dev; // pointer to itself or device data
+  struct gkyl_gk_collisionless_flux *on_dev; // pointer to itself or device data
 };
 
 //
@@ -261,8 +261,8 @@ choose_gyrokinetic_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
  * Create new updater to compute gyrokinetic variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_gyrokinetic_vars* 
-gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
+struct gkyl_gk_collisionless_flux* 
+gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
@@ -271,7 +271,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
 /**
  * Host-side wrappers for gyrokinetic vars operations on device
  */
-void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_gk_collisionless_flux_flux_surf_cu(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);

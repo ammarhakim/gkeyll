@@ -9,13 +9,13 @@ extern "C" {
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
-#include <gkyl_dg_calc_gyrokinetic_vars.h>
-#include <gkyl_dg_calc_gyrokinetic_vars_priv.h>
+#include <gkyl_gk_collisionless_surf.h>
+#include <gkyl_gk_collisionless_surf_priv.h>
 #include <gkyl_util.h>
 }
 
 __global__ void
-gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+gkyl_gk_collisionless_surf_flux_surf_cu_kernel(struct gkyl_gk_collisionless_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
@@ -95,7 +95,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
 }
 
 __global__ void
-gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+gkyl_gk_collisionless_surf_flux_surfvpar_cu_kernel(struct gkyl_gk_collisionless_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, struct gkyl_range vpar_range,
   const struct gkyl_array *phi, const struct gkyl_array *fin, 
@@ -159,12 +159,12 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel(struct gkyl_dg_calc_gyroki
 }
 
 // Host-side wrapper for gyrokinetic surface alpha calculation
-void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_gk_collisionless_surf_flux_surf_cu(struct gkyl_gk_collisionless_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
 {
-  gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
+  gkyl_gk_collisionless_surf_flux_surf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
     *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 
@@ -177,7 +177,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
   }
   sublower[up->cdim] += 1;
   gkyl_sub_range_init(&vpar_range, phase_ext_range, sublower, subupper);
-  gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
+  gkyl_gk_collisionless_surf_flux_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
     *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 
@@ -186,7 +186,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
 // CUDA kernel to set device pointers to gyrokinetic vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+gk_collisionless_surf_set_cu_dev_ptrs(struct gkyl_gk_collisionless_surf *up, 
   int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type)
 {
   if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
@@ -205,14 +205,14 @@ dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *u
   }
 }
 
-gkyl_dg_calc_gyrokinetic_vars*
-gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
+gkyl_gk_collisionless_surf*
+gkyl_gk_collisionless_surf_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map)
 {
-  struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(*up));
+  struct gkyl_gk_collisionless_surf *up = (struct gkyl_gk_collisionless_surf*) gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
@@ -238,10 +238,10 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
-  struct gkyl_dg_calc_gyrokinetic_vars *up_cu = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_cu_malloc(sizeof(*up_cu));
-  gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gyrokinetic_vars), GKYL_CU_MEMCPY_H2D);
+  struct gkyl_gk_collisionless_surf *up_cu = (struct gkyl_gk_collisionless_surf*) gkyl_cu_malloc(sizeof(*up_cu));
+  gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_collisionless_surf), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, collless_type);
+  gk_collisionless_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, collless_type);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

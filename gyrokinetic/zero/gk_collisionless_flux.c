@@ -5,12 +5,12 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
-#include <gkyl_dg_calc_gyrokinetic_vars.h>
-#include <gkyl_dg_calc_gyrokinetic_vars_priv.h>
+#include <gkyl_gk_collisionless_flux.h>
+#include <gkyl_gk_collisionless_flux_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_gyrokinetic_vars*
-gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
+gkyl_gk_collisionless_flux*
+gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
@@ -18,12 +18,12 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
+    return gkyl_gk_collisionless_flux_cu_dev_new(phase_grid, conf_basis, phase_basis, 
       charge, mass, collless_type,
       gk_geom, dg_geom, gk_dg_geom, vel_map);
 #endif     
 
-  gkyl_dg_calc_gyrokinetic_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
+  gkyl_gk_collisionless_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_flux));
 
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
@@ -62,14 +62,14 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_gk_collisionless_flux_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(flux_surf)) {
-    return gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(up, conf_range, phase_range,
+    return gkyl_gk_collisionless_flux_flux_surf_cu(up, conf_range, phase_range,
       conf_ext_range, phase_ext_range, phi, fin, flux_surf, cflrate);
   }
 #endif
@@ -192,7 +192,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
 
 }
 
-void gkyl_dg_calc_gyrokinetic_vars_release(gkyl_dg_calc_gyrokinetic_vars *up)
+void gkyl_gk_collisionless_flux_release(gkyl_gk_collisionless_flux *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_dg_geom_release(up->dg_geom);

@@ -7,15 +7,14 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_dg_calc_gyrokinetic_vars_priv.h>
+#include <gkyl_gk_collisionless_flux_priv.h>
 
 // Object type
-typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
+typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
 
 /**
- * Create new updater to compute gyrokinetic variables needed in 
- * updates and used for diagnostics. Methods compute:
- * flux_surf : Surface expansion of phase space flux
+ * Create new updater to compute the surface expansion of phase space
+ * flux due to the collisionless gyrokinetic terms.
  * 
  * @param phase_grid Phase space grid (for getting cell spacing and cell center)
  * @param conf_basis Configuration space basis functions
@@ -28,8 +27,8 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_gyrokinetic_vars* 
-gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
+struct gkyl_gk_collisionless_flux* 
+gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, 
@@ -53,7 +52,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
  * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction 
  * @param clfrate Output CFL rate
  */
-void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_gk_collisionless_flux_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate);
@@ -63,4 +62,4 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
  *
  * @param up Updater to delete.
  */
-void gkyl_dg_calc_gyrokinetic_vars_release(struct gkyl_dg_calc_gyrokinetic_vars *up);
+void gkyl_gk_collisionless_flux_release(struct gkyl_gk_collisionless_flux *up);

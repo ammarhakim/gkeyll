@@ -32,7 +32,7 @@
 #include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
-#include <gkyl_dg_calc_gyrokinetic_vars.h>
+#include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
@@ -220,7 +220,7 @@ struct gk_collisionless {
   struct gkyl_array *apar; // A_parallel.
   struct gkyl_array *apardot; // d/dt A_parallel.
 
-  struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
+  struct gkyl_gk_collisionless_flux *calc_gk_vars;
 
   gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
  

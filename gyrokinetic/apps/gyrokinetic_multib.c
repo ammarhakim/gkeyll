@@ -1084,7 +1084,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
 //        struct gk_species *s = &app->species[i];
 //
 //        // Compute advection speeds so we can compute the initial boundary flux.
-//        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+//        gkyl_gk_collisionless_flux_alpha_surf(s->calc_gk_vars, 
 //          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
 //          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 //

@@ -11,7 +11,7 @@ gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *spec
   // values of flux_surf even though we only loop over local ranges
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
-  gkyl_dg_calc_gyrokinetic_vars_flux_surf(gkcls->calc_gk_vars, 
+  gkyl_gk_collisionless_flux_flux_surf(gkcls->calc_gk_vars, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
     species->gyro_phi, fin, gkcls->flux_surf, species->cflrate);
 }
@@ -107,7 +107,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
     }
 
-    gkcls->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
+    gkcls->calc_gk_vars = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
       gks->info.charge, gks->info.mass, gkcls->collisionless_id, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, app->use_gpu);
 
@@ -150,7 +150,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     gkyl_array_release(gkcls->apar);
     gkyl_array_release(gkcls->apardot);
   
-    gkyl_dg_calc_gyrokinetic_vars_release(gkcls->calc_gk_vars);
+    gkyl_gk_collisionless_flux_release(gkcls->calc_gk_vars);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
     if (gkcls->write_diagnostics) {

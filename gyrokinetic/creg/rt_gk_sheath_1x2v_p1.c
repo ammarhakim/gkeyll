@@ -541,6 +541,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
 
     .projection = {
