@@ -11,7 +11,7 @@ gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *spec
   // values of flux_surf even though we only loop over local ranges
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
-  gkyl_gk_collisionless_flux_flux_surf(gkcls->calc_gk_vars, 
+  gkyl_gk_collisionless_flux_surf(gkcls->calc_gk_vars, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
     species->gyro_phi, fin, gkcls->flux_surf, species->cflrate);
 }

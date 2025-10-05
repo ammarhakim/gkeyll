@@ -42,17 +42,17 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 
   if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
     for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = choose_gyrokinetic_flux_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->flux_edge_surf[d] = choose_gyrokinetic_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[0] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
   else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
     for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   }
 
   up->flags = 0;
@@ -62,14 +62,14 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void gkyl_gk_collisionless_flux_flux_surf(struct gkyl_gk_collisionless_flux *up, 
+void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(flux_surf)) {
-    return gkyl_gk_collisionless_flux_flux_surf_cu(up, conf_range, phase_range,
+    return gkyl_gk_collisionless_flux_surf_cu(up, conf_range, phase_range,
       conf_ext_range, phase_ext_range, phi, fin, flux_surf, cflrate);
   }
 #endif
