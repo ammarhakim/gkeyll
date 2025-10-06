@@ -773,6 +773,7 @@ void
 gk_species_positivity_init(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
   gks->enforce_positivity = true;
+  gks->positivity_is_initialized = true;
 
   gks->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
@@ -879,7 +880,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     }
   }
   
-  if (s->enforce_positivity)
+  if (s->positivity_is_initialized)
     gk_species_positivity_release(app, s);
 
   if (app->use_gpu) {
@@ -1201,6 +1202,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   }
 
   gks->enforce_positivity = false;
+  gks->positivity_is_initialized = false;
   gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   if (app->enforce_positivity || gks->info.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
@@ -2155,18 +2157,12 @@ void
 gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
   struct gk_species *gks, bool enforce_positivity)
 {
-  if (gks->enforce_positivity) {
-    // Already allocated positivity operator. Need to free previous objects.
-    gk_species_positivity_release(app, gks);
+  gks->enforce_positivity = enforce_positivity;
+  if (enforce_positivity) {
+    gks->apply_pos_shift_func = gk_species_apply_pos_shift_enabled;
   }
-
-  gks->info.enforce_positivity = enforce_positivity;
-  if (app->enforce_positivity || gks->info.enforce_positivity) {
-    // Positivity enforcing by shifting f (ps=positivity shift).
-    gks->info.enforce_positivity = true,
-    gk_species_positivity_init(app, gks);
-  }
-  else
+  else {
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
+  }
 }
 
