@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
+#include <limits.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
@@ -507,16 +508,21 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = (2400.0e-6 + 24.0e-6 + 2*24.0e-6)*0.1;
-  int num_frames = 4+4+2*4;
 
   // Factor multiplying collisionless terms.
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 2400.0e-6;
-  double tau_fdp = 24.0e-6;
-  double tau_fdp_extra = 2*tau_fdp;
+  double tau_oap = 2.0e-6;
+  double tau_fdp = 1.0e-8;
+  double tau_fdp_extra = tau_fdp;
+  int num_cycles = 1; // Number of OAP+FDP cycles to run.
+  
+  // Frame counts for each phase type (specified independently)
+  int num_frames_oap = 4;        // Frames per OAP phase
+  int num_frames_fdp = 4;        // Frames per FDP phase
+  int num_frames_fdp_extra = 8;  // Frames for the extra FDP phase
+  
   // Whether to evolve the field.
   bool is_static_field_oap = true;
   bool is_static_field_fdp = false;
@@ -524,18 +530,11 @@ create_ctx(void)
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_oap = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE;
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE;
 
-  // Run an extra FDP at the end.
-  // Split the time before fdp_extra in OAP+FDP pairs.
+  // Calculate phase structure
+  double t_end = (tau_oap + tau_fdp + tau_fdp_extra)*num_cycles;
   double tau_pair = tau_oap+tau_fdp; // Duration of an OAP+FDP pair.
-  int num_pairs = floor((t_end-tau_fdp_extra)/tau_pair); // Number of OAP+FDP pairs.
-  int num_phases = 2*num_pairs + 1;
-  int num_phases_eff = num_phases-1 + tau_fdp_extra/tau_fdp;
-  // Number of frames in each phase.
-  int num_frames_per_phase = floor(num_frames/num_phases_eff);
-  int num_frames_fdp_extra = (tau_fdp_extra/tau_fdp)*num_frames_per_phase;
-  int num_frames_pair = (num_frames-num_frames_fdp_extra)/num_pairs;
-  int num_frames_oap = num_frames_pair/2;
-  int num_frames_fdp = num_frames_pair - num_frames_oap;
+  int num_phases = 2*num_cycles + 1;
+  int num_frames = 1 + num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
 
   struct gk_poa_phase_params *poa_phases = gkyl_malloc(num_phases * sizeof(struct gk_poa_phase_params));
   for (int i=0; i<(num_phases-1)/2; i++) {
@@ -557,13 +556,13 @@ create_ctx(void)
   }
   // The final stage is an extra, longer FDP.
   poa_phases[num_phases-1].phase = GK_POA_FDP;
-  poa_phases[num_phases-1].num_frames = num_frames_fdp;
+  poa_phases[num_phases-1].num_frames = num_frames_fdp_extra;
   poa_phases[num_phases-1].duration = tau_fdp_extra;
   poa_phases[num_phases-1].alpha = alpha_fdp;
   poa_phases[num_phases-1].is_static_field = is_static_field_fdp;
   poa_phases[num_phases-1].fdot_mult_type = fdot_mult_type_fdp;
 
-  double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double write_phase_freq = 0.5; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   double int_diag_calc_freq = 100; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -693,22 +692,28 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   int num_frames = tfs->num_frames;
   int num_int_diag_calc = ctx->int_diag_calc_freq*num_frames;
 
-  trig_write_conf->dt = (t_end-t_curr)/(num_frames-frame_curr);
+  // Prevent division by zero when frame_curr equals num_frames
+  int frames_remaining = GKYL_MAX2(1, num_frames - frame_curr);
+  double time_remaining = GKYL_MAX2(1e-12, t_end - t_curr);
+
+  trig_write_conf->dt = time_remaining / frames_remaining;
   trig_write_conf->tcurr = t_curr;
   trig_write_conf->curr = frame_curr;
 
-  trig_write_phase->dt = (t_end-t_curr)/(ctx->write_phase_freq*(num_frames-frame_curr));
+  trig_write_phase->dt = time_remaining / (ctx->write_phase_freq * frames_remaining);
   trig_write_phase->tcurr = t_curr;
   trig_write_phase->curr = frame_curr;
 
-  trig_calc_intdiag->dt = (t_end-t_curr)/GKYL_MAX2(num_frames-frame_curr, (num_int_diag_calc/num_frames)*(num_frames-frame_curr));
+  int diag_frames = GKYL_MAX2(frames_remaining, (num_int_diag_calc/GKYL_MAX2(1, num_frames)) * frames_remaining);
+  trig_calc_intdiag->dt = time_remaining / diag_frames;
   trig_calc_intdiag->tcurr = t_curr;
   trig_calc_intdiag->curr = frame_curr;
 }
 
-void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl_tm_trigger *trig_write_conf,
-  struct gkyl_tm_trigger *trig_write_phase, struct gkyl_tm_trigger *trig_calc_intdiag,
-  struct time_frame_state *tfs, struct gk_poa_phase_params *pparams)
+void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl_app_args* app_args,
+  struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase,
+  struct gkyl_tm_trigger *trig_calc_intdiag, struct time_frame_state *tfs,
+  struct gk_poa_phase_params *pparams)
 {
   tfs->t_end = tfs->t_curr + pparams->duration;
   tfs->num_frames = tfs->frame_curr + pparams->num_frames;
@@ -720,13 +725,17 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   // Reset I/O triggers:
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
 
+  printf("Running phase %s: t=[%g, %g], num_frames=%d, alpha=%g, is_static_field=%d, fdot_mult_type=%d\n",
+    pparams->phase==GK_POA_OAP?"OAP":"FDP", t_curr, t_end, pparams->num_frames, pparams->alpha,
+    pparams->is_static_field, pparams->fdot_mult_type);
+
   // Reset simulation parameters and function pointers.
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
     .type = pparams->fdot_mult_type,
     .cellwise_const = true,
     .write_diagnostics = true,
   };
-  struct gkyl_gyrokinetic_field field = {
+  struct gkyl_gyrokinetic_field reset_field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx->me,
     .electron_charge = ctx->qe,
@@ -737,7 +746,7 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   double alpha = pparams->alpha;
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, t_curr, "ion", fdot_mult);
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", alpha);
-  gkyl_gyrokinetic_app_reset_field(app, t_curr, field);
+  gkyl_gyrokinetic_app_reset_field(app, t_curr, reset_field);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -747,9 +756,11 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   int num_failures = 0, num_failures_max = ctx->num_failures_max;
 
   long step = 1;
-  while (t_curr < t_end)
+  long max_steps = app_args->num_steps;
+  while ((t_curr < t_end) && (step <= max_steps))
   {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    dt = t_end - t_curr; // Ensure we don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
@@ -943,7 +954,7 @@ int main(int argc, char **argv)
     // Find out what phase we are in.
     double time_count = 0.0;
     int frame_count = 0;
-    int pit_curr;
+    int pit_curr = 0;
     for (int pit=0; pit<ctx.num_phases; pit++) {
       time_count += ctx.poa_phases[pit].duration;
       frame_count += ctx.poa_phases[pit].num_frames;
@@ -976,7 +987,7 @@ int main(int argc, char **argv)
   // Loop over number of number of phases;
   for (int pit=phase_idx_init; pit<phase_idx_end; pit++) {
     struct gk_poa_phase_params *phase_params = &ctx.poa_phases[pit];
-    run_phase(app, &ctx, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
+    run_phase(app, &ctx, &app_args, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
   }
 
   gkyl_gyrokinetic_app_stat_write(app);
@@ -999,6 +1010,7 @@ int main(int argc, char **argv)
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
+  gkyl_free(ctx.poa_phases);
   
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
