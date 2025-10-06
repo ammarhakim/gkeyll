@@ -1046,10 +1046,10 @@ struct gk_field {
   // Pointer to functions for the twist-and-shift BCs.
   void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
 
-  // Pointer to function to solve the poisson equation
-  void (*field_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+  // Pointer to function to calculate the potential.
+  void (*rhs_phi_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
-  void (*accumulate_rhoc) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
+  void (*accumulate_rhoc_func) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

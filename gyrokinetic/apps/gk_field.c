@@ -74,7 +74,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    field->accumulate_rhoc(app, field, s);
+    field->accumulate_rhoc_func(app, field, s);
   } 
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -398,7 +398,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Compute the electrostatic potential.
   struct timespec wst = gkyl_wall_clock();
-  field->field_solve(app, field); // set inside the initialization function
+  field->rhs_phi_func(app, field); // set inside the initialization function
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 

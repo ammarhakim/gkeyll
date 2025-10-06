@@ -66,7 +66,7 @@ void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_fi
 }
 
 void
-gk_field_boltzmann_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_boltzmann_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
   gk_field_calc_ambi_pot_sheath_vals(app, app->field);
@@ -84,8 +84,8 @@ void
 gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   double polarization_weight = 1.0;
-  f->field_solve = gk_field_boltzmann_solve;
-  f->accumulate_rhoc = gk_field_accumulate_rho_c_boltzmann;
+  f->rhs_phi_func = gk_field_boltzmann_rhs;
+  f->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
 
   f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
     f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);

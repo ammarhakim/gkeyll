@@ -14,7 +14,7 @@
 
 
 void
-gk_field_poisson_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
   gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
@@ -23,7 +23,7 @@ gk_field_poisson_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *fie
 void
 gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  f->field_solve = gk_field_poisson_solve_1x;
+  f->rhs_phi_func = gk_field_1x_poisson_rhs;
 
   double polarization_weight = 0.0;
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
@@ -35,7 +35,7 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   double es_energy_fac_1d_adiabatic = 0.0;
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    f->accumulate_rhoc = gk_field_accumulate_rho_c_adiabatic;
+    f->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
     // Add the contribution from adiabatic electrons
     double n_s0 = f->info.electron_density;
     double q_s = f->info.electron_charge;
@@ -50,7 +50,7 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(epsilon_adiab);
   }
   else
-    f->accumulate_rhoc = gk_field_accumulate_rho_c_poisson;
+    f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
 
   // Allocate array for the polarization weight times geometric coefficients.
   f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
