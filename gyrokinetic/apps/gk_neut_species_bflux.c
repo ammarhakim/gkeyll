@@ -587,13 +587,18 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       }
     }
   
+    // Create an array of equation objects with terms that produce boundary fluxes.
+    bflux->num_eqns = 1; // Collisionless terms.
+    bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
+    bflux->eqns[0] = gkyl_dg_updater_vlasov_acquire_eqn(gkns->slvr);
+  
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int dir = bflux->boundaries_dir[b];
       struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir] : &gkns->upper_skin[dir];
       struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_ghost[dir] : &gkns->upper_ghost[dir];
       bflux->flux_slvr[b] = gkyl_boundary_flux_new(dir, bflux->boundaries_edge[b], &gkns->grid,
-        skin_r, ghost_r, gkns->eqn_vlasov, -1.0, app->use_gpu);
+        skin_r, ghost_r, bflux->num_eqns, bflux->eqns, -1.0, app->use_gpu);
     }
 
     // Create a ghost range that the flux lives on, and allocate the array that stores the flux.
@@ -929,6 +934,11 @@ gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void
     for (int b=0; b<bflux->num_boundaries; ++b) {
       gkyl_boundary_flux_release(bflux->flux_slvr[b]);
     }
+    for (int i=0; i<bflux->num_eqns; i++) {
+      gkyl_dg_eqn_release(bflux->eqns[i]);
+    }
+    gkyl_free(bflux->eqns);
+
     for (int b=0; b<bflux->num_boundaries; ++b) {
       gkyl_array_release(bflux->flux[b]);
     }

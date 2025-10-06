@@ -387,7 +387,7 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
 
     // Obtain the BCs for connected blocks.
     // Loop through input BCs and find those for the current connnected blocks.
-    struct gkyl_poisson_bc bcs;
+    struct gkyl_poisson_bc bcs = { };
     for (int i=0; i<mbinp->field.num_physical_bcs; i++) {
       const struct gkyl_gyrokinetic_bc *bc_curr = &mbinp->field.bcs[i];
       if (gk_multib_is_bid_connected_in_dir(bc_curr->bidx, mbapp, bid, dir)) {

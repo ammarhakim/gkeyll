@@ -29,6 +29,7 @@ struct gkyl_gyrokinetic_multib_species {
   int cells[3]; // Velocity-space cells.
   struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
 
+  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
@@ -45,8 +46,8 @@ struct gkyl_gyrokinetic_multib_species {
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
