@@ -646,7 +646,6 @@ struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
 
   enum gkyl_gkmodel_id gkmodel_id; // Gyrokinetic species model.
-  enum gkyl_gkfield_id gkfield_id; // Gyrokinetic field model.
 
   struct gkyl_basis basis; // Phase-space basis.
 

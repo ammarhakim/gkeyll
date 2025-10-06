@@ -1589,8 +1589,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       is_zero_flux[dir+pdim] = true;
   }
 
-  // Determine field-type.
-  gks->gkfield_id = app->field->gkfield_id;
+  // Determine model type.
   if (gks->info.no_by) {
     gks->gkmodel_id = GKYL_GK_MODEL_NO_BY;
   }
