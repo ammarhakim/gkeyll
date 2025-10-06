@@ -321,7 +321,7 @@ create_ctx(void)
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE; // Default fdot multiplier for FDP
   bool positivity_oap = false; // No positivity hack for OAP
   bool positivity_fdp = true; // Yes positivity hack for FDP
-  int num_cycles = 3; // Number of OAP/FDP cycles
+  int num_cycles = 1; // Number of OAP/FDP cycles
   int frames_per_phase = 5; // Frames per phase
 
   struct gk_mirror_ctx ctx = {

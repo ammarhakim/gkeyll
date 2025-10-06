@@ -85,7 +85,8 @@ struct gkyl_position_map_const_B_ctx {
  * @param local Local position range.
  * @param local_ext Local extended position range.
  * @param global Global position range.
- * @param use_gpu Whether to create a device copy of this new object.
+ * @param global_ext Global extended position range.
+ * @param basis Basis functions used for position mapping.
  * @return New position map object.
  */
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
@@ -156,6 +157,17 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * @param global 3D Global position range.
  */
 void gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global);
+
+/**
+ * Only find the B extrema along the field line for the position map object.
+ * Does not assume 3x grid. Works for deflated grids too
+ * 
+ * @param gpm Position map object.
+ * @param grid 3D Position space grid.
+ * @param global 3D Global position range.
+ */
+void gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
   struct gkyl_range global);
 
 

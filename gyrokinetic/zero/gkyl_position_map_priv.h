@@ -306,6 +306,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   int npts = 2 * constB_ctx->N_theta_boundaries;
   double theta_lo = constB_ctx->theta_min;
   double theta_hi = constB_ctx->theta_max;
+  printf("theta_lo: %g, theta_hi: %g\n", theta_lo, theta_hi);
   double theta_dxi = (theta_hi - theta_lo) / npts;
   double *bmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
   double *dbmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
@@ -313,6 +314,11 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   int extrema = 1; // Offset by 1 for the first point
   double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
   double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
+
+  // Set final extrema after the loop. MR April 22 2025
+  theta_extrema[0] = constB_ctx->theta_min;
+  xp[Z_IDX] = constB_ctx->theta_min;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -353,11 +359,6 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
-  
-  // Set final extrema after the loop. MR April 22 2025
-  theta_extrema[0] = constB_ctx->theta_min;
-  xp[Z_IDX] = constB_ctx->theta_min;
-  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
   theta_extrema[extrema] = constB_ctx->theta_max;
   xp[Z_IDX] = constB_ctx->theta_max;
@@ -369,6 +370,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   {
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
+    printf("Found B field extrema at theta = %g with B = %g\n", gpm->constB_ctx->theta_extrema[i], gpm->constB_ctx->bmag_extrema[i]);
   }
 
   // Identify 1 for maxima, 0 for minima

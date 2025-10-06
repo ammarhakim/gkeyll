@@ -206,6 +206,50 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
   }
 }
 
+
+void
+gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global)
+{
+  if (grid.ndim == 1) {
+    enum { TH_IDX }; // arrangement of computational coordinates
+    gpm->constB_ctx->psi_max   = 0.0;
+    gpm->constB_ctx->psi_min   = 0.0;
+    gpm->constB_ctx->alpha_max = 0.0;
+    gpm->constB_ctx->alpha_min = 0.0;
+    gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
+    gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
+    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
+  } else if (grid.ndim == 2) {
+    enum { PSI_IDX, TH_IDX }; // arrangement of computational coordinates
+    gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
+    gpm->constB_ctx->psi_min   = grid.lower[PSI_IDX];
+    gpm->constB_ctx->alpha_max = 0.0;
+    gpm->constB_ctx->alpha_min = 0.0;
+    gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
+    gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
+    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
+  } else if (grid.ndim == 3) {
+    enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+    gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
+    gpm->constB_ctx->psi_min   = grid.lower[PSI_IDX];
+    gpm->constB_ctx->alpha_max = grid.upper[AL_IDX];
+    gpm->constB_ctx->alpha_min = grid.lower[AL_IDX];
+    gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
+    gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
+    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
+  }
+  gpm->bmag_ctx->crange_global = &gpm->global;
+  gpm->bmag_ctx->cbasis        = &gpm->basis;
+  gpm->bmag_ctx->cgrid         = &gpm->grid;
+
+  gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
+  gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+
+  find_B_field_extrema(gpm);
+  refine_B_field_extrema(gpm);
+}
+
 double
 gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
   double x, double dx, int ix_comp, struct gkyl_range *nrange)
