@@ -486,12 +486,12 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
           KEparDbmag_wall = 0.0;
 
         double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
-        double mu_bound_wall = GKYL_MAX2(0.0, KEparDbmag_wall+qDphiDbmag_quad_wall[cqidx]);
+        double mu_bound_wall = GKYL_MAX2(0.0, -(KEparDbmag_wall+qDphiDbmag_quad_wall[cqidx]));
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
           fq[0] = 1.0 * up->norm_fac;
-        else if (mu_bound_wall < xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(up->bmag_max_loc[cdim-1]))
+        else if (mu_bound_wall > xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(up->bmag_max_loc[cdim-1]))
           fq[0] = 1.0 * up->norm_fac;
         else
           fq[0] = 0.0;
