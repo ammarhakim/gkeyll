@@ -187,7 +187,7 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
         Dbmag_quad_wall[n] += bmag_d[k]*b_ord[k];
       }
       Dbmag_quad[n] = bmag_max[0] - Dbmag_quad[n];
-      Dbmag_quad_wall[n] = bmag_wall[0] - Dbmag_quad_wall[n];
+      Dbmag_quad_wall[n] = Dbmag_quad_wall[n] - bmag_wall[0];
     }
   }
 }
@@ -325,11 +325,15 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   // Save the location of bmag_max in this updater.
   if (up->use_gpu) {
     up->bmag_max_loc = gkyl_cu_malloc(sizeof(double)*up->cdim);
+    up->bmag_wall_loc = gkyl_cu_malloc(sizeof(double)*up->cdim);
     gkyl_cu_memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim, GKYL_CU_MEMCPY_D2D);
+    gkyl_cu_memcpy(up->bmag_wall_loc, inp->bmag_wall_loc, sizeof(double)*up->cdim, GKYL_CU_MEMCPY_D2D);
   }
   else {
     up->bmag_max_loc = gkyl_malloc(sizeof(double)*up->cdim);
+    up->bmag_wall_loc = gkyl_malloc(sizeof(double)*up->cdim);
     memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim);
+    memcpy(up->bmag_wall_loc, inp->bmag_wall_loc, sizeof(double)*up->cdim);
   }
     
   return up;
@@ -402,6 +406,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
   double phi_quad[tot_quad_conf];
   double qDphiDbmag_quad[tot_quad_conf]; // charge*(phi-phi_m)/(bmag_max-bmag[0]).
+  double qDphiDbmag_quad_wall[tot_quad_conf]; // charge*phi/(bmag[0]-bmag_wall).
 
   // Outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space.
@@ -411,6 +416,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
     const double *phi_d = gkyl_array_cfetch(phi, linidx_conf);
     const double *Dbmag_quad = gkyl_array_cfetch(up->Dbmag_quad, linidx_conf);
+    const double *Dbmag_quad_wall = gkyl_array_cfetch(up->Dbmag_quad_wall, linidx_conf);
 
     // Sum over basis for given potential phi.
     for (int n=0; n<tot_quad_conf; ++n) {
@@ -426,10 +432,10 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
       else
         qDphiDbmag_quad[n] = 0.0;
 
-      // We want to compute here the trapping condition for the expanders too.
-      // Not sure whether it's inside the for loop or not
-      // We need phi_sheath here. Not sure how to get it
-
+      if (Dbmag_quad_wall[n] > 0.0)
+        qDphiDbmag_quad_wall[n] = up->charge*phi_quad[n]/Dbmag_quad_wall[n];
+      else
+        qDphiDbmag_quad_wall[n] = 0.0;
     }
 
     // Inner loop over velocity space.
@@ -466,18 +472,27 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         }
 
         // KEparDbmag = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]).
+        // KEparDbmag_wall = 0.5*mass*pow(vpar,2)/(bmag[0]-bmag_wall).
         double KEparDbmag = 0.0;
+        double KEparDbmag_wall = 0.0;
         if (Dbmag_quad[cqidx] > 0.0)
           KEparDbmag = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad[cqidx];
         else
           KEparDbmag = 0.0;
 
+        if (Dbmag_quad_wall[cqidx] > 0.0)
+          KEparDbmag_wall = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad_wall[cqidx];
+        else
+          KEparDbmag_wall = 0.0;
+
         double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
+        double mu_bound_wall = GKYL_MAX2(0.0, KEparDbmag_wall+qDphiDbmag_quad_wall[cqidx]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        if (up->charge > 0 && mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
+        if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
           fq[0] = 1.0 * up->norm_fac;
-        // else if ((up->charge < 0 )
+        else if (mu_bound_wall < xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(up->bmag_max_loc[cdim-1]))
+          fq[0] = 1.0 * up->norm_fac;
         else
           fq[0] = 0.0;
       }
@@ -514,9 +529,11 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
     gkyl_array_release(up->qDphiDbmag_quad_wall);
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     gkyl_cu_free(up->bmag_max_loc);
+    gkyl_cu_free(up->bmag_wall_loc);
   }
   else {
     gkyl_free(up->bmag_max_loc);
+    gkyl_free(up->bmag_wall_loc);
   }
 
   gkyl_free(up);
