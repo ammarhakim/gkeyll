@@ -640,6 +640,8 @@ struct gk_fdot_multiplier {
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   double *bmag_max; // Maximum magnetic field amplitude.
   double *bmag_max_coord; // Location of bmag_max.
+  double *bmag_wall; // Magnetic field at the wall.
+  double *bmag_wall_coord; // Location of bmag_wall.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);

@@ -306,7 +306,6 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   int npts = 2 * constB_ctx->N_theta_boundaries;
   double theta_lo = constB_ctx->theta_min;
   double theta_hi = constB_ctx->theta_max;
-  printf("theta_lo: %g, theta_hi: %g\n", theta_lo, theta_hi);
   double theta_dxi = (theta_hi - theta_lo) / npts;
   double *bmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
   double *dbmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
@@ -370,7 +369,6 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   {
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
-    printf("Found B field extrema at theta = %g with B = %g\n", gpm->constB_ctx->theta_extrema[i], gpm->constB_ctx->bmag_extrema[i]);
   }
 
   // Identify 1 for maxima, 0 for minima

@@ -156,12 +156,13 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
 
 static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max,
+  const double *bmag_wall)
 {
   // Get bmag_max-bmag at quadrature nodes.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag, bmag_max);
+    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag, bmag_max, bmag_wall);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -176,14 +177,17 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
 
     const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
     double *Dbmag_quad = gkyl_array_fetch(up->Dbmag_quad, linidx);
+    double *Dbmag_quad_wall = gkyl_array_fetch(up->Dbmag_quad_wall, linidx);
 
     // Sum over basis 
     for (int n=0; n<tot_quad_conf; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
-      for (int k=0; k<num_basis_conf; ++k)
+      for (int k=0; k<num_basis_conf; ++k){
         Dbmag_quad[n] += bmag_d[k]*b_ord[k];
-
+        Dbmag_quad_wall[n] += bmag_d[k]*b_ord[k];
+      }
       Dbmag_quad[n] = bmag_max[0] - Dbmag_quad[n];
+      Dbmag_quad_wall[n] = bmag_wall[0] - Dbmag_quad_wall[n];
     }
   }
 }
@@ -265,6 +269,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->mask_out_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_phase,
       inp->conf_range_ext->volume*inp->vel_range->volume);
     up->qDphiDbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->qDphiDbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
@@ -304,13 +309,18 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 #endif
 
   // Allocate and obtain bmag_max-bmag at quadrature points.
-  if (up->use_gpu) 
+  if (up->use_gpu) {
     up->Dbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-  else
+    up->Dbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+  }
+  else {
     up->Dbmag_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->Dbmag_quad_wall = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+  }
 
   gkyl_array_clear(up->Dbmag_quad, 0.0); 
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, inp->bmag_max);
+  gkyl_array_clear(up->Dbmag_quad_wall, 0.0);
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, inp->bmag_max, inp->bmag_wall);
 
   // Save the location of bmag_max in this updater.
   if (up->use_gpu) {
@@ -495,11 +505,13 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
 
   gkyl_array_release(up->fun_at_ords);
   gkyl_array_release(up->Dbmag_quad);
+  gkyl_array_release(up->Dbmag_quad_wall);
 
   if (up->use_gpu) {
     gkyl_cu_free(up->p2c_qidx);
     gkyl_array_release(up->mask_out_quad);
     gkyl_array_release(up->qDphiDbmag_quad);
+    gkyl_array_release(up->qDphiDbmag_quad_wall);
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     gkyl_cu_free(up->bmag_max_loc);
   }

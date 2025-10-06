@@ -30,6 +30,8 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_array *bmag; // Magnetic field magnitude.
   const double *bmag_max; // Maximum bmag (on GPU if use_gpu=true).
   const double *bmag_max_loc; // Location of maximum bmag (on GPU if use_gpu=true)..
+  const double *bmag_wall; // Minimum bmag (on GPU if use_gpu=true).
+  const double *bmag_wall_loc; // Location of minimum bmag (on GPU if use_gpu=true)..
   double mass; // Species mass.
   double charge; // Species charge.
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.

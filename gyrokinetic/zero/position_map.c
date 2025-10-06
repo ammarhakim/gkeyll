@@ -111,6 +111,7 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
   struct gkyl_array* bmag)
 {
   gpm->to_optimize = true;
+  gpm->constB_ctx->N_theta_boundaries = gpm->global.upper[gpm->cdim - 1] - gpm->global.lower[gpm->cdim - 1] + 2;
   int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
   gpm->constB_ctx->theta_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
   gpm->constB_ctx->bmag_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
@@ -208,7 +209,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
 
 
 void
-gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+gkyl_position_map_deflated_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
   struct gkyl_range global)
 {
   if (grid.ndim == 1) {
@@ -219,7 +220,6 @@ gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect
     gpm->constB_ctx->alpha_min = 0.0;
     gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
     gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
-    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
   } else if (grid.ndim == 2) {
     enum { PSI_IDX, TH_IDX }; // arrangement of computational coordinates
     gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
@@ -228,7 +228,6 @@ gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect
     gpm->constB_ctx->alpha_min = 0.0;
     gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
     gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
-    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
   } else if (grid.ndim == 3) {
     enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
     gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
@@ -237,7 +236,6 @@ gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect
     gpm->constB_ctx->alpha_min = grid.lower[AL_IDX];
     gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
     gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
-    gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
   }
   gpm->bmag_ctx->crange_global = &gpm->global;
   gpm->bmag_ctx->cbasis        = &gpm->basis;

@@ -32,7 +32,7 @@ struct gkyl_position_map {
   mc2nu_t maps[3]; // Position mapping in each position direction.
   void *ctxs[3]; // Context for each position mapping function.
 
-  double cdim; // Number of computational dimensions.
+  int cdim; // Number of computational dimensions.
   struct gkyl_rect_grid grid; // Position space grid.
   struct gkyl_range local, local_ext, global, global_ext; // Local & extended local position-space range.
   struct gkyl_basis basis;  // Basis for position mapping.
@@ -167,7 +167,7 @@ void gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_
  * @param grid 3D Position space grid.
  * @param global 3D Global position range.
  */
-void gkyl_position_map_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+void gkyl_position_map_deflated_find_B_extrema(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
   struct gkyl_range global);
 
 

@@ -149,69 +149,57 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
                                               // at leat p+1 for Gauss-Lobatto.
 
-      // Maximum bmag and its location.
-      // NOTE: if the same max bmag occurs at multiple locations,
-      // bmag_max_coord may have different values on different MPI processes.
-      double bmag_max_coord_ho[GKYL_MAX_CDIM];
-      double bmag_max_ho = gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX, bmag_max_coord_ho);
-      double bmag_max_local = bmag_max_ho;
-      double bmag_max_global;
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
-      double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
-      if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
-        for (int d=0; d<app->cdim; d++)
-          bmag_max_coord_local[d] = bmag_max_coord_ho[d];
-      }
-      else {
-        for (int d=0; d<app->cdim; d++)
-          bmag_max_coord_local[d] = -DBL_MAX;
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
-
-      // printf("Species %s: bmag_max=%g at (", gks->info.name, bmag_max_global);
-      // for (int d=0; d<app->cdim; d++)
-      //   printf("%g%s", bmag_max_coord_global[d], d==app->cdim-1? ")\n" : ", ");
-
-      // struct gkyl_position_map_inp pmap_info = {
-      //   .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-      //   .map_strength = 0.0,
-      // };
-      // struct gkyl_position_map *gpm = gkyl_position_map_new( pmap_info, app->grid, \
-      //   app->local, app->local_ext, app->global, app->global_ext, app->basis);
-      // gkyl_position_map_set_bmag(gpm, app->comm, app->gk_geom->geo_int.bmag);
-      // gkyl_position_map_find_B_extrema(gpm, app->grid, app->global);
+      // Find the peaks of B magnitude using the position map infrastructure
+      struct gkyl_position_map_inp pmap_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.0,
+      };
+      struct gkyl_position_map *gpm = gkyl_position_map_new( pmap_info, app->grid, \
+        app->local, app->local_ext, app->global, app->global_ext, app->basis);
       
-      // // Extract variables from position map context
-      // // double *bmag_extrema = gpm->constB_ctx->bmag_extrema;
-      // int num_extrema = gpm->constB_ctx->num_extrema;
-      // printf("Species %s: num_extrema = %d\n", gks->info.name, num_extrema);
-
-      // for (int i=0; i<num_extrema; i++)
-      //   printf("Species %s: z=%g, bmag_extrema[%d] = %g \n", gks->info.name, gpm->constB_ctx->theta_extrema[i],
-      //     gpm->constB_ctx->bmag_extrema[i]);
-
-      // Identify walls (endpoints)
-      // double bmag_left_wall = bmag_extrema[0];
-      // double bmag_right_wall = bmag_extrema[num_extrema - 1];
-      // double bmag_mirror = fmin(bmag_extrema[1], bmag_extrema[num_extrema - 2]);
-
-      // printf("Species %s: bmag_left_wall=%g, bmag_right_wall=%g, bmag_mirror=%g, bmag_max=%g\n", 
-      //   gks->info.name, bmag_left_wall, bmag_right_wall, bmag_mirror, bmag_max_global);
+      gkyl_position_map_set_bmag(gpm, app->comm, app->gk_geom->geo_int.bmag);
+      gkyl_position_map_deflated_find_B_extrema(gpm, app->grid, app->global);
       
+      // Extract variables from position map context
+      double *bmag_extrema = gpm->constB_ctx->bmag_extrema;
+      double *theta_extrema = gpm->constB_ctx->theta_extrema;
+      int num_extrema = gpm->constB_ctx->num_extrema;
 
-      // gkyl_position_map_release(gpm);
+      // Identify walls (endpoints) and find the actual mirror point
+      double bmag_wall = (bmag_extrema[0] + bmag_extrema[num_extrema - 1] ) / 2.0;
+      double theta_wall = theta_extrema[num_extrema - 1];
+      double bmag_mirror = fmin(bmag_extrema[1], bmag_extrema[num_extrema - 2]);
+      double theta_mirror = theta_extrema[num_extrema - 2];
+
+      double coord_mirror[GKYL_MAX_CDIM];
+      double coord_wall[GKYL_MAX_CDIM];
+      if (app->cdim==1){
+        coord_mirror[0] = theta_mirror;
+        coord_wall[0] = theta_wall;
+      }
+      else{
+        assert(false);
+      }
 
       if (app->use_gpu) {
         fdmul->bmag_max = gkyl_cu_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-        gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-        gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        fdmul->bmag_wall = gkyl_cu_malloc(sizeof(double));
+        fdmul->bmag_wall_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
+        gkyl_cu_memcpy(fdmul->bmag_max, &bmag_mirror, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_max_coord, &coord_mirror, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_wall, &bmag_wall, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_wall_coord, &coord_wall, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         fdmul->bmag_max = gkyl_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-        memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
-        memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+        fdmul->bmag_wall = gkyl_malloc(sizeof(double));
+        fdmul->bmag_wall_coord = gkyl_malloc(app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_max, &bmag_mirror, sizeof(double));
+        memcpy(fdmul->bmag_max_coord, &coord_mirror, app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_wall, &bmag_wall, sizeof(double));
+        memcpy(fdmul->bmag_wall_coord, &coord_wall, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.
@@ -236,6 +224,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = fdmul->bmag_max,
         .bmag_max_loc = fdmul->bmag_max_coord,
+        .bmag_wall = fdmul->bmag_wall,
+        .bmag_wall_loc = fdmul->bmag_wall_coord,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .qtype = qtype,
@@ -252,6 +242,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
       else
         gkyl_array_release(fdmul->multiplier_host);
+      gkyl_position_map_release(gpm);
     }
   }
 }
@@ -300,12 +291,16 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
       if (app->use_gpu) {
         gkyl_cu_free(fdmul->bmag_max);
         gkyl_cu_free(fdmul->bmag_max_coord);
+        gkyl_cu_free(fdmul->bmag_wall);
+        gkyl_cu_free(fdmul->bmag_wall_coord);
         gkyl_cu_free(fdmul->phi_m);
         gkyl_cu_free(fdmul->phi_m_global);
       }
       else {
         gkyl_free(fdmul->bmag_max);
         gkyl_free(fdmul->bmag_max_coord);
+        gkyl_free(fdmul->bmag_wall);
+        gkyl_free(fdmul->bmag_wall_coord);
         gkyl_free(fdmul->phi_m);
         gkyl_free(fdmul->phi_m_global);
       }
