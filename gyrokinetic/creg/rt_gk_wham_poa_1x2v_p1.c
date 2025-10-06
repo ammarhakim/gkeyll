@@ -321,7 +321,7 @@ create_ctx(void)
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE; // Default fdot multiplier for FDP
   bool positivity_oap = false; // No positivity hack for OAP
   bool positivity_fdp = true; // Yes positivity hack for FDP
-  int num_cycles = 100; // Number of OAP/FDP cycles
+  int num_cycles = 3; // Number of OAP/FDP cycles
   int frames_per_phase = 5; // Frames per phase
 
   struct gk_mirror_ctx ctx = {
@@ -510,12 +510,26 @@ run_simulation_phase(const char* phase_name, double phase_duration,
     gkyl_gyrokinetic_app_cout(app, stdout, "%s: tfinal=%.9e s | frame_start_phase=%d | frame_end_phase=%d\n", 
            phase_name, *tfinal, frame_start_phase, *frame_end_phase);
   }
-  
-  // Update simulation parameters for this phase
-  gkyl_gyrokinetic_app_reset_fdot_mult(app, 0, params.alpha, params.fdot_mult_type);
-  gkyl_gyrokinetic_app_reset_enforce_positivity(app, params.positivity);
-  gkyl_gyrokinetic_app_reset_update_field(app, !params.static_field);
-  gkyl_gyrokinetic_app_reset_update_species(app, 0, params.update_species);
+
+  // Reset simulation parameters and function pointers.
+  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
+    .type = params.fdot_mult_type,
+    .cellwise_const = true,
+    .write_diagnostics = true,
+  };
+  struct gkyl_gyrokinetic_field field_reset = {
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    .electron_mass = ctx->me,
+    .electron_charge = ctx->qe,
+    .electron_temp = ctx->Te0,
+    .polarization_bmag = ctx->B_p,
+    .is_static = params.static_field,
+  };
+  double alpha = params.alpha;
+  gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, *t_curr, "ion", fdot_mult);
+  gkyl_gyrokinetic_app_reset_species_collisionless(app, *t_curr, "ion", alpha);
+  gkyl_gyrokinetic_app_reset_field(app, *t_curr, field_reset);
+  gkyl_gyrokinetic_app_reset_species_positivity(app, *t_curr, "ion", params.positivity);
 
   // For the triggers, use the current time as the starting point
   double phase_start_time = *t_curr;  // Start from current time
@@ -731,7 +745,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gk app_inp = {  // GK app
-    .name = "gk_wham",
+    .name = "gk_wham_poa_1x2v_p1",
     .cdim = ctx.cdim ,  .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -791,19 +805,6 @@ int main(int argc, char **argv)
       gkyl_gyrokinetic_app_cout(app, stdout, " (final FDP with extra frames)");
     }
     gkyl_gyrokinetic_app_cout(app, stdout, "\n");
-    
-    // Set up simulation parameters for the current phase
-    if (restart_info.is_oap_phase) {
-      gkyl_gyrokinetic_app_reset_fdot_mult(app, 0, ctx.alpha_oap, ctx.fdot_mult_type_oap);
-      gkyl_gyrokinetic_app_reset_enforce_positivity(app, ctx.positivity_oap);
-      gkyl_gyrokinetic_app_reset_update_field(app, !ctx.static_field_oap);
-      gkyl_gyrokinetic_app_reset_update_species(app, 0, ctx.update_species_oap);
-    } else {
-      gkyl_gyrokinetic_app_reset_fdot_mult(app, 0, ctx.alpha_fdp, ctx.fdot_mult_type_fdp);
-      gkyl_gyrokinetic_app_reset_enforce_positivity(app, ctx.positivity_fdp);
-      gkyl_gyrokinetic_app_reset_update_field(app, !ctx.static_field_fdp);
-      gkyl_gyrokinetic_app_reset_update_species(app, 0, ctx.update_species_fdp);
-    }
   }
   else {
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);

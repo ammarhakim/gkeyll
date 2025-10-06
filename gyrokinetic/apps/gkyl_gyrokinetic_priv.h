@@ -811,6 +811,7 @@ struct gk_species {
 
   // Updater that enforces positivity by shifting f.
   bool enforce_positivity;
+  bool positivity_is_initialized;
   struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
   struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
   struct gkyl_array *ps_delta_m0s_tot; // Density of total positivity shift (like-species).
