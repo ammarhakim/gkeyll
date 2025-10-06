@@ -13,13 +13,12 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
   // vmap: velocity space mapping.
   // vmapSq: velocity space mapping squared.
   // q_,m_: species charge and mass.
+  // dgv: volume DG geometry.
+  // gkdgv: gyrokinetic volume DG geometry.
   // bmag: magnetic field amplitude.
-  // jacobtot_inv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
-  // cmag: coefficient multiplying parallel gradient.
-  // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // bmag_surf: bmag represented on the surface.
-  // jacobtot_inv_surf: jacobtot_inv represented on the surface.
+  // JfL: distribution times total jacobian in left cell.
+  // JfR: distribution times total jacobian in right cell.
   // flux_surf: output surface phase space flux in each direction (cdim + 1 components).
   //            Note: Each cell owns their *lower* edge surface evaluation.
 

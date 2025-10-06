@@ -22,7 +22,8 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param charge Species charge
  * @param mass Species mass
  * @param collless_type Type of collisionless terms.
- * @param gk_geom Geometry struct
+ * @param gk_geom Gyrokinetic geometry object.
+ * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
@@ -43,14 +44,15 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
  * onto the surface basis.
  * 
  * Note: Each cell stores the surface expansion on the *lower* edge of the cell
- * @param up Updater for computing gyrokinetic variables 
- * @param conf_range Configuration space range (should only be local range because geometry only defined on local range)
- * @param phase_range Phase space range 
+ * @param up Updater for computing gyrokinetic variables.
+ * @param conf_range Configuration space range (should only be local range because geometry only defined on local range).
+ * @param phase_range Phase space range.
  * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
- * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces)
- * @param phi Electrostatic potential
- * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction 
- * @param clfrate Output CFL rate
+ * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
+ * @param phi Electrostatic potential.
+ * @param fin Distribution function.
+ * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction.
+ * @param clfrate Output CFL rate.
  */
 void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
