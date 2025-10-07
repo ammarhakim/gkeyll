@@ -3,8 +3,9 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_2x2v_ser_p1(
     const double *w, const double *dxv,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
-    const double *bmag, const double *phi, const double *JfL, const double *JfR, 
-    double* GKYL_RESTRICT flux_surf) 
+    const double *bmag, const double *jacobgeo_surfL, const double *jacobgeo_surfR,
+    const double *jacobgeo_inv_surfL, const double *jacobgeo_inv_surfR, const double *phi,
+    const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -14,6 +15,10 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_2x2v_ser_p1(
   // dgs: surface DG geometry.
   // gkdgs: gyrokinetic surface DG geometry.
   // bmag: bmag represented on the surface.
+  // jacobgeo_surfL: Surface conf-space Jacobian in left cell.
+  // jacobgeo_surfR: Surface conf-space Jacobian in right cell.
+  // jacobgeo_inv_surfL: Reciprocal surface conf-space Jacobian in left cell.
+  // jacobgeo_inv_surfR: Reciprocal surface conf-space Jacobian in right cell.
   // phi: electrostatic potential.
   // JfL: distribution times total jacobian in left cell.
   // JfR: distribution times total jacobian in right cell.

@@ -220,8 +220,7 @@ struct gk_collisionless {
   struct gkyl_array *apar; // A_parallel.
   struct gkyl_array *apardot; // d/dt A_parallel.
 
-  struct gkyl_gk_collisionless_flux *calc_gk_vars;
-
+  struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
   gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
  
   // Methods chosen at runtime.

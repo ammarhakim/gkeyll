@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_bc_type.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
@@ -25,6 +26,7 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
+ * @param bctype_conf Type of conf-space BCs.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
@@ -32,10 +34,9 @@ struct gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
-  const struct gk_geometry *gk_geom, 
-  const struct gkyl_dg_geom *dg_geom, 
-  const struct gkyl_gk_dg_geom *gk_dg_geom, 
-  const struct gkyl_velocity_map *vel_map, bool use_gpu);
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha

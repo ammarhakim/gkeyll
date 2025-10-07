@@ -4,7 +4,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_3x2v_ser_p1(
     const double *vmap_prime_l, const double *vmap_prime_r,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-    const double *bmag, const double *phi, const double *JfL, const double *JfR, 
+    const double *bmag, const double *phi, const double *JfL, const double *JfR,
     double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
