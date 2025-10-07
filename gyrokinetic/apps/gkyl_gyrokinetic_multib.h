@@ -28,12 +28,6 @@ struct gkyl_gyrokinetic_multib_species {
   int cells[3]; // Velocity-space cells.
   struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
 
-  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
-
-  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
-              // These more computationally efficient kernels are for slab or mirror 
-              // calculations where there is no toroidal field. 
-
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
