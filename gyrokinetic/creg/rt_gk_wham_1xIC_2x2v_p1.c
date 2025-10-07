@@ -618,7 +618,7 @@ int main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
- {
+  {
     struct gkyl_gyrokinetic_projection elc_ic = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -647,6 +647,10 @@ int main(int argc, char **argv)
       },
 
       .projection = elc_ic,
+
+      .collisionless = {
+        .type = GKYL_GK_COLLISIONLESS_ES,
+      },
 
       .collisions = {
         .collision_id = GKYL_LBO_COLLISIONS,
@@ -709,6 +713,10 @@ int main(int argc, char **argv)
       .projection = ion_ic,
       .scale_with_polarization = true,
 
+      .collisionless = {
+        .type = GKYL_GK_COLLISIONLESS_ES,
+      },
+
       .collisions =  {
         .collision_id = GKYL_LBO_COLLISIONS,
         .ctx = &ctx,
@@ -763,16 +771,21 @@ int main(int argc, char **argv)
       .cells = { cells_x[1] },
       .poly_order = ctx.poly_order,
       .basis_type = app_args.basis_type,
+
       .geometry = {
         .geometry_id = GKYL_MIRROR,
         .world = {ctx.psi_eval, 0.0},
         .mirror_grid_info = grid_inp,
       },
+
       .num_periodic_dir = 0,
       .periodic_dirs = {},
+
       .num_species = 2,
       .species = {elc, ion},
+
       .field = field,
+
       .parallelism = {
         .use_gpu = app_args.use_gpu,
         .cuts = { app_args.cuts[1] },
@@ -905,6 +918,10 @@ int main(int argc, char **argv)
         .ctx = &ctx,
       },
 
+      .collisionless = {
+        .type = GKYL_GK_COLLISIONLESS_ES,
+      },
+
       .collisions = {
         .collision_id = GKYL_LBO_COLLISIONS,
         .ctx = &ctx,
@@ -960,6 +977,10 @@ int main(int argc, char **argv)
       },
 
       .scale_with_polarization = true,
+
+      .collisionless = {
+        .type = GKYL_GK_COLLISIONLESS_ES,
+      },
 
       .collisions =  {
         .collision_id = GKYL_LBO_COLLISIONS,
@@ -1021,16 +1042,21 @@ int main(int argc, char **argv)
       .cells = { cells_x[0], cells_x[1] },
       .poly_order = ctx.poly_order,
       .basis_type = app_args.basis_type,
+
       .geometry = {
         .geometry_id = GKYL_MIRROR,
         .world = {0.0},
         .mirror_grid_info = grid_inp,
       },
+
       .num_periodic_dir = 0,
       .periodic_dirs = {},
+
       .num_species = 2,
       .species = {elc, ion},
+
       .field = field,
+
       .parallelism = {
         .use_gpu = app_args.use_gpu,
         .cuts = { app_args.cuts[0], app_args.cuts[1] },
