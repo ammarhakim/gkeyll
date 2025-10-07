@@ -145,19 +145,17 @@ eval_potential(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
     fout[0] = 0.0;
   }
 }
-
 // Ion initial conditions
 void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
   double z = xn[1];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
   {
-    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
+    fout[0] = 0.5*app->n0*(1. + tanh(3. * sigma * fabs(sigma - fabs(z))));
   }
   else
   {
@@ -169,7 +167,6 @@ void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
   double z = xn[1];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
@@ -180,7 +177,7 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   }
   else
   {
-    fout[0] = fabs(z) / z * cs_m * tanh(3 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
+    fout[0] = fabs(z) / z * cs_m * tanh(5 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
   }
 }
 
@@ -188,7 +185,6 @@ void
 eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
   double z = xn[1];
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
@@ -199,7 +195,7 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   }
   else
   {
-    fout[0] = Ti_par_m * GKYL_MAX2(1.e-2, 4 * log(fabs(fabs(z) - z_m) + 1));
+    fout[0] = Ti_par_m * (1 + GKYL_MAX2(1.e-2, 0.4 * log(fabs(fabs(z) - z_m) + 1)));
   }
 }
 
@@ -207,7 +203,6 @@ void
 eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
   double z = xn[1];
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
@@ -249,7 +244,7 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
 
   double cvpar = vc[0], cmu = vc[1];
   double b = 1.45;
-  double linear_velocity_threshold = 1./3.;
+  double linear_velocity_threshold = 1./6.;
   double frac_linear = 1/b*atan(linear_velocity_threshold*tan(b));
   if (fabs(cvpar) < frac_linear) {
     double func_frac = tan(frac_linear*b) / tan(b);
@@ -259,7 +254,7 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
     vp[0] = vpar_max_ion*tan(cvpar*b)/tan(b);
   }
   // Quadratic map in mu.
-  vp[1] = mu_max_ion*pow(cmu,2);
+  vp[1] = mu_max_ion*fabs(pow(cmu,3));
 }
 
 struct gk_mirror_ctx
@@ -279,7 +274,7 @@ create_ctx(void)
   // Plasma parameters.
   double mi = 2.014 * mp;
   double Te0 = 940 * eV;
-  double n0 = 3e19;
+  double n0 = 2.46e19;
   double B_p = 0.53;
   double beta = 0.4;
   double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
@@ -312,6 +307,7 @@ create_ctx(void)
   // Geometry parameters.
   double z_min = -2.0;
   double z_max =  2.0;
+  double z_m = 1.0; //position of mirror throat
   double psi_min = 1e-5;
   double psi_max = 1e-3;
 
@@ -324,13 +320,13 @@ create_ctx(void)
   double TSrcFloorIon = TSrc0Ion / 8.0;
 
   // Physics parameters at mirror throat
-  double cs_m = 4.037740e5;
+  double cs_m = 10.037740e5; 
 
   // Initial conditions parameters
-  double Ti_perp0 = 10000 * eV;
-  double Ti_perp_m = 15000 * eV;
-  double Ti_par0 = 7500 * eV;
-  double Ti_par_m = 1000 * eV;
+  double Ti_perp0 = 7200 * eV;
+  double Ti_perp_m = 5000 * eV;
+  double Ti_par0 = 5200 * eV;
+  double Ti_par_m = 800 * eV;
 
   // Grid parameters
   double vpar_max_ion = 20 * vti;
@@ -376,6 +372,7 @@ create_ctx(void)
     .kperp = kperp, 
     .z_min = z_min,
     .z_max = z_max,
+    .z_m = z_m,
     .psi_min = psi_min,
     .psi_max = psi_max,
     .Ti_perp0 = Ti_perp0,
@@ -404,7 +401,6 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-  ctx.z_m = 0.98;
   return ctx;
 }
 
@@ -546,7 +542,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
-    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "/core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 

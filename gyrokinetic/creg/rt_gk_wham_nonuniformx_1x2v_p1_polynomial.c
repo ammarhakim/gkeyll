@@ -79,6 +79,35 @@ struct gk_mirror_ctx
   double vpar_max_elc;
   double mu_max_ion;
   double mu_max_elc;
+
+    // Fitting parameters for initial conditions
+  // Ions
+  double n0_ion; // Ion density at the mirror position
+  double a1_c0;
+  double a2_c0;
+  double a3_c0;
+  double a1_c1;
+  double a2_c1;
+  double c_sm;
+  double a1_c2;
+  double a2_c2;
+  double a1_c3;
+  double a2_c3;
+  // Electrons
+  double a1_k0;
+  double a2_k0;
+  double a3_k0;
+  double a4_k0;
+  double n0_elc;
+  double a1_k1;
+  double a2_k1;
+  double a3_k1;
+  double a1_k2;
+  double a2_k2;
+  double a3_k2;
+  double a1_k3;
+  double a2_k3;
+
   int Nz;
   int Nvpar;
   int Nmu;
@@ -183,146 +212,104 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   }
 }
 
-// Electrons initial conditions
-void
-eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  //Intial Conditions:
+
+//electron IC:
+// --- Electron Density ---
+void eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double z_m = app->z_m;
-  double sigma = 0.9*z_m;
-  if (fabs(z) <= sigma)
-  {
-    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
-  }
-  else
-  {
-    fout[0] = 0.5*app->n0*exp(-5 * (fabs(sigma - fabs(z))));
+  double sigma = app->a1_k0 * app->z_m;
+  if (fabs(z) <= sigma) {
+    fout[0] = 0.5 * app->n0_elc * (1.0 + tanh(app->a2_k0 * sigma * fabs(sigma - fabs(z))));
+  } else {
+    fout[0] = 0.5 * app->n0_elc * exp(-app->a3_k0 * fabs(sigma - fabs(z)));
   }
 }
 
-void
-eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// --- Electron Parallel Velocity ---
+void eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double cs_m = app->cs_m;
-  double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = 0.0;
-  }
-  else
-  {
-    fout[0] = fabs(z) / z * cs_m * tanh(3 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
+  fout[0] = app->a1_k1 * pow(z, 7) + app->a2_k1 * pow(z, 5) + app->a3_k1 * pow(z, 3);
+}
+
+// --- Electron Parallel Temperature ---
+void eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double z = xn[0];
+  if (fabs(z) <= app->z_m) {
+    fout[0] = app->Te_par_m + (app->Te_par0 - app->Te_par_m) * tanh(app->a1_k2 * fabs(app->z_m - fabs(z)));
+  } else {
+    fout[0] = app->Te_par_m * (1.0 + fmax(1e-3, app->a2_k2 * log(fabs(fabs(z) - app->z_m) + app->a3_k2)));
   }
 }
 
-void
-eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// --- Electron Perpendicular Temperature ---
+void eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double z_m = app->z_m;
-  double Te_par0 = app->Te_par0;
-  double Te_par_m = app->Te_par_m;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = Te_par_m+(Te_par0-Te_par_m)*tanh(4 * fabs(z_m - fabs(z)));
-  }
-  else
-  {
-    fout[0] = Te_par_m;
+  if (fabs(z) <= app->z_m) {
+    fout[0] = app->Te_perp_m + (app->Te_perp0 - app->Te_perp_m) * tanh(app->a1_k3 * fabs(app->z_m - fabs(z)));
+  } else {
+    fout[0] = app->Te_perp_m * fmax(1e-3, exp(-app->a2_k3 * fabs(app->z_m - fabs(z))));
   }
 }
 
-void
-eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+
+//Ion IC:
+// --- Ion Density ---
+void eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double z_m = app->z_m;
-  double Te_perp0 = app->Te_perp0;
-  double Te_perp_m = app->Te_perp_m;
-  if (fabs(z) <= z_m)
-  {
-   fout[0] = Te_perp_m - Te_perp0*tanh(3.*fabs(z_m-fabs(z)));
-  }
-  else
-  {
-    fout[0] = Te_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
+  double sigma = app->a1_c0 * app->z_m;
+  if (fabs(z) <= sigma) {
+    fout[0] = 0.5 * app->n0_ion * (1.0 + tanh(app->a2_c0 * sigma * fabs(sigma - fabs(z))));
+  } else {
+    fout[0] = 0.5 * app->n0_ion * exp(-app->a3_c0 * fabs(sigma - fabs(z)));
   }
 }
 
-// Ion initial conditions
-void
-eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// --- Ion Parallel Velocity ---
+void eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double z_m = app->z_m;
-  double sigma = 0.9*z_m;
-  if (fabs(z) <= sigma)
-  {
-    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
-  }
-  else
-  {
-    fout[0] = 0.5*app->n0* exp(-5 * (fabs(sigma - fabs(z))));
+  int n = 7;
+  double a3 = app->c_sm / (pow(app->a2_c1, n) * pow(app->z_m, n)) * tanh(app->a1_c1 * app->z_m * fabs(app->a2_c1 - 1));
+  if (fabs(z) <= app->a2_c1 * app->z_m) {
+    fout[0] = a3 * pow(z, n);
+  } else {
+    fout[0] = (z >= 0 ? 1 : -1) * app->c_sm * tanh(app->a1_c1 * (app->z_max - app->z_m) * fabs(fabs(z) - app->z_m));
   }
 }
 
-void
-eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// --- Ion Parallel Temperature ---
+void eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double cs_m = app->cs_m;
-  double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = 0.0;
-  }
-  else
-  {
-    fout[0] = fabs(z) / z * cs_m * tanh(3 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
-  }
-}
-void
-eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
-  double z_m = app->z_m;
-  double Ti_par0 = app->Ti_par0;
-  double Ti_par_m = app->Ti_par_m;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = Ti_par_m + (Ti_par0 - Ti_par_m) * tanh(4 * fabs(z_m - fabs(z)));
-  }
-  else
-  {
-    fout[0] = Ti_par_m * GKYL_MAX2(1.e-2, 4 * log(fabs(fabs(z) - z_m) + 1));
+  if (fabs(z) <= app->z_m) {
+    fout[0] = app->Ti_par_m + (app->Ti_par0 - app->Ti_par_m) * tanh(app->a1_c2 * fabs(app->z_m - fabs(z)));
+  } else {
+    fout[0] = app->Ti_par_m * (1.0 + fmax(1e-2, app->a2_c2 * log(fabs(fabs(z) - app->z_m) + 1.0)));
   }
 }
 
-void
-eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+// --- Ion Perpendicular Temperature ---
+void eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
-  double z_m = app->z_m;
-  double Ti_perp0 = app->Ti_perp0;
-  double Ti_perp_m = app->Ti_perp_m;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = Ti_perp_m + (Ti_perp0 - Ti_perp_m) * tanh(3. * fabs(z_m - fabs(z)));
-  }
-  else
-  {
-    fout[0] = Ti_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
+  if (fabs(z) <= app->z_m) {
+    fout[0] = app->Ti_perp_m + (app->Ti_perp0 - app->Ti_perp_m) * tanh(app->a1_c3 * fabs(app->z_m - fabs(z)));
+  } else {
+    fout[0] = app->Ti_perp_m * fmax(1e-3, exp(-app->a2_c3 * fabs(app->z_m - fabs(z))));
   }
 }
 
@@ -452,16 +439,44 @@ create_ctx(void)
   double TSrc0Elc = TSrc0Ion / tau;
   double TSrcFloorElc = TSrcFloorIon / tau;
 
-  // Initial conditions parameters
-  double Ti_perp0 = 10000 * eV;
-  double Ti_perp_m = 15000 * eV;
-  double Ti_par0 = 7500 * eV;
-  double Ti_par_m = 1000 * eV;
+  // Initial conditions parameters 
+  // Ions
+  double n0_ion = 2.5948132e+19; // at mirror position
+  double a1_c0 = 0.99014296;
+  double a2_c0 = 8.0194641;
+  double a3_c0 = 10.436877;
+  double a1_c1 = 8.276893;
+  double a2_c1 = 1.1032267;
+  double c_sm = 864394.32;
+  double a1_c2 = 4.665789;
+  double a2_c2 = -0.3;
+  double a1_c3 = 5.5917856e+12;
+  double a2_c3 = 3.0562054;
 
-  double Te_par0 = 1800 * eV;  
-  double Te_par_m = 300 * eV;
-  double Te_perp0 = 2000 * eV;
-  double Te_perp_m = 3000 * eV;
+  double Ti_par0 = 6.985003e+10*mi;
+  double Ti_par_m = 1.4178086e+10*mi;
+  double Ti_perp0 = 7.6635127e+10*mi;
+  double Ti_perp_m = 7.9932151e+10*mi;
+
+  // Electrons
+  double a1_k0 = 0.98623828;
+  double a2_k0 = 7.9267646;
+  double a3_k0 = 12.886197;
+  double a4_k0 = -8.6841948e+13;
+  double n0_elc = 2.3943235e+19;
+  double a1_k1 = -330418.65;
+  double a2_k1 = 1662909.6;
+  double a3_k1 = -690341.93;
+  double a1_k2 = 958.48668;
+  double a2_k2 = -0.90528608;
+  double a3_k2 = 0.23708749;
+  double a1_k3 = 5.5917856e+12;
+  double a2_k3 = 3.0562054;
+
+  double Te_par0 = 2.1478722e+14*me;
+  double Te_par_m = 9.9118925e+13*me;
+  double Te_perp0 = 2.1538958e+14*me;
+  double Te_perp_m = 2.2145113e+14*me;
 
   // Physics parameters at mirror throat
   double n_m = 1.105617e19;
@@ -542,6 +557,32 @@ create_ctx(void)
     .vpar_max_elc = vpar_max_elc,
     .mu_max_ion = mu_max_ion,
     .mu_max_elc = mu_max_elc,
+    // Fitting parameters (ions)
+    .n0_ion = n0_ion,
+    .a1_c0 = a1_c0,
+    .a2_c0 = a2_c0,
+    .a3_c0 = a3_c0,
+    .a1_c1 = a1_c1,
+    .a2_c1 = a2_c1,
+    .c_sm = c_sm,
+    .a1_c2 = a1_c2,
+    .a2_c2 = a2_c2,
+    .a1_c3 = a1_c3,
+    .a2_c3 = a2_c3,
+    // Fitting parameters (electrons)
+    .a1_k0 = a1_k0,
+    .a2_k0 = a2_k0,
+    .a3_k0 = a3_k0,
+    .a4_k0 = a4_k0,
+    .n0_elc = n0_elc,
+    .a1_k1 = a1_k1,
+    .a2_k1 = a2_k1,
+    .a3_k1 = a3_k1,
+    .a1_k2 = a1_k2,
+    .a2_k2 = a2_k2,
+    .a3_k2 = a3_k2,
+    .a1_k3 = a1_k3,
+    .a2_k3 = a2_k3,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -726,7 +767,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
-    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "/core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
