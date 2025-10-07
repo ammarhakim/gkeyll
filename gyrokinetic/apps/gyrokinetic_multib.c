@@ -780,8 +780,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
     mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol);
 
-  // Sync the conf-space Jacobian needed for rescaling Jf when syncing between blocks.
-  for(int d = 0; d<cdim; d++) {
+  // Sync the surface conf-space Jacobian needed for rescaling Jf.
+  for (int d = 0; d<cdim; d++) {
     struct gkyl_array *jacs[mbapp->num_local_blocks], *jac_invs[mbapp->num_local_blocks];
     for (int b=0; b<mbapp->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
@@ -820,7 +820,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   }
 
   if (any_anomalous_diff) {
-    // Sync the conf-space volume reciprocal Jacobian.
+    // Sync the interior conf-space reciprocal Jacobian.
     struct gkyl_array *jacs_inv_vol[mbapp->num_local_blocks];
     for (int b=0; b<mbapp->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
