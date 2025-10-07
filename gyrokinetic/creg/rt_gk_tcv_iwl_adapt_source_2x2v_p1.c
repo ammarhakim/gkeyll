@@ -823,7 +823,7 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_tcv_iwl_adapt_source_2x2v_p1",
-    .cfl_frac_omegaH = 1.0e9,
+    .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
     .cdim = ctx.cdim,
     .vdim = ctx.vdim,
