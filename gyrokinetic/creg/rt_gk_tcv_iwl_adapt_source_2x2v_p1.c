@@ -295,7 +295,7 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
 
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xc[0], y = 0.0, z = xc[1];
+  double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
   double r0 = app->r0;
