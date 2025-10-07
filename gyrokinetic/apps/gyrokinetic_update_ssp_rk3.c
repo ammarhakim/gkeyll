@@ -6,7 +6,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   const struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  struct gkyl_update_status *st, bool adapt_src)
 {
 
   struct timespec wst_fe = gkyl_wall_clock();
@@ -18,7 +18,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   // Compute the time rate of change of the distributions, df/dt.
-  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
+  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st, adapt_src);
 
   struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
@@ -85,7 +85,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st, true);
         dt = st.dt_actual;
 
         for (int i=0; i<app->num_species; ++i) {
@@ -123,7 +123,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st, false);
 
         if (st.dt_actual < dt) {
 
@@ -192,7 +192,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st, false);
 
         if (st.dt_actual < dt) {
           // Recalculate the field.

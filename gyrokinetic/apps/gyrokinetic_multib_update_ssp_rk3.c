@@ -23,7 +23,7 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     gyrokinetic_rhs(app->singleb_apps[b], tcurr, dt, &fin[li_charged], &fout[li_charged],
-      &bflux_out[li_charged], &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], st);
+      &bflux_out[li_charged], &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], st, false);
     dtmin = fmin(dtmin, st->dt_actual);
   }
 

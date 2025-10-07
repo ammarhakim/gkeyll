@@ -1680,7 +1680,7 @@ void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  struct gkyl_update_status *st, bool adapt_src)
 {
   double dtmin = DBL_MAX;
 
@@ -1762,9 +1762,12 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute plasma source term.
   // Done here as the RHS update for all species should be complete before
   // in case we are using boundary fluxes as a component of our source function
-  for (int i=0; i<app->num_species; ++i) {
-    gk_species_source_adapt(app, &app->species[i], &app->species[i].src, 
-      app->species[i].lte.f_lte, bflux_out, tcurr);
+  // Adapt the source if needed.
+  if(adapt_src){
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_out, tcurr);
+    }
   }
   for (int i=0; i<app->num_species; ++i) {
     gk_species_source_rhs(app, &app->species[i], 

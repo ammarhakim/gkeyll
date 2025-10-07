@@ -3197,11 +3197,12 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param fout_neut Output array of neutral-species distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
  * @param st Time stepping status object.
+ * @param adapt_src Whether to adapt source terms (this is a temporary solution)
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
-  struct gkyl_update_status *st); 
+  struct gkyl_update_status *st, bool adapt_src); 
 
 /**
  * Take time-step using the RK3 method. Also sets the status object
