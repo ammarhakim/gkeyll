@@ -25,6 +25,9 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->rhs_phi_func = gk_field_1x_poisson_rhs;
 
+  // Allocate array for the polarization weight times geometric coefficients.
+  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+
   double polarization_weight = 0.0;
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
   // Linearized polarization density
@@ -32,6 +35,10 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     struct gk_species *s = &app->species[i];
     polarization_weight += s->info.polarization_density*s->info.mass/pow(polarization_bmag,2);
   }
+  // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
+  gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
+  gkyl_array_scale(f->epsilon, polarization_weight);
+  gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
   double es_energy_fac_1d_adiabatic = 0.0;
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
@@ -51,14 +58,6 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
   else
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
-
-  // Allocate array for the polarization weight times geometric coefficients.
-  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
-
-  // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-  gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
-  gkyl_array_scale(f->epsilon, polarization_weight);
-  gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
   // Gather epsilon for (global) smoothing in z.
   f->epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
