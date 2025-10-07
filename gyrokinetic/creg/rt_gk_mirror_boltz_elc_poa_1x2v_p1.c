@@ -725,10 +725,6 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   // Reset I/O triggers:
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
 
-  printf("Running phase %s: t=[%g, %g], num_frames=%d, alpha=%g, is_static_field=%d, fdot_mult_type=%d\n",
-    pparams->phase==GK_POA_OAP?"OAP":"FDP", t_curr, t_end, pparams->num_frames, pparams->alpha,
-    pparams->is_static_field, pparams->fdot_mult_type);
-
   // Reset simulation parameters and function pointers.
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
     .type = pparams->fdot_mult_type,

@@ -49,27 +49,18 @@ struct gk_mirror_ctx
   double beta;
   double tau;
   double Ti0;
-  double kperpRhos;
   // Parameters controlling initial conditions.
-  double alim;
   double nuFrac;
-  // Electron-electron collision freq.
-  double logLambdaElc;
-  double nuElc;
-  double elc_nuFrac;
   // Ion-ion collision freq.
   double logLambdaIon;
   double nuIon;
   // Thermal speeds.
   double vti;
-  double vte;
   double c_s;
   // Gyrofrequencies and gyroradii.
   double omega_ci;
   double rho_s;
-  double kperp; // Perpendicular wavenumber in SI units.
-  double RatZeq0; // Radius of the field line at Z=0.
-  // Axial coordinate Z extents. Endure that Z=0 is not on
+  // Axial coordinate Z extents.
   double z_min;
   double z_max;
   double psi_min;
@@ -77,9 +68,7 @@ struct gk_mirror_ctx
   double psi_max;
   // Physics parameters at mirror throat
   double vpar_max_ion;
-  double vpar_max_elc;
   double mu_max_ion;
-  double mu_max_elc;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -96,18 +85,6 @@ struct gk_mirror_ctx
   double ion_source_amplitude;
   double ion_source_sigma;
   double ion_source_temp;
-
-  // Initial conditions reading
-  double *f_dist_ion;
-  double *f_dist_elc;
-  double *phi_vals;
-  double *psi_grid;
-  double *z_grid;
-  double *v_grid;
-  double *theta_grid;
-  double *B_grid;
-  int *dims;
-  int rank;
 
   // POA parameters
   int num_phases; // Number of phases.
@@ -232,19 +209,8 @@ create_ctx(void)
   double beta = 0.4;
   double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
   double Ti0 = tau * Te0;
-  double kperpRhos = 0.1;
-
-  // Parameters controlling initial conditions.
-  double alim = 0.125;
-  double alphaIC0 = 2;
-  double alphaIC1 = 10;
 
   double nuFrac = 1.0;
-  double elc_nuFrac = 1/5.489216862238348;
-  // Electron-electron collision freq.
-  double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
-  double nuElc = elc_nuFrac * nuFrac * logLambdaElc * pow(eV, 4.) * n0 /
-                 (6. * sqrt(2.) * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(me) * pow(Te0, 3. / 2.));
   // Ion-ion collision freq.
   double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
   double nuIon = nuFrac * logLambdaIon * pow(eV, 4.) * n0 /
@@ -252,15 +218,11 @@ create_ctx(void)
 
   // Thermal speeds.
   double vti = sqrt(Ti0 / mi);
-  double vte = sqrt(Te0 / me);
   double c_s = sqrt(Te0 / mi);
 
   // Gyrofrequencies and gyroradii.
   double omega_ci = eV * B_p / mi;
   double rho_s = c_s / omega_ci;
-
-  // Perpendicular wavenumber in SI units:
-  double kperp = kperpRhos / rho_s;
 
   // Geometry parameters.
   double z_min = -2.0;
@@ -270,11 +232,8 @@ create_ctx(void)
   double psi_max = 3e-3; // aim for 2e-2
 
   // Grid parameters
-  double vpar_max_elc = 30 * vte;
-  double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 30 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nx = 16;
   int Nz = 288;
   int Nvpar = 32; // 96 uniform
   int Nmu = 32;  // 192 uniform
@@ -356,29 +315,20 @@ create_ctx(void)
     .beta = beta,
     .tau = tau,
     .Ti0 = Ti0,
-    .kperpRhos = kperpRhos,
-    .alim = alim,
     .nuFrac = nuFrac,
-    .logLambdaElc = logLambdaElc,
-    .nuElc = nuElc,
-    .elc_nuFrac = elc_nuFrac,
     .logLambdaIon = logLambdaIon,
     .nuIon = nuIon,
     .vti = vti,
-    .vte = vte,
     .c_s = c_s,
     .omega_ci = omega_ci,
     .rho_s = rho_s,
-    .kperp = kperp,
     .z_min = z_min,
     .z_max = z_max,
     .psi_min = psi_min,
     .psi_eval = psi_eval,
     .psi_max = psi_max,
     .vpar_max_ion = vpar_max_ion,
-    .vpar_max_elc = vpar_max_elc,
     .mu_max_ion = mu_max_ion,
-    .mu_max_elc = mu_max_elc,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -481,10 +431,6 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   
   // Reset I/O triggers:
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
-
-  printf("Running phase %s: t=[%g, %g], num_frames=%d, alpha=%g, is_static_field=%d, fdot_mult_type=%d\n",
-    pparams->phase==GK_POA_OAP?"OAP":"FDP", t_curr, t_end, pparams->num_frames, pparams->alpha,
-    pparams->is_static_field, pparams->fdot_mult_type);
 
   // Reset simulation parameters and function pointers.
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
