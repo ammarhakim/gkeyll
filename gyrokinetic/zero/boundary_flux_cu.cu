@@ -10,7 +10,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -26,18 +26,27 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   else
     up->skip_cell_threshold = -1.0;
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
-  up->equation = eqn->on_dev;
-  
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
+  up->num_eqns = num_eqns;
+
+  up->eqns_ho = (struct gkyl_dg_eqn **) gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
+  struct gkyl_dg_eqn **eqns_ho_dev = (struct gkyl_dg_eqn **) gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
+  for (int i=0; i<up->num_eqns; i++) {
+    up->eqns_ho[i] = gkyl_dg_eqn_acquire(eqns[i]);
+    eqns_ho_dev[i] = up->eqns_ho[i]->on_dev;
+  }
+
+  up->eqns = (struct gkyl_dg_eqn **) gkyl_cu_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
+  gkyl_cu_memcpy(up->eqns, eqns_ho_dev, up->num_eqns*sizeof(struct gkyl_dg_eqn *), GKYL_CU_MEMCPY_H2D);
+  
   struct gkyl_boundary_flux *up_cu = (struct gkyl_boundary_flux*) gkyl_cu_malloc(sizeof(struct gkyl_boundary_flux));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_boundary_flux), GKYL_CU_MEMCPY_H2D);
   up->on_dev = up_cu;
-  
-  up->equation = eqn;
-  
+
+  gkyl_free(eqns_ho_dev);
+
   return up;
 }
 
@@ -68,14 +77,14 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
 
     if (fabs(fs_c[0]) < up->skip_cell_threshold && fabs(fg_c[0]) < up->skip_cell_threshold)
     {
-      for (int d=0; d<fluxOut->ncomp; ++d) {
+      for (int d=0; d<fluxOut->ncomp; ++d)
         fluxOut_g[d] = 0.0;
-      }
     }
     else {
-      up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
-        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-        fs_c, fg_c, fluxOut_g);
+      for (int i=0; i<up->num_eqns; i++)
+        up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
+          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+          fs_c, fg_c, fluxOut_g);
     }
   }
 }
