@@ -235,6 +235,26 @@ eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   }
 }
 
+// Potential initial condition
+void
+eval_potential(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double z = xn[0];
+  double z_m = 0.98;
+  double z_max = app->z_max;
+  double sigma = 0.2*z_m;
+  double center_potential = 8.0 * app->Te0 / app->qi;
+  if (fabs(z) <= sigma)
+  {
+    fout[0] = center_potential;
+  }
+  else
+  {
+    fout[0] = center_potential * (1 - (fabs(z) - sigma) / (z_max - sigma));
+  }
+}
+
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
@@ -253,7 +273,7 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
     vp[0] = vpar_max_ion*tan(cvpar*b)/tan(b);
   }
   // Quadratic map in mu.
-  vp[1] = mu_max_ion*pow(cmu,2);
+  vp[1] = mu_max_ion*pow(cmu,3);
 }
 
 void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
@@ -274,7 +294,7 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
     vp[0] = vpar_max_elc*tan(cvpar*b)/tan(b);
   }
   // Quadratic map in mu.
-  vp[1] = mu_max_elc*pow(cmu,2);
+  vp[1] = mu_max_elc*pow(cmu,3.0/2.0);
 }
 
 struct gk_mirror_ctx
@@ -357,10 +377,10 @@ create_ctx(void)
   double elc_source_temp = 5000. * eV; // Using same temp as ion source for simplicity
 
   // POA parameters  
-  int oap_first = 0; // Start with OAP phase
-  double alpha_oap = 0.000005; // Alpha for OAP phase
+  int oap_first = 1; // Start with OAP phase
+  double alpha_oap = 5e-5; // Alpha for OAP phase
   double alpha_fdp = 1.0; // Alpha for FDP phase
-  double tau_oap = 3e-10; // OAP duration in microseconds
+  double tau_oap = 5e-7; // OAP duration in microseconds
   double tau_fdp = 6e-11; // FDP duration in microseconds
   double tau_fdp_extra = 0.0; // Extra FDP duration in final cycle
   bool static_field_oap = true; // Dynamic field for OAP
@@ -573,6 +593,8 @@ run_simulation_phase(const char* phase_name, double phase_duration,
     .kperpSq = pow(ctx->kperp, 2.),
     .time_rate_diagnostics = true,
     .is_static = params.static_field,
+    .polarization_potential = eval_potential,
+    .polarization_potential_ctx = &ctx,
   };
   double alpha = params.alpha;
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, *t_curr, "ion", fdot_mult);
@@ -795,6 +817,7 @@ int main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
     .no_by = true,
+    .scale_with_polarization = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -869,6 +892,8 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
     .time_rate_diagnostics = true,
     .is_static = false,
+    .polarization_potential = eval_potential,
+    .polarization_potential_ctx = &ctx,
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {

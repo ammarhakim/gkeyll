@@ -54,10 +54,11 @@ gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct 
 }
 
 void
-gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app, struct gk_fdot_multiplier *fdmul, double *out)
+gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, double *out)
 {
   // Multiply out by the multplier.
-  *out *= fdmul->multiplier;
+  out[0] = out[0] / gks->collisionless_scale_fac;
 }
 
 void
@@ -84,7 +85,8 @@ gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const str
 }
 
 void
-gk_species_fdot_multiplier_advance_omegaH_disabled(gkyl_gyrokinetic_app *app, struct gk_fdot_multiplier *fdmul, double *out)
+gk_species_fdot_multiplier_advance_omegaH_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, double *out)
 {
 }
 
@@ -275,12 +277,12 @@ gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const st
 }
 
 void
-gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app,
+gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, double *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  fdmul->advance_times_omegaH_func(app, fdmul, out);
+  fdmul->advance_times_omegaH_func(app, gks, fdmul, out);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }
