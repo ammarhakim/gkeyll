@@ -49,14 +49,14 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_no_by_x_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels, *surf_no_by_y_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels, *surf_no_by_z_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels, *surf_no_by_vpar_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels, *boundary_surf_no_by_x_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels, *boundary_surf_no_by_y_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels, *boundary_surf_no_by_z_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_no_by_vpar_kernels; 
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels; 
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels; 
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels; 
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels; 
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels; 
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -71,14 +71,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
       vol_no_by_kernels = ser_no_by_vol_kernels;
-      surf_no_by_x_kernels = ser_no_by_surf_x_kernels;
-      surf_no_by_y_kernels = ser_no_by_surf_y_kernels;
-      surf_no_by_z_kernels = ser_no_by_surf_z_kernels;
-      surf_no_by_vpar_kernels = ser_surf_vpar_kernels;
-      boundary_surf_no_by_x_kernels = ser_no_by_boundary_surf_x_kernels;
-      boundary_surf_no_by_y_kernels = ser_no_by_boundary_surf_y_kernels;
-      boundary_surf_no_by_z_kernels = ser_no_by_boundary_surf_z_kernels;
-      boundary_surf_no_by_vpar_kernels = ser_no_by_boundary_surf_vpar_kernels;
       
       break;
 
