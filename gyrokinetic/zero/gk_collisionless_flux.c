@@ -168,6 +168,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         const double *jacgeo_inv_surfR_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobgeo_inv_sync, loc_conf_ext);
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
+
         cflrate_ext_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_surfL_d, jacgeo_surfR_d, jacgeo_inv_surfL_d, jacgeo_inv_surfR_d, phi_d,
           fL, fR, flux_surf_ext_d);
