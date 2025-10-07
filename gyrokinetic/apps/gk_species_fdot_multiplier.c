@@ -54,6 +54,13 @@ gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct 
 }
 
 void
+gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app, struct gk_fdot_multiplier *fdmul, double *out)
+{
+  // Multiply out by the multplier.
+  *out *= fdmul->multiplier;
+}
+
+void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
@@ -76,6 +83,12 @@ gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const str
 {
 }
 
+void
+gk_species_fdot_multiplier_advance_omegaH_disabled(gkyl_gyrokinetic_app *app, struct gk_fdot_multiplier *fdmul, double *out)
+{
+}
+
+
 static void
 proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
@@ -94,6 +107,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
   // Default function pointers.
   fdmul->write_func = gk_species_fdot_multiplier_write_disabled;
   fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_disabled;
+  fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_disabled;
   fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_disabled;
 
   if (fdmul->type) {
@@ -134,6 +148,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
+      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics)
         fdmul->write_func = gk_species_fdot_multiplier_write_init_only;
@@ -237,6 +252,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
+      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics)
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
@@ -254,6 +270,17 @@ gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const st
   struct timespec wst = gkyl_wall_clock();
 
   fdmul->advance_times_cfl_func(app, gks, fdmul, phi, out);
+
+  app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app,
+  struct gk_fdot_multiplier *fdmul, double *out)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  fdmul->advance_times_omegaH_func(app, fdmul, out);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }

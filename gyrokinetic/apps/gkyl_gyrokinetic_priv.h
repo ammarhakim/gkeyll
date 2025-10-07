@@ -649,6 +649,8 @@ struct gk_fdot_multiplier {
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
   void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+  void (*advance_times_omegaH_func)(gkyl_gyrokinetic_app *app,
+    struct gk_fdot_multiplier *fdmul, double *out);
 };
 
 struct gk_heating {
@@ -2332,12 +2334,21 @@ void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk
  * @param gks Species object.
  * @param fdmul Species df/dt multiplier object.
  * @param phi Current electrostatic potential.
- * @param fin Current distribution function.
- * @param f_buffer Phase-space buffer.
  * @param out CFL rate to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+
+
+/**
+ * Multiply the omegaH rate.
+ *
+ * @param app gyrokinetic app object.
+ * @param fdmul Species df/dt multiplier object.
+ * @param out omegaH rate to multiply.
+ */
+gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app,
+  struct gk_fdot_multiplier *fdmul, double *out);
 
 /**
  * Multiply df/dt.
