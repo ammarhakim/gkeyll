@@ -11,10 +11,12 @@ extern "C" {
 
 __global__ void
 gkyl_bgk_collisions_correct_nu_cu_kernel(unsigned vdim, unsigned cnum_basis,
-  struct gkyl_range crange, struct gkyl_array* nu_input, struct gkyl_array* nu_actual)
+  struct gkyl_range crange, struct gkyl_array* marr, struct gkyl_array* nu_input, struct gkyl_array* nu_actual)
 {
 
   int cidx[GKYL_MAX_DIM];
+  int num_comp = vdim+2; // (n, V_drift, T/m)
+  int T_idx = num_comp-1; // T/m is always the last component
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < crange.volume;
@@ -33,7 +35,7 @@ gkyl_bgk_collisions_correct_nu_cu_kernel(unsigned vdim, unsigned cnum_basis,
     const double m0_d = marr_d[0*nc];
     const double mT_d = marr_d[T_idx*nc];
     const double *nu_input_d = (const double*) gkyl_array_cfetch(nu_input, cloc);
-    double *actual_nu_d = (double*) gkyl_array_fetch(actual_nu, cloc);
+    double *actual_nu_d = (double*) gkyl_array_fetch(nu_actual, cloc);
 
     // Either set nu to zero or copy input nu to actual_nu
     for (int i=0; i<nc; ++i){
@@ -114,7 +116,7 @@ gkyl_bgk_collisions_correct_nu_cu(const gkyl_bgk_collisions *up, const struct gk
   int nblocks = crange->nblocks;
   int nthreads = crange->nthreads;
   gkyl_bgk_collisions_correct_nu_cu_kernel<<<nblocks, nthreads>>>(up->vdim, up->cnum_basis,
-    *crange, *marr->on_dev, nu_input->on_dev, actual_nu->on_dev);
+    *crange, marr->on_dev, nu_input->on_dev, actual_nu->on_dev);
 }
 
 void
