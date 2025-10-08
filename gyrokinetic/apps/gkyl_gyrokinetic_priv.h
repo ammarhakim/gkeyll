@@ -20,6 +20,7 @@
 #include <gkyl_array_dg_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_basic_gyrokinetic.h>
 #include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
@@ -39,7 +40,7 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
-#include <gkyl_dg_updater_diffusion_gyrokinetic.h>
+#include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -269,6 +270,18 @@ struct gk_lbo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
+struct gk_anomalous_diff {
+  enum gkyl_gk_anomalous_diff_id anom_diff_id; // Type of heating source.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  struct gkyl_array *diffD; // Diffusivity.
+  struct gkyl_dg_updater_gk_anomalous_diffusion *slvr; // Anomalous diffusion equation solver.
+  // Methods chosen at runtime.
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_anomalous_diff *gkad, double tm, int frame);
+};
+
 struct gk_lte {  
   struct gkyl_array *f_lte;
 
@@ -356,6 +369,8 @@ struct gk_boundary_fluxes {
   struct gkyl_range *boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
   struct gkyl_range *boundaries_phase_ghost_nosub; // Not a sub range of local_ext.
   struct gkyl_range *boundaries_conf_skin_fullx[2*GKYL_MAX_CDIM]; // Whole x range (for IWL).
+  int num_eqns; // Number of equations with boundary fluxes.
+  const struct gkyl_dg_eqn **eqns; // Array of equation objects with boundary fluxes.
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
@@ -363,7 +378,7 @@ struct gk_boundary_fluxes {
   enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
-  struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
   struct gk_species_moment *moms_op; // Moments calculator.
@@ -698,7 +713,7 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew, *fghost_vol; // Arrays for updates
+  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
@@ -741,17 +756,17 @@ struct gk_species {
   bool is_first_L2norm_write_call; // Whether dynvec is being written for the first time.
 
   int num_periodic_dir; // Number of periodic directions.
-  int periodic_dirs[3]; // List of periodic directions.
-  bool bc_is_np[3]; // Whether BC is nonperiodic.
+  int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
+  bool bc_is_np[GKYL_MAX_CDIM]; // Whether BC is nonperiodic.
 
   // Boundary conditions on lower/upper edges in each direction.
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
   // Pointers to updaters that apply (non-sheath) BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
+  struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
@@ -781,6 +796,8 @@ struct gk_species {
 
   struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
 
+  struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
+  
   struct gk_heating heat_src; // Heating source.
 
   // Boundary fluxes used for other solvers and diagnostics.
@@ -802,11 +819,6 @@ struct gk_species {
   struct gk_react react_neut; // Object for reactions with neutral species.
 
   struct gk_rad_drag rad; // Radiation object.
-
-  // Gyrokinetic diffusion.
-  bool has_diffusion; // Flag to indicate there is applied diffusion.
-  struct gkyl_array *diffD; // Array for diffusion tensor.
-  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
 
   // Updater that enforces positivity by shifting f.
   bool enforce_positivity;
@@ -925,14 +937,14 @@ struct gk_neut_species {
   bool recyc_up;
   
   int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
-  bool bc_is_np[3]; // whether BC is nonperiodic.
+  int periodic_dirs[GKYL_MAX_CDIM]; // list of periodic directions
+  bool bc_is_np[GKYL_MAX_CDIM]; // whether BC is nonperiodic.
 
   // boundary conditions on lower/upper edges in each direction  
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
   // Pointers to updaters that apply BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_bc_basic *bc_lo[GKYL_MAX_CDIM];
+  struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
@@ -1077,10 +1089,13 @@ struct gk_field {
   // Objects used in IWL simulations and TS BCs.
   struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
-  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+  struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
+  // radial skin & ghost ranges and ssfg operator for BC of phi
+  struct gkyl_range lower_skin_x, lower_ghost_x;
+  struct gkyl_skin_surf_from_ghost *ssfg_x_lo;
   
-  // Pointer to function for the twist-and-shift BCs.
-  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
+  // Pointer to functions for the twist-and-shift BCs.
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -1172,6 +1187,24 @@ struct gkyl_gyrokinetic_app {
 
 /** gkyl_gyrokinetic_app private API */
 
+inline struct gkyl_gyrokinetic_bc *
+gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
+  int dir, enum gkyl_edge_loc edge)
+{
+  // Given a list of gyrokinetic BCs `bc_list` of length `num_bcs`, return the
+  // entry corresponding to the BC in the `dir` direction and the `edge` edge.
+  // It omits GKYL_BC_GK_SKIP BCs.
+  struct gkyl_gyrokinetic_bc *out = 0;
+  for (int i=0; i<num_bcs; ++i) {
+    struct gkyl_gyrokinetic_bc *bc_curr = &bc_list[i];
+    if (bc_curr->dir == dir && bc_curr->edge == edge && bc_curr->type != GKYL_BC_GK_SKIP) {
+      out = bc_curr;
+      break;
+    }
+  }
+  return out;
+}
+ 
 /**
  * Create a new array metadata object. It must be freed using
  * gk_array_meta_release.
@@ -2358,6 +2391,50 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
 
+/** gk_anomalous_diff API */
+
+/**
+ * Initialize species anomalous diffusion object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param s Species object.
+ * @param gkad Species anomalous diffusion object.
+ */
+void gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_anomalous_diff *gkad);
+
+/**
+ * Compute RHS contribution from anomalous diffusion.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gkad Species anomalous diffusion object.
+ * @param fin Input distribution function.
+ * @param rhs Anomalous diffusion contribution to df/dt.
+ */
+void gk_species_anomalous_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write out diagnostics from the anomalous diffusion term.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gkad Species anomalous diffusion object.
+ * @param tm Current simulation time.
+ * @param frame Current I/O frame.
+ */
+void gk_species_anomalous_diff_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_anomalous_diff *gkad, double tm, int frame);
+
+/**
+ * Release species anomalous diffusion object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkad Species anomalous diffusion object.
+ */
+void gk_species_anomalous_diff_release(const struct gkyl_gyrokinetic_app *app, const struct gk_anomalous_diff *gkad);
+
 /** gk_heating API */
 
 /**
@@ -2386,7 +2463,7 @@ void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *specie
  * Write out diagnostics from the heating source.
  *
  * @param app Gyrokinetic app object.
- * @param species Pointer to species.
+ * @param gks Pointer to species.
  * @param src Pointer to source.
  * @param tm Current simulation time.
  * @param frame Current I/O frame.

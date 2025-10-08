@@ -60,6 +60,9 @@ struct gkyl_moment_species {
   double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
 
+  bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
+  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+
   bool force_low_order_flux; // should  we force low-order flux?
 
   void *ctx; // context for initial condition init function (and potentially other functions)

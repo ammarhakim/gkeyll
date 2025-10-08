@@ -20,6 +20,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
+  GKYL_EQN_GR_MHD, // General relativistic magnetohydrodynamics equations.
+  GKYL_EQN_GR_MHD_TETRAD, // General relativistic magnetohydrodynamics equations in the tetrad basis.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
@@ -168,4 +170,11 @@ enum gkyl_vel_edge {
 enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
   GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts=sqrt(Tperp_s/m_s)
+};
+
+// Gyrokinetic anomaous diffusion models.
+enum gkyl_gk_anomalous_diff_id {
+  GKYL_GK_ANOMALOUS_DIFF_NONE = 0, // No anomalous diffusion.
+  GKYL_GK_ANOMALOUS_DIFF_D, // Specify D only.
+  GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
 };

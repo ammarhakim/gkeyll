@@ -208,13 +208,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "ion" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcGkSheath },
     },
 
     evolve = true, -- Evolve species?

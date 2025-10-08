@@ -179,7 +179,7 @@ test_gr_euler_tetrad_basic_minkowski()
         gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 71; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
@@ -187,7 +187,7 @@ test_gr_euler_tetrad_basic_minkowski()
         gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
         gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 71; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -390,7 +390,7 @@ test_gr_euler_tetrad_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -398,7 +398,7 @@ test_gr_euler_tetrad_basic_schwarzschild()
           gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
           gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -602,7 +602,7 @@ test_gr_euler_tetrad_basic_kerr()
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -610,7 +610,7 @@ test_gr_euler_tetrad_basic_kerr()
           gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
           gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }

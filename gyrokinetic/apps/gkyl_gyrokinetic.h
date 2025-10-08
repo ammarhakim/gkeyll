@@ -3,8 +3,6 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_fem_parproj.h>
-#include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
@@ -12,6 +10,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_gk_bc_type.h>
 
 #include <stdbool.h>
 
@@ -93,15 +92,7 @@ struct gkyl_gyrokinetic_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
 };
 
-// Parameters for species diffusion.
-struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // Number of diffusion directions.
-  int diff_dirs[3]; // List of diffusion directions.
-  double D[3]; // Constant diffusion coefficient in each direction.
-  int order; // Order of the diffusion (4 for grad^4, 6 for grad^6, default is 2).
-};
-
-// Structure to hold parameters for adaptive source.
+// Structure to hold parameters for adaptive source
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
@@ -122,6 +113,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
+};
+
+// Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
+struct gkyl_gyrokinetic_anomalous_diffusion {
+  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
+  void *D_profile_ctx;
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
@@ -145,17 +144,16 @@ struct gkyl_gyrokinetic_emission_inp {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  enum gkyl_species_bc_type type; // BC type flag.
+  int dir;  // Direction in which BC is specified.
+  enum gkyl_edge_loc edge; // Which edge this BC is for.
+  enum gkyl_gyrokinetic_bc_type type; // BC type flag.
+  double value[3]; // Meaning depends on type.
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
-  double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission; 
   bool write_diagnostics; // Whether to output diagnostics.
-};
-
-struct gkyl_gyrokinetic_bcs {
-  struct gkyl_gyrokinetic_bc lower, upper;
+  int bidx; // Block index (for multiblock solver).
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -345,14 +343,14 @@ struct gkyl_gyrokinetic_species {
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion.
-  struct gkyl_gyrokinetic_diffusion diffusion;
-
   // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
   // A damping term -rate*f on RHS.
   struct gkyl_gyrokinetic_damping damping; 
+
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Heating source.
   struct gkyl_gyrokinetic_heating heating;
@@ -366,7 +364,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
 
 // Parameters for neutral species
@@ -398,17 +396,17 @@ struct gkyl_gyrokinetic_neut_species {
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 
 
-  // Collisions to include.
+  // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Source to include.
+  // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
-  // Reactions with plasma species to include.
+  // Reactions with plasma species.
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
 
 // Parameter for gk field.
@@ -423,7 +421,7 @@ struct gkyl_gyrokinetic_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  struct gkyl_poisson_bc poisson_bcs;
+  struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 

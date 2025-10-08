@@ -178,7 +178,7 @@ test_gr_euler_basic_minkowski()
         gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 71; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
@@ -186,7 +186,7 @@ test_gr_euler_basic_minkowski()
         gr_euler->cons_to_riem(gr_euler, q_local, q_local, w1);
         gr_euler->riem_to_cons(gr_euler, q_local, w1, q1);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 71; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -388,7 +388,7 @@ test_gr_euler_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -396,7 +396,7 @@ test_gr_euler_basic_schwarzschild()
           gr_euler->cons_to_riem(gr_euler, q_local, q_local, w1);
           gr_euler->riem_to_cons(gr_euler, q_local, w1, q1);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -462,7 +462,7 @@ test_gr_euler_basic_kerr()
       for (int i = 0; i < 3; i++) {
         shift_der[i] = gkyl_malloc(sizeof(double[3]));
       }
-
+      
       double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
@@ -593,13 +593,13 @@ test_gr_euler_basic_kerr()
             TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-1) );
           }
         }
-
+        
         double q_l[71], q_g[71];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
@@ -607,7 +607,7 @@ test_gr_euler_basic_kerr()
           gr_euler->cons_to_riem(gr_euler, q_local, q_local, w1);
           gr_euler->riem_to_cons(gr_euler, q_local, w1, q1);
 
-          for (int i = 0; i < 5; i++) {
+          for (int i = 0; i < 71; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
