@@ -171,3 +171,10 @@ enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
   GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts=sqrt(Tperp_s/m_s)
 };
+
+// Gyrokinetic anomaous diffusion models.
+enum gkyl_gk_anomalous_diff_id {
+  GKYL_GK_ANOMALOUS_DIFF_NONE = 0, // No anomalous diffusion.
+  GKYL_GK_ANOMALOUS_DIFF_D, // Specify D only.
+  GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
+};

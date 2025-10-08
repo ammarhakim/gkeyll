@@ -129,6 +129,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+// Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
+struct gkyl_gyrokinetic_anomalous_diffusion {
+  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
+  void *D_profile_ctx;
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
 // Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
 struct gkyl_gyrokinetic_heating {
   enum gkyl_heating_id heating_id; // Type of heating term.
@@ -333,11 +341,11 @@ struct gkyl_gyrokinetic_species {
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion.
-  struct gkyl_gyrokinetic_diffusion diffusion;
-
   // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
+
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Heating source.
   struct gkyl_gyrokinetic_heating heating;
@@ -383,13 +391,13 @@ struct gkyl_gyrokinetic_neut_species {
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 
 
-  // Collisions to include.
+  // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Source to include.
+  // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
-  // Reactions with plasma species to include.
+  // Reactions with plasma species.
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
