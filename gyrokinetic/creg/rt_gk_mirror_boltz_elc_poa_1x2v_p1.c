@@ -538,7 +538,7 @@ create_ctx(void)
   double t_end = (tau_oap + tau_fdp)*num_cycles + tau_fdp_extra;
   double tau_pair = tau_oap+tau_fdp; // Duration of an OAP+FDP pair.
   int num_phases = 2*num_cycles + 1;
-  int num_frames = 1 + num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
+  int num_frames = num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
 
   struct gk_poa_phase_params *poa_phases = gkyl_malloc(num_phases * sizeof(struct gk_poa_phase_params));
   for (int i=0; i<(num_phases-1)/2; i++) {
@@ -781,8 +781,8 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(trig_calc_intdiag, app, t_curr, t_curr > t_end, status.dt_actual);
-    write_data(trig_write_conf, trig_write_phase, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(trig_calc_intdiag, app, t_curr, t_curr >= t_end, status.dt_actual);
+    write_data(trig_write_conf, trig_write_phase, app, t_curr, t_curr >= t_end);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
