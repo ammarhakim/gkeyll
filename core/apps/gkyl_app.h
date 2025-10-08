@@ -52,7 +52,6 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
   GKYL_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
   GKYL_SPECIES_RECYCLE, // Recycling BCs
-  GKYL_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
 };
 
 // Boundary conditions on fields
