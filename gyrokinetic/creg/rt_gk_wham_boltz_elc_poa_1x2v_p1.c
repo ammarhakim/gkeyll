@@ -238,7 +238,7 @@ create_ctx(void)
   int Nvpar = 32; // 96 uniform
   int Nmu = 32;  // 192 uniform
   int poly_order = 1;
-  double write_phase_freq = 0.5;
+  double write_phase_freq = 0.2;
   double int_diag_calc_freq = 100; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -266,12 +266,15 @@ create_ctx(void)
   // Whether to evolve the field.
   bool is_static_field_oap = true;
   bool is_static_field_fdp = false;
+  // Whether to enable positivity.
+  bool is_positivity_enabled_oap = false;
+  bool is_positivity_enabled_fdp = true;
   // Type of df/dt multipler.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_oap = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE;
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE;
 
   // Calculate phase structure
-  double t_end = (tau_oap + tau_fdp + tau_fdp_extra)*num_cycles;
+  double t_end = (tau_oap + tau_fdp)*num_cycles + tau_fdp_extra;
   double tau_pair = tau_oap+tau_fdp; // Duration of an OAP+FDP pair.
   int num_phases = 2*num_cycles + 1;
   int num_frames = 1 + num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
@@ -285,6 +288,7 @@ create_ctx(void)
     poa_phases[2*i].alpha = alpha_oap;
     poa_phases[2*i].is_static_field = is_static_field_oap;
     poa_phases[2*i].fdot_mult_type = fdot_mult_type_oap;
+    poa_phases[2*i].is_positivity_enabled = is_positivity_enabled_oap;
 
     // FDPs.
     poa_phases[2*i+1].phase = GK_POA_FDP;
@@ -293,6 +297,7 @@ create_ctx(void)
     poa_phases[2*i+1].alpha = alpha_fdp;
     poa_phases[2*i+1].is_static_field = is_static_field_fdp;
     poa_phases[2*i+1].fdot_mult_type = fdot_mult_type_fdp;
+    poa_phases[2*i+1].is_positivity_enabled = is_positivity_enabled_fdp;
   }
   // The final stage is an extra, longer FDP.
   poa_phases[num_phases-1].phase = GK_POA_FDP;
@@ -301,6 +306,7 @@ create_ctx(void)
   poa_phases[num_phases-1].alpha = alpha_fdp;
   poa_phases[num_phases-1].is_static_field = is_static_field_fdp;
   poa_phases[num_phases-1].fdot_mult_type = fdot_mult_type_fdp;
+  poa_phases[num_phases-1].is_positivity_enabled = is_positivity_enabled_fdp;
 
   struct gk_mirror_ctx ctx = {
     .cdim = cdim,
@@ -350,6 +356,13 @@ create_ctx(void)
   
   return ctx;
 }
+
+void
+release_ctx(struct gk_mirror_ctx *ctx)
+{
+  gkyl_free(ctx->poa_phases);
+}
+
 void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app,
   double t_curr, bool force_calc, double dt)
@@ -417,7 +430,7 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   trig_calc_intdiag->curr = frame_curr;
 }
 
-void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl_app_args* app_args,
+void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_steps,
   struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase,
   struct gkyl_tm_trigger *trig_calc_intdiag, struct time_frame_state *tfs,
   struct gk_poa_phase_params *pparams)
@@ -460,8 +473,7 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, struct gkyl
   int num_failures = 0, num_failures_max = ctx->num_failures_max;
 
   long step = 1;
-  long max_steps = app_args->num_steps;
-  while ((t_curr < t_end) && (step <= max_steps))
+  while ((t_curr < t_end) && (step <= num_steps))
   {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     dt = t_end - t_curr; // Ensure we don't step beyond t_end.
@@ -723,10 +735,13 @@ int main(int argc, char **argv)
     write_data(&trig_write_conf, &trig_write_phase, app, tfs.t_curr, true);
   }
 
+  if (app_args.num_steps != INT_MAX)
+    phase_idx_end = 1;
+
   // Loop over number of number of phases;
   for (int pit=phase_idx_init; pit<phase_idx_end; pit++) {
     struct gk_poa_phase_params *phase_params = &ctx.poa_phases[pit];
-    run_phase(app, &ctx, &app_args, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
+    run_phase(app, &ctx, app_args.num_steps, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
   }
 
   gkyl_gyrokinetic_app_stat_write(app);
@@ -749,8 +764,8 @@ int main(int argc, char **argv)
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
-  gkyl_free(ctx.poa_phases);
-  
+  release_ctx(&ctx);
+
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();
