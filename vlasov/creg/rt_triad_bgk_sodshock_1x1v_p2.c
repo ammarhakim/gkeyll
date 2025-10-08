@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -19,42 +20,28 @@
 
 #include <rt_arg_parse.h>
 
-struct cylindrical_implosion_ctx
+struct sodshock_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
   double mass; // Neutral mass.
   double charge; // Neutral charge.
 
-  double nl; // Left/inner number density.
-  double Tl; // Left/inner temperature.
-  double V_r_drift_l; // Left/inner drift velocity (radial direction).
-  double V_z_drift_l; // Left/inner drift velocity (z-direction).
-  double V_theta_drift_l; // Left/inner drift velocity (angular direction).
+  double nl; // Left number density.
+  double Tl; // Left temperature.
+  double Vx_drift_l; // Left drift velocity (x-direction).
 
-
-  double nr; // Right/outer number density.
-  double Tr; // Right/outer temperature.
-  double V_r_drift_r; // Right/outer drift velocity (radial direction).
-  double V_z_drift_r; // Right/outer drift velocity (z-direction).
-  double V_theta_drift_r; // Right/outer drift velocity (angular direction).
+  double nr; // Right number density.
+  double Tr; // Right temperature.
+  double Vx_drift_r; // Right drift velocity (x-direction).
 
   double vt; // Thermal velocity.
   double nu; // Collision frequency.
 
   // Simulation parameters.
-  int Nr; // Cell count (configuration space: radial direction).
-  int Nz; // Cell count (configuration space: angular direction).
-  int Nvr; // Cell count (velocity space: radial direction).
-  int Nvz; // Cell count (velocity space: z-direction).
-  int Nvtheta; // Cell count (velocity space: angular direction).
-  double Lr; // Domain size (configuration space: radial direction).
-  double Lz; // Domain size (configuration space: angular direction).
-  double vr_max; // Domain boundary (velocity space: radial direction).
-  double vz_max; // Domain boundary (velocity space: z-direction).
-  double vtheta_max; // Domain boundary (velocity space: angular direction).
+  int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -65,89 +52,57 @@ struct cylindrical_implosion_ctx
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-
-  double r0; // Radius of the high-density region 
-  double z0; // Height of the high-density region
 };
 
-struct cylindrical_implosion_ctx
+struct sodshock_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
   double mass = 1.0; // Neutral mass.
   double charge = 0.0; // Neutral charge.
 
-  // Inner Material
-  double nl = 1.0; // Left/inner number density.
-  double Tl = 5.0; // Left/inner temperature.
-  double V_r_drift_l = 0.0; // Left/inner drift velocity (radial direction).
-  double V_z_drift_l = 0.0; // Left/inner drift velocity (z-direction).
-  double V_theta_drift_l = 0.0; // Left/inner drift velocity (angular direction).
+  double nl = 1.0; // Left number density.
+  double Tl = 1.0; // Left temperature.
+  double Vx_drift_l = 0.0; // Left drift velocity (x-direction).
 
-  // Outer Material
-  double nr = 1.0; // Right/outer number density.
-  double Tr = 1.0; // Right/outer temperature.
-  double V_r_drift_r = 0.0; // Right/outer drift velocity (radial direction).
-  double V_z_drift_r = 0.0; // Right/outer drift velocity (z-direction).
-  double V_theta_drift_r = 0.0; // Right/outer drift velocity (angular direction).
+  double nr = 0.125; // Right number density.
+  double Tr = sqrt(0.1 / 0.125); // Right temperature.
+  double Vx_drift_r = 0.0; // Right drift velocity (x-direction).
 
   double vt = 1.0; // Thermal velocity.
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: radial direction).
-  int Nz = 32; // Cell count (configuration space: angular direction).
-  int Nvr = 12; // Cell count (velocity space: radial direction).
-  int Nvz = 12; // Cell count (velocity space: z-direction).
-  int Nvtheta = 12; // Cell count (velocity space: angular direction).
-  double Lr = 1.5; // Domain size (configuration space: radial direction).
-  double Lz = 1.0; // Domain size (configuration space: angular direction).
-  double vr_max = 12.0 * vt; // Domain boundary (velocity space: radial direction).
-  double vz_max = 12.0 * vt; // Domain boundary (velocity space: z-direction).
-  double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
-  int poly_order = 1; // Polynomial order.
+  int Nx = 128; // Cell count (configuration space: x-direction).
+  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.7; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps. 
 
-  double r0 = 0.2; // Radius of the high-density region 
-  double z0 = 0.4; // Height of the high-density region 
-
-  struct cylindrical_implosion_ctx ctx = {
-    .pi = pi,
+  struct sodshock_ctx ctx = {
     .mass = mass,
     .charge = charge,
     .nl = nl,
     .Tl = Tl,
-    .V_r_drift_l = V_r_drift_l,
-    .V_z_drift_l = V_z_drift_l,
-    .V_theta_drift_l = V_theta_drift_l,
+    .Vx_drift_l = Vx_drift_l,
     .nr = nr,
     .Tr = Tr,
-    .V_r_drift_r = V_r_drift_r,
-    .V_z_drift_r = V_z_drift_r,
-    .V_theta_drift_r = V_theta_drift_r,
+    .Vx_drift_r = Vx_drift_r,
     .vt = vt,
     .nu = nu,
-    .Nr = Nr,
-    .Nz = Nz,
-    .Nvr = Nvr,
-    .Nvz = Nvz,
-    .Nvtheta = Nvtheta,
-    .Lr = Lr,
-    .Lz = Lz,
-    .vr_max = vr_max,
-    .vz_max = vz_max,
-    .vtheta_max = vtheta_max,
+    .Nx = Nx,
+    .Nvx = Nvx,
+    .Lx = Lx,
+    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -157,8 +112,6 @@ create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .r0 = r0,
-    .z0 = z0,
   };
 
   return ctx;
@@ -167,26 +120,22 @@ create_ctx(void)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
-  double r = xn[0];
-  double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
+  struct sodshock_ctx *app = ctx;
+  double x = xn[0];
 
   double nl = app->nl;
   double nr = app->nr;
+
   double n = 0.0;
 
-  if (r_from_center < r0) {
-    n = nl; // Total number density (left/inner).
+  if (x < 0.5) {
+    n = nl; // Total number density (left).
   }
   else {
-    n = nr; // Total number density (right/outer).
+    n = nr; // Total number density (right).
   }
 
-  double metric_det = r;
+  double metric_det = 1.0;
 
   // Set total number density.
   fout[0] = metric_det * n;
@@ -195,24 +144,19 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
-  double r = xn[0];
-  double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
+  struct sodshock_ctx *app = ctx;
+  double x = xn[0];
 
   double Tl = app->Tl;
   double Tr = app->Tr;
 
   double T = 0.0;
 
-  if (r_from_center < r0) {
-    T = Tl; // Isotropic temperature (left/inner).
+  if (x < 0.5) {
+    T = Tl; // Isotropic temperature (left).
   }
   else {
-    T = Tr; // Isotropic temperature (right/outer).
+    T = Tr; // Isotropic temperature (right).
   }
 
   // Set isotropic temperature.
@@ -222,45 +166,29 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
-  double r = xn[0];
-  double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
+  struct sodshock_ctx *app = ctx;
+  double x = xn[0];
 
-  double V_r_drift_l = app->V_r_drift_l;
-  double V_z_drift_l = app->V_z_drift_l;
-  double V_theta_drift_l = app->V_theta_drift_l;
+  double Vx_drift_l = app->Vx_drift_l;
+  double Vx_drift_r = app->Vx_drift_r;
 
-  double V_r_drift_r = app->V_r_drift_r;
-  double V_z_drift_r = app->V_z_drift_r;
-  double V_theta_drift_r = app->V_theta_drift_r;
+  double Vx_drift = 0.0;
 
-  double V_r_drift = 0.0;
-  double V_z_drift = 0.0;
-  double V_theta_drift = 0.0;
-
-  if (r_from_center < r0) {
-    V_r_drift = V_r_drift_l; // Radial drift velocity (left/inner).
-    V_z_drift = V_z_drift_l; // Z drift velocity (left/inner).
-    V_theta_drift = V_theta_drift_l; // Angular drift velocity (left/inner).
+  if (x < 0.5) {
+    Vx_drift = Vx_drift_l; // Total drift velocity (left).
   }
   else {
-    V_r_drift = V_r_drift_r; // Radial drift velocity (right/outer).
-    V_z_drift = V_z_drift_r; // Z drift velocity (right/outer).
-    V_theta_drift = V_theta_drift_r; // Angular drift velocity (right/outer).
+    Vx_drift = Vx_drift_r; // Total drift velocity (right).
   }
 
   // Set total drift velocity.
-  fout[0] = V_r_drift; fout[1] = V_z_drift; fout[2] = V_theta_drift; 
+  fout[0] = Vx_drift;
 }
 
 void
 evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
+  struct sodshock_ctx *app = ctx;
 
   double nu = app->nu;
 
@@ -272,136 +200,30 @@ void
 evalCovTangentBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
-  // Ignorable theta - axisymmetric case
-  double q_r = xn[0];
-  double q_z = xn[1];
-  double q_theta = 0.0;
-
   // vals_ij = e_{x} . \sigma_{x}
-  double e_rx = cos(q_theta); // Covariant Tangent Basis Coefficients (r-x coefficient).
-  double e_ry = sin(q_theta); // Covariant Tangent Basis Coefficients (r-y coefficient).
-  double e_rz = 0.0; // Covariant Tangent Basis Coefficients (r-z coefficient).
-  double e_zx = 0.0; // Covariant Tangent Basis Coefficients (z-x coefficient).
-  double e_zy = 0.0; // Covariant Tangent Basis Coefficients (z-y coefficient).
-  double e_zz = 1.0; // Covariant Tangent Basis Coefficients (z-z coefficient).
-  double e_tx = - q_r * sin(q_theta); // Covariant Tangent Basis Coefficients (theta-x coefficient).
-  double e_ty = q_r * cos(q_theta); // Covariant Tangent Basis Coefficients (theta-y coefficient).
-  double e_tz = 0.0; // Covariant Tangent Basis Coefficients (theta-z coefficient).
+  double e_xx = 1.0; // Covariant Tangent Basis Coefficients (x-x coefficient).
   
-  fout[0] = e_rx;
-  fout[1] = e_ry;
-  fout[2] = e_rz;
-  fout[3] = e_zx;
-  fout[4] = e_zy;
-  fout[5] = e_zz;
-  fout[6] = e_tx;
-  fout[7] = e_ty;
-  fout[8] = e_tz;
+  fout[0] = e_xx;
 }
 
 void
 evalTriadBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
-  // Ignorable theta - axisymmetric case
-  double q_r = xn[0];
-  double q_z = xn[1];
-  double q_theta = 0.0;
-
   // vals_ij = \sigma_{x} . \sigma_{x}
-  double sigma_rx = cos(q_theta); // Triad Basis Coefficients (r-x coefficient).
-  double sigma_ry = sin(q_theta); // Triad Basis Coefficients (r-y coefficient).
-  double sigma_rz = 0.0; // Triad Basis Coefficients (r-z coefficient).
-  double sigma_zx = 0.0; // Triad Basis Coefficients (z-x coefficient).
-  double sigma_zy = 0.0; // Triad Basis Coefficients (z-y coefficient).
-  double sigma_zz = 1.0; // Triad Basis Coefficients (z-z coefficient).
-  double sigma_tx = - sin(q_theta); // Triad Basis Coefficients (theta-x coefficient).
-  double sigma_ty = cos(q_theta); // Triad Basis Coefficients (theta-y coefficient).
-  double sigma_tz = 0.0; // Triad Basis Coefficients (theta-z coefficient).
+  double sigma_xx = 1.0; // Triad Basis Coefficients (x-x coefficient).
   
-  fout[0] = sigma_rx;
-  fout[1] = sigma_ry;
-  fout[2] = sigma_rz;
-  fout[3] = sigma_zx;
-  fout[4] = sigma_zy;
-  fout[5] = sigma_zz;
-  fout[6] = sigma_tx;
-  fout[7] = sigma_ty;
-  fout[8] = sigma_tz;
+  fout[0] = sigma_xx;
 }
 
 void
 evalTriadBasisGradient(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
-  // Ignorable theta - axisymmetric case
-  double q_r = xn[0];
-  double q_z = xn[1];
-  double q_theta = 0.0;
-
   // d(vals_ij)/dx^k = (\sigma_{x} . \sigma_{x})/dx^k
-  // d/dr components
-  double d_sigma_rx_dr = 0.0; // Triad Basis Gradient Coefficients (r-x coefficient).
-  double d_sigma_ry_dr = 0.0; // Triad Basis Gradient Coefficients (r-y coefficient).
-  double d_sigma_rz_dr = 0.0; // Triad Basis Gradient Coefficients (r-z coefficient).
-  double d_sigma_zx_dr = 0.0; // Triad Basis Gradient Coefficients (z-x coefficient).
-  double d_sigma_zy_dr = 0.0; // Triad Basis Gradient Coefficients (z-y coefficient).
-  double d_sigma_zz_dr = 0.0; // Triad Basis Gradient Coefficients (z-z coefficient).
-  double d_sigma_tx_dr = 0.0; // Triad Basis Gradient Coefficients (theta-x coefficient).
-  double d_sigma_ty_dr = 0.0; // Triad Basis Gradient Coefficients (theta-y coefficient).
-  double d_sigma_tz_dr = 0.0; // Triad Basis Gradient Coefficients (theta-z coefficient).
-
-  // d/dz components
-  double d_sigma_rx_dz = 0.0; // Triad Basis Gradient Coefficients (r-x coefficient).
-  double d_sigma_ry_dz = 0.0; // Triad Basis Gradient Coefficients (r-y coefficient).
-  double d_sigma_rz_dz = 0.0; // Triad Basis Gradient Coefficients (r-z coefficient).
-  double d_sigma_zx_dz = 0.0; // Triad Basis Gradient Coefficients (z-x coefficient).
-  double d_sigma_zy_dz = 0.0; // Triad Basis Gradient Coefficients (z-y coefficient).
-  double d_sigma_zz_dz = 0.0; // Triad Basis Gradient Coefficients (z-z coefficient).
-  double d_sigma_tx_dz = 0.0; // Triad Basis Gradient Coefficients (theta-x coefficient).
-  double d_sigma_ty_dz = 0.0; // Triad Basis Gradient Coefficients (theta-y coefficient).
-  double d_sigma_tz_dz = 0.0; // Triad Basis Gradient Coefficients (theta-z coefficient).
-
-  // d/dtheta components
-  double d_sigma_rx_dtheta = - sin(q_theta); // Triad Basis Gradient Coefficients (r-x coefficient).
-  double d_sigma_ry_dtheta = cos(q_theta); // Triad Basis Gradient Coefficients (r-y coefficient).
-  double d_sigma_rz_dtheta = 0.0; // Triad Basis Gradient Coefficients (r-z coefficient).
-  double d_sigma_zx_dtheta = 0.0; // Triad Basis Gradient Coefficients (z-x coefficient).
-  double d_sigma_zy_dtheta = 0.0; // Triad Basis Gradient Coefficients (z-y coefficient).
-  double d_sigma_zz_dtheta = 0.0; // Triad Basis Gradient Coefficients (z-z coefficient).
-  double d_sigma_tx_dtheta = - cos(q_theta); // Triad Basis Gradient Coefficients (theta-x coefficient).
-  double d_sigma_ty_dtheta = - sin(q_theta); // Triad Basis Gradient Coefficients (theta-y coefficient).
-  double d_sigma_tz_dtheta = 0.0; // Triad Basis Gradient Coefficients (theta-z coefficient).
+  double dsigma_xx_dx = 0.0; // Triad Basis Gradient Coefficients (x-x coefficient).
   
-  fout[0] = d_sigma_rx_dr;
-  fout[1] = d_sigma_ry_dr;
-  fout[2] = d_sigma_rz_dr;
-  fout[3] = d_sigma_zx_dr;
-  fout[4] = d_sigma_zy_dr;
-  fout[5] = d_sigma_zz_dr;
-  fout[6] = d_sigma_tx_dr;
-  fout[7] = d_sigma_ty_dr;
-  fout[8] = d_sigma_tz_dr;
-
-  fout[9] = d_sigma_rx_dz;
-  fout[10] = d_sigma_ry_dz;
-  fout[11] = d_sigma_rz_dz;
-  fout[12] = d_sigma_zx_dz;
-  fout[13] = d_sigma_zy_dz;
-  fout[14] = d_sigma_zz_dz;
-  fout[15] = d_sigma_tx_dz;
-  fout[16] = d_sigma_ty_dz;
-  fout[17] = d_sigma_tz_dz;
-
-  fout[18] = d_sigma_rx_dtheta;
-  fout[19] = d_sigma_ry_dtheta;
-  fout[20] = d_sigma_rz_dtheta;
-  fout[21] = d_sigma_zx_dtheta;
-  fout[22] = d_sigma_zy_dtheta;
-  fout[23] = d_sigma_zz_dtheta;
-  fout[24] = d_sigma_tx_dtheta;
-  fout[25] = d_sigma_ty_dtheta;
-  fout[26] = d_sigma_tz_dtheta;
+  fout[0] = dsigma_xx_dx;
 }
 
 void
@@ -461,13 +283,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct cylindrical_implosion_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
-  int NVR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvr);
-  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvz);
-  int NVTHETA = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvtheta);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -476,7 +295,7 @@ main(int argc, char **argv)
   }
 #endif  
 
-  int ccells[] = { NR, NZ };
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -550,9 +369,9 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_TRIAD,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vr_max, -ctx.vz_max, -ctx.vtheta_max },
-    .upper = { ctx.vr_max, ctx.vz_max, ctx.vtheta_max },
-    .cells = { NVR, NVZ, NVTHETA },
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
 
     .cov_tangent_basis = evalCovTangentBasis,
     .cov_tangent_basis_ctx = &ctx,
@@ -560,6 +379,7 @@ main(int argc, char **argv)
     .triad_basis_ctx = &ctx,
     .triad_basis_gradient = evalTriadBasisGradient,
     .triad_basis_gradient_ctx = &ctx,
+    .use_ho = true,
 
     .num_init = 1, 
     .projection[0] = {
@@ -588,14 +408,10 @@ main(int argc, char **argv)
       .iter_eps = 1.0e-12,
       .max_iter = 100,
       .use_last_converged = false,
+      .output_f_lte = true,
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
-      .upper = { .type = GKYL_SPECIES_REFLECT, },
-    },
-
-    .bcy = {
       .lower = { .type = GKYL_SPECIES_REFLECT, },
       .upper = { .type = GKYL_SPECIES_REFLECT, },
     },
@@ -606,28 +422,28 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p1",
+    .name = "triad_bgk_sodshock_1x1v_p2",
 
-   .cdim = 2, .vdim = 3,
-   .lower = { 0.01, 0.0 },
-   .upper = { 0.01 + ctx.Lr, ctx.Lz },
-   .cells = { NR, NZ },
+    .cdim = 1, .vdim = 1, 
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 0,
-   .periodic_dirs = { },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
-   .num_species = 1,
-   .species = { neut },
+    .num_species = 1,
+    .species = { neut },
 
-   .skip_field = true,
+    .skip_field = true,
 
-   .parallelism = {
+    .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
@@ -762,7 +578,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   double io_tm =  stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
-
 
 freeresources:
   // Free resources after simulation completion.

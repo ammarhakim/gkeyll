@@ -117,6 +117,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     .has_phi = false, 
     .has_B = true, 
     .has_rad = false, 
+    .use_gpu = true,
     .use_gpu = use_gpu,
   }; 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
@@ -143,6 +144,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     .vel_flux_surf = vel_flux_surf, 
     .f_no_J = f_no_J, 
     .rad = rad, 
+    .use_ho = true,
     .use_gpu = use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 
@@ -375,6 +377,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     .has_phi = false, 
     .has_B = true, 
     .has_rad = false, 
+    .use_ho = true,
     .use_gpu = use_gpu,
   }; 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
@@ -401,6 +404,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     .vel_flux_surf = vel_flux_surf, 
     .f_no_J = f_no_J, 
     .rad = rad, 
+    .use_ho = true,
     .use_gpu = use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 

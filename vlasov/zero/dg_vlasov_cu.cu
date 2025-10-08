@@ -14,7 +14,7 @@ extern "C" {
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cdim, int vdim, int poly_order, enum gkyl_model_id model_id, 
-  bool has_E, bool has_phi, bool has_B, bool has_rad)
+  bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_ho)
 {
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
@@ -69,13 +69,24 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       else if (model_id == GKYL_MODEL_TRIAD) {
         vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
 
-        stream_surf_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
-        stream_surf_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
-        stream_surf_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
-        
-        stream_boundary_surf_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
-        stream_boundary_surf_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels;  
+        if ( use_ho ) {
+          stream_surf_x_kernels = ser_stream_nc_hamil_gen_ho_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_nc_hamil_gen_ho_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_nc_hamil_gen_ho_surf_z_kernels;
+          
+          stream_boundary_surf_x_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_z_kernels;  
+        } 
+        else {
+          stream_surf_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
+          
+          stream_boundary_surf_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels;  
+        }
       }
       else {
         vlasov->hamil_vol = ser_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
@@ -226,7 +237,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, inp->conf_basis->b_type, 
     cdim, vdim, poly_order, inp->model_id, 
-    inp->has_E, inp->has_phi, inp->has_B, inp->has_rad);
+    inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_ho);
 
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;

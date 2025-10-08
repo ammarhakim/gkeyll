@@ -107,7 +107,7 @@ create_ctx(void)
   double Lz = 1.0; // Domain size (configuration space: angular direction).
   double vr_max = 12.0 * vt; // Domain boundary (velocity space: radial direction).
   double vz_max = 12.0 * vt; // Domain boundary (velocity space: z-direction).
-  double vtheta_max = 12.0 * vt; // Domain boundary (velocity space: angular direction).
+  double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -413,7 +413,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
       frame = iot->curr;
     }
 
-    //gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
@@ -606,7 +606,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p1",
+   .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p2",
 
    .cdim = 2, .vdim = 3,
    .lower = { 0.01, 0.0 },

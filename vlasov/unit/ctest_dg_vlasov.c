@@ -100,6 +100,7 @@ test_dg_vlasov()
     .vel_flux_surf = vel_flux_surf, 
     .f_no_J = f_no_J, 
     .rad = rad, 
+    .use_ho = true,
     .use_gpu = false,
   };  
   struct gkyl_dg_eqn *eqn = gkyl_dg_vlasov_inew(&inp_eqn); 
@@ -202,6 +203,7 @@ test_cu_dg_vlasov()
     .vel_flux_surf = vel_flux_surf, 
     .f_no_J = f_no_J, 
     .rad = rad, 
+    .use_ho = true,
     .use_gpu = true,
   };  
   struct gkyl_dg_eqn *eqn = gkyl_dg_vlasov_inew(&inp_eqn); 

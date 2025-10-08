@@ -21,7 +21,8 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
   bool has_E; // bool to determine whether we have electric fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
   bool has_B; // bool to determine whether we have magnetic fields.
-  bool has_rad; // bool to determine whether we have radiation drag forces. 
+  bool has_rad; // bool to determine whether we have radiation drag forces.
+  bool use_ho; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.
   bool use_gpu; // bool to determine if on GPU. 
 };
 

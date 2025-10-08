@@ -177,8 +177,8 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   // Needs to integrate a sixth order polynomial in configuration space, so 4^1 = 4 quadrature points. 
-  double alpha_quad[3] = {0.0};
-  double lax_nodal_quad[3] = {0.0};
+  double alpha_quad[4] = {0.0};
+  double lax_nodal_quad[4] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -205,8 +205,8 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   // Needs to integrate a ninth order polynomial in configuration space, so 4^1 = 4 quadrature points. 
-  double alpha_quad[4] = {0.0};
-  double lax_nodal_quad[4] = {0.0};
+  double alpha_quad[5] = {0.0};
+  double lax_nodal_quad[5] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -263,8 +263,8 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 {
   // Needs to integrate a sixth order polynomial in configuration space, and a
   // sixth order polynomial in velocity space, so 4^1*4^1 = 16 quadrature points. 
-  double alpha_quad[9] = {0.0};
-  double lax_nodal_quad[9] = {0.0};
+  double alpha_quad[16] = {0.0};
+  double lax_nodal_quad[16] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -321,8 +321,8 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 {
   // Needs to integrate a sixth order polynomial in configuration space, and a
   // sixth order polynomial in velocity space, so 4^1*4^2 = 36 quadrature points. 
-  double alpha_quad[27] = {0.0};
-  double lax_nodal_quad[27] = {0.0};
+  double alpha_quad[64] = {0.0};
+  double lax_nodal_quad[64] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -377,8 +377,8 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   // Needs to integrate a sixth order polynomial in configuration space, so 4^2 = 16 quadrature points. 
-  double alpha_quad[9] = {0.0};
-  double lax_nodal_quad[9] = {0.0};
+  double alpha_quad[16] = {0.0};
+  double lax_nodal_quad[16] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -405,8 +405,8 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   // Needs to integrate a ninth order polynomial in configuration space, so 5^2 = 25 quadrature points. 
-  double alpha_quad[16] = {0.0};
-  double lax_nodal_quad[16] = {0.0};
+  double alpha_quad[25] = {0.0};
+  double lax_nodal_quad[25] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -463,8 +463,8 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 {
   // Needs to integrate a sixth order polynomial in configuration space, and a
   // sixth order polynomial in velocity space, so 3^3 = 27 quadrature points. 
-  double alpha_quad[27] = {0.0};
-  double lax_nodal_quad[27] = {0.0};
+  double alpha_quad[64] = {0.0};
+  double lax_nodal_quad[64] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -521,8 +521,8 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 {
   // Needs to integrate a sixth order polynomial in configuration space, and a
   // sixth order polynomial in velocity space, so 4^2*4^2 = 256 quadrature points. 
-  double alpha_quad[81] = {0.0};
-  double lax_nodal_quad[81] = {0.0};
+  double alpha_quad[256] = {0.0};
+  double lax_nodal_quad[256] = {0.0};
 
   // Accumulate forces to construct total alpha_v at each quadrature point. 
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
@@ -671,6 +671,92 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_lax_flux_nodal_to_mod
   { NULL, NULL, NULL, NULL }, // 6
 };
 
+// Nodal Lax-Friedrichs to modal velocity-space flux conversion (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vx_kernels[] = {
+  // 1x kernels
+  { NULL, lax_flux_nodal_to_modal_vx_1x1v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x1v_ser_p2, ho_lax_flux_nodal_to_modal_vx_1x1v_ser_p3 }, // 0
+  { NULL, lax_flux_nodal_to_modal_vx_1x2v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_to_modal_vx_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, lax_flux_nodal_to_modal_vx_2x1v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p2, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p3 }, // 3
+  { NULL, lax_flux_nodal_to_modal_vx_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_to_modal_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, lax_flux_nodal_to_modal_vy_1x2v_ser_p1, ho_lax_flux_nodal_to_modal_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_to_modal_vy_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_to_modal_vy_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_to_modal_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, lax_flux_nodal_to_modal_vz_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_to_modal_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Nodal Lax-Friedrichs to modal velocity-space flux conversion (Tensor basis). 
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_ho_lax_flux_nodal_to_modal_vx_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vx_1x1v_tensor_p2, ho_lax_flux_nodal_to_modal_vx_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vx_2x1v_tensor_p2, ho_lax_flux_nodal_to_modal_vx_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_ho_lax_flux_nodal_to_modal_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_ho_lax_flux_nodal_to_modal_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, ho_lax_flux_nodal_to_modal_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
 // alpha_v evaluated at quadrature points for general Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_alpha_quad_vx_kernels[] = {
@@ -753,6 +839,49 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_alpha_quad_vz_kernels[
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, nc_hamil_alpha_quad_vz_2x3v_ser_p1, nc_hamil_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// alpha_v evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, nc_hamil_alpha_quad_vx_1x1v_ser_p1, nc_hamil_ho_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
+  { NULL, nc_hamil_alpha_quad_vx_1x2v_ser_p1, nc_hamil_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vx_1x3v_ser_p1, nc_hamil_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vx_2x2v_ser_p1, nc_hamil_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, nc_hamil_alpha_quad_vy_1x2v_ser_p1, nc_hamil_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vy_1x3v_ser_p1, nc_hamil_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_alpha_quad_vy_2x2v_ser_p1, nc_hamil_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, nc_hamil_alpha_quad_vz_1x3v_ser_p1, nc_hamil_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, nc_hamil_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, nc_hamil_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
