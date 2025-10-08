@@ -81,7 +81,7 @@ create_ctx(void)
   double charge = 0.0; // Neutral charge.
 
   // Inner Material
-  double nl = 1.0; // Left/inner number density.
+  double nl = -1e-10; // Left/inner number density.
   double Tl = 5.0; // Left/inner temperature.
   double V_r_drift_l = 0.0; // Left/inner drift velocity (radial direction).
   double V_z_drift_l = 0.0; // Left/inner drift velocity (z-direction).
@@ -98,13 +98,13 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: radial direction).
-  int Nz = 32; // Cell count (configuration space: angular direction).
-  int Nvr = 12; // Cell count (velocity space: radial direction).
-  int Nvz = 12; // Cell count (velocity space: z-direction).
-  int Nvtheta = 12; // Cell count (velocity space: angular direction).
+  int Nr = 8; // Cell count (configuration space: radial direction).
+  int Nz = 1; // Cell count (configuration space: angular direction).
+  int Nvr = 32; // Cell count (velocity space: radial direction).
+  int Nvz = 32; // Cell count (velocity space: z-direction).
+  int Nvtheta = 24; // Cell count (velocity space: angular direction).
   double Lr = 1.5; // Domain size (configuration space: radial direction).
-  double Lz = 1.0; // Domain size (configuration space: angular direction).
+  double Lz = 0.2; // Domain size (configuration space: angular direction).
   double vr_max = 14.0 * vt; // Domain boundary (velocity space: radial direction).
   double vz_max = 14.0 * vt; // Domain boundary (velocity space: z-direction).
   double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
@@ -170,16 +170,12 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct cylindrical_implosion_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
 
   double nl = app->nl;
   double nr = app->nr;
   double n = 0.0;
 
-  if (r_from_center < r0) {
+  if (r < app->Lr/2.0) {
     n = nl; // Total number density (left/inner).
   }
   else {
@@ -198,17 +194,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   struct cylindrical_implosion_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
-
+ 
   double Tl = app->Tl;
   double Tr = app->Tr;
 
   double T = 0.0;
 
-  if (r_from_center < r0) {
+  if (r < app->Lr/2.0) {
     T = Tl; // Isotropic temperature (left/inner).
   }
   else {
@@ -225,11 +217,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct cylindrical_implosion_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
-  double r0 = app->r0;
-  double z_center = app->z0;
-  double r_center = 0.0;
-  double r_from_center = sqrt( (r - r_center) * (r - r_center) + (z - z_center) * (z - z_center) );
-
+  
   double V_r_drift_l = app->V_r_drift_l;
   double V_z_drift_l = app->V_z_drift_l;
   double V_theta_drift_l = app->V_theta_drift_l;
@@ -242,7 +230,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double V_z_drift = 0.0;
   double V_theta_drift = 0.0;
 
-  if (r_from_center < r0) {
+  if (r < app->Lr/2.0) {
     V_r_drift = V_r_drift_l; // Radial drift velocity (left/inner).
     V_z_drift = V_z_drift_l; // Z drift velocity (left/inner).
     V_theta_drift = V_theta_drift_l; // Angular drift velocity (left/inner).
@@ -573,7 +561,7 @@ main(int argc, char **argv)
       .correct_all_moms = true,
       .iter_eps = 0.0,
       .max_iter = 0,
-      .use_last_converged = true,
+      .use_last_converged = false,
     },
     
     .collisions =  {
@@ -586,8 +574,8 @@ main(int argc, char **argv)
     .correct = {
       .correct_all_moms = true,
       .iter_eps = 1.0e-12,
-      .max_iter = 18,
-      .use_last_converged = true,
+      .max_iter = 100,
+      .use_last_converged = false,
     },
 
     .bcx = {
@@ -606,10 +594,10 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p1",
+   .name = "triad_bgk_cylindrical_equilibrium_rz_2x3v_p1",
 
    .cdim = 2, .vdim = 3,
-   .lower = { 0.01, 0.0 },
+   .lower = { 0.01, 0.3 },
    .upper = { 0.01 + ctx.Lr, ctx.Lz },
    .cells = { NR, NZ },
 

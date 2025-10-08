@@ -10,14 +10,17 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
   // allocate nu and initialize it
   bgk->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  bgk->actual_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *self_nu = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  
+  bgk->num_conf_basis = app->basis.num_basis;
+
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
     app->poly_order+1, 1, vms->info.collisions.self_nu, vms->info.collisions.ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_copy(bgk->self_nu, self_nu);
   gkyl_array_copy(bgk->nu_sum, self_nu);
+  gkyl_array_copy(bgk->actual_nu, self_nu);
   gkyl_array_release(self_nu);
 
   bgk->spitzer_calc = 0;
@@ -95,12 +98,16 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, struct vm_species *vms,
   // Project the LTE distribution function from the computed LTE moments
   vm_species_lte_from_moms(app, vms, &vms->lte, vms->lte.moms.marr);
 
+  // Set nu to zero for all points where n or T are negative/zero
+  gkyl_bgk_collisions_correct_nu(bgk->up_bgk, &app->local, vms->lte.moms.marr, 
+    bgk->self_nu, bgk->actual_nu);
+
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &vms->basis, vms->lte.f_lte, 
-    bgk->self_nu, vms->lte.f_lte, &app->local, &vms->local);
+    bgk->actual_nu, vms->lte.f_lte, &app->local, &vms->local);
   gkyl_array_accumulate(bgk->nu_f_lte, 1.0, vms->lte.f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &vms->local, 
-    bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, bgk->dt_implicit, rhs, vms->cflrate);
+    bgk->actual_nu, bgk->nu_f_lte, fin, bgk->implicit_step, bgk->dt_implicit, rhs, vms->cflrate);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
