@@ -15,6 +15,7 @@ gkyl_bgk_collisions_correct_nu_cu_kernel(unsigned vdim, unsigned cnum_basis,
 {
 
   int cidx[GKYL_MAX_DIM];
+  int nc = cnum_basis;
   int num_comp = vdim+2; // (n, V_drift, T/m)
   int T_idx = num_comp-1; // T/m is always the last component
 
