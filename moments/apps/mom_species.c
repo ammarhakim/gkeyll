@@ -343,15 +343,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       mom_sp->app_accel, mom_sp->app_accel_ctx);  
   }
 
-  if (mom_sp->equation->embed_geo)
-    sp->has_embed_geo = true;
   sp->embed_mask = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(sp->embed_mask, 1.0);
-
-  if (sp->has_embed_geo) {
+  if (mom_sp->equation->embed_geo)
     gkyl_wv_embed_geo_new_mask(mom_sp->equation->embed_geo, &app->grid,
       &app->local, sp->embed_mask);
-  }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
   sp->nT_source_is_set = false;

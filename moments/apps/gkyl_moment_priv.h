@@ -131,7 +131,6 @@ struct moment_species {
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-  bool has_embed_geo;
   struct gkyl_array *embed_mask;
 
   enum gkyl_eqn_type eqn_type;  // type ID of equation
@@ -203,7 +202,6 @@ struct moment_field {
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-  bool has_embed_geo;
   struct gkyl_array *embed_mask;
 
  // scheme to update equations solvers and data to update fluid

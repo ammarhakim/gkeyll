@@ -20,8 +20,15 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     mom_fld->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_fld->limiter;
 
   double c = 1/sqrt(epsilon0*mu0);
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp) {
+      .c = c,
+      .e_fact = mom_fld->elc_error_speed_fact,
+      .b_fact = mom_fld->mag_error_speed_fact,
+      .rp_type = WV_MAXWELL_RP_ROE,
+      .embed_geo = mom_fld->embed_geo,
+      .use_gpu = false,
+    }
+  );
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   
@@ -198,11 +205,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(fld->embed_mask, 1.0);
 
-  if (mom_fld->embed_geo) {
-    fld->has_embed_geo = true;
+  if (maxwell->embed_geo)
     gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
       &app->local, fld->embed_mask);
-  }
 
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   gkyl_array_clear(fld->ext_em, 0.0);
