@@ -1,8 +1,15 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void
-gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *species,
+static void
+gk_species_collisionless_flux_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
+{
+  // do nothing.
+}
+
+static void
+gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin)
 {
   // Compute the surface expansion of the phase space flux
@@ -28,7 +35,7 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gk_species_collisionless_flux(app, species, gkcls, fin);
+  gkcls->flux_func(app, species, gkcls, fin);
 
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
     fin, species->cflrate, rhs);
@@ -59,6 +66,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->write_diagnostics = gks->info.collisionless.write_diagnostics;
 
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
+  gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
@@ -126,11 +134,19 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       &aux_inp, app->use_gpu);
 
     // Methods chosen at runtime.
+    gkcls->flux_func = gk_species_collisionless_flux_enabled;
     gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
     if (gkcls->write_diagnostics) {
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
   }
+}
+
+void
+gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
+{
+  gkcls->flux_func(app, species, gkcls, fin);
 }
 
 void

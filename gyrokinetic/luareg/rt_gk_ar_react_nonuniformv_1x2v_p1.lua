@@ -166,6 +166,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -248,6 +252,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -295,6 +303,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ar1+ ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -345,13 +357,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -381,6 +389,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ar2+ ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -431,13 +443,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
     },
 
     evolve = true, -- Evolve species?

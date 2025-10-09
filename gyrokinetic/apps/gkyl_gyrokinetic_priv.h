@@ -224,6 +224,8 @@ struct gk_collisionless {
   gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
  
   // Methods chosen at runtime.
+  void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin);
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
