@@ -1640,6 +1640,15 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
   return &vacuum_einstein->eqn;
 }
 
+double
+gkyl_wv_vacuum_einstein_excision_threshold(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  double excision_threshold = vacuum_einstein->excision_threshold;
+
+  return excision_threshold;
+}
+
 enum gkyl_spacetime_slicing
 gkyl_wv_vacuum_einstein_spacetime_slicing(const struct gkyl_wv_eqn* eqn)
 {
