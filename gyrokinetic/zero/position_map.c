@@ -106,6 +106,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
+      gpm->constB_ctx->moving_average_width = pmap_info.moving_average_width;
   }
 
   gpm->grid = grid;
@@ -215,7 +216,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
     gpm->ctxs[1] = gpm->constB_ctx->ctxs_backup[1];
-    gpm->maps[2] = position_map_constB_z_numeric;
+    gpm->maps[2] = position_map_constB_z_numeric_moving_average;
     gpm->ctxs[2] = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;

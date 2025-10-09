@@ -698,3 +698,60 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     }
   }
 }
+
+
+double
+position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
+{
+  double fout[3];
+  position_map_constB_z_numeric(0.0, &z, fout, ctx);
+  return fout[0];
+}
+
+/**
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
+static void
+position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map *gpm = ctx;
+  if (gpm->constB_ctx->moving_average_width == 0.0)
+  {
+    position_map_constB_z_numeric(t, xn, fout, ctx);
+  }
+  else
+  {
+    const double theta_c = xn[0];
+    double wd2 = gpm->constB_ctx->moving_average_width / 2.0;
+    const double tmin = gpm->grid.lower[0];
+    const double tmax = gpm->grid.upper[0];
+    double rng_lo = theta_c - wd2;
+    double rng_up = theta_c + wd2;
+
+    if (rng_lo < tmin || rng_up > tmax)
+    {
+      wd2 = fmin(fabs(theta_c - tmin), fabs(theta_c - tmax));
+      rng_lo = theta_c - wd2;
+      rng_up = theta_c + wd2;
+      if (wd2 <= 1e-6)
+      {
+        position_map_constB_z_numeric(t, xn, fout, ctx);
+        return;
+      }
+    }
+    double rng_len = rng_up - rng_lo;
+
+    struct gkyl_qr_res res = gkyl_dbl_exp(
+      position_map_constB_z_numeric_dbl_exp_wrapper, ctx,
+      rng_lo, rng_up, 7, 1e-6);
+
+    double theta_avg = res.res / rng_len;
+    fout[0] = theta_avg;
+  }
+}

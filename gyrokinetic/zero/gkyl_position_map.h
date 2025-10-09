@@ -25,6 +25,7 @@ struct gkyl_position_map_inp {
   // xnu' = xnu * s + xc * (1-s)
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+  double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
 };
 struct gkyl_position_map_inew_inp {
   struct gkyl_position_map_inp pmap_info;
@@ -66,6 +67,7 @@ struct gkyl_position_map_const_B_ctx {
   bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
+  double moving_average_width; // The width of the moving average for the map to smooth it
 
   // Polynomial-based mapping
   double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field
