@@ -604,12 +604,28 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       }
     }
     bflux->num_boundaries = num_bound;
+
+    // Create an array of equation objects with terms that produce boundary fluxes.
+    bflux->num_eqns = 0;
+    if (!gk_s->info.no_collisionless_terms)
+      bflux->num_eqns += 1; // Collisionless terms.
+    if (gk_s->anom_diff.anom_diff_id)
+      bflux->num_eqns += 1; // Diffusion term.
+ 
+    bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
+
+    int eqc = 0;
+    if (!gk_s->info.no_collisionless_terms)
+      bflux->eqns[eqc++] = gkyl_dg_updater_gyrokinetic_acquire_eqn(gk_s->slvr);
+    if (gk_s->anom_diff.anom_diff_id)
+      bflux->eqns[eqc++] = gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(gk_s->anom_diff.slvr);
   
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int dir = bflux->boundaries_dir[b];
       bflux->flux_slvr[b] = gkyl_boundary_flux_new(dir, bflux->boundaries_edge[b], &gk_s->grid,
-        bflux->boundaries_phase_skin[b], bflux->boundaries_phase_ghost[b], gk_s->eqn_gyrokinetic, gk_s->info.skip_cell_threshold, app->use_gpu);
+        bflux->boundaries_phase_skin[b], bflux->boundaries_phase_ghost[b], bflux->num_eqns,
+        bflux->eqns, gk_s->info.skip_cell_threshold, app->use_gpu);
     }
 
     // Create a ghost range that the flux lives on, and allocate the array that stores the flux.
@@ -944,6 +960,11 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *spe
     for (int b=0; b<bflux->num_boundaries; ++b) {
       gkyl_boundary_flux_release(bflux->flux_slvr[b]);
     }
+    for (int i=0; i<bflux->num_eqns; i++) {
+      gkyl_dg_eqn_release(bflux->eqns[i]);
+    }
+    gkyl_free(bflux->eqns);
+
     for (int b=0; b<bflux->num_boundaries; ++b) {
       gkyl_array_release(bflux->flux[b]);
     }

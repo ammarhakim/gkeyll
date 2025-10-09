@@ -6,6 +6,9 @@
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_math.h>
 #include <gkyl_mirror_grid_gen.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 
 static inline double SQ(double x) { return x*x; };
 
@@ -15,12 +18,13 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   double clower[] = { 2.0e-6, 0.0, -2.0 };
   double cupper[] = { 3.0e-3, 2*M_PI, 2.0 };
   int cells[] = { 10, 16, 32 };
+  int cdim = 3;
 
   const char *fname = "core/data/unit/wham_hires.geqdsk_psi.gkyl";
   
   // computational grid
   struct gkyl_rect_grid comp_grid;
-  gkyl_rect_grid_init(&comp_grid, 3, clower, cupper, cells);
+  gkyl_rect_grid_init(&comp_grid, cdim, clower, cupper, cells);
 
   if (!gkyl_check_file_exists(fname)) {
     fprintf(stderr, "Unable to find file %s!\n", fname);
@@ -31,11 +35,21 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
+  struct gkyl_range node_range;
+  gkyl_range_init_from_shape(&node_range, 3, (int[3]) { cells[0]+1, cells[1]+1, cells[2]+1 });
+
+  struct gkyl_range ext_range, range;
+  int nghost[3] = {1,1,1};
+  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
         .comp_grid = &comp_grid,
-        
+        .nrange = node_range,
+        .local = range,
+        .global = range,
+
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
         
@@ -53,8 +67,6 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   TEST_CHECK( include_axis == gkyl_mirror_grid_gen_is_include_axis(geom) );
   TEST_CHECK( fl_coord == gkyl_mirror_grid_gen_fl_coord(geom) );  
   
-  struct gkyl_range node_range;
-  gkyl_range_init_from_shape(&node_range, 2, (int[2]) { cells[0]+1, cells[2]+1 });
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &node_range);
@@ -163,12 +175,12 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 {
   double clower[] = { 1.0e-3, 0.0, -0.75 };
   double cupper[] = { 0.5, 2*M_PI, 0.75 };
-  int cells[] = { 10, 16, 32 };
-  //int cells[] = { 2, 16, 2 };
+  int cells[] = { 3, 3, 3 };
+  int cdim = 3;
   
   // computational grid
   struct gkyl_rect_grid comp_grid;
-  gkyl_rect_grid_init(&comp_grid, 3, clower, cupper, cells);
+  gkyl_rect_grid_init(&comp_grid, cdim, clower, cupper, cells);
 
   // construct analytical psi(R,Z) on a nodal grid:
   int psi_nodes[] = { 9, 17 };
@@ -195,10 +207,20 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     pn[0] = 0.5*(R*R)*(Z*Z+1.0); // psi(R,Z) = 1/2*R^2*(Z^2+1.0)
   }
 
+  struct gkyl_range node_range;
+  gkyl_range_init_from_shape(&node_range, 3, (int[3]) { cells[0]+1, cells[1]+1, cells[2]+1 });
+
+  struct gkyl_range ext_range, range;
+  int nghost[3] = { 1,1,1};
+  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
         .comp_grid = &comp_grid,
+        .nrange = node_range,
+        .local = range,
+        .global = range,
         
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -215,9 +237,6 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
       }
     );
 
-  struct gkyl_range node_range;
-  gkyl_range_init_from_shape(&node_range, 2, (int[2]) { cells[0]+1, cells[2]+1 });
-  
   TEST_CHECK( include_axis == gkyl_mirror_grid_gen_is_include_axis(geom) );
   TEST_CHECK( fl_coord == gkyl_mirror_grid_gen_fl_coord(geom) );  
 

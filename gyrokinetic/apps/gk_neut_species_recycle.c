@@ -174,10 +174,16 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   gk_neut_species_projection_calc(app, s, &proj_unit_maxwellian, s->f1, 0.0); // Temporarily use f1.
 
   // Calculate flux associated with unit Maxwellian projected in f0.
-  recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
+  int num_eqns = 1; // Collisionless terms.
+  const struct gkyl_dg_eqn **eqns = gkyl_malloc(num_eqns*sizeof(struct gkyl_dg_eqn *));
+  eqns[0] = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
-    recyc->emit_skin_r, recyc->emit_ghost_r, s->eqn_vlasov, -1.0, app->use_gpu);  
+    recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, -1.0, app->use_gpu);  
+  gkyl_dg_eqn_release(eqns[0]);
+  gkyl_free(eqns);
+
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
+  recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, s->f1, &recyc->emit_buff_r,
     recyc->emit_ghost_r);
 
