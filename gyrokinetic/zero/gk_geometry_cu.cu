@@ -448,7 +448,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 
   // Expansions.
   gkyl_array_copy(geo_corn_dev->mc2p, geo_host->geo_corn.mc2p);
+  gkyl_array_copy(geo_corn_dev->mc2p_deflated, geo_host->geo_corn.mc2p_deflated);
   gkyl_array_copy(geo_corn_dev->mc2nu_pos, geo_host->geo_corn.mc2nu_pos);
+  gkyl_array_copy(geo_corn_dev->mc2nu_pos_deflated, geo_host->geo_corn.mc2nu_pos_deflated);
   gkyl_array_copy(geo_corn_dev->bmag, geo_host->geo_corn.bmag);
   // Nodal.
   gkyl_array_copy(geo_corn_dev->mc2p_nodal, geo_host->geo_corn.mc2p_nodal);
