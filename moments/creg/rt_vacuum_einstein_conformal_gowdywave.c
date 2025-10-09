@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_vacuum_einstein.h>
+#include <gkyl_wv_vacuum_einstein_conformal.h>
 #include <gkyl_gr_minkowski.h>
 
 #include <gkyl_null_comm.h>
@@ -18,7 +18,7 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_gowdywave_ctx
+struct einstein_conformal_gowdywave_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -47,7 +47,7 @@ struct einstein_gowdywave_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_gowdywave_ctx
+struct einstein_conformal_gowdywave_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -76,7 +76,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_gowdywave_ctx ctx = {
+  struct einstein_conformal_gowdywave_ctx ctx = {
     .pi = pi,
     .tau0 = tau0,
     .spacetime = spacetime,
@@ -98,10 +98,10 @@ create_ctx(void)
 }
 
 void
-evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct einstein_gowdywave_ctx *app = ctx;
+  struct einstein_conformal_gowdywave_ctx *app = ctx;
 
   double pi = app->pi;
   double tau0 = app->tau0;
@@ -349,25 +349,20 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_gowdywave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_conformal_gowdywave_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Einstein equations.
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+  // Conformal instein equations.
+  struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
-  struct gkyl_moment_species einstein = {
-    .name = "vacuum_einstein",
-    .equation = vacuum_einstein,
+  struct gkyl_moment_species einstein_conformal = {
+    .name = "vacuum_einstein_conformal",
+    .equation = vacuum_einstein_conformal,
     
-    .init = evalVacuumEinsteinInit,
-    .force_low_order_flux = false, // Use HLL fluxes.
+    .init = evalVacuumEinsteinConformalInit,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
-
-    .has_vacuum_einstein = true,
-    .vacuum_einstein_excision_threshold = ctx.excision_threshold,
-    .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -438,7 +433,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_gowdywave",
+    .name = "vacuum_einstein_conformal_gowdywave",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },
@@ -451,7 +446,7 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { einstein },
+    .species = { einstein_conformal },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -576,7 +571,7 @@ main(int argc, char **argv)
 
 freeresources:
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(vacuum_einstein);
+  gkyl_wv_eqn_release(vacuum_einstein_conformal);
   gkyl_gr_spacetime_release(ctx.spacetime);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
