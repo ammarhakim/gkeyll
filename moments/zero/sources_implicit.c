@@ -726,6 +726,9 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   if (mom_em->has_vacuum_einstein_sources) {
     explicit_vacuum_einstein_source_update(mom_em, t_curr, dt, fluid_s);
   }
+  if (mom_em->has_vacuum_einstein_conformal_sources) {
+    explicit_vacuum_einstein_conformal_source_update(mom_em, t_curr, dt, fluid_s);
+  }
   if (mom_em->has_gr_mhd_sources) {
     explicit_gr_mhd_source_update(mom_em, t_curr, dt, fluid_s);
   }

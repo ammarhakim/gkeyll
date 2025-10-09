@@ -1226,10 +1226,10 @@ vacuum_einstein_conformal_source(const struct gkyl_wv_eqn* eqn, const double* qi
       slicing_func = 0.0;
     }
     else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
-      slicing_func = conformal_extrinsic_curvature_trace;
+      slicing_func = conformal_extrinsic_curvature_trace / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
     }
     else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-      slicing_func = 2.0 * conformal_extrinsic_curvature_trace / conformal_lapse;
+      slicing_func = 2.0 * conformal_extrinsic_curvature_trace / (conformal_lapse * (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
     }
 
     double conformal_spatial_metric_der_raised1[3][3][3];
@@ -1457,18 +1457,18 @@ vacuum_einstein_conformal_source(const struct gkyl_wv_eqn* eqn, const double* qi
         }
 
         for (int s = 0; s < 3; s++) {
-          conformal_aux_vect_source[i] += (conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[i][r][s])
-            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-          conformal_aux_vect_source[i] -= (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[r][i][s])
-            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] += (conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[i][r][s]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] -= (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[r][i][s]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-          conformal_aux_vect_source[i] -= (conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[r][s][s])
-            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-          conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[s][r][s])
-            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] -= (conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[r][s][s]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[s][r][s]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-          conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_mixed[s][r])
-            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_mixed[s][r]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           if (s == r) {
             conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_trace) /

@@ -58,12 +58,12 @@ create_ctx(void)
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-
+  
   // Evolution parameters.
   double excision_threshold = 0.3; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
-
+  
   // Simulation parameters.
   int Nx = 50; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
@@ -363,6 +363,11 @@ main(int argc, char **argv)
     .init = evalVacuumEinsteinConformalInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
+
+    .has_vacuum_einstein_conformal = true,
+    .vacuum_einstein_conformal_excision_threshold = ctx.excision_threshold,
+    .vacuum_einstein_conformal_spacetime_slicing = ctx.spacetime_slicing,
+    .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution,
   };
 
   int nrank = 1; // Number of processes in simulation.

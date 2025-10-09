@@ -115,6 +115,11 @@ struct moment_species {
   double vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
   enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
   enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
+
+  bool has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
+  double vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_slicing vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_evolution vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
   
   bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
