@@ -749,7 +749,7 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
 
     struct gkyl_qr_res res = gkyl_dbl_exp(
       position_map_constB_z_numeric_dbl_exp_wrapper, ctx,
-      rng_lo, rng_up, 7, 1e-6);
+      rng_lo, rng_up, 7, 1e-16);
 
     double theta_avg = res.res / rng_len;
     fout[0] = theta_avg;
