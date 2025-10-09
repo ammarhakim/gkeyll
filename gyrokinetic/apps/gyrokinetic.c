@@ -2486,17 +2486,9 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].B3           , arr_surf_ho1, arr_surf_ho2, "B3", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normals      , arr_surf_ho9, arr_surf_ho18, "normals", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].lenr         , arr_surf_ho1, arr_surf_ho2, "lenr", dir);
-
-    gkyl_array_copy(app->gk_geom->geo_surf[dir].jacobgeo_sync, app->gk_geom->geo_surf[dir].jacobgeo);
-
-    struct gkyl_range local_ext_in_dir;
-    int lower[3] = {app->gk_geom->local.lower[0], app->gk_geom->local.lower[1], app->gk_geom->local.lower[2]};
-    int upper[3] = {app->gk_geom->local.upper[0], app->gk_geom->local.upper[1], app->gk_geom->local.upper[2]};
-    upper[dir]+=1;
-    gkyl_sub_range_init(&local_ext_in_dir, &app->gk_geom->local_ext, lower, upper);
-
-    gkyl_dg_inv_op_range(app->gk_geom->surf_basis, 0, app->gk_geom->geo_surf[dir].jacobgeo_inv_sync, 0,
-      app->gk_geom->geo_surf[dir].jacobgeo, &local_ext_in_dir);
+    // jacobgeo_ratio is not used in single block.
+    gkyl_array_clear(app->gk_geom->geo_surf[dir].jacobgeo_ratio, 0.0);
+    gkyl_array_shiftc(app->gk_geom->geo_surf[dir].jacobgeo_ratio, pow(sqrt(2.0),app->cdim), 0);
   }
 
   gkyl_array_release(arr_ho1);

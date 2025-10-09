@@ -82,8 +82,7 @@ gk_geometry_surf_alloc_expansions(struct gk_geometry* up, int dir)
 {
   up->geo_surf[dir].bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
-  up->geo_surf[dir].jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
-  up->geo_surf[dir].jacobgeo_inv_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
+  up->geo_surf[dir].jacobgeo_ratio = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
@@ -262,8 +261,10 @@ gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir,
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
 
-  gkyl_array_copy(up_surf.jacobgeo_sync, up_surf.jacobgeo);
-  gkyl_dg_inv_op_range(gk_geom->surf_basis, 0, up_surf.jacobgeo_inv_sync, 0, up_surf.jacobgeo, &local_ext_in_dir);
+  // jacobgeo_ratio is not used in single block.
+  int cdim = gk_geom->grid.ndim;
+  gkyl_array_clear(up_surf.jacobgeo_ratio, 0.0);
+  gkyl_array_shiftc(up_surf.jacobgeo_ratio, pow(sqrt(2.0),cdim), 0);
 
   gkyl_nodal_ops_release(n2m);
 }

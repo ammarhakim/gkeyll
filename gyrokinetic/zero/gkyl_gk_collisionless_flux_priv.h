@@ -13,8 +13,7 @@
 typedef double (*gk_collisionless_flux_surf_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
-  const double *bmag, const double *jacobgeo_surfL, const double *jacobgeo_surfR,
-  const double *jacobgeo_inv_surfL, const double *jacobgeo_inv_surfR, const double *phi,
+  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phi,
   const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
 
 typedef double (*gk_collisionless_flux_surfvpar_t)( 

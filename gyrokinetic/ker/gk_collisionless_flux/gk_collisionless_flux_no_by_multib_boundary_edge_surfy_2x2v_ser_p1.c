@@ -3,8 +3,7 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_se
     const double *w, const double *dxv,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
-    const double *bmag, const double *jacobgeo_surfL, const double *jacobgeo_surfR,
-    const double *jacobgeo_inv_surfL, const double *jacobgeo_inv_surfR, const double *phi,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phi,
     const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
@@ -15,10 +14,8 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_se
   // dgs: surface DG geometry.
   // gkdgs: gyrokinetic surface DG geometry.
   // bmag: bmag represented on the surface.
-  // jacobgeo_surfL: Surface conf-space Jacobian in left cell.
-  // jacobgeo_surfR: Surface conf-space Jacobian in right cell.
-  // jacobgeo_inv_surfL: Reciprocal surface conf-space Jacobian in left cell.
-  // jacobgeo_inv_surfR: Reciprocal surface conf-space Jacobian in right cell.
+  // jacobgeo_rat_surfL: Ratio of surface conf-space Jacobians in left cell.
+  // jacobgeo_rat_surfR: Ratio of surface conf-space Jacobians in right cell.
   // phi: electrostatic potential.
   // JfL: distribution times total jacobian in left cell.
   // JfR: distribution times total jacobian in right cell.
@@ -38,18 +35,18 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_se
   hamil[8] = vmapSq[2]*m_; 
 
   double JRatfR[12] = {0.}; 
-  JRatfR[0] = -(0.3535533905932737*(1.7320508075688772*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[5]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[2])-1.0*((JfR[0]*jacobgeo_inv_surfR[1]+jacobgeo_inv_surfR[0]*JfR[1])*jacobgeo_surfL[1]+jacobgeo_surfL[0]*(JfR[1]*jacobgeo_inv_surfR[1]+JfR[0]*jacobgeo_inv_surfR[0])))); 
-  JRatfR[1] = -(0.07071067811865474*(1.7320508075688772*((9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[5]+5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[2])+(-(9.0*JfR[1]*jacobgeo_inv_surfR[1])-5.0*JfR[0]*jacobgeo_inv_surfR[0])*jacobgeo_surfL[1]-5.0*jacobgeo_surfL[0]*(JfR[0]*jacobgeo_inv_surfR[1]+jacobgeo_inv_surfR[0]*JfR[1]))); 
-  JRatfR[2] = -(0.3535533905932737*(1.7320508075688772*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[11]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[7])-1.0*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[6]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[3]))); 
-  JRatfR[3] = -(0.3535533905932737*(1.7320508075688772*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[12]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[9])-1.0*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[8]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[4]))); 
-  JRatfR[4] = -(0.07071067811865474*(1.7320508075688772*((9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[11]+5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[7])+(-(9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1])-5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[6]-5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[3])); 
-  JRatfR[5] = -(0.07071067811865474*(1.7320508075688772*((9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[12]+5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[9])+(-(9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1])-5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[8]-5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[4])); 
-  JRatfR[6] = -(0.3535533905932737*(1.7320508075688772*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[15]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[14])-1.0*((jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[13]+(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[10]))); 
-  JRatfR[7] = -(0.07071067811865474*(1.7320508075688772*((9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[15]+5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[14])+(-(9.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1])-5.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[13]-5.0*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[10])); 
-  JRatfR[8] = 0.023570226039551577*(-(25.980762113533157*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[20])+8.660254037844387*(1.7320508075688772*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[17]-3.0*(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[18])+15.0*(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[16]); 
-  JRatfR[9] = 0.004714045207910316*(8.660254037844387*((-(27.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1])-15.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[20]+8.660254037844386*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[16])-129.9038105676658*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[18]+(135.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+75.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[17]); 
-  JRatfR[10] = 0.023570226039551577*(-(25.980762113533157*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[23])+8.660254037844387*(1.7320508075688772*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[21]-3.0*(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[22])+15.0*(jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[19]); 
-  JRatfR[11] = 0.004714045207910316*(8.660254037844387*((-(27.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1])-15.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[23]+8.660254037844386*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[19])-129.9038105676658*(jacobgeo_inv_surfR[0]*jacobgeo_surfL[1]+jacobgeo_surfL[0]*jacobgeo_inv_surfR[1])*JfR[22]+(135.0*jacobgeo_inv_surfR[1]*jacobgeo_surfL[1]+75.0*jacobgeo_inv_surfR[0]*jacobgeo_surfL[0])*JfR[21]); 
+  JRatfR[0] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[1]*JfR[5]+jacobgeo_rat_surfR[0]*JfR[2])-1.0*(JfR[1]*jacobgeo_rat_surfR[1]+JfR[0]*jacobgeo_rat_surfR[0]))); 
+  JRatfR[1] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[0]*JfR[5]+jacobgeo_rat_surfR[1]*JfR[2])-1.0*(JfR[0]*jacobgeo_rat_surfR[1]+jacobgeo_rat_surfR[0]*JfR[1]))); 
+  JRatfR[2] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[1]*JfR[11]+jacobgeo_rat_surfR[0]*JfR[7])-1.0*(jacobgeo_rat_surfR[1]*JfR[6]+jacobgeo_rat_surfR[0]*JfR[3]))); 
+  JRatfR[3] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[1]*JfR[12]+jacobgeo_rat_surfR[0]*JfR[9])-1.0*(jacobgeo_rat_surfR[1]*JfR[8]+jacobgeo_rat_surfR[0]*JfR[4]))); 
+  JRatfR[4] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[0]*JfR[11]+jacobgeo_rat_surfR[1]*JfR[7])-1.0*(jacobgeo_rat_surfR[0]*JfR[6]+jacobgeo_rat_surfR[1]*JfR[3]))); 
+  JRatfR[5] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[0]*JfR[12]+jacobgeo_rat_surfR[1]*JfR[9])-1.0*(jacobgeo_rat_surfR[0]*JfR[8]+jacobgeo_rat_surfR[1]*JfR[4]))); 
+  JRatfR[6] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[1]*JfR[15]+jacobgeo_rat_surfR[0]*JfR[14])-1.0*(jacobgeo_rat_surfR[1]*JfR[13]+jacobgeo_rat_surfR[0]*JfR[10]))); 
+  JRatfR[7] = -(0.5*(1.7320508075688772*(jacobgeo_rat_surfR[0]*JfR[15]+jacobgeo_rat_surfR[1]*JfR[14])-1.0*(jacobgeo_rat_surfR[0]*JfR[13]+jacobgeo_rat_surfR[1]*JfR[10]))); 
+  JRatfR[8] = 0.03333333333333333*(-(25.980762113533157*jacobgeo_rat_surfR[1]*JfR[20])+8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[17]-3.0*jacobgeo_rat_surfR[0]*JfR[18])+15.0*jacobgeo_rat_surfR[0]*JfR[16]); 
+  JRatfR[9] = 0.03333333333333333*(8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[16]-3.0*jacobgeo_rat_surfR[0]*JfR[20])-25.980762113533157*jacobgeo_rat_surfR[1]*JfR[18]+15.0*jacobgeo_rat_surfR[0]*JfR[17]); 
+  JRatfR[10] = 0.03333333333333333*(-(25.980762113533157*jacobgeo_rat_surfR[1]*JfR[23])+8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[21]-3.0*jacobgeo_rat_surfR[0]*JfR[22])+15.0*jacobgeo_rat_surfR[0]*JfR[19]); 
+  JRatfR[11] = 0.03333333333333333*(8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[19]-3.0*jacobgeo_rat_surfR[0]*JfR[23])-25.980762113533157*jacobgeo_rat_surfR[1]*JfR[22]+15.0*jacobgeo_rat_surfR[0]*JfR[21]); 
 
   double *flux_surf_nodal = &flux_surf[12]; 
   double cfl = 0.0; 
