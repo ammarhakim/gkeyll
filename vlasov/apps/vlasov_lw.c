@@ -442,6 +442,7 @@ struct vlasov_species_lw {
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+  bool write_source; // Are we writing out the source?
   bool filter; // Are we filtering the rescaled density source?
 
   enum gkyl_vlasov_radiation_id radiation_id; // Radiation type.
@@ -697,6 +698,7 @@ vlasov_species_lw_new(lua_State *L)
   double source_with_v_thresh[GKYL_MAX_SPECIES];
   bool source_with_upper_half[GKYL_MAX_SPECIES];
   int source_with_proj[GKYL_MAX_SPECIES];
+  bool write_source = false; 
   bool filter = false;
 
   int num_sources = 0;
@@ -749,6 +751,7 @@ vlasov_species_lw_new(lua_State *L)
         source_with_proj[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
       }
     }
+    write_source = glua_tbl_get_bool(L, "writeSource", false);
     filter = glua_tbl_get_bool(L, "filter", false);
 
     num_sources = glua_tbl_get_integer(L, "numSources", 0);
@@ -919,6 +922,7 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->source_with_upper_half[i] = source_with_upper_half[i]; 
     vms_lw->source_with_proj[i] = source_with_proj[i]; 
   }  
+  vms_lw->write_source = write_source; 
   vms_lw->filter = filter; 
 
   for (int i = 0; i < num_sources; i++) {
@@ -1467,6 +1471,7 @@ struct vlasov_app_lw {
   double source_with_v_thresh[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
   bool source_with_upper_half[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+  bool write_source[GKYL_MAX_SPECIES]; // Are writing out the source?
   bool filter[GKYL_MAX_SPECIES]; // Are we filtering the rescaled density?
 
   int num_sources[GKYL_MAX_SPECIES]; // Number of projection objects in source.
@@ -2003,6 +2008,7 @@ vm_app_new(lua_State *L)
       app_lw->source_with_upper_half[s][i] = species[s]->source_with_upper_half[i]; 
       app_lw->source_with_proj[s][i] = species[s]->source_with_proj[i]; 
     }
+    app_lw->write_source[s] = species[s]->write_source;
     app_lw->filter[s] = species[s]->filter;
 
     app_lw->num_sources[s] = species[s]->num_sources;
@@ -2039,6 +2045,7 @@ vm_app_new(lua_State *L)
       vm.species[s].source.source_with_upper_half[i] = app_lw->source_with_upper_half[s][i];
       vm.species[s].source.source_with_proj[i] = app_lw->source_with_proj[s][i];
     }
+    vm.species[s].source.write_source = app_lw->write_source[s];
     vm.species[s].source.filter = app_lw->filter[s];
 
     vm.species[s].source.num_sources = app_lw->num_sources[s];
