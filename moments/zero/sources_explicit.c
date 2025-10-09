@@ -2460,7 +2460,9 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
   const enum gkyl_spacetime_slicing spacetime_slicing, const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double* fluid_old, double* fluid_new)
 {
-  double conformal_fact = 1.0; // Hardcode the conformal factor to 1 everywhere, for now.
+  double bssn_conformal_fact = fluid_old[64];
+  double conformal_fact = 1.0 / sqrt(bssn_conformal_fact);
+
   double conformal_fact_der[3];
   double conformal_fact_der2[3][3];
   for (int i = 0; i < 3; i++) {
@@ -2923,7 +2925,10 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
       }
     }
 
-    for (int i = 0; i < 64; i++) {
+    double bssn_conformal_fact_source = (1.0 / 3.0) * conformal_lapse * conformal_extrinsic_curvature_trace * bssn_conformal_fact;
+    bssn_conformal_fact_source -= (8.0 / 3.0) * conformal_shift_vect_der_trace * bssn_conformal_fact;
+
+    for (int i = 0; i < 65; i++) {
       fluid_new[i] = fluid_old[i];
     }
 
@@ -2944,14 +2949,16 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     fluid_new[50] += dt * conformal_aux_vect_source[1];
     fluid_new[51] += dt * conformal_aux_vect_source[2];
 
+    fluid_new[64] += dt * bssn_conformal_fact_source;
+
     if (fluid_new[9] < excision_threshold) {
-      for (int i = 0; i < 64; i++) {
+      for (int i = 0; i < 65; i++) {
         fluid_new[i] = 0.0;
       }
     }
   }
   else {
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 65; i++) {
       fluid_new[i] = fluid_old[i];
     }
   }
@@ -2969,24 +2976,24 @@ explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling* 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    double f_new[64], f_stage1[64], f_stage2[64], f_old[64];
+    double f_new[65], f_stage1[65], f_stage2[65], f_old[65];
 
-    for (int j = 0; j < 64; j++) {
+    for (int j = 0; j < 65; j++) {
       f_old[j] = f[j];
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
-    for (int j = 0; j < 64; j++) {
+    for (int j = 0; j < 65; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
-    for (int j = 0; j < 64; j++) {
+    for (int j = 0; j < 65; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
-    for (int j = 0; j < 64; j++) {
+    for (int j = 0; j < 65; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

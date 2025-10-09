@@ -63,13 +63,13 @@ create_ctx(void)
   double excision_threshold = 0.3; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
-  
+
   // Simulation parameters.
-  int Nx = 50; // Cell count (x-direction).
+  int Nx = 100; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 0.25; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -165,9 +165,13 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   double P_dt = -2.0 * pi * jn(1, 2.0 * pi * tau0) * cos(2.0 * pi * x);
   double P_dx = -2.0 * pi * jn(0, 2.0 * pi * tau0) * sin(2.0 * pi * x);
 
-  conformal_spatial_metric[0][0] = (1.0 / sqrt(tau0)) * exp(0.5 * lambda);
-  conformal_spatial_metric[1][1] = tau0 * exp(P);
-  conformal_spatial_metric[2][2] = tau0 * exp(-P);
+  conformal_spatial_det = exp(0.5 * lambda) * pow(tau0, 1.5);
+  double conformal_fact = pow(conformal_spatial_det, 1.0 / 12.0);
+  double bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact);
+
+  conformal_spatial_metric[0][0] = ((1.0 / sqrt(tau0)) * exp(0.5 * lambda)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric[1][1] = (tau0 * exp(P)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric[2][2] = (tau0 * exp(-P)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
   conformal_lapse = (1.0 / pow(tau0, 0.25)) * exp(0.25 * lambda);
   conformal_lapse_der[0] = (exp(0.25 * lambda) * lambda_dx) / (4.0 * pow(tau0, 0.25));
@@ -176,14 +180,13 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   conformal_extrinsic_curvature[1][1] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(P) * (1.0 + (tau0 * P_dt));
   conformal_extrinsic_curvature[2][2] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(-P) * (1.0 - (tau0 * P_dt));
 
-  conformal_spatial_metric_der[0][0][0] = (exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0));
-  conformal_spatial_metric_der[0][1][1] = exp(P) * tau0 * P_dx;
-  conformal_spatial_metric_der[0][2][2] = -exp(-P) * tau0 * P_dx;
+  conformal_spatial_metric_der[0][0][0] = ((exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0))) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric_der[0][1][1] = (exp(P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric_der[0][2][2] = (-exp(-P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-  conformal_spatial_det = exp(0.5 * lambda) * pow(tau0, 1.5);
-  inv_conformal_spatial_metric[0][0] = exp(-0.5 * lambda) * sqrt(tau0);
-  inv_conformal_spatial_metric[1][1] = exp(-P) / tau0;
-  inv_conformal_spatial_metric[2][2] = exp(P) / tau0;
+  inv_conformal_spatial_metric[0][0] = (exp(-0.5 * lambda) * sqrt(tau0)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[1][1] = (exp(-P) / tau0) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[2][2] = (exp(P) / tau0) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -274,6 +277,9 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   fout[55] = conformal_shift_der[0][0]; fout[56] = conformal_shift_der[0][1]; fout[57] = conformal_shift_der[0][2];
   fout[58] = conformal_shift_der[1][0]; fout[59] = conformal_shift_der[1][1]; fout[60] = conformal_shift_der[1][2];
   fout[61] = conformal_shift_der[2][0]; fout[62] = conformal_shift_der[2][1]; fout[63] = conformal_shift_der[2][2];
+
+  // Set BSSN conformal factor.
+  fout[64] = bssn_conformal_fact;
 
   if (in_excision_region) {
     for (int i = 0; i < 64; i++) {
