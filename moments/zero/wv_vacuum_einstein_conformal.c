@@ -1072,7 +1072,463 @@ vacuum_einstein_conformal_cons_to_diag(const struct gkyl_wv_eqn* eqn, const doub
 static inline void
 vacuum_einstein_conformal_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 {
-  // Placeholder.
+  const struct wv_vacuum_einstein_conformal *vacuum_einstein_conformal = container_of(eqn, struct wv_vacuum_einstein_conformal, eqn);
+  double excision_threshold = vacuum_einstein_conformal->excision_threshold;
+  enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein_conformal->spacetime_slicing;
+  enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein_conformal->spacetime_evolution;
+
+  double conformal_fact = 1.0; // Hardcode the conformal factor to 1 everywhere, for now.
+  double conformal_fact_der[3];
+  double conformal_fact_der2[3][3];
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] = 0.0;
+
+    for (int j = 0; j < 3; j++) {
+      conformal_fact_der2[i][j] = 0.0;
+    }
+  }
+
+  double conformal_spatial_metric[3][3];
+  conformal_spatial_metric[0][0] = qin[0]; conformal_spatial_metric[0][1] = qin[1]; conformal_spatial_metric[0][2] = qin[2];
+  conformal_spatial_metric[1][0] = qin[3]; conformal_spatial_metric[1][1] = qin[4]; conformal_spatial_metric[1][2] = qin[5];
+  conformal_spatial_metric[2][0] = qin[6]; conformal_spatial_metric[2][1] = qin[7]; conformal_spatial_metric[2][2] = qin[8];
+
+  double conformal_lapse = qin[9];
+
+  double conformal_extrinsic_curvature[3][3];
+  conformal_extrinsic_curvature[0][0] = qin[10]; conformal_extrinsic_curvature[0][1] = qin[11]; conformal_extrinsic_curvature[0][2] = qin[12];
+  conformal_extrinsic_curvature[1][0] = qin[13]; conformal_extrinsic_curvature[1][1] = qin[14]; conformal_extrinsic_curvature[1][2] = qin[15];
+  conformal_extrinsic_curvature[2][0] = qin[16]; conformal_extrinsic_curvature[2][1] = qin[17]; conformal_extrinsic_curvature[2][2] = qin[18];
+
+  double conformal_spatial_metric_der[3][3][3];
+  conformal_spatial_metric_der[0][0][0] = qin[19]; conformal_spatial_metric_der[0][0][1] = qin[20]; conformal_spatial_metric_der[0][0][2] = qin[21];
+  conformal_spatial_metric_der[0][1][0] = qin[22]; conformal_spatial_metric_der[0][1][1] = qin[23]; conformal_spatial_metric_der[0][1][2] = qin[24];
+  conformal_spatial_metric_der[0][2][0] = qin[25]; conformal_spatial_metric_der[0][2][1] = qin[26]; conformal_spatial_metric_der[0][2][2] = qin[27];
+
+  conformal_spatial_metric_der[1][0][0] = qin[28]; conformal_spatial_metric_der[1][0][1] = qin[29]; conformal_spatial_metric_der[1][0][2] = qin[30];
+  conformal_spatial_metric_der[1][1][0] = qin[31]; conformal_spatial_metric_der[1][1][1] = qin[32]; conformal_spatial_metric_der[1][1][2] = qin[33];
+  conformal_spatial_metric_der[1][2][0] = qin[34]; conformal_spatial_metric_der[1][2][1] = qin[35]; conformal_spatial_metric_der[1][2][2] = qin[36];
+
+  conformal_spatial_metric_der[2][0][0] = qin[37]; conformal_spatial_metric_der[2][0][1] = qin[38]; conformal_spatial_metric_der[2][0][2] = qin[39];
+  conformal_spatial_metric_der[2][1][0] = qin[40]; conformal_spatial_metric_der[2][1][1] = qin[41]; conformal_spatial_metric_der[2][1][2] = qin[42];
+  conformal_spatial_metric_der[2][2][0] = qin[43]; conformal_spatial_metric_der[2][2][1] = qin[44]; conformal_spatial_metric_der[2][2][2] = qin[45];
+
+  double conformal_lapse_der[3];
+  conformal_lapse_der[0] = qin[46];
+  conformal_lapse_der[1] = qin[47];
+  conformal_lapse_der[2] = qin[48];
+
+  double conformal_aux_vect[3];
+  conformal_aux_vect[0] = qin[49];
+  conformal_aux_vect[1] = qin[50];
+  conformal_aux_vect[2] = qin[51];
+
+  double conformal_shift_vect[3];
+  conformal_shift_vect[0] = qin[52];
+  conformal_shift_vect[1] = qin[53];
+  conformal_shift_vect[2] = qin[54];
+
+  double conformal_shift_vect_der[3][3];
+  conformal_shift_vect_der[0][0] = qin[55]; conformal_shift_vect_der[0][1] = qin[56]; conformal_shift_vect_der[0][2] = qin[57];
+  conformal_shift_vect_der[1][0] = qin[58]; conformal_shift_vect_der[1][1] = qin[59]; conformal_shift_vect_der[1][2] = qin[60];
+  conformal_shift_vect_der[2][0] = qin[61]; conformal_shift_vect_der[2][1] = qin[62]; conformal_shift_vect_der[2][2] = qin[63];
+
+  bool in_excision_region = false;
+  if (conformal_lapse < excision_threshold) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double **inv_conformal_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+    for (int i = 0; i < 3; i++) {
+      inv_conformal_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    }
+
+    gkyl_vacuum_einstein_conformal_inv_spatial_metric(qin, &inv_conformal_spatial_metric);
+
+    double evolution_func = 0.0;
+    if (spacetime_evolution == GKYL_RICCI_EVOLUTION) {
+      evolution_func = 0.0;
+    }
+    else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
+      evolution_func = 1.0;
+    }
+
+    double conformal_extrinsic_curvature_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_extrinsic_curvature_trace += inv_conformal_spatial_metric[i][j] * conformal_extrinsic_curvature[i][j];
+      }
+    }
+
+    double conformal_extrinsic_curvature_mixed[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_extrinsic_curvature_mixed[i][j] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          conformal_extrinsic_curvature_mixed[i][j] += inv_conformal_spatial_metric[l][j] * conformal_extrinsic_curvature[i][l];
+        }
+      }
+    }
+
+    double conformal_extrinsic_curvature_raised[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_extrinsic_curvature_raised[i][j] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            conformal_extrinsic_curvature_raised[i][j] += inv_conformal_spatial_metric[i][l] * inv_conformal_spatial_metric[m][j] * conformal_extrinsic_curvature[l][m];
+          }
+        }
+      }
+    }
+
+    double conformal_shift_vect_der_lowered[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_shift_vect_der_lowered[i][j] = 0.0;
+
+        for (int k = 0; k < 3; k++) {
+          conformal_shift_vect_der_lowered[i][j] += conformal_spatial_metric[k][j] * conformal_shift_vect_der[i][k];
+        }
+      }
+    }
+
+    double conformal_shift_vect_der_switched[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int k = 0; k < 3; k++) {
+        conformal_shift_vect_der_switched[i][k] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            conformal_shift_vect_der_switched[i][k] += inv_conformal_spatial_metric[i][l] * conformal_spatial_metric[m][k] * conformal_shift_vect_der[l][m];
+          }
+        }
+      }
+    }
+
+    double conformal_shift_vect_der_trace = 0.0;
+    for (int i = 0; i < 3; i++) {
+      conformal_shift_vect_der_trace += conformal_shift_vect_der[i][i];
+    }
+
+    double conformal_symmetrized_shift[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_symmetrized_shift[i][j] = (1.0 / conformal_lapse) * (conformal_shift_vect_der_lowered[i][j] + conformal_shift_vect_der_lowered[j][i]);
+      }
+    }
+
+    double slicing_func = 0.0;
+    if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
+      slicing_func = 0.0;
+    }
+    else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+      slicing_func = conformal_extrinsic_curvature_trace;
+    }
+    else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+      slicing_func = 2.0 * conformal_extrinsic_curvature_trace / conformal_lapse;
+    }
+
+    double conformal_spatial_metric_der_raised1[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          conformal_spatial_metric_der_raised1[k][i][j] = 0.0;
+          
+          for (int l = 0; l < 3; l++) {
+            conformal_spatial_metric_der_raised1[k][i][j] += inv_conformal_spatial_metric[k][l] * conformal_spatial_metric_der[l][i][j];
+          }
+        }
+      }
+    }
+
+    double conformal_spatial_metric_der_raised3[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          conformal_spatial_metric_der_raised3[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            conformal_spatial_metric_der_raised3[i][j][k] += inv_conformal_spatial_metric[l][k] * conformal_spatial_metric_der[i][j][l];
+          }
+        }
+      }
+    }
+
+    double conformal_spatial_metric_der_lowered1[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          conformal_spatial_metric_der_lowered1[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            for (int m = 0; m < 3; m++) {
+              conformal_spatial_metric_der_lowered1[i][j][k] += inv_conformal_spatial_metric[j][l] * inv_conformal_spatial_metric[m][k] * conformal_spatial_metric_der[i][l][m];
+            }
+          }
+        }
+      }
+    }
+
+    double conformal_spatial_metric_der_lowered3[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          conformal_spatial_metric_der_lowered3[i][j][k] = 0.0;
+
+          for (int l = 0; l < 3; l++) {
+            for (int m = 0; m < 3; m++) {
+              conformal_spatial_metric_der_lowered3[i][j][k] += inv_conformal_spatial_metric[i][l] * inv_conformal_spatial_metric[m][j] * conformal_spatial_metric_der[l][m][k];
+            }
+          }
+        }
+      }
+    }
+
+    double conformal_aux_vect_raised[3];
+    for (int k = 0; k < 3; k++) {
+      conformal_aux_vect_raised[k] = 0.0;
+        
+      for (int l = 0; l < 3; l++) {
+        conformal_aux_vect_raised[k] += inv_conformal_spatial_metric[k][l] * conformal_aux_vect[l];
+      }
+    }
+
+    double conformal_spatial_christoffel[3][3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          conformal_spatial_christoffel[i][k][l] = 0.0;
+
+          for (int m = 0; m < 3; m++) {
+            conformal_spatial_christoffel[i][k][l] += inv_conformal_spatial_metric[i][m] * conformal_spatial_metric_der[l][m][k];
+            conformal_spatial_christoffel[i][k][l] += inv_conformal_spatial_metric[i][m] * conformal_spatial_metric_der[k][m][l];
+            conformal_spatial_christoffel[i][k][l] -= inv_conformal_spatial_metric[i][m] * conformal_spatial_metric_der[m][k][l];
+          }
+        }
+      }
+    }
+
+    double conformal_lapse_der_raised[3];
+    for (int k = 0; k < 3; k++) {
+      conformal_lapse_der_raised[k] = 0.0;
+
+      for (int l = 0; l < 3; l++) {
+        conformal_lapse_der_raised[k] += inv_conformal_spatial_metric[k][l] * conformal_lapse_der[l];
+      }
+    }
+
+    double conformal_fact_der_raised[3];
+    for (int k = 0; k < 3; k++) {
+      conformal_fact_der_raised[k] = 0.0;
+
+      for (int l = 0; l < 3; l++) {
+        conformal_fact_der_raised[k] += inv_conformal_spatial_metric[k][l] * conformal_fact_der[l];
+      }
+    }
+
+    double Y_tensor[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        Y_tensor[i][j] = 2.0 * conformal_fact_der2[i][j];
+
+        for (int k = 0; k < 3; k++) {
+          Y_tensor[i][j] += 2.0 * conformal_spatial_metric[i][j] * conformal_fact_der_raised[k] * conformal_fact_der[k];
+        }
+
+        for (int r = 0; r < 3; r++) {
+          Y_tensor[i][j] -= 2.0 * conformal_fact_der[r] * conformal_spatial_christoffel[r][i][j];
+        }
+        Y_tensor[i][j] -= 6.0 * conformal_fact_der[i] * conformal_fact_der[j];
+      }
+    }
+
+    double Y_tensor_mixed[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        Y_tensor_mixed[i][j] = 0.0;
+
+        for (int l = 0; l < 3; l++) {
+          Y_tensor_mixed[i][j] += inv_conformal_spatial_metric[l][j] * Y_tensor[i][l];
+        }
+      }
+    }
+
+    double conformal_spatial_metric_source[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_spatial_metric_source[i][j] = -2.0 * conformal_lapse * (conformal_extrinsic_curvature[i][j] / (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
+        conformal_spatial_metric_source[i][j] += 2.0 * conformal_lapse * conformal_symmetrized_shift[i][j];
+
+        for (int r = 0; r < 3; r++) {
+          conformal_spatial_metric_source[i][j] += 2.0 * conformal_shift_vect[r] * conformal_spatial_metric_der[r][i][j];
+          conformal_spatial_metric_source[i][j] += 4.0 * conformal_shift_vect[r] * conformal_fact_der[r] * conformal_spatial_metric[i][j];
+        }
+      }
+    }
+
+    double conformal_lapse_source = -(conformal_lapse * conformal_lapse) * slicing_func;
+    for (int r = 0; r < 3; r++) {
+      conformal_lapse_source += conformal_lapse * conformal_shift_vect[r] * conformal_lapse_der[r];
+    }
+
+    double conformal_extrinsic_curvature_source[3][3];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        conformal_extrinsic_curvature_source[i][j] = 0.0;
+
+        for (int r = 0; r < 3; r++) {
+          conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_extrinsic_curvature[i][r] * conformal_shift_vect_der[j][r];
+          conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_extrinsic_curvature[j][r] * conformal_shift_vect_der[i][r];
+          conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_extrinsic_curvature[i][j] * conformal_shift_vect_der[r][r];
+        }
+
+        for (int k = 0; k < 3; k++) {
+          conformal_extrinsic_curvature_source[i][j] -= (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][k] * conformal_extrinsic_curvature[k][j]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_extrinsic_curvature_source[i][j] += (conformal_lapse * conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature[i][j]) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
+          for (int r = 0; r < 3; r++) {
+            conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * conformal_spatial_christoffel[k][r][i] * conformal_spatial_christoffel[r][k][j];
+
+            conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[i][k][r] * conformal_spatial_metric_der_raised3[r][j][k];
+            conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[j][k][r] * conformal_spatial_metric_der_raised3[r][i][k];
+            conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_spatial_christoffel[k][k][r] * conformal_spatial_christoffel[r][i][j];
+
+            conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * (2.0 * conformal_spatial_metric_der_raised3[k][r][k] - conformal_lapse_der[r]) *
+              (conformal_spatial_metric_der_raised3[i][j][r] + conformal_spatial_metric_der_raised3[j][i][r]);
+          }
+
+          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[i] * (conformal_aux_vect[j] - (0.5 * conformal_spatial_metric_der_raised3[j][k][k]));
+          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[j] * (conformal_aux_vect[i] - (0.5 * conformal_spatial_metric_der_raised3[i][k][k]));
+
+          conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * evolution_func * conformal_aux_vect_raised[k] * conformal_spatial_metric_der[k][i][j];
+        }
+
+        for (int k = 0; k < 3; k++) {
+          for (int r = 0; r < 3; r++) {
+            for (int s = 0; s < 3; s++) {
+              conformal_extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
+                conformal_spatial_metric_der_lowered1[k][r][s] * conformal_spatial_christoffel[k][r][s];
+              conformal_extrinsic_curvature_source[i][j] += (0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
+                conformal_spatial_metric_der_raised3[k][r][r] * conformal_spatial_metric_der_lowered3[k][s][s];
+            }
+          }
+
+          conformal_extrinsic_curvature_source[i][j] -= (0.5 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) * conformal_aux_vect_raised[k] * conformal_lapse_der[k];
+        }
+
+        for (int r = 0; r < 3; r++) {
+          for (int s = 0; s < 3; s++) {
+            conformal_extrinsic_curvature_source[i][j] += ((0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
+              conformal_extrinsic_curvature_raised[r][s] * conformal_extrinsic_curvature[r][s]) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          }
+        }
+
+        conformal_extrinsic_curvature_source[i][j] -= ((0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
+          (conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature_trace)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
+        conformal_extrinsic_curvature_source[i][j] -= Y_tensor[i][j];
+        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse_der[i] * conformal_fact_der[j];
+        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse_der[j] * conformal_fact_der[i];
+        
+        for (int k = 0; k < 3; k++) {
+          conformal_extrinsic_curvature_source[i][j] += conformal_spatial_metric[i][j] * (evolution_func - 1.0) * Y_tensor_mixed[k][k];
+          conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_spatial_metric[i][j] * conformal_lapse_der_raised[k] * conformal_fact_der[k];
+        }
+      }
+    }
+
+    double conformal_aux_vect_source[3];
+    for (int i = 0; i < 3; i++) {
+      conformal_aux_vect_source[i] = 0.0;
+
+      for (int r = 0; r < 3; r++) {
+        conformal_aux_vect_source[i] += (conformal_lapse * conformal_lapse_der[r] * conformal_extrinsic_curvature_mixed[i][r]) /
+          (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+        
+        if (i == r) {
+          conformal_aux_vect_source[i] -= (conformal_lapse * conformal_lapse_der[r] * conformal_extrinsic_curvature_trace) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+        }
+
+        for (int s = 0; s < 3; s++) {
+          conformal_aux_vect_source[i] += (conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[i][r][s])
+            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] -= (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] * conformal_spatial_metric_der_raised3[r][i][s])
+            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
+          conformal_aux_vect_source[i] -= (conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[r][s][s])
+            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[s][r][s])
+            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
+          conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_mixed[s][r])
+            / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
+          if (s == r) {
+            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_trace) /
+              (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+          }
+        }
+
+        conformal_aux_vect_source[i] += 2.0 * conformal_shift_vect_der[i][r] * conformal_aux_vect[r];
+
+        if (i == r) {
+          conformal_aux_vect_source[i] -= 2.0 * conformal_shift_vect_der_trace * conformal_aux_vect[r];
+        }
+
+        for (int s = 0; s < 3; s++) {
+          conformal_aux_vect_source[i] += 2.0 * conformal_spatial_metric_der_raised3[r][i][s] * conformal_shift_vect_der_switched[r][s];
+
+          if (i == s) {
+            for (int j = 0; j < 3; j++) {
+              conformal_aux_vect_source[i] -= 2.0 * conformal_spatial_metric_der_raised1[j][j][r] * conformal_shift_vect_der_switched[r][s];
+            }
+          }
+        }
+
+        conformal_aux_vect_source[i] += 4.0 * conformal_shift_vect_der[i][r] * conformal_fact_der[r];
+        conformal_aux_vect_source[i] -= 4.0 * conformal_shift_vect_der_trace * conformal_fact_der[i];
+      }
+    }
+
+    sout[0] = conformal_spatial_metric_source[0][0]; sout[1] = conformal_spatial_metric_source[0][1]; sout[2] = conformal_spatial_metric_source[0][2];
+    sout[3] = conformal_spatial_metric_source[1][0]; sout[4] = conformal_spatial_metric_source[1][1]; sout[5] = conformal_spatial_metric_source[1][2];
+    sout[6] = conformal_spatial_metric_source[2][0]; sout[7] = conformal_spatial_metric_source[2][1]; sout[8] = conformal_spatial_metric_source[2][2];
+
+    sout[9] = conformal_lapse_source;
+
+    sout[10] = conformal_extrinsic_curvature_source[0][0]; sout[11] = conformal_extrinsic_curvature_source[0][1]; sout[12] = conformal_extrinsic_curvature_source[0][2];
+    sout[13] = conformal_extrinsic_curvature_source[1][0]; sout[14] = conformal_extrinsic_curvature_source[1][1]; sout[15] = conformal_extrinsic_curvature_source[1][2];
+    sout[16] = conformal_extrinsic_curvature_source[2][0]; sout[17] = conformal_extrinsic_curvature_source[2][1]; sout[18] = conformal_extrinsic_curvature_source[2][2];
+
+    for (int i = 19; i < 49; i++) {
+      sout[i] = 0.0;
+    }
+
+    sout[49] = conformal_aux_vect_source[0];
+    sout[50] = conformal_aux_vect_source[1];
+    sout[51] = conformal_aux_vect_source[2];
+
+    for (int i = 52; i < 64; i++) {
+      sout[i] = 0.0;
+    }
+
+    for (int i = 0; i < 3; i++) {
+      gkyl_free(inv_conformal_spatial_metric[i]);
+    }
+    gkyl_free(inv_conformal_spatial_metric);
+  }
+  else {
+    for (int i = 0; i < 64; i++) {
+      sout[i] = 0.0;
+    }
+  }
 }
 
 void
