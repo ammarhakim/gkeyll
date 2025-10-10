@@ -294,7 +294,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_multib_app_release(app);
 }
 
-void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
+void
+gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
   if (inp->app_type == GKYL_GK_SINGLEB) {
     gyrokinetic_run_singleb_simulation(inp);

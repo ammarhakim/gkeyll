@@ -33,4 +33,5 @@ struct gkyl_gyrokinetic_run_inp {
  * 
  * @param inp Input parameters for the simulation.
  */
-void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp);
+void
+gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp);
