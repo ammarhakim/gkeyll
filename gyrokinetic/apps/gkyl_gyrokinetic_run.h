@@ -1,8 +1,7 @@
 #include <gkyl_gyrokinetic.h>
-#include <rt_arg_parse.h>
+#include <gkyl_gyrokinetic_multib.h>
 
-struct gkyl_gyrokinetic_timings
-{
+struct gkyl_gyrokinetic_timings {
   double t_end; // End time.
   int num_frames; // Number of output frames.
   int write_phase_freq; // Frequency (in multiples of num_frames) of writing phase-space data.
@@ -14,10 +13,17 @@ struct gkyl_gyrokinetic_timings
   int num_steps; // Maximum number of time-steps to take.
 };
 
-struct gkyl_gyrokinetic_run_inp
-{
-  struct gkyl_gk* app_inp; // Input parameters for the gyrokinetic application.
-  struct gkyl_gyrokinetic_multib* multib_app_inp; // Input parameters for the multi-species gyrokinetic application.
+enum gkyl_gyrokinetic_run_app_type {
+    GKYL_GK_SINGLEB,
+    GKYL_GK_MULTIB,
+};
+
+struct gkyl_gyrokinetic_run_inp {
+  enum gkyl_gyrokinetic_run_app_type app_type; // Type of gyrokinetic application to run.
+  union{
+    struct gkyl_gk app_inp;
+    struct gkyl_gyrokinetic_multib multib_app_inp;
+  };
   struct gkyl_gyrokinetic_timings timing; // Timing parameters for the simulation.
 };
 
@@ -28,4 +34,4 @@ struct gkyl_gyrokinetic_run_inp
  * @param timing Timing parameters for the simulation.
  * @param app_args Command-line arguments for the application.
  */
-void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp inp);
+void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp);

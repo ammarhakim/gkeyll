@@ -792,7 +792,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_run_inp run_inp_2x = {
-    .app_inp = &app_inp,
+    .app_inp = app_inp,
     .timing = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
@@ -806,7 +806,7 @@ int main(int argc, char **argv)
     }
   };
 
-  gkyl_gyrokinetic_run_simulation(run_inp_2x);
+  gkyl_gyrokinetic_run_simulation(&run_inp_2x);
 
 
   // ...................................................... //
@@ -928,7 +928,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_run_inp run_inp3x = {
-    .app_inp = &app_inp_3x,
+    .app_inp = app_inp_3x,
     .timing = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
@@ -942,7 +942,7 @@ int main(int argc, char **argv)
     }
   };
 
-  gkyl_gyrokinetic_run_simulation(run_inp3x);
+  gkyl_gyrokinetic_run_simulation(&run_inp3x);
 
   gkyl_gyrokinetic_comms_release(comm);
 

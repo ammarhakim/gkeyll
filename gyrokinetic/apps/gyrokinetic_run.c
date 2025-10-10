@@ -43,12 +43,13 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
   }
 }
 
-void gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp inp)
+void
+gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_timings timing = inp.timing;
+  struct gkyl_gyrokinetic_timings timing = inp->timing;
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(inp.app_inp);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
  
   double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
@@ -185,12 +186,13 @@ write_data_multib(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_
   }
 }
 
-void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp inp)
+void 
+gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_timings timing = inp.timing;
+  struct gkyl_gyrokinetic_timings timing = inp->timing;
 
   // Create app object.
-  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(inp.multib_app_inp);
+  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
 
   double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
@@ -292,17 +294,16 @@ void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp inp)
   gkyl_gyrokinetic_multib_app_release(app);
 }
 
-void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp inp)
+void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  if (inp.app_inp != 0) {
+  if (inp->app_type == GKYL_GK_SINGLEB) {
     gyrokinetic_run_singleb_simulation(inp);
   }
-  else if (inp.multib_app_inp != 0) {
+  else if (inp->app_type == GKYL_GK_MULTIB) {
     gyrokinetic_run_multib_simulation(inp);
   }
   else {
     fprintf(stderr, "Error: No valid application input provided to run simulation.\n");
     exit(EXIT_FAILURE);
   }
-
 }
