@@ -150,7 +150,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
 
-      if ( inp->use_ho ) {
+      if ( use_ho ) {
         accel_surf_vx_kernels = tensor_accel_ho_surf_vx_kernels;
         accel_surf_vy_kernels = tensor_accel_ho_surf_vy_kernels;
         accel_surf_vz_kernels = tensor_accel_ho_surf_vz_kernels;
