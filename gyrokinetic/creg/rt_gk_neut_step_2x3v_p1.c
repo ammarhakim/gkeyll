@@ -7,6 +7,7 @@
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_run.h>
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
