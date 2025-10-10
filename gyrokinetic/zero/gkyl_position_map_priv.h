@@ -699,13 +699,39 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   }
 }
 
+// Context for Gaussian-weighted integration
+struct gaussian_weight_ctx
+{
+  struct gkyl_position_map *gpm;
+  double theta_c; // Center point for Gaussian
+  double wd2; // Half-width of averaging window
+  double sigma; // Standard deviation for Gaussian weight
+};
 
 double
 position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
 {
+  struct gaussian_weight_ctx *gw_ctx = ctx;
   double fout[3];
-  position_map_constB_z_numeric(0.0, &z, fout, ctx);
-  return fout[0];
+  position_map_constB_z_numeric(0.0, &z, fout, gw_ctx->gpm);
+  
+  // Apply Gaussian weight: exp(-(z-theta_c)^2 / (2*sigma^2))
+  double dz = z - gw_ctx->theta_c;
+  double weight = exp(-dz * dz / (2.0 * gw_ctx->sigma * gw_ctx->sigma));
+  
+  return fout[0] * weight;
+}
+
+double
+gaussian_norm_wrapper(double z, void *ctx)
+{
+  struct gaussian_weight_ctx *gw_ctx = ctx;
+  
+  // Return just the Gaussian weight for normalization
+  double dz = z - gw_ctx->theta_c;
+  double weight = exp(-dz * dz / (2.0 * gw_ctx->sigma * gw_ctx->sigma));
+  
+  return weight;
 }
 
 /**
@@ -747,11 +773,27 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
     }
     double rng_len = rng_up - rng_lo;
 
+    // Create Gaussian weight context
+    // Gaussian standard deviation (sigma = width/2 gives ~95% of weight within the window)
+    double sigma = wd2 / 2.0;
+    struct gaussian_weight_ctx gw_ctx = {
+      .gpm = gpm,
+      .theta_c = theta_c,
+      .wd2 = wd2,
+      .sigma = sigma,
+    };
+
     struct gkyl_qr_res res = gkyl_dbl_exp(
-      position_map_constB_z_numeric_dbl_exp_wrapper, ctx,
+      position_map_constB_z_numeric_dbl_exp_wrapper, &gw_ctx,
       rng_lo, rng_up, 7, 1e-16);
 
-    double theta_avg = res.res / rng_len;
+    // Normalize by the integral of the Gaussian weight over the range
+    // For a Gaussian, we need to divide by the normalization factor
+    struct gkyl_qr_res norm_res = gkyl_dbl_exp(
+      gaussian_norm_wrapper, &gw_ctx,
+      rng_lo, rng_up, 7, 1e-16);
+
+    double theta_avg = res.res / norm_res.res;
     fout[0] = theta_avg;
   }
 }
