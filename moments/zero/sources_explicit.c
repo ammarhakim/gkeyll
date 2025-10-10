@@ -2463,11 +2463,15 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
   double bssn_conformal_fact = fluid_old[64];
   double conformal_fact = 1.0 / sqrt(bssn_conformal_fact);
 
+  double bssn_conformal_fact_der[3];
+  bssn_conformal_fact_der[0] = fluid_old[65]; bssn_conformal_fact_der[1] = fluid_old[66]; bssn_conformal_fact_der[2] = fluid_old[67];
   double conformal_fact_der[3];
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / pow(bssn_conformal_fact, 1.5);
+  }
+
   double conformal_fact_der2[3][3];
   for (int i = 0; i < 3; i++) {
-    conformal_fact_der[i] = 0.0;
-
     for (int j = 0; j < 3; j++) {
       conformal_fact_der2[i][j] = 0.0;
     }
@@ -2899,7 +2903,7 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           if (s == r) {
-            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_trace) /
+            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_trace) /
               (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           }
         }
@@ -2928,7 +2932,15 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     double bssn_conformal_fact_source = (1.0 / 3.0) * conformal_lapse * conformal_extrinsic_curvature_trace * bssn_conformal_fact;
     bssn_conformal_fact_source -= (8.0 / 3.0) * conformal_shift_vect_der_trace * bssn_conformal_fact;
 
-    for (int i = 0; i < 65; i++) {
+
+    double bssn_conformal_fact_der_source[3];
+    for (int i = 0; i < 3; i++) {
+      bssn_conformal_fact_der_source[i] = (1.0 / 3.0) * (conformal_extrinsic_curvature_trace * bssn_conformal_fact * conformal_lapse * conformal_lapse_der[i]);
+      bssn_conformal_fact_der_source[i] += (1.0 / 3.0) * (conformal_lapse * conformal_extrinsic_curvature_trace * bssn_conformal_fact_der[i]);
+      bssn_conformal_fact_der_source[i] -= (8.0 / 3.0) * (conformal_shift_vect_der_trace * bssn_conformal_fact_der[i]);
+    }
+
+    for (int i = 0; i < 68; i++) {
       fluid_new[i] = fluid_old[i];
     }
 
@@ -2949,16 +2961,14 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     fluid_new[50] += dt * conformal_aux_vect_source[1];
     fluid_new[51] += dt * conformal_aux_vect_source[2];
 
-    fluid_new[64] += dt * bssn_conformal_fact_source;
-
     if (fluid_new[9] < excision_threshold) {
-      for (int i = 0; i < 65; i++) {
+      for (int i = 0; i < 68; i++) {
         fluid_new[i] = 0.0;
       }
     }
   }
   else {
-    for (int i = 0; i < 65; i++) {
+    for (int i = 0; i < 68; i++) {
       fluid_new[i] = fluid_old[i];
     }
   }
@@ -2976,24 +2986,24 @@ explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling* 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    double f_new[65], f_stage1[65], f_stage2[65], f_old[65];
+    double f_new[68], f_stage1[68], f_stage2[68], f_old[68];
 
-    for (int j = 0; j < 65; j++) {
+    for (int j = 0; j < 68; j++) {
       f_old[j] = f[j];
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
-    for (int j = 0; j < 65; j++) {
+    for (int j = 0; j < 68; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
-    for (int j = 0; j < 65; j++) {
+    for (int j = 0; j < 68; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
-    for (int j = 0; j < 65; j++) {
+    for (int j = 0; j < 68; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

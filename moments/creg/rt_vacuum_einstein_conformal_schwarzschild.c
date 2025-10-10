@@ -8,6 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_vacuum_einstein_conformal.h>
 #include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
 
 #include <gkyl_null_comm.h>
 
@@ -18,13 +19,15 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_conformal_gowdywave_ctx
+struct einstein_conformal_schwarzschild_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
+  // Spacetime parameters (using geometric units).
+  double mass; // Mass of the black hole.
+  double spin; // Spin of the black hole.
 
-  // Physical constants (using normalized code units).
-  double tau0; // Reparameterized initial time.
+  double pos_x; // Position of the black hole (x-direction).
+  double pos_y; // Position of the black hole (y-direction).
+  double pos_z; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -36,7 +39,9 @@ struct einstein_conformal_gowdywave_ctx
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -47,27 +52,31 @@ struct einstein_conformal_gowdywave_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_conformal_gowdywave_ctx
+struct einstein_conformal_schwarzschild_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  // Spacetime parameters (using geometric units).
+  double mass = 0.5; // Mass of the black hole.
+  double spin = 0.0; // Spin of the black hole.
 
-  // Physical constants (using normalized code units).
-  double tau0 = 9.8753205829098; // Reparameterized initial time.
-
-  // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  double pos_x = 5.0; // Position of the black hole (x-direction).
+  double pos_y = 5.0; // Position of the black hole (y-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
   
+  // Pointer to spacetime metric.
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+
   // Evolution parameters.
   double excision_threshold = 0.3; // Excision threshold (lapse).
-  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING; // Spacetime slicing condition.
+  enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING; // Spacetime slicing condition.
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 50; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.25; // CFL coefficient.
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
+  double Lx = 10.0; // Domain size (x-direction).
+  double Ly = 10.0; // Domain size (y-direction).
+  double cfl_frac = 0.8; // CFL coefficient.
 
   double t_end = 10.0; // Final simulation time.
   int num_frames = 100; // Number of output frames.
@@ -76,15 +85,20 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_conformal_gowdywave_ctx ctx = {
-    .pi = pi,
-    .tau0 = tau0,
+  struct einstein_conformal_schwarzschild_ctx ctx = {
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
     .spacetime = spacetime,
     .excision_threshold = excision_threshold,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -100,11 +114,9 @@ create_ctx(void)
 void
 evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct einstein_conformal_gowdywave_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct einstein_conformal_schwarzschild_ctx *app = ctx;
 
-  double pi = app->pi;
-  double tau0 = app->tau0;
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
   double conformal_spatial_det, conformal_lapse;
@@ -141,52 +153,32 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
     }
   }
 
-  spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_det);
-  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &conformal_spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &conformal_lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &conformal_shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
   
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_extrinsic_curvature);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &conformal_spatial_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_conformal_spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
 
-  double lambda = (-2.0 * pi * tau0 * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * (cos(2.0 * pi * x) * cos(2.0 * pi * x)))
-    + (2.0 * (pi * pi) * (tau0 * tau0) * ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) + (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0))))
-    - (0.5 * (((2.0 * pi) * (2.0 * pi)) * ((jn(0, 2.0 * pi) * jn(0, 2.0 * pi)) + (jn(1, 2.0 * pi) * jn(1, 2.0 * pi)))))
-    + (pi * jn(0, 2.0 * pi) * jn(1, 2.0 * pi));
-  double lambda_dt = 2.0 * (pi * pi) * tau0 * ((jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)) * (1.0 + cos(4.0 * pi * x))
-    + (2.0 * (jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) * (sin(2.0 * pi * x) * sin(2.0 * pi * x))));
-  double lambda_dx = 4.0 * (pi * pi * tau0) * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * sin(4.0 * pi * x);
-
-  double P = jn(0, 2.0 * pi * tau0) * cos(2.0 * pi * x);
-  double P_dt = -2.0 * pi * jn(1, 2.0 * pi * tau0) * cos(2.0 * pi * x);
-  double P_dx = -2.0 * pi * jn(0, 2.0 * pi * tau0) * sin(2.0 * pi * x);
-
-  conformal_spatial_det = exp(0.5 * lambda) * pow(tau0, 1.5);
   double conformal_fact = pow(conformal_spatial_det, 1.0 / 12.0);
   double bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact);
 
-  conformal_spatial_metric[0][0] = ((1.0 / sqrt(tau0)) * exp(0.5 * lambda)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric[1][1] = (tau0 * exp(P)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric[2][2] = (tau0 * exp(-P)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      conformal_spatial_metric[i][j] /= (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+      inv_conformal_spatial_metric[i][j] *= (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-  conformal_lapse = (1.0 / pow(tau0, 0.25)) * exp(0.25 * lambda);
-  conformal_lapse_der[0] = (exp(0.25 * lambda) * lambda_dx) / (4.0 * pow(tau0, 0.25));
-
-  conformal_extrinsic_curvature[0][0] = 0.25 * (1.0 / pow(tau0, 0.25)) * exp(0.25 * lambda) * ((1.0 / tau0) - lambda_dt);
-  conformal_extrinsic_curvature[1][1] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(P) * (1.0 + (tau0 * P_dt));
-  conformal_extrinsic_curvature[2][2] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(-P) * (1.0 - (tau0 * P_dt));
-
-  conformal_spatial_metric_der[0][0][0] = ((exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0))) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric_der[0][1][1] = (exp(P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric_der[0][2][2] = (-exp(-P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-
-  inv_conformal_spatial_metric[0][0] = (exp(-0.5 * lambda) * sqrt(tau0)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  inv_conformal_spatial_metric[1][1] = (exp(-P) / tau0) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  inv_conformal_spatial_metric[2][2] = (exp(P) / tau0) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+      for (int k = 0; k < 3; k++) {
+        conformal_spatial_metric_der[i][j][k] /= (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+      }
+    }
+  }
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -285,7 +277,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   fout[65] = 0.0; fout[66] = 0.0; fout[67] = 0.0;
 
   if (in_excision_region) {
-    for (int i = 0; i < 68; i++) {
+    for (int i = 0; i < 65; i++) {
       fout[i] = 0.0;
     }
   }
@@ -358,11 +350,12 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_conformal_gowdywave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_conformal_schwarzschild_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Conformal instein equations.
+  // einstein_conformal equations.
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species einstein_conformal = {
@@ -370,13 +363,16 @@ main(int argc, char **argv)
     .equation = vacuum_einstein_conformal,
     
     .init = evalVacuumEinsteinConformalInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
     .has_vacuum_einstein_conformal = true,
     .vacuum_einstein_conformal_excision_threshold = ctx.excision_threshold,
     .vacuum_einstein_conformal_spacetime_slicing = ctx.spacetime_slicing,
     .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -387,7 +383,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -447,12 +443,12 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_conformal_gowdywave",
+    .name = "vacuum_einstein_conformal_schwarzschild",
 
-    .ndim = 1,
-    .lower = { -0.5 * ctx.Lx },
-    .upper = { 0.5 * ctx.Lx },
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -462,12 +458,9 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { einstein_conformal },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };
