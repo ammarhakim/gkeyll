@@ -97,18 +97,18 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nr = 128; // Cell count (configuration space: radial direction).
-  int Nvr = 32; // Cell count (velocity space: radial direction).
-  int Nvtheta = 32; // Cell count (velocity space: angular direction).
-    int Nvphi = 32; // Cell count (velocity space: phi-direction).
+  int Nvr = 18; // Cell count (velocity space: radial direction).
+  int Nvtheta = 18; // Cell count (velocity space: angular direction).
+  int Nvphi = 18; // Cell count (velocity space: phi-direction).
   double Lr = 1.5; // Domain size (configuration space: radial direction).
-  double vr_max = 8.0 * vt; // Domain boundary (velocity space: radial direction).
-  double vtheta_max = 8.0 * vt; // Domain boundary (velocity space: angular direction).
-  double vphi_max = 8.0 * vt; // Domain boundary (velocity space: phi-direction).
+  double vr_max = 10.0 * vt; // Domain boundary (velocity space: radial direction).
+  double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
+  double vphi_max = 10.0 * vt; // Domain boundary (velocity space: phi-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 0.7; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -538,6 +538,8 @@ main(int argc, char **argv)
     .upper = { ctx.vr_max, ctx.vtheta_max, ctx.vphi_max },
     .cells = { NVR, NVTHETA, NVPHI },
 
+    .use_ho = true,
+
     .cov_tangent_basis = evalCovTangentBasis,
     .cov_tangent_basis_ctx = &ctx,
     .triad_basis = evalTriadBasis,
@@ -579,11 +581,6 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_REFLECT, },
     },
 
-    .bcy = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
-      .upper = { .type = GKYL_SPECIES_REFLECT, },
-    },
-    
     .num_diag_moments = 4,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY },
   };

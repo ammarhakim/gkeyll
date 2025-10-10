@@ -22,10 +22,11 @@ mkarr(long nc, long size)
 }
 
 void
-test_triad_math_1v(int vdim)
+test_triad_math_1v()
 {
   // Test: Can the correct bracket be constructed for:
   // 1D streched coordinates: x(z^1) = (z^1)^2 \sigma_x
+  int vdim = 1;
 
   // Accuracy of the tests
   double eps = 1e-12;
@@ -483,10 +484,11 @@ test_triad_1x2v_annulus_conf(int poly_order)
 }
 
 void
-test_triad_math_2v(int vdim)
+test_triad_math_2v()
 {
   // Test: Can the correct bracket be constructed for:
   // 2D Annular Disk Coordiantes
+  int vdim = 2;
 
   // Accuracy of the tests
   double eps = 1e-12;
@@ -582,10 +584,12 @@ test_triad_math_2v(int vdim)
 }
 
 void
-test_triad_math_3v(int vdim)
+test_triad_math_3v()
 {
+
   // Test: Can the correct bracket be constructed for:
   // 3D Spherical Coordiantes
+  int vdim = 3;
 
   // Accuracy of the tests
   double eps = 1e-12;
@@ -723,11 +727,11 @@ test_triad_math_3v(int vdim)
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[1], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[2], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[3], 0.0, eps));
-  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[4], 1/r, eps));
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[4], 1.0/r, eps));
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[5], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[6], 0.0, eps));
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[7], 0.0, eps));
-  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[8], 1/(r*sin(theta)), eps));
+  TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[8], 1.0/(r*sin(theta)), eps));
 
   // Pi_{pp} block, p_r coeffs 
   TEST_CHECK(gkyl_compare_double(conf_poisson_tensor[9], 0.0, eps));
@@ -746,12 +750,12 @@ test_triad_math_3v(int vdim)
 
 }
 
-void test_triad_1v() { test_triad_math_1v(1); }
+void test_triad_1v() { test_triad_math_1v(); }
 void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
 void test_triad_1x2v_flat() { test_triad_1x2v_flat_conf(2); }
 void test_triad_1x2v_annulus() { test_triad_1x2v_annulus_conf(2); }
-void test_triad_2v() { test_triad_math_2v(2); }
-void test_triad_3v() { test_triad_math_3v(3); }
+void test_triad_2v() { test_triad_math_2v(); }
+void test_triad_3v() { test_triad_math_3v(); }
 
 TEST_LIST = {
   { "test_triad_1v", test_triad_1v}, 

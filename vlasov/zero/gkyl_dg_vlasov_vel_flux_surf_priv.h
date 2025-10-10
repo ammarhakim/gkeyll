@@ -681,7 +681,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_mod
   // 2x kernels
   { NULL, lax_flux_nodal_to_modal_vx_2x1v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p2, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p3 }, // 3
   { NULL, lax_flux_nodal_to_modal_vx_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -695,7 +695,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_mod
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, lax_flux_nodal_to_modal_vy_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, ho_lax_flux_nodal_to_modal_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -709,7 +709,7 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_mod
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, ho_lax_flux_nodal_to_modal_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_to_modal_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
