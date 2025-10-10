@@ -411,7 +411,21 @@ main(int argc, char **argv)
   if (app_args.use_mpi) MPI_Init(&argc, &argv);
 #endif
 
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
   struct sheath_ctx ctx = create_ctx(); // Context for init functions.
+
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons.
   struct gkyl_gyrokinetic_species elc = {
@@ -419,7 +433,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0 },
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { ctx.Nvpar, ctx.Nmu },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -486,7 +500,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { ctx.Nvpar, ctx.Nmu },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -559,7 +573,7 @@ main(int argc, char **argv)
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
-    .cells = { ctx.cells[0] },
+    .cells = { cells_x[0] },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -582,18 +596,32 @@ main(int argc, char **argv)
     .species = { elc, ion },
 
     .field = field,
+
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
-  struct gkyl_gyrokinetic_timing timing = {
-    .t_end = ctx.t_end,
-    .num_frames = ctx.num_frames,
-    .write_phase_freq = ctx.write_phase_freq,
-    .int_diag_calc_num = ctx.int_diag_calc_num,
-    .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = &app_inp,
+    .timing = {
+      .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps,
+    }
   };
 
-  gkyl_gyrokinetic_run_simulation(app_inp, timing, app_args);
+  gkyl_gyrokinetic_run_simulation(run_inp);
+
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
