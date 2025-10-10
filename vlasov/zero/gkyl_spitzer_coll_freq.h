@@ -7,20 +7,6 @@
 // Object type
 typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
 
-
-/**
- * Calculate normNu based on reference parameters for species s and r
- * @param ns density of species s
- * @param nr density of species r
- * @param ms mass of species s
- * @param mr mass of species r
- * @param qs charge of species s
- * @param qr charge of species r
- * @param Ts Temperature of species s
- * @param Tr Temperature of species r
- */
-double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV);
-
 /**
  * Create new updater to either compute the Spitzer collision frequency from
  * scratch based on local parameters, or scale a normalized collision frequency
@@ -87,3 +73,69 @@ void gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
  * @param pob Updater to delete.
  */
 void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up);
+
+
+/**
+ *
+ * Auxiliary methods.
+ *
+ */
+
+/**
+ * Calculate normNu based on reference parameters for species s and r
+ *
+ * @param ns density of species s.
+ * @param nr density of species r.
+ * @param ms mass of species s.
+ * @param mr mass of species r.
+ * @param qs charge of species s.
+ * @param qr charge of species r.
+ * @param Ts Temperature of species s.
+ * @param Tr Temperature of species r.
+ * @param bmag Magnetic field amplitude.
+ * @param eps0 Permittivity of vacuum.
+ * @param hbar Planck's constant divided by 2*pi.
+ * @param eV Elementary charge.
+ */
+double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+
+/**
+ * Calculate the time-independent part of alpha_E from Morse Phys. Fluids 6, 10 (1963).
+ *
+ * @param ns density of species s.
+ * @param nr density of species r.
+ * @param ms mass of species s.
+ * @param mr mass of species r.
+ * @param qs charge of species s.
+ * @param qr charge of species r.
+ * @param Ts Temperature of species s.
+ * @param Tr Temperature of species r.
+ * @param bmag Magnetic field amplitude.
+ * @param eps0 Permittivity of vacuum.
+ * @param hbar Planck's constant divided by 2*pi.
+ * @param eV Elementary charge.
+ */
+double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+
+/**
+ * Calculate alpha_E from Morse Phys. Fluids 6, 10 (1963)
+ * using reference values.
+ *
+ * @param ns density of species s.
+ * @param nr density of species r.
+ * @param ms mass of species s.
+ * @param mr mass of species r.
+ * @param qs charge of species s.
+ * @param qr charge of species r.
+ * @param Ts Temperature of species s.
+ * @param Tr Temperature of species r.
+ * @param bmag Magnetic field amplitude.
+ * @param eps0 Permittivity of vacuum.
+ * @param hbar Planck's constant divided by 2*pi.
+ * @param eV Elementary charge.
+ */
+double gkyl_calc_Morse_alpha_E(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+

@@ -70,26 +70,29 @@ struct gkyl_phase_diagnostics_inp {
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
-  enum gkyl_radiation_id radiation_id; // type of radiation
   bool write_diagnostics; // Whether to output diagnostics.
 
-  void *ctx; // Context for collision function.
+  double nu_frac; // Rescales collision frequencies (default = 1).
+
   // Function for computing self-collision frequency.
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
-
-  // Inputs for Spitzer collisionality.
-  bool normNu; // Set to true if you want to rescale collision frequency.
-  double n_ref; // Density used to calculate coulomb logarithm.
-  double T_ref; // Temperature used to calculate coulomb logarithm.
-  double bmag_mid; // bmag at the middle of the domain.
-  double nuFrac; // Parameter for rescaling collision frequency from SI values.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
-
-  // Boolean for using implicit BGK collisions (replaces rk3)   
-  bool has_implicit_coll_scheme; 
+  void *self_nu_ctx; // Context for self_nu.
 
   int num_cross_collisions; // Number of species to collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
+
+  // Functions for computing cross-collision frequencies (one for each num_cross_collisions).
+  evalf_t cross_nu[GKYL_MAX_SPECIES];
+  void *cross_nu_ctx; // Context for cross_nu.
+
+  // Parameters used to compute the Coulomb Logarithm.
+  double den_ref; // Reference density.
+  double temp_ref; // Regerence temperature.
+  double bmag_ref; // Reference magnetic field magnitude.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+
+  // Boolean for using implicit BGK collisions (replaces rk3).
+  bool has_implicit_coll_scheme; 
 };
 
 // Structure to hold parameters for adaptive source

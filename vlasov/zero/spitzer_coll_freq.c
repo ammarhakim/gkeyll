@@ -17,15 +17,14 @@ double plasma_frequency(double n, double m, double eps0, double eV)
 
 // Calculate the Coulomb Logarithm
 double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr,
-  double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
+  double qs, double qr, double bmag, double eps0, double hbar, double eV)
 {
-
   double vts = sqrt(Ts/ms); // Thermal velocity for species s
   double vtr = sqrt(Tr/mr);  // Thermal velocity for species r
   double wps = plasma_frequency(ns,ms, eps0, eV); // Plasma Frequency for species s
   double wpr = plasma_frequency(nr,mr, eps0, eV); // Plasma frequency for species r
-  double wcs = qs*bmag_mid/ms; // Cyclotron frequency for species s
-  double wcr = qr*bmag_mid/mr; // Cyclotron frequency for species r
+  double wcs = qs*bmag/ms; // Cyclotron frequency for species s
+  double wcr = qr*bmag/mr; // Cyclotron frequency for species r
   double inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms);
   double u = 3*(vts*vts + vtr*vtr); // Relative velocity
   double msr = ms*mr/(ms+mr); // Reduced mass
@@ -34,13 +33,26 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
   return 0.5*log(inner);
 }
 
-// Calculate the normNu
 double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr,
-  double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV)
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
 {
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV);
+  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag, eps0, hbar, eV);
   double cross_fac2 = fabs(ms - mr)/mr < 1e-16? 1.0 : 2.0*sqrt(2.0);
   return cross_fac2 * (1.0/ms)*(1.0/mr+1.0/ms)*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2));
+}
+
+double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
+{
+  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag, eps0, hbar, eV);
+  return 2.0*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2)*ms*mr);
+}
+
+double gkyl_calc_Morse_alpha_E(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
+{
+  double alpha_E_fac = gkyl_calc_Morse_alpha_E_const(ns, nr, ms, mr, qs, qr, Ts, Tr, bmag, eps0, hbar, eV);
+  return alpha_E_fac * ns * nr / pow(sqrt(Ts/ms+Tr/mr),3.0);
 }
 
 // create range to loop over quadrature points.

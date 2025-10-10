@@ -214,55 +214,49 @@ struct gk_species;
 struct gk_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
+
+  struct gkyl_array *self_nu; // LBO self-primitive moments
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
   struct gkyl_array *nu_sum_host, *prim_moms_host, *nu_prim_moms_host; // LBO primitive moments host-side for I/O
-  bool normNu; // Boolean to determine if using Spitzer value
-  double self_norm_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
-  double cross_norm_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  bool norm_nu_self; // Whether to compute self-species collision frequency in space and time.
+  double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
+  double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
+  double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
   double vtsq_min; // minimum vtsq
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
   struct gk_species_moment maxwellian_moms; // M0, upar, T/m.
   struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
   struct gkyl_array *moms_buff; // Buffer for moments (multiplied by nu).
 
+  int num_cross_collisions; // number of species we cross-collide with
+  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
   int *my_idx_in_other; // Index of this species in another species' list of species. 
-  double betaGreenep1; // value of Greene's factor beta + 1
-  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
-  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
-  struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
+  bool norm_nu_cross; // Whether to compute cross-species collision frequency in space and time.
+  double betaGreenep1; // Galue of Greene's factor beta + 1.
+  double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
+  double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
+  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
+  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments.
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies.
+  struct gkyl_array *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   
-  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
-
   struct gk_species_moment moms; // Moments needed in LBO (M0, M1, M2).
   gkyl_dg_bin_op_mem *dg_div_mem; // Memory needed for weak division.
 
-  struct gkyl_array *m0;
-  struct gkyl_array *vtsq;
-  struct gkyl_array *m2self; // m2self used for robustness of LBO
-  struct gkyl_array *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num, *greene_den;
-  struct gkyl_array *greene_factor;
-
-  // Operator that computes factor proportional to
-  // m0_s*delta_s in cross primitive moment calculation.
-  struct gkyl_prim_cross_m0deltas *prim_cross_m0deltas_op;
-
-  int num_cross_collisions; // number of species we cross-collide with
-  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  struct gkyl_array *m0; // Zeroth velocity moment of self species.
+  struct gkyl_array *m2self; // Second velocity moment of self species.
+  struct gkyl_array *vtsq; // Squared thermal speed of self species.
+  struct gkyl_array *alpha_E; // Morse's alpha_E factor.
 
   // Pointers to methods chosen at runtime.
-  void (*self_nu_calc)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  void (*self_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
-  void (*cross_nu_calc)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
+  void (*cross_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     struct gk_lbo_collisions *lbo);
-  void (*cross_greene_num)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-    struct gk_lbo_collisions *lbo, int cross_coll_idx);
+  void (*alpha_E_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
+    struct gk_lbo_collisions *lbo, int coll_idx);
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator

@@ -293,14 +293,11 @@ main(int argc, char **argv)
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.vt * ctx.vt * ctx.mass,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2) * ctx.mass,
       .hbar = 1.0,
       .eps0 = 1.0,
       .eV = 1.0,
-      .self_nu = evalTopHatNu,
-      .ctx = &ctx,
     },
     
     .num_diag_moments = 7,
@@ -323,14 +320,11 @@ main(int argc, char **argv)
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.vt * ctx.vt * ctx.mass,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2) * ctx.mass,
       .hbar = 1.0,
       .eps0 = 1.0,
       .eV = 1.0,
-      .self_nu = evalBumpNu,
-      .ctx = &ctx,
     },
     
     .num_diag_moments = 7,
