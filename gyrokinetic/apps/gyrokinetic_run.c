@@ -15,9 +15,9 @@ calc_integrated_diagnostics_singleb(struct gkyl_tm_trigger* iot, gkyl_gyrokineti
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-
-    if ( !(dt < 0.0) )
+    if ( !(dt < 0.0) ) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
+    }
   }
 }
 
@@ -29,7 +29,6 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
   if (trig_now_conf || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
     gkyl_gyrokinetic_app_write_conf(app, t_curr, frame);
-
     if (!is_restart_IC) {
       gkyl_gyrokinetic_app_write_field_energy(app);
       gkyl_gyrokinetic_app_write_integrated_mom(app);
@@ -40,7 +39,6 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
   bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
   if (trig_now_phase || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-
     gkyl_gyrokinetic_app_write_phase(app, t_curr, frame);
   }
 }
@@ -78,7 +76,7 @@ void gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp inp)
   struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
   struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
+                                                .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
@@ -154,8 +152,6 @@ freeresources:
   gkyl_gyrokinetic_app_release(app);
 }
 
-
-
 void
 calc_integrated_diagnostics_multib(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
   double t_curr, bool is_restart_IC, bool force_calc, double dt)
@@ -163,7 +159,6 @@ calc_integrated_diagnostics_multib(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
-
     if ( !(dt < 0.0) )
       gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
   }
@@ -177,28 +172,18 @@ write_data_multib(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_
   if (trig_now_conf || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
     gkyl_gyrokinetic_multib_app_write_conf(app, t_curr, frame);
-
     if (!is_restart_IC) {
       gkyl_gyrokinetic_multib_app_write_field_energy(app);
       gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
       gkyl_gyrokinetic_multib_app_write_dt(app);
     }
   }
-
   bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
   if (trig_now_phase || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-
     gkyl_gyrokinetic_multib_app_write_phase(app, t_curr, frame);
   }
 }
-
-
-
-
-
-
-
 
 void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp inp)
 {
@@ -282,7 +267,6 @@ void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp inp)
     else {
       num_failures = 0;
     }
-
     step += 1;
   }
 
@@ -308,16 +292,12 @@ void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp inp)
   gkyl_gyrokinetic_multib_app_release(app);
 }
 
-
-
 void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp inp)
 {
   if (inp.app_inp != 0) {
-    printf("Running single-block gyrokinetic simulation...\n");
     gyrokinetic_run_singleb_simulation(inp);
   }
   else if (inp.multib_app_inp != 0) {
-    printf("Running multi-block gyrokinetic simulation...\n");
     gyrokinetic_run_multib_simulation(inp);
   }
   else {
