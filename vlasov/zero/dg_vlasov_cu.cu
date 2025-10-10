@@ -102,13 +102,24 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
-      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      if (use_ho) {
+        accel_surf_vx_kernels = ser_accel_ho_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_accel_ho_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_accel_ho_surf_vz_kernels;
 
-      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_accel_boundary_ho_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_accel_boundary_ho_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_accel_boundary_ho_surf_vz_kernels;
+      }
+      else {
+        accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+
+        accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      }
       
       break;
 
@@ -138,13 +149,25 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
-      accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
 
-      accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
+      if ( inp->use_ho ) {
+        accel_surf_vx_kernels = tensor_accel_ho_surf_vx_kernels;
+        accel_surf_vy_kernels = tensor_accel_ho_surf_vy_kernels;
+        accel_surf_vz_kernels = tensor_accel_ho_surf_vz_kernels;
+
+        accel_boundary_surf_vx_kernels = tensor_accel_boundary_ho_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = tensor_accel_boundary_ho_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = tensor_accel_boundary_ho_surf_vz_kernels;
+      }
+      else {
+        accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
+
+        accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
+      }
       
       break;      
 
