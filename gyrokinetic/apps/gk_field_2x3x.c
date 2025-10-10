@@ -79,10 +79,11 @@ gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field
 void
 gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
-  else
+  } else {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
+  }
 
   double polarization_weight = 0.0;
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
@@ -106,15 +107,17 @@ gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
     if (bc_lo != 0) {
       poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+      }
     }
 
     struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
     if (bc_up != 0) {
       poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
-      for (int i=0; i<3; i++)
+      for (int i=0; i<3; i++) {
         poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+      }
     }
   }
   // Detect if this process contains an edge in the z dimension.
@@ -131,10 +134,11 @@ gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   f->phi_bc = 0;
   f->is_dirichletvar = false;
-  for (int i=0; i<2*app->cdim; i++)
+  for (int i=0; i<2*app->cdim; i++) {
     f->is_dirichletvar = f->is_dirichletvar ||
                           (f->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING ||
                           f->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+  }
 
   if (f->is_dirichletvar) {
     // Project the spatially varying BC if the user specifies it.
@@ -184,8 +188,11 @@ gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   else {
     f->rhs_phi_func = gk_field_2x3x_poisson_perp_rhs;
     enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-    for (int d=0; d<app->num_periodic_dir; ++d)
-      if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+    for (int d=0; d<app->num_periodic_dir; ++d) {
+      if (app->periodic_dirs[d] == app->cdim-1) {
+        fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+      }
+    }
 
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
       fem_parproj_bc, f->epsilon_global, 0, app->use_gpu);
