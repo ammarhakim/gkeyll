@@ -215,11 +215,11 @@ struct gk_lbo_collisions {
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
 
-  struct gkyl_array *self_nu; // LBO self-primitive moments
-  struct gkyl_array *boundary_corrections; // LBO boundary corrections
-  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
-  struct gkyl_array *nu_sum_host, *prim_moms_host, *nu_prim_moms_host; // LBO primitive moments host-side for I/O
+  struct gkyl_array *self_nu; // LBO self-primitive moments.
+  struct gkyl_array *boundary_corrections; // LBO boundary corrections.
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator.
+  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive  moments.
+  struct gkyl_array *nu_sum_host, *nu_prim_moms_host; // LBO primitive moments host-side for I/O.
   bool norm_nu_self; // Whether to compute self-species collision frequency in space and time.
   double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
   double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
