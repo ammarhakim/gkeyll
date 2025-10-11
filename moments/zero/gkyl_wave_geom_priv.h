@@ -9,6 +9,7 @@
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
 
 /**
  * Free wave geometry object.

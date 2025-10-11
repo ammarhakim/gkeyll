@@ -474,9 +474,9 @@ mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = Z;
 }
 
-// bmag_func must assume a 3d input xc
+// bfield_func must assume a 3d input xc
 void
-bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xc[2];
@@ -484,7 +484,13 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   double Z = Z_psiz(psi, z, ctx);
   double BRad, BZ, Bmag;
   Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-  fout[0] = Bmag;
+
+  double phi = xc[1];
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = BRad*cos(phi);
+  fout[1] = BRad*sin(phi);
+  fout[2] = BZ;
 }
 
 struct gk_mirror_ctx
@@ -746,7 +752,9 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_elc, 0.0},
     .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
+
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
@@ -756,6 +764,7 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_elc,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -763,6 +772,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -776,10 +786,12 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .num_diag_moments = 7, // Copied from GKsoloviev, but
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
@@ -791,7 +803,9 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
+
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
@@ -801,6 +815,7 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -808,6 +823,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -821,16 +837,17 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .num_diag_moments = 7,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
 
-  struct gkyl_gyrokinetic_field field =
-  {
+  struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
     .kperpSq = pow(ctx.kperp, 2.),
   };
@@ -849,8 +866,8 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func, // magnetic field
+      .bfield_ctx = &ctx
     },
     .num_periodic_dir = 0,
     .periodic_dirs = {},

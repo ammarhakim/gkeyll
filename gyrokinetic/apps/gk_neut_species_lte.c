@@ -21,7 +21,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     .phase_range = &s->local,
     .h_ij = s->g_ij,
     .h_ij_inv = s->gij,
-    .det_h = app->gk_geom->jacobgeo,
+    .det_h = app->gk_geom->geo_int.jacobgeo,
     .hamil = s->hamil,
     .model_id = s->model_id,
     .use_gpu = app->use_gpu,
@@ -45,7 +45,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
       .phase_range = &s->local,
       .h_ij = s->g_ij,
       .h_ij_inv = s->gij,
-      .det_h = app->gk_geom->jacobgeo,
+      .det_h = app->gk_geom->geo_int.jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
@@ -109,7 +109,7 @@ gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *spe
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local);  
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
   app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);

@@ -1,6 +1,5 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_mirror_grid_gen.h>
-#include <gkyl_mirror_geo_gen.h>
 #include <gkylt_mirrorgridgen.h>
 
 #include <stc/cstr.h>
@@ -31,7 +30,7 @@ split_mirror_grid_data(
     
     double *Jp = gkyl_array_fetch(J, loc);
 
-    const double *xc = gkyl_array_cfetch(mirror_grid->nodes_rz, loc);
+    const double *xc = gkyl_array_cfetch(mirror_grid->nodes_rza, loc);
 
     const struct gkyl_mirror_grid_gen_geom *g =
       gkyl_array_cfetch(mirror_grid->nodes_geom, loc);
@@ -145,7 +144,7 @@ gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp)
   do {
     cstr fileNm = cstr_from_fmt("%s-nodal_coords.gkyl", inp->out_prefix);
     enum gkyl_array_rio_status io_status =
-      gkyl_grid_sub_array_write(&nodal_grid, &node_range, mpd, mirror_grid->nodes_rz, fileNm.str);
+      gkyl_grid_sub_array_write(&nodal_grid, &node_range, mpd, mirror_grid->nodes_rza, fileNm.str);
     cstr_drop(&fileNm);
   } while (0);
 

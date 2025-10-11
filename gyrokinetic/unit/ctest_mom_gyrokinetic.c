@@ -26,17 +26,21 @@ mkarr(bool on_gpu, long nc, long size)
 }
 
 void
-bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0]; 
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = cos((2.*M_PI/(2.*2.*M_PI))*x);
 }
 
 void
-bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
 }
 
 void
@@ -46,10 +50,12 @@ mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
 }
 
 void
@@ -111,8 +117,8 @@ test_mom_gyrokinetic()
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x, // magnetic field magnitude
-    .bmag_ctx = 0,
+    .bfield_func = bfield_func_3x, // magnetic field magnitude
+    .bfield_ctx = 0,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -155,23 +161,26 @@ test_mom_gyrokinetic()
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
-  double bmag[1];
-  bmag_func_1x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_1x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
-  double bmag[1];
-  bmag_func_1x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_1x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
-  double bmag[1];
-  bmag_func_2x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_2x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
 }
 
 void
@@ -247,7 +256,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .bfield_func = bfield_func_3x,  .bfield_ctx = 0,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
@@ -495,7 +504,7 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .bfield_func = bfield_func_3x,  .bfield_ctx = 0,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
@@ -725,7 +734,7 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .bfield_func = bfield_func_3x,  .bfield_ctx = 0,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,

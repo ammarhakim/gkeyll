@@ -32,7 +32,7 @@ void eval_T_over_m_neut(double t, const double *xn, double* restrict fout, void 
   double x = xn[0];
   fout[0] = 4.*echarge/d_ion_mass;  
 }
-void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;

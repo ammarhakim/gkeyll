@@ -298,7 +298,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Compute J*M0, J*M1, J*M2 moments and separate our M0 and M2.
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
-    0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+    0, lbo->moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->basis.num_basis, &app->local);
   
   // Construct boundary corrections.
@@ -400,7 +400,7 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Construct the file handles for collision frequency and primitive moments.

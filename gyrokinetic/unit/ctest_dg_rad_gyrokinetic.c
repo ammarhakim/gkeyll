@@ -42,10 +42,12 @@ mapc2p_1x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0]; 
-  fout[0] = 1.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 1.0;
 }
 
 void
@@ -55,10 +57,12 @@ mapc2p_2x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1];
-  fout[0] = 1.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 1.0;
 }
 
 void
@@ -68,9 +72,11 @@ mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 1.0;
 }
 
 void
@@ -175,8 +181,8 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
-    .bmag_func = bmag_func_3x, // magnetic field magnitude
-    .bmag_ctx = 0 ,
+    .bfield_func = bfield_func_3x, // magnetic field magnitude
+    .bfield_ctx = 0 ,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -503,8 +509,8 @@ test_2x(int poly_order, bool use_gpu, double te)
       .world = {0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
-      .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx = 0 ,
+      .bfield_func = bfield_func_3x, // magnetic field magnitude
+      .bfield_ctx = 0 ,
       .grid = confGrid,
       .local = confLocal,
       .local_ext = confLocal_ext,

@@ -723,4 +723,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   if (mom_em->has_gr_twofluid_sources) {
     explicit_gr_twofluid_source_update(mom_em, t_curr, dt, fluid_s);
   }
+  if (mom_em->has_gr_mhd_sources) {
+    explicit_gr_mhd_source_update(mom_em, t_curr, dt, fluid_s);
+  }
 }
