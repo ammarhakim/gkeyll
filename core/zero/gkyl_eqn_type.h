@@ -42,6 +42,7 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
   GKYL_GK_FIELD_EM = 4, // Electromagnetic GK
+  GKYL_GK_FIELD_EM_IWL = 5, // Inner-wall limited EM
 };
 
 // Identifiers for specific field object types

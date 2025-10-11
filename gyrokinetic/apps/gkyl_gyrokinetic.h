@@ -371,6 +371,10 @@ struct gkyl_gyrokinetic_field {
 
   struct gkyl_poisson_bc poisson_bcs;
 
+  // parameters for EMGK
+  struct gkyl_poisson_bc ampere_bcs;
+  double mu0;
+
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
   // Initial potential used to compute the total polarization density.
@@ -482,7 +486,9 @@ struct gkyl_gyrokinetic_stat {
 
   double field_tm; // Time to compute fields.
   double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
-  double field_phi_solve_tm;   // Time spent to solve poisson eqn.
+  double field_phi_solve_tm; // Time spent to solve poisson eqn.
+  double field_apar_rhs_tm; // Time spent on parallel Ampere eqn RHS.
+  double field_apar_solve_tm; // Time spent to solve parallel Ampere eqn.
 
   double bc_tm; // Time to compute BCs.
   double species_bc_tm; // Time to compute species BCs.

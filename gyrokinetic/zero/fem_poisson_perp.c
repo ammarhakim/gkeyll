@@ -2,6 +2,8 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 #include <gkyl_array_reduce.h>
 
+void gkyl_fem_poisson_perp_build_stiffness_matrix(struct gkyl_fem_poisson_perp *up);
+
 struct gkyl_fem_poisson_perp*
 gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
   const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
@@ -27,17 +29,17 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
   // We assume epsilon and kSq live on the device, and we create a host-side
   // copies temporarily to compute the LHS matrix. This also works for CPU solves.
-  struct gkyl_array *epsilon_ho = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
-  gkyl_array_copy(epsilon_ho, up->epsilon);
-  struct gkyl_array *kSq_ho;
+  up->epsilon_ho = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
+  gkyl_array_copy(up->epsilon_ho, up->epsilon);
   if (kSq) {
     up->ishelmholtz = true;
-    kSq_ho = gkyl_array_new(GKYL_DOUBLE, kSq->ncomp, kSq->size);
-    gkyl_array_copy(kSq_ho, kSq);
+    up->kSq = gkyl_array_acquire(kSq);
+    up->kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->kSq->ncomp, up->kSq->size);
+    gkyl_array_copy(up->kSq_ho, up->kSq);
   } else {
     up->ishelmholtz = false;
-    kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->num_basis, 1);
-    gkyl_array_clear(kSq_ho, 0.);
+    up->kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->num_basis, 1);
+    gkyl_array_clear(up->kSq_ho, 0.);
   }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
@@ -177,14 +179,22 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   up->prob = gkyl_superlu_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
 #endif
 
-  struct gkyl_mat_triples **tri = gkyl_malloc(up->par_range.volume*sizeof(struct gkyl_mat_triples *));
+  up->tri = gkyl_malloc(up->par_range.volume*sizeof(struct gkyl_mat_triples *));
   for (size_t i=0; i<up->par_range.volume; i++) {
-    tri[i] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+    up->tri[i] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri[i]);
+    if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(up->tri[i]);
 #endif
   }
 
+  gkyl_fem_poisson_perp_build_stiffness_matrix(up);
+
+  return up;
+}
+
+void
+gkyl_fem_poisson_perp_build_stiffness_matrix(struct gkyl_fem_poisson_perp *up)
+{
   // Assign non-zero elements in A.
   int idx0[GKYL_MAX_CDIM],  idx1[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
@@ -200,8 +210,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
-      double *eps_p = gkyl_array_fetch(epsilon_ho, linidx);
-      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
+      double *eps_p = gkyl_array_fetch(up->epsilon_ho, linidx);
+      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(up->kSq_ho, linidx) : gkyl_array_fetch(up->kSq_ho,0);
 
       int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
@@ -209,26 +219,40 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
       // Apply the -nabla . (epsilon*nabla_perp)-kSq stencil.
       keri = idx_to_inloup_ker(up->ndim_perp, up->num_cells, idx1);
-      up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
+      up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, up->tri[paridx]);
     }
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
+    gkyl_culinsolver_amat_from_triples(up->prob_cu, up->tri);
   else
-    gkyl_superlu_amat_from_triples(up->prob, tri);
+    gkyl_superlu_amat_from_triples(up->prob, up->tri);
 #else
-  gkyl_superlu_amat_from_triples(up->prob, tri);
+  gkyl_superlu_amat_from_triples(up->prob, up->tri);
 #endif
+  
+  up->make_stiff = false; // Reset the flag.
+}
 
-  for (size_t i=0; i<up->par_range.volume; i++)
-    gkyl_mat_triples_release(tri[i]);
-  gkyl_free(tri);
+void
+gkyl_fem_poisson_perp_update_epsilon(struct gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon)
+{
+  gkyl_array_release(up->epsilon);
+  up->epsilon = gkyl_array_acquire(epsilon);
+  gkyl_array_copy(up->epsilon_ho, up->epsilon);
 
-  gkyl_array_release(epsilon_ho);
-  gkyl_array_release(kSq_ho);
+  up->make_stiff = true; // Need to remake the stiffness matrix.
+}
 
-  return up;
+void
+gkyl_fem_poisson_perp_update_kSq(struct gkyl_fem_poisson_perp *up, struct gkyl_array *kSq)
+{
+  assert(up->ishelmholtz);
+  gkyl_array_release(up->kSq);
+  up->kSq = gkyl_array_acquire(kSq);
+  gkyl_array_copy(up->kSq_ho, up->kSq);
+
+  up->make_stiff = true; // Need to remake the stiffness matrix.
 }
 
 void
@@ -310,6 +334,11 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
 void
 gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout) {
+
+  // Check if we need to rebuild the stiffness matrix (if epsilon or kSq got updated).
+  if (up->make_stiff)
+    gkyl_fem_poisson_perp_build_stiffness_matrix(up);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
@@ -376,5 +405,12 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
   gkyl_free(up->perp_range);
   gkyl_free(up->globalidx);
   gkyl_array_release(up->epsilon);
+  gkyl_array_release(up->epsilon_ho);
+  if (up->ishelmholtz)
+    gkyl_array_release(up->kSq);
+  gkyl_array_release(up->kSq_ho);
+  for (size_t i=0; i<up->par_range.volume; i++)
+    gkyl_mat_triples_release(up->tri[i]);
+  gkyl_free(up->tri);
   gkyl_free(up);
 }

@@ -75,6 +75,38 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   }
 }
 
+static double
+gk_species_update_bflux_and_cfl(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
+  gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
+
+  // Compute diagnostic moments of the boundary fluxes.
+  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  
+  // Reduce the CFL frequency anc compute stable dt needed by this species.
+  app->stat.n_species_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+
+  double omega_cfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omega_cfl_ho[0] = species->omega_cfl[0];
+  }
+  double dt_out = app->cfl/omega_cfl_ho[0];
+  
+  // Enforce the omega_H constraint on dt.
+  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, dt_omegaH);
+
+  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return dt_out;
+}
+
 static void
 gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
@@ -172,6 +204,35 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   dt_out = fmin(dt_out, dt_omegaH);
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return dt_out;
+}
+
+static double
+gk_species_em_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // We want here to just add the EM contribution to the collisionless update.
+  // We do not clear the cflrate or rhs.
+  // 1. compute the gk vars from EM fields
+  // something like:
+  // gkyl_dg_calc_gyrokinetic_vars_alpha_surf_em(species->calc_gk_vars, 
+  //   &app->local, &species->local, &species->local_ext, 
+  //   app->field->apardot, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
+
+  // 2. add this contribution to the rhs
+  // If I understood correctly, the step 1. will set the variables required in step 2. so I can just
+  // call the same updater as in the collisionless electrostatic case.
+  // I think I can assume that this will add to rhs and cflrate and not overwrite them.
+  // gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
+  //   fin, species->cflrate, rhs);
+
+  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+
+  // 3. Update the bflux and its moments and compute cflrate as usual
+  // (this is the same as in the electrostatic case)
+  double dt_out = gk_species_update_bflux_and_cfl(app, species, fin, rhs, bflux_moms);
   return dt_out;
 }
 
@@ -519,7 +580,7 @@ static void
 gk_species_calc_int_mom_dt_active(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
 {
   struct timespec wst = gkyl_wall_clock();
-  // Compute moment of f_new to compute moment of df/dt.
+  // Compute integrated moment of f_new to compute moment of df/dt.
   // Need to do it after the fields are updated.
   gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
   gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
@@ -1166,6 +1227,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
+  gks->em_rhs_func = gk_species_em_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
   gks->bc_func = gk_species_apply_bc_dynamic;
   gks->release_func = gk_species_release_dynamic;
@@ -1204,6 +1266,7 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
   
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
+  gks->em_rhs_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
   gks->bc_func = gk_species_apply_bc_static;
   gks->release_func = gk_species_release_static;
@@ -1682,6 +1745,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
+  if (app->field->is_em) {
+    // To compute current density for Ampere's law and current dot for Ohm's law.
+    gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
+    gks->apar = gkyl_array_acquire(app->field->apar);
+    gks->apardot = gkyl_array_acquire(app->field->apardot);
+  }
+
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
@@ -1918,13 +1988,18 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
   }
 }
 
-// Compute the RHS for species update, returning maximum stable
-// time-step.
 double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   return species->rhs_func(app, species, fin, rhs, bflux_moms);
+}
+
+double
+gk_species_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  return species->em_rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
 // Compute the implicit RHS for species update, returning maximum stable
@@ -2057,6 +2132,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Release moment data.
   gk_species_moment_release(app, &s->m0);
+  if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+    gk_species_moment_release(app, &s->m1);
+  }
   for (int i=0; i<s->info.num_diag_moments; ++i) {
     gk_species_moment_release(app, &s->moms[i]);
   }

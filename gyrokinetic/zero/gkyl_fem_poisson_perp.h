@@ -41,6 +41,28 @@ struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
   struct gkyl_array *kSq, bool use_gpu);
 
 /**
+ * Update the epsilon array and set the make_stiff flag to true to recompute stiffness
+ * matrix at the next solve call.
+ * 
+ * @param up updater to solver.
+ * @param epsilon new epsilon array.
+ */
+void
+gkyl_fem_poisson_perp_update_epsilon(struct gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon);
+
+/**
+ * Update the kSq array and set the make_stiff flag to true to recompute stiffness
+ * matrix at the next solve call. The kSq must be passed as a non Null pointer to array
+ * in the gkyl_fem_poisson_perp_new call.
+ * 
+ * @param up updater to solver.
+ * @param kSq new kSq array.
+ */
+void
+gkyl_fem_poisson_perp_update_kSq(struct gkyl_fem_poisson_perp *up, struct gkyl_array *kSq);
+
+
+/**
  * Assign the right-side vector with the discontinuous (DG) source field.
  *
  * @param up FEM poisson updater to run.

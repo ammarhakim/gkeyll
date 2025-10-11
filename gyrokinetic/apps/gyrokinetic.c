@@ -461,6 +461,7 @@ gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const str
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
+  // This calls also compute kSq = \sum_s q^2/m n for Ohm's law.
   gk_field_accumulate_rho_c(app, app->field, fin);
 
   // Compute biased wall potential if present and time-dependent.
@@ -822,12 +823,16 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       }
     }
 
-    if (app->field->info.init_from_file.type == 0 && app->field->info.init_field_profile == 0)
+    if (app->field->info.init_from_file.type == 0 && app->field->info.init_field_profile == 0) {
       // Compute the field.
+      // for EM, compute the initial ampere field using the fem helmholtz solver.
+      gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
+      gk_field_calc_apar_ic(app, app->field);
+
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
       gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
-    else {
+    } else {
       if (app->field->info.init_field_profile == 0)
         // Read the field.
         gk_field_file_import_init(app, app->field->info.init_from_file);
@@ -1031,10 +1036,6 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 {
   if (app->field->update_field || frame == 0) {
     struct timespec wtm = gkyl_wall_clock();
-    // Copy data from device to host before writing it out.
-    if (app->use_gpu) {
-      gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
-    }
 
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
@@ -1049,7 +1050,32 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
+    // Copy data from device to host before writing it out.
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
+    }
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
+
+    if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+      const char *fmt = "%s-apar_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+      if (app->use_gpu) {
+        gkyl_array_copy(app->field->apar_host, app->field->apar);
+      }
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm);
+    }
+    if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+      const char *fmt = "%s-dapardt_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+      if (app->use_gpu) {
+        gkyl_array_copy(app->field->apardot_host, app->field->apardot);
+      }
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm);
+    }
 
     gk_array_meta_release(mt);
 
@@ -1664,6 +1690,16 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_source_rhs(app, &app->neut_species[i], 
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
   }
+
+  gk_field_em_rhs(app, app->field, fin);
+
+  // Add electromagnetic contributions to the collisionless update of charged species.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    double dt1 = gk_species_em_rhs(app, s, fin[i], fout[i], bflux_out[i]);
+    dtmin = fmin(dtmin, dt1);
+  }
+
 
   struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;

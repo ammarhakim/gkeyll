@@ -461,7 +461,12 @@ struct gkyl_fem_poisson_perp {
   bool isdirperiodic[GKYL_MAX_DIM]; // =true if direction is periodic.
 
   struct gkyl_array *epsilon; // Permittivity.
+  struct gkyl_array *epsilon_ho; // Permittivity on host.
+  struct gkyl_array *kSq; // k squared (Helmholtz term).
+  struct gkyl_array *kSq_ho; // k square on host.
   bool ishelmholtz; // If solving Helmholtz equation (kSq is not zero/NULL).
+  bool make_stiff; // Flag to indicate if we need to remake the stiffness matrix.
+  struct gkyl_mat_triples **tri; // Matrix triples for building stiffness matrices.
 
   bool isdomperiodic; // =true if all directions are periodic.
   struct gkyl_array *rhs_cellavg;
