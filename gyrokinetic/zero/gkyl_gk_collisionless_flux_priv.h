@@ -41,9 +41,9 @@ struct gkyl_gk_collisionless_flux {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
-  gk_collisionless_flux_surf_t flux_surf[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux alpha
-  gk_collisionless_flux_surf_t flux_surf_edge_lo[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux alpha
-  gk_collisionless_flux_surf_t flux_surf_edge_up[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux alpha
+  gk_collisionless_flux_surf_t flux_surf[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_lo[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_up[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
                                                         // at upper configuration space edge
   gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
   double charge, mass;

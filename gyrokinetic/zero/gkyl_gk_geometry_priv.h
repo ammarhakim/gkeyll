@@ -1,6 +1,5 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
-#include <gkyl_dg_bin_ops.h>
 
 static double calc_running_coord(double coord_lo, int i, double dx) {
   double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
