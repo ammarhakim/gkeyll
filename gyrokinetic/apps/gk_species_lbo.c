@@ -354,15 +354,17 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       gkyl_dg_mul_op(app->basis, d, lbo->boundary_corrections_buff, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
 
     // Compute cross primitive moments.
+    // Recycle the boundary_corrections array because we don't need those anymore.
+    struct gkyl_array *cross_prim_moms = lbo->boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, species->info.mass,
       lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
-      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], lbo->prim_moms);
+      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], cross_prim_moms);
 
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr}
     for (int d=0; d<2; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->prim_moms, d, lbo->prim_moms, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
 
-    gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, lbo->prim_moms);
+    gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
 
   }
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
@@ -374,10 +376,6 @@ gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
 {
   struct timespec wst = gkyl_wall_clock();
     
-//    int cidx[] = {1};
-//    long linidx = gkyl_range_idx(&app->local, cidx);
-//    double *nu_sum_d = gkyl_array_fetch(gks->lbo.nu_sum, linidx);
-//    printf("nu_sum[%d][0] = %.9e\n", cidx[0], nu_sum_d[0]);
   // Accumulate update due to collisions onto rhs.
   gkyl_dg_updater_lbo_gyrokinetic_advance(lbo->coll_slvr, &gks->local,
     fin, gks->cflrate, rhs);
