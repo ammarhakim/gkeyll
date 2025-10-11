@@ -171,7 +171,7 @@ struct gkyl_vlasov_species {
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   bool write_cell_avg; // Boolean for only writing cell average of f.
-  bool use_ho; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.
+  bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 

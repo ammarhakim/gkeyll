@@ -379,7 +379,6 @@ main(int argc, char **argv)
     .triad_basis_ctx = &ctx,
     .triad_basis_gradient = evalTriadBasisGradient,
     .triad_basis_gradient_ctx = &ctx,
-    .use_ho = true,
 
     .num_init = 1, 
     .projection[0] = {

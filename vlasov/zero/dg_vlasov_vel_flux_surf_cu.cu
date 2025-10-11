@@ -104,7 +104,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_ho)
+  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_lo)
 {
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
@@ -118,15 +118,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
   int kernel_index = cv_index[cdim].vdim[vdim];   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if ( use_ho ) {
-        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
-      }
-      else {
+      if ( use_lo ) {
         up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      }
+      else {
+        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       // Only have Hamiltonian forces in general geometry. 
@@ -136,15 +136,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
       else if (model_id == GKYL_MODEL_TRIAD) {
-        if ( use_ho ) {
-          up->hamil_alpha_quad[0] = ser_nc_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_nc_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_nc_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-        } 
-        else {
+        if ( use_lo ) {
           up->hamil_alpha_quad[0] = ser_nc_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = ser_nc_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = ser_nc_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        } 
+        else {
+          up->hamil_alpha_quad[0] = ser_nc_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_nc_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_nc_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
       }
 
@@ -175,15 +175,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      if (use_ho) {
-        up->lax_flux_nodal_to_modal[0] = tensor_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = tensor_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = tensor_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
-      } 
-      else {
+      if (use_lo) {
         up->lax_flux_nodal_to_modal[0] = tensor_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      } 
+      else {
+        up->lax_flux_nodal_to_modal[0] = tensor_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = tensor_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = tensor_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
       }
       
       // Only have Hamiltonian forces in general geometry. 
@@ -267,7 +267,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_ho);  
+    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);  
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

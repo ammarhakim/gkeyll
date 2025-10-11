@@ -74,7 +74,7 @@ vlasovApp = Vlasov.App.new {
     charge = charge, mass = mass,
 
     -- Use higher order method for triad calculations
-    useHo = true,
+    useLo = true,
 
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
     covTangentBasis = function (t, xn)

@@ -262,7 +262,7 @@ main(int argc, char **argv)
     .has_phi = false, 
     .has_B = true, 
     .has_rad = false, 
-    .use_ho = true,
+    .use_lo = false,
     .use_gpu = use_gpu,
   }; 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
@@ -289,7 +289,7 @@ main(int argc, char **argv)
     .vel_flux_surf = vel_flux_surf, 
     .f_no_J = f_no_J, 
     .rad = rad, 
-    .use_ho = true,
+    .use_lo = false,
     .use_gpu = use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 

@@ -493,8 +493,8 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
-  bool use_ho = glua_tbl_get_bool(L, "useHo", true);
-  vm_species.use_ho = use_ho;
+  bool use_lo = glua_tbl_get_bool(L, "useLo", true);
+  vm_species.use_lo = use_lo;
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_species.is_static = !evolve; 

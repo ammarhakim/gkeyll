@@ -1320,10 +1320,13 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   else if (vms->has_app_accel) {
     vms->has_E = true; 
   }
-  vms->use_ho = true; 
-  if (vms->info.use_ho == false) {
-    vms->use_ho = false; 
+  vms->use_lo = false; 
+  if (vms->info.use_lo == true) {
+    vms->use_lo = true; 
   }
+
+  printf("vms->use_lo = %d\n", vms->use_lo);
+  printf("vms->info.use_lo = %d\n", vms->info.use_lo);
 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
@@ -1332,7 +1335,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vm_species_new_radiation(vm_app_inp, app, vms); 
 
   // Select the number of nodes, with case for hybrid-tensor.
-  int highorder = vms->use_ho ? 1 : 0;
+  int highorder = vms->use_lo ? 1 : 0;
   vms->num_surf_nodes = vdim*pow(app->poly_order+1+highorder,pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
     vms->num_surf_nodes = (int) vdim*(pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order,cdim));
@@ -1352,7 +1355,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .has_phi = vms->has_phi, 
     .has_B = vms->has_B, 
     .has_rad = vms->has_rad, 
-    .use_ho = vms->use_ho,
+    .use_lo = vms->use_lo,
     .use_gpu = app->use_gpu,
   }; 
   vms->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
@@ -1379,7 +1382,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .vel_flux_surf = vms->vel_flux_surf, 
     .f_no_J = vms->f_no_J, 
     .rad = vms->rad, 
-    .use_ho = vms->use_ho,
+    .use_lo = vms->use_lo,
     .use_gpu = app->use_gpu,
   };  
   // Construct Vlasov equation and Hyper DG object for updating equation. 

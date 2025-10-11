@@ -62,7 +62,7 @@ vlasovApp = Vlasov.App.new {
     modelID = G0.Model.Triad,
     charge = charge, mass = mass,
 
-    useHo = false, -- Use higher order intergation for surface terms 
+    useLo = false, -- Use higher order intergation for surface terms 
 
     -- vals_ij = e_{x} . \sigma_{x}
     covTangentBasis = function (t, xn)
