@@ -550,7 +550,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->dApartdtSlvr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Compute the weights in front of the laplacian operator (metric x 1/mu0)
-    struct gkyl_array *Jgij[3] = {app->gk_geom->gxxj, app->gk_geom->gxyj, app->gk_geom->gyyj};
+    struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
     for (int i=0; i<app->cdim-2/app->cdim; i++) {
       gkyl_array_set_offset(f->lapWeightAmpere, 1.0/f->info.mu0, Jgij[i], i*app->basis.num_basis);
     }

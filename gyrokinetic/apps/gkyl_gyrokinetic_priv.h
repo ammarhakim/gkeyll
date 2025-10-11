@@ -1071,7 +1071,16 @@ struct gk_field {
   struct gkyl_skin_surf_from_ghost *ssfg_x_lo;
   
   // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+
+  // Pointer to function for electromagnetic field solve.
+  void (*accumulate_current) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
+    const struct gkyl_array *fin[]);
+  void (*accumulate_current_dot) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
+    const struct gkyl_array *fin[]);
+  void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+  void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+  void (*step_apar) (struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
