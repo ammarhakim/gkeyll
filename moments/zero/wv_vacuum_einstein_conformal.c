@@ -229,12 +229,6 @@ gkyl_vacuum_einstein_conformal_flux(double excision_threshold, enum gkyl_spaceti
       conformal_aux_vect_flux[i] += conformal_shift_vect_der_switched[0][i];
       conformal_aux_vect_flux[i] -= conformal_shift_vect_der[i][0];
     }
-
-    double bssn_conformal_fact_flux = -conformal_shift_vect[0] * bssn_conformal_fact;
-    double bssn_conformal_fact_der_flux[3];
-    bssn_conformal_fact_der_flux[0] = -(conformal_shift_vect[0] * bssn_conformal_fact_der[0]) - (2.0 * bssn_conformal_fact * conformal_shift_vect_der[0][0]);
-    bssn_conformal_fact_der_flux[1] = -(conformal_shift_vect[0] * bssn_conformal_fact_der[1]) - (2.0 * bssn_conformal_fact * conformal_shift_vect_der[1][0]);
-    bssn_conformal_fact_der_flux[2] = -(conformal_shift_vect[0] * bssn_conformal_fact_der[2]) - (2.0 * bssn_conformal_fact * conformal_shift_vect_der[2][0]);
     
     for (int i = 0; i < 10; i++) {
       flux[i] = 0.0;
@@ -1502,7 +1496,7 @@ vacuum_einstein_conformal_source(const struct gkyl_wv_eqn* eqn, const double* qi
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           if (s == r) {
-            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_trace) /
+            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_trace) /
               (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           }
         }

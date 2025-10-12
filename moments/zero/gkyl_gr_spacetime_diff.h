@@ -263,3 +263,39 @@ GKYL_CU_D
 void
 gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor);
+
+/**
+*
+* Compute the rank-1 (spatial) partial derivative of the conformal factor at a given point in spacetime, using finite differences.
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor_diff Rank-1 partial derivative of the conformal factor (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_conformal_factor_diff(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** conformal_factor_diff);
+
+/**
+* Compute the rank-1 (spatial) partial derivative of the BSSN conformal factor at a given point in spacetime, using finite differences.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param bssn_conformal_factor_diff Rank-1 partial derivative of the BSSN conformal factor (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_bssn_conformal_factor_diff(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** bssn_conformal_factor_der);

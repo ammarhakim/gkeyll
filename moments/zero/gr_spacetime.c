@@ -166,16 +166,30 @@ gkyl_gr_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, co
 
 static inline void
 gkyl_gr_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double* conformal_factor)
+  double* conformal_factor)
 {
-  return spacetime->conformal_factor_func(spacetime, t, x, y, z, dx, dy, dz, conformal_factor);
+  return spacetime->conformal_factor_func(spacetime, t, x, y, z, conformal_factor);
 }
 
 static inline void
 gkyl_gr_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double* bssn_conformal_factor)
+  double* bssn_conformal_factor)
 {
-  return spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor);
+  return spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z, bssn_conformal_factor);
+}
+
+static inline void
+gkyl_gr_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** conformal_factor_der)
+{
+  return spacetime->conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der);
+}
+
+static inline void
+gkyl_gr_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** bssn_conformal_factor_der)
+{
+  return spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der);
 }
 
 static inline void

@@ -107,7 +107,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   double tau0 = app->tau0;
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double conformal_spatial_det, conformal_lapse, conformal_fact, bssn_conformal_fact;
+  double conformal_spatial_det, conformal_lapse;
   double *conformal_shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
@@ -141,6 +141,10 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
     }
   }
 
+  double conformal_fact, bssn_conformal_fact;
+  double *conformal_fact_der = gkyl_malloc(sizeof(double[3]));
+  double *bssn_conformal_fact_der = gkyl_malloc(sizeof(double[3]));
+
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_det);
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_shift);
@@ -149,12 +153,19 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_metric);
   spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_extrinsic_curvature);
 
-  spacetime->conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_fact);
-  spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact);
+  spacetime->conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_fact);
+  spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, &bssn_conformal_fact);
+
+  spacetime->conformal_factor_der_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_fact_der);
+  spacetime->bssn_conformal_factor_der_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der);
 
   spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
   spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
+
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] /= conformal_fact;
+  }
 
   double lambda = (-2.0 * pi * tau0 * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * (cos(2.0 * pi * x) * cos(2.0 * pi * x)))
     + (2.0 * (pi * pi) * (tau0 * tau0) * ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) + (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0))))
@@ -179,9 +190,9 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   conformal_extrinsic_curvature[1][1] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(P) * (1.0 + (tau0 * P_dt));
   conformal_extrinsic_curvature[2][2] = -0.5 * pow(tau0, 0.25) * exp(-0.25 * lambda) * exp(-P) * (1.0 - (tau0 * P_dt));
 
-  conformal_spatial_metric_der[0][0][0] = ((exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0))) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric_der[0][1][1] = (exp(P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric_der[0][2][2] = (-exp(-P) * tau0 * P_dx) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric_der[0][0][0] = (exp(0.25 * lambda) * lambda_dx) / (2.0 * sqrt(tau0));
+  conformal_spatial_metric_der[0][1][1] = exp(P) * tau0 * P_dx;
+  conformal_spatial_metric_der[0][2][2] = -exp(-P) * tau0 * P_dx;
 
   inv_conformal_spatial_metric[0][0] = (exp(-0.5 * lambda) * sqrt(tau0)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
   inv_conformal_spatial_metric[1][1] = (exp(-P) / tau0) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
@@ -191,6 +202,8 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 3; k++) {
         conformal_spatial_metric_der[i][j][k] = 0.5 * conformal_spatial_metric_der[i][j][k];
+        conformal_spatial_metric_der[i][j][k] /= (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+        conformal_spatial_metric_der[i][j][k] -= 2.0 * conformal_fact_der[i] * conformal_spatial_metric[j][k];
       }
 
       conformal_shift_der[i][j] = 0.5 * conformal_shift_der[i][j];
@@ -235,6 +248,8 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
       conformal_aux_vect[i] += conformal_spatial_metric_der_raised3[i][s][s];
       conformal_aux_vect[i] -= conformal_spatial_metric_der_raised1[s][s][i];  
     }
+
+    conformal_aux_vect[i] -= 4.0 * conformal_fact_der[i];
   }
 
   // Set conformal spatial metric tensor.
@@ -281,7 +296,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   fout[64] = bssn_conformal_fact;
 
   // Set BSSN conformal factor derivatives.
-  fout[65] = 0.0; fout[66] = 0.0; fout[67] = 0.0;
+  fout[65] = bssn_conformal_fact_der[0]; fout[66] = bssn_conformal_fact_der[1]; fout[67] = bssn_conformal_fact_der[2];
 
   if (in_excision_region) {
     for (int i = 0; i < 68; i++) {
@@ -308,6 +323,8 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   gkyl_free(conformal_lapse_der);
   gkyl_free(conformal_shift_der);
   gkyl_free(conformal_spatial_metric_der);
+  gkyl_free(conformal_fact_der);
+  gkyl_free(bssn_conformal_fact_der);
 }
 
 void
