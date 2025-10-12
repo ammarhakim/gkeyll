@@ -497,6 +497,26 @@ blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, 
 }
 
 static void
+blackhole_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* conformal_factor)
+{
+  double spatial_metric_det;
+  blackhole_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
+
+  *conformal_factor = pow(spatial_metric_det, 1.0 / 12.0);
+}
+
+static void
+blackhole_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* bssn_conformal_factor)
+{
+  double spatial_metric_det;
+  blackhole_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
+
+  *bssn_conformal_factor = 1.0 / pow(spatial_metric_det, 1.0 / 6.0);
+}
+
+static void
 blackhole_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   bool* in_excision_region)
 {
@@ -594,6 +614,9 @@ gkyl_gr_blackhole_inew(const struct gkyl_gr_blackhole_inp* inp)
   gr_blackhole->spacetime.spacetime_weyl_tensor_func = blackhole_spacetime_weyl_tensor;
 
   gr_blackhole->spacetime.extrinsic_curvature_tensor_func = blackhole_extrinsic_curvature_tensor;
+
+  gr_blackhole->spacetime.conformal_factor_func = blackhole_conformal_factor;
+  gr_blackhole->spacetime.bssn_conformal_factor_func = blackhole_bssn_conformal_factor;
 
   gr_blackhole->spacetime.excision_region_func = blackhole_excision_region;
 

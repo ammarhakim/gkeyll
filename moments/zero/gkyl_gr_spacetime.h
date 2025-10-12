@@ -118,6 +118,14 @@ typedef void (*gr_spacetime_weyl_tensor_t)(const struct gkyl_gr_spacetime* space
 typedef void (*gr_extrinsic_curvature_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor);
 
+// Function pointer to compute the conformal factor at a given point in spacetime.
+typedef void (*gr_conformal_factor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double* conformal_factor);
+
+// Function pointer to compute the BSSN conformal factor at a given point in spacetime.
+typedef void (*gr_bssn_conformal_factor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double* bssn_conformal_factor);
+
 // Function pointer to determine whether a given point in spacetime lies inside an excision region.
 typedef void (*gr_excision_region_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, bool* in_excision_region);
@@ -157,6 +165,9 @@ struct gkyl_gr_spacetime {
   gr_spacetime_weyl_tensor_t spacetime_weyl_tensor_func; // Function to compute spacetime Weyl curvature tensor.
 
   gr_extrinsic_curvature_tensor_t extrinsic_curvature_tensor_func; // Function to compute extrinsic curvature tensor.
+
+  gr_conformal_factor_t conformal_factor_func; // Function to compute conformal factor.
+  gr_bssn_conformal_factor_t bssn_conformal_factor_func; // Function to compute BSSN conformal factor.
 
   gr_excision_region_t excision_region_func; // Function to determine whether point lies within excision region.
 
@@ -560,6 +571,42 @@ GKYL_CU_DH
 static inline void
 gkyl_gr_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor);
+
+/**
+* Compute the conformal factor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor Conformal factor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* conformal_factor);
+
+/**
+* Compute the BSSN conformal factor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor BSSN conformal factor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* bssn_conformal_factor);
 
 /**
 * Determine whether a given point in spacetime lies within an excision region.

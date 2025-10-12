@@ -2467,7 +2467,7 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
   bssn_conformal_fact_der[0] = fluid_old[65]; bssn_conformal_fact_der[1] = fluid_old[66]; bssn_conformal_fact_der[2] = fluid_old[67];
   double conformal_fact_der[3];
   for (int i = 0; i < 3; i++) {
-    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / pow(bssn_conformal_fact, 1.5);
+    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / (pow(bssn_conformal_fact, 1.5) * conformal_fact);
   }
 
   double conformal_fact_der2[3][3];

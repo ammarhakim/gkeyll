@@ -17,7 +17,7 @@ gkyl_vacuum_einstein_conformal_flux(double excision_threshold, enum gkyl_spaceti
   bssn_conformal_fact_der[0] = q[65]; bssn_conformal_fact_der[1] = q[66]; bssn_conformal_fact_der[2] = q[67];
   double conformal_fact_der[3];
   for (int i = 0; i < 3; i++) {
-    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / pow(bssn_conformal_fact, 1.5);
+    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / (pow(bssn_conformal_fact, 1.5) * conformal_fact);
   }
 
   double conformal_spatial_metric[3][3];
@@ -1105,11 +1105,15 @@ vacuum_einstein_conformal_source(const struct gkyl_wv_eqn* eqn, const double* qi
   double bssn_conformal_fact = qin[64];
   double conformal_fact = 1.0 / sqrt(bssn_conformal_fact);
 
+  double bssn_conformal_fact_der[3];
+  bssn_conformal_fact_der[0] = qin[65]; bssn_conformal_fact_der[1] = qin[66]; bssn_conformal_fact_der[2] = qin[67];
   double conformal_fact_der[3];
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] = -(0.5 * bssn_conformal_fact_der[i]) / (pow(bssn_conformal_fact, 1.5) * conformal_fact);
+  }
+
   double conformal_fact_der2[3][3];
   for (int i = 0; i < 3; i++) {
-    conformal_fact_der[i] = 0.0;
-
     for (int j = 0; j < 3; j++) {
       conformal_fact_der2[i][j] = 0.0;
     }
