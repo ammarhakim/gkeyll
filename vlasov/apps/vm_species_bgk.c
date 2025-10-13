@@ -118,6 +118,7 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);
   gkyl_array_release(bgk->nu_sum_host);
+  gkyl_array_release(bgk->actual_nu);
 
   gkyl_array_release(bgk->nu_f_lte);
 

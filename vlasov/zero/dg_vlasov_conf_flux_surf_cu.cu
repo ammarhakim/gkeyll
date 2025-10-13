@@ -92,10 +92,10 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
         // Also compute the point in the ghost cell
         gkyl_copy_int_arr(pdim, idx, idx_r);
         idx_r[dir] = idx_r[dir]+1;
-        long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
+        long pidx_r = gkyl_range_idx(&phase_range_ext, idx_r); 
         
         const double *f_r = (const double*) gkyl_array_cfetch(fin, pidx_r);
-        double *flux_r = (const double*) gkyl_array_fetch(conf_flux_surf, pidx_r); 
+        double *flux_r = (double*) gkyl_array_fetch(conf_flux_surf, pidx_r); 
 
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
         cflrate_d[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,

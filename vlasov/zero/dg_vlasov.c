@@ -26,7 +26,9 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(vlasov->qmem);
   gkyl_array_release(vlasov->pot_tot);
   gkyl_array_release(vlasov->rad);
-  gkyl_array_release(vlasov->conf_flux_surf);
+  if (vlasov->use_conf_flux_surf) {
+    gkyl_array_release(vlasov->conf_flux_surf);
+  }
   gkyl_array_release(vlasov->vel_flux_surf); 
   gkyl_array_release(vlasov->f_no_J); 
   gkyl_free(vlasov);
