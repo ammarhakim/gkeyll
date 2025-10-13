@@ -669,9 +669,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     struct gk_species *gk_s = &app->species[i];
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
-    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
-    }
+    gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
+
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gk_s->bgk.num_cross_collisions) {
         gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
@@ -881,10 +880,8 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
     // Compute necessary moments and boundary corrections for collisions.
     for (int i=0; i<app->num_species; ++i) {
-      if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
-        gk_species_lbo_moms(app, &app->species[i], 
-          &app->species[i].lbo, distf[i]);
-      }
+      gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, distf[i]);
+
       if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
         gk_species_bgk_moms(app, &app->species[i], 
           &app->species[i].bgk, distf[i]);
@@ -894,9 +891,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     // Compute the cross-species collision frequencies.
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *gk_s = &app->species[i];
-      if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-        gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
-      }
+      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
     }
 
   }
@@ -1688,10 +1683,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      gk_species_lbo_moms(app, &app->species[i], 
-        &app->species[i].lbo, fin[i]);
-    }
+    gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+
     if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
       gk_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
@@ -1701,9 +1694,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute the cross-species collision frequencies.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
-    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
-    }
+    gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
   }
 
   // Compute necessary moments for cross-species collisions.
@@ -1711,12 +1702,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
-    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-      if (gk_s->lbo.num_cross_collisions) {
-        gk_species_lbo_cross_moms(app, &app->species[i], 
-          &gk_s->lbo, fin[i]);        
-      }
-    }
+    gk_species_lbo_cross_moms(app, &app->species[i], &gk_s->lbo, fin[i]);        
+
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
       if (gk_s->bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, &app->species[i], 
@@ -2557,19 +2544,15 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   }
 
   // Compute necessary moments and boundary corrections for collisions.
-  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-    gk_species_lbo_moms(app, gk_s, 
-      &gk_s->lbo, gk_s->f);
-  }
+  gk_species_lbo_moms(app, gk_s, &gk_s->lbo, gk_s->f);
+
   if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     gk_species_bgk_moms(app, gk_s, 
       &gk_s->bgk, gk_s->f);
   }
 
   // Compute the cross-species collision frequencies.
-  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-    gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
-  }
+  gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
 
   return rstat;
 }

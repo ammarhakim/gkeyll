@@ -251,12 +251,19 @@ struct gk_lbo_collisions {
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
 
   // Pointers to methods chosen at runtime.
+  void (*moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
   void (*self_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
   void (*cross_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     struct gk_lbo_collisions *lbo);
   void (*alpha_E_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     struct gk_lbo_collisions *lbo, int coll_idx);
+  void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
