@@ -3,14 +3,14 @@
 #include <gkyl_const.h>
 
 static void
-gk_species_lbo_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+gklbo_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   // Empty method.
 }
 
 static void
-gk_species_lbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -105,14 +105,14 @@ gklbo_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 }
 
 static void
-gk_species_lbo_cross_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+gklbo_cross_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   // Empty method.
 }
 
 static void
-gk_species_lbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   // Compute primitive moments for cross-species collisions.
@@ -146,14 +146,14 @@ gk_species_lbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_spe
 }
 
 static void
-gk_species_lbo_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gklbo_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   // Empty method.
 }
 
 static void
-gk_species_lbo_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gklbo_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -166,13 +166,13 @@ gk_species_lbo_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *g
 }
 
 static void
-gk_species_lbo_write_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gklbo_write_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // Empty method.
 }
 
 static void
-gk_species_lbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wtm = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
@@ -215,9 +215,9 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   lbo->write_diagnostics = gks->info.collisions.write_diagnostics;
 
   // Empty methods.
-  lbo->moms_func = gk_species_lbo_moms_disabled;
-  lbo->rhs_func = gk_species_lbo_rhs_disabled;
-  lbo->write_mom_func = gk_species_lbo_write_mom_disabled;
+  lbo->moms_func = gklbo_moms_disabled;
+  lbo->rhs_func = gklbo_rhs_disabled;
+  lbo->write_mom_func = gklbo_write_mom_disabled;
 
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     lbo->num_cross_collisions = gks->info.collisions.num_cross_collisions;
@@ -339,10 +339,10 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       gks->info.skip_cell_threshold, app->gk_geom, gks->vel_map,  app->use_gpu);
 
     // Methods chosen at runtime.
-    lbo->moms_func = gk_species_lbo_moms_enabled;
-    lbo->rhs_func = gk_species_lbo_rhs_enabled;
+    lbo->moms_func = gklbo_moms_enabled;
+    lbo->rhs_func = gklbo_rhs_enabled;
     if (lbo->write_diagnostics)
-      lbo->write_mom_func = gk_species_lbo_write_mom_enabled;
+      lbo->write_mom_func = gklbo_write_mom_enabled;
   }
 }
 
@@ -351,7 +351,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
 {
   // Empty methods.
   lbo->cross_nu_func = gklbo_cross_nu_calc_constNu;
-  lbo->cross_moms_func = gk_species_lbo_cross_moms_disabled;
+  lbo->cross_moms_func = gklbo_cross_moms_disabled;
 
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     if (gks->lbo.num_cross_collisions) {
@@ -466,7 +466,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
         &app->basis, &gks->basis, &app->local, app->use_gpu);
 
       // Methods chosen at runtime.
-      lbo->cross_moms_func = gk_species_lbo_cross_moms_enabled;
+      lbo->cross_moms_func = gklbo_cross_moms_enabled;
     }
   }
 }
