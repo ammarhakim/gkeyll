@@ -267,9 +267,17 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   
       lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
         1.0, 1.0, 1.0, app->use_gpu);
-      lbo->norm_nu_fac_self = nu_frac * gkyl_calc_norm_nu(gks->info.collisions.den_ref, gks->info.collisions.den_ref,
-        gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge, gks->info.collisions.temp_ref,
-        gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
+
+      // We define nu_ss = 0.5*nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s),
+      // with delta_ss = 1, beta = 0. This gives a nu_ss that is arguably 2X
+      // smaller than it should be, but we argue that it is high-energy
+      // particles that set the resistivity and those are in reality less
+      // collisional (because nu should be proportional to 1/v^3). And it makes
+      // the code 2X faster in the collisional regime.
+      lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
+        gks->info.collisions.den_ref, gks->info.collisions.den_ref, 
+        gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge,
+        gks->info.collisions.temp_ref, gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
   
       // Allocate moments app used to compute vtsq.
       gk_species_moment_init(app, gks, &lbo->maxwellian_moms, GKYL_F_MOMENT_MAXWELLIAN, false);

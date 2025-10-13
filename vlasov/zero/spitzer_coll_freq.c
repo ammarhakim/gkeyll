@@ -33,13 +33,6 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
   return 0.5*log(inner);
 }
 
-double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr,
-  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
-{
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag, eps0, hbar, eV);
-  return (1.0/ms)*(1.0/mr+1.0/ms)*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2));
-}
-
 double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
   double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
 {
