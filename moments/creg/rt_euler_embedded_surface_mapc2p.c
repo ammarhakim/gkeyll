@@ -51,11 +51,11 @@ create_ctx(void)
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
 
-  double rho0 = 2.66666666*1.4; // Reference fluid mass density.
+  double rho0 = 3.85714285*1.4; // Reference fluid mass density.
   double rho1 = 1.4; // Reference fluid mass density.
-  double u0 = 1.25;
+  double u0 = 2.22222222;
   double u1 = 0.0;
-  double p0 = 4.5*1.0;
+  double p0 = 10.3333333*1.0;
   double p1 = 1.0;
   
   // Simulation parameters.
@@ -65,8 +65,8 @@ create_ctx(void)
   double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 0.25; // Final simulation time.
-  int num_frames = 5; // Number of output frames.
+  double t_end = 0.16; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -104,9 +104,11 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   double r1 = 0.15;
   double r2 = r1/0.8;
 
-  double xc = x/r2, yc = y/r2;
+  double cx1 = 0.4, cy1 = 0.25;
+  double cx2 = 0.5, cy2 = 0.75;
 
-  if (fabs(x) <= r2 && fabs(y) <= r2) {
+  if ((x <= cx1 + r2) && (x >= cx1 - r2) && (y <= cy1 + r2) && (y >= cy1 - r2)) {
+    double xc = (x - cx1)/r2, yc = (y - cy1)/r2;
     double d = fmax(fabs(xc), fabs(yc));
     d = fmax(d, 1.0e-10);
     double D = r2*d/sqrt(2.0);
@@ -120,19 +122,57 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 
     if ((xc > 0.0) && (fabs(yc) <= fabs(xc))) {
       xp[1] = yc*D/d;
-      xp[0] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]);
+      xp[0] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]) + cx1;
+      xp[1] = xp[1] + cy1;
     }
     else if ((xc < 0.0) && (fabs(yc) <= fabs(xc))) {
       xp[1] = yc*D/d;
-      xp[0] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]));
+      xp[0] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1])) + cx1;
+      xp[1] = xp[1] + cy1;
     }
     else if ((yc > 0.0) && (fabs(xc) <= fabs(yc))) {
       xp[0] = xc*D/d;
-      xp[1] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]);
+      xp[1] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]) + cy1;
+      xp[0] = xp[0] + cx1;
     }
     else {
       xp[0] = xc*D/d;
-      xp[1] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]));
+      xp[1] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0])) + cy1;
+      xp[0] = xp[0] + cx1;
+    }
+  }
+  else if ((x <= cx2 + r2) && (x >= cx2 - r2) && (y <= cy2 + r2) && (y >= cy2 - r2)) {
+    double xc = (x - cx2)/r2, yc = (y - cy2)/r2;
+    double d = fmax(fabs(xc), fabs(yc));
+    d = fmax(d, 1.0e-10);
+    double D = r2*d/sqrt(2.0);
+    double R = r1;
+
+    if (d > r1/r2) {
+      R = r1*pow((1.0 - r1/r2)/(1.0 - d), r2/r1 + 0.5);
+      // Scale D outside circle to correctly extend to grid edge.
+      D = D*((1.0 - sqrt(2.0))/(r1/r2 - 1.0)*d + (1.0 - sqrt(2)*r1/r2)/(1.0 - r1/r2));
+    }
+
+    if ((xc > 0.0) && (fabs(yc) <= fabs(xc))) {
+      xp[1] = yc*D/d;
+      xp[0] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]) + cx2;
+      xp[1] = xp[1] + cy2;
+    }
+    else if ((xc < 0.0) && (fabs(yc) <= fabs(xc))) {
+      xp[1] = yc*D/d;
+      xp[0] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1])) + cx2;
+      xp[1] = xp[1] + cy2;
+    }
+    else if ((yc > 0.0) && (fabs(xc) <= fabs(yc))) {
+      xp[0] = xc*D/d;
+      xp[1] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]) + cy2;
+      xp[0] = xp[0] + cx2;
+    }
+    else {
+      xp[0] = xc*D/d;
+      xp[1] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0])) + cy2;
+      xp[0] = xp[0] + cx2;
     }
   }
   else {
@@ -150,12 +190,15 @@ evalPhiInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT phi,
 
   struct embedded_ctx *app = ctx;
 
-  double xc = 0.0;
-  double yc = 0.0;
+  double xc1 = 0.4;
+  double yc1 = 0.25;
+
+  double xc2 = 0.5;
+  double yc2 = 0.75;
 
   double r = 0.15;
 
-  if (((xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc)) < r*r)
+  if ((((xp[0]-xc1)*(xp[0]-xc1) + (xp[1]-yc1)*(xp[1]-yc1)) < r*r) || (((xp[0]-xc2)*(xp[0]-xc2) + (xp[1]-yc2)*(xp[1]-yc2)) < r*r))
     phi[0] = -1.0;
   else
     phi[0] = 1.0;
@@ -167,6 +210,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   double xp[2] = { 0.0 };
   mapc2p(0.0, xn, xp, ctx);
+
   struct embedded_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
@@ -176,8 +220,11 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Lx = app->Lx;
   double Ly = app->Ly;
 
-  double xc = 0.0;
-  double yc = 0.0;
+  double xc1 = 0.4;
+  double yc1 = 0.25;
+
+  double xc2 = 0.5;
+  double yc2 = 0.75;
 
   double rho = app->rho0; // Fluid mass density.
   double u = app->u0;
@@ -185,13 +232,13 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double r = 0.15;
 
-  if (xp[0] > -0.3) {
+  if (xp[0] > 0.2) {
     rho = app->rho1;
     u = app->u1;
     p = app->p1;
   }
 
-  if (((xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc)) < r*r) {
+  if ((((xp[0]-xc1)*(xp[0]-xc1) + (xp[1]-yc1)*(xp[1]-yc1)) < r*r) || (((xp[0]-xc2)*(xp[0]-xc2) + (xp[1]-yc2)*(xp[1]-yc2)) < r*r)) {
     rho = 0.01;
     u = 0.0;
     p = 0.01;
@@ -200,7 +247,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double mom_x = rho*u; // Fluid momentum density (x-direction).
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = p/(gas_gamma - 1.0) + 0.5*rho*u*u; // Fluid total energy density.
+  double Etot = p/(gas_gamma - 1.0); // Fluid total energy density.
 
   // Set fluid mass density.
   fout[0] = rho;
@@ -352,14 +399,16 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_embedded_c2p",
+    .name = "euler_embedded2_c2p",
 
     .ndim = 2,
-    .lower = { -0.5*ctx.Lx, -0.5*ctx.Ly },
-    .upper = { 0.5*ctx.Lx, 0.5*ctx.Ly }, 
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly }, 
     .cells = { NX, NY },
 
     .mapc2p = mapc2p,
+
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
 
     .cfl_frac = ctx.cfl_frac,
 

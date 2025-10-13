@@ -66,7 +66,7 @@ create_ctx(void)
   double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 0.25; // Final simulation time.
-  int num_frames = 5; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
