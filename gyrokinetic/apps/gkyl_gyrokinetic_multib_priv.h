@@ -6,7 +6,6 @@
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
-#include <gkyl_rescale_ghost_jacf.h>
 
 // A multib_comm_conn send/recv pair used for communicating between blocks.
 struct gkyl_mbcc_sr {
@@ -46,10 +45,6 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for conf-space sync.
   struct gkyl_mbcc_sr *mbcc_sync_charged; // Connections for charged species phase-space.
   struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
-
-  // Updaters to rescale jac*f in the ghost cell.
-  struct gkyl_rescale_ghost_jacf *jf_rescale_charged[2*GKYL_MAX_CDIM];
-  struct gkyl_rescale_ghost_jacf *jf_rescale_neut[2*GKYL_MAX_CDIM];
 
   double tcurr; // current time
   

@@ -113,7 +113,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_elc, mu_max_elc },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
-    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -133,6 +132,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end,
 
       correctAllMoments = true
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES_no_by,
     },
 
     collisions = {
@@ -163,7 +166,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_ion, mu_max_ion },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
-    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -183,6 +185,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end,
 
       correctAllMoments = true
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES_no_by,
     },
 
     collisions = {
