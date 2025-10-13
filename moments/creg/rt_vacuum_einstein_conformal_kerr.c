@@ -185,6 +185,16 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
     conformal_fact_der[i] /= conformal_fact;
   }
 
+  // Set first and second conformal derivatives to zero, to improve stability.
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] = 0.0;
+    bssn_conformal_fact_der[i] = 0.0;
+
+    for (int j = 0; j < 3; j++) {
+        bssn_conformal_fact_der2[i][j] = 0.0;
+    }
+  }
+
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       conformal_spatial_metric[i][j] /= (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
@@ -253,7 +263,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
 
   // Set conformal lapse gauge variable.
   fout[9] = conformal_lapse;
-
+  
   // Set conformal extrinsic curvature tensor.
   fout[10] = conformal_extrinsic_curvature[0][0]; fout[11] = conformal_extrinsic_curvature[0][1]; fout[12] = conformal_extrinsic_curvature[0][2];
   fout[13] = conformal_extrinsic_curvature[1][0]; fout[14] = conformal_extrinsic_curvature[1][1]; fout[15] = conformal_extrinsic_curvature[1][2];

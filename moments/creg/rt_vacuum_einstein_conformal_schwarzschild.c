@@ -180,9 +180,19 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
   spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
-
+  
   for (int i = 0; i < 3; i++) {
     conformal_fact_der[i] /= conformal_fact;
+  }
+
+  // Set first and second conformal derivatives to zero, to improve stability.
+  for (int i = 0; i < 3; i++) {
+    conformal_fact_der[i] = 0.0;
+    bssn_conformal_fact_der[i] = 0.0;
+
+    for (int j = 0; j < 3; j++) {
+        bssn_conformal_fact_der2[i][j] = 0.0;
+    }
   }
 
   for (int i = 0; i < 3; i++) {

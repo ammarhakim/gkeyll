@@ -5,7 +5,8 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_vacuum_einstein_conformal_rp {
-  WV_VACUUM_EINSTEIN_CONFORMAL_RP_LAX = 0, // Default (Lax fluxes).
+  WV_VACUUM_EINSTEIN_CONFORMAL_RP_HLL = 0, // Default (HLL fluxes).
+  WV_VACUUM_EINSTEIN_CONFORMAL_RP_LAX,
 };
 
 // Input context, packaged as a struct.
