@@ -79,6 +79,30 @@ install: gkeyll-install cgkeyll-install gkeyll-header
 	cp ../${BUILD_DIR}/gkeyll/gkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/gkeyll
 	cp ../${BUILD_DIR}/gkeyll/cgkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
 	chmod u+x ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
 
 .PHONY: clean
 clean: ## Clean build output

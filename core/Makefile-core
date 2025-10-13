@@ -167,30 +167,6 @@ install: all
 	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/${PROJ_NAME}/include
 # libraries
 	cp -f $(LLIB) ${INSTALL_PREFIX}/${PROJ_NAME}/lib/libg0core.so
-# Copy Lua code from various directories
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/xsys
-	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sci
-	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sqlite3
-	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Tool
-	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Lib
-	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Grid
-	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/DataStruct
-	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
-#
-	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Comm
-	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
 
 .PHONY: clean
 clean: ## Clean build output
