@@ -2934,17 +2934,6 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
       }
     }
 
-    double bssn_conformal_fact_source = (1.0 / 3.0) * conformal_lapse * conformal_extrinsic_curvature_trace * bssn_conformal_fact;
-    bssn_conformal_fact_source -= (8.0 / 3.0) * conformal_shift_vect_der_trace * bssn_conformal_fact;
-
-
-    double bssn_conformal_fact_der_source[3];
-    for (int i = 0; i < 3; i++) {
-      bssn_conformal_fact_der_source[i] = (1.0 / 3.0) * (conformal_extrinsic_curvature_trace * bssn_conformal_fact * conformal_lapse * conformal_lapse_der[i]);
-      bssn_conformal_fact_der_source[i] += (1.0 / 3.0) * (conformal_lapse * conformal_extrinsic_curvature_trace * bssn_conformal_fact_der[i]);
-      bssn_conformal_fact_der_source[i] -= (8.0 / 3.0) * (conformal_shift_vect_der_trace * bssn_conformal_fact_der[i]);
-    }
-
     for (int i = 0; i < 77; i++) {
       fluid_new[i] = fluid_old[i];
     }
