@@ -128,11 +128,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
       wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_fld->bcx_func[0];
+        bc_upper_func = mom_fld->bcx_func[1];
       else if (dir == 1)
-        bc_upper_func = mom_fld->bcy_func[0];
+        bc_upper_func = mom_fld->bcy_func[1];
       else
-        bc_upper_func = mom_fld->bcz_func[0];
+        bc_upper_func = mom_fld->bcz_func[1];
 
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
