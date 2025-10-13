@@ -46,11 +46,6 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
   }
   up->vel_range = *inp->vel_range; 
 
-  // By default, we have no forces from Hamiltonian
-  for (int d=0; d<vdim; ++d) {
-    up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
-  } 
-
   int kernel_index = cv_index[cdim].vdim[vdim];   
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -133,7 +128,7 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
   int idx_hamil[GKYL_MAX_DIM], idx_pt[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
@@ -172,10 +167,6 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
       idx_l[dir] = idx_l[dir]-1;
       long pidx_l = gkyl_range_idx(phase_range, idx_l); 
       const double *f_l = gkyl_array_cfetch(fin, pidx_l);
-
-      gkyl_copy_int_arr(pdim, iter.idx, idx_r);
-      idx_r[dir] = idx_r[dir]+1;
-      long pidx_r = gkyl_range_idx(phase_range, idx_r); 
 
       if (idx[dir] == phase_range->upper[dir]) {
 

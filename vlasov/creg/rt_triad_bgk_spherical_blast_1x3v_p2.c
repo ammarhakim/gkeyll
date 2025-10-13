@@ -538,8 +538,6 @@ main(int argc, char **argv)
     .upper = { ctx.vr_max, ctx.vtheta_max, ctx.vphi_max },
     .cells = { NVR, NVTHETA, NVPHI },
 
-    .use_ho = true,
-
     .cov_tangent_basis = evalCovTangentBasis,
     .cov_tangent_basis_ctx = &ctx,
     .triad_basis = evalTriadBasis,

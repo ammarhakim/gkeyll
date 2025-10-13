@@ -73,7 +73,6 @@ vlasovApp = Vlasov.App.new {
     modelID = G0.Model.Triad,
     charge = charge, mass = mass,
 
-
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
     covTangentBasis = function (t, xn)
       local q_r = xn[1]

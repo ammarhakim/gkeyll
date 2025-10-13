@@ -72,8 +72,6 @@ vlasovApp = Vlasov.App.new {
     modelID = G0.Model.CanonicalPB,
     charge = charge, mass = mass,
 
-    useLo = true,
-
     hamiltonian = function (t, xn)
       local q_r, p_r_dot, p_theta_dot, p_z_dot = xn[1], xn[2], xn[3], xn[4]
 
