@@ -40,7 +40,9 @@ typedef void (*array_copy_func_t)(size_t nc, double *out, const double *inp, voi
 /**
  * Type of function to apply to embedded surface
  *
- * @param eqn Base equation object.
+ * @param q Pointer to outside surface data.
+ * @param qphi Pointer to inside surface data.
+ * @param delta Difference across surface.
  * @param ctx Context for function evaluation. Can be NULL
  */
 typedef void (*wv_embed_func_t)(const double *q, double *qphi, double *delta,

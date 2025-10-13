@@ -200,7 +200,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         .update_range = &app->local,
         .heat_flux_range = &src->non_ideal_local,
       };
-      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
+      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(&grad_closure_inp);
     }
   }
 

@@ -205,9 +205,10 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(fld->embed_mask, 1.0);
 
-  if (maxwell->embed_geo)
+  if (maxwell->embed_geo) {
     gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
       &app->local, fld->embed_mask);
+  }
 
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   gkyl_array_clear(fld->ext_em, 0.0);

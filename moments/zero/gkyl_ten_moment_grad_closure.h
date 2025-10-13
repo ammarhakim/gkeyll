@@ -13,7 +13,7 @@ struct gkyl_ten_moment_grad_closure_inp {
   double k0; // inverse damping coefficient
   double cfl; // CFL number to use
   const struct gkyl_range *update_range;
-  struct gkyl_range *heat_flux_range;
+  const struct gkyl_range *heat_flux_range;
 
   struct gkyl_comm *comm;
 };
@@ -33,7 +33,7 @@ typedef struct gkyl_ten_moment_grad_closure gkyl_ten_moment_grad_closure;
  *
  * @param inp Input parameters to updater
  */
-gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp);
+gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp);
 
 /**
  * Compute RHS contribution from symmetrized gradient-based closure

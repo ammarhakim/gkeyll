@@ -8,22 +8,22 @@
 #include <gkyl_ten_moment_grad_closure_priv.h>
 
 gkyl_ten_moment_grad_closure*
-gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
+gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp)
 {
   gkyl_ten_moment_grad_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_grad_closure));
 
-  up->grid = *(inp.grid);
+  up->grid = *(inp->grid);
   up->ndim = up->grid.ndim;
-  up->k0 = inp.k0;
-  up->cfl = inp.cfl;
+  up->k0 = inp->k0;
+  up->cfl = inp->cfl;
 
-  int ndim = inp.update_range->ndim;
+  int ndim = inp->update_range->ndim;
   
-  create_offsets_vertices(inp.update_range, up->offsets_vertices);
-  create_offsets_centers(inp.heat_flux_range, up->offsets_centers);
+  create_offsets_vertices(inp->update_range, up->offsets_vertices);
+  create_offsets_centers(inp->heat_flux_range, up->offsets_centers);
   
-  if (inp.comm)
-    up->comm = gkyl_comm_acquire(inp.comm);
+  if (inp->comm)
+    up->comm = gkyl_comm_acquire(inp->comm);
   else
     up->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
 
@@ -104,12 +104,13 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
   double dt_suggested = dt*cfl/fmax(cfla[0], DBL_MIN);
 
-  if (is_cfl_violated > 0.0)
+  if (is_cfl_violated > 0.0) {
     // indicate failure, and return smaller stable time-step
     return (struct gkyl_ten_moment_grad_closure_status) {
       .success = 0,
       .dt_suggested = dt_suggested,
     };
+  }
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
