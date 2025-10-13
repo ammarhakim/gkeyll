@@ -236,20 +236,21 @@ main(int argc, char **argv)
     GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
 
   // Select the number of nodes, with case for hybrid-tensor.
-  int num_surf_nodes = vdim*pow(poly_order+1,pdim - 1);
+  bool use_lo = false;
+  int highorder = use_lo ? 0 : 1;
+  int num_surf_vel_nodes = vdim*pow(poly_order+1+highorder,pdim - 1);
   if ((basis.b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-    num_surf_nodes = (int) vdim*(pow(poly_order + 1,vdim - 1) + pow(poly_order,cdim));
+    num_surf_vel_nodes = (int) vdim*(pow(poly_order+1+highorder,vdim - 1) + pow(poly_order,cdim));
   }
-
+  
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
   struct gkyl_array *poisson_tensor_conf = mkarr1(use_gpu, confBasis.num_basis*num_pt_indices[vdim-1], confRange.volume );
   struct gkyl_array *pot_tot = mkarr1(use_gpu, confBasis.num_basis*4, confRange_ext.volume );
-  struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, num_surf_nodes, phaseRange_ext.volume );
-  printf("(243 rt_hyper_vlasov_tm) Size of vms->vel_flux_surf: (%d x %ld)\n", num_surf_nodes ,phaseRange_ext.volume);
+  struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, num_surf_vel_nodes, phaseRange_ext.volume );
   struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
   struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
-
+  
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &phaseGrid, 
     .conf_basis = &confBasis,

@@ -28,6 +28,7 @@ struct gkyl_dg_vlasov_inp {
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
   const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials. 
   const struct gkyl_array *rad; // Radiation drag forces, F_rad(v). 
+  const struct gkyl_array *conf_flux_surf; // Modal expansion of fluxes at configuration space surfaces. 
   const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces. 
   const struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. Used by magnetic field updates.
   bool use_lo; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.  

@@ -248,6 +248,12 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
   gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
     vms->jacob_vel_gauss, fin, vms->f_no_J, app->use_gpu); 
 
+  // Compute the surface expansion of the phase space flux in configuration space. 
+  if (vms->model_id == GKYL_MODEL_TRIAD) {
+    gkyl_dg_vlasov_conf_flux_surf_advance(vms->calc_conf_flux, &app->local_ext, &vms->local_ext, 
+      vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, vms->conf_flux_surf);
+  }
+
   // Compute the surface expansion of the phase space flux in velocity space. 
   gkyl_dg_vlasov_vel_flux_surf_advance(vms->calc_vel_flux, &app->local, &vms->local, 
     vms->jacob_vel_surf, vms->conf_poisson_tensor, vms->hamil, vms->qmem, vms->pot_tot, vms->rad, 
@@ -1325,9 +1331,6 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     vms->use_lo = true; 
   }
 
-  printf("vms->use_lo = %d\n", vms->use_lo);
-  printf("vms->info.use_lo = %d\n", vms->info.use_lo);
-
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
 
@@ -1335,14 +1338,38 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vm_species_new_radiation(vm_app_inp, app, vms); 
 
   // Select the number of nodes, with case for hybrid-tensor.
-  int highorder = vms->use_lo ? 1 : 0;
-  vms->num_surf_nodes = vdim*pow(app->poly_order+1+highorder,pdim - 1);
+  int highorder = vms->use_lo ? 0 : 1;
+  vms->num_surf_vel_nodes = vdim*pow(app->poly_order+1+highorder,pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    vms->num_surf_nodes = (int) vdim*(pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order,cdim));
+    vms->num_surf_vel_nodes = (int) vdim*(pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order,cdim));
   }
 
-  // Allocate nodal surface expansion of velocity space flux array. 
-  vms->vel_flux_surf = mkarr(app->use_gpu, vms->num_surf_nodes, vms->local_ext.volume);
+  // Allocate nodal surface expansion of velocity space flux array (conf). 
+  if ( vms->model_id == GKYL_MODEL_TRIAD ){
+
+    // COmpute the number of configuration space nodes, with case for hybrid-tensor.
+    vms->num_surf_conf_nodes = cdim*pow(app->poly_order+1+highorder,pdim - 1);
+    if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
+      vms->num_surf_conf_nodes = (int) cdim*(pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order,cdim- 1));
+    }
+
+    vms->conf_flux_surf = mkarr(app->use_gpu, vms->num_surf_conf_nodes, vms->local_ext.volume);
+    struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
+      .phase_grid = &vms->grid, 
+      .conf_basis = &app->basis,
+      .phase_basis = &vms->basis,
+      .vel_range = &vms->local_vel,
+      .hamil_range = &vms->hamil_range,
+      .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
+      .model_id = vms->model_id,
+      .use_lo = vms->use_lo,
+      .use_gpu = app->use_gpu,
+    }; 
+    vms->calc_conf_flux = gkyl_dg_vlasov_conf_flux_surf_inew(&inp_conf_flux); 
+  }
+
+  // Allocate nodal surface expansion of velocity space flux array (vel).
+  vms->vel_flux_surf = mkarr(app->use_gpu, vms->num_surf_vel_nodes, vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &vms->grid, 
     .conf_basis = &app->basis,
@@ -1358,7 +1385,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .use_lo = vms->use_lo,
     .use_gpu = app->use_gpu,
   }; 
-  vms->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 
+  vms->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux);
 
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &app->basis,
@@ -1379,6 +1406,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .hamil = vms->hamil,
     .qmem = vms->qmem, 
     .pot_tot = vms->pot_tot, 
+    .conf_flux_surf = vms->conf_flux_surf,
     .vel_flux_surf = vms->vel_flux_surf, 
     .f_no_J = vms->f_no_J, 
     .rad = vms->rad, 
@@ -1616,6 +1644,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     vm_species_projection_release(app, &vms->proj_init[k]);
   }
 
+  if ( vms->model_id == GKYL_MODEL_TRIAD ){
+    gkyl_dg_vlasov_conf_flux_surf_release(vms->calc_conf_flux);
+    gkyl_array_release(vms->conf_flux_surf);
+  }
   gkyl_dg_vlasov_vel_flux_surf_release(vms->calc_vel_flux);
   gkyl_array_release(vms->qmem); 
   gkyl_array_release(vms->pot_tot); 
@@ -1624,7 +1656,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_array_release(vms->app_accel_host);
     gkyl_proj_on_basis_release(vms->app_accel_proj);
   } 
-  gkyl_array_release(vms->rad);
+  gkyl_array_release(vms->rad); 
   gkyl_array_release(vms->vel_flux_surf); 
   gkyl_array_release(vms->f_no_J); 
 

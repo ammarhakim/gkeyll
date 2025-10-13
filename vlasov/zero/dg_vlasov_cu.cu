@@ -175,13 +175,25 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       assert(false);
       break;    
   }
-  vlasov->stream_surf[0] = stream_surf_x_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_surf[1] = stream_surf_y_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_surf[2] = stream_surf_z_kernels[kernel_index].kernels[poly_order];
 
-  vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[kernel_index].kernels[poly_order];    
+  if (model_id == GKYL_MODEL_TRIAD) {
+    vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
+
+    vlasov->stream_boundary_surf_from_flux[0] = stream_boundary_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf_from_flux[1] = stream_boundary_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf_from_flux[2] = stream_boundary_surf_from_flux_z_kernels[kernel_index].kernels[poly_order]; 
+  }
+  else {
+    vlasov->stream_surf[0] = stream_surf_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf[1] = stream_surf_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf[2] = stream_surf_z_kernels[kernel_index].kernels[poly_order];
+
+    vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[kernel_index].kernels[poly_order]; 
+  }
 
   vlasov->accel_surf[0] = accel_surf_vx_kernels[kernel_index].kernels[poly_order];
   vlasov->accel_surf[1] = accel_surf_vy_kernels[kernel_index].kernels[poly_order];
@@ -236,7 +248,11 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
-  struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad); 
+  struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad);
+  if ( inp->model_id == GKYL_MODEL_TRIAD)  {
+    struct gkyl_array *conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
+    vlasov->conf_flux_surf = conf_flux_surf_ho->on_dev; 
+  }
   struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
   struct gkyl_array *f_no_J_ho = gkyl_array_acquire(inp->f_no_J); 
   // store pointers to on_dev for copying over to device. 
@@ -244,7 +260,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->hamil = hamil_ho->on_dev; 
   vlasov->qmem = qmem_ho->on_dev; 
   vlasov->pot_tot = pot_tot_ho->on_dev; 
-  vlasov->rad = rad_ho->on_dev;
+  vlasov->rad = rad_ho->on_dev; 
   vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
   vlasov->f_no_J =f_no_J_ho->on_dev; 
 

@@ -45,6 +45,7 @@
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
 #include <gkyl_dg_vlasov_divide_Jv.h>
+#include <gkyl_dg_vlasov_conf_flux_surf.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -388,13 +389,16 @@ struct vm_species {
   bool has_B; // Do we have magnetic fields? 
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
-  int num_surf_nodes; // number of surface nodes at velocity-space surfaces
+  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
+  int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
 
   // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
   struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
-  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes. 
+  struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel). 
   union {
     // Special relativistic Vlasov-Maxwell model.
     struct {
