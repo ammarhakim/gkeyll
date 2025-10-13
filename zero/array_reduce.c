@@ -222,6 +222,9 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
       case GKYL_SQ_SUM:
         gkyl_array_reduce_weighted_sq_sum_cu(out, arr, wgt);
         break;
+      case GKYL_RMS:
+        gkyl_array_reduce_weighted_rms_cu(out, arr, wgt);
+        break;
       case GKYL_ABS:
       case GKYL_INV:
       case GKYL_PROD:
@@ -286,6 +289,21 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
           out[k] += wgt_c[k]*arr_c[k]*arr_c[k];
       }
       break;
+
+    case GKYL_RMS:
+      for (long k=0; k<nc; ++k) out[k] = 0;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *arr_c = gkyl_array_cfetch(arr, i);
+        const double *wgt_c = gkyl_array_cfetch(wgt, i);
+	double rms = 0.0;
+        for (long k=0; k<nc; ++k)
+          rms += arr_c[k]*arr_c[k];
+
+	rms = sqrt(rms/nc);
+        for (long k=0; k<nc; ++k)
+          out[k] += wgt_c[k]*rms;
+      }
+      break;
     case GKYL_ABS:
     case GKYL_INV:
     case GKYL_PROD:
@@ -319,6 +337,9 @@ gkyl_array_reduce_weighted_range(double *res, const struct gkyl_array *arr,
         break;
       case GKYL_SQ_SUM:
         gkyl_array_reduce_weighted_range_sq_sum_cu(res, arr, wgt, range);
+        break;
+      case GKYL_RMS:
+        gkyl_array_reduce_weighted_range_rms_cu(res, arr, wgt, range);
         break;
       case GKYL_ABS:
       case GKYL_INV:
@@ -390,6 +411,22 @@ gkyl_array_reduce_weighted_range(double *res, const struct gkyl_array *arr,
         const double *wgt_c = gkyl_array_cfetch(wgt, start);
         for (long i=0; i<n; ++i)
           res[i] += wgt_c[i]*arr_c[i]*arr_c[i];
+      }
+      break;
+    case GKYL_RMS:
+      for (long i=0; i<n; ++i) res[i] = 0;
+
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *arr_c = gkyl_array_cfetch(arr, start);
+        const double *wgt_c = gkyl_array_cfetch(wgt, start);
+	double rms = 0.0;
+        for (long i=0; i<n; ++i)
+          rms += pow(arr_c[i],2.0);
+
+	rms = sqrt(rms/n);
+        for (long i=0; i<n; ++i)
+          res[i] += wgt_c[i]*rms;
       }
       break;
     case GKYL_ABS:
