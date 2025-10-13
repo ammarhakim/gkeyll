@@ -30,7 +30,7 @@ struct wv_vacuum_einstein_conformal {
 GKYL_CU_D
 void
 gkyl_vacuum_einstein_conformal_flux(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
-  const double q[68], double flux[68]);
+  const double q[77], double flux[77]);
 
 /**
 * Compute inverse conformal spatial metric tensor (in contravariant component form) given the conserved variables.
@@ -40,7 +40,7 @@ gkyl_vacuum_einstein_conformal_flux(double excision_threshold, enum gkyl_spaceti
 */
 GKYL_CU_D
 void
-gkyl_vacuum_einstein_conformal_inv_spatial_metric(const double q[68], double ***inv_conformal_spatial_metric);
+gkyl_vacuum_einstein_conformal_inv_spatial_metric(const double q[77], double ***inv_conformal_spatial_metric);
 
 /**
 * Compute maximum absolute wave speed.
@@ -52,7 +52,7 @@ gkyl_vacuum_einstein_conformal_inv_spatial_metric(const double q[68], double ***
 */
 GKYL_CU_D
 static inline double
-gkyl_vacuum_einstein_conformal_max_abs_speed(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[68]);
+gkyl_vacuum_einstein_conformal_max_abs_speed(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[77]);
 
 /**
 * Compute Riemann variables given the conserved variables.

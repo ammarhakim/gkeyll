@@ -134,6 +134,14 @@ typedef void (*gr_conformal_factor_der_t)(const struct gkyl_gr_spacetime* spacet
 typedef void (*gr_bssn_conformal_factor_der_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double** bssn_conformal_factor_der);
 
+// Function pointer to compute the rank-2 (spatial) second partial derivative of the conformal factor function at a given point in spacetime.
+typedef void (*gr_conformal_factor_der2_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double*** conformal_factor_der2);
+
+// Function pointer to compute the rank-2 (spatial) second partial derivative of the BSSN conformal factor function at a given point in spacetime.
+typedef void (*gr_bssn_conformal_factor_der2_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2);
+
 // Function pointer to determine whether a given point in spacetime lies inside an excision region.
 typedef void (*gr_excision_region_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, bool* in_excision_region);
@@ -179,6 +187,9 @@ struct gkyl_gr_spacetime {
 
   gr_conformal_factor_der_t conformal_factor_der_func; // Function to compute partial derivative of conformal factor.
   gr_bssn_conformal_factor_der_t bssn_conformal_factor_der_func; // Function to compute partial derivative of BSSN conformal factor.
+
+  gr_conformal_factor_der2_t conformal_factor_der2_func; // Function to compute second partial derivative of conformal factor.
+  gr_bssn_conformal_factor_der2_t bssn_conformal_factor_der2_func; // Function to compute second partial derivative of BSSN conformal factor.
 
   gr_excision_region_t excision_region_func; // Function to determine whether point lies within excision region.
 
@@ -648,6 +659,42 @@ GKYL_CU_DH
 static inline void
 gkyl_gr_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** bssn_conformal_factor_der);
+
+/**
+* Compute the rank-2 (spatial) second partial derivative of the conformal factor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor_der2 Rank-2 second partial derivative of the conformal factor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** conformal_factor_der2);
+
+/**
+* Compute the rank-2 (spatial) second partial derivative of the BSSN conformal factor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param bssn_conformal_factor_der2 Rank-2 second partial derivative of the BSSN conformal factor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2);
 
 /**
 * Determine whether a given point in spacetime lies within an excision region.

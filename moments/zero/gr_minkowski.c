@@ -298,6 +298,28 @@ minkowski_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, c
 }
 
 static void
+minkowski_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** conformal_factor_der2)
+{
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*conformal_factor_der2)[i][j] = 0.0;
+    }
+  }
+}
+
+static void
+minkowski_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2)
+{
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*bssn_conformal_factor_der2)[i][j] = 0.0;
+    }
+  }
+}
+
+static void
 minkowski_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   bool* in_excision_region)
 {
@@ -373,6 +395,9 @@ gkyl_gr_minkowski_inew(const struct gkyl_gr_minkowski_inp* inp)
 
   gr_minkowski->spacetime.conformal_factor_der_func = minkowski_conformal_factor_der;
   gr_minkowski->spacetime.bssn_conformal_factor_der_func = minkowski_bssn_conformal_factor_der;
+
+  gr_minkowski->spacetime.conformal_factor_der2_func = minkowski_conformal_factor_der2;
+  gr_minkowski->spacetime.bssn_conformal_factor_der2_func = minkowski_bssn_conformal_factor_der2;
 
   gr_minkowski->spacetime.excision_region_func = minkowski_excision_region;
 

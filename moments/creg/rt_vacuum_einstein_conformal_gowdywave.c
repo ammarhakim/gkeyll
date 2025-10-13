@@ -144,6 +144,10 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   double conformal_fact, bssn_conformal_fact;
   double *conformal_fact_der = gkyl_malloc(sizeof(double[3]));
   double *bssn_conformal_fact_der = gkyl_malloc(sizeof(double[3]));
+  double **bssn_conformal_fact_der2 = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    bssn_conformal_fact_der2[i] = gkyl_malloc(sizeof(double[3]));
+  }
 
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_det);
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_lapse);
@@ -158,14 +162,11 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
 
   spacetime->conformal_factor_der_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_fact_der);
   spacetime->bssn_conformal_factor_der_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der);
+  spacetime->bssn_conformal_factor_der2_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der2);
 
   spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
   spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
-
-  for (int i = 0; i < 3; i++) {
-    conformal_fact_der[i] /= conformal_fact;
-  }
 
   double lambda = (-2.0 * pi * tau0 * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * (cos(2.0 * pi * x) * cos(2.0 * pi * x)))
     + (2.0 * (pi * pi) * (tau0 * tau0) * ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) + (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0))))
@@ -174,6 +175,10 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   double lambda_dt = 2.0 * (pi * pi) * tau0 * ((jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)) * (1.0 + cos(4.0 * pi * x))
     + (2.0 * (jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) * (sin(2.0 * pi * x) * sin(2.0 * pi * x))));
   double lambda_dx = 4.0 * (pi * pi * tau0) * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * sin(4.0 * pi * x);
+
+  conformal_spatial_det = exp(0.5 * lambda) * pow(tau0, 1.5);
+  conformal_fact = pow(conformal_spatial_det, 1.0 / 12.0);
+  bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact);
 
   double P = jn(0, 2.0 * pi * tau0) * cos(2.0 * pi * x);
   double P_dt = -2.0 * pi * jn(1, 2.0 * pi * tau0) * cos(2.0 * pi * x);
@@ -295,11 +300,16 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   // Set BSSN conformal factor.
   fout[64] = bssn_conformal_fact;
 
-  // Set BSSN conformal factor derivatives.
+  // Set BSSN conformal factor first derivatives.
   fout[65] = bssn_conformal_fact_der[0]; fout[66] = bssn_conformal_fact_der[1]; fout[67] = bssn_conformal_fact_der[2];
 
+  // Set BSSN conformal factor second derivatives.
+  fout[68] = bssn_conformal_fact_der2[0][0]; fout[69] = bssn_conformal_fact_der2[0][1]; fout[70] = bssn_conformal_fact_der2[0][2];
+  fout[71] = bssn_conformal_fact_der2[1][0]; fout[72] = bssn_conformal_fact_der2[1][1]; fout[73] = bssn_conformal_fact_der2[1][2];
+  fout[74] = bssn_conformal_fact_der2[2][0]; fout[75] = bssn_conformal_fact_der2[2][1]; fout[76] = bssn_conformal_fact_der2[2][2];
+
   if (in_excision_region) {
-    for (int i = 0; i < 68; i++) {
+    for (int i = 0; i < 77; i++) {
       fout[i] = 0.0;
     }
   }
@@ -310,6 +320,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
     gkyl_free(inv_conformal_spatial_metric[i]);
     gkyl_free(conformal_extrinsic_curvature[i]);
     gkyl_free(conformal_shift_der[i]);
+    gkyl_free(bssn_conformal_fact_der2[i]);
 
     for (int j = 0; j < 3; j++) {
       gkyl_free(conformal_spatial_metric_der[i][j]);
@@ -325,6 +336,7 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   gkyl_free(conformal_spatial_metric_der);
   gkyl_free(conformal_fact_der);
   gkyl_free(bssn_conformal_fact_der);
+  gkyl_free(bssn_conformal_fact_der2);
 }
 
 void
