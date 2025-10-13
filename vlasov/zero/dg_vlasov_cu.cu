@@ -36,6 +36,14 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
     *stream_boundary_surf_y_kernels,
     *stream_boundary_surf_z_kernels;
 
+  const gkyl_dg_vlasov_stream_surf_from_flux_kern_list *stream_surf_from_flux_x_kernels, 
+    *stream_surf_from_flux_y_kernels, 
+    *stream_surf_from_flux_z_kernels;
+
+  const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list *stream_boundary_surf_from_flux_x_kernels, 
+    *stream_boundary_surf_from_flux_y_kernels,
+    *stream_boundary_surf_from_flux_z_kernels;
+
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, 
     *accel_surf_vy_kernels, 
     *accel_surf_vz_kernels;
@@ -70,22 +78,22 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
 
         if ( use_lo ) {
-          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_from_flux_x_kernels;
-          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_surf_from_flux_y_kernels;
-          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_surf_from_flux_z_kernels;
+          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
           
-          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_from_flux_x_kernels;
-          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_from_flux_y_kernels;
-          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_from_flux_z_kernels;
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels;
         } 
         else {
-          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_ho_surf_from_flux_x_kernels;
-          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_ho_surf_from_flux_y_kernels;
-          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_ho_surf_from_flux_z_kernels;
+          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_ho_surf_z_kernels;
           
-          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_from_flux_x_kernels;
-          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_from_flux_y_kernels;
-          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_from_flux_z_kernels;   
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_z_kernels;   
         }
       }
       else {
