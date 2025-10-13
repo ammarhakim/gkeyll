@@ -105,14 +105,14 @@ create_ctx(void)
   int Nvtheta = 12; // Cell count (velocity space: angular direction).
   double Lr = 1.5; // Domain size (configuration space: radial direction).
   double Lz = 1.0; // Domain size (configuration space: angular direction).
-  double vr_max = 14.0 * vt; // Domain boundary (velocity space: radial direction).
-  double vz_max = 14.0 * vt; // Domain boundary (velocity space: z-direction).
-  double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
+  double vr_max = 8.0 * vt; // Domain boundary (velocity space: radial direction).
+  double vz_max = 8.0 * vt; // Domain boundary (velocity space: z-direction).
+  double vtheta_max = 8.0 * vt; // Domain boundary (velocity space: angular direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 0.7; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 50; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -573,7 +573,7 @@ main(int argc, char **argv)
       .correct_all_moms = true,
       .iter_eps = 0.0,
       .max_iter = 0,
-      .use_last_converged = true,
+      .use_last_converged = false,
     },
     
     .collisions =  {

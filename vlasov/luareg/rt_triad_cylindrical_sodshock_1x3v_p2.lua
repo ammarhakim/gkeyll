@@ -21,15 +21,15 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 32 -- Cell count (configuration space: radial direction).
-Nvr = 8 -- Cell count (velocity space: radial direction).
-Nvtheta = 8 -- Cell count (velocity space: angular direction).
-Nvz = 8 -- Cell count (velocity space: z direction).
+Nr = 64 -- Cell count (configuration space: radial direction).
+Nvr = 16 -- Cell count (velocity space: radial direction).
+Nvtheta = 16 -- Cell count (velocity space: angular direction).
+Nvz = 16 -- Cell count (velocity space: z direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
 vz_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
-poly_order = 2 -- Polynomial order.
+poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -42,7 +42,7 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-midplane = 1.0 -- Radial midplane location designating jump in quantities.
+midplane = 0.5 -- Radial midplane location designating jump in quantities.
 
 vlasovApp = Vlasov.App.new {
 
@@ -53,8 +53,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.5 },
-  upper = { 0.5 + Lr },
+  lower = { 0.01 },
+  upper = { 0.01 + Lr },
   cells = { Nr },
   cflFrac = cfl_frac,
 
@@ -73,8 +73,6 @@ vlasovApp = Vlasov.App.new {
     modelID = G0.Model.Triad,
     charge = charge, mass = mass,
 
-    -- Use higher order method for triad calculations
-    useLo = true,
 
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
     covTangentBasis = function (t, xn)
