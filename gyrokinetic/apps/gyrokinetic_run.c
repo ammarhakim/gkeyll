@@ -304,6 +304,6 @@ gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gyrokinetic_run_multib_simulation(inp);
   }
   else {
-    fprintf(stderr, "Error: No valid application input provided to run simulation.\n");
+    gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");
   }
 }
