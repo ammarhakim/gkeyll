@@ -60,7 +60,7 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
  */
 void 
 gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext, 
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf);
  
@@ -69,7 +69,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf *up,
  */  
 void 
 gkyl_dg_vlasov_conf_flux_surf_advance_cu(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext, 
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf);
 

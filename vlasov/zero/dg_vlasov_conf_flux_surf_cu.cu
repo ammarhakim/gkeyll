@@ -17,14 +17,14 @@ extern "C" {
 
 __global__ void
 gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  struct gkyl_range conf_range, struct gkyl_range phase_range, 
+  struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_range_ext, 
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
   int idx_hamil[GKYL_MAX_DIM], idx_pt[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
@@ -48,7 +48,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
     // Grab the cell center location for NC bracket calculation 
-    double xcC[GKYL_MAX_DIM];
+    double xcC[GKYL_MAX_DIM], xcR[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
 
     const double *f_c = (const double*) gkyl_array_cfetch(fin, pidx); 
@@ -86,8 +86,20 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
         const double *poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, ptidx);
         const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx); 
 
-        cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, 
-          hamil_pt_edge, poisson_tensor_conf_d, hamil_d, f_l, f_c, flux); 
+        cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
+          poisson_tensor_conf_d, hamil_d, f_l, f_c, flux);
+        
+        // Also compute the point in the ghost cell
+        gkyl_copy_int_arr(pdim, idx, idx_r);
+        idx_r[dir] = idx_r[dir]+1;
+        long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
+        
+        const double *f_r = (const double*) gkyl_array_cfetch(fin, pidx_r);
+        double *flux_r = (const double*) gkyl_array_fetch(conf_flux_surf, pidx_r); 
+
+        gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
+        cflrate_d[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
+          poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
       }
       else {
         // Which face to evalute the hamiltonian / pt on
@@ -104,14 +116,14 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
 
 void 
 gkyl_dg_vlasov_conf_flux_surf_advance_cu(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext, 
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, poisson_tensor_conf->on_dev,
+    *conf_range, *phase_range, *phase_range_ext, poisson_tensor_conf->on_dev,
     hamil->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);  
 }
 

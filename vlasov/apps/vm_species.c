@@ -250,7 +250,7 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
 
   // Compute the surface expansion of the phase space flux in configuration space. 
   if (vms->model_id == GKYL_MODEL_TRIAD) {
-    gkyl_dg_vlasov_conf_flux_surf_advance(vms->calc_conf_flux, &app->local_ext, &vms->local_ext, 
+    gkyl_dg_vlasov_conf_flux_surf_advance(vms->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, 
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, vms->conf_flux_surf);
   }
 

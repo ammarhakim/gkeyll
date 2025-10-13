@@ -115,20 +115,20 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
 }
 
 void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(conf_flux_surf)) {
-    return gkyl_dg_vlasov_conf_flux_surf_advance_cu(up, conf_range, phase_range, 
+    return gkyl_dg_vlasov_conf_flux_surf_advance_cu(up, conf_range, phase_range, phase_range_ext, 
       poisson_tensor_conf, hamil, fin, cflrate, conf_flux_surf);
   }
 #endif
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
   int idx_hamil[GKYL_MAX_DIM], idx_pt[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
@@ -149,7 +149,7 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
     // Grab the cell center location for NC bracket calculation 
-    double xcC[GKYL_MAX_DIM];
+    double xcC[GKYL_MAX_DIM], xcR[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
 
     const double *f_c = gkyl_array_cfetch(fin, pidx); 
@@ -191,6 +191,18 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
         and  evaluated in the kernels at the upper boundary +1 */
         cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
           poisson_tensor_conf_d, hamil_d, f_l, f_c, flux); 
+
+        // Also compute the point in the ghost cell
+        gkyl_copy_int_arr(pdim, iter.idx, idx_r);
+        idx_r[dir] = idx_r[dir]+1;
+        long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
+        
+        const double *f_r = gkyl_array_cfetch(fin, pidx_r);
+        double *flux_r = gkyl_array_fetch(conf_flux_surf, pidx_r); 
+
+        gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
+        cflrate_d[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
+          poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
       }
       else {
 
