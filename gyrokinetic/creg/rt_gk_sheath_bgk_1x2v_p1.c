@@ -485,7 +485,7 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalElcNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {
@@ -533,7 +533,7 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalIonNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {

@@ -265,28 +265,6 @@ evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = upar_ion;
 }
 
-void
-evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct bgk_cross_relax_ctx *app = ctx;
-
-  double nu_elc = app->nu_elc;
-
-  // Set electron collision frequency.
-  fout[0] = nu_elc;
-}
-
-void
-evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct bgk_cross_relax_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ion;
-}
-
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -400,11 +378,8 @@ main(int argc, char **argv)
     },   
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Te,
-      .self_nu = evalElcNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -443,11 +418,8 @@ main(int argc, char **argv)
     },      
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Ti,
-      .self_nu = evalIonNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },

@@ -184,6 +184,7 @@ gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *sp
   if (species->bgk.collision_id == GKYL_BGK_COLLISIONS) {
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
+
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
 
   app->stat.n_species_omega_cfl +=1;
@@ -751,10 +752,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_array_release(s->cflrate_ho);
   }
 
-  if (s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    gk_species_bgk_release(app, &s->bgk);
-  }
-
   if (s->react.num_react) {
     gk_species_react_release(app, &s->react);
   }
@@ -938,11 +935,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
   }
   
-  if (gks->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
-    // Initialize BGK collisions.
-    gk_species_bgk_init(app, gks, &gks->bgk);
-  }
-
   // Determine reaction type(s) and initialize them.
   if (gks->info.react.num_react) {
     gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
@@ -1731,7 +1723,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Initialize empty structs. New methods will fill them if specified.
   gks->src = (struct gk_source) { };
-  gks->bgk = (struct gk_bgk_collisions) { };
   gks->react = (struct gk_react) { };
   gks->react_neut = (struct gk_react) { };
   gks->rad = (struct gk_rad_drag) { };
@@ -1739,6 +1730,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Initialize LBO collisions.
   gks->lbo = (struct gk_lbo_collisions) { };
   gk_species_lbo_init(app, gks, &gks->lbo);
+
+  // Initialize BGK collisions.
+  gks->bgk = (struct gk_bgk_collisions) { };
+  gk_species_bgk_init(app, gks, &gks->bgk);
 
   // Initialize a heating source.
   gks->heat_src = (struct gk_heating) { };
@@ -2000,6 +1995,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_source_release(app, &s->src);
 
   gk_species_lbo_release(app, &s->lbo);
+
+  gk_species_bgk_release(app, &s->bgk);
 
   gk_species_heating_release(app, &s->heat_src);
 

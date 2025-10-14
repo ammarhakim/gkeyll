@@ -17,8 +17,6 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Compute J*M0, J*M1, J*M2 moments and separate our M0 and M2.
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
-    0, lbo->moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->basis.num_basis, &app->local);
   
   // Construct boundary corrections.
@@ -52,7 +50,10 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 {
   // Calculate nu_ss(x,t).
   gk_species_moment_calc(&lbo->maxwellian_moms, species->local, app->local, fin);
+  gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
+    0, lbo->maxwellian_moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
   gkyl_array_set_offset(lbo->vtsq, 1.0, lbo->maxwellian_moms.marr, 2*app->basis.num_basis);
+
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
     lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
 
@@ -67,24 +68,23 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 
 static void
 gklbo_cross_nu_calc_constNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_lbo_collisions *lbo)
+  struct gk_lbo_collisions *lbo, int coll_idx)
 {
   // Empty method.
 }
 
 static void
 gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_lbo_collisions *lbo)
+  struct gk_lbo_collisions *lbo, int coll_idx)
 {
   struct timespec wst = gkyl_wall_clock();
-  for (int i=0; i<lbo->num_cross_collisions; ++i) {
-    // Calculate nu_sr(x,t).
-    gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
-      lbo->collide_with[i]->lbo.m0, lbo->collide_with[i]->lbo.vtsq, lbo->collide_with[i]->lbo.vtsq_min,
-      lbo->norm_nu_fac_cross[i], lbo->cross_nu[i]);
+  // Calculate nu_sr(x,t).
+  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
+    lbo->collide_with[coll_idx]->lbo.m0, lbo->collide_with[coll_idx]->lbo.vtsq, lbo->collide_with[coll_idx]->lbo.vtsq_min,
+    lbo->norm_nu_fac_cross[coll_idx], lbo->cross_nu[coll_idx]);
 
-    gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
-  }
+  gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
+
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
@@ -105,22 +105,26 @@ gklbo_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 }
 
 static void
-gklbo_cross_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
+gklbo_cross_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_lbo_collisions *lbo)
 {
   // Empty method.
 }
 
 static void
-gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
+gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_lbo_collisions *lbo)
 {
   // Compute primitive moments for cross-species collisions.
   struct timespec wst = gkyl_wall_clock();
   
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
+
+    // Compute the cross-species collision frequency.
+    lbo->cross_nu_func(app, gks, lbo, i);
+
     // Compute alpha_E.
-    lbo->alpha_E_func(app, species, lbo, i);
+    lbo->alpha_E_func(app, gks, lbo, i);
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d=0; d<3; d++)
@@ -131,11 +135,11 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *spe
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
     struct gkyl_array *cross_prim_moms = lbo->boundary_corrections;
-    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, species->info.mass,
+    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, gks->info.mass,
       lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
       lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], cross_prim_moms);
 
-    // Scale upar_{sr} and vtSq_{sr} by nu_{sr}
+    // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
 
@@ -282,6 +286,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       // Allocate moments app used to compute vtsq.
       gk_species_moment_init(app, gks, &lbo->maxwellian_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
   
+      lbo->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       lbo->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
       // Set pointers to functions chosen at runtime.
@@ -308,7 +313,6 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     // Primitive moments in GK are (u_par, vtsq).
     lbo->prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     lbo->nu_prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    lbo->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     lbo->m2self = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
     // Host-side copy for I/O.
@@ -359,13 +363,13 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
       lbo->delta_sr = 1.0; // delta_sr free parameter.
         
       // Set pointers to species we cross-collide with.
-      lbo->my_idx_in_other = gkyl_malloc(lbo->num_cross_collisions*sizeof(int));
+      int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         lbo->collide_with[i] = gk_find_species(app, gks->info.collisions.collide_with[i]);
-        lbo->my_idx_in_other[i] = -1;
+        my_idx_in_other[i] = -1;
         for (int j=0; j<lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
           if (0 == strcmp(gks->info.name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
-            lbo->my_idx_in_other[i] = j;
+            my_idx_in_other[i] = j;
             break;
           }
         }
@@ -401,9 +405,10 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
         // Project user's cross-species collision frequency.
         lbo->norm_nu_cross = false;
 
-        // Ensure the other species this collides with also provide cross_nu.
+        // Ensure the other species this collides with also provided self_nu and cross_nu.
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          assert(lbo->collide_with[i]->info.collisions.cross_nu[lbo->my_idx_in_other[i]]);
+          assert(lbo->collide_with[i]->info.collisions.self_nu);
+          assert(lbo->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]);
         }
 
         struct gkyl_array *cross_nu_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
@@ -418,6 +423,10 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
           gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
 
           // Compute alpha_E using reference parameters.
+          assert(gks->info.collisions.den_ref);
+          assert(lbo->collide_with[i]->info.collisions.den_ref);
+          assert(gks->info.collisions.temp_ref);
+          assert(lbo->collide_with[i]->info.collisions.temp_ref);
           double mass_self = gks->info.mass, mass_other = lbo->collide_with[i]->info.mass;
           double den_s = gks->info.collisions.den_ref;
           double den_r = lbo->collide_with[i]->info.collisions.den_ref;
@@ -436,9 +445,10 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
         // Cross-collision frequency computed in time.
         lbo->norm_nu_cross = true;
 
-        // Ensure the other species this collides with didn't provide cross_nu.
+        // Ensure the other species this collides with didn't provide self_nu nor cross_nu.
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          assert(!(lbo->collide_with[i]->info.collisions.cross_nu[lbo->my_idx_in_other[i]]));
+          assert(!(lbo->collide_with[i]->info.collisions.self_nu));
+          assert(!(lbo->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]));
         }
 
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
@@ -479,17 +489,10 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
-gk_species_lbo_cross_nu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_lbo_collisions *lbo)
-{
-  lbo->cross_nu_func(app, s, lbo);
-}
-
-void
 gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
-  lbo->cross_moms_func(app, species, lbo, fin);
+  lbo->cross_moms_func(app, species, lbo);
 }
 
 void
@@ -516,7 +519,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
         gkyl_array_release(lbo->cross_nu[i]);
       }
       gkyl_array_release(lbo->alpha_E);
-      gkyl_free(lbo->my_idx_in_other);
     }
 
     gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);
@@ -530,7 +532,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
       }
     }
 
-    gkyl_array_release(lbo->m0);
     gkyl_array_release(lbo->m2self);
     gkyl_array_release(lbo->prim_moms);
     gkyl_array_release(lbo->nu_prim_moms);
@@ -546,6 +547,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
     if (lbo->norm_nu_self) {
       gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
       gk_species_moment_release(app, &lbo->maxwellian_moms);
+      gkyl_array_release(lbo->m0);
       gkyl_array_release(lbo->vtsq);
     }
     gkyl_array_release(lbo->nu_sum);

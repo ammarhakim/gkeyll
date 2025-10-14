@@ -670,12 +670,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
     gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
+    gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
 
-    if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-      if (gk_s->bgk.num_cross_collisions) {
-        gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
-      }
-    }
     // Initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
@@ -876,22 +872,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       else
         // Project the field.
         gk_field_project_init(app);
-    }
-
-    // Compute necessary moments and boundary corrections for collisions.
-    for (int i=0; i<app->num_species; ++i) {
-      gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, distf[i]);
-
-      if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-        gk_species_bgk_moms(app, &app->species[i], 
-          &app->species[i].bgk, distf[i]);
-      }
-    }
-
-    // Compute the cross-species collision frequencies.
-    for (int i=0; i<app->num_species; ++i) {
-      struct gk_species *gk_s = &app->species[i];
-      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
     }
 
   }
@@ -1432,10 +1412,10 @@ gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app* app, int sidx, 
 }
 
 void
-gkyl_gyrokinetic_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+gkyl_gyrokinetic_app_write_species_bgk_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bgk_write_cross_mom(app, gks, tm, frame);
+  gk_species_bgk_write_mom(app, gks, tm, frame);
 }
 
 //
@@ -1528,6 +1508,8 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
 
   gkyl_gyrokinetic_app_write_species_lbo_mom(app, sidx, tm, frame);
 
+  gkyl_gyrokinetic_app_write_species_bgk_mom(app, sidx, tm, frame);
+
   gkyl_gyrokinetic_app_write_species_rad_emissivity(app, sidx, tm, frame);
 
   struct gk_species *gks = &app->species[sidx];
@@ -1573,6 +1555,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     gkyl_gyrokinetic_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_heating_diagnostics(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_lbo_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_species_bgk_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, i, tm, frame);
   }
@@ -1686,15 +1669,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
 
     if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-      gk_species_bgk_moms(app, &app->species[i], 
-        &app->species[i].bgk, fin[i]);
+      gk_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
     }
-  }
-
-  // Compute the cross-species collision frequencies.
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *gk_s = &app->species[i];
-    gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
   }
 
   // Compute necessary moments for cross-species collisions.
@@ -1705,10 +1681,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_species_lbo_cross_moms(app, &app->species[i], &gk_s->lbo, fin[i]);        
 
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-      if (gk_s->bgk.num_cross_collisions) {
-        gk_species_bgk_cross_moms(app, &app->species[i], 
-          &gk_s->bgk, fin[i]);        
-      }
+      gk_species_bgk_cross_moms(app, &app->species[i], &gk_s->bgk, fin[i]);        
     }
     // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
     if (gk_s->react.num_react) {
@@ -2542,17 +2515,6 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
       gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
   }
-
-  // Compute necessary moments and boundary corrections for collisions.
-  gk_species_lbo_moms(app, gk_s, &gk_s->lbo, gk_s->f);
-
-  if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-    gk_species_bgk_moms(app, gk_s, 
-      &gk_s->bgk, gk_s->f);
-  }
-
-  // Compute the cross-species collision frequencies.
-  gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
 
   return rstat;
 }
