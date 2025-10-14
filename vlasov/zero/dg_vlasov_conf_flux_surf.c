@@ -154,6 +154,8 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
 
     const double *f_c = gkyl_array_cfetch(fin, pidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
+    const double *hamil_d = gkyl_array_cfetch(hamil, hidx); 
+    const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, cidx); 
     double *flux = gkyl_array_fetch(conf_flux_surf, pidx); 
 
     // Each cell owns *lower* fluxes in each configuration-space direction. 
@@ -165,55 +167,34 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
       // Create an index for the left cell (which may be a ghost cell) 
       gkyl_copy_int_arr(pdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long pidx_l = gkyl_range_idx(phase_range_ext, idx_l); 
+      long pidx_l = gkyl_range_idx(phase_range, idx_l); 
       const double *f_l = gkyl_array_cfetch(fin, pidx_l);
 
-      // Also compute the point in the ghost cell
-      gkyl_copy_int_arr(pdim, iter.idx, idx_r);
-      idx_r[dir] = idx_r[dir]+1;
-      long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
+      // Which face to evalute the hamiltonian / pt on
+      int hamil_pt_edge = -1;
 
+      cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
+        poisson_tensor_conf_d, hamil_d, f_l, f_c, flux);     
+
+      // If at the right boundary compute flux owned by the point in the ghost cell
       if (idx[dir] == phase_range->upper[dir]) {
 
-        // Shift the Hamiltonian and PT index to the skin cell
-        for (int i=0; i<up->hamil_dim; ++i) {
-          idx_hamil[i] = idx_l[up->hamil_offset+i];
-        } 
-        hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
-        for (int i=0; i<up->cdim; ++i) {
-          idx_pt[i] = idx_l[i];
-        } 
-        long ptidx = gkyl_range_idx(conf_range, idx_pt); 
-
-        // Grab the skin-cell Hamiltonian and Poisson tensor
-        const double *hamil_d = gkyl_array_cfetch(hamil, hidx); 
-        const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, ptidx);
-
-        // Which face to evalute the hamiltonian / pt on
-        int hamil_pt_edge = 1;
-
-        /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
-        and  evaluated in the kernels at the upper boundary +1 */
-        cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
-          poisson_tensor_conf_d, hamil_d, f_l, f_c, flux); 
+        // Index the right cell (ghost cell)
+        gkyl_copy_int_arr(pdim, iter.idx, idx_r);
+        idx_r[dir] = idx_r[dir]+1;
+        long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
 
         const double *f_r = gkyl_array_cfetch(fin, pidx_r);
         double *flux_r = gkyl_array_fetch(conf_flux_surf, pidx_r); 
         double *cflrate_d_r = gkyl_array_fetch(cflrate, pidx_r);
 
+        /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
+          and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of hamil/pt */
+        hamil_pt_edge = 1;
+
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
           poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
-      }
-      else {
-
-        // Which face to evalute the hamiltonian / pt on
-        int hamil_pt_edge = -1;
-
-        const double *hamil_d = gkyl_array_cfetch(hamil, hidx); 
-        const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, cidx); 
-        cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
-          poisson_tensor_conf_d, hamil_d, f_l, f_c, flux);      
       }
     }
   }
