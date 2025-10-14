@@ -1331,6 +1331,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     vms->use_lo = true; 
   }
 
+  printf("vms->use_lo = %d\n", vms->use_lo);
+  printf("vms->info.use_lo = %d\n", vms->info.use_lo);
+
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
 
@@ -1339,6 +1342,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Select the number of nodes, with case for hybrid-tensor.
   int highorder = vms->use_lo ? 0 : 1;
+  if ((app->poly_order == 1) && (b_type == GKYL_BASIS_MODAL_SERENDIPITY)) {
+    highorder = 0;
+  }
   vms->num_surf_vel_nodes = vdim*pow(app->poly_order+1+highorder,pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
     vms->num_surf_vel_nodes = (int) vdim*(pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order,cdim));
@@ -1347,7 +1353,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
   if ( vms->model_id == GKYL_MODEL_TRIAD ){
 
-    // COmpute the number of configuration space nodes, with case for hybrid-tensor.
+    // Compute the number of configuration space nodes, with case for hybrid-tensor.
     vms->num_surf_conf_nodes = cdim*pow(app->poly_order+1+highorder,pdim - 1);
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
       vms->num_surf_conf_nodes = (int) cdim*(pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order,cdim- 1));

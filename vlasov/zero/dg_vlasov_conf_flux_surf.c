@@ -165,8 +165,13 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
       // Create an index for the left cell (which may be a ghost cell) 
       gkyl_copy_int_arr(pdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long pidx_l = gkyl_range_idx(phase_range, idx_l); 
+      long pidx_l = gkyl_range_idx(phase_range_ext, idx_l); 
       const double *f_l = gkyl_array_cfetch(fin, pidx_l);
+
+      // Also compute the point in the ghost cell
+      gkyl_copy_int_arr(pdim, iter.idx, idx_r);
+      idx_r[dir] = idx_r[dir]+1;
+      long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
 
       if (idx[dir] == phase_range->upper[dir]) {
 
@@ -192,16 +197,12 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
         cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
           poisson_tensor_conf_d, hamil_d, f_l, f_c, flux); 
 
-        // Also compute the point in the ghost cell
-        gkyl_copy_int_arr(pdim, iter.idx, idx_r);
-        idx_r[dir] = idx_r[dir]+1;
-        long pidx_r = gkyl_range_idx(phase_range_ext, idx_r); 
-        
         const double *f_r = gkyl_array_cfetch(fin, pidx_r);
         double *flux_r = gkyl_array_fetch(conf_flux_surf, pidx_r); 
+        double *cflrate_d_r = gkyl_array_fetch(cflrate, pidx_r);
 
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
-        cflrate_d[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
+        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
           poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
       }
       else {

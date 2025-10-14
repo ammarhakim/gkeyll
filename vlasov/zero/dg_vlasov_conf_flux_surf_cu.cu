@@ -64,7 +64,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
       // Create an index for the left cell (which may be a ghost cell)
       gkyl_copy_int_arr(pdim, idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
+      long pidx_l = gkyl_range_idx(&phase_range_ext, idx_l); 
       const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);
 
       if (idx[dir] == phase_range.upper[dir]) {
@@ -96,9 +96,10 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
         
         const double *f_r = (const double*) gkyl_array_cfetch(fin, pidx_r);
         double *flux_r = (double*) gkyl_array_fetch(conf_flux_surf, pidx_r); 
+        double *cflrate_d_r = (double*) gkyl_array_fetch(cflrate, pidx_r);
 
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
-        cflrate_d[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
+        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
           poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
       }
       else {
