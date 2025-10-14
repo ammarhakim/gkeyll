@@ -971,9 +971,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (f->is_em) {
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
-    gkyl_array_release(f->apar_host);
     gkyl_array_release(f->apardot);
-    gkyl_array_release(f->apardot_host);
     gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->apardot_fem);
     gkyl_array_release(f->currentDens);
@@ -982,6 +980,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->dApartdtSlvr_kSq);
     gkyl_fem_poisson_perp_release(f->fem_apar_solver);
     gkyl_fem_poisson_perp_release(f->fem_apardot);
+    if (app->use_gpu) {
+      gkyl_array_release(f->apar_host);
+      gkyl_array_release(f->apardot_host);
+    }
   }
 
   if (f->init_phi_pol) {
