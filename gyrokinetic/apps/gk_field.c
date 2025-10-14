@@ -706,7 +706,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       if (field->is_em) {
         // Use m0 to update also update the kSq matrix for the Ohm's law solver.
         double fac = s->info.charge*s->info.charge/s->info.mass;
-        gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg.marr, &app->local);
+        gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
       }
     }
   } 
