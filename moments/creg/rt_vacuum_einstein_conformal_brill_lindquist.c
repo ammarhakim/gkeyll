@@ -401,7 +401,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // einstein_conformal equations.
+  // Conformal Einstein equations.
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species einstein_conformal = {
