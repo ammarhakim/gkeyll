@@ -1650,9 +1650,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
   // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
   gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
-
+  if (app->field->is_em) {
+    gks->apar = gkyl_array_acquire(app->field->apar);
+    gks->apardot = gkyl_array_acquire(app->field->apardot);
+  }
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
     gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, 
     app->dg_geom, app->gk_dg_geom, gks->vel_map, app->use_gpu);
@@ -1679,8 +1680,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (app->field->is_em) {
     // To compute current density for Ampere's law and current dot for Ohm's law.
     gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
-    gks->apar = gkyl_array_acquire(app->field->apar);
-    gks->apardot = gkyl_array_acquire(app->field->apardot);
   }
 
   // Allocate data for diagnostic moments.
