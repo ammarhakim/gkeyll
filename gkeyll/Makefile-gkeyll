@@ -50,12 +50,12 @@ INSTALLED_LDFLAGS += -Wl,-rpath,${PROJ_INSTALL_LIB_DIR}
 gkeyll: gkeyll.c ${FIN_APP_LIB_NAME}
 	@echo "Hello", ${SRC_DIRS} ${SRCS} ${OBJS}
 	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
-	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${LDFLAGS} ${EXEC_LIB_DIRS} ${FINAL_APP_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS}
+	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. -Wl,-E ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${LDFLAGS} ${EXEC_LIB_DIRS} ${FINAL_APP_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS} 
 
 gkeyll-install: gkeyll.c ${FIN_APP_LIB_NAME}
 	@echo "Hello", ${OBJS}
 	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
-	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS}
+	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. -Wl,-E ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS} 
 
 .PHONY: cgkeyll-install
 cgkeyll-install:

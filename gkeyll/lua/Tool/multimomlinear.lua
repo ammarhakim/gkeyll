@@ -17,7 +17,6 @@ local ffi = require "ffi"
 local lfs = require "Lib.lfs"
 local xsys = require "xsys"
 local Time = require "Lib.Time"
-local Mpi = require "Comm.Mpi"
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
