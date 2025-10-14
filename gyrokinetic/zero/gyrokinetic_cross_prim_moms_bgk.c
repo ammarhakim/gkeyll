@@ -31,7 +31,7 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(gkyl_gyrokinetic_cross_prim_mo
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)  {
-    return gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(up, conf_rng, delta_sr, beta, 
+    return gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(up, conf_rng, delta_sr, betap1, 
       m_self, prim_moms_self, m_other, prim_moms_other, prim_moms_cross);
   }
 #endif

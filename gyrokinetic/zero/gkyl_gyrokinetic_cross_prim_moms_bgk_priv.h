@@ -67,7 +67,7 @@ gkyl_gyrokinetic_cross_prim_moms_bgk* gkyl_gyrokinetic_cross_prim_moms_bgk_cu_de
  * Host-side wrappers for cross BGK moments operations on device
  */
 void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(gkyl_gyrokinetic_cross_prim_moms_bgk *up,
-  const struct gkyl_range *conf_rng, double delta_sr, double beta,
+  const struct gkyl_range *conf_rng, double delta_sr, double betap1,
   double m_self, const struct gkyl_array *prim_moms_self, double m_other, const struct gkyl_array *prim_moms_other,
   struct gkyl_array *prim_moms_cross);
 #endif
