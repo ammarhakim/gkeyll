@@ -1017,6 +1017,7 @@ struct gk_field {
 
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
+  struct gkyl_array *apar_energy_fac; 
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
@@ -1041,6 +1042,7 @@ struct gk_field {
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
+  gkyl_dynvec integ_apar_energy; // integrated EM energy components (separate from electrostatic energy for debugging purposes)
   bool is_first_energy_write_call; // flag for energy dynvec written first time
 
   double *em_energy_red_old, *em_energy_red_new; // memory for use in GPU reduction of old EM energy.

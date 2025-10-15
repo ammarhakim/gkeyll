@@ -462,6 +462,18 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
+  f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  // Factor for EM energy.
+  if (f->is_em) {
+    assert(f->info.mu0 > 0.0);
+    assert(app->cdim > 1); // EM is not implemented in 1x yet.
+    f->apar_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+    for (int i=0; i<app->cdim-2/app->cdim; i++) {
+      gkyl_array_set_offset(f->apar_energy_fac, -0.5/f->info.mu0, Jgij[i], i*app->basis.num_basis); // the -1 is to be consistent with ES energy.
+    }
+  }
+
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   if (f->info.time_rate_diagnostics) {
     f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
@@ -943,6 +955,22 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
+
+  if (field->is_em) {
+    gkyl_array_integrate_advance(field->calc_em_energy, field->apar, 
+      1.0, field->apar_energy_fac, &app->local, &app->local, field->em_energy_red);
+
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
+
+    double energy_global[1] = { 0.0 };
+    if (app->use_gpu)
+      gkyl_cu_memcpy(energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    else
+      energy_global[0] = field->em_energy_red_global[0];
+
+    gkyl_dynvec_append(field->integ_apar_energy, tm, energy_global);
+  }
+
   app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -968,8 +996,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);
     gkyl_array_release(f->dApartdtSlvr_kSq);
+    gkyl_array_release(f->apar_energy_fac);
     gkyl_fem_poisson_perp_release(f->fem_apar_solver);
     gkyl_fem_poisson_perp_release(f->fem_apardot);
+    gkyl_dynvec_release(f->integ_apar_energy);
   }
 
   if (f->init_phi_pol) {

@@ -1207,6 +1207,11 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     char fileNm0[sz0+1]; // ensures no buffer overflow
     snprintf(fileNm0, sizeof fileNm0, fmt0, app->name);
 
+    const char *fmt0_apar = "%s-apar_energy.gkyl";
+    int sz0_apar = gkyl_calc_strlen(fmt0_apar, app->name);
+    char fileNm0_apar[sz0_apar+1]; // ensures no buffer overflow
+    snprintf(fileNm0_apar, sizeof fileNm0_apar, fmt0_apar, app->name);
+
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
 
@@ -1214,15 +1219,23 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(app->field->integ_energy, fileNm0);
+
+        if (app->field->is_em)
+          gkyl_dynvec_write(app->field->integ_apar_energy, fileNm0_apar);
+
         app->field->is_first_energy_write_call = false;
       }
       else {
         // Append to existing file.
         gkyl_dynvec_awrite(app->field->integ_energy, fileNm0);
+        if (app->field->is_em)
+          gkyl_dynvec_awrite(app->field->integ_apar_energy, fileNm0_apar);
       }
       app->stat.n_field_diag_io += 1;
     }
     gkyl_dynvec_clear(app->field->integ_energy);
+    if (app->field->is_em)
+      gkyl_dynvec_clear(app->field->integ_apar_energy);
 
     if (app->field->info.time_rate_diagnostics) {
       // Write out the time rate of change of the field energy.
