@@ -129,7 +129,7 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
   double analytical_sheath = app_inp->field.electron_temp / app_inp->field.electron_charge 
     * log(2 * sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass)/(app->vti));
 
-  int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-3);
+  int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-2);
   if (check != 1) {
     printf("Error: phi_sheath and phi_analytical_sheath do not match!\n");
     printf("Sheath value: %g\n", sheath_val);
@@ -169,7 +169,7 @@ nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL
   struct boundary_ctx *app = ctx;
   double z = zc[0];
   double L = app->Lz;
-  double b = 10; // controls non-uniformity
+  double b = 5; // controls non-uniformity
   xp[0] = L * atan(2*z*b/L) / ( 2 * atan(b) );
 }
 

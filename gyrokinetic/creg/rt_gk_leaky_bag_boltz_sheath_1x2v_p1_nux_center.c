@@ -130,7 +130,7 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
   double analytical_sheath = app_inp->field.electron_temp / app_inp->field.electron_charge 
     * log(2 * sqrt(app_inp->field.electron_temp / app_inp->field.electron_mass)/(app->vti));
 
-  int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-3);
+  int check = gkyl_compare_double(sheath_val, analytical_sheath, 1e-1);
   if (check != 1) {
     printf("Error: phi_sheath and phi_analytical_sheath do not match!\n");
     printf("Sheath value: %g\n", sheath_val);

@@ -238,7 +238,7 @@ nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL
   struct boundary_ctx *app = ctx;
   double z = zc[0];
   double L = app->Lz;
-  double b = 10; // controls non-uniformity
+  double b = 5; // controls non-uniformity
   xp[0] = L * atan(2*z*b/L) / (2 * atan(b));
 }
 
