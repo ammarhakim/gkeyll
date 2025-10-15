@@ -646,7 +646,7 @@ static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list ser_stream_nc_hamil_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_surfx_2x2v_ser_p1, vlasov_nc_hamil_gen_ho_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_surfx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_nc_hamil_gen_surfx_2x3v_ser_p1, vlasov_nc_hamil_gen_ho_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_gen_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -661,7 +661,7 @@ static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list ser_stream_nc_hamil_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
   { NULL, vlasov_nc_hamil_gen_surfy_2x2v_ser_p1, vlasov_nc_hamil_gen_ho_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_surfy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_nc_hamil_gen_surfy_2x3v_ser_p1, vlasov_nc_hamil_gen_ho_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_gen_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -1052,7 +1052,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list ser_stream_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x2v_ser_p1, vlasov_nc_hamil_gen_boundary_ho_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_nc_hamil_gen_boundary_surfx_2x3v_ser_p1, vlasov_nc_hamil_gen_boundary_ho_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_gen_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -1067,7 +1067,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list ser_stream_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3  
   { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x2v_ser_p1, vlasov_nc_hamil_gen_boundary_ho_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_nc_hamil_gen_boundary_surfy_2x3v_ser_p1, vlasov_nc_hamil_gen_boundary_ho_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_gen_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };

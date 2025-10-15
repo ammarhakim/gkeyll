@@ -129,7 +129,7 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
   int cdim = up->cdim;
   int vdim = pdim - cdim;
   int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
-  int idx_hamil[GKYL_MAX_DIM], idx_pt[GKYL_MAX_DIM];
+  int idx_hamil[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
 

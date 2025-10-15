@@ -1331,8 +1331,6 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     vms->use_lo = true; 
   }
 
-  printf("vms->use_lo = %d\n", vms->use_lo);
-  printf("vms->info.use_lo = %d\n", vms->info.use_lo);
 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 

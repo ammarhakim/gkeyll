@@ -25,7 +25,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
   int cdim = up->cdim;
   int vdim = pdim - cdim;
   int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
-  int idx_hamil[GKYL_MAX_DIM], idx_pt[GKYL_MAX_DIM];
+  int idx_hamil[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)

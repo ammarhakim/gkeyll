@@ -853,7 +853,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vx_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_alpha_quad_vx_2x2v_ser_p1, nc_hamil_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_alpha_quad_vx_2x3v_ser_p1, nc_hamil_ho_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, nc_hamil_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -867,7 +867,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vy_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_alpha_quad_vy_2x2v_ser_p1, nc_hamil_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_alpha_quad_vy_2x3v_ser_p1, nc_hamil_ho_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, nc_hamil_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -881,7 +881,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_ho_alpha_quad_vz_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_alpha_quad_vz_2x3v_ser_p1, nc_hamil_ho_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, nc_hamil_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
