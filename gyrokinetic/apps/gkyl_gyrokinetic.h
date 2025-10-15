@@ -384,8 +384,8 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
 
   // parameters for EMGK
-  struct gkyl_poisson_bc ampere_bcs;
-  double mu0;
+  struct gkyl_gyrokinetic_bc ampere_bcs[2*GKYL_MAX_CDIM];
+  double mu0; // Magnetic permeability of free space.
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 

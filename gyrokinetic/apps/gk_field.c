@@ -176,7 +176,7 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   struct timespec wst = gkyl_wall_clock();
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot, field->currentDensdot);
   gkyl_fem_poisson_perp_update_kSq(field->fem_apardot, field->dApartdtSlvr_kSq);
-  gkyl_fem_poisson_perp_solve(field->fem_apardot,field->apardot);
+  gkyl_fem_poisson_perp_solve(field->fem_apardot, field->apardot);
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -566,12 +566,29 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     for (int i=0; i<app->cdim-2/app->cdim; i++) {
       gkyl_array_set_offset(f->lapWeightAmpere, 1.0/f->info.mu0, Jgij[i], i*app->basis.num_basis);
     }
+    // Translate input file BCs into Ampere BCs.
+    struct gkyl_poisson_bc ampere_bcs = { };
+    for (int d=0; d<app->cdim-1; d++) {
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0) {
+        ampere_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+        for (int i=0; i<3; i++)
+          ampere_bcs.lo_value[d].v[i] = bc_lo->value[i];
+      }
+
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0) {
+        ampere_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+        for (int i=0; i<3; i++)
+          ampere_bcs.up_value[d].v[i] = bc_up->value[i];
+      }
+    }
     // FEM solver for Ampere equation (solved at IC only).
     f->fem_apar_solver = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-        &f->info.ampere_bcs, f->lapWeightAmpere, NULL, app->use_gpu);
+        &ampere_bcs, f->lapWeightAmpere, NULL, app->use_gpu);
     // FEM solver for Ohm's law (evolves d(Apart)/dt).
     f->fem_apardot = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-      &f->info.ampere_bcs, f->lapWeightAmpere, f->dApartdtSlvr_kSq, app->use_gpu);
+      &ampere_bcs, f->lapWeightAmpere, f->dApartdtSlvr_kSq, app->use_gpu);
 
     // Pointer to function that solves Ohm's law and Amperes equation.
     f->ohm_solve = gk_field_ohm_solve;
@@ -699,14 +716,9 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*dg_norm, 0, &app->local);
       }
       if (field->is_em) {
-        // Use m0 to update also the kSq matrix of the Ohm's law solver.
+        // Use m0 to update also update the kSq matrix for the Ohm's law solver.
         double fac = s->info.charge*s->info.charge/s->info.mass;
-        gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0.marr, &app->local);
-      }
-      if (field->is_em) {
-        // Use m0 to update also the kSq matrix of the Ohm's law solver.
-        double fac = s->info.charge*s->info.charge/s->info.mass;
-        gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0.marr, &app->local);
+        gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
       }
     }
   } 
@@ -987,9 +999,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (f->is_em) {
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
-    gkyl_array_release(f->apar_host);
     gkyl_array_release(f->apardot);
-    gkyl_array_release(f->apardot_host);
     gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->apardot_fem);
     gkyl_array_release(f->currentDens);
@@ -999,6 +1009,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->apar_energy_fac);
     gkyl_fem_poisson_perp_release(f->fem_apar_solver);
     gkyl_fem_poisson_perp_release(f->fem_apardot);
+    if (app->use_gpu) {
+      gkyl_array_release(f->apar_host);
+      gkyl_array_release(f->apardot_host);
+    }
     gkyl_dynvec_release(f->integ_apar_energy);
   }
 

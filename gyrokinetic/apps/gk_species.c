@@ -1605,6 +1605,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Determine field-type.
   gks->gkfield_id = app->field->gkfield_id;
+  gks->gkfield_is_em = app->field->is_em;
   if (gks->info.no_by) {
     gks->gkmodel_id = GKYL_GK_MODEL_NO_BY;
   }
@@ -1650,9 +1651,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
   // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
   gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
-
+  if (gks->gkfield_is_em) {
+    gks->apar = gkyl_array_acquire(app->field->apar);
+    gks->apardot = gkyl_array_acquire(app->field->apardot);
+  }
+  else {
+    gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  }
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
     gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, 
     app->dg_geom, app->gk_dg_geom, gks->vel_map, app->use_gpu);
@@ -1676,11 +1682,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
-  if (app->field->is_em) {
+  if (gks->gkfield_is_em) {
     // To compute current density for Ampere's law and current dot for Ohm's law.
     gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
-    gks->apar = gkyl_array_acquire(app->field->apar);
-    gks->apardot = gkyl_array_acquire(app->field->apardot);
   }
 
   // Allocate data for diagnostic moments.
@@ -1718,7 +1722,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
   }
 
-  if (gk_app_inp->geometry.has_LCFS) {
+  if (gk_app_inp->geometry.has_LCFS) { // I think we could use field->is_clopen instead. Or call has_LCFS, is_clopen?
     // IWL simulation. Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
     int len_core = idx_LCFS_lo;
@@ -2070,12 +2074,12 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Release moment data.
   gk_species_moment_release(app, &s->m0);
-  if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+  if (s->gkfield_is_em)
     gk_species_moment_release(app, &s->m1);
-  }
-  for (int i=0; i<s->info.num_diag_moments; ++i) {
+
+  for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
-  }
+
   gkyl_free(s->moms);
 
   gk_species_source_release(app, &s->src);
