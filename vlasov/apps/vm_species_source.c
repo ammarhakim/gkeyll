@@ -62,8 +62,10 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     }
     src->filter = false;
     if (vms->info.source.filter) {
-      src->filter = true;
       // Create Gaussian filter for use with adaptive density source. 
+      // Always filter at least once, but optionally filter repeatedly. 
+      src->filter = true;
+      src->num_filters = vms->info.source.num_filters > 0 ? vms->info.source.num_filters : 1;
       struct gkyl_dg_gaussian_filter_inp inp = {
         .conf_grid = &app->grid,
         .conf_basis = &app->basis,
@@ -140,7 +142,12 @@ vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
     for (int i=0; i<src->num_cross_source; i++) {
       gkyl_mom_calc_advance(src->m0_reduced[i], &vms->local, &app->local, fin, src->scale_m0[i]);
       if (src->filter) {
-        gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
+        // Optionally filter repeatedly.
+        for (int j=0; j<src->num_filters; j++) {
+          // Synchronize ghost cells before filtering so ghost cells are included in filter. 
+          gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, src->scale_m0[i]);
+          gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
+        }
       }
     }  
   }

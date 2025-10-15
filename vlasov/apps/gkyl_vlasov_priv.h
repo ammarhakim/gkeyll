@@ -314,6 +314,7 @@ struct vm_source {
   int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
 
   bool filter; // boolean for if we are filtering recaled M0
+  int num_filters; // number of times to apply filter
   gkyl_dg_gaussian_filter *gauss_filter; // updater for filtering rescaled M0
   
   struct gkyl_array *source; // applied source

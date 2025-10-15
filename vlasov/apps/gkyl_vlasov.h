@@ -94,6 +94,7 @@ struct gkyl_vlasov_source {
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool filter; // Are we filtering the rescaled density?
+  int num_filters; // Are we filtering repeatedly?
 };
 
 // Parameters for boundary conditions

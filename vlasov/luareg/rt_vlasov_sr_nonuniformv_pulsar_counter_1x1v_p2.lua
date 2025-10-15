@@ -156,6 +156,7 @@ vlasovApp = Vlasov.App.new {
       sourceWithProj = { 1 }, 
       writeSource = true, 
       filter = true, 
+      numFilters = 10, 
 
       numSources = 1,
       projections = {
@@ -278,6 +279,7 @@ vlasovApp = Vlasov.App.new {
       sourceWithProj = { 1 }, 
       writeSource = true, 
       filter = true, 
+      numFilters = 10, 
       
       numSources = 1,
       projections = {

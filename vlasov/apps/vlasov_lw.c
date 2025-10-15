@@ -444,6 +444,7 @@ struct vlasov_species_lw {
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool write_source; // Are we writing out the source?
   bool filter; // Are we filtering the rescaled density source?
+  int num_filters; // Are we filtering repeatedly?
 
   enum gkyl_vlasov_radiation_id radiation_id; // Radiation type.
   double t_cool; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag
@@ -700,6 +701,7 @@ vlasov_species_lw_new(lua_State *L)
   int source_with_proj[GKYL_MAX_SPECIES];
   bool write_source = false; 
   bool filter = false;
+  int num_filters = 0; 
 
   int num_sources = 0;
   enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ];
@@ -753,6 +755,7 @@ vlasov_species_lw_new(lua_State *L)
     }
     write_source = glua_tbl_get_bool(L, "writeSource", false);
     filter = glua_tbl_get_bool(L, "filter", false);
+    num_filters = glua_tbl_get_integer(L, "numFilters", 0);
 
     num_sources = glua_tbl_get_integer(L, "numSources", 0);
 
@@ -924,6 +927,7 @@ vlasov_species_lw_new(lua_State *L)
   }  
   vms_lw->write_source = write_source; 
   vms_lw->filter = filter; 
+  vms_lw->num_filters = num_filters; 
 
   for (int i = 0; i < num_sources; i++) {
     vms_lw->source_proj_id[i] = source_proj_id[i];
@@ -1473,6 +1477,7 @@ struct vlasov_app_lw {
   int source_with_proj[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool write_source[GKYL_MAX_SPECIES]; // Are writing out the source?
   bool filter[GKYL_MAX_SPECIES]; // Are we filtering the rescaled density?
+  int num_filters[GKYL_MAX_SPECIES]; // Are we filtering repeatedly?
 
   int num_sources[GKYL_MAX_SPECIES]; // Number of projection objects in source.
   enum gkyl_projection_id source_proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type in source.
@@ -2010,6 +2015,7 @@ vm_app_new(lua_State *L)
     }
     app_lw->write_source[s] = species[s]->write_source;
     app_lw->filter[s] = species[s]->filter;
+    app_lw->num_filters[s] = species[s]->num_filters;
 
     app_lw->num_sources[s] = species[s]->num_sources;
     for (int i = 0; i < app_lw->num_sources[s]; i++) {
@@ -2047,6 +2053,7 @@ vm_app_new(lua_State *L)
     }
     vm.species[s].source.write_source = app_lw->write_source[s];
     vm.species[s].source.filter = app_lw->filter[s];
+    vm.species[s].source.num_filters = app_lw->num_filters[s];
 
     vm.species[s].source.num_sources = app_lw->num_sources[s];
     for (int i = 0; i < app_lw->num_sources[s]; i++) {
