@@ -554,8 +554,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
-    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apardot_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->lapWeightAmpere = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -1000,8 +998,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
     gkyl_array_release(f->apardot);
-    gkyl_array_release(f->apar_fem);
-    gkyl_array_release(f->apardot_fem);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);

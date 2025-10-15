@@ -1006,8 +1006,6 @@ struct gk_field {
       struct gkyl_array *apardot_host; // host copy for use IO
       struct gkyl_array *currentDens; // current density
       struct gkyl_array *currentDensdot; // time derivative of current density
-      struct gkyl_array *apar_fem; // auxiliary array for A_parallel
-      struct gkyl_array *apardot_fem; // auxiliary array for d/dt A_parallel
       struct gkyl_array *dApartdtSlvr_kSq; // contains sum_s q_s^2/m_s n_s
       struct gkyl_array *dApartdtSlvr_rhs; // contains sum_s q_s int dv vpar d/dt(F_s)*
       struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0)
