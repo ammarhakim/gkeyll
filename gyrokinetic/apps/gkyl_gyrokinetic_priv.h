@@ -1011,6 +1011,7 @@ struct gk_field {
       struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0)
       struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar
       struct gkyl_fem_poisson_perp *fem_apardot; // Solver for d(Apar)/dt
+      struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt
     };
   };
 
