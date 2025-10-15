@@ -175,6 +175,7 @@ static void
 gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   struct timespec wst = gkyl_wall_clock();
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot, field->currentDensdot);
+  // The update of kSq is causing issues with leaks and valgrind.
   gkyl_fem_poisson_perp_update_kSq(field->fem_apardot, field->dApartdtSlvr_kSq);
   gkyl_fem_poisson_perp_solve(field->fem_apardot, field->apardot);
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -462,9 +463,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
-  f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   // Factor for EM energy.
   if (f->is_em) {
+    f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
     assert(f->info.mu0 > 0.0);
     assert(app->cdim > 1); // EM is not implemented in 1x yet.
     f->apar_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
