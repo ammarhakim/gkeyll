@@ -219,7 +219,7 @@ gk_neut_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct 
 
 void
 gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   bgk->rhs_func_neut(app, gkns, bgk, fin, 0.0, rhs);
 }
