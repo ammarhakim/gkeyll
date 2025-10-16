@@ -38,10 +38,8 @@ gkbgk_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   struct gk_bgk_collisions *bgk)
 {
   // Calculate nu_ss(x,t).
-  gkyl_array_set_offset(bgk->m0, 1.0, species->lte.moms.marr, 0*app->basis.num_basis);
-  gkyl_array_set_offset(bgk->vtsq, 1.0, species->lte.moms.marr, 2*app->basis.num_basis);
-  gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, bgk->vtsq, bgk->vtsq_min,
-    bgk->m0, bgk->vtsq, bgk->vtsq_min, bgk->norm_nu_fac_self, bgk->self_nu);
+  gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, species->lte.moms.marr, bgk->vtsq_min,
+    species->lte.moms.marr, bgk->vtsq_min, bgk->norm_nu_fac_self, bgk->self_nu);
 
   gkyl_array_set(bgk->nu_sum, 1.0, bgk->self_nu);
 }
@@ -60,8 +58,8 @@ gkbgk_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s
   struct timespec wst = gkyl_wall_clock();
 
   // Calculate nu_sr(x,t).
-  gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, bgk->vtsq, bgk->vtsq_min,
-    bgk->collide_with[coll_idx]->bgk.m0, bgk->collide_with[coll_idx]->bgk.vtsq, bgk->collide_with[coll_idx]->bgk.vtsq_min,
+  gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, s->lte.moms.marr, bgk->vtsq_min,
+    bgk->collide_with[coll_idx]->lte.moms.marr, bgk->collide_with[coll_idx]->bgk.vtsq_min,
     bgk->norm_nu_fac_cross[coll_idx], bgk->cross_nu[coll_idx]);
 
   gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[coll_idx]);
@@ -81,7 +79,7 @@ static void
 gkbgk_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_bgk_collisions *bgk, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, bgk->m0, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(bgk->alpha_E, bgk->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -268,10 +266,6 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
         gks->info.collisions.den_ref, gks->info.collisions.den_ref, 
         gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge,
         gks->info.collisions.temp_ref, gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
-  
-      // Number density and thermal speed squared.
-      bgk->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      bgk->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
       // Set pointers to functions chosen at runtime.
       bgk->self_nu_func = gkbgk_self_nu_calc_normNu;
@@ -508,11 +502,9 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
       }
     }
 
-    if (bgk->norm_nu_self) {
+    if (bgk->norm_nu_self)
       gkyl_spitzer_coll_freq_release(bgk->spitzer_calc);
-      gkyl_array_release(bgk->m0);
-      gkyl_array_release(bgk->vtsq);
-    }
+
     gkyl_array_release(bgk->nu_sum);
     gkyl_array_release(bgk->self_nu);
   }

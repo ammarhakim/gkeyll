@@ -49,13 +49,12 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   // Calculate nu_ss(x,t).
-  gk_species_moment_calc(&lbo->maxwellian_moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
-    0, lbo->maxwellian_moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
-  gkyl_array_set_offset(lbo->vtsq, 1.0, lbo->maxwellian_moms.marr, 2*app->basis.num_basis);
+  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
+    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
-  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
-    lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
+  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
+    species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
 
   gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
 
@@ -79,8 +78,8 @@ gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s
 {
   struct timespec wst = gkyl_wall_clock();
   // Calculate nu_sr(x,t).
-  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
-    lbo->collide_with[coll_idx]->lbo.m0, lbo->collide_with[coll_idx]->lbo.vtsq, lbo->collide_with[coll_idx]->lbo.vtsq_min,
+  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, s->lte.moms.marr, lbo->vtsq_min,
+    lbo->collide_with[coll_idx]->lte.moms.marr, lbo->collide_with[coll_idx]->lbo.vtsq_min,
     lbo->norm_nu_fac_cross[coll_idx], lbo->cross_nu[coll_idx]);
 
   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
@@ -100,7 +99,7 @@ static void
 gklbo_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, lbo->m0, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -283,12 +282,6 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
         gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge,
         gks->info.collisions.temp_ref, gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
   
-      // Allocate moments app used to compute vtsq.
-      gk_species_moment_init(app, gks, &lbo->maxwellian_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
-  
-      lbo->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      lbo->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  
       // Set pointers to functions chosen at runtime.
       lbo->self_nu_func = gklbo_self_nu_calc_normNu;
     }
@@ -326,12 +319,6 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
         lbo->nu_prim_moms_host = lbo->nu_prim_moms;
       }
     }
-  
-    lbo->dg_div_mem = 0; // Memory for weak division.
-    if (app->use_gpu)
-      lbo->dg_div_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis);
-    else
-      lbo->dg_div_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
   
     // LBO updater.
     struct gkyl_dg_lbo_gyrokinetic_drag_auxfields drag_inp = { .nuSum = lbo->nu_sum, 
@@ -515,15 +502,13 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
     if (lbo->num_cross_collisions) {
       gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
 
-      for (int i=0; i<lbo->num_cross_collisions; ++i) {
+      for (int i=0; i<lbo->num_cross_collisions; ++i)
         gkyl_array_release(lbo->cross_nu[i]);
-      }
+
       gkyl_array_release(lbo->alpha_E);
     }
 
     gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);
-
-    gkyl_dg_bin_op_mem_release(lbo->dg_div_mem);
 
     if (lbo->write_diagnostics) {
       if (app->use_gpu) {
@@ -544,12 +529,9 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
     gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
     gk_species_moment_release(app, &lbo->moms);
 
-    if (lbo->norm_nu_self) {
+    if (lbo->norm_nu_self)
       gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
-      gk_species_moment_release(app, &lbo->maxwellian_moms);
-      gkyl_array_release(lbo->m0);
-      gkyl_array_release(lbo->vtsq);
-    }
+
     gkyl_array_release(lbo->nu_sum);
     gkyl_array_release(lbo->self_nu);
   }

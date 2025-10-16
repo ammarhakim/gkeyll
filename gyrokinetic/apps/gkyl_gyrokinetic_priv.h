@@ -250,12 +250,9 @@ struct gk_lbo_collisions {
   double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
   double vtsq_min; // Minimum vtsq.
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value.
-  struct gk_species_moment maxwellian_moms; // M0, upar, T/m.
   struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
   struct gkyl_array *moms_buff; // Buffer for moments (multiplied by nu).
-  struct gkyl_array *m0; // Zeroth velocity moment of self species.
   struct gkyl_array *m2self; // Second velocity moment of self species.
-  struct gkyl_array *vtsq; // Squared thermal speed of self species.
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
 
   int num_cross_collisions; // number of species we cross-collide with
@@ -274,7 +271,6 @@ struct gk_lbo_collisions {
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   
   struct gk_species_moment moms; // Moments needed in LBO (M0, M1, M2).
-  gkyl_dg_bin_op_mem *dg_div_mem; // Memory needed for weak division.
 
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 
@@ -305,8 +301,6 @@ struct gk_bgk_collisions {
   double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
   double vtsq_min; // Minimum vtsq.
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
-  struct gkyl_array *m0; // Zeroth velocity moment of self species.
-  struct gkyl_array *vtsq; // Squared thermal speed of self species.
 
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
