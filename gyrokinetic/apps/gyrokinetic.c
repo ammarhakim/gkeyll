@@ -668,7 +668,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   for (int i=0; i<ns; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
-    // Initialize cross-species collisions (e.g, LBO or BGK)
+    // Initialize cross-species elastic collisions.
     gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
 
@@ -714,10 +714,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   }
 
   // Use implicit BGK collisions if specified
-  app->has_implicit_coll_scheme = false;
+  bool has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
     if (gk->species[i].collisions.has_implicit_coll_scheme){
-      app->has_implicit_coll_scheme = true;
+      has_implicit_coll_scheme = true;
     }
   }
 
@@ -725,7 +725,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
   // we perform a first-order operator split and treat those terms implicitly.
   // Otherwise, we default to an SSP-RK3 method. 
-  if (app->has_implicit_coll_scheme) {
+  if (has_implicit_coll_scheme) {
     app->update_func = gyrokinetic_update_op_split;
   }
   else {
@@ -1667,10 +1667,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-
-    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-      gk_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
-    }
+    gk_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
   }
 
   // Compute necessary moments for cross-species collisions.
@@ -1678,11 +1675,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
+    // Elastic collisions.
     gk_species_lbo_cross_moms(app, &app->species[i], &gk_s->lbo, fin[i]);        
+    gk_species_bgk_cross_moms(app, &app->species[i], &gk_s->bgk, fin[i]);        
 
-    if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-      gk_species_bgk_cross_moms(app, &app->species[i], &gk_s->bgk, fin[i]);        
-    }
     // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
     if (gk_s->react.num_react) {
       gk_species_react_cross_moms(app, &app->species[i], 

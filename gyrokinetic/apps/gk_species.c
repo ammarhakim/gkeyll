@@ -119,13 +119,14 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  // Collisionless terms.
   gk_species_collisionless_rhs(app, species, fin, rhs);
 
+  // LBO Collisions.
   gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
 
-  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-    gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  }
+  // BGK collisions.
+  gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
   // Anomalous diffusion.
   gk_species_anomalous_diff_rhs(app, species, &species->anom_diff, fin, rhs);
@@ -181,9 +182,7 @@ gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *sp
   gkyl_array_clear(rhs, 0.0);
 
   // Compute implicit update and update rhs to new time step
-  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  }
+  gk_species_bgk_rhs_implicit(app, species, &species->bgk, fin, rhs);
 
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
 
@@ -1850,8 +1849,6 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
   }
 }
 
-// Compute the RHS for species update, returning maximum stable
-// time-step.
 double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
@@ -1859,8 +1856,6 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   return species->rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
-// Compute the implicit RHS for species update, returning maximum stable
-// time-step.
 double
 gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
@@ -1868,7 +1863,6 @@ gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
   return species->rhs_implicit_func(app, species, fin, rhs, dt);
 }
 
-// Accummulate function for forward euler method.
 void
 gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
@@ -1876,7 +1870,6 @@ gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double a,
   species->step_f_func(out, a, inp);
 }
 
-// Combine function for rk3 updates.
 void
 gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
@@ -1885,7 +1878,6 @@ gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1
   species->combine_func(out, c1, arr1, c2, arr2, rng);
 }
 
-// Copy function for rk3 updates.
 void
 gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
@@ -1893,7 +1885,6 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
   species->copy_func(out, inp, range);
 }
 
-// Apply boundary conditions to the distribution function.
 void
 gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {

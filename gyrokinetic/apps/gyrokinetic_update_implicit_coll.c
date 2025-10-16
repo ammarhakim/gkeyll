@@ -15,20 +15,14 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     struct gk_species *gks = &app->species[i];
     fin[i] = gks->f;
     fout[i] = gks->f1;
-    if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-      gk_species_bgk_moms(app, gks, &gks->bgk, fin[i]);
-    }
+    gk_species_bgk_moms_implicit(app, gks, &gks->bgk, fin[i]);
   }
 
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gks = &app->species[i];
-    if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-      if (gks->bgk.num_cross_collisions) {
-        gk_species_bgk_cross_moms(app, gks, &gks->bgk, fin[i]);        
-      }
-    }
+    gk_species_bgk_cross_moms_implicit(app, gks, &gks->bgk, fin[i]);        
   }
 
   // implicit BGK contributions for gyrokinetic species
@@ -50,9 +44,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     struct gk_neut_species *gkns = &app->neut_species[i];
     fin_neut[i] = gkns->f;
     fout_neut[i] = gkns->f1;
-    if (gkns->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-      gk_neut_species_bgk_moms(app, gkns, &gkns->bgk, fin_neut[i]);
-    }
+    gk_neut_species_bgk_moms_implicit(app, gkns, &gkns->bgk, fin_neut[i]);
   }
 
   // implicit BGK contributions for neutral species
