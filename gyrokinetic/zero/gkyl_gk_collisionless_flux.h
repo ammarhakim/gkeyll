@@ -33,7 +33,8 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, const double skip_cell_threshold,
+  enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
