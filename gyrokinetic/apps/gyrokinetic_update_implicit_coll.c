@@ -28,8 +28,6 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   // implicit BGK contributions for gyrokinetic species
   for (int i=0; i<ns; ++i) {
     struct gk_species *gks = &app->species[i];
-    gks->bgk.implicit_step = true;
-    gks->bgk.dt_implicit = dt0;
     gk_species_rhs_implicit(app, gks, fin[i], fout[i], dt0);
   }
 
@@ -50,8 +48,6 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   // implicit BGK contributions for neutral species
   for (int i=0; i<neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
-    gkns->bgk.implicit_step = true;
-    gkns->bgk.dt_implicit = dt0;
     gk_neut_species_rhs_implicit(app, gkns, fin_neut[i], fout_neut[i], dt0);
   }
 

@@ -35,14 +35,14 @@ gkbgk_self_nu_calc_constNu(gkyl_gyrokinetic_app *app, const struct gk_neut_speci
 
 static void
 gkbgk_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
   // Empty method.
 }
 
 static void
 gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
     
@@ -60,7 +60,7 @@ gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
 
   // Apply BGK collisions.
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &gkns->local, 
-    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, bgk->dt_implicit, rhs, gkns->cflrate);
+    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, dt, rhs, gkns->cflrate);
   
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -219,16 +219,16 @@ gk_neut_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct 
 
 void
 gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
-  bgk->rhs_func_neut(app, gkns, bgk, fin, rhs);
+  bgk->rhs_func_neut(app, gkns, bgk, fin, 0.0, rhs);
 }
 
 void
 gk_neut_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
-  bgk->rhs_func_implicit_neut(app, gkns, bgk, fin, rhs);
+  bgk->rhs_func_implicit_neut(app, gkns, bgk, fin, dt, rhs);
 }
 
 void

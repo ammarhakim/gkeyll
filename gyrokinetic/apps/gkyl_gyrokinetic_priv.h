@@ -342,9 +342,9 @@ struct gk_bgk_collisions {
   void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_bgk_collisions *bgk, int coll_idx);
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
   void (*rhs_func_implicit)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   // For neutral species (will hopefully remove when we unify species types).
   void (*moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns,
@@ -360,9 +360,9 @@ struct gk_bgk_collisions {
   void (*cross_moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns,
     struct gk_bgk_collisions *bgk, int coll_idx);
   void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
   void (*rhs_func_implicit_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
   void (*write_mom_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
 };
 
@@ -1596,7 +1596,7 @@ void gk_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct 
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin);
 
 /**
- * Compute RHS from BGK collisions.
+ * Compute RHS from BGK collisions (explicit integrator).
  *
  * @param app gyrokinetic app object.
  * @param gks Pointer to species.
@@ -1607,8 +1607,18 @@ void gk_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct 
 void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
+/**
+ * Compute RHS from BGK collisions (implicit integrator).
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param bgk Pointer to BGK.
+ * @param fin Input distribution function.
+ * @param dt Time step.
+ * @param rhs On output, the RHS from BGK.
+ */
 void gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
 
 /**
  * Write moments from BGK object.
@@ -2675,7 +2685,7 @@ void gk_neut_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const st
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin);
 
 /**
- * Compute RHS from BGK collisions.
+ * Compute RHS from BGK collisions (explicit integrator).
  *
  * @param app gyrokinetic app object.
  * @param gkns Neutral species object.
@@ -2686,8 +2696,18 @@ void gk_neut_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const st
 void gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
+/**
+ * Compute RHS from BGK collisions (implicit integrator).
+ *
+ * @param app gyrokinetic app object.
+ * @param gkns Neutral species object.
+ * @param bgk Pointer to BGK.
+ * @param fin Input distribution function.
+ * @param dt Time step.
+ * @param rhs On output, the RHS from BGK.
+ */
 void gk_neut_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
 
 /**
  * Write moments from BGK object.

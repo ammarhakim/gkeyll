@@ -72,7 +72,7 @@ gk_neut_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_s
   gkyl_array_clear(rhs, 0.0);
 
   // Compute implicit update and update rhs to new time step
-  gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  gk_neut_species_bgk_rhs_implicit(app, species, &species->bgk, fin, dt, rhs);
 
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
   

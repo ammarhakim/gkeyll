@@ -115,14 +115,14 @@ gkbgk_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
 static void
 gkbgk_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
   // Empty method.
 }
 
 static void
 gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
     
@@ -154,7 +154,7 @@ gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
 
   // Apply BGK collisions.
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &gks->local, 
-    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, bgk->dt_implicit, rhs, gks->cflrate);
+    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, dt, rhs, gks->cflrate);
   
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -469,14 +469,14 @@ void
 gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  bgk->rhs_func(app, gks, bgk, fin, rhs);
+  bgk->rhs_func(app, gks, bgk, fin, 0.0, rhs);
 }
 
 void
 gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
 {
-  bgk->rhs_func_implicit(app, gks, bgk, fin, rhs);
+  bgk->rhs_func_implicit(app, gks, bgk, fin, dt, rhs);
 }
 
 void
