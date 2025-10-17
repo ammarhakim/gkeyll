@@ -203,7 +203,6 @@ gkyl_fem_poisson_perp_build_stiffness_matrix(struct gkyl_fem_poisson_perp *up)
 
     gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
-      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
       for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
@@ -336,8 +335,10 @@ void
 gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout) {
 
   // Check if we need to rebuild the stiffness matrix (if epsilon or kSq got updated).
-  if (up->make_stiff)
+  if (up->make_stiff) {
+    assert(false); // AH Oct 15, 2025: This call is not valgrind clean. It seems that we cannot rebuild the matrix that easily.
     gkyl_fem_poisson_perp_build_stiffness_matrix(up);
+  }
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

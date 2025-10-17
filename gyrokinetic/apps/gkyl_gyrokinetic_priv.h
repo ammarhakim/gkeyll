@@ -999,24 +999,32 @@ struct gk_field {
     };
     // EM GK model
     struct {
-      struct gkyl_array *apar; // array for A_parallel (solved only in ic)
-      struct gkyl_array *apar_old; // previous state of A_parallel (for update with apardot)
-      struct gkyl_array *apar_host; // host copy for use IO
-      struct gkyl_array *apardot; // array for d(A_parallel)/dt (solved through Ohm's law)
-      struct gkyl_array *apardot_host; // host copy for use IO
-      struct gkyl_array *currentDens; // current density
-      struct gkyl_array *currentDensdot; // time derivative of current density
-      struct gkyl_array *dApartdtSlvr_kSq; // contains sum_s q_s^2/m_s n_s
-      struct gkyl_array *dApartdtSlvr_rhs; // contains sum_s q_s int dv vpar d/dt(F_s)*
-      struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0)
-      struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar
-      struct gkyl_fem_poisson_perp *fem_apardot; // Solver for d(Apar)/dt
-      struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt
+      struct gkyl_array *apar; // Array for A_parallel (solved only in ic).
+      struct gkyl_array *apar_old; // Previous state of A_parallel (for update with apardot).
+      struct gkyl_array *apar_host; // Host copy for use IO.
+      struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
+      struct gkyl_array *apardot_host; // Host copy for use IO.
+      struct gkyl_array *currentDens; // Current density.
+      struct gkyl_array *currentDens_global; // Current density.
+      struct gkyl_array *currentDensdot; // Time derivative of current density.
+      struct gkyl_array *currentDensdot_global; // Time derivative of current density (accross all MPI ranks).
+      struct gkyl_array *dApartdtSlvr_kSq; // Contains sum_s q_s^2/m_s n_s.
+      struct gkyl_array *dApartdtSlvr_lhs_factor; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
+      struct gkyl_array *dApartdtSlvr_lhs_factor_global; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
+      struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
+      struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0).
+      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
+      struct gkyl_fem_parproj *fem_apardot_parproj; // FEM smoother for projecting d(Apar)/dt onto continuous FEM basis
+      struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
+      struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
+      struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
+      enum gkyl_fem_parproj_bc_type fem_parproj_ampere_bc; // Type of BC for projecting onto FEM basis.
     };
   };
 
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
+  double apar_energy_fac_1d;
   struct gkyl_array *apar_energy_fac; 
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
@@ -1079,7 +1087,7 @@ struct gk_field {
   void (*accumulate_current) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
     const struct gkyl_array *fin[]);
   void (*accumulate_current_dot) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
-    const struct gkyl_array *fin[]);
+    struct gkyl_array *rhs_in[]);
   void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*step_apar) (struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
@@ -3177,9 +3185,9 @@ void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
- * @param fin[] Input distribution function (num_species size).
+ * @param rhs_in[] right-hand side of the ES GK equation for each species.
  */
-void gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]);
+void gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[]);
 
 /**
  * Read the field from a file.

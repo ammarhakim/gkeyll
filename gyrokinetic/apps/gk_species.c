@@ -205,6 +205,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   return dt_out;
 }
 
+// TODO: Make this function do something.
 static double
 gk_species_em_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
