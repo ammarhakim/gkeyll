@@ -10,6 +10,7 @@ struct gkyl_wv_ten_moment_inp {
   bool use_nn_closure; // Should we use neural network-based closure?
   int poly_order; // Polynomial order of learned DG coefficients.
   kann_t* ann; // Neural network architecture.
+  struct gkyl_wv_embed_geo *embed_geo; // embedded geometry
   bool use_gpu; // Boolean to determine whether wave equation object is on host or device.
 };
 
