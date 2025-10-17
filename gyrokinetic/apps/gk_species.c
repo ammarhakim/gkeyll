@@ -105,41 +105,6 @@ gk_species_update_bflux_and_cfl(gkyl_gyrokinetic_app *app, struct gk_species *sp
   return dt_out;
 }
 
-static void
-gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
-{
-  struct timespec wst = gkyl_wall_clock();
-
-  // Compute the surface expansion of the phase space flux
-  // Note: Each cell stores the *lower* surface expansions of the 
-  // phase space flux, so local_ext range needed to index the output
-  // values of flux_surf even though we only loop over local ranges
-  // to avoid evaluating quantities such as geometry in ghost cells
-  // where they are not defined.
-  gkyl_dg_calc_gyrokinetic_vars_flux_surf(species->calc_gk_vars, 
-    &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, fin, species->flux_surf, species->cflrate);
-
-  gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
-    fin, species->cflrate, rhs);
-
-  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
-}
-
-static void
-gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
-{
-}
-
-static void
-gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
-{
-  species->collisionless_rhs_func(app, species, fin, rhs);
-}
-
 static double
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)

@@ -707,6 +707,8 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
+  struct gkyl_array *apar; // Parallel component of vector potential (for EM simulations).
+  struct gkyl_array *apardot; // Time derivative of parallel component of vector potential.
   
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment m1; // Computes current density.
