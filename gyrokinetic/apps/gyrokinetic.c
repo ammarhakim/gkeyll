@@ -847,10 +847,8 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       for (int i=0; i<app->num_species; ++i) {
         struct gk_species *s = &app->species[i];
 
-        // Compute advection speeds so we can compute the initial boundary flux.
-        gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
-          &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-          distf[i], s->flux_surf, s->cflrate);
+        // Compute the collisionless flux so we can compute the initial boundary flux.
+        gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
 
         // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
@@ -880,9 +878,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   // diagnostics and emission BCs may need them.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gkyl_dg_calc_gyrokinetic_vars_flux_surf(gks->calc_gk_vars,
-      &app->local, &gks->local, &app->local_ext, &gks->local_ext, gks->gyro_phi,
-      distf[i], gks->flux_surf, gks->cflrate);
+    gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
   }
 
@@ -1875,22 +1871,6 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Accounted for:                   %4.2f %%.\n", ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0));
 }
 
-void
-gkyl_gyrokinetic_app_species_ktm_rhs(gkyl_gyrokinetic_app* app, int update_vol_term)
-{
-  for (int i=0; i<app->num_species; ++i) {
-
-    struct gk_species *species = &app->species[i];
-
-    const struct gkyl_array *fin = species->f;
-    struct gkyl_array *rhs = species->f1;
-
-    gkyl_array_clear(rhs, 0.0);
-    gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
-      fin, species->cflrate, rhs); 
-  }
-}
-
 static void
 range_stat_write(gkyl_gyrokinetic_app* app, const char *nm, const struct gkyl_range *r, FILE *fp)
 {
@@ -2440,11 +2420,11 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxzj        , arr_ho1, "gxzj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.eps2        , arr_ho1, "eps2");
 
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.rtg33inv        , arr_ho1, "rtg33inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhatoverB        , arr_ho3, "dualcurlbhatoverB");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bioverJB        , arr_ho3, "bioverJB");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.B3        , arr_ho1, "B3");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhat        , arr_ho3, "dualcurlbhat");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.rtg33inv         , arr_ho1, "rtg33inv");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, "dualcurlbhatoverB");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bioverJB         , arr_ho3, "bioverJB");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.B3               , arr_ho1, "B3");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhat     , arr_ho3, "dualcurlbhat");
 
   struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->num_surf_basis, app->local_ext.volume);
   struct gkyl_array* arr_surf_ho2 = mkarr(false, 2*app->gk_geom->num_surf_basis, app->local_ext.volume);
@@ -2454,15 +2434,17 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_surf_ho18 = mkarr(false, 18*app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir<app->cdim; dir++ ) {
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].jacobgeo     , arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir);
-    gkyl_array_copy(app->gk_geom->geo_surf[dir].jacobgeo_sync, app->gk_geom->geo_surf[dir].jacobgeo);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv , arr_surf_ho1, arr_surf_ho2, "jacobtot_inv", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].b_i          , arr_surf_ho3, arr_surf_ho6, "b_i", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].cmag         , arr_surf_ho1, arr_surf_ho2, "cmag", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].bmag         , arr_surf_ho1, arr_surf_ho2, "bmag", dir);
-    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normcurlbhat         , arr_surf_ho1, arr_surf_ho2, "normcurlbhat", dir);
-    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].B3         , arr_surf_ho1, arr_surf_ho2, "B3", dir);
-    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normals         , arr_surf_ho9, arr_surf_ho18, "normals", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normcurlbhat , arr_surf_ho1, arr_surf_ho2, "normcurlbhat", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].B3           , arr_surf_ho1, arr_surf_ho2, "B3", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normals      , arr_surf_ho9, arr_surf_ho18, "normals", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].lenr         , arr_surf_ho1, arr_surf_ho2, "lenr", dir);
+    // jacobgeo_ratio is not used in single block.
+    gkyl_array_clear(app->gk_geom->geo_surf[dir].jacobgeo_ratio, 0.0);
+    gkyl_array_shiftc(app->gk_geom->geo_surf[dir].jacobgeo_ratio, pow(sqrt(2.0),app->cdim), 0);
   }
 
   gkyl_array_release(arr_ho1);
@@ -2637,10 +2619,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *s = &app->species[i];
 
-          // Compute advection speeds so we can compute the initial boundary flux.
-          gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
-            &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-            distf[i], s->flux_surf, s->cflrate);
+          // Compute the collisionless flux so we can compute the initial boundary flux.
+          gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
           gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
@@ -2661,10 +2641,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
 
-      // Compute advection speeds so we can compute the initial boundary flux.
-      gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
-        &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-        distf[i], s->flux_surf, s->cflrate);
+      // Compute the collisionless flux so we can compute the initial boundary flux.
+      gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);

@@ -482,6 +482,10 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalElcNu,
@@ -537,6 +541,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -547,6 +552,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions =  {

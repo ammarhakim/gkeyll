@@ -356,7 +356,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -370,12 +369,18 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
+
     .correct = {
       .correct_all_moms = true, 
       .use_last_converged = true, 
       .iter_eps = 1e-12,
       .max_iter = 10,
     },   
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0,
@@ -396,7 +401,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -410,12 +414,18 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
+
     .correct = {
       .correct_all_moms = true, 
       .use_last_converged = true, 
       .iter_eps = 1e-12,
       .max_iter = 10,
     },      
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0,

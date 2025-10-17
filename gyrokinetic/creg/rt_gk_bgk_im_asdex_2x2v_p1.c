@@ -410,6 +410,11 @@ main(int argc, char **argv)
       .iter_eps = 1e-12,
       .max_iter = 10,
     }, 
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
@@ -419,6 +424,7 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
       .write_diagnostics = true, 
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       //.write_source = true,
@@ -484,6 +490,11 @@ main(int argc, char **argv)
       .iter_eps = 1e-12,
       .max_iter = 10,
     }, 
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
@@ -493,6 +504,7 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
       .write_diagnostics = true, 
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       //.write_source = true,

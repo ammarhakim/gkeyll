@@ -13,12 +13,12 @@ struct gkyl_wv_eqn;
 
 // Function pointer to compute waves from RP solver
 typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, 
+  const double *delta, const double *ql, const double *qr, double phil, double phir, 
   double *waves, double *speeds);
 
 // Function pointer to compute q-fluctuations from waves
 typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *speeds,
+  const double *ql, const double *qr, double phil, double phir, const double *waves, const double *speeds,
   double *amdq, double *apdq);
 
 // Function pointer to compute jump in flux. Returns absolute maximum
@@ -86,6 +86,8 @@ struct gkyl_wv_eqn {
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
 
   wv_source_func_t source_func; // function for computing the forcing/source term vector.
+
+  struct gkyl_wv_embed_geo *embed_geo;
 
   uint32_t flags;  
   struct gkyl_ref_count ref_count; // reference count
@@ -156,10 +158,10 @@ gkyl_default_source_func(const struct gkyl_wv_eqn *eqn, const double *qin, doubl
 GKYL_CU_DH
 static inline double
 gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, 
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir, 
   double *waves, double *speeds)
 {
-  return eqn->waves_func(eqn, type, delta, ql, qr, waves, speeds);
+  return eqn->waves_func(eqn, type, delta, ql, qr, phil, phir, waves, speeds);
 }
 
 /**
@@ -179,10 +181,10 @@ gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static inline void
 gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *speeds,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *speeds,
   double *amdq, double *apdq)
 {
-  eqn->qfluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
+  eqn->qfluct_func(eqn, type, ql, qr, phil, phir, waves, speeds, amdq, apdq);
 }
 
 /**
@@ -192,10 +194,10 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static inline void
 gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *speeds,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *speeds,
   double *amdq, double *apdq)
 {
-  eqn->ffluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
+  eqn->ffluct_func(eqn, type, ql, qr, phil, phir, waves, speeds, amdq, apdq);
 }
 
 /**

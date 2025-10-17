@@ -32,7 +32,7 @@
 #include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
-#include <gkyl_dg_calc_gyrokinetic_vars.h>
+#include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
@@ -235,6 +235,27 @@ struct gk_rad_drag {
 
 // forward declare species struct
 struct gk_species;
+
+struct gk_collisionless {
+  enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to write diagnostics out.
+
+  // Organization of the different equation objects and the required data and solvers
+  struct gkyl_array *flux_surf; // Array for surface phase space flux
+  struct gkyl_array *apar; // A_parallel.
+  struct gkyl_array *apardot; // d/dt A_parallel.
+
+  struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
+  gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
+ 
+  // Methods chosen at runtime.
+  void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_collisionless *gkcls, double tm, int frame);
+};
 
 struct gk_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
@@ -684,9 +705,6 @@ struct gk_heating {
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
 
-  enum gkyl_gkmodel_id gkmodel_id; // Gyrokinetic species model.
-  enum gkyl_gkfield_id gkfield_id; // Gyrokinetic field model.
-
   struct gkyl_basis basis; // Phase-space basis.
 
   // Basis on device (points to host basis if running w/o GPU).
@@ -713,20 +731,8 @@ struct gk_species {
 
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
-  struct gkyl_array *flux_surf; // Array for surface phase space flux
-  
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
-  // Organization of the different equation objects and the required data and solvers
-  union {
-    // EM GK model
-    struct {
-      struct gkyl_array *apar; // A_parallel.
-      struct gkyl_array *apardot; // d/dt A_parallel.
-    };
-  };
-
-  struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
-
+  
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment integ_moms; // Integrated moments.
   struct gk_species_moment *moms; // Diagnostic moments
@@ -743,8 +749,6 @@ struct gk_species {
   gkyl_dynvec L2norm; // L2 norm.
   bool is_first_L2norm_write_call; // Whether dynvec is being written for the first time.
 
-  gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver.
-  
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
   bool bc_is_np[GKYL_MAX_CDIM]; // Whether BC is nonperiodic.
@@ -780,6 +784,8 @@ struct gk_species {
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
+  struct gk_collisionless collisionless; // Collisionless terms.
+
   struct gk_source src; // Plasma source.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
@@ -810,8 +816,6 @@ struct gk_species {
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   // Pointer to various functions selected at runtime.
-  void (*collisionless_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    const struct gkyl_array *fin, struct gkyl_array *rhs);
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -1352,6 +1356,61 @@ void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_s
  * @param lte Species lte object to release
  */
 void gk_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte);
+
+/** gk_collisionless API */
+
+/**
+ * Initialize species collisionless object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param gkcls Species collisionless object.
+ */
+void gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls);
+
+/**
+ * Compute the collisionless phase-space flux.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ */
+void gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+
+/**
+ * Compute RHS contribution from collisionless terms.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ * @param rhs collisionless contribution to df/dt.
+ */
+void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write out diagnostics from the collisionless terms.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gkcls Species collisionless object.
+ * @param tm Current simulation time.
+ * @param frame Current I/O frame.
+ */
+void gk_species_collisionless_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, double tm, int frame);
+
+/**
+ * Release species collisionless object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkcls Species collisionless object.
+ */
+void gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls);
 
 /** gk_species_radiation API */
 

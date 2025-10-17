@@ -138,7 +138,19 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic/%.c.o : $(KERNELS_DIR)/gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_mom/%.c.o : $(KERNELS_DIR)/gyrokinetic_mom/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_gyrokinetic/%.c.o : $(KERNELS_DIR)/dg_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_collisionless_flux/%.c.o : $(KERNELS_DIR)/gk_collisionless_flux/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/bc_sheath_gyrokinetic/%.c.o : $(KERNELS_DIR)/bc_sheath_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
