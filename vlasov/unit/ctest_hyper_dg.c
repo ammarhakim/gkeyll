@@ -117,7 +117,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     .has_phi = false, 
     .has_B = true, 
     .has_rad = false, 
-    .use_gpu = true,
+    .use_lo = false,
     .use_gpu = use_gpu,
   }; 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux); 

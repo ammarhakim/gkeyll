@@ -66,16 +66,9 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         }
         if (has_rad) vlasov->rad_vol = ser_rad_vol_kernels[kernel_index].kernels[poly_order];        
 
-        if ( use_lo ) {
-          stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_vel_surf_z_kernels; 
-        } 
-        else {
-          stream_surf_x_kernels = ser_stream_hamil_vel_ho_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_vel_ho_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_vel_ho_surf_z_kernels; 
-        }      
+        stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
+        stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
+        stream_surf_z_kernels = ser_stream_hamil_vel_surf_z_kernels;  
         stream_boundary_surf_x_kernels = ser_stream_hamil_vel_boundary_surf_x_kernels;
         stream_boundary_surf_y_kernels = ser_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels; 
