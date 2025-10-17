@@ -132,6 +132,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       useLastConverged = true
     }, 
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.BGK,
 

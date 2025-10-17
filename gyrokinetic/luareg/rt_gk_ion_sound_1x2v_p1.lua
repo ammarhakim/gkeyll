@@ -116,6 +116,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
@@ -147,6 +151,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     evolve = true, -- Evolve species?

@@ -44,8 +44,6 @@ ifeq (${BUILD_APP}, pkpm)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 endif
 
-CFLAGS += ${HAVE_APP_FLAGS}
-
 INSTALL_PREFIX ?= ${PREFIX}
 PROJ_NAME ?= gkeyll
 
@@ -67,7 +65,7 @@ CUDA_LIBS =
 ifeq ($(CC), nvcc)
 	USING_NVCC = yes
 	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
-	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIBDIR
 		CUDA_LIBS = -L${CUDAMATH_LIBDIR}
@@ -77,6 +75,8 @@ ifeq ($(CC), nvcc)
 	CUDA_LIBS += -lcublas -lcusparse -lcusolver
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
+
+CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"

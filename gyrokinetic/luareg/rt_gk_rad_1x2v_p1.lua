@@ -125,6 +125,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -177,6 +181,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {

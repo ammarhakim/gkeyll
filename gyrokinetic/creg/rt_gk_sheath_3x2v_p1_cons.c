@@ -439,6 +439,11 @@ main(int argc, char **argv)
       .temp = evalTempElcInit,
       .ctx_temp = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -446,6 +451,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 0,
@@ -509,6 +515,11 @@ main(int argc, char **argv)
       .temp = evalTempIonInit,
       .ctx_temp = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIonInit,
@@ -516,6 +527,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 0,
@@ -528,9 +540,7 @@ main(int argc, char **argv)
         .temp = evalSourceTempInit,
         .ctx_temp = &ctx,     
       }, 
-    },
-
-    
+    }, 
     
     .react_neut = {
       .num_react = 3,
@@ -589,7 +599,7 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
+    //.bcx = { GKYL_BC_GK_SPECIES_ABSORB, GKYL_BC_GK_SPECIES_ABSORB},
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -633,12 +643,10 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .lo_value = { 0.0 }, .up_value = { 0.0 }
-      //.lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      //.up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      ////.lo_value = { 0.0 }, .up_value = { 0.0 }
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
     },
   };
 

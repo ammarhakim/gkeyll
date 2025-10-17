@@ -3,8 +3,6 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_fem_parproj.h>
-#include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
@@ -12,6 +10,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_gk_bc_type.h>
 
 #include <stdbool.h>
 
@@ -68,6 +67,13 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
+// Parameters for collisionless terms.
+struct gkyl_gyrokinetic_collisionless {
+  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to output diagnostics.
+  double scale_factor; // Factor multiplying collisionless terms.
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -93,15 +99,7 @@ struct gkyl_gyrokinetic_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
 };
 
-// Parameters for species diffusion.
-struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // Number of diffusion directions.
-  int diff_dirs[3]; // List of diffusion directions.
-  double D[3]; // Constant diffusion coefficient in each direction.
-  int order; // Order of the diffusion (4 for grad^4, 6 for grad^6, default is 2).
-};
-
-// Structure to hold parameters for adaptive source.
+// Structure to hold parameters for adaptive source
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
@@ -122,6 +120,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
+};
+
+// Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
+struct gkyl_gyrokinetic_anomalous_diffusion {
+  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
+  void *D_profile_ctx;
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
@@ -145,17 +151,16 @@ struct gkyl_gyrokinetic_emission_inp {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  enum gkyl_species_bc_type type; // BC type flag.
+  int dir;  // Direction in which BC is specified.
+  enum gkyl_edge_loc edge; // Which edge this BC is for.
+  enum gkyl_gyrokinetic_bc_type type; // BC type flag.
+  double value[3]; // Meaning depends on type.
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
-  double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission; 
   bool write_diagnostics; // Whether to output diagnostics.
-};
-
-struct gkyl_gyrokinetic_bcs {
-  struct gkyl_gyrokinetic_bc lower, upper;
+  int bidx; // Block index (for multiblock solver).
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -294,7 +299,6 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
-  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
   double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
@@ -314,16 +318,7 @@ struct gkyl_gyrokinetic_species {
   // Phase-space field multiplying df/dt.
   struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
-  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
-  double collisionless_scale_factor; // Factor multiplying collisionless terms.
-
-  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
-              // These more computationally efficient kernels are for slab or mirror 
-              // calculations where there is no toroidal field. 
-
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
-
-  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
   // Whether to scale the density using a polarization solve
   bool scale_with_polarization;
@@ -335,6 +330,11 @@ struct gkyl_gyrokinetic_species {
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
+  // Collisionless terms.
+  struct gkyl_gyrokinetic_collisionless collisionless;
+
+  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
+
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
@@ -345,14 +345,14 @@ struct gkyl_gyrokinetic_species {
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion.
-  struct gkyl_gyrokinetic_diffusion diffusion;
-
   // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
   // A damping term -rate*f on RHS.
   struct gkyl_gyrokinetic_damping damping; 
+
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Heating source.
   struct gkyl_gyrokinetic_heating heating;
@@ -366,7 +366,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
 
 // Parameters for neutral species
@@ -398,17 +398,17 @@ struct gkyl_gyrokinetic_neut_species {
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 
 
-  // Collisions to include.
+  // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Source to include.
+  // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
-  // Reactions with plasma species to include.
+  // Reactions with plasma species.
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
 
 // Parameter for gk field.
@@ -423,7 +423,7 @@ struct gkyl_gyrokinetic_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  struct gkyl_poisson_bc poisson_bcs;
+  struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
@@ -1273,16 +1273,6 @@ struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, dou
 struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app);
 
 /**
- * Run the RHS for the species update. This is used to compute kernel
- * timers and is not otherwise a useful function for a full
- * simulation.
- *
- * @param app App object.
- * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
- */
-void gkyl_gyrokinetic_app_species_ktm_rhs(gkyl_gyrokinetic_app* app, int update_vol_term);
-
-/**
  * Free gk app.
  *
  * @param app App to release.
@@ -1313,10 +1303,10 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* ap
  * @param app App object.
  * @param tm Time-stamp.
  * @param species_name Name of the species to reset.
- * @param collisionless_fac Factor multiplying collisionless terms.
+ * @param gkcls Input parameters for collisionless terms.
  */
 void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, double collisionless_fac);
+  const char *species_name, struct gkyl_gyrokinetic_collisionless gkcls_inp);
 
 /**
  * Reset enforce_positivity for a given species.

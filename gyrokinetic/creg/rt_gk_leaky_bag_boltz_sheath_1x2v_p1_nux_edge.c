@@ -270,9 +270,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
     },
     
     .num_diag_moments = 6,
@@ -320,7 +324,6 @@ main(int argc, char **argv)
         .ctxs[2] = &ctx,
       },
     },
-
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

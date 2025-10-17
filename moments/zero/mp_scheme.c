@@ -245,7 +245,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
   struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
   struct gkyl_array *amdq, struct gkyl_array *apdq,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs)
+  struct gkyl_array *cflrate, struct gkyl_array *phi, struct gkyl_array *rhs)
 {
   int ndim = update_range->ndim;
   int meqn = mp->equation->num_equations;
@@ -304,6 +304,9 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       double *qr_l = gkyl_array_fetch(qrec_r, loc+offsets[IM]);
       double *qr_r = gkyl_array_fetch(qrec_l, loc+offsets[IP]);
 
+      const double *phil = gkyl_array_cfetch(phi, loc+offsets[IM]);
+      const double *phir = gkyl_array_cfetch(phi, loc+offsets[IP]);
+
       // recover variables at cell edge
       mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
         qavg[IP], qavg[I2P], qavg[I3P],
@@ -332,9 +335,9 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       
       // compute waves and fluctuations
       gkyl_wv_eqn_waves(mp->equation, GKYL_WV_HIGH_ORDER_FLUX, delta,
-        qlocal_l, qlocal_r, waves, speeds);
+        qlocal_l, qlocal_r, phil[0], phir[0], waves, speeds);
       gkyl_wv_eqn_qfluct(mp->equation, GKYL_WV_HIGH_ORDER_FLUX,
-        qlocal_l, qlocal_r, waves, speeds, amdq_local, apdq_local);
+        qlocal_l, qlocal_r, phil[0], phir[0], waves, speeds, amdq_local, apdq_local);
 
       double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
       double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);

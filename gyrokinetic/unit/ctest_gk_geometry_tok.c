@@ -112,7 +112,7 @@ test_elliptical()
   double clower[] = { -5.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 8, 1, 16 };
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);

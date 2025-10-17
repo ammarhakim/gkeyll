@@ -110,7 +110,6 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     upper[dir]+=1;
     gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
-
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
@@ -490,7 +489,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, up->num_surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].bmag, up->geo_surf[count].bmag, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo, up->geo_surf[count].jacobgeo, 1);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo_sync, up->geo_surf[count].jacobgeo_sync, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo_ratio, up->geo_surf[count].jacobgeo_ratio, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobtot_inv, up->geo_surf[count].jacobtot_inv, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].b_i, up->geo_surf[count].b_i, 3);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].cmag, up->geo_surf[count].cmag, 1);
@@ -560,9 +559,9 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
 
-  for(int dir = 0; dir < up->grid.ndim; dir++) {
+  for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
-    gkyl_array_release(up->geo_surf[dir].jacobgeo_sync);
+    gkyl_array_release(up->geo_surf[dir].jacobgeo_ratio);
     gkyl_array_release(up->geo_surf[dir].bmag);
     gkyl_array_release(up->geo_surf[dir].b_i);
     gkyl_array_release(up->geo_surf[dir].cmag);
