@@ -679,6 +679,7 @@ struct gk_heating {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
+
   struct gkyl_basis basis; // Phase-space basis.
 
   // Basis on device (points to host basis if running w/o GPU).
