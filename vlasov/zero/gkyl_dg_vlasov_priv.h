@@ -271,7 +271,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_vol_kernels[] =
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_vol_2x1v_tensor_p2, vlasov_hamil_vel_vol_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_hamil_vel_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -301,7 +301,7 @@ static const gkyl_dg_vlasov_E_vol_kern_list tensor_E_vol_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_E_vol_2x1v_tensor_p2, vlasov_E_vol_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_E_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_E_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -331,7 +331,7 @@ static const gkyl_dg_vlasov_phi_vol_kern_list tensor_phi_vol_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_phi_vol_2x1v_tensor_p2, vlasov_phi_vol_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_phi_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_phi_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -361,7 +361,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_vol_kernels[] = 
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, no_B_vol, NULL }, // 4
-  { NULL, NULL, vlasov_Bx_hamil_vel_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -391,7 +391,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_vol_kernels[] = 
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, no_B_vol, NULL }, // 4
-  { NULL, NULL, vlasov_By_hamil_vel_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -421,7 +421,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_vol_kernels[] = 
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, vlasov_Bz_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_Bz_hamil_vel_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -451,7 +451,7 @@ static const gkyl_dg_vlasov_rad_vol_kern_list tensor_rad_vol_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_rad_vol_2x1v_tensor_p2, vlasov_rad_vol_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_rad_vol_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_rad_vol_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -481,7 +481,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_surf_x
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_surfx_2x1v_tensor_p2, vlasov_hamil_vel_surfx_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_hamil_vel_surfx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_hamil_vel_surfx_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL}, // 6
 };
@@ -511,7 +511,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_surf_y
   // 2x kernels
   { NULL, NULL, no_stream_surf, no_stream_surf }, // 3  
   { NULL, NULL, vlasov_hamil_vel_surfy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_hamil_vel_surfy_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -753,7 +753,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list tensor_accel_surf_vx_kernels[] 
   // 2x kernels
   { NULL, NULL, vlasov_surfvx_2x1v_tensor_p2, vlasov_surfvx_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_surfvx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_surfvx_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -783,7 +783,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list tensor_accel_surf_vy_kernels[] 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, vlasov_surfvy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_surfvy_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -813,7 +813,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list tensor_accel_surf_vz_kernels[] 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, NULL, vlasov_surfvz_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -888,7 +888,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x1v_tensor_p2, vlasov_hamil_vel_boundary_surfx_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_hamil_vel_boundary_surfx_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL}, // 6
 };
@@ -918,7 +918,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   // 2x kernels
   { NULL, NULL, no_stream_boundary_surf, no_stream_boundary_surf }, // 3  
   { NULL, NULL, vlasov_hamil_vel_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_hamil_vel_boundary_surfy_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -1159,7 +1159,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, vlasov_boundary_surfvx_2x1v_tensor_p2, vlasov_boundary_surfvx_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_boundary_surfvx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_boundary_surfvx_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -1189,7 +1189,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, vlasov_boundary_surfvy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_boundary_surfvy_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -1219,7 +1219,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list tensor_accel_boundary_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, NULL, vlasov_boundary_surfvz_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
