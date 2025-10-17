@@ -12,7 +12,6 @@ local ZeroDynVector = require "DataStruct.ZeroDynVector"
 local Grid = require "Grid"
 local argparse = require "Lib.argparse"
 local Proto = require "Lib.Proto"
-local Mpi = require "Comm.Mpi"
 local xsys = require "xsys"
 
 -- Create CLI parser to handle commands and options
