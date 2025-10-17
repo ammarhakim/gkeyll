@@ -343,6 +343,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       mom_sp->app_accel, mom_sp->app_accel_ctx);  
   }
 
+  sp->embed_mask = mkarr(false, 1, app->local_ext.volume);
+  gkyl_array_clear(sp->embed_mask, 1.0);
+
+  if (mom_sp->equation->embed_geo) {
+    gkyl_wv_embed_geo_new_mask(mom_sp->equation->embed_geo, &app->grid,
+      &app->local, sp->embed_mask);
+  }
+
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
   sp->nT_source_is_set = false;
   sp->proj_nT_source = 0;
@@ -439,7 +447,7 @@ moment_species_update(gkyl_moment_app *app,
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
-    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
+    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
 
     double my_max_speed = stat.max_speed;
     max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
@@ -486,7 +494,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   if (app->scheme_type == GKYL_MOMENT_MP)
     gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
       app->ql, app->qr, app->amdq, app->apdq,
-      species->cflrate, rhs);
+      species->cflrate, species->embed_mask, rhs);
   else
     gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
       species->cflrate, rhs);
@@ -543,6 +551,8 @@ moment_species_release(const struct moment_species *sp)
   if (sp->proj_nT_source) {
     gkyl_fv_proj_release(sp->proj_nT_source);
   }
+
+  gkyl_array_release(sp->embed_mask);
 
   gkyl_array_release(sp->bc_buffer);
 

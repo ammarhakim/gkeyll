@@ -31,12 +31,6 @@ enum gkyl_eqn_type {
   GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.
 };
 
-// Identifiers for specific gyrokinetic model types.
-enum gkyl_gkmodel_id {
-  GKYL_GK_MODEL_GEN_GEO = 0, // General geometry GK. This is default.
-  GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0).
-};
-
 // Identifiers for specific gyrokinetic field object types.
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
@@ -177,4 +171,13 @@ enum gkyl_gk_anomalous_diff_id {
   GKYL_GK_ANOMALOUS_DIFF_NONE = 0, // No anomalous diffusion.
   GKYL_GK_ANOMALOUS_DIFF_D, // Specify D only.
   GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
+};
+
+enum gkyl_gk_collisionless_type {
+  GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
+  GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
+  GKYL_GK_COLLISIONLESS_ES_NO_BY, // Electrostatic, w/o toroidal field (b_y=0).
+  GKYL_GK_COLLISIONLESS_EM_BPERP, // Electromagnetic with B_perp fluctuations.
+  GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
+  GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
 };

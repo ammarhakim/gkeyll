@@ -1061,10 +1061,10 @@ test_gr_twofluid_waves_minkowski()
           delta[i] = qr_local[i] - ql_local[i];
         }
 
-        gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+        gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
         double apdq_local[84], amdq_local[84];
-        gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+        gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 3; i++) {
           gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
@@ -1368,10 +1368,10 @@ test_gr_twofluid_waves_schwarzschild()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
-          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
@@ -1676,10 +1676,10 @@ test_gr_twofluid_waves_kerr()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
-          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);

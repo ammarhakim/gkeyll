@@ -84,7 +84,7 @@ gkyl_wave_prop* gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
  */
 struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
-  const struct gkyl_array *qin, struct gkyl_array *qout);
+  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout);
 
 /**
  * Compute an estimate of maximum stable time-step for given input

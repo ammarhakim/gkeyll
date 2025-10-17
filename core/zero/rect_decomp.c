@@ -428,6 +428,24 @@ gkyl_create_ranges(const struct gkyl_range *inrange,
 }
 
 void
+gkyl_create_vertex_ranges(const struct gkyl_range *inrange,
+  const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range)
+{
+  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int i=0; i<inrange->ndim; ++i) {
+    lower_ext[i] = inrange->lower[i] - nghost[i];
+    upper_ext[i] = inrange->upper[i] + 1 + nghost[i];
+
+    lower[i] = inrange->lower[i];
+    upper[i] = inrange->upper[i] + 1;
+  }
+  gkyl_range_init(ext_range, inrange->ndim, lower_ext, upper_ext);
+  gkyl_sub_range_init(range, ext_range, lower, upper);  
+}
+
+void
 gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp* decomp, int* cuts)
 {
   int ndim = decomp->ndim;
