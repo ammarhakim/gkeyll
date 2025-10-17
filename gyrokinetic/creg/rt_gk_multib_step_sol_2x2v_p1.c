@@ -537,7 +537,8 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .no_by = true,
     },
 
     .collisions =  {
@@ -640,7 +641,8 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .no_by = true,
     },
 
     .collisions =  {

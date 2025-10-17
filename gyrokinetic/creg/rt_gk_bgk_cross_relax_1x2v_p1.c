@@ -400,7 +400,8 @@ main(int argc, char **argv)
     },   
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .no_by = true,
     },
 
     .collisions =  {
@@ -448,7 +449,8 @@ main(int argc, char **argv)
     },      
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES_NO,
+      .no_by = true,
     },
 
     .collisions =  {
