@@ -967,7 +967,7 @@ int main(int argc, char **argv)
     for (int pit=0; pit<ctx.num_phases; pit++) {
       time_count += ctx.poa_phases[pit].duration;
       frame_count += ctx.poa_phases[pit].num_frames;
-      if ((tfs.t_curr < time_count) && (tfs.frame_curr < frame_count)) {
+      if ((tfs.t_curr <= time_count) && (tfs.frame_curr <= frame_count)) {
         pit_curr = pit;
         break;
       }
