@@ -1557,7 +1557,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     else
       gks->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
-gks->gkfield_is_em = app->field->is_em;
  
   // Allocate distribution function arrays.
   gks->f = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
@@ -1628,14 +1627,6 @@ gks->gkfield_is_em = app->field->is_em;
   gks->collisionless = (struct gk_collisionless) { };
   gk_species_collisionless_init(app, gks, &gks->collisionless);
 
-  if (gks->gkfield_is_em) {
-    gks->apar = gkyl_array_acquire(app->field->apar);
-    gks->apardot = gkyl_array_acquire(app->field->apardot);
-  }
-  else {
-    gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  }
   // Initialize an anomalous diffusion term.
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
@@ -1643,7 +1634,7 @@ gks->gkfield_is_em = app->field->is_em;
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
-  if (gks->gkfield_is_em) {
+  if (gks->collisionless.is_em) {
     // To compute current density for Ampere's law and current dot for Ohm's law.
     gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
   }
@@ -1979,7 +1970,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Release moment data.
   gk_species_moment_release(app, &s->m0);
-  if (s->gkfield_is_em)
+  if (s->collisionless.is_em)
     gk_species_moment_release(app, &s->m1);
 
   for (int i=0; i<s->info.num_diag_moments; ++i)

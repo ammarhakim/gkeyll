@@ -214,6 +214,7 @@ struct gk_species;
 struct gk_collisionless {
   enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
   bool write_diagnostics; // Whether to write diagnostics out.
+  bool is_em; // To store whether we have EM effects.
 
   // Organization of the different equation objects and the required data and solvers
   struct gkyl_array *flux_surf; // Array for surface phase space flux
@@ -679,7 +680,6 @@ struct gk_heating {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
-  bool gkfield_is_em; // To store whether the field is EM.
   struct gkyl_basis basis; // Phase-space basis.
 
   // Basis on device (points to host basis if running w/o GPU).
@@ -707,9 +707,7 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
-  struct gkyl_array *apar; // Parallel component of vector potential (for EM simulations).
-  struct gkyl_array *apardot; // Time derivative of parallel component of vector potential.
-  
+
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment m1; // Computes current density.
   struct gk_species_moment integ_moms; // Integrated moments.

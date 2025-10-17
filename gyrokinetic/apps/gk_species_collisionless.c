@@ -63,6 +63,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   struct gk_collisionless *gkcls)
 {
   gkcls->collisionless_id = gks->info.collisionless.type;
+  gkcls->is_em = app->field->is_em;
   gkcls->write_diagnostics = gks->info.collisionless.write_diagnostics;
 
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
@@ -105,7 +106,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Allocate arrays to store surface phase space flux.
     gkcls->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
 
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
+    if (gkcls->is_em) {
       // Parallel component of magnetic vector potential.
       gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
