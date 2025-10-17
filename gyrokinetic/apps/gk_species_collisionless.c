@@ -63,6 +63,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   struct gk_collisionless *gkcls)
 {
   gkcls->collisionless_id = gks->info.collisionless.type;
+  gkcls->no_by = gks->info.collisionless.no_by;
   gkcls->is_em = app->field->is_em;
   gkcls->write_diagnostics = gks->info.collisionless.write_diagnostics;
 
@@ -123,7 +124,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-      gks->info.charge, gks->info.mass, gkcls->collisionless_id, app->gk_geom, 
+      gks->info.charge, gks->info.mass, gkcls->no_by, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
@@ -131,7 +132,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-      gks->info.skip_cell_threshold, gkcls->collisionless_id, app->gk_geom, gks->vel_map, 
+      gks->info.skip_cell_threshold, gkcls->no_by, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
     // Methods chosen at runtime.

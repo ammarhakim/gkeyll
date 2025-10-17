@@ -213,8 +213,9 @@ struct gk_species;
 
 struct gk_collisionless {
   enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
+  bool no_by; // Whether to neglect the toroidal field (b_y=0).
+  bool is_em; // Whether we have EM effects.
   bool write_diagnostics; // Whether to write diagnostics out.
-  bool is_em; // To store whether we have EM effects.
 
   // Organization of the different equation objects and the required data and solvers
   struct gkyl_array *flux_surf; // Array for surface phase space flux

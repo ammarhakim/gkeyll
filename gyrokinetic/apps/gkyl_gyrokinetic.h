@@ -70,6 +70,7 @@ struct gkyl_phase_diagnostics_inp {
 // Parameters for collisionless terms.
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool no_by; // Whether to neglect the toroidal field (b_y=0)
   bool write_diagnostics; // Whether to output diagnostics.
 };
 

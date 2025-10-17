@@ -27,7 +27,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param charge Species charge
  * @param mass Species mass
  * @param skip_cell_threshold Threshold for skipping cells in the gyrokinetic equation
- * @param collless_type Type of collisionless terms.
+ * @param no_by Whether to neglect the toroidal field (b_y=0)
  * @param gk_geom Geometry struct
  * @param vel_map Velocity space mapping object.
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
@@ -36,7 +36,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, double skip_cell_threshold, 
-  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
+  const bool no_by, const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
