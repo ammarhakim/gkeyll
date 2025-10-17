@@ -289,16 +289,16 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
 
     // Methods chosen at runtime.
     if (bgk->implicit_step) {
-      bgk->moms_func = gkbgk_moms_enabled;
-      bgk->rhs_func = gkbgk_rhs_enabled;
-      bgk->moms_func_implicit = gkbgk_moms_disabled;
-      bgk->rhs_func_implicit = gkbgk_rhs_disabled;
-    }
-    else {
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
       bgk->moms_func_implicit = gkbgk_moms_enabled;
       bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+    }
+    else {
+      bgk->moms_func = gkbgk_moms_enabled;
+      bgk->rhs_func = gkbgk_rhs_enabled;
+      bgk->moms_func_implicit = gkbgk_moms_disabled;
+      bgk->rhs_func_implicit = gkbgk_rhs_disabled;
     }
     if (bgk->write_diagnostics)
       bgk->write_mom_func = gkbgk_write_mom_enabled;

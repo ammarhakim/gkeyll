@@ -87,7 +87,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
-	printf("S1: dt = %.9e\n",dt);
 
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
@@ -126,7 +125,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
-	printf("S2: dt = %.9e\n",dt);
         if (st.dt_actual < dt) {
 
           // Recalculate the field.
@@ -196,7 +194,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
-	printf("S3: dt = %.9e\n",dt);
         if (st.dt_actual < dt) {
           // Recalculate the field.
           for (int i=0; i<app->num_species; ++i)

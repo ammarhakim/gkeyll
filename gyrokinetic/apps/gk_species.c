@@ -163,7 +163,6 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   else {
     omega_cfl_ho[0] = species->omega_cfl[0];
   }
-  printf("1/omega_cfl = %.9e | cfl = %.9e\n",1.0/omega_cfl_ho[0], app->cfl);
   double dt_out = app->cfl/omega_cfl_ho[0];
   
   // Enforce the omega_H constraint on dt.
