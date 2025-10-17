@@ -115,7 +115,7 @@ gk_neut_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   bgk->write_mom_func_neut = gkbgk_write_mom_disabled;
 
   if (bgk->collision_id == GKYL_BGK_COLLISIONS) {
-    bgk->implicit_step = gkns->info.collisions.has_implicit_coll_scheme;
+    bgk->implicit_step = gkns->info.collisions.is_implicit;
     bgk->num_cross_collisions = gkns->info.collisions.num_cross_collisions;
     assert(bgk->num_cross_collisions == 0); // NYI.
     

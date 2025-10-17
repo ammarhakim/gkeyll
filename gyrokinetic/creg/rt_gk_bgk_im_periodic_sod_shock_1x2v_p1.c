@@ -291,7 +291,7 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
       .self_nu_ctx = &ctx, 
-      .has_implicit_coll_scheme = true,
+      .is_implicit = true,
     },
     
     .num_diag_moments = 6,

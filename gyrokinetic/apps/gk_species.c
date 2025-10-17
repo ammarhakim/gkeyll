@@ -163,6 +163,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   else {
     omega_cfl_ho[0] = species->omega_cfl[0];
   }
+  printf("1/omega_cfl = %.9e | cfl = %.9e\n",1.0/omega_cfl_ho[0], app->cfl);
   double dt_out = app->cfl/omega_cfl_ho[0];
   
   // Enforce the omega_H constraint on dt.
@@ -1715,9 +1716,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   int max_iter = gks->info.correct.max_iter > 0 ? gks->info.correct.max_iter : 50;
   double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps : 1e-10;
   bool use_last_converged = gks->info.correct.use_last_converged;
-  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
-    .max_iter = max_iter, .iter_eps = iter_eps, 
-    .use_last_converged = use_last_converged };
+  struct correct_all_moms_inp corr_inp = {
+    .correct_all_moms = correct_all_moms, 
+    .max_iter = max_iter,
+    .iter_eps = iter_eps, 
+    .use_last_converged = use_last_converged
+  };
   gk_species_lte_init(app, gks, &gks->lte, corr_inp);
 
   // Initialize empty structs. New methods will fill them if specified.

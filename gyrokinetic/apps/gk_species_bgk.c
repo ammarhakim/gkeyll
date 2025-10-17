@@ -207,7 +207,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   bgk->write_mom_func = gkbgk_write_mom_disabled;
 
   if (bgk->collision_id == GKYL_BGK_COLLISIONS) {
-    bgk->implicit_step = gks->info.collisions.has_implicit_coll_scheme;
+    bgk->implicit_step = gks->info.collisions.is_implicit;
     bgk->num_cross_collisions = gks->info.collisions.num_cross_collisions;
     
     int cdim = app->cdim, vdim = app->vdim;

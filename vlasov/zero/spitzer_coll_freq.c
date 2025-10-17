@@ -232,7 +232,7 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
       vtSqMinSelf, momsOther, vtSqMinOther, normNu, nuOut);
 #endif
 
-  int vtsq_idx = momsSelf->ncomp/up->num_basis-1;
+  int vtsq_idx = momsSelf->ncomp-up->num_basis;
 
   // Create range to loop over quadrature points.
   struct gkyl_range qrange = get_qrange(up->ndim, up->num_quad);
@@ -273,7 +273,7 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
       vtSqMinSelf, qOther, mOther, momsOther, vtSqMinOther, nuOut);
 #endif
 
-  int vtsq_idx = momsSelf->ncomp/up->num_basis-1;
+  int vtsq_idx = momsSelf->ncomp-up->num_basis;
   double mReduced = 1./(1./mSelf+1./mOther);
   double timeConstFac = up->nufraceps0_fac*pow(qSelf*qOther,2)/(mSelf*mReduced);
 

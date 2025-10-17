@@ -64,7 +64,7 @@ gkyl_spitzer_coll_freq_advance_normnu_cu_ker(const struct gkyl_range range,
   const struct gkyl_array* GKYL_RESTRICT momsOther, double vtSqMinOther,
   double normNu, struct gkyl_array* GKYL_RESTRICT nuOut)
 {
-  int vtsq_idx = momsSelf->ncomp/basis_at_ords->ncomp-1;
+  int vtsq_idx = momsSelf->ncomp-basis_at_ords->ncomp;
   int idx[3];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < range.volume; tid += blockDim.x*gridDim.x) {
@@ -92,7 +92,7 @@ gkyl_spitzer_coll_freq_advance_cu_ker(const struct gkyl_range range,
   double qOther, double mOther, const struct gkyl_array* momsOther, double vtSqMinOther,
   struct gkyl_array* GKYL_RESTRICT nuOut)
 {
-  int vtsq_idx = momsSelf->ncomp/basis_at_ords->ncomp-1;
+  int vtsq_idx = momsSelf->ncomp-basis_at_ords->ncomp;
   double mReduced = 1./(1./mSelf+1./mOther);
   double timeConstFac = nufraceps0_fac*pow(qSelf*qOther,2)/(mSelf*mReduced);
 

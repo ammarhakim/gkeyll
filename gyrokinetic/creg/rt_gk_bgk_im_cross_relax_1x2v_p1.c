@@ -382,7 +382,7 @@ main(int argc, char **argv)
       .temp_ref = ctx.Te,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
-      .has_implicit_coll_scheme = true,
+      .is_implicit = true,
     },
 
     .num_diag_moments = 6,
@@ -423,7 +423,7 @@ main(int argc, char **argv)
       .temp_ref = ctx.Ti,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
-      .has_implicit_coll_scheme = true,
+      .is_implicit = true,
     },
     
     .num_diag_moments = 6,

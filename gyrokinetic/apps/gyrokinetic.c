@@ -716,7 +716,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // Use implicit BGK collisions if specified
   bool has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
-    if (gk->species[i].collisions.has_implicit_coll_scheme){
+    if (gk->species[i].collisions.is_implicit){
       has_implicit_coll_scheme = true;
     }
   }

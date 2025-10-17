@@ -414,7 +414,7 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
       .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .has_implicit_coll_scheme = true,
+      .is_implicit = true,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
       .write_diagnostics = true, 
@@ -488,7 +488,7 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
       .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .has_implicit_coll_scheme = true,
+      .is_implicit = true,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
       .write_diagnostics = true, 

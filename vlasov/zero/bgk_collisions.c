@@ -65,7 +65,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
       up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
       array_acc1(up->pnum_basis, out_d, -1.0/(1.0 + nu_d[0]*cellav_fac_dt), incr);
 
-      // No CFL contribution in the implicit case
+      // No CFL contribution in the implicit case.
     }
 
   }

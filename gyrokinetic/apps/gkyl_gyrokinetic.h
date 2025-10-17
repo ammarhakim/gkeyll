@@ -92,7 +92,7 @@ struct gkyl_gyrokinetic_collisions {
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   // Boolean for using implicit BGK collisions (replaces rk3).
-  bool has_implicit_coll_scheme; 
+  bool is_implicit; 
 };
 
 // Structure to hold parameters for adaptive source
