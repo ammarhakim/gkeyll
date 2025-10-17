@@ -129,6 +129,7 @@ struct gkyl_tok_geo_grid_inp {
   struct gkyl_rect_grid cgrid;
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
+  double compression_factor; // determines cell compression near X-point
   bool half_domain; // For use in double null simulations
                     // If true, will set the domain to be the lower
                     // half of the tokamak (below Z=0)
