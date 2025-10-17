@@ -103,7 +103,7 @@ gk_geometry_set_int_cu_kernel(struct gk_geometry *gk_geom,
 
 __global__ static void
 gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
-  struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_sync, 
+  struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_ratio,
   struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot_inv,
   struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
@@ -118,7 +118,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   // Expansions.
   gk_geom->geo_surf[dir].bmag = bmag;
   gk_geom->geo_surf[dir].jacobgeo = jacobgeo;
-  gk_geom->geo_surf[dir].jacobgeo_sync = jacobgeo_sync;
+  gk_geom->geo_surf[dir].jacobgeo_ratio = jacobgeo_ratio;
   gk_geom->geo_surf[dir].b_i = b_i;
   gk_geom->geo_surf[dir].cmag = cmag;
   gk_geom->geo_surf[dir].jacobtot_inv = jacobtot_inv;
@@ -184,7 +184,7 @@ void
 gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_surf, int dir)
 {
   gk_geometry_set_surf_cu_kernel<<<1,1>>>(gk_geom, dir,
-    geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev, geo_surf->jacobgeo_sync->on_dev, 
+    geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev, geo_surf->jacobgeo_ratio->on_dev,
     geo_surf->b_i->on_dev, geo_surf->cmag->on_dev, geo_surf->jacobtot_inv->on_dev, geo_surf->B3->on_dev,
     geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev,
     geo_surf->mc2p_nodal_fd->on_dev, geo_surf->mc2p_nodal->on_dev, geo_surf->bmag_nodal->on_dev,
@@ -341,8 +341,8 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
     up_surf_host.bmag->ncomp, up_surf_host.bmag->size);
   up_surf_dev->jacobgeo = gkyl_array_cu_dev_new(up_surf_host.jacobgeo->type,
     up_surf_host.jacobgeo->ncomp, up_surf_host.jacobgeo->size);
-  up_surf_dev->jacobgeo_sync = gkyl_array_cu_dev_new(up_surf_host.jacobgeo_sync->type,
-    up_surf_host.jacobgeo_sync->ncomp, up_surf_host.jacobgeo_sync->size);
+  up_surf_dev->jacobgeo_ratio = gkyl_array_cu_dev_new(up_surf_host.jacobgeo_ratio->type,
+    up_surf_host.jacobgeo_ratio->ncomp, up_surf_host.jacobgeo_ratio->size);
   up_surf_dev->b_i = gkyl_array_cu_dev_new(up_surf_host.b_i->type,
     up_surf_host.b_i->ncomp, up_surf_host.b_i->size);
   up_surf_dev->cmag = gkyl_array_cu_dev_new(up_surf_host.cmag->type,
@@ -513,7 +513,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     // Expansions.
     gkyl_array_copy(geo_surf_dev[dir]->bmag, geo_host->geo_surf[dir].bmag);
     gkyl_array_copy(geo_surf_dev[dir]->jacobgeo, geo_host->geo_surf[dir].jacobgeo);
-    gkyl_array_copy(geo_surf_dev[dir]->jacobgeo_sync, geo_host->geo_surf[dir].jacobgeo_sync);
+    gkyl_array_copy(geo_surf_dev[dir]->jacobgeo_ratio, geo_host->geo_surf[dir].jacobgeo_ratio);
     gkyl_array_copy(geo_surf_dev[dir]->b_i, geo_host->geo_surf[dir].b_i);
     gkyl_array_copy(geo_surf_dev[dir]->cmag, geo_host->geo_surf[dir].cmag);
     gkyl_array_copy(geo_surf_dev[dir]->jacobtot_inv, geo_host->geo_surf[dir].jacobtot_inv);
@@ -629,7 +629,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     // Expansions.
     up->geo_surf[dir].bmag = geo_surf_dev[dir]->bmag;
     up->geo_surf[dir].jacobgeo = geo_surf_dev[dir]->jacobgeo;
-    up->geo_surf[dir].jacobgeo_sync = geo_surf_dev[dir]->jacobgeo_sync;
+    up->geo_surf[dir].jacobgeo_ratio = geo_surf_dev[dir]->jacobgeo_ratio;
     up->geo_surf[dir].b_i = geo_surf_dev[dir]->b_i;
     up->geo_surf[dir].cmag = geo_surf_dev[dir]->cmag;
     up->geo_surf[dir].jacobtot_inv = geo_surf_dev[dir]->jacobtot_inv;

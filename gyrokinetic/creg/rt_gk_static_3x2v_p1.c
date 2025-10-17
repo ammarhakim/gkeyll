@@ -441,6 +441,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
@@ -465,11 +469,15 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
 
-    // neutral Deuterium
+  // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},

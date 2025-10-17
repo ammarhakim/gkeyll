@@ -684,6 +684,10 @@ int main(int argc, char **argv)
 
     .projection = elc_ic,
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -748,6 +752,10 @@ int main(int argc, char **argv)
 
     .scale_with_polarization = true,
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -810,16 +818,21 @@ int main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
       .mirror_grid_info = grid_inp,
     },
+
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
     .num_species = 2,
     .species = {elc, ion},
+
     .field = field,
+
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0], app_args.cuts[1] },
@@ -955,6 +968,10 @@ int main(int argc, char **argv)
       .file_name = "gk_wham_2x2v_p1-elc_0.gkyl",
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -992,6 +1009,10 @@ int main(int argc, char **argv)
     .init_from_file = {
       .type = GKYL_IC_IMPORT_F,
       .file_name = "gk_wham_2x2v_p1-ion_0.gkyl",
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions = {
@@ -1033,15 +1054,20 @@ int main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .mirror_grid_info = grid_inp,
     },
+
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
     .num_species = 2,
     .species = {elc3d, ion3d},
+
     .field = field3d,
+
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0], app_args.cuts[0], app_args.cuts[1] },

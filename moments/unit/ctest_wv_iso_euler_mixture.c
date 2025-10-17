@@ -253,10 +253,10 @@ test_iso_euler_mixture_twocomponent_waves()
       delta[i] = qr_local[i] - ql_local[i];
     }
 
-    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[7], amdq_local[7];
-    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
       gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 7], &waves[i * 7]);
@@ -338,10 +338,10 @@ test_iso_euler_mixture_twocomponent_waves_2()
       delta[i] = qr_local[i] - ql_local[i];
     }
 
-    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[7], amdq_local[7];
-    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
       gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 7], &waves[i * 7]);
@@ -425,10 +425,10 @@ test_iso_euler_mixture_threecomponent_waves()
       delta[i] = qr_local[i] - ql_local[i];
     }
 
-    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
-    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
       gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
@@ -512,10 +512,10 @@ test_iso_euler_mixture_threecomponent_waves_2()
       delta[i] = qr_local[i] - ql_local[i];
     }
 
-    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
-    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+    gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
       gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
