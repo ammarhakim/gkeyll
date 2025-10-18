@@ -34,24 +34,21 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
 
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
-
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
+    position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       double psi_curr = psi_lo + ip*dpsi;
+      position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
       cidx[PSI_IDX] = ip;
       // set node coordinates
       for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
-        double theta_curr = theta_lo + it*dtheta ;
-        cidx[TH_IDX] = it;
-
-        position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-        position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+        double theta_curr = theta_lo + it*dtheta;
         position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+        cidx[TH_IDX] = it;
 
         double *mc2p_n = (double *) gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
         double *bmag_n = (double *) gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
@@ -114,14 +111,13 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
-
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 3; ia_delta++){ // interior stencil
       double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha) + modifiers[ia_delta]*delta_alpha;
+            position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
 
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 3;// interior
@@ -129,6 +125,7 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
           double psi_curr = calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) + modifiers[ip_delta]*delta_psi;
+          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
           cidx[PSI_IDX] = ip;
           // set node coordinates
           for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
@@ -137,9 +134,6 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
               double theta_curr = calc_running_coord(theta_lo, it-nrange->lower[TH_IDX], dtheta) + modifiers[it_delta]*delta_theta;
-
-              position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-              position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
               position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
 
               cidx[TH_IDX] = it;
@@ -239,8 +233,6 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
-
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -260,6 +252,7 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
       }
       double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
       alpha_curr += modifiers[ia_delta]*delta_alpha;
+      position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
 
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
@@ -280,6 +273,7 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
           }
           double psi_curr = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) ;
           psi_curr += modifiers[ip_delta]*delta_psi;
+          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
           cidx[PSI_IDX] = ip;
           // set node coordinates
           for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
@@ -301,9 +295,6 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
               }
               double theta_curr = dir==2 ? theta_lo + it*dtheta: calc_running_coord(theta_lo, it-nrange->lower[TH_IDX], dtheta);
               theta_curr += modifiers[it_delta]*delta_theta;
-
-              position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-              position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
               position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
 
               cidx[TH_IDX] = it;
@@ -406,6 +397,8 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
+  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
   gk_geometry_mapc2p_advance(up, &up->nrange_corn, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
@@ -435,9 +428,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom;
 
   if (geometry_inp->position_map == 0){
-    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
-      geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
-      geometry_inp->local_ext, geometry_inp->basis);
+    geometry_inp->position_map = gkyl_position_map_null_new();
     gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
     gkyl_position_map_release(geometry_inp->position_map);
   }
