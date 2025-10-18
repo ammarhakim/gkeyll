@@ -54,6 +54,17 @@ static const struct gkyl_str_int_pair position_map_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic collisionless type -> enum map.
+static const struct gkyl_str_int_pair gk_collisionless_type[] = {
+  { "None", GKYL_GK_COLLISIONLESS_NONE },
+  { "GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES },
+  { "GKCollisionlessES_no_by", GKYL_GK_COLLISIONLESS_ES_NO_BY },
+  { "GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP },
+  { "GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR },
+  { "GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM },
+  { 0, 0 }
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
@@ -131,6 +142,12 @@ void
 gkyl_register_gyrokinetic_position_map_types(lua_State *L)
 {
   register_types(L, position_map_type, "PositionMap");
+}
+
+void
+gkyl_register_gyrokinetic_collisionless_types(lua_State *L)
+{
+  register_types(L, gk_collisionless_type, "GKCollisionless");
 }
 
 void
@@ -216,6 +233,8 @@ struct gyrokinetic_species_lw {
   struct lua_func_ctx perp_temp_init_func_ref; // Lua registry reference to perpendicular temperature initialization function.
 
   bool proj_correct_all_moms; // Are we correcting all moments in projection, or only density?
+
+  enum gkyl_gk_collisionless_type collisionless_type; // Collisionless type.
 
   enum gkyl_collision_id collision_id; // Collision type.
   
@@ -307,7 +326,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   gk_species.mass = glua_tbl_get_number(L, "mass", 1.0);
   gk_species.polarization_density = glua_tbl_get_number(L, "polarizationDensity", 0.0);
-  gk_species.no_by = glua_tbl_get_bool(L, "noBy", false);
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);
@@ -424,6 +442,23 @@ gyrokinetic_species_lw_new(lua_State *L)
     proj_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
   }
 
+  bool correct_all_moms = false;
+  double iter_eps = 0.0;
+  int max_iter = 0; 
+  bool use_last_converged = true; 
+  with_lua_tbl_tbl(L, "correct") {
+    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
+    iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
+    max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
+    use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  }
+
+  enum gkyl_gk_collisionless_type collisionless_type = GKYL_GK_COLLISIONLESS_NONE;
+
+  with_lua_tbl_tbl(L, "collisionless") {
+    collisionless_type = glua_tbl_get_integer(L, "type", 0);
+  }
+
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
   bool has_self_nu_func = false;
@@ -438,17 +473,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   double collision_hbar = 0.0;
   double collision_eps0 = 0.0;
   double collision_eV = 0.0;
-
-  bool correct_all_moms = false;
-  double iter_eps = 0.0;
-  int max_iter = 0; 
-  bool use_last_converged = true; 
-  with_lua_tbl_tbl(L, "correct") {
-    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
-    iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
-    max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
-    use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
-  }
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -782,6 +806,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->iter_eps = iter_eps;
   gks_lw->max_iter = max_iter;
   gks_lw->use_last_converged = use_last_converged;
+
+  gks_lw->collisionless_type = collisionless_type;
 
   gks_lw->collision_id = collision_id;
 
@@ -1122,6 +1148,8 @@ struct gyrokinetic_app_lw {
 
   bool proj_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
 
+  enum gkyl_gk_collisionless_type collisionless_type[GKYL_MAX_SPECIES]; // Collisionless type.
+                                                        
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
@@ -1713,6 +1741,8 @@ gk_app_new(lua_State *L)
     gk.species[s].correct.max_iter = app_lw->max_iter[s];
     gk.species[s].correct.use_last_converged = app_lw->use_last_converged[s];
 
+    app_lw->collisionless_type[s] = species[s]->collisionless_type;
+
     app_lw->collision_id[s] = species[s]->collision_id;
 
     app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
@@ -1729,6 +1759,8 @@ gk_app_new(lua_State *L)
     app_lw->collision_hbar[s] = species[s]->collision_hbar;
     app_lw->collision_eps0[s] = species[s]->collision_eps0;
     app_lw->collision_eV[s] = species[s]->collision_eV;
+
+    gk.species[s].collisionless.type = app_lw->collisionless_type[s];
 
     gk.species[s].collisions.collision_id = app_lw->collision_id[s];
 
@@ -2579,6 +2611,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_fem_bc_types(L);
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_position_map_types(L);
+  gkyl_register_gyrokinetic_collisionless_types(L);
   gkyl_register_gyrokinetic_field_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);

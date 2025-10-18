@@ -164,14 +164,14 @@ test_ten_moment_waves()
     double delta[10];
     for (int i=0; i<10; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<5; ++mw)
       gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
 
     double apdq[10], amdq[10];
-    gkyl_wv_eqn_qfluct(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[10], fr_local[10];
