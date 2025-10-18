@@ -124,10 +124,10 @@ test_euler_waves(enum gkyl_wv_flux_type ftype)
     double delta[5];
     for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
-    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, 1.0, 1.0,waves_local, speeds, amdq_local, apdq_local);
 
     // rotate waves back to global frame
     for (int mw=0; mw<3; ++mw)
@@ -202,10 +202,10 @@ test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_type)
     double delta[5];
     for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
-    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);    
+    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);    
 
     // rotate waves back to global frame
     for (int mw=0; mw<3; ++mw)

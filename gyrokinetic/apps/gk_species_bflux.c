@@ -608,7 +608,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
 
     // Create an array of equation objects with terms that produce boundary fluxes.
     bflux->num_eqns = 0;
-    if (!gk_s->info.no_collisionless_terms)
+    if (gk_s->collisionless.collisionless_id)
       bflux->num_eqns += 1; // Collisionless terms.
     if (gk_s->anom_diff.anom_diff_id)
       bflux->num_eqns += 1; // Diffusion term.
@@ -616,8 +616,8 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
 
     int eqc = 0;
-    if (!gk_s->info.no_collisionless_terms)
-      bflux->eqns[eqc++] = gkyl_dg_updater_gyrokinetic_acquire_eqn(gk_s->slvr);
+    if (gk_s->collisionless.collisionless_id)
+      bflux->eqns[eqc++] = gkyl_dg_updater_gyrokinetic_acquire_eqn(gk_s->collisionless.slvr);
     if (gk_s->anom_diff.anom_diff_id)
       bflux->eqns[eqc++] = gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(gk_s->anom_diff.slvr);
   
