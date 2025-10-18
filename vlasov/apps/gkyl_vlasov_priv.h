@@ -294,8 +294,8 @@ struct vm_proj {
 };
 
 struct vm_source {
-  bool write_source; // optional parameter to write out source distribution
-  bool source_evolve; // flag to indicate sources are time dependent
+  bool write_source; // Are we writing out the source?
+  bool evolve_source; // Are our sources time-dependent?
 
   bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
   double scale_factor; // factor to scale source function

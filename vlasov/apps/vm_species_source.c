@@ -6,7 +6,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
 {
   int vdim = app->vdim; 
   src->write_source = vms->info.source.write_source; // Optional flag to write out source and source moments. 
-  src->source_evolve = vms->info.source.source_evolve; // Are the sources time-dependent?
+  src->evolve_source = vms->info.source.evolve_source; // Are the sources time-dependent?
 
   src->rescale_m0 = false; 
   src->calc_bflux = false;

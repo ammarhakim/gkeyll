@@ -80,7 +80,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
-      if (app->species[i].src.source_evolve) {
+      if (app->species[i].src.evolve_source) {
         vm_species_source_calc(app, &app->species[i], &app->species[i].src, tcurr);
       }
       vm_species_source_adapt(app, &app->species[i], &app->species[i].src); 
