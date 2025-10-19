@@ -145,7 +145,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_R,
@@ -180,7 +181,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_LO,
@@ -217,7 +219,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_MID,
@@ -254,8 +257,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
-        //.geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_UP,
@@ -292,7 +295,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_R,
@@ -327,7 +331,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_L,
@@ -362,7 +367,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_UP,
@@ -397,7 +403,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_MID,
@@ -432,7 +439,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_LO,
@@ -467,7 +475,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_L,
@@ -503,7 +512,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_R,
@@ -535,7 +545,8 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+        .geometry_id = GKYL_TOKAMAK,
+//        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_L,
@@ -656,7 +667,7 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 12;
 
-  double t_end = 5.0e-7; 
+  double t_end = 100.0e-10; 
   double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -885,6 +896,14 @@ mapc2p_vel_ion(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT v
   vp[0] = vpar ; vp[1] = mu;
 }
 
+
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_step_ctx *app = ctx;
+
+  fout[0] = 0.22; // Diffusivity [m^2/s].
+}
 
 void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
@@ -1252,22 +1271,14 @@ main(int argc, char **argv)
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
-    .no_by = false,
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    },
 
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {
@@ -1282,12 +1293,24 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-    //.diffusion = {
-    //  .num_diff_dir = 1, 
-    //  .diff_dirs = { 0 },
-    //  .D = { 0.22 }, 
-    //  .order = 2, 
-    //}, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+    }, 
+
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
 
     .duplicate_across_blocks = false,
     .blocks = elc_blocks,
@@ -1501,8 +1524,8 @@ main(int argc, char **argv)
         .temp = source_temp, 
       }, 
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_diag_moments = 4,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
       }
@@ -1539,8 +1562,8 @@ main(int argc, char **argv)
         .temp = source_temp, 
       }, 
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_diag_moments = 4,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
       }
@@ -1596,22 +1619,14 @@ main(int argc, char **argv)
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
-    .no_by = false,
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    },
 
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {
@@ -1626,54 +1641,65 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    //.diffusion = {
-    //  .num_diff_dir = 1, 
-    //  .diff_dirs = { 0 },
-    //  .D = { 0.22 }, 
-    //  .order = 2, 
-    //}, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+    }, 
   
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
+
     .duplicate_across_blocks = false,
     .blocks = ion_blocks,
     .num_physical_bcs = 20,
     .bcs = ion_phys_bcs,
   };
 
- 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     // No block specific field info for this simulation
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
 
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
 
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value=0.0},
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
 
     // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
     // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -1683,8 +1709,6 @@ main(int argc, char **argv)
     .bcs = field_phys_bcs,
     .time_rate_diagnostics = true,
   };
-
-
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_step_2x2v_p1",

@@ -67,6 +67,12 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
+// Parameters for collisionless terms.
+struct gkyl_gyrokinetic_collisionless {
+  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -92,15 +98,7 @@ struct gkyl_gyrokinetic_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
 };
 
-// Parameters for species diffusion.
-struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // Number of diffusion directions.
-  int diff_dirs[3]; // List of diffusion directions.
-  double D[3]; // Constant diffusion coefficient in each direction.
-  int order; // Order of the diffusion (4 for grad^4, 6 for grad^6, default is 2).
-};
-
-// Structure to hold parameters for adaptive source.
+// Structure to hold parameters for adaptive source
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
@@ -121,6 +119,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
+};
+
+// Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
+struct gkyl_gyrokinetic_anomalous_diffusion {
+  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
+  void *D_profile_ctx;
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
@@ -259,7 +265,6 @@ struct gkyl_gyrokinetic_correct_inp {
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
-  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
   double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
@@ -276,15 +281,7 @@ struct gkyl_gyrokinetic_species {
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
-
-  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
-              // These more computationally efficient kernels are for slab or mirror 
-              // calculations where there is no toroidal field. 
-
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
-
-  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
   // Whether to scale the density using a polarization solve
   bool scale_with_polarization;
@@ -296,6 +293,11 @@ struct gkyl_gyrokinetic_species {
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
+  // Collisionless terms.
+  struct gkyl_gyrokinetic_collisionless collisionless;
+
+  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
+
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
@@ -306,11 +308,11 @@ struct gkyl_gyrokinetic_species {
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion.
-  struct gkyl_gyrokinetic_diffusion diffusion;
-
   // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
+
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Heating source.
   struct gkyl_gyrokinetic_heating heating;
@@ -356,13 +358,13 @@ struct gkyl_gyrokinetic_neut_species {
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 
 
-  // Collisions to include.
+  // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Source to include.
+  // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
 
-  // Reactions with plasma species to include.
+  // Reactions with plasma species.
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
@@ -1227,16 +1229,6 @@ struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, dou
  * @return Return statistics object.
  */
 struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app);
-
-/**
- * Run the RHS for the species update. This is used to compute kernel
- * timers and is not otherwise a useful function for a full
- * simulation.
- *
- * @param app App object.
- * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
- */
-void gkyl_gyrokinetic_app_species_ktm_rhs(gkyl_gyrokinetic_app* app, int update_vol_term);
 
 /**
  * Free gk app.

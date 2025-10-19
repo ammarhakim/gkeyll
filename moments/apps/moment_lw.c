@@ -115,6 +115,16 @@ static const struct gkyl_str_int_pair spacetime_gauge_type[] = {
   { 0, 0 }
 };
 
+// Embedded boundary type -> enum map.
+static const struct gkyl_str_int_pair embed_geo_type[] = {
+  { "Absorb", GKYL_EMBED_ABSORB },
+  { "Reflect", GKYL_EMBED_REFLECT },
+  { "CopyB", GKYL_EMBED_COPY_B },
+  { "PEC", GKYL_EMBED_PEC },
+  { "Func", GKYL_EMBED_FUNC },
+  { 0, 0 }
+};
+
 void
 gkyl_register_moment_scheme_types(lua_State *L)
 {
@@ -155,6 +165,12 @@ void
 gkyl_register_spacetime_gauge_types(lua_State *L)
 {
   register_types(L, spacetime_gauge_type, "SpacetimeGauge");
+}
+
+void
+gkyl_register_embed_geo_types(lua_State *L)
+{
+  register_types(L, embed_geo_type, "EmbedBC");
 }
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -4601,6 +4617,7 @@ gkyl_moment_lw_openlibs(lua_State *L)
   gkyl_register_mhd_divb_types(L);
   gkyl_register_braginskii_types(L);
   gkyl_register_spacetime_gauge_types(L);
+  gkyl_register_embed_geo_types(L);
   
   eqn_openlibs(L);
   spacetime_openlibs(L);

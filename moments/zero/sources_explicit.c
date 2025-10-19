@@ -1140,7 +1140,7 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
       (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))))) +
       (rho_elc * h_elc * (W_elc * W_elc));
     
-    double *vel_elc_new = gkyl_malloc(sizeof(double[3]));
+    double vel_elc_new[3] = {0.0};
     double v_sq_elc_new = 0.0;
     vel_elc_new[0] = vx_elc_new; vel_elc_new[1] = vy_elc_new; vel_elc_new[2] = vz_elc_new;
   
@@ -1297,7 +1297,7 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
       (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))))) +
       (rho_ion * h_ion * (W_ion * W_ion));
     
-    double *vel_ion_new = gkyl_malloc(sizeof(double[3]));
+    double vel_ion_new[3] = {0.0};
     double v_sq_ion_new = 0.0;
     vel_ion_new[0] = vx_ion_new; vel_ion_new[1] = vy_ion_new; vel_ion_new[2] = vz_ion_new;
   

@@ -831,9 +831,9 @@ five_moment_update_block_job_func(void* ctx)
   double t_curr = ub_ctx->t_curr;
   double dt = ub_ctx->dt;
 
-  ub_ctx->stat_elc = gkyl_wave_prop_advance(bdata->slvr_elc[d], t_curr, dt, &bdata->range, bdata->f_elc[d], bdata->f_elc[d + 1]);
-  ub_ctx->stat_ion = gkyl_wave_prop_advance(bdata->slvr_ion[d], t_curr, dt, &bdata->range, bdata->f_ion[d], bdata->f_ion[d + 1]);
-  ub_ctx->stat_maxwell = gkyl_wave_prop_advance(bdata->slvr_maxwell[d], t_curr, dt, &bdata->range, bdata->f_maxwell[d], bdata->f_maxwell[d + 1]);
+  ub_ctx->stat_elc = gkyl_wave_prop_advance(bdata->slvr_elc[d], t_curr, dt, &bdata->range, NULL, bdata->f_elc[d], bdata->f_elc[d + 1]);
+  ub_ctx->stat_ion = gkyl_wave_prop_advance(bdata->slvr_ion[d], t_curr, dt, &bdata->range, NULL, bdata->f_ion[d], bdata->f_ion[d + 1]);
+  ub_ctx->stat_maxwell = gkyl_wave_prop_advance(bdata->slvr_maxwell[d], t_curr, dt, &bdata->range, NULL, bdata->f_maxwell[d], bdata->f_maxwell[d + 1]);
 
   five_moment_block_bc_updaters_apply(bdata, t_curr, bdata->f_elc[d + 1], bdata->f_ion[d + 1], bdata->f_maxwell[d + 1]);
 }

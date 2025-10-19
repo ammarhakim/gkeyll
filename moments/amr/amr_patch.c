@@ -532,7 +532,7 @@ euler_update_patch_job_func(void* ctx)
   double t_curr = up_ctx->t_curr;
   double dt = up_ctx->dt;
 
-  up_ctx->stat = gkyl_wave_prop_advance(pdata->slvr[d], t_curr, dt, &pdata->range, pdata->f[d], pdata->f[d + 1]);
+  up_ctx->stat = gkyl_wave_prop_advance(pdata->slvr[d], t_curr, dt, &pdata->range, NULL, pdata->f[d], pdata->f[d + 1]);
 
   euler_patch_bc_updaters_apply(pdata, t_curr, pdata->f[d + 1]);
 }
