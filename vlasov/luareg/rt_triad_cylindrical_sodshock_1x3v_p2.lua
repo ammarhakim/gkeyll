@@ -21,15 +21,15 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 64 -- Cell count (configuration space: radial direction).
-Nvr = 16 -- Cell count (velocity space: radial direction).
-Nvtheta = 16 -- Cell count (velocity space: angular direction).
-Nvz = 16 -- Cell count (velocity space: z direction).
+Nr = 24 -- Cell count (configuration space: radial direction).
+Nvr = 6 -- Cell count (velocity space: radial direction).
+Nvtheta = 6 -- Cell count (velocity space: angular direction).
+Nvz = 6 -- Cell count (velocity space: z direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
 vz_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
-poly_order = 1 -- Polynomial order.
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.

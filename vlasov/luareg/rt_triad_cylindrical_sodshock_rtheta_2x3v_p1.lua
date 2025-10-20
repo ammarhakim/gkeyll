@@ -23,9 +23,9 @@ nu = 15000.0 -- Collision frequency.
 -- Simulation parameters.
 Nr = 32 -- Cell count (configuration space: radial direction).
 Ntheta = 1 -- Cell count (configuration space: theta direction).
-Nvr = 8 -- Cell count (velocity space: radial direction).
-Nvtheta = 8 -- Cell count (velocity space: angular direction).
-Nvz = 8 -- Cell count (velocity space: z direction).
+Nvr = 16 -- Cell count (velocity space: radial direction).
+Nvtheta = 16 -- Cell count (velocity space: angular direction).
+Nvz = 16 -- Cell count (velocity space: z direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 Ltheta = 2 * math.pi -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
