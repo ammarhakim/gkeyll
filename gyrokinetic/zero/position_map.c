@@ -21,6 +21,30 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
 }
 
 struct gkyl_position_map*
+gkyl_position_map_null_new()
+{
+  struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
+  gpm->id = GKYL_PMAP_USER_INPUT;
+  for (int i = 0; i < 3; i++){
+    gpm->maps[i] = gkyl_position_map_identity;
+    gpm->ctxs[i] = 0;
+  }
+  gpm->to_optimize = false;
+  gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
+  gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  return gpm;
+}
+
+struct gkyl_position_map*
+gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp)
+{
+  return gkyl_position_map_new(inp.pmap_info, inp.grid, inp.local, inp.local_ext,
+    inp.global, inp.global_ext, inp.basis);
+}
+
+struct gkyl_position_map*
 gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
   struct gkyl_basis basis)
@@ -82,6 +106,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
+      gpm->constB_ctx->moving_average_width = pmap_info.moving_average_width;
   }
 
   gpm->grid = grid;
@@ -191,7 +216,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
     gpm->ctxs[1] = gpm->constB_ctx->ctxs_backup[1];
-    gpm->maps[2] = position_map_constB_z_numeric;
+    gpm->maps[2] = position_map_constB_z_numeric_moving_average;
     gpm->ctxs[2] = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
@@ -208,7 +233,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
 
 double
 gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
-  double x, double dx, int ix_comp, struct gkyl_range *nrange)
+  double x, double dx, int ix_comp, const struct gkyl_range *nrange)
 {
   double x_left = x - dx;
   double x_right = x + dx;
