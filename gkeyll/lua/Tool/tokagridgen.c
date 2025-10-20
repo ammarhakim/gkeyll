@@ -10,7 +10,7 @@
 #include <math.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
-#include "gkyl_gyrokinetic_multib.h"
+#include <gkyl_gyrokinetic_multib.h>
 
 // Lightweight POD struct to expose only required fields to Lua FFI
 struct gkyl_gk_block_geom_info_lite {

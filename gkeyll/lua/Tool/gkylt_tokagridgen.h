@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <gkyl_gk_block_geom.h>
+#include <gkyl_gyrokinetic_multib.h>
 
 // Forward declarations
 struct gkyl_gk_block_geom;
