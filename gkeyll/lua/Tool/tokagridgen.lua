@@ -41,7 +41,7 @@ if args.examples then
       io.write([[
 -- Name of tokamak
 name = "nstxu_DN"
--- Input file for tokagridgen Tool.
+-- Input file for tokagridgen Tool. File path must be specified relative to where the tool is called
 -- "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk" for double null
 --"gyrokinetic/data/eqdsk/asdex.geqdsk" for single null
 geqdsk_path = "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk"
@@ -926,6 +926,17 @@ elseif toka_type == single_null then
       end
    end
 end
+
+-- Create output directory named <name>_geometry
+local output_dir = name .. "_geometry"
+lfs.mkdir(output_dir)
+
+-- Change to the output directory
+local original_dir = lfs.currentdir()
+lfs.chdir(output_dir)
+
+-- Adjust geqdsk_path to point to parent directory since we're now in a subdirectory
+inp.geqdsk_path = "../" .. geqdsk_path
  
 local tmStart = Time.clock()
 -- generate grid
@@ -1111,6 +1122,9 @@ local geometry_field = DataStruct.Field {
 -- DataStruct automatically prepends the name, so we just need "_bgeom.gkyl"
 local output_filename = "bgeom.gkyl"
 geometry_field:write(output_filename)
+
+-- Change back to original directory
+lfs.chdir(original_dir)
 
 io.write(string.format("Completed in %g seconds\n", Time.clock()-tmStart))
 
