@@ -20,6 +20,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
+  GKYL_EQN_GR_MHD, // General relativistic magnetohydrodynamics equations.
+  GKYL_EQN_GR_MHD_TETRAD, // General relativistic magnetohydrodynamics equations in the tetrad basis.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
@@ -29,53 +31,53 @@ enum gkyl_eqn_type {
   GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.
 };
 
-// Identifiers for specific gyrokinetic model types
-enum gkyl_gkmodel_id {
-  GKYL_GK_MODEL_GEN_GEO = 0, // General geometry GK. This is default
-  GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0)
-};
-
-// Identifiers for specific gyrokinetic field object types
+// Identifiers for specific gyrokinetic field object types.
 enum gkyl_gkfield_id {
-  GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
-  GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is)
+  GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
+  GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
-  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK
+  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK.
 };
 
-// Identifiers for specific field object types
+// Identifiers for specific field object types.
 enum gkyl_field_id {
-  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI = 1, // Poisson (only phi)
+  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default.
+  GKYL_FIELD_PHI = 1, // Poisson (only phi).
   GKYL_FIELD_PHI_EXT_POTENTIALS = 2, // Poisson + external potentials (phi_ext, A_ext).
   GKYL_FIELD_PHI_EXT_FIELDS = 3, // Poisson + external fields (E_ext, B_ext).
-  GKYL_FIELD_NULL = 4, // no field is present
+  GKYL_FIELD_NULL = 4, // no field is present.
 };
 
-// Identifiers for subsidary models
-// These are used to distinguish things like special relativistic from non-relativistic
+// Identifiers for subsidary models.
+// These are used to distinguish things like special relativistic from non-relativistic.
 enum gkyl_model_id {
-  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified.
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_CANONICAL_PB = 2,
   GKYL_MODEL_CANONICAL_PB_GR = 3,
 };
 
-// Identifiers for specific collision object types
+// Identifiers for specific collision object types.
 enum gkyl_collision_id {
-  GKYL_NO_COLLISIONS = 0, // No collisions. This is default
-  GKYL_BGK_COLLISIONS, // BGK Collision operator
-  GKYL_LBO_COLLISIONS, // LBO Collision operator
-  GKYL_FPO_COLLISIONS, // FPO Collision operator
+  GKYL_NO_COLLISIONS = 0, // No collisions. This is default.
+  GKYL_BGK_COLLISIONS, // BGK Collision operator.
+  GKYL_LBO_COLLISIONS, // LBO Collision operator.
+  GKYL_FPO_COLLISIONS, // FPO Collision operator.
 };
 
-// Identifiers for specific source object types
+// Identifiers for specific source object types.
 enum gkyl_source_id {
-  GKYL_NO_SOURCE = 0, // No source. This is default
-  GKYL_FUNC_SOURCE, // Function source
-  GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id
-  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+  GKYL_NO_SOURCE = 0, // No source. This is default.
+  GKYL_FUNC_SOURCE, // Function source.
+  GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id.
+  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes.
+};
+
+// Identifiers for specific heating source object types.
+enum gkyl_heating_id {
+  GKYL_NO_HEATING = 0, // No source. This is default.
+  GKYL_HEATING_DEFAULT, // Default heating source.
 };
 
 // Identifiers for specific projection object types
@@ -162,4 +164,20 @@ enum gkyl_vel_edge {
 enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
   GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts=sqrt(Tperp_s/m_s)
+};
+
+// Gyrokinetic anomaous diffusion models.
+enum gkyl_gk_anomalous_diff_id {
+  GKYL_GK_ANOMALOUS_DIFF_NONE = 0, // No anomalous diffusion.
+  GKYL_GK_ANOMALOUS_DIFF_D, // Specify D only.
+  GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
+};
+
+enum gkyl_gk_collisionless_type {
+  GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
+  GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
+  GKYL_GK_COLLISIONLESS_ES_NO_BY, // Electrostatic, w/o toroidal field (b_y=0).
+  GKYL_GK_COLLISIONLESS_EM_BPERP, // Electromagnetic with B_perp fluctuations.
+  GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
+  GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
 };

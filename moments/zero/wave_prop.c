@@ -268,7 +268,7 @@ limit_waves(const gkyl_wave_prop *wv, int mwaves,
 struct gkyl_wave_prop_status
 gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
-  const struct gkyl_array *qin, struct gkyl_array *qout)
+  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout)
 {
   wv->n_calls += 1;
   
@@ -285,7 +285,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double waves_local[meqn*mwaves];
   double amdq_local[meqn], apdq_local[meqn];
   double delta[meqn];
-
+  
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
   double max_speed = 0.0;
@@ -362,6 +362,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             const double *qinl = gkyl_array_cfetch(qin, lidx);
             const double *qinr = gkyl_array_cfetch(qin, ridx);
 
+            const double *phil = gkyl_array_cfetch(phi, lidx);
+            const double *phir = gkyl_array_cfetch(phi, ridx);
+
             gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
             gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
@@ -371,9 +374,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               gkyl_wv_eqn_flux_jump(wv->equation, ql_local, qr_local, delta);
 
             double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
-              ql_local, qr_local, waves_local, s);
+              ql_local, qr_local, phil[0], phir[0], waves_local, s);
             max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
-
+            
             double lenr = cg->lenr[dir];
             for (int mw=0; mw<mwaves; ++mw)
               s[mw] *= lenr; // rescale speeds
@@ -381,11 +384,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             // compute fluctuations in local coordinates
             if (wv->split_type == GKYL_WAVE_QWAVE)
               gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
-                waves_local, s, amdq_local, apdq_local);
+                phil[0], phir[0], waves_local, s, amdq_local, apdq_local);
             else
               gkyl_wv_eqn_ffluct(wv->equation, ftype, ql_local, qr_local,
-                waves_local, s, amdq_local, apdq_local);
-        
+                phil[0], phir[0], waves_local, s, amdq_local, apdq_local);
+
+
             double *waves = gkyl_array_fetch(wv->waves, sidx);
             for (int mw=0; mw<mwaves; ++mw)
               // rotate waves back
@@ -545,6 +549,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         }
         if (wv->equation->type == GKYL_EQN_GR_TWOFLUID) {
           gr_twofluid_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_MHD) {
+          gr_mhd_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_MHD_TETRAD) {
+          gr_mhd_tetrad_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }
 
         state = next_state; // change state for next sweep

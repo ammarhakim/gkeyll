@@ -115,10 +115,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
+    bfieldFunc = function (t, zc)
       local x = zc[1]
 
-      return B0 * R / x
+      return 0.0, 0.0, B0 * R / x
     end,
 
     positionMap = {
@@ -208,6 +208,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     source = {
       sourceID = G0.Source.Proj,
   
@@ -261,21 +265,11 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "ion" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
-    },
-    bcz = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -338,6 +332,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     source = {
       sourceID = G0.Source.Proj,
   
@@ -391,21 +389,11 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "elc" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
-    },
-    bcz = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -417,21 +405,11 @@ gyrokineticApp = Gyrokinetic.App.new {
     femParBc = G0.ParProjBc.None,
 
     poissonBcs = {
-      lowerType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      upperType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      lowerValue = {
-        0.0
-      },
-      upperValue = {
-        0.0
-      }
-    }
+      { dir = 0, edge = 0, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
+      { dir = 0, edge = 1, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
+      { dir = 1, edge = 0, type = G0.SpeciesBc.bcPeriodic },
+      { dir = 1, edge = 1, type = G0.SpeciesBc.bcPeriodic },
+    },
   }
 }
 

@@ -47,6 +47,7 @@ struct gkyl_efit{
   struct gkyl_range fluxlocal;
   struct gkyl_range fluxlocal_ext;
   struct gkyl_array* fpolflux;
+  struct gkyl_array* fpolprimeflux;
   struct gkyl_array* qflux;
 
   int num_xpts; // Number of X-points

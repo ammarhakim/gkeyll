@@ -76,6 +76,7 @@ choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
       assert(false);
       break; 
   }
+  return 0;
 }
 
 static void

@@ -134,7 +134,23 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic/%.c.o : $(KERNELS_DIR)/gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_anomalous_diffusion/%.c.o : $(KERNELS_DIR)/gk_anomalous_diffusion/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_mom/%.c.o : $(KERNELS_DIR)/gyrokinetic_mom/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_gyrokinetic/%.c.o : $(KERNELS_DIR)/dg_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_collisionless_flux/%.c.o : $(KERNELS_DIR)/gk_collisionless_flux/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/bc_sheath_gyrokinetic/%.c.o : $(KERNELS_DIR)/bc_sheath_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -189,7 +205,7 @@ endif
 .PHONY: check valcheck
 # Run all unit tests
 check: unit ## Build (if needed) and run all unit tests
-	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
+	$(foreach unit,${UNITS},echo $(unit); cd ../; ./gyrokinetic/$(unit) -E; cd gyrokinetic;)
 
 valcheck: unit ## Run valgrind on unit test
 	$(foreach unit,$(UNITS),valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --show-error-list=yes $(unit) --exec=never 2>$(unit)_val_err 1>/dev/null;)
@@ -198,7 +214,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls $(KERNELS_DIR)/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h data/adas/*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h data/adas/*.h | grep -v "priv" | sort)
 
 .PHONY: install
 install: all

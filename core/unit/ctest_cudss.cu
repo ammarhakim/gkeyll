@@ -8,9 +8,6 @@ extern "C" {
 #include <assert.h>
 }
 
-#define TEST_NO_MAIN
-#include <acutest.h>
-
 extern "C" {
 void test_cudss_simple();
 void test_cudss_ops();
@@ -198,6 +195,7 @@ void test_cudss_simple()
 
 void test_cudss_ops()
 {
+  int nfail = 0;  
   double s, u, p, e, r, l;
   int    nrhs, m, n;
 
@@ -252,16 +250,11 @@ void test_cudss_ops()
   gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n", -1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4) );
+  GKYL_CU_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14), &nfail );
 
   gkyl_culinsolver_prob_release(prob);
 }
@@ -323,25 +316,27 @@ void test_cudss_ops_multiple_rhs()
   gkyl_culinsolver_solve(prob);
   gkyl_culinsolver_finish_host(prob);
 
+  int nfail = 0;
+  
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // 1st problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
+  GKYL_CU_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14), &nfail );
   // 2nd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,5), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,6), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,7), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,8), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,9), 1e-14) );
+  GKYL_CU_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,5), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,6), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,7), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,8), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,9), 1e-14), &nfail );
   // 3rd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,10), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,11), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,12), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,13), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,14), 1e-14) );
+  GKYL_CU_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,10), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,11), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,12), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,13), 1e-14), &nfail );
+  GKYL_CU_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,14), 1e-14), &nfail );
 
   gkyl_culinsolver_prob_release(prob);
 }

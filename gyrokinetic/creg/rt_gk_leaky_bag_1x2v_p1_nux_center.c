@@ -141,11 +141,16 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double N_analytic = 2 * app->n0 / (sqrt(2 * M_PI));
     N_analytic *= sqrt(M_PI / 2) * L * erf(erf_arg) + time * vt * (exp(-erf_arg*erf_arg) - 1);
 
-    double diff = fabs(N - N_analytic);
-    int check = gkyl_compare_double(N, N_analytic, 1e-2);
+    double diff = fabs(N - N_analytic) / fabs(N_analytic);
+    int check = gkyl_compare_double(diff, 0.0, 1e-2);
     if (check != 1) {
-      printf("Error: N and N_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", N - N_analytic);
+      printf("Error: N and N_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  N (computed): %g\n", N);
+      printf("  N_analytic (expected): %g\n", N_analytic);
+      printf("  Absolute difference: %g\n", fabs(N - N_analytic));
+      printf("  Relative error: %g%%\n", 100.0 * diff);
+      printf("  Tolerance: 1e-2 (1%%)\n");
     }
   }
 
@@ -173,8 +178,13 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+      printf("Error: dNdt (lower boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  dNdt (computed): %g\n", dNdt);
+      printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
+      printf("  Absolute difference: %g\n", diff);
+      printf("  Relative error: %g%%\n", 100.0 * diff / fabs(dNdt_analytic));
+      printf("  Tolerance: 1e-1 (10%%)\n");
     }
   }
 
@@ -200,8 +210,13 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+      printf("Error: dNdt (upper boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  dNdt (computed): %g\n", dNdt);
+      printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
+      printf("  Absolute difference: %g\n", diff);
+      printf("  Relative error: %g%%\n", 100.0 * diff / fabs(dNdt_analytic));
+      printf("  Tolerance: 1e-1 (10%%)\n");
     }
   }
 
@@ -237,7 +252,9 @@ nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL
 {
   struct boundary_ctx *app = ctx;
   double z = zc[0];
-  xp[0] = z - 0.1 * sin(z * 2 * M_PI/(app->Lz));
+  double L = app->Lz;
+  double b = 1.2; // controls non-uniformity
+  xp[0] = L * tan(2*z*b/L) / (2 * tan(b));
 }
 
 static inline void
@@ -248,10 +265,14 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct boundary_ctx *app = ctx;
-  fout[0] = app->B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 void
@@ -335,9 +356,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
     },
     
     .num_diag_moments = 6,
@@ -376,14 +401,13 @@ main(int argc, char **argv)
       .world = { 0.0, 0.0 },
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx,
       .position_map_info = {
         .maps[2] = nonuniform_position_map_z,
         .ctxs[2] = &ctx,
       },
     },
-
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -450,6 +474,10 @@ main(int argc, char **argv)
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Step number: %ld\n", step);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Current time: %g\n", t_curr);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Attempted dt: %g\n", dt);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Suggested dt: %g\n", status.dt_suggested);
       break;
     }
 
@@ -468,9 +496,18 @@ main(int argc, char **argv)
       gkyl_gyrokinetic_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
       gkyl_gyrokinetic_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
       gkyl_gyrokinetic_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Step number: %ld\n", step);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Current time: %g\n", t_curr);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Initial dt: %g\n", dt_init);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Current dt: %g\n", status.dt_actual);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Ratio dt/dt_init: %g\n", status.dt_actual / dt_init);
+      gkyl_gyrokinetic_app_cout(app, stdout, "   Threshold: %g\n", dt_failure_tol);
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_gyrokinetic_app_cout(app, stdout, "   Final step number: %ld\n", step);
+        gkyl_gyrokinetic_app_cout(app, stdout, "   Final time: %g (target was %g)\n", t_curr, t_end);
+        gkyl_gyrokinetic_app_cout(app, stdout, "   Progress: %.1f%%\n", 100.0 * t_curr / t_end);
         calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
         write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
         break;

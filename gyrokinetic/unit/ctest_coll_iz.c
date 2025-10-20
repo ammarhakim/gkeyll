@@ -190,13 +190,11 @@ void coll_iz_o_gpu() { test_coll_iz(true, GKYL_ION_O); }
 #endif
 
 TEST_LIST = {
-#ifdef GKYL_HAVE_ADAS
   { "coll_iz_h", coll_iz_h },
   { "coll_iz_li", coll_iz_li },
 #ifdef GKYL_HAVE_CUDA
   { "coll_iz_h_gpu", coll_iz_h_gpu },
   { "coll_iz_li_gpu", coll_iz_li_gpu },
-#endif
 #endif
   { NULL, NULL },
 };

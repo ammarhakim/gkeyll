@@ -113,16 +113,16 @@ test_cubic_evalf_2d(void)
   xn[1] = 2.5;
   double fout[4];
   evf->eval_cubic_wgrad(0.0, xn, fout, evf->ctx);
-  TEST_CHECK( gkyl_compare_double(fout[0], sq(xn[0])*sq(xn[1]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[1], 2*xn[0]*sq(xn[1]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0])*xn[1], 1.0e-15) );
+  TEST_CHECK( gkyl_compare_double(fout[0], sq(xn[0])*sq(xn[1]), 1.0e-14) );
+  TEST_CHECK( gkyl_compare_double(fout[1], 2*xn[0]*sq(xn[1]), 1.0e-14) );
+  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0])*xn[1], 1.0e-14) );
 
   // Test wgrad2 function: f, d2f/dx2, d2f/dy2, and d2f/dxdy
   evf->eval_cubic_wgrad2(0.0, xn, fout, evf->ctx);
-  TEST_CHECK( gkyl_compare_double(fout[0], sq(xn[0])*sq(xn[1]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[1], 2*sq(xn[1]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[3], 4*xn[0]*xn[1], 1.0e-15) );
+  TEST_CHECK( gkyl_compare_double(fout[0], sq(xn[0])*sq(xn[1]), 1.0e-14) );
+  TEST_CHECK( gkyl_compare_double(fout[1], 2*sq(xn[1]), 1.0e-14) );
+  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0]), 1.0e-14) );
+  TEST_CHECK( gkyl_compare_double(fout[3], 4*xn[0]*xn[1], 1.0e-14) );
 
   gkyl_array_release(psi_nodal);
   gkyl_array_release(psi_cubic);

@@ -295,14 +295,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct bgk_cross_relax_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 void
@@ -375,7 +378,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -389,12 +391,18 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
+
     .correct = {
       .correct_all_moms = true, 
       .use_last_converged = true, 
       .iter_eps = 1e-12,
       .max_iter = 10,
     },   
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = true,
@@ -419,7 +427,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -433,12 +440,18 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
+
     .correct = {
       .correct_all_moms = true, 
       .use_last_converged = true, 
       .iter_eps = 1e-12,
       .max_iter = 10,
     },       
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = true,
@@ -480,8 +493,8 @@ main(int argc, char **argv)
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 1,

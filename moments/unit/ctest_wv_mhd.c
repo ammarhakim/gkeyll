@@ -130,10 +130,10 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type,
   // compute waves in local frame
   for (int i = 0; i < meq; ++i)
     delta[i] = qr_local[i] - ql_local[i];
-  gkyl_wv_eqn_waves(eqn, ftype, delta, ql_local, qr_local, waves_local, speeds);
+  gkyl_wv_eqn_waves(eqn, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
   // compute left/right-going fluctuations in local frame
-  gkyl_wv_eqn_qfluct(eqn, ftype, ql_local, qr_local, waves_local, speeds,
+  gkyl_wv_eqn_qfluct(eqn, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
       amdq_local, apdq_local);
 
   // compute fluxes in local frame

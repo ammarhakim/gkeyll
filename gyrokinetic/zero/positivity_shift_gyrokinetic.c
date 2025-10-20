@@ -78,7 +78,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long clinidx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *bmag_c = gkyl_array_cfetch(up->gk_geom->bmag, clinidx);
+    const double *bmag_c = gkyl_array_cfetch(up->gk_geom->geo_int.bmag, clinidx);
 
     double *m0_c = gkyl_array_fetch(m0, clinidx);
     double *delta_m0_c = gkyl_array_fetch(delta_m0, clinidx);

@@ -41,9 +41,11 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 1.0;
 }
 
 void
@@ -142,8 +144,8 @@ test_2x_option(bool use_gpu)
     .world = {0.0},
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
-    .bmag_func = bmag_func, // magnetic field magnitude
-    .bmag_ctx = 0 ,
+    .bfield_func = bfield_func, // magnetic field magnitude
+    .bfield_ctx = 0 ,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,

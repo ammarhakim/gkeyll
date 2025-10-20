@@ -355,14 +355,17 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
-  fout[0] = B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 void
@@ -448,6 +451,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .num_diag_moments = 4,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
@@ -471,6 +478,10 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .temp = evalTempIonInit,
       .ctx_temp = &ctx,      
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .num_diag_moments = 4,
@@ -533,17 +544,9 @@ main(int argc, char **argv)
       },
     },
 
-    .bcx = {
-      .lower = {
-        .type = GKYL_SPECIES_RECYCLE,
-    	.emission = neut_bc,
-        .write_diagnostics = true,
-      },
-      .upper = {
-        .type = GKYL_SPECIES_RECYCLE,
-    	.emission = neut_bc,
-        .write_diagnostics = true,
-      },
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_RECYCLE, .emission = neut_bc, .write_diagnostics = true,},
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_RECYCLE, .emission = neut_bc, .write_diagnostics = true,},
     },
     
     .num_diag_moments = 3,
@@ -575,8 +578,8 @@ main(int argc, char **argv)
       .world = {0.01, 0.0},
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 0,

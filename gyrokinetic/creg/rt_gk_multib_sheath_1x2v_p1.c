@@ -385,13 +385,16 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
 
   double B0 = app->B0;
 
-  // Set magnetic field strength.
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
   fout[0] = B0;
 }
 
@@ -437,8 +440,8 @@ create_gk_block_geom(void *ctx)
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
-        .bmag_func = bmag_func,
-        .bmag_ctx = app 
+        .bfield_func = bfield_func,
+        .bfield_ctx = app 
       },
 
       .connections[0] = { // z-direction connections
@@ -459,8 +462,8 @@ create_gk_block_geom(void *ctx)
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
-        .bmag_func = bmag_func,
-        .bmag_ctx = app
+        .bfield_func = bfield_func,
+        .bfield_ctx = app
       },
 
       .connections[0] = { // z-direction connections
@@ -482,8 +485,8 @@ create_gk_block_geom(void *ctx)
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
-        .bmag_func = bmag_func,
-        .bmag_ctx = app
+        .bfield_func = bfield_func,
+        .bfield_ctx = app
       },
 
       .connections[0] = { // z-direction connections
@@ -606,10 +609,10 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
     // block 1 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -618,6 +621,18 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
 
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
@@ -628,14 +643,6 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
-    },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalElcNu,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
     },
 
     .duplicate_across_blocks = true,
@@ -688,9 +695,9 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -699,6 +706,18 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
 
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
@@ -709,14 +728,6 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
-    },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalIonNu,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
     },
 
     .duplicate_across_blocks = true,
@@ -735,7 +746,7 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
