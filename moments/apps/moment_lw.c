@@ -22,6 +22,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_gr_neutronstar.h>
+#include <gkyl_gr_brill_lindquist.h>
 #include <gkyl_wv_gr_maxwell.h>
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_ultra_rel_euler.h>
@@ -3237,6 +3238,619 @@ static struct luaL_Reg spacetime_neutronstar_ctor[] = {
   { 0, 0 }
 };
 
+/* ********************************************* */
+/* Brill-Lindquist (Binary Black Hole) Spacetime */
+/* ********************************************* */
+
+static int
+spacetime_brill_lindquist_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *brill_lindquist_lw = gkyl_malloc(sizeof(*brill_lindquist_lw));
+
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  brill_lindquist_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  brill_lindquist_lw->spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_brill_lindquist_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_brill_lindquist_lw = brill_lindquist_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_inv_metric_tensor_func(spacetime, t, x, y, z, &inv_spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, inv_spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(inv_spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->extrinsic_curvature_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &extrinsic_curvature);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, extrinsic_curvature[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->lapse_function_der_func(spacetime, t, x, y, z, dx, dy, dz, &lapse_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, lapse_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(lapse_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->shift_vector_der_func(spacetime, t, x, y, z, dx, dy, dz, &shift_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, shift_der[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(shift_der[i]);
+  }
+  gkyl_free(shift_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
+  spacetime->spatial_metric_tensor_der_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+
+      lua_createtable(L, 3, 0);
+      for (int k = 0; k < 3; k++) {
+        lua_pushinteger(L, k + 1);
+        lua_pushnumber(L, spatial_metric_der[i][j][k]);
+        lua_rawset(L, -3);
+      }
+
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(spatial_metric_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_excision_region(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_brill_lindquist_ctor[] = {
+  { "new", spacetime_brill_lindquist_lw_new },
+  { "spatialMetricTensor", spacetime_brill_lindquist_lw_spatial_metric_tensor },
+  { "invSpatialMetricTensor", spacetime_brill_lindquist_lw_inv_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_brill_lindquist_lw_spatial_metric_det },
+  { "lapseFunction", spacetime_brill_lindquist_lw_lapse_function },
+  { "shiftVector", spacetime_brill_lindquist_lw_shift_vector },
+  { "extrinsicCurvatureTensor", spacetime_brill_lindquist_lw_extrinsic_curvature_tensor },
+  { "lapseFunctionDer", spacetime_brill_lindquist_lw_lapse_function_der },
+  { "shiftVectorDer", spacetime_brill_lindquist_lw_shift_vector_der },
+  { "spatialMetricTensorDer", spacetime_brill_lindquist_lw_spatial_metric_tensor_der },
+  { "excisionRegion", spacetime_brill_lindquist_lw_excision_region },
+  { 0, 0 }
+};
+
 // Register and load all GR spacetime objects.
 static void
 spacetime_openlibs(lua_State *L)
@@ -3250,6 +3864,7 @@ spacetime_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Spacetime.Minkowski", spacetime_minkowski_ctor);
   luaL_register(L, "G0.Moments.Spacetime.BlackHole", spacetime_blackhole_ctor);
   luaL_register(L, "G0.Moments.Spacetime.NeutronStar", spacetime_neutronstar_ctor);
+  luaL_register(L, "G0.Moments.Spacetime.BrillLindquist", spacetime_brill_lindquist_ctor);
 }
 
 /* *************** */
