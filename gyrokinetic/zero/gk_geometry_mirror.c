@@ -160,9 +160,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom;
 
   if (geometry_inp->position_map == 0){
-    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
-      geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
-      geometry_inp->local_ext, geometry_inp->basis);
+    geometry_inp->position_map = gkyl_position_map_null_new();
     gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
     gkyl_position_map_release(geometry_inp->position_map);
   }
