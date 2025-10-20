@@ -15,8 +15,7 @@ then
     echo "Downloading LuaJIT .."
     # delete old checkout and builds
     rm -rf luajit
-    git clone https://luajit.org/git/luajit.git
-    cd luajit
+    git clone https://github.com/LuaJIT/LuaJIT.git luajit
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]
