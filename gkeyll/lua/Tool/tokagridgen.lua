@@ -95,15 +95,15 @@ core = {
     rmax = 1.6           -- rmax_core
 }
 
--- Widths of psi for different regions
+-- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
-wpsi = {0.0075, 0.02, 0.0075, 0.02}
+wpsi = {0.1, 0.25, 0.1, 0.9}
 
 
 -- Number of cells to include along the directions of different blocks
 -- (npsi_pf, npsi_sol, npsi_core, ntheta_lower_outer, ntheta_middle_SOL, ntheta_lower_inner)
-cell_count = {4, 4, 4, 6, 12, 6}
+cell_count = {4, 4, 4, 6, 6, 6}
 
 
 -- Plate function definitions
@@ -178,15 +178,15 @@ core = {
     zmax = 1.0        -- zmax_core
 }
 
--- Widths of psi for different regions
+-- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
-wpsi = {0.002, 0.01, 0.01}
+wpsi = {0.01, 0.04, 0.1}
 
 
 -- Number of cells to include along the directions of different blocks
 -- (npsi_pf, npsi_sol, npsi_core, ntheta_lower_outer, ntheta_middle_SOL, ntheta_lower_inner)
-cell_count = {2, 8, 8, 4, 18, 4}
+cell_count = {2, 4, 4, 4, 18, 4}
 
 -- Plate function definitions
 -- These functions define the divertor plate geometry as functions of parameter s in [0,1]
@@ -423,10 +423,10 @@ core = {
     rmax = 6.2           -- rmax_core
 }
 
--- Widths of psi for different regions
+-- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
-wpsi = {0.05, 0.125, 0.05, 0.2}
+wpsi = {0.01, 0.025, 0.01, 0.04}
 
 
 -- Number of cells to include along the directions of different blocks
@@ -533,7 +533,7 @@ core = {
     zmax =         -- zmax_core
 }
 
--- Widths of psi for different regions
+-- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = { , , }
@@ -613,7 +613,7 @@ core = {
     rmax =            -- rmax_core
 }
 
--- Widths of psi for different regions
+-- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = { , , , }
