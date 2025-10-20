@@ -245,8 +245,10 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
   struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
   struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad);
+  vlasov->conf_flux_surf = 0;
+  struct gkyl_array *conf_flux_surf_ho = 0;
   if ( inp->model_id == GKYL_MODEL_TRIAD)  {
-    struct gkyl_array *conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
+    conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
     vlasov->conf_flux_surf = conf_flux_surf_ho->on_dev; 
   }
   struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf); 
@@ -259,7 +261,6 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->rad = rad_ho->on_dev; 
   vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
   vlasov->f_no_J =f_no_J_ho->on_dev; 
-
   vlasov->eqn.num_equations = 1;
 
   vlasov->eqn.flags = 0;
@@ -284,8 +285,10 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->qmem = qmem_ho; 
   vlasov->pot_tot = pot_tot_ho; 
   vlasov->rad = rad_ho; 
+  vlasov->conf_flux_surf = conf_flux_surf_ho; 
   vlasov->vel_flux_surf = vel_flux_surf_ho; 
   vlasov->f_no_J = f_no_J_ho; 
 
   return &vlasov->eqn;
 }
+

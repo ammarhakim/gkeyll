@@ -191,7 +191,8 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
 
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
-  up->pdim = pdim; 
+  up->pdim = pdim;
+  up->use_gpu = true; 
 
   // Are we skipping cells with small phase space density?
   if (inp->skip_cell_thresh > 0.0) {
@@ -225,6 +226,6 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
-  
+ 
   return up;
 }

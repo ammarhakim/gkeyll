@@ -266,6 +266,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
   up->pdim = pdim; 
+  up->use_gpu = true;
 
   // Are we skipping cells with small phase space density?
   if (inp->skip_cell_thresh > 0.0) {
