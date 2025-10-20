@@ -95,7 +95,7 @@ core = {
     rmax = 1.6           -- rmax_core
 }
 
--- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
+-- Relative widths of psi for different regions (fraction of the total psi difference between center and separatrix, from 0 to 1)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = {0.1, 0.25, 0.1, 0.9}
@@ -178,7 +178,7 @@ core = {
     zmax = 1.0        -- zmax_core
 }
 
--- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
+-- Relative widths of psi for different regions (fraction of the total psi difference between center and separatrix, from 0 to 1)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = {0.01, 0.04, 0.1}
@@ -423,7 +423,7 @@ core = {
     rmax = 6.2           -- rmax_core
 }
 
--- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
+-- Relative widths of psi for different regions (fraction of the total psi difference between center and separatrix, from 0 to 1)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = {0.01, 0.025, 0.01, 0.04}
@@ -533,7 +533,7 @@ core = {
     zmax =         -- zmax_core
 }
 
--- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
+-- Relative widths of psi for different regions (fraction of the total psi difference between center and separatrix, from 0 to 1)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = { , , }
@@ -613,7 +613,7 @@ core = {
     rmax =            -- rmax_core
 }
 
--- Relative widths of psi for different regions (From 0 to 1) (fraction of the total psi difference between center and separatrix)
+-- Relative widths of psi for different regions (fraction of the total psi difference between center and separatrix, from 0 to 1)
 -- For DN: (PF Width, Outer SOL Width, Inner SOL Width, Core Width)
 -- For SN: (PF Width, SOL Width, Core Width) 
 wpsi = { , , , }
