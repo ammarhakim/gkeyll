@@ -116,6 +116,21 @@ static const struct gkyl_str_int_pair spacetime_gauge_type[] = {
   { 0, 0 }
 };
 
+// Spacetime slicing type -> enum map.
+static const struct gkyl_str_int_pair spacetime_slicing_type[] = {
+  { "Geodesic", GKYL_GEODESIC_SLICING },
+  { "Harmonic", GKYL_HARMONIC_SLICING },
+  { "OnePlusLog", GKYL_1PLUSLOG_SLICING },
+  { 0, 0 }
+};
+
+// Spacetime evolution type -> enum map.
+static const struct gkyl_str_int_pair spacetime_evolution_type[] = {
+  { "Ricci", GKYL_RICCI_EVOLUTION },
+  { "Einstein", GKYL_EINSTEIN_EVOLUTION },
+  { 0, 0 }
+};
+
 // Embedded boundary type -> enum map.
 static const struct gkyl_str_int_pair embed_geo_type[] = {
   { "Absorb", GKYL_EMBED_ABSORB },
@@ -166,6 +181,18 @@ void
 gkyl_register_spacetime_gauge_types(lua_State *L)
 {
   register_types(L, spacetime_gauge_type, "SpacetimeGauge");
+}
+
+void
+gkyl_register_spacetime_slicing_types(lua_State *L)
+{
+  register_types(L, spacetime_slicing_type, "SpacetimeSlicing");
+}
+
+void
+gkyl_register_spacetime_evolution_types(lua_State *L)
+{
+  register_types(L, spacetime_evolution_type, "SpacetimeEvolution");
 }
 
 void
@@ -1281,12 +1308,14 @@ eqn_vacuum_einstein_lw_new(lua_State *L)
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
   enum gkyl_wv_vacuum_einstein_rp rp_type = gkyl_search_str_int_pair_by_str(vacuum_einstein_rp_type, rp_str, WV_VACUUM_EINSTEIN_RP_HLL);
+  enum gkyl_spacetime_slicing spacetime_slicing = glua_tbl_get_integer(L, "spacetimeSlicing", GKYL_GEODESIC_SLICING);
+  enum gkyl_spacetime_evolution spacetime_evolution = glua_tbl_get_integer(L, "spacetimeEvolution", GKYL_RICCI_EVOLUTION);
 
   vacuum_einstein_lw->magic = MOMENT_EQN_DEFAULT;
   vacuum_einstein_lw->eqn = gkyl_wv_vacuum_einstein_inew( &(struct gkyl_wv_vacuum_einstein_inp) {
       .excision_threshold = excision_threshold,
-      .spacetime_slicing = GKYL_1PLUSLOG_SLICING,
-      .spacetime_evolution = GKYL_EINSTEIN_EVOLUTION,
+      .spacetime_slicing = spacetime_slicing,
+      .spacetime_evolution = spacetime_evolution,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -3320,8 +3349,8 @@ moment_species_lw_new(lua_State *L)
   mom_species.has_vacuum_einstein = glua_tbl_get_bool(L, "hasVacuumEinstein", false);
   if (mom_species.has_vacuum_einstein) {
     mom_species.vacuum_einstein_excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinExcisionThreshold", 0.3);
-    mom_species.vacuum_einstein_spacetime_slicing = GKYL_1PLUSLOG_SLICING;
-    mom_species.vacuum_einstein_spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
+    mom_species.vacuum_einstein_spacetime_slicing = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeSlicing", GKYL_GEODESIC_SLICING);
+    mom_species.vacuum_einstein_spacetime_evolution = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
   }
 
   mom_species.has_gr_ultra_rel = glua_tbl_get_bool(L, "hasGRUltraRel", false);
@@ -4734,6 +4763,8 @@ gkyl_moment_lw_openlibs(lua_State *L)
   gkyl_register_mhd_divb_types(L);
   gkyl_register_braginskii_types(L);
   gkyl_register_spacetime_gauge_types(L);
+  gkyl_register_spacetime_slicing_types(L);
+  gkyl_register_spacetime_evolution_types(L);
   gkyl_register_embed_geo_types(L);
   
   eqn_openlibs(L);

@@ -12,6 +12,8 @@ pos_z = 0.0 -- Position of the black hole (z-direction).
 
 -- Evolution parameters.
 excision_threshold = 0.3 -- Excision threshold (lapse).
+spacetime_slicing = G0.SpacetimeSlicing.OnePlusLog -- Spacetime slicing condition.
+spacetime_evolution = G0.SpacetimeEvolution.Einstein -- Spacetime evolution system.
 
 -- Simulation parameters.
 Nx = 256 -- Cell count (x-direction).
@@ -49,11 +51,15 @@ momentApp = Moments.App.new {
   -- Fluid.
   fluid = Moments.Species.new {
     equation = VacuumEinstein.new {
-      excisionThreshold = excision_threshold
+      excisionThreshold = excision_threshold,
+      spacetimeSlicing = spacetime_slicing,
+      spacetimeEvolution = spacetime_evolution
     },
 
     hasVacuumEinstein = true,
     vacuumEinsteinExcisionThreshold = excision_threshold,
+    vacuumEinsteinSpacetimeSlicing = spacetime_slicing,
+    vacuumEinsteinSpacetimeEvolution = spacetime_evolution,
   
     -- Initial conditions function.
     init = function (t, xn)
