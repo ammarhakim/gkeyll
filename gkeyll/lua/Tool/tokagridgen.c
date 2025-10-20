@@ -1094,6 +1094,7 @@ struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp 
                 .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
                 .zmin = zmin_outer_SOL,
                 .zmax = zmax_outer_SOL,
+                .plate_spec = true, 
                 .plate_func_lower = inp->plate_func_lower_outer,
                 .plate_func_upper = inp->plate_func_upper_outer,
               }
@@ -1519,6 +1520,7 @@ struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp 
                 .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
                 .zmin = zmin_outer_SOL,
                 .zmax = zmax_outer_SOL,
+                .plate_spec = true, 
                 .plate_func_lower = inp->plate_func_lower_outer,
                 .plate_func_upper = inp->plate_func_upper_outer,
               }
