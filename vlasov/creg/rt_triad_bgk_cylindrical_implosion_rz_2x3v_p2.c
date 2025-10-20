@@ -98,16 +98,16 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: radial direction).
-  int Nz = 32; // Cell count (configuration space: angular direction).
+  int Nr = 28; // Cell count (configuration space: radial direction).
+  int Nz = 22; // Cell count (configuration space: angular direction).
   int Nvr = 12; // Cell count (velocity space: radial direction).
   int Nvz = 12; // Cell count (velocity space: z-direction).
   int Nvtheta = 12; // Cell count (velocity space: angular direction).
   double Lr = 1.5; // Domain size (configuration space: radial direction).
   double Lz = 1.0; // Domain size (configuration space: angular direction).
-  double vr_max = 12.0 * vt; // Domain boundary (velocity space: radial direction).
-  double vz_max = 12.0 * vt; // Domain boundary (velocity space: z-direction).
-  double vtheta_max = 10.0 * vt; // Domain boundary (velocity space: angular direction).
+  double vr_max = 8.0 * vt; // Domain boundary (velocity space: radial direction).
+  double vz_max = 8.0 * vt; // Domain boundary (velocity space: z-direction).
+  double vtheta_max = 8.0 * vt; // Domain boundary (velocity space: angular direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -609,8 +609,8 @@ main(int argc, char **argv)
    .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p2",
 
    .cdim = 2, .vdim = 3,
-   .lower = { 0.01, 0.0 },
-   .upper = { 0.01 + ctx.Lr, ctx.Lz },
+   .lower = { 0.05, 0.0 },
+   .upper = { 0.05 + ctx.Lr, ctx.Lz },
    .cells = { NR, NZ },
 
    .poly_order = ctx.poly_order,
