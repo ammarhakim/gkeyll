@@ -283,17 +283,23 @@ struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp 
     printf("    Use Half Domain: %s\n", use_half_domain ? "true" : "false");
     printf("=== END DIAGNOSTIC ===\n\n");  */
 
+    double deltapsi;
+    if (psisep > psicenter){
+        deltapsi = psisep - psicenter; 
+    } else {
+        deltapsi = psicenter - psisep;
+    }
 
     double wpf, wout, win, wcore, wsol;
     if (toka_type == GKYL_TOKA_GRID_GEN_DOUBLE_NULL) {
-        wpf = wpsi[0];
-        wout = wpsi[1];
-        win = wpsi[2];
-        wcore = wpsi[3];
+        wpf = wpsi[0] * deltapsi;
+        wout = wpsi[1] * deltapsi;
+        win = wpsi[2] * deltapsi;
+        wcore = wpsi[3] * deltapsi;
     } else { // Single null case
-        wpf = wpsi[0];
-        wsol = wpsi[1];
-        wcore = wpsi[2];
+        wpf = wpsi[0] * deltapsi;
+        wsol = wpsi[1] * deltapsi;
+        wcore = wpsi[2] * deltapsi;
     }
  
   
