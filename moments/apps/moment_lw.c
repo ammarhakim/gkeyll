@@ -1786,6 +1786,51 @@ spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
 }
 
 static int
+spacetime_minkowski_lw_inv_spatial_metric_tensor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_inv_metric_tensor_func(spacetime, t, x, y, z, &inv_spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, inv_spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(inv_spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
 spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
@@ -2083,6 +2128,7 @@ spacetime_minkowski_lw_excision_region(lua_State *L)
 static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { "new", spacetime_minkowski_lw_new },
   { "spatialMetricTensor", spacetime_minkowski_lw_spatial_metric_tensor },
+  { "invSpatialMetricTensor", spacetime_minkowski_lw_inv_spatial_metric_tensor },
   { "spatialMetricDeterminant", spacetime_minkowski_lw_spatial_metric_det },
   { "lapseFunction", spacetime_minkowski_lw_lapse_function },
   { "shiftVector", spacetime_minkowski_lw_shift_vector },
