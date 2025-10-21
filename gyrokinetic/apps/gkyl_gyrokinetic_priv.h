@@ -271,8 +271,8 @@ struct gk_lbo_collisions {
   double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
   double vtsq_min; // Minimum vtsq.
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value.
-  struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
-  struct gkyl_array *moms_buff; // Buffer for moments (multiplied by nu).
+  struct gkyl_array *nu_boundary_corrections; // Boundary corrections multiplied by nu.
+  struct gkyl_array *nu_moms; // Moments multiplied by nu.
   struct gkyl_array *m2self; // Second velocity moment of self species.
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
 

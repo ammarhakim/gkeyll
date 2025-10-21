@@ -26,9 +26,15 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Calculate nu_ss (and multibly moms and corrections by it for norm_nu).
   lbo->self_nu_func(app, species, lbo, fin);
 
+  // Multiply moments and boundary corrections by self nu.
+  for (int d=0; d<3; d++)
+    gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->self_nu);
+  for (int d=0; d<2; d++)
+    gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->self_nu);
+
   // Construct primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-    lbo->moms_buff, lbo->boundary_corrections_buff, lbo->self_nu, lbo->prim_moms);
+    lbo->nu_moms, lbo->nu_boundary_corrections, lbo->self_nu, lbo->prim_moms);
 
   // Scale upar and vtSq by self nu.
   for (int d=0; d<2; d++)
@@ -57,12 +63,6 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
 
   gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
-
-  // Multiply moments and boundary corrections by self nu.
-  for (int d=0; d<3; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->moms_buff, d, lbo->moms.marr, 0, lbo->self_nu);
-  for (int d=0; d<2; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->boundary_corrections_buff, d, lbo->boundary_corrections, 0, lbo->self_nu);
 }
 
 static void
@@ -127,16 +127,16 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d=0; d<3; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->moms_buff, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
     for (int d=0; d<2; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->boundary_corrections_buff, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
 
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
     struct gkyl_array *cross_prim_moms = lbo->boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, gks->info.mass,
-      lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
-      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], cross_prim_moms);
+      lbo->nu_moms, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.nu_moms,
+      lbo->other_prim_moms[i], lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
 
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
@@ -288,6 +288,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   
     // Create moment calculator to get M0, M1, M2 for primitive moments.
     gk_species_moment_init(app, gks, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
+    lbo->nu_moms = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
   
     // Edge of velocity space corrections to momentum and energy.
     lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&gks->grid, 
@@ -299,13 +300,13 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   
     // Allocate boundary corrections for primitive mom calculation.
     lbo->boundary_corrections = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    // These are buffers only used if there are cross-collisions.
-    lbo->moms_buff = gkyl_array_acquire(lbo->moms.marr);
-    lbo->boundary_corrections_buff = gkyl_array_acquire(lbo->boundary_corrections);
+    lbo->nu_boundary_corrections = mkarr(app->use_gpu, lbo->boundary_corrections->ncomp, lbo->boundary_corrections->size);
   
-    // Primitive moments in GK are (u_par, vtsq).
+    // Primitive moments.
     lbo->prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    lbo->nu_prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+    lbo->nu_prim_moms = mkarr(app->use_gpu, lbo->prim_moms->ncomp, lbo->prim_moms->size);
+
+    // M2 of this species.
     lbo->m2self = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
     // Host-side copy for I/O.
@@ -452,12 +453,6 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
         lbo->alpha_E_func = gklbo_alpha_E_normNu;
       }
 
-      // Need these buffers to have their own memory.
-      gkyl_array_release(lbo->moms_buff);
-      gkyl_array_release(lbo->boundary_corrections_buff);
-      lbo->moms_buff = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
-      lbo->boundary_corrections_buff = mkarr(app->use_gpu, lbo->boundary_corrections->ncomp, lbo->boundary_corrections->size);
-
       // Cross-primitive moment calculator.
       lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&gks->grid, 
         &app->basis, &gks->basis, &app->local, app->use_gpu);
@@ -518,15 +513,17 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
     }
 
     gkyl_array_release(lbo->m2self);
-    gkyl_array_release(lbo->prim_moms);
-    gkyl_array_release(lbo->nu_prim_moms);
 
-    gkyl_array_release(lbo->boundary_corrections_buff);
-    gkyl_array_release(lbo->moms_buff);
+    gkyl_array_release(lbo->nu_prim_moms);
+    gkyl_array_release(lbo->prim_moms);
+
+    gkyl_array_release(lbo->nu_boundary_corrections);
     gkyl_array_release(lbo->boundary_corrections);
 
     gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
     gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
+
+    gkyl_array_release(lbo->nu_moms);
     gk_species_moment_release(app, &lbo->moms);
 
     if (lbo->norm_nu_self)
