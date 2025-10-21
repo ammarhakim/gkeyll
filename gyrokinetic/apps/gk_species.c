@@ -1466,17 +1466,23 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Store the BCs from the input file.
   for (int d=0; d<app->cdim; ++d) {
-    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
-    if (bc_lo != 0)
-      gks->lower_bc[d] = *bc_lo;
-    else
-      gks->lower_bc[d].type = GKYL_BC_GK_SKIP;
-
-    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
-    if (bc_up != 0)
-      gks->upper_bc[d] = *bc_up;
-    else
-      gks->upper_bc[d].type = GKYL_BC_GK_SKIP;
+    if (gks->bc_is_np[d]) {
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0)
+        gks->lower_bc[d] = *bc_lo;
+      else
+        gks->lower_bc[d].type = GKYL_BC_GK_SKIP;
+  
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0)
+        gks->upper_bc[d] = *bc_up;
+      else
+        gks->upper_bc[d].type = GKYL_BC_GK_SKIP;
+    }
+    else {
+      gks->lower_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+      gks->upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+    }
   }
  
   // Allocate distribution function arrays.
