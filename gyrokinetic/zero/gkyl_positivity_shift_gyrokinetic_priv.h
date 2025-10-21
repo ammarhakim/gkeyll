@@ -71,6 +71,7 @@ struct gkyl_positivity_shift_gyrokinetic {
   int num_cbasis;  // Number of conf-space basis monomials.
   struct gkyl_rect_grid grid;  // Phase-space grid.
   double mass;  // Species mass.
+  double skip_cell_threshold; // Cells with Jf[0] < this value are skipped.
   double *ffloor;  // Minimum f to shift distribution to when it's <0.
   double ffloor_fac;  // ffloor = max(f)*ffloor_fac.
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.

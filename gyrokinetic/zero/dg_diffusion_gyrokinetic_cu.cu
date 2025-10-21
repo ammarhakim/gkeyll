@@ -1,4 +1,5 @@
 /* -*- c++ -*- */
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -102,7 +103,7 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
   if (skip_cell_threshold > 0.0)
     diffusion->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
   else
-    diffusion->skip_cell_threshold = -1.0;
+    diffusion->skip_cell_threshold = -DBL_MAX;
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

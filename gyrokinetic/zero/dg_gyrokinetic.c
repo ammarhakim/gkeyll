@@ -1,6 +1,7 @@
 #include "gkyl_dg_eqn.h"
 #include <assert.h>
 #include <stdio.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -69,7 +70,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   if (skip_cell_threshold > 0.0)
     gyrokinetic->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
-    gyrokinetic->skip_cell_threshold = -1.0;
+    gyrokinetic->skip_cell_threshold = -DBL_MAX;
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -111,7 +112,7 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   if (skip_cell_threshold > 0.0)
     lbo->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
-    lbo->skip_cell_threshold = -1.0;
+    lbo->skip_cell_threshold = -DBL_MAX;
 
   lbo->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo->eqn.flags);

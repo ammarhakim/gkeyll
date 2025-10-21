@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -57,7 +58,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   if (skip_cell_threshold > 0.0)
     diffusion->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
   else
-    diffusion->skip_cell_threshold = -1.0;
+    diffusion->skip_cell_threshold = -DBL_MAX;
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

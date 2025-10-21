@@ -21,7 +21,7 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
   up->num_cbasis = cbasis.num_basis;
   up->mass = mass;
   if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
+    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pbasis.ndim);
   else
     up->skip_cell_threshold = -DBL_MAX;
 

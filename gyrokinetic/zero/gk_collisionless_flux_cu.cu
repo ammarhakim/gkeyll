@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>

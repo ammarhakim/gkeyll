@@ -1,4 +1,5 @@
 /* -*- c++ -*- */
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -122,7 +123,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   if (skip_cell_threshold > 0.0)
     gyrokinetic->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
-    gyrokinetic->skip_cell_threshold = -1.0;
+    gyrokinetic->skip_cell_threshold = -DBL_MAX;
 
   gyrokinetic->eqn.num_equations = 1;
 
