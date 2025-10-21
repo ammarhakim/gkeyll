@@ -4,7 +4,7 @@
 void
 gk_species_source_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
-  // Empty
+  // Empty.
 }
 
 void
@@ -46,7 +46,7 @@ gk_species_source_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *
 void
 gk_species_source_write_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
-  // Empty
+  // Empty.
 }
 
 void
@@ -106,7 +106,7 @@ gk_species_source_write_mom_init_only(gkyl_gyrokinetic_app* app, struct gk_speci
 void
 gk_species_source_calc_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
-  // Empty
+  // Empty.
 }
 
 void
