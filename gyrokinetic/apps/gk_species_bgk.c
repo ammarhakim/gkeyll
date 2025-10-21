@@ -346,10 +346,10 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
       // Compute the time-independent part of alpha_E.
       double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
       for (int i=0; i<bgk->num_cross_collisions; ++i) {
-        double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0: GKYL_EPSILON0;
-        double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
-        double eV = gks->info.collisions.eV ? gks->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
-        double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref : app->bmag_ref;
+        double eps0      = gks->info.collisions.eps0 ? gks->info.collisions.eps0: GKYL_EPSILON0;
+        double hbar      = gks->info.collisions.hbar ? gks->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
+        double eV        = gks->info.collisions.eV ? gks->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
+        double bmag_ref  = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref : app->bmag_ref;
         double mass_self = gks->info.mass, mass_other = bgk->collide_with[i]->info.mass;
 
         alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(

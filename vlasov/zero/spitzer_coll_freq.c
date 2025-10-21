@@ -21,8 +21,8 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
 {
   double vts = sqrt(Ts/ms); // Thermal velocity for species s
   double vtr = sqrt(Tr/mr);  // Thermal velocity for species r
-  double wps = plasma_frequency(ns,ms, eps0, eV); // Plasma Frequency for species s
-  double wpr = plasma_frequency(nr,mr, eps0, eV); // Plasma frequency for species r
+  double wps = plasma_frequency(ns, ms, eps0, eV); // Plasma Frequency for species s
+  double wpr = plasma_frequency(nr, mr, eps0, eV); // Plasma frequency for species r
   double wcs = qs*bmag/ms; // Cyclotron frequency for species s
   double wcr = qr*bmag/mr; // Cyclotron frequency for species r
   double inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms);
@@ -36,7 +36,8 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
 double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
   double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
 {
-  double clog = coulomb_log(ns, nr, ms, mr,Ts, Tr, qs, qr, bmag, eps0, hbar, eV);
+  double clog = 0.5*( coulomb_log(ns, nr, ms, mr, Ts, Tr, qs, qr, bmag, eps0, hbar, eV)
+                     +coulomb_log(nr, ns, mr, ms, Tr, Ts, qr, qs, bmag, eps0, hbar, eV) );
   return 2.0*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2)*ms*mr);
 }
 
