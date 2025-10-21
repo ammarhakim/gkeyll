@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct spherical_implosion_ctx
+struct spherical_blast_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -68,7 +68,7 @@ struct spherical_implosion_ctx
 
 };
 
-struct spherical_implosion_ctx
+struct spherical_blast_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -107,8 +107,8 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.7; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 0.001; // Final simulation time ( reference value = 0.7 ).
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -117,7 +117,7 @@ create_ctx(void)
 
   double r0 = 0.2; // Radius of the high-density region
 
-  struct spherical_implosion_ctx ctx = {
+  struct spherical_blast_ctx ctx = {
     .pi = pi,
     .mass = mass,
     .charge = charge,
@@ -159,7 +159,7 @@ create_ctx(void)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
   double r = xn[0];
   double theta = app->pi/2.0;
   double r0 = app->r0;
@@ -183,7 +183,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
   double r = xn[0];
   double r0 = app->r0;
 
@@ -206,7 +206,7 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
   double r = xn[0];
   double r0 = app->r0;
 
@@ -240,7 +240,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
 
   double nu = app->nu;
 
@@ -251,7 +251,7 @@ evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, voi
 void
 evalCovTangentBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
 
   // Spherically symmetric case
   double q_r = xn[0];
@@ -284,7 +284,7 @@ evalCovTangentBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTR
 void
 evalTriadBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
 
   // Spherically symmetric case
   double q_r = xn[0];
@@ -316,7 +316,7 @@ evalTriadBasis(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalTriadBasisGradient(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct spherical_implosion_ctx *app = ctx;
+  struct spherical_blast_ctx *app = ctx;
 
   // Spherically symmetric case
   double q_r = xn[0];
@@ -446,7 +446,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct spherical_implosion_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct spherical_blast_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
   int NVR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvr);
@@ -585,7 +585,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_spherical_implosion_1x3v_p1",
+   .name = "triad_bgk_spherical_blast_1x3v_p1",
 
    .cdim = 1, .vdim = 3,
    .lower = { 0.05 },

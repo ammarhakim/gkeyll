@@ -20,7 +20,7 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nx = 48 -- Cell count (configuration space: x direction).
+Nx = 12 -- Cell count (configuration space: x direction).
 Nvx = 8 -- Cell count (velocity space: x direction).
 Nvy = 8 -- Cell count (velocity space: y direction).
 Nvz = 8 -- Cell count (velocity space: y direction).

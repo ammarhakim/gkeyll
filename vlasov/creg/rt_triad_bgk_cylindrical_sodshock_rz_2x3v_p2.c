@@ -539,6 +539,10 @@ main(int argc, char **argv)
     .upper = { ctx.vr_max, ctx.vz_max, ctx.vtheta_max },
     .cells = { NVR, NVZ, NVTHETA },
 
+    // This problem does not perform as well with low order integration, 
+    // high order is recommended for actual production runs
+    .use_lo = true,
+
     .cov_tangent_basis = evalCovTangentBasis,
     .cov_tangent_basis_ctx = &ctx,
     .triad_basis = evalTriadBasis,
@@ -586,7 +590,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_cylindrical_sodshock_rz_2x3v_p1",
+   .name = "triad_bgk_cylindrical_sodshock_rz_2x3v_p2",
 
    .cdim = 2, .vdim = 3,
    .lower = { 0.5, 0.0 },

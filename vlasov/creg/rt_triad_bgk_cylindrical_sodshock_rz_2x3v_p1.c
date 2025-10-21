@@ -97,9 +97,9 @@ create_ctx(void)
   // Simulation parameters.
   int Nr = 32; // Cell count (configuration space: radial direction).
   int Nz = 1; // Cell count (configuration space: angular direction).
-  int Nvr = 4; // Cell count (velocity space: radial direction).
-  int Nvz = 4; // Cell count (velocity space: z-direction).
-  int Nvtheta = 4; // Cell count (velocity space: angular direction).
+  int Nvr = 8; // Cell count (velocity space: radial direction).
+  int Nvz = 8; // Cell count (velocity space: z-direction).
+  int Nvtheta = 8; // Cell count (velocity space: angular direction).
   double Lr = 1.0; // Domain size (configuration space: radial direction).
   double Lz = 1.0; // Domain size (configuration space: angular direction).
   double vr_max = 8.0 * vt; // Domain boundary (velocity space: radial direction).

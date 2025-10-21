@@ -9,8 +9,8 @@ Tl = 1.0 -- Left/inner temperature.
 V_x_drift_l = 0.0 -- Left/inner drift velocity (x direction).
 V_y_drift_l = 0.0 -- Left/inner drift velocity (y direction).
 
-nx = 1.0 -- Right/outer number density.
-Tr = 1.0 -- Right/outer temperature.
+nx = 0.125 -- Right/outer number density.
+Tr = math.sqrt(0.1 / 0.125) -- Right/outer temperature.
 V_x_drift_r = 0.0 -- Right/outer drift velocity (x direction).
 V_y_drift_r = 0.0 -- Right/outer drift velocity (y direction).
 
@@ -18,10 +18,10 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nx = 3 -- Cell count (configuration space: x direction).
+Nx = 64 -- Cell count (configuration space: x direction).
 Ny = 1 -- Cell count (configuration space: x direction).
-Nvx = 2 -- Cell count (velocity space: x direction).
-Nvy = 2 -- Cell count (velocity space: y direction).
+Nvx = 24 -- Cell count (velocity space: x direction).
+Nvy = 24 -- Cell count (velocity space: y direction).
 Lx = 1.0 -- Domain size (configuration space: x direction).
 Ly = 1.0 -- Domain size (configuration space: x direction).
 vx_max = 8.0 * vt -- Domain boundary (velocity space: x direction).

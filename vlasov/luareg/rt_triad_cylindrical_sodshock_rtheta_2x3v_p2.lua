@@ -21,7 +21,7 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 32 -- Cell count (configuration space: radial direction).
+Nr = 8 -- Cell count (configuration space: radial direction).
 Ntheta = 1 -- Cell count (configuration space: theta direction).
 Nvr = 8 -- Cell count (velocity space: radial direction).
 Nvtheta = 8 -- Cell count (velocity space: angular direction).
@@ -74,6 +74,11 @@ vlasovApp = Vlasov.App.new {
   neut = Vlasov.Species.new {
     modelID = G0.Model.Triad,
     charge = charge, mass = mass,
+
+    -- Warning: this setting will introduce aliasing errors by using lower order intergation
+    -- however the simulation will remain conservative.
+    -- Use lower order intergation kernels (high order kernels are in 2x3v triad branch)
+    useLo = true,
 
     -- vals_ij = e_{r,\theta} . \sigma_{x,y}
     covTangentBasis = function (t, xn)

@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct cylindrical_implosion_ctx
+struct cylindrical_blast_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -70,7 +70,7 @@ struct cylindrical_implosion_ctx
   double z0; // Height of the high-density region
 };
 
-struct cylindrical_implosion_ctx
+struct cylindrical_blast_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -111,8 +111,8 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.7; // Final simulation time.
-  int num_frames = 50; // Number of output frames.
+  double t_end = 0.001; // Final simulation time ( reference value = 0.7 ).
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -122,7 +122,7 @@ create_ctx(void)
   double r0 = 0.2; // Radius of the high-density region 
   double z0 = 0.4; // Height of the high-density region 
 
-  struct cylindrical_implosion_ctx ctx = {
+  struct cylindrical_blast_ctx ctx = {
     .pi = pi,
     .mass = mass,
     .charge = charge,
@@ -167,7 +167,7 @@ create_ctx(void)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
+  struct cylindrical_blast_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
   double r0 = app->r0;
@@ -195,7 +195,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
+  struct cylindrical_blast_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
   double r0 = app->r0;
@@ -222,7 +222,7 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
+  struct cylindrical_blast_ctx *app = ctx;
   double r = xn[0];
   double z = xn[1];
   double r0 = app->r0;
@@ -260,7 +260,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct cylindrical_implosion_ctx *app = ctx;
+  struct cylindrical_blast_ctx *app = ctx;
 
   double nu = app->nu;
 
@@ -461,7 +461,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct cylindrical_implosion_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct cylindrical_blast_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
@@ -606,11 +606,11 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "triad_bgk_cylindrical_implosion_rz_2x3v_p1",
+   .name = "triad_bgk_cylindrical_blast_rz_2x3v_p1",
 
    .cdim = 2, .vdim = 3,
-   .lower = { 0.01, 0.0 },
-   .upper = { 0.01 + ctx.Lr, ctx.Lz },
+   .lower = { 0.05, 0.0 },
+   .upper = { 0.05 + ctx.Lr, ctx.Lz },
    .cells = { NR, NZ },
 
    .poly_order = ctx.poly_order,

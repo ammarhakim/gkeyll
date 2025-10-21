@@ -1312,7 +1312,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     }
     long hidx = gkyl_range_idx(&vlasov->hamil_range, idx_hamil);
 
-    if (vlasov->conf_flux_surf) {
+    if (vlasov->use_conf_flux_surf) {
       // Each cell owns the *lower* edge surface flux
       long pidxC = gkyl_range_idx(&vlasov->phase_range, idxC);
       long pidxR = gkyl_range_idx(&vlasov->phase_range, idxR);

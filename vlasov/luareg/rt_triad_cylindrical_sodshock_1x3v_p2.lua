@@ -21,10 +21,10 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 24 -- Cell count (configuration space: radial direction).
-Nvr = 6 -- Cell count (velocity space: radial direction).
-Nvtheta = 6 -- Cell count (velocity space: angular direction).
-Nvz = 6 -- Cell count (velocity space: z direction).
+Nr = 12 -- Cell count (configuration space: radial direction).
+Nvr = 8 -- Cell count (velocity space: radial direction).
+Nvtheta = 8 -- Cell count (velocity space: angular direction).
+Nvz = 8 -- Cell count (velocity space: z direction).
 Lr = 1.0 -- Domain size (configuration space: radial direction).
 vr_max = 8.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 8.0 * vt -- Domain boundary (velocity space: angular direction).
@@ -53,8 +53,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.01 },
-  upper = { 0.01 + Lr },
+  lower = { 0.1 },
+  upper = { 0.1 + Lr },
   cells = { Nr },
   cflFrac = cfl_frac,
 
