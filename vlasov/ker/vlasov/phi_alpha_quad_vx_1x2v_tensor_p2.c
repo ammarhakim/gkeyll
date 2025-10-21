@@ -10,13 +10,13 @@ GKYL_CU_DH void phi_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, const double
   alpha_quad[2] -= dx10*force_quad;
   alpha_quad[3] -= dx10*force_quad;
 
-  force_quad = 1.224744871391589*phi[1]-1.6126716885136845*phi[2];
+  force_quad = 1.224744871391589*phi[1]-1.612671688513684*phi[2];
   alpha_quad[4] -= dx10*force_quad;
   alpha_quad[5] -= dx10*force_quad;
   alpha_quad[6] -= dx10*force_quad;
   alpha_quad[7] -= dx10*force_quad;
 
-  force_quad = 1.6126716885136845*phi[2]+1.224744871391589*phi[1];
+  force_quad = 1.612671688513684*phi[2]+1.224744871391589*phi[1];
   alpha_quad[8] -= dx10*force_quad;
   alpha_quad[9] -= dx10*force_quad;
   alpha_quad[10] -= dx10*force_quad;

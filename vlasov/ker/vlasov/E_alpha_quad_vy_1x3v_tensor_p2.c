@@ -4,7 +4,7 @@ GKYL_CU_DH void E_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *
   const double *Ey = &qmem[3]; 
 
   double force_quad = 0.0;
-  force_quad = 0.9681844646844028*Ey[2]-1.0546722811938851*Ey[1]+0.7071067811865475*Ey[0];
+  force_quad = 0.9681844646844028*Ey[2]-1.054672281193885*Ey[1]+0.7071067811865475*Ey[0];
   alpha_quad[0] += force_quad;
   alpha_quad[1] += force_quad;
   alpha_quad[2] += force_quad;
@@ -22,7 +22,7 @@ GKYL_CU_DH void E_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *
   alpha_quad[14] += force_quad;
   alpha_quad[15] += force_quad;
 
-  force_quad = -(0.5164305132317774*Ey[2])-0.41639003950091297*Ey[1]+0.7071067811865475*Ey[0];
+  force_quad = (-0.5164305132317774*Ey[2])-0.416390039500913*Ey[1]+0.7071067811865475*Ey[0];
   alpha_quad[16] += force_quad;
   alpha_quad[17] += force_quad;
   alpha_quad[18] += force_quad;
@@ -40,7 +40,7 @@ GKYL_CU_DH void E_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *
   alpha_quad[30] += force_quad;
   alpha_quad[31] += force_quad;
 
-  force_quad = -(0.5164305132317774*Ey[2])+0.41639003950091297*Ey[1]+0.7071067811865475*Ey[0];
+  force_quad = (-0.5164305132317774*Ey[2])+0.416390039500913*Ey[1]+0.7071067811865475*Ey[0];
   alpha_quad[32] += force_quad;
   alpha_quad[33] += force_quad;
   alpha_quad[34] += force_quad;
@@ -58,7 +58,7 @@ GKYL_CU_DH void E_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *
   alpha_quad[46] += force_quad;
   alpha_quad[47] += force_quad;
 
-  force_quad = 0.9681844646844028*Ey[2]+1.0546722811938851*Ey[1]+0.7071067811865475*Ey[0];
+  force_quad = 0.9681844646844028*Ey[2]+1.054672281193885*Ey[1]+0.7071067811865475*Ey[0];
   alpha_quad[48] += force_quad;
   alpha_quad[49] += force_quad;
   alpha_quad[50] += force_quad;
