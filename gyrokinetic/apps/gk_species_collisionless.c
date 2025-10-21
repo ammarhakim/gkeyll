@@ -55,7 +55,17 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // Write gkcls->flux_surf 
+  const char *fmt = "%s-%s_collisionless_surf_flux_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  gkyl_array_copy(gkcls->flux_surf_ho, gkcls->flux_surf);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, NULL,
+    gkcls->flux_surf_ho, fileNm);
+
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_io += 1;
 }
 
 void 
@@ -138,6 +148,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     gkcls->flux_func = gk_species_collisionless_flux_enabled;
     gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
     if (gkcls->write_diagnostics) {
+      gkcls->flux_surf_ho = mkarr(false, flux_surf_sz, gks->local_ext.volume);
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
   }
@@ -177,6 +188,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
     if (gkcls->write_diagnostics) {
+      gkyl_array_release(gkcls->flux_surf_ho);
     }
   }
 }

@@ -217,6 +217,7 @@ struct gk_collisionless {
 
   // Organization of the different equation objects and the required data and solvers
   struct gkyl_array *flux_surf; // Array for surface phase space flux
+  struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
   struct gkyl_array *apar; // A_parallel.
   struct gkyl_array *apardot; // d/dt A_parallel.
 
