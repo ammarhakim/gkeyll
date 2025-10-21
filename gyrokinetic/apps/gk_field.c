@@ -135,9 +135,7 @@ gk_field_accumulate_current_dens_dyn(gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_clear(field->currentDens, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
     gk_species_moment_calc(&s->m1, s->local, app->local, fin[i]);
-
     gkyl_array_accumulate_range(field->currentDens, s->info.charge, s->m1.marr, &app->local);
   } 
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
