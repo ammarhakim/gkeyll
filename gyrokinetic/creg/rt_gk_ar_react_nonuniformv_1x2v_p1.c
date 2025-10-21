@@ -346,50 +346,6 @@ evalAr2UparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = 0.0;
 }
 
-void
-evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_elc = app->nu_elc;
-
-  // Set electron collision frequency.
-  fout[0] = nu_elc;
-}
-
-void
-evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
-evalAr1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set Ar1+ ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
-evalAr2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set Ar2+ collision frequency.
-  fout[0] = nu_ion;
-}
-
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -527,11 +483,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_elc,
-      .T_ref = ctx.Te,
-      .self_nu = evalElcNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_elc,
+      .temp_ref = ctx.Te,
       .num_cross_collisions = 3,
       .collide_with = { "ion", "Ar1", "Ar2" },
     },
@@ -593,11 +546,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_elc,
-      .T_ref = ctx.Ti,
-      .self_nu = evalIonNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_elc,
+      .temp_ref = ctx.Ti,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "Ar1", "Ar2" },
     },
@@ -631,11 +581,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_Ar1,
-      .T_ref = ctx.TAr1,
-      .self_nu = evalAr1Nu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_Ar1,
+      .temp_ref = ctx.TAr1,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "ion", "Ar2" },
     },
@@ -697,11 +644,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_Ar2,
-      .T_ref = ctx.TAr2,
-      .self_nu = evalAr2Nu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_Ar2,
+      .temp_ref = ctx.TAr2,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "ion", "Ar1" },
     },

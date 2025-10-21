@@ -650,11 +650,8 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Te0,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
       .write_diagnostics = true,
@@ -731,11 +728,8 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Ti0,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
       .write_diagnostics = true,
