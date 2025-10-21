@@ -22,17 +22,11 @@ struct gkyl_gyrokinetic_multib_species_pb {
 struct gkyl_gyrokinetic_multib_species {
   char name[128]; // Species name.
 
-  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
 
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
   struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
-
-
-  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
-              // These more computationally efficient kernels are for slab or mirror 
-              // calculations where there is no toroidal field. 
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
@@ -42,11 +36,14 @@ struct gkyl_gyrokinetic_multib_species {
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
+  // Collisionless terms.
+  struct gkyl_gyrokinetic_collisionless collisionless;
+
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;

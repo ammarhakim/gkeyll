@@ -82,7 +82,7 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, 
-  double *waves, double *s)
+  const double phil, const double phir, double *waves, double *s)
 {
   double f[4];
   double ur = qr[RHOU]/qr[0], ul = ql[RHOU]/ql[0];
@@ -134,7 +134,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   int meqn = 4, mwaves = 2;
@@ -155,7 +155,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 
 static void
 ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   int meqn = 4, mwaves = 2;

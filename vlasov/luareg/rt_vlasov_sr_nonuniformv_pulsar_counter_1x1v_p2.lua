@@ -154,6 +154,9 @@ vlasovApp = Vlasov.App.new {
       sourceWithVThresh = { 10.0 }, -- threshold velocity for partial moment
       sourceWithUpperHalf = { true }, -- is the integral over the upper-half plane?
       sourceWithProj = { 1 }, 
+      writeSource = true, 
+      filter = true, 
+      numFilters = 10, 
 
       numSources = 1,
       projections = {
@@ -274,7 +277,10 @@ vlasovApp = Vlasov.App.new {
       sourceWithVThresh = { 10.0 }, -- threshold velocity for partial moment
       sourceWithUpperHalf = { true }, -- is the integral over the upper-half plane?
       sourceWithProj = { 1 }, 
-
+      writeSource = true, 
+      filter = true, 
+      numFilters = 10, 
+      
       numSources = 1,
       projections = {
         {

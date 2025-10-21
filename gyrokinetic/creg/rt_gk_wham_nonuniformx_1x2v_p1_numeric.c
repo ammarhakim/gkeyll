@@ -645,6 +645,10 @@ int main(int argc, char **argv)
       .tempperp = eval_temp_perp_elc,   
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -701,6 +705,10 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion, 
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions =  {
@@ -764,8 +772,9 @@ int main(int argc, char **argv)
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
         .map_strength = 0.666,
-        .maximum_slope_at_max_B = 0.6,
+        .maximum_slope_at_max_B = 1,
         .maximum_slope_at_min_B = 4,
+        .moving_average_width = 0.5,
       },
     },
     .num_periodic_dir = 0,

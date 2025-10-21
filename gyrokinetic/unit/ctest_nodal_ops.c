@@ -138,7 +138,7 @@ test_p1_3x(){
 #ifdef GKYL_HAVE_CUDA
   use_gpu = true;
   struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
+  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 3, poly_order);
 #else
   struct gkyl_basis *basis_on_dev = &basis;
 #endif
@@ -220,25 +220,14 @@ test_p1_interior_2x(){
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, poly_order);
   bool use_gpu = false;
-#ifdef GKYL_HAVE_CUDA
-  use_gpu = true;
-  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
-#else
   struct gkyl_basis *basis_on_dev = &basis;
-#endif
   
   // Project initial function
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *funcdg_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(funcdg_dev, funcdg);
-#else
   struct gkyl_array *funcdg_dev = funcdg;
-#endif
 
   // Construct nrange and nodal field
   int nodes[3] = { 1, 1, 1 };
@@ -247,40 +236,23 @@ test_p1_interior_2x(){
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *nodal_fld_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, nrange.volume);
-#else
   struct gkyl_array *nodal_fld_dev = nodal_fld;
-#endif
 
 
   // Create output field
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *funcdg2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-#else
   struct gkyl_array *funcdg2_dev = funcdg2;
-#endif
 
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, true);
   gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, true);
 
-#ifdef GKYL_HAVE_CUDA
-  gkyl_array_copy(funcdg2, funcdg2_dev);
-#endif
   check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
 
 
-#ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(basis_on_dev);
-  gkyl_array_release(funcdg_dev);
-  gkyl_array_release(funcdg2_dev);
-  gkyl_array_release(nodal_fld_dev);
-#endif
   gkyl_array_release(funcdg);
   gkyl_array_release(funcdg2);
   gkyl_array_release(nodal_fld);
@@ -303,25 +275,14 @@ test_p1_interior_3x(){
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 3, poly_order);
   bool use_gpu = false;
-#ifdef GKYL_HAVE_CUDA
-  use_gpu = true;
-  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
-#else
   struct gkyl_basis *basis_on_dev = &basis;
-#endif
   
   // Project initial function
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func3d, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func3d.gkyl");
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *funcdg_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(funcdg_dev, funcdg);
-#else
   struct gkyl_array *funcdg_dev = funcdg;
-#endif
 
   // Construct nrange and nodal field
   int nodes[3] = { 1, 1, 1 };
@@ -330,40 +291,23 @@ test_p1_interior_3x(){
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *nodal_fld_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-#else
   struct gkyl_array *nodal_fld_dev = nodal_fld;
-#endif
 
 
   // Create output field
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-#ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *funcdg2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-#else
   struct gkyl_array *funcdg2_dev = funcdg2;
-#endif
 
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, true);
   gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, true);
 
-#ifdef GKYL_HAVE_CUDA
-  gkyl_array_copy(funcdg2, funcdg2_dev);
-#endif
   check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func3d_2.gkyl");
 
 
 
-#ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(basis_on_dev);
-  gkyl_array_release(funcdg_dev);
-  gkyl_array_release(funcdg2_dev);
-  gkyl_array_release(nodal_fld_dev);
-#endif
   gkyl_array_release(funcdg);
   gkyl_array_release(funcdg2);
   gkyl_array_release(nodal_fld);

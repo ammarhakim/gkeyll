@@ -77,8 +77,8 @@ struct gkyl_vlasov_radiation {
 // Parameters for species source
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
-  bool write_source; // optional parameter to write out source
-  bool source_evolve; // are our sources time-dependent?
+  bool write_source; // Are we writing out the source?
+  bool evolve_source; // Are our sources time-dependent?
   int num_sources;
 
   double source_length; // required for boundary flux source
@@ -93,6 +93,8 @@ struct gkyl_vlasov_source {
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
+  bool filter; // Are we filtering the rescaled density?
+  int num_filters; // Are we filtering repeatedly?
 };
 
 // Parameters for boundary conditions

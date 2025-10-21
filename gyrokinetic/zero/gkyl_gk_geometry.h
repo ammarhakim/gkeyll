@@ -17,7 +17,7 @@ typedef struct gk_geometry gk_geometry;
 struct gk_geom_surf {
 
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
-  struct gkyl_array* jacobgeo_sync; // 1 component. Configuration space jacobian J. Empty and used for syncing.
+  struct gkyl_array* jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)

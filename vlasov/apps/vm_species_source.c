@@ -6,7 +6,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
 {
   int vdim = app->vdim; 
   src->write_source = vms->info.source.write_source; // Optional flag to write out source and source moments. 
-  src->source_evolve = vms->info.source.source_evolve; // Are the sources time-dependent?
+  src->evolve_source = vms->info.source.evolve_source; // Are the sources time-dependent?
 
   src->rescale_m0 = false; 
   src->calc_bflux = false;
@@ -60,6 +60,22 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       src->adapt_source[i] = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume); 
       src->adapt_proj_source[i] = vms->info.source.source_with_proj[i];
     }
+    src->filter = false;
+    if (vms->info.source.filter) {
+      // Create Gaussian filter for use with adaptive density source. 
+      // Always filter at least once, but optionally filter repeatedly. 
+      src->filter = true;
+      src->num_filters = vms->info.source.num_filters > 0 ? vms->info.source.num_filters : 1;
+      struct gkyl_dg_gaussian_filter_inp inp = {
+        .conf_grid = &app->grid,
+        .conf_basis = &app->basis,
+        .conf_range = &app->local,
+        .conf_range_ext = &app->local_ext,
+        .extend_filter = false,
+        .use_gpu = app->use_gpu,
+      };
+      src->gauss_filter = gkyl_dg_gaussian_filter_inew(&inp);
+    }    
   }
 
   // We need to ensure source has same shape as distribution function. 
@@ -125,6 +141,14 @@ vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {  
     for (int i=0; i<src->num_cross_source; i++) {
       gkyl_mom_calc_advance(src->m0_reduced[i], &vms->local, &app->local, fin, src->scale_m0[i]);
+      if (src->filter) {
+        // Optionally filter repeatedly.
+        for (int j=0; j<src->num_filters; j++) {
+          // Synchronize ghost cells before filtering so ghost cells are included in filter. 
+          gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, src->scale_m0[i]);
+          gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
+        }
+      }
     }  
   }
 }
@@ -353,6 +377,15 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     else {
       gkyl_free(src->scale_ptr);
     }
+  }
+
+  if (src->rescale_m0) {
+    for (int i=0; i<src->num_cross_source; i++) {
+      gkyl_mom_calc_release(src->m0_reduced[i]);
+      gkyl_array_release(src->scale_m0[i]);
+      gkyl_array_release(src->adapt_source[i]);
+    }
+    gkyl_dg_gaussian_filter_release(src->gauss_filter);
   }
 
   for (int k=0; k<src->num_sources; k++) {

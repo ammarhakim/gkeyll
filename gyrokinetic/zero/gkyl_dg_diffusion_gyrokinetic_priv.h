@@ -33,12 +33,13 @@ typedef double (*diffusion_surf_t)(const double *w, const double *dx,
 
 typedef double (*diffusion_boundary_surf_t)(const double *w, const double *dx,
   const double *coeff, const double *jacobgeo_inv, int edge,
-  const double *qSkin, const double *qEdge, double* GKYL_RESTRICT out);
+  const double *qEdge, const double *qSkin, double* GKYL_RESTRICT out);
 
 struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_eqn eqn;
   diffusion_surf_t surf[GKYL_MAX_CDIM];
   diffusion_boundary_surf_t boundary_surf[GKYL_MAX_CDIM];
+  diffusion_boundary_surf_t boundary_diag[GKYL_MAX_CDIM];
   struct gkyl_range diff_range;
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
@@ -652,6 +653,97 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
   },
 };
 
+// Boundary diagnostic kernel list: x-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_kernels_constcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_1x1v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_1x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_3x2v_ser_p2_constcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { dg_diffusion_gyrokinetic_order4_boundary_diagx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagx_1x1v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagx_1x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagx_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagx_3x2v_ser_p2_constcoeff },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagx_1x1v_ser_p2_constcoeff },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagx_1x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagx_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagx_3x2v_ser_p2_constcoeff },},
+  },
+};
+// Boundary diagnostic kernel list: y-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagy_kernels_constcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagy_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagy_3x2v_ser_p2_constcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagy_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagy_3x2v_ser_p2_constcoeff },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagy_2x2v_ser_p2_constcoeff },
+      { NULL, NULL },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagy_3x2v_ser_p2_constcoeff },},
+  },
+};
+// Boundary diagnostic kernel list: z-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagz_kernels_constcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagz_3x2v_ser_p2_constcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_diagz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_diagz_3x2v_ser_p2_constcoeff },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, dg_diffusion_gyrokinetic_order6_boundary_diagz_3x2v_ser_p2_constcoeff },},
+  },
+};
+
 // ............... Inhomogeneous (spatially varying) diffusion coefficient ............... //
 
 // Serendipity volume kernels
@@ -1037,6 +1129,97 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
   },
 };
 
+// Boundary diagnostic kernel list: x-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_kernels_varcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_1x1v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_1x1v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_1x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_1x2v_ser_p2_varcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_2x2v_ser_p2_varcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagx_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagx_3x2v_ser_p2_varcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+};
+// Boundary diagnostic kernel list: y-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagy_kernels_varcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagy_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagy_2x2v_ser_p2_varcoeff },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagy_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagy_3x2v_ser_p2_varcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+};
+// Boundary diagnostic kernel list: z-direction
+GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_diagz_kernels_varcoeff[] = {
+  // 2nd order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_diagz_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_diagz_3x2v_ser_p2_varcoeff },},
+  },
+  // 4th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+  // 6th order diffusion.
+  {.list= {
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
+  },
+};
+
 #define SURFKERIDX(cdim,vdim) (cdim-1+vdim-1)*2-(vdim-1)
 
 // Macro for choosing volume and surface kernels.
@@ -1073,7 +1256,26 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])
-    diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), _cfJacInv(idxSkin), edge, qInSkin, qInEdge, qRhsOut);
+    diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
+
+  return 0.;  // CFL frequency computed in volume term.
+}
+
+GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
+  const double* xcEdge, const double* xcSkin, const double* dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{ 
+  // This function is based on boundary_surf above, but notice we use Edge
+  // where the boundary_surf used Skin, because we assume this kernel is called
+  // in the ghost range (e.g. by the boundary_flux updater).
+  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
+  
+  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh) {
+    return 0.;
+  }
+  if (diffusion->diff_in_dir[dir])
+    diffusion->boundary_diag[dir](xcEdge, dxEdge, _cfD(idxEdge), _cfJacInv(idxEdge), edge, qInSkin, qInEdge, qRhsOut);
 
   return 0.;  // CFL frequency computed in volume term.
 }
