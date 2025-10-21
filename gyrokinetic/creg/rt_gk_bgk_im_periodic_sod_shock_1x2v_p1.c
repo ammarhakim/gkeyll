@@ -245,12 +245,18 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
+
     .correct = {
       .correct_all_moms = true, 
       .use_last_converged = true, 
       .iter_eps = 1e-12,
       .max_iter = 10,
     }, 
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,

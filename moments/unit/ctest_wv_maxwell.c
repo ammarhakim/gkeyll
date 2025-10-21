@@ -151,10 +151,10 @@ test_maxwell_waves()
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[8], amdq_local[8];
-    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds,
+    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
       amdq_local, apdq_local);
 
     // rotate waves back to global frame

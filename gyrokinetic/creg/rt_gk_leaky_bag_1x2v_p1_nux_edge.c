@@ -238,7 +238,9 @@ nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL
 {
   struct boundary_ctx *app = ctx;
   double z = zc[0];
-  xp[0] = z + 0.1 * sin(z * 2 * M_PI/(app->Lz));
+  double L = app->Lz;
+  double b = 5; // controls non-uniformity
+  xp[0] = L * atan(2*z*b/L) / (2 * atan(b));
 }
 
 static inline void
@@ -303,6 +305,10 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -351,7 +357,6 @@ main(int argc, char **argv)
         .ctxs[2] = &ctx,
       },
     },
-
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

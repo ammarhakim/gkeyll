@@ -463,6 +463,10 @@ int main(int argc, char **argv)
     .projection = ion_ic,
     .scale_with_polarization = true,
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,

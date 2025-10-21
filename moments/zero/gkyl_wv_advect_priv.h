@@ -182,7 +182,7 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_D
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using Lax fluxes (with potential fallback),
@@ -198,7 +198,7 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**
@@ -214,7 +214,7 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 */
 GKYL_CU_D
 static double
-wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using Roe fluxes.
@@ -229,7 +229,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 */
 GKYL_CU_D
 static void
-qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using Roe fluxes (with potential fallback).
@@ -245,7 +245,7 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_D
 static double
-wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using Roe fluxes (with potential fallback),
@@ -261,7 +261,7 @@ wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* d
 */
 GKYL_CU_D
 static void
-qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**

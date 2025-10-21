@@ -1190,11 +1190,14 @@ main(int argc, char **argv)
     .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
     .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
     .cells = { cells_v[0], cells_v[1] },
-    .no_by = true,
 
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {
@@ -1321,11 +1324,14 @@ main(int argc, char **argv)
     .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
     .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
     .cells = { cells_v[0], cells_v[1] },
-    .no_by = true,
 
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {

@@ -596,6 +596,11 @@ main(int argc, char **argv)
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalElcNu,
@@ -648,6 +653,11 @@ main(int argc, char **argv)
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalIonNu,

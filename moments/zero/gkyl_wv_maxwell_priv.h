@@ -36,6 +36,7 @@
 
 #include <math.h>
 #include <gkyl_array.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
@@ -357,6 +358,57 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
+GKYL_CU_DH
+static void
+wave_embed_copy_B(const double *q, double *qphi, double *delta, void *ctx)
+{
+  qphi[0] = 0.0;
+  qphi[1] = 0.0;
+  qphi[2] = 0.0;
+  qphi[3] = q[3];
+  qphi[4] = q[4];
+  qphi[5] = q[5];
+  qphi[6] = q[6];
+  qphi[7] = q[7];
+}
+
+GKYL_CU_DH
+static void
+wave_embed_pec(const double *q, double *qphi, double *delta, void *ctx)
+{
+  qphi[0] = q[0];
+  qphi[1] = -q[1];
+  qphi[2] = -q[2];
+  qphi[3] = -q[3];
+  qphi[4] = q[4];
+  qphi[5] = q[5];
+  qphi[6] = -q[6];
+  qphi[7] = q[7];
+}
+
+GKYL_CU_DH
+static double
+wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
+  const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
+{
+  double qphi[8] = {0.0};
+  double deltaphi[8] = {0.0};
+
+  if ((phil < 0.0) && (phir > 0.0)) {
+    eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
+
+    for (int d=0; d<8; ++d) deltaphi[d] = qr[d] - qphi[d];
+  }
+  if ((phil > 0.0) && (phir < 0.0)) {
+    eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
+
+    for (int d=0; d<8; ++d) deltaphi[d] = qphi[d] - ql[d];
+  }
+
+  return wave_lax(eqn, deltaphi, ql, qr, waves, s);
+}
+
 /**
 * Compute waves and speeds using Lax fluxes (with potential fallback).
 *
@@ -371,9 +423,12 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_DH
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double phil, double phir, double* waves, double* s)
 {
-  return wave_lax(eqn, delta, ql, qr, waves, s);
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 /**
@@ -390,7 +445,7 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_DH
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, double phil, double phir, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
@@ -492,13 +547,25 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_DH
 static double
-wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double phil, double phir, double* waves, double* s)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
-    return wave_roe(eqn, delta, ql, qr, waves, s);
+  // clear waves and wave speeds
+  int mwaves = (type == GKYL_WV_HIGH_ORDER_FLUX) ? eqn->num_waves : 2;
+  int meqn = eqn->num_equations;
+  for (int i=0; i<mwaves; ++i) {
+    double *w = &waves[i*meqn];
+    for (int j=0; j<meqn; ++j)
+      w[j] = 0.0;
+    s[i] = 0.0;
   }
+  // Check if inside an embedded surface
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
   else {
-    return wave_lax(eqn, delta, ql, qr, waves, s);
+    if (type == GKYL_WV_HIGH_ORDER_FLUX)
+      return wave_roe(eqn, delta, ql, qr, waves, s);
+    else
+      return wave_lax(eqn, delta, ql, qr, waves, s);
   }
 
   return 0.0; // Unreachable code.
@@ -518,7 +585,7 @@ wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* d
 */
 GKYL_CU_DH
 static void
-qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, double phil, double phir, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {

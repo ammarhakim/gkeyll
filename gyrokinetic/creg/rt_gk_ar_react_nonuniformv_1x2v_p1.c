@@ -484,6 +484,11 @@ main(int argc, char **argv)
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
@@ -536,7 +541,6 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0_ion,
 
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .density = evalIonDensityInit,
@@ -546,6 +550,11 @@ main(int argc, char **argv)
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
@@ -579,6 +588,11 @@ main(int argc, char **argv)
       .upar = evalAr1UparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
@@ -640,6 +654,11 @@ main(int argc, char **argv)
       .upar = evalAr2UparInit,
       .ctx_upar = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,

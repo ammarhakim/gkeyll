@@ -565,6 +565,10 @@ int main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,

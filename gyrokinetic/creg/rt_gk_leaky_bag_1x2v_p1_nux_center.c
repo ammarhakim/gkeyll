@@ -142,11 +142,16 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double N_analytic = 2 * app->n0 / (sqrt(2 * M_PI));
     N_analytic *= sqrt(M_PI / 2) * L * erf(erf_arg) + time * vt * (exp(-erf_arg*erf_arg) - 1);
 
-    double diff = fabs(N - N_analytic);
-    int check = gkyl_compare_double(N, N_analytic, 1e-2);
+    double diff = fabs(N - N_analytic) / fabs(N_analytic);
+    int check = gkyl_compare_double(diff, 0.0, 1e-2);
     if (check != 1) {
-      printf("Error: N and N_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", N - N_analytic);
+      printf("Error: N and N_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  N (computed): %g\n", N);
+      printf("  N_analytic (expected): %g\n", N_analytic);
+      printf("  Absolute difference: %g\n", fabs(N - N_analytic));
+      printf("  Relative error: %g%%\n", 100.0 * diff);
+      printf("  Tolerance: 1e-2 (1%%)\n");
     }
   }
 
@@ -174,8 +179,13 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+      printf("Error: dNdt (lower boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  dNdt (computed): %g\n", dNdt);
+      printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
+      printf("  Absolute difference: %g\n", diff);
+      printf("  Relative error: %g%%\n", 100.0 * diff / fabs(dNdt_analytic));
+      printf("  Tolerance: 1e-1 (10%%)\n");
     }
   }
 
@@ -201,8 +211,13 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
-      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+      printf("Error: dNdt (upper boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf("  Time: %g\n", time);
+      printf("  dNdt (computed): %g\n", dNdt);
+      printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
+      printf("  Absolute difference: %g\n", diff);
+      printf("  Relative error: %g%%\n", 100.0 * diff / fabs(dNdt_analytic));
+      printf("  Tolerance: 1e-1 (10%%)\n");
     }
   }
 
@@ -238,7 +253,9 @@ nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL
 {
   struct boundary_ctx *app = ctx;
   double z = zc[0];
-  xp[0] = z - 0.1 * sin(z * 2 * M_PI/(app->Lz));
+  double L = app->Lz;
+  double b = 1.2; // controls non-uniformity
+  xp[0] = L * tan(2*z*b/L) / (2 * tan(b));
 }
 
 static inline void
@@ -303,6 +320,10 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -351,7 +372,6 @@ main(int argc, char **argv)
         .ctxs[2] = &ctx,
       },
     },
-
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

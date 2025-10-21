@@ -288,6 +288,10 @@ int main(int argc, char **argv)
       .temp = temp_elc,      
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -346,6 +350,10 @@ int main(int argc, char **argv)
       .upar= upar_ion,
       .ctx_temp = &ctx,
       .temp = temp_ion,      
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions =  {

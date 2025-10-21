@@ -1236,24 +1236,13 @@ main(int argc, char **argv)
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
 
-    .no_by = false,
-
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//      .time_integrated = true,
-    },
-
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {
@@ -1273,6 +1262,19 @@ main(int argc, char **argv)
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
     }, 
+
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
 
     .duplicate_across_blocks = false,
     .blocks = elc_blocks,
@@ -1582,23 +1584,13 @@ main(int argc, char **argv)
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
 
-    .no_by = false,
-
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    },
-
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
     },
 
     .collisions =  {
@@ -1619,6 +1611,18 @@ main(int argc, char **argv)
       .D_profile_ctx = &ctx,
     }, 
   
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
+
     .duplicate_across_blocks = false,
     .blocks = ion_blocks,
     .num_physical_bcs = 20,

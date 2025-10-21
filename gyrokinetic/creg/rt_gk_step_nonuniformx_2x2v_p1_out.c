@@ -359,6 +359,10 @@ main(int argc, char **argv)
       .temp = eval_temp_elc,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
@@ -370,6 +374,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 2,
       .collide_with = { "ion", "Ar1" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -456,6 +461,10 @@ main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -467,6 +476,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 2,
       .collide_with = { "elc", "Ar1" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -516,6 +526,10 @@ main(int argc, char **argv)
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ar,      
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions =  {
@@ -573,7 +587,6 @@ main(int argc, char **argv)
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
-
 
   // Neutral Ar.
   struct gkyl_gyrokinetic_neut_species Ar0 = {

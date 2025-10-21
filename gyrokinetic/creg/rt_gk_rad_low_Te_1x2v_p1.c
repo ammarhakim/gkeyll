@@ -307,6 +307,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -315,11 +319,6 @@ main(int argc, char **argv)
       .collide_with = { "ion", "elc2"},
     },
 
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 0,
-    },
-    
     //Emissivity for all three of these should be 0
     .radiation = {
       .radiation_id = GKYL_GK_RADIATION,
@@ -357,6 +356,11 @@ main(int argc, char **argv)
       .temp = evalTempElcInit,
       .ctx_temp = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -364,11 +368,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 2,
       .collide_with = { "ion", "elc" },
     },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 0,
-    },
-    
+
     //Emissivity of ion and test_sp_1 should be 0
     .radiation = {
       .radiation_id = GKYL_GK_RADIATION, 
@@ -403,6 +403,10 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .temp = evalTempIonInit,
       .ctx_temp = &ctx,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
     .collisions =  {

@@ -403,6 +403,11 @@ main(int argc, char **argv)
       .temp = evalTempElcInit,
       .ctx_temp = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -410,6 +415,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 0,
@@ -473,6 +479,11 @@ main(int argc, char **argv)
       .temp = evalTempIonInit,
       .ctx_temp = &ctx,
     },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIonInit,
@@ -480,6 +491,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 0,
@@ -492,9 +504,7 @@ main(int argc, char **argv)
         .temp = evalSourceTempInit,
         .ctx_temp = &ctx,     
       }, 
-    },
-
-    
+    }, 
     
     .react_neut = {
       .num_react = 3,
