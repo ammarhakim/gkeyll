@@ -44,7 +44,7 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
-  double skip_cell_thresh;
+  double skip_cell_threshold;
   int num_basis;
 };
 
@@ -1235,7 +1235,7 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
 
-  if (fabs(qInL[0]) < diffusion->skip_cell_thresh && fabs(qInC[0]) < diffusion->skip_cell_thresh && fabs(qInR[0]) < diffusion->skip_cell_thresh) {
+  if (fabs(qInL[0]) < diffusion->skip_cell_threshold && fabs(qInC[0]) < diffusion->skip_cell_threshold && fabs(qInR[0]) < diffusion->skip_cell_threshold) {
     return 0.;
   }
   
@@ -1252,7 +1252,7 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh && fabs(qInSkin[0]) < diffusion->skip_cell_thresh) {
+  if (fabs(qInEdge[0]) < diffusion->skip_cell_threshold && fabs(qInSkin[0]) < diffusion->skip_cell_threshold) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])
@@ -1271,7 +1271,7 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh) {
+  if (fabs(qInEdge[0]) < diffusion->skip_cell_threshold) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])

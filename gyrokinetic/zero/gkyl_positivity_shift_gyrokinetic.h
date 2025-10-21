@@ -28,7 +28,8 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  */
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid pgrid, double mass, const struct gk_geometry *gk_geom,
+  struct gkyl_rect_grid pgrid, double mass, double skip_cell_threshold,
+  const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu);
 
 /**

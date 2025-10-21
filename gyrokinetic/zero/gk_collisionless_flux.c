@@ -40,7 +40,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   if (skip_cell_threshold > 0.0)
     up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), phase_grid->ndim);
   else
-    up->skip_cell_threshold = -1.0;
+    up->skip_cell_threshold = -DBL_MAX;
 
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->dg_geom = gkyl_dg_geom_acquire(dg_geom);

@@ -32,7 +32,7 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   if (skip_cell_threshold > 0.0)
     up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
   else
-    up->skip_cell_threshold = -1.0;
+    up->skip_cell_threshold = -DBL_MAX;
 
   up->num_eqns = num_eqns;
   up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));

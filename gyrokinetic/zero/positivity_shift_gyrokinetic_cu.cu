@@ -116,7 +116,8 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
       atomicAdd(&delta_m0_c[k], m0Local_in[k]);
 
     // Shift f if needed.
-    bool shifted_node = kers->shift(ffloor[0], distf_c);
+    bool shifted_node = kers->shift(ffloor[0], distf_c)
+        && fabs(distf_c[0]) > up->skip_cell_threshold;
 
     if (shifted_node) {
       // Compute the new number density local to this phase-space cell.

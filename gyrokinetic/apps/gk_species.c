@@ -1048,7 +1048,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->grid, gks->info.mass, gks->info.skip_cell_threshold, app->gk_geom, gks->vel_map,
+      &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
     gk_species_moment_init(app, gks, &gks->ps_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);

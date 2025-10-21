@@ -93,9 +93,9 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo->conf_range = *conf_range;
 
   if (skip_cell_threshold > 0.0)
-    lbo->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
+    lbo->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
-    lbo->skip_cell_thresh = -1.0;
+    lbo->skip_cell_threshold = -1.0;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);

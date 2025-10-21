@@ -109,9 +109,9 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo->auxfields.m2self = 0;
 
   if (skip_cell_threshold > 0.0)
-    lbo->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
+    lbo->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
-    lbo->skip_cell_thresh = -1.0;
+    lbo->skip_cell_threshold = -1.0;
 
   lbo->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo->eqn.flags);

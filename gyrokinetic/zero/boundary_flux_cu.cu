@@ -24,7 +24,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   if (skip_cell_threshold > 0.0)
     up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
   else
-    up->skip_cell_threshold = -1.0;
+    up->skip_cell_threshold = -DBL_MAX;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

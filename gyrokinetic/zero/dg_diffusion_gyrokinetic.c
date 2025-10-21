@@ -55,9 +55,9 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   int poly_order = cbasis->poly_order;
 
   if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
+    diffusion->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
   else
-    diffusion->skip_cell_thresh = -1.0;
+    diffusion->skip_cell_threshold = -1.0;
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

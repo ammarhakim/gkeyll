@@ -264,7 +264,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   if (skip_cell_threshold > 0.0)
     up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), phase_grid->ndim);
   else
-    up->skip_cell_threshold = -1.0;
+    up->skip_cell_threshold = -DBL_MAX;
 
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.

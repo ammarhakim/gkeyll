@@ -6,7 +6,8 @@
 
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, const struct gk_geometry *gk_geom,
+  struct gkyl_rect_grid grid, double mass, double skip_cell_threshold,
+  const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
   // Allocate space for new updater.
@@ -19,6 +20,11 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
   up->grid = grid;
   up->num_cbasis = cbasis.num_basis;
   up->mass = mass;
+  if (skip_cell_threshold > 0.0)
+    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), pdim);
+  else
+    up->skip_cell_threshold = -DBL_MAX;
+
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
   up->use_gpu = use_gpu;
@@ -114,7 +120,8 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
         m0in_c[k] += m0phase_in_c[k];
 
       // Shift f if needed.
-      bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
+      bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c)
+        && fabs(distf_c[0]) > up->skip_cell_threshold;
 
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
