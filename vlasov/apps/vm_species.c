@@ -1340,24 +1340,26 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Select the number of nodes, with case for hybrid-tensor.
   int highorder = vms->use_lo ? 0 : 1;
+
+  // p + 1 is equivalent to p + 2 for ser p1
   if ((app->poly_order == 1) && (b_type == GKYL_BASIS_MODAL_SERENDIPITY)) {
     highorder = 0;
   }
-  vms->num_surf_vel_nodes = vdim*pow(app->poly_order+1+highorder,pdim - 1);
+  vms->num_surf_vel_nodes = pow(app->poly_order+1+highorder,pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    vms->num_surf_vel_nodes = (int) vdim*(pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order,cdim));
+    vms->num_surf_vel_nodes = (int) ( pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order + 1,cdim) );
   }
 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
   if ( vms->model_id == GKYL_MODEL_TRIAD ){
 
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
-    vms->num_surf_conf_nodes = cdim*pow(app->poly_order+1+highorder,pdim - 1);
+    vms->num_surf_conf_nodes = pow(app->poly_order+1+highorder,pdim - 1);
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-      vms->num_surf_conf_nodes = (int) cdim*(pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order,cdim- 1));
+      vms->num_surf_conf_nodes = (int) ( pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order + 1,cdim- 1) );
     }
 
-    vms->conf_flux_surf = mkarr(app->use_gpu, vms->num_surf_conf_nodes, vms->local_ext.volume);
+    vms->conf_flux_surf = mkarr(app->use_gpu, cdim*vms->num_surf_conf_nodes, vms->local_ext.volume);
     struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
       .phase_grid = &vms->grid, 
       .conf_basis = &app->basis,
@@ -1373,7 +1375,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   }
 
   // Allocate nodal surface expansion of velocity space flux array (vel).
-  vms->vel_flux_surf = mkarr(app->use_gpu, vms->num_surf_vel_nodes, vms->local_ext.volume);
+  vms->vel_flux_surf = mkarr(app->use_gpu, vdim*vms->num_surf_vel_nodes, vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &vms->grid, 
     .conf_basis = &app->basis,
