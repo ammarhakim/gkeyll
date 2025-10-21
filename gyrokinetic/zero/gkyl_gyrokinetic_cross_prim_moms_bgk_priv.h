@@ -12,7 +12,7 @@
 #include <assert.h>
 
 // Function pointer type for cross moments calculation
-typedef void (*gyrokinetic_cross_prim_moms_bgk_t)(const double delta_sr, const double beta, 
+typedef void (*gyrokinetic_cross_prim_moms_bgk_t)(const double delta_sr, const double betap1, 
   const double m_self, const double *prim_moms_self, const double m_other, const double *prim_moms_other, 
   double *prim_moms_cross);
 
