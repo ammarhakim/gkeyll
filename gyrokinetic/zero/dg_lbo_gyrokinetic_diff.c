@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <float.h>
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
