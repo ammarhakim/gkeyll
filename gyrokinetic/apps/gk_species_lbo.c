@@ -131,9 +131,10 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
-    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, gks->info.mass,
-      lbo->nu_moms, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.nu_moms,
-      lbo->other_prim_moms[i], lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
+    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, 
+      gks->info.mass, lbo->nu_moms, lbo->prim_moms,
+      lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
+      lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
 
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
@@ -309,8 +310,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     // Host-side copy for I/O.
     if (lbo->write_diagnostics) {
       if (app->use_gpu) {
-        lbo->nu_sum_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-        lbo->nu_prim_moms_host = mkarr(false, 2*app->basis.num_basis, app->local_ext.volume);    
+        lbo->nu_sum_host = mkarr(false, lbo->nu_sum->ncomp, lbo->nu_sum->size);
+        lbo->nu_prim_moms_host = mkarr(false, lbo->nu_prim_moms->ncomp, lbo->nu_prim_moms->size);
       }
       else {
         lbo->nu_sum_host = lbo->nu_sum;
