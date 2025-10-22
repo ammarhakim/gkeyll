@@ -2180,6 +2180,169 @@ spacetime_minkowski_lw_excision_region(lua_State *L)
   return 1;
 }
 
+static int
+spacetime_minkowski_lw_conformal_factor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double conformal_factor;
+  spacetime->conformal_factor_func(spacetime, t, x, y, z, &conformal_factor);
+
+  lua_pushnumber(L, conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_bssn_conformal_factor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double bssn_conformal_factor;
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z, &bssn_conformal_factor);
+
+  lua_pushnumber(L, bssn_conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_conformal_factor_der(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double *conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_bssn_conformal_factor_der(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double *bssn_conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, bssn_conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(bssn_conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_bssn_conformal_factor_der2(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double **bssn_conformal_factor_der2 = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    bssn_conformal_factor_der2[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->bssn_conformal_factor_der2_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der2);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, bssn_conformal_factor_der2[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(bssn_conformal_factor_der2[i]);
+  }
+  gkyl_free(bssn_conformal_factor_der2);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
 // Spacetime constructor.
 static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { "new", spacetime_minkowski_lw_new },
@@ -2193,6 +2356,11 @@ static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { "lapseFunctionDer", spacetime_minkowski_lw_lapse_function_der },
   { "shiftVectorDer", spacetime_minkowski_lw_shift_vector_der },
   { "spatialMetricTensorDer", spacetime_minkowski_lw_spatial_metric_tensor_der },
+  { "conformalFactor", spacetime_minkowski_lw_conformal_factor },
+  { "bssnConformalFactor", spacetime_minkowski_lw_bssn_conformal_factor },
+  { "conformalFactorDer", spacetime_minkowski_lw_conformal_factor_der },
+  { "bssnConformalFactorDer", spacetime_minkowski_lw_bssn_conformal_factor_der },
+  { "bssnConformalFactorDer2", spacetime_minkowski_lw_bssn_conformal_factor_der2 },
   { 0, 0 }
 };
 
