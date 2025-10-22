@@ -1518,6 +1518,8 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species_source(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
+
+  gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(app, sidx, tm, frame);
 }
 
 void
@@ -1536,8 +1538,6 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
   gkyl_gyrokinetic_app_write_species_source_mom(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_heating_diagnostics(app, sidx, tm, frame);
-
-  gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_lbo_mom(app, sidx, tm, frame);
 
@@ -1585,7 +1585,6 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     gkyl_gyrokinetic_app_write_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_heating_diagnostics(app, i, tm, frame);
-    gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_lbo_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, i, tm, frame);
