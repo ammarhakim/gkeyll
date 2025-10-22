@@ -691,7 +691,20 @@ struct gkylt_tokagridgen_inp {
 
 };
 
-struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *tginp);
+// Settings struct to return metadata
+struct gkylt_tokagridgen_settings {
+  int toka_type;
+  bool use_half_domain;
+  double psisep;
+};
+
+// Return struct containing both bgeom and settings
+struct gkylt_tokagridgen_output {
+  struct gkyl_gk_block_geom* bgeom;
+  struct gkylt_tokagridgen_settings settings;
+};
+
+struct gkylt_tokagridgen_output gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *tginp);
 
 
 // Lite struct and accessor to safely read nested geometry info from Lua
@@ -939,8 +952,10 @@ lfs.chdir(output_dir)
 inp.geqdsk_path = "../" .. geqdsk_path
  
 local tmStart = Time.clock()
--- generate grid
-local bgeom = ffi.C.gkylt_tokagridgen(inp)
+-- generate grid with settings
+local result = ffi.C.gkylt_tokagridgen(inp)
+local bgeom = result.bgeom
+local settings = result.settings
 
 -- Extract block geometry data for metadata
 local function extractBlockGeometryData(bgeom)
@@ -1101,6 +1116,23 @@ end
 -- Extract the geometry data
 local geometry_metadata = extractBlockGeometryData(bgeom)
 
+-- Function to extract settings metadata from the returned settings struct
+local function extractSettingsMetadata(settings)
+   local toka_type_names = {
+      [0] = "GKYL_TOKA_GRID_GEN_SINGLE_NULL",
+      [1] = "GKYL_TOKA_GRID_GEN_DOUBLE_NULL"
+   }
+   
+   return {
+      toka_type = toka_type_names[settings.toka_type],
+      use_half_domain = settings.use_half_domain,
+      psisep = settings.psisep
+   }
+end
+
+-- Extract the settings metadata
+local settings_metadata = extractSettingsMetadata(settings)
+
 -- Set GKYL_OUT_PREFIX to empty string to avoid path concatenation
 GKYL_OUT_PREFIX = name
 
@@ -1118,10 +1150,21 @@ local geometry_field = DataStruct.Field {
    metaData = geometry_metadata,
 }
 
+-- Create a field with the settings metadata
+local settings_field = DataStruct.Field {
+   onGrid = grid1d,
+   numComponents = 1,
+   metaData = settings_metadata,
+}
+
 -- Write the geometry metadata to file with a simple filename
 -- DataStruct automatically prepends the name, so we just need "_bgeom.gkyl"
 local output_filename = "bgeom.gkyl"
 geometry_field:write(output_filename)
+
+-- Write the settings metadata to file
+local settings_filename = "settings.gkyl"
+settings_field:write(settings_filename)
 
 -- Change back to original directory
 lfs.chdir(original_dir)

@@ -43,8 +43,21 @@ struct gkylt_tokagridgen_inp {
     const char *name; // application name
     bool use_half_domain; // flag to indicate if half domain should be used (DN only)
   };
-  
-struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *tginp);
+
+// Settings struct to return metadata
+struct gkylt_tokagridgen_settings {
+    enum gkyl_toka_grid_gen_null_points toka_type;
+    bool use_half_domain;
+    double psisep;
+};
+
+// Return struct containing both bgeom and settings
+struct gkylt_tokagridgen_output {
+    struct gkyl_gk_block_geom* bgeom;
+    struct gkylt_tokagridgen_settings settings;
+};
+
+struct gkylt_tokagridgen_output gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *tginp);
 
 // Lite accessor to export safe block geometry info to Lua
 void gkyl_gk_block_geom_get_block_lite(const struct gkyl_gk_block_geom *bgeom,
