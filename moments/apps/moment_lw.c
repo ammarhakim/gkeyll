@@ -31,6 +31,7 @@
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_vacuum_einstein.h>
+#include <gkyl_wv_vacuum_einstein_conformal.h>
 #include <gkyl_wv_gr_twofluid.h>
 #include <gkyl_wv_gr_mhd.h>
 #include <gkyl_wv_gr_mhd_tetrad.h>
@@ -300,6 +301,13 @@ static const struct gkyl_str_int_pair gr_medium_rp_type[] = {
 static const struct gkyl_str_int_pair vacuum_einstein_rp_type[] = {
   { "hll", WV_VACUUM_EINSTEIN_RP_HLL },
   { "lax", WV_VACUUM_EINSTEIN_RP_LAX },
+  { 0, 0 }
+};
+
+// Vacuum Einstein Riemann problem (Conformal Bona-Masso formalism) -> enum map.
+static const struct gkyl_str_int_pair vacuum_einstein_conformal_rp_type[] = {
+  { "hll", WV_VACUUM_EINSTEIN_CONFORMAL_RP_HLL },
+  { "lax", WV_VACUUM_EINSTEIN_CONFORMAL_RP_LAX },
   { 0, 0 }
 };
 
@@ -1341,6 +1349,52 @@ static struct luaL_Reg eqn_vacuum_einstein_ctor[] = {
   { 0, 0 }
 };
 
+/* ********************************************************** */
+/* Vacuum Einstein Equations (Conformal Bona-Masso Formalism) */
+/* ********************************************************** */
+
+// VacuumEinsteinConformal.new { excisionThreshold = 0.3, rpType = "hll" }.
+static int
+eqn_vacuum_einstein_conformal_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *vacuum_einstein_conformal_lw = gkyl_malloc(sizeof(*vacuum_einstein_conformal_lw));
+
+  double excision_threshold = glua_tbl_get_number(L, "excisionThreshold", 0.3);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_vacuum_einstein_conformal_rp rp_type = gkyl_search_str_int_pair_by_str(vacuum_einstein_conformal_rp_type, rp_str, WV_VACUUM_EINSTEIN_CONFORMAL_RP_HLL);
+  enum gkyl_spacetime_slicing spacetime_slicing = glua_tbl_get_integer(L, "spacetimeSlicing", GKYL_GEODESIC_SLICING);
+  enum gkyl_spacetime_evolution spacetime_evolution = glua_tbl_get_integer(L, "spacetimeEvolution", GKYL_RICCI_EVOLUTION);
+
+  vacuum_einstein_conformal_lw->magic = MOMENT_EQN_DEFAULT;
+  vacuum_einstein_conformal_lw->eqn = gkyl_wv_vacuum_einstein_conformal_inew( &(struct gkyl_wv_vacuum_einstein_conformal_inp) {
+      .excision_threshold = excision_threshold,
+      .spacetime_slicing = spacetime_slicing,
+      .spacetime_evolution = spacetime_evolution,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+  vacuum_einstein_conformal_lw->has_nn = false;
+  vacuum_einstein_conformal_lw->ann = 0;
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_vacuum_einstein_conformal_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_vacuum_einstein_conformal_lw = vacuum_einstein_conformal_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_vacuum_einstein_conformal_ctor[] = {
+  { "new", eqn_vacuum_einstein_conformal_lw_new },
+  { 0, 0 }
+};
+
 /* ******************************************************************** */
 /* General Relativistic Two-Fluid Equations (General Equation of State) */
 /* ******************************************************************** */
@@ -1674,6 +1728,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.VacuumEinstein", eqn_vacuum_einstein_ctor);
+  luaL_register(L, "G0.Moments.Eq.VacuumEinsteinConformal", eqn_vacuum_einstein_conformal_ctor);
   luaL_register(L, "G0.Moments.Eq.GRTwoFluid", eqn_gr_twofluid_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMHD", eqn_gr_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMHDTetrad", eqn_gr_mhd_tetrad_ctor);
@@ -2672,6 +2727,224 @@ spacetime_blackhole_lw_excision_region(lua_State *L)
   return 1;
 }
 
+static int
+spacetime_blackhole_lw_conformal_factor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double conformal_factor;
+  spacetime->conformal_factor_func(spacetime, t, x, y, z, &conformal_factor);
+
+  lua_pushnumber(L, conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_bssn_conformal_factor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double bssn_conformal_factor;
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z, &bssn_conformal_factor);
+
+  lua_pushnumber(L, bssn_conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_conformal_factor_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double *conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_bssn_conformal_factor_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double *bssn_conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, bssn_conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(bssn_conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_bssn_conformal_factor_der2(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double **bssn_conformal_factor_der2 = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    bssn_conformal_factor_der2[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->bssn_conformal_factor_der2_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der2);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, bssn_conformal_factor_der2[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(bssn_conformal_factor_der2[i]);
+  }
+  gkyl_free(bssn_conformal_factor_der2);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
 // Spacetime constructor.
 static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { "new", spacetime_blackhole_lw_new },
@@ -2685,6 +2958,11 @@ static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { "shiftVectorDer", spacetime_blackhole_lw_shift_vector_der },
   { "spatialMetricTensorDer", spacetime_blackhole_lw_spatial_metric_tensor_der },
   { "excisionRegion", spacetime_blackhole_lw_excision_region },
+  { "conformalFactor", spacetime_blackhole_lw_conformal_factor },
+  { "bssnConformalFactor", spacetime_blackhole_lw_bssn_conformal_factor },
+  { "conformalFactorDer", spacetime_blackhole_lw_conformal_factor_der },
+  { "bssnConformalFactorDer", spacetime_blackhole_lw_bssn_conformal_factor_der },
+  { "bssnConformalFactorDer2", spacetime_blackhole_lw_bssn_conformal_factor_der2 },
   { 0, 0 }
 };
 
@@ -4012,6 +4290,13 @@ moment_species_lw_new(lua_State *L)
     mom_species.vacuum_einstein_excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinExcisionThreshold", 0.3);
     mom_species.vacuum_einstein_spacetime_slicing = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeSlicing", GKYL_GEODESIC_SLICING);
     mom_species.vacuum_einstein_spacetime_evolution = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
+  }
+
+  mom_species.has_vacuum_einstein_conformal = glua_tbl_get_bool(L, "hasVacuumEinsteinConformal", false);
+  if (mom_species.has_vacuum_einstein_conformal) {
+    mom_species.vacuum_einstein_conformal_excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinConformalExcisionThreshold", 0.3);
+    mom_species.vacuum_einstein_conformal_spacetime_slicing = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeSlicing", GKYL_GEODESIC_SLICING);
+    mom_species.vacuum_einstein_conformal_spacetime_evolution = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
   }
 
   mom_species.has_gr_ultra_rel = glua_tbl_get_bool(L, "hasGRUltraRel", false);
