@@ -120,8 +120,10 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
         m0in_c[k] += m0phase_in_c[k];
 
       // Shift f if needed.
-      bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c)
-        && fabs(distf_c[0]) > up->skip_cell_threshold;
+      bool shifted_node = false;
+      if (fabs(distf_c[0]) > up->skip_cell_threshold) {
+        shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
+      }
 
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
