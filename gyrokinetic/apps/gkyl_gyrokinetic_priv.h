@@ -1161,7 +1161,7 @@ struct gkyl_gyrokinetic_app {
 
 /** gkyl_gyrokinetic_app private API */
 
-inline struct gkyl_gyrokinetic_bc *
+static inline struct gkyl_gyrokinetic_bc *
 gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
   int dir, enum gkyl_edge_loc edge)
 {
