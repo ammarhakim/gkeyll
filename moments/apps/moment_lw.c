@@ -4281,6 +4281,254 @@ spacetime_brill_lindquist_lw_excision_region(lua_State *L)
   return 1;
 }
 
+static int
+spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double conformal_factor;
+  spacetime->conformal_factor_func(spacetime, t, x, y, z, &conformal_factor);
+
+  lua_pushnumber(L, conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double bssn_conformal_factor;
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z, &bssn_conformal_factor);
+
+  lua_pushnumber(L, bssn_conformal_factor);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double *conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double *bssn_conformal_factor_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, bssn_conformal_factor_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(bssn_conformal_factor_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor_der2(lua_State *L)
+{
+  double mass1 = luaL_checknumber(L, 1);
+  double mass2 = luaL_checknumber(L, 2);
+  double pos_x1 = luaL_checknumber(L, 3);
+  double pos_y1 = luaL_checknumber(L, 4);
+  double pos_z1 = luaL_checknumber(L, 5);
+  double pos_x2 = luaL_checknumber(L, 6);
+  double pos_y2 = luaL_checknumber(L, 7);
+  double pos_z2 = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_brill_lindquist_inew( &(struct gkyl_gr_brill_lindquist_inp) {
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double **bssn_conformal_factor_der2 = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    bssn_conformal_factor_der2[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->bssn_conformal_factor_der2_func(spacetime, t, x, y, z, dx, dy, dz, &bssn_conformal_factor_der2);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, bssn_conformal_factor_der2[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(bssn_conformal_factor_der2[i]);
+  }
+  gkyl_free(bssn_conformal_factor_der2);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
 // Spacetime constructor.
 static struct luaL_Reg spacetime_brill_lindquist_ctor[] = {
   { "new", spacetime_brill_lindquist_lw_new },
@@ -4294,6 +4542,11 @@ static struct luaL_Reg spacetime_brill_lindquist_ctor[] = {
   { "shiftVectorDer", spacetime_brill_lindquist_lw_shift_vector_der },
   { "spatialMetricTensorDer", spacetime_brill_lindquist_lw_spatial_metric_tensor_der },
   { "excisionRegion", spacetime_brill_lindquist_lw_excision_region },
+  { "conformalFactor", spacetime_brill_lindquist_lw_conformal_factor },
+  { "bssnConformalFactor", spacetime_brill_lindquist_lw_bssn_conformal_factor },
+  { "conformalFactorDer", spacetime_brill_lindquist_lw_conformal_factor_der },
+  { "bssnConformalFactorDer", spacetime_brill_lindquist_lw_bssn_conformal_factor_der },
+  { "bssnConformalFactorDer2", spacetime_brill_lindquist_lw_bssn_conformal_factor_der2 },
   { 0, 0 }
 };
 
