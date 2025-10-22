@@ -120,16 +120,10 @@ struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp 
     efit_inp.filepath[sizeof(efit_inp.filepath)-1] = '\0';   
     struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
     double psisep = efit->psisep;
-    double psicenter = efit ->simag;
-    
-    char psi_filename[256], fpol_filename[256], q_filename[256];
+    double psicenter = efit ->simag;    
+    char psi_filename[256];
     snprintf(psi_filename, sizeof(psi_filename), "%s_psi.gkyl", name);
-    snprintf(fpol_filename, sizeof(fpol_filename), "%s_fpol.gkyl", name);
-    snprintf(q_filename, sizeof(q_filename), "%s_q.gkyl", name);
-  
     gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, psi_filename);
-    gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, fpol_filename);
-    gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, q_filename);    
     gkyl_efit_release(efit);
 
     enum gkyl_toka_grid_gen_null_points toka_type = inp->toka_type;
