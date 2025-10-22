@@ -76,15 +76,12 @@ static void
 gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
-  struct timespec wst = gkyl_wall_clock();
   // Calculate nu_sr(x,t).
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, s->lte.moms.marr, lbo->vtsq_min,
     lbo->collide_with[coll_idx]->lte.moms.marr, lbo->collide_with[coll_idx]->lbo.vtsq_min,
     lbo->norm_nu_fac_cross[coll_idx], lbo->cross_nu[coll_idx]);
 
   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
-
-  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 static void
@@ -133,7 +130,7 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
-    struct gkyl_array *cross_prim_moms = lbo->boundary_corrections;
+    struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, gks->info.mass,
       lbo->nu_moms, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.nu_moms,
       lbo->other_prim_moms[i], lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
@@ -187,12 +184,12 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   );
 
   // Write out nu_sum and nu_prim_moms.
-  const char *fmt = "%s-%s_nu_sum_%d.gkyl";
+  const char *fmt = "%s-%s_lbo_nu_sum_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
   
-  const char *fmt_nu_prim = "%s-%s_nu_prim_moms_%d.gkyl";
+  const char *fmt_nu_prim = "%s-%s_lbo_nu_prim_moms_%d.gkyl";
   int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, gks->info.name, frame);
   char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
   snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, gks->info.name, frame);

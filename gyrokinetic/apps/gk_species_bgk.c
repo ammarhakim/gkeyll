@@ -55,16 +55,12 @@ static void
 gkbgk_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_bgk_collisions *bgk, int coll_idx)
 {
-  struct timespec wst = gkyl_wall_clock();
-
   // Calculate nu_sr(x,t).
   gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, s->lte.moms.marr, bgk->vtsq_min,
     bgk->collide_with[coll_idx]->lte.moms.marr, bgk->collide_with[coll_idx]->bgk.vtsq_min,
     bgk->norm_nu_fac_cross[coll_idx], bgk->cross_nu[coll_idx]);
 
   gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[coll_idx]);
-
-  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 static void
@@ -176,7 +172,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   );
 
   // Write out nu_sum.
-  const char *fmt = "%s-%s_nu_sum_%d.gkyl";
+  const char *fmt = "%s-%s_bgk_nu_sum_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
