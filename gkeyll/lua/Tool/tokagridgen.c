@@ -95,7 +95,7 @@ void gkyl_gk_block_geom_get_block_lite(const struct gkyl_gk_block_geom *bgeom,
   }
 }
 
-struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *inp)
+struct gkylt_tokagridgen_output gkylt_tokagridgen(const struct gkylt_tokagridgen_inp *inp)
 {
     // Plate functions are now passed as function pointers from Lua input
 
@@ -2294,7 +2294,20 @@ struct gkyl_gk_block_geom* gkylt_tokagridgen(const struct gkylt_tokagridgen_inp 
     gkyl_gyrokinetic_multib_app_release_geom(app);
     gkyl_gyrokinetic_comms_release(comm);  
  
-    // Return the bgeom instead of releasing it
-    return bgeom;
+    // Create settings struct with the values from the function execution
+    struct gkylt_tokagridgen_settings settings = {
+        .toka_type = inp->toka_type,
+        .use_half_domain = inp->use_half_domain,
+        .psisep = psisep  // psisep is already calculated in the function
+    };
+    
+    // Create and return the result struct
+    struct gkylt_tokagridgen_output output = {
+        .bgeom = bgeom,
+        .settings = settings
+    };
+    
+    return output;
 
 }
+
