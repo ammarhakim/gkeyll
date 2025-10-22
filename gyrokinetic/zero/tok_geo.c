@@ -633,8 +633,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     .geo = geo
   };
 
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
-
   int cidx[3] = { 0 };
   for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
@@ -892,8 +890,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
     .geo = geo
   };
 
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
-
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
@@ -1133,8 +1129,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   struct plate_ctx pctx = {
     .geo = geo
   };
-
-  gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){

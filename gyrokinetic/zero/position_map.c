@@ -57,12 +57,16 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->to_optimize = false;
 
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
 
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = NULL;
     gpm->ctxs[i] = 0;
     gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
     gpm->constB_ctx->ctxs_backup[i] = 0;
+    gpm->xpt_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->xpt_ctx->ctxs_backup[i] = 0;
   }
 
   switch (pmap_info.id)
@@ -107,6 +111,16 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
       gpm->constB_ctx->moving_average_width = pmap_info.moving_average_width;
+
+    case GKYL_PMAP_XPT_COMPRESSION:
+
+      for (int i = 0; i < 2; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
+      }
+      gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
   }
 
   gpm->grid = grid;
@@ -149,6 +163,22 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
     gkyl_comm_array_allgather_host(comm, &gpm->local, \
     &gpm->global, bmag, (struct gkyl_array*) gpm->bmag_ctx->bmag);
   }
+}
+
+void
+gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, double zcenter)
+{
+  int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
+  gpm->xpt_ctx->zcut = zcut;
+  gpm->xpt_ctx->zcenter = zcenter;
+
+  gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
+  gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
+  gpm->maps[1] = gpm->xpt_ctx->maps_backup[1];
+  gpm->ctxs[1] = gpm->xpt_ctx->ctxs_backup[1];
+  gpm->maps[2] = position_map_xpt_compression;
+  gpm->map_derivs[2] = position_map_deriv_xpt_compression;
+  gpm->ctxs[2] = gpm->xpt_ctx;
 }
 
 void 
@@ -235,6 +265,13 @@ double
 gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
   double x, double dx, int ix_comp, const struct gkyl_range *nrange)
 {
+  if (gpm->map_derivs[ix_map] != NULL)
+  {
+    double slope;
+    gpm->map_derivs[ix_map](0.0, &x, &slope, gpm->ctxs[ix_map]);
+    return slope;
+  }
+
   double x_left = x - dx;
   double x_right = x + dx;
   double f_left, f, f_right;
@@ -285,5 +322,6 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   }
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
+  gkyl_free(gpm->xpt_ctx);
   gkyl_free(gpm);
 }

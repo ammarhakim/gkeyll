@@ -11,6 +11,7 @@ enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT = 0, // Function projection. User specified. Default
   GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, // Makes a uniform dB in each cell. Polynomial approximation, assuming 2 local maxima in Bmag
   GKYL_PMAP_CONSTANT_DB_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
+  GKYL_PMAP_XPT_COMPRESSION, // Compresses cells near X-point (For use in MB Tokamaks)
 };
 
 typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
@@ -26,6 +27,8 @@ struct gkyl_position_map_inp {
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
   double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
+  double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
+                             // near the X-point
 };
 struct gkyl_position_map_inew_inp {
   struct gkyl_position_map_inp pmap_info;
@@ -38,6 +41,7 @@ struct gkyl_position_map_inew_inp {
 struct gkyl_position_map {
   enum gkyl_position_map_id id;
   mc2nu_t maps[3]; // Position mapping in each position direction.
+  mc2nu_t map_derivs[3]; // Derivative of position mapping in each position direction.
   void *ctxs[3]; // Context for each position mapping function.
 
   double cdim; // Number of computational dimensions.
@@ -52,6 +56,7 @@ struct gkyl_position_map {
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
   struct gkyl_position_map_const_B_ctx *constB_ctx; // Context for constant B mapping
+  struct gkyl_position_map_xpt_ctx *xpt_ctx; // Context for X-point compression mapping 
 };
 
 struct gkyl_position_map_const_B_ctx {
@@ -80,6 +85,14 @@ struct gkyl_position_map_const_B_ctx {
   double *bmag_extrema; // The Bmag values of the extrema
   bool *min_or_max; // Whether the extrema is a minima or maxima. 1 is maxima, 0 is minima
   double dB_cell; // The change in Bmag per cell
+};
+
+struct gkyl_position_map_xpt_ctx {
+  mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
+  void *ctxs_backup[3]; // Backup of the context for each position mapping function.
+  double compression_factor; // Factor by which cells near X-point are compressed
+  double zcut; // Half-wavelength of sinusoidal mapping
+  double zcenter; // Location of largest cells
 };
 
 
@@ -138,6 +151,17 @@ void gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_arra
 void
 gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
   struct gkyl_array* bmag);
+
+/**
+ * Set the function paramters for the map object.
+ * 
+ * @param gpm Position map object.
+ * @param zcut half wavelength of sinusoidal mapping.
+ * @param zcenter location of largest cells.
+ */
+void
+gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, 
+    double zcenter);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.
