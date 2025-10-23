@@ -34,6 +34,8 @@ struct rad_ctx
   double log_lambda_ion; // Ion Coulomb logarithm.
   double nu_elc; // Electron collision frequency.
   double nu_ion; // Ion collision frequency.
+  double nu_elc_ion; // Electron-ion collision frequency.
+  double nu_ion_elc; // Ion-electron collision frequency.
 
   double c_s; // Sound speed.
   double vte; // Electron thermal velocity.
@@ -93,6 +95,8 @@ create_ctx(void)
     (6.0 * sqrt(2.0) * pow(M_PI,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3.0/2.0));
   double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion,4) * n0 /
     (12.0 * pow(M_PI,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3.0/2.0));
+  double nu_elc_ion = nu_elc*sqrt(2.0);
+  double nu_ion_elc = nu_elc_ion*(mass_elc/mass_ion);
   
   double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
@@ -138,6 +142,8 @@ create_ctx(void)
     .nu_elc = nu_elc,
     .log_lambda_ion = log_lambda_ion,
     .nu_ion = nu_ion,
+    .nu_elc_ion = nu_elc_ion,
+    .nu_ion_elc = nu_ion_elc,
     .c_s = c_s,
     .vte = vte,
     .vti = vti,
@@ -221,7 +227,7 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
-evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNuElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct rad_ctx *app = ctx;
 
@@ -232,7 +238,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNuIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct rad_ctx *app = ctx;
 
@@ -240,6 +246,28 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   // Set ion collision frequency.
   fout[0] = app->nu_ion;
+}
+
+void
+evalNuElcIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct rad_ctx *app = ctx;
+
+  double nu_elc_ion = app->nu_elc_ion;
+
+  // Set electron-ion collision frequency.
+  fout[0] = nu_elc_ion;
+}
+
+void
+evalNuIonElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct rad_ctx *app = ctx;
+
+  double nu_ion_elc = app->nu_ion_elc;
+
+  // Set ion-electron collision frequency.
+  fout[0] = app->nu_ion_elc;
 }
 
 static inline void
@@ -313,10 +341,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuElcInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion", "elc2"},
+      .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
+      .num_cross_collisions = 2,
+      .collide_with = { "ion", "elc2" },
+      .cross_nu = { evalNuElcIon, evalNuElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0/2,
+      .temp_ref = ctx.Te,
     },
 
     //Emissivity for all three of these should be 0
@@ -363,10 +395,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuElcInit,
-      .ctx = &ctx,
+      .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 2,
       .collide_with = { "ion", "elc" },
+      .cross_nu = { evalNuElcIon, evalNuElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0/2,
+      .temp_ref = ctx.Te,
     },
 
     //Emissivity of ion and test_sp_1 should be 0
@@ -411,10 +447,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuIonInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc", "elc2" },
+      .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
+      .num_cross_collisions = 2,
+      .collide_with = { "elc", "elc2", },
+      .cross_nu = { evalNuIonElc, evalNuIonElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti,
     },
 
     .source = {

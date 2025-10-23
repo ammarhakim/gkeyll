@@ -18,13 +18,13 @@ void shaped_pfunc_upper_outer(double s, double* RZ){
 }
 
 void shaped_pfunc_upper_inner(double s, double* RZ){
-    RZ[0] = 1.651 + (1.8 - 1.651)*s;
-    RZ[1] = 6.331 + (6.777 - 6.331)*s;
+  RZ[0] = 1.651 + (1.8 - 1.651)*s;
+  RZ[1] = 6.331 + (6.777 - 6.331)*s;
 }
 
 void shaped_pfunc_lower_inner(double s, double* RZ){
-    RZ[0] = 1.65 + (1.8 - 1.65)*s;
-    RZ[1] = -(6.33 + (6.777 - 6.33)*s);
+  RZ[0] = 1.65 + (1.8 - 1.65)*s;
+  RZ[1] = -(6.33 + (6.777 - 6.33)*s);
 }
 
 struct gkyl_gk_block_geom*
@@ -217,8 +217,6 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-
-
 struct gk_step_ctx
 create_ctx(void)
 {
@@ -239,7 +237,6 @@ create_ctx(void)
   // Derived parameters.
   double vtIon = sqrt(Ti/mi);
   double vtElc = sqrt(Te/me);
-
 
   double k_perp_rho_s = 0.3; // Product of perpendicular wavenumber and ion-sound gyroradius.
   double c_s = sqrt(Te / mi); // Sound speed.
@@ -263,13 +260,11 @@ create_ctx(void)
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mi)*(Ti*sqrt(Ti)));
 
   // Simulation box size (m).
-
   double vpar_max_elc = 6.0*vtElc;
   double mu_max_elc = 12*me*vtElc*vtElc/(2.0*B0);
 
   double vpar_max_ion = 6.0*vtIon;
   double mu_max_ion = 12*mi*vtIon*vtIon/(2.0*B0);
-
 
   // Number of cells.
   int Nz = 4;
@@ -355,7 +350,6 @@ sourceDensity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = n;
 }
 
-
 void
 initTempElc(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -384,20 +378,6 @@ sourceTemp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   struct gk_step_ctx *input = ctx;
   double T = input->T_source;
   fout[0] = T;
-}
-
-void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *input = ctx;
-  fout[0] = input->nuElc;
-}
-
-void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *input = ctx;
-  fout[0] = input->nuIon;
 }
 
 int
@@ -482,13 +462,10 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = false,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .bmag_mid =  2.51,
-      .self_nu = evalNuElc,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
+      .bmag_ref =  2.51,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -557,13 +534,10 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = false,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .bmag_mid =  2.51,
-      .self_nu = evalNuIon,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
+      .bmag_ref =  2.51,
       .num_cross_collisions = 1,
       .collide_with = { "elc"},
     },
@@ -593,8 +567,6 @@ main(int argc, char **argv)
     .num_physical_bcs = 0,
     .bcs = field_phys_bcs,
   };
-
-
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_step_sol_1x2v_p1",

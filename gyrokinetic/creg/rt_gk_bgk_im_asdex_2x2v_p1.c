@@ -154,20 +154,6 @@ eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
 }
 
 void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_asdex_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-
-void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_asdex_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-
-void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
@@ -395,12 +381,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .self_nu = evalNuElc,
-      .ctx = &ctx,
-      .has_implicit_coll_scheme = true,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
+      .is_implicit = true,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
       .write_diagnostics = true, 
@@ -478,12 +461,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .self_nu = evalNuIon,
-      .ctx = &ctx,
-      .has_implicit_coll_scheme = true,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
+      .is_implicit = true,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
       .write_diagnostics = true, 

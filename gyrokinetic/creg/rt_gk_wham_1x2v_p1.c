@@ -326,21 +326,6 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   }
 }
 
-// Evaluate collision frequencies
-void
-evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_mirror_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-
-void
-evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_mirror_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
@@ -615,11 +600,8 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Te0,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
       .write_diagnostics = true,
@@ -696,11 +678,8 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Ti0,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
       .write_diagnostics = true,

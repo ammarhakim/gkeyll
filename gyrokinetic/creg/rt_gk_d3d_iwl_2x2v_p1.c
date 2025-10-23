@@ -37,7 +37,9 @@ struct gk_app_ctx {
   double n0;  double Te0;  double Ti0; 
 
   // Collisions.
-  double nuFrac;  double nuElc;  double nuIon;
+  double nuFrac;
+  double nuElc;  double nuIon;
+  double nuElcIon;  double nuIonElc;
 
   // Source parameters.
   double n_srcOMP;        // Amplitude of the OMP source
@@ -339,6 +341,16 @@ void nuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   struct gk_app_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
+void nuElcIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  fout[0] = app->nuElcIon;
+}
+void nuIonElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  fout[0] = app->nuIonElc;
+}
 
 void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
@@ -456,6 +468,8 @@ create_ctx(void)
   double logLambdaIon = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
   double nuIon = nuFrac * logLambdaIon * pow(eV, 4) * n0 /
     (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
+  double nuElcIon = sqrt(2.0)*nuElc;
+  double nuIonElc = nuElcIon*(me/mi);
 
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
 
@@ -519,7 +533,9 @@ create_ctx(void)
     .mi = mi,  .qi = qi,
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
   
-    .nuFrac = nuFrac,  .nuElc = nuElc,  .nuIon = nuIon,
+    .nuFrac = nuFrac,
+    .nuElc = nuElc,  .nuIon = nuIon,
+    .nuElcIon = nuElcIon,  .nuIonElc = nuIonElc,
   
     .n_srcOMP     = n_srcOMP    ,
     .x_srcOMP     = x_srcOMP    ,
@@ -603,10 +619,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = nuElc,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .cross_nu = { nuElcIon, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0, 
     },
 
     .source = {
@@ -691,10 +711,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = nuIon,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .cross_nu = { nuIonElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0, 
     },
 
     .source = {

@@ -369,7 +369,7 @@ main(int argc, char **argv)
     //  .collision_id = GKYL_BGK_COLLISIONS, 
     //  .self_nu = evalNuD0, 
     //  .ctx = &ctx, 
-    //  //.has_implicit_coll_scheme = true, 
+    //  //.is_implicit = true, 
     //}, 
 
     .bcs = {

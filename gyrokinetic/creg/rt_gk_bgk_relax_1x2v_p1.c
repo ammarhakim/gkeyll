@@ -196,6 +196,28 @@ evalBumpNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = nu;
 }
 
+void
+evalBumpSquareNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0)*nu;
+}
+
+void
+evalSquareBumpNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0)*nu;
+}
+
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -264,9 +286,18 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalTopHatNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "bump" },
+      .cross_nu = {
+        evalSquareBumpNu,
+      },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2)*ctx.mass,
+      .eps0 = 1.0,
+      .hbar = 1.0,
+      .eV = 1.0,
     },
     
     .num_diag_moments = 7,
@@ -295,9 +326,18 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalBumpNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "square" },
+      .cross_nu = {
+        evalBumpSquareNu,
+      },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2)*ctx.mass,
+      .eps0 = 1.0,
+      .hbar = 1.0,
+      .eV = 1.0,
     },
     
     .num_diag_moments = 7,

@@ -238,8 +238,8 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = eval_nu_ion,
+      .self_nu_ctx = &ctx,
     },
 
     .bcs = {

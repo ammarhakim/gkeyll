@@ -264,7 +264,7 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalTopHatNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
     },
     
     .num_diag_moments = 7,
@@ -293,7 +293,7 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalBumpNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
     },
     
     .num_diag_moments = 7,

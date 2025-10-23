@@ -33,13 +33,13 @@ struct gk_mirror_ctx
   double alim;
   double alphaIC0;
   double alphaIC1;
-  double nuFrac;
-  // Electron-electron collision freq.
+  // Collision frequencies.
   double logLambdaElc;
-  double nuElc;
-  // Ion-ion collision freq.
   double logLambdaIon;
+  double nuElc;
   double nuIon;
+  double nuElcIon;
+  double nuIonElc;
   // Thermal speeds.
   double vti;
   double vte;
@@ -455,6 +455,20 @@ evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
   fout[0] = app->nuIon;
 }
 
+void
+evalNuElcIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->nuElcIon;
+}
+
+void
+evalNuIonElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->nuIonElc;
+}
+
 // Geometry evaluation functions for the gk app
 // mapc2p must assume a 3d input xc
 void
@@ -523,15 +537,16 @@ create_ctx(void)
   double alphaIC0 = 2;
   double alphaIC1 = 10;
 
+  // Collision frequencies.
   double nuFrac = 1.0;
-  // Electron-electron collision freq.
   double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
+  double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
   double nuElc = nuFrac * logLambdaElc * pow(eV, 4.) * n0 /
                  (6. * sqrt(2.) * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(me) * pow(Te0, 3. / 2.));
-  // Ion-ion collision freq.
-  double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
   double nuIon = nuFrac * logLambdaIon * pow(eV, 4.) * n0 /
                  (12 * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(mi) * pow(Ti0, 3. / 2.));
+  double nuElcIon = nuElc*sqrt(2.0);
+  double nuIonElc = nuElcIon*(me/mi);
 
   // Thermal speeds.
   double vti = sqrt(Ti0 / mi);
@@ -623,11 +638,12 @@ create_ctx(void)
     .alim = alim,
     .alphaIC0 = alphaIC0,
     .alphaIC1 = alphaIC1,
-    .nuFrac = nuFrac,
     .logLambdaElc = logLambdaElc,
-    .nuElc = nuElc,
     .logLambdaIon = logLambdaIon,
+    .nuElc = nuElc,
     .nuIon = nuIon,
+    .nuElcIon = nuElcIon,
+    .nuIonElc = nuIonElc,
     .vti = vti,
     .vte = vte,
     .c_s = c_s,
@@ -736,10 +752,14 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .cross_nu = { evalNuElcIon, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
     },
 
     .source = {
@@ -791,10 +811,14 @@ int main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .cross_nu = { evalNuIonElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0,
     },
 
     .source = {

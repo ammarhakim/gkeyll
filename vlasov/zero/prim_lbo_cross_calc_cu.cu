@@ -14,8 +14,7 @@ extern "C" {
 __global__ static void
 gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  const struct gkyl_range conf_rng,
-  const struct gkyl_array *greene,
+  const struct gkyl_range conf_rng, const struct gkyl_array *alpha_E,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu)
@@ -38,7 +37,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
     struct gkyl_mat lhs = gkyl_nmat_get(As, linc1);
     struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1);
 
-    const double *greene_d = (const double*) gkyl_array_cfetch(greene, start);
+    const double *alpha_E_d = (const double*) gkyl_array_cfetch(alpha_E, start);
     const double *self_moms_d = (const double*) gkyl_array_cfetch(self_moms, start);
     const double *self_prim_moms_d = (const double*) gkyl_array_cfetch(self_prim_moms, start);
     const double *other_moms_d = (const double*) gkyl_array_cfetch(other_moms, start);
@@ -48,7 +47,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, greene_d, 
+    calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, alpha_E_d, 
       self_m, self_moms_d, self_prim_moms_d,
       other_m, other_moms_d, other_prim_moms_d,
       boundary_corrections_d, nu_d
@@ -86,8 +85,7 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 
 void
 gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
-  const struct gkyl_range *conf_rng,
-  const struct gkyl_array *greene,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *alpha_E,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,  
@@ -105,9 +103,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
   }
   
   gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
-    calc->As->on_dev, calc->xs->on_dev, 
-    *conf_rng, 
-    greene->on_dev, 
+    calc->As->on_dev, calc->xs->on_dev, *conf_rng, alpha_E->on_dev, 
     self_m, self_moms->on_dev, self_prim_moms->on_dev,
     other_m, other_moms->on_dev, other_prim_moms->on_dev,
     boundary_corrections->on_dev, nu->on_dev);

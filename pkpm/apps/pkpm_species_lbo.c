@@ -43,6 +43,7 @@ pkpm_species_lbo_init(struct gkyl_pkpm_app *app, struct pkpm_species *s, struct 
     lbo->norm_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->nu_init = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_copy(lbo->nu_init, lbo->self_nu);
+    lbo->maxwellian_moms = mkarr(app->use_gpu, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
   }
   // Allocate needed arrays (boundary corrections, primitive moments, and nu*primitive moments)
   lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
@@ -140,8 +141,9 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
       gkyl_array_clear(lbo->norm_nu, 0.0);
       gkyl_array_clear(lbo->self_nu, 0.0);
       // Get density information (and scale out mass factor in PKPM moments)
-      gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
-      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0., 1.0, lbo->norm_nu);
+      gkyl_array_set_range(lbo->maxwellian_moms, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+      gkyl_array_set_offset_range(lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local);
+      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0, lbo->norm_nu);
       gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
     }
   } 
@@ -152,8 +154,9 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
       gkyl_array_clear(lbo->norm_nu, 0.0);
       gkyl_array_clear(lbo->self_nu, 0.0);
       // Get density information (and scale out mass factor in PKPM moments)
-      gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
-      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0.0, 1.0, lbo->norm_nu);
+      gkyl_array_set_range(lbo->maxwellian_moms, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+      gkyl_array_set_offset_range(lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local);
+      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0.0, 1.0, lbo->norm_nu);
       gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
     }
   }
@@ -236,6 +239,7 @@ pkpm_species_lbo_release(const struct gkyl_pkpm_app *app, const struct pkpm_lbo_
     gkyl_array_release(lbo->norm_nu);
     gkyl_array_release(lbo->nu_init);
     gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
+    gkyl_array_release(lbo->maxwellian_moms);
   }
 
   if (lbo->num_cross_collisions) {
