@@ -498,11 +498,12 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 }
 
 static void
-gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+gyrokinetic_calc_field_enabled(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
-  gk_field_accumulate_rho_c(app, app->field, fin);
+  gk_field_accumulate_rho_c(app, app->field, fin, bflux);
 
   // Compute biased wall potential if present and time-dependent.
   // Note: biased wall potential use eval_on_nodes. 
@@ -516,8 +517,10 @@ gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const str
 }
 
 static void
-gyrokinetic_calc_field_none(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+gyrokinetic_calc_field_disabled(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
+  // Do nothing.
 }
 
 static void
@@ -640,9 +643,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   // Choose the function that updates the fields in time.
   if (app->field->update_field)
-    app->calc_field_func = gyrokinetic_calc_field_update;
+    app->calc_field_func = gyrokinetic_calc_field_enabled;
   else
-    app->calc_field_func = gyrokinetic_calc_field_none;
+    app->calc_field_func = gyrokinetic_calc_field_disabled;
 
   app->enforce_positivity = gk->enforce_positivity;
   app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_disabled;
@@ -759,21 +762,22 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 }
 
 void
-gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
-  app->calc_field_func(app, tcurr, fin);
+  app->calc_field_func(app, tcurr, fin, bflux);
 }
 
 void
 gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[])
 {
   // Compute fields and apply BCs.
 
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **) distf);
+  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **) distf, bflux);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
@@ -842,9 +846,11 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species];
+  struct gkyl_array **bflux[app->num_species];
   struct gkyl_array *distf_neut[app->num_neut_species];
   for (int i=0; i<app->num_species; ++i) {
     distf[i] = app->species[i].f;
+    bflux[i] = app->species[i].bflux.f;
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
@@ -859,6 +865,8 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
         // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+        // Compute moments of the boundary fluxes.
+        gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
 
         // Adapt the source term to the initial condition.
         gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
@@ -869,7 +877,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       // Compute the field.
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
-      gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
+      gyrokinetic_calc_field_enabled(app, t0, (const struct gkyl_array **) distf, bflux);
     else {
       if (app->field->info.init_field_profile == 0)
         // Read the field.
@@ -887,6 +895,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     struct gk_species *gks = &app->species[i];
     gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
+    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
   }
 
   // Apply boundary conditions.
@@ -2638,9 +2647,11 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
     struct gkyl_array *distf[app->num_species];
+    struct gkyl_array **bflux[app->num_species];
     struct gkyl_array *distf_neut[app->num_neut_species];
     for (int i=0; i<app->num_species; ++i) {
       distf[i] = app->species[i].f;
+      bflux[i] = app->species[i].bflux.f;
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
@@ -2655,13 +2666,15 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
           gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+          // Compute moments of the boundary fluxes.
+          gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
         }
       }
 
       // Compute the field.
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
-      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf);
+      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf, bflux);
     }
     else {
       // Read the t=0 field.
@@ -2677,6 +2690,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+      // Compute moments of the boundary fluxes.
+      gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
 
       // Adapt the source term to the restart condition.
       gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);

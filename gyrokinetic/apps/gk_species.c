@@ -109,10 +109,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Heating source.
   gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
 
-  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
+  // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
-  // Compute diagnostic moments of the boundary fluxes.
+  // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
   // Reduce the CFL frequency anc compute stable dt needed by this species.
@@ -477,7 +477,7 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 }
 
 static void
-gk_species_calc_int_mom_dt_active(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+gk_species_calc_int_mom_dt_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
@@ -488,7 +488,7 @@ gk_species_calc_int_mom_dt_active(gkyl_gyrokinetic_app* app, struct gk_species *
 }
 
 static void
-gk_species_calc_int_mom_dt_none(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+gk_species_calc_int_mom_dt_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
 {
 }
 
@@ -1078,9 +1078,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
   if (gks->info.time_rate_diagnostics)
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_active;
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
   else
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_none;
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
 }
 
 // Initialize static species object.
@@ -1107,7 +1107,7 @@ gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_static;
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
   gks->write_L2norm_func = gk_species_write_L2norm_static;
-  gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_none;
+  gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
 }
 
 // End static function definitions.

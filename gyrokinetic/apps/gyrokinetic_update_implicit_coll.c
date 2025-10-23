@@ -8,12 +8,16 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   // Update gyrokinetic species BGK collisions
   int ns = app->num_species;  
   const struct gkyl_array *fin[ns];
+  struct gkyl_array **bflux_in[ns];
   struct gkyl_array *fout[ns];
+  struct gkyl_array **bflux_out[ns];
 
   // Fetch input and output arrays and compute moments for self-collisions.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gks = &app->species[i];
     fin[i] = gks->f;
+    bflux_in[i] = gks->bflux.f;
+    bflux_out[i] = gks->bflux.f;
     fout[i] = gks->f1;
     gk_species_bgk_moms_implicit(app, gks, &gks->bgk, fin[i]);
   }
@@ -50,7 +54,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   }
 
   // Apply boundary conditions and copy solution.
-  gyrokinetic_calc_field_and_apply_bc(app, app->tcurr, fout, fout_neut);
+  gyrokinetic_calc_field_and_apply_bc(app, app->tcurr, fout, bflux_out, fout_neut);
   for (int i=0; i<ns; ++i) {
     gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
   };

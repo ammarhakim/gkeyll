@@ -530,7 +530,7 @@ gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double
 
 void
 gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[])
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
@@ -546,12 +546,11 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         app->gk_geom->geo_int.jacobgeo, &app->local);  
 
       // We also need the M0 flux of the boundary flux through the z
-      // boundaries. Put it in the ghost cells of f and take its moment.
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, s->f1, &s->lower_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim-1], app->lower_ghost[app->cdim-1], s->f1);
-
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, s->f1, &s->upper_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim-1], app->upper_ghost[app->cdim-1], s->f1);
+      // boundaries. Put it in the ghost cells of s->m0.marr.
+      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+        s->m0.marr, &app->lower_ghost[app->cdim-1]);
+      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+        s->m0.marr, &app->upper_ghost[app->cdim-1]);
     } else {
       // Gyroaverage the density if needed.
       s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);

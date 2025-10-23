@@ -510,11 +510,15 @@ struct gk_boundary_fluxes {
   void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_get_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
-    enum gkyl_distribution_moments mom_type, struct gkyl_array *out, const struct gkyl_range *out_rng);
+    enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-    double dt, const struct gkyl_array **fin);
+    double dt, struct gkyl_array **fin);
+  void (*bflux_set_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
+    double fac, struct gkyl_array **fin);
+  void (*bflux_accumulate_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
+    double fac, struct gkyl_array **fin);
   void (*bflux_combine_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
     struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2);
   void (*bflux_copy_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
@@ -658,7 +662,7 @@ struct gk_recycle_react_scale {
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
     struct gk_recycle_react_scale *rrs, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*apply_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-    struct gk_recycle_react_scale *rrs, struct gkyl_array *fin);
+    struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[]);
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *ns,
     struct gk_recycle_react_scale *rrs, int ridx, double tm, int frame);
 };
@@ -1238,7 +1242,8 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_field *field; // pointer to field object
   // Pointer to function that computes the fields.
-  void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
+  void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr,
+    const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
   int num_species; // Number of charged species.
   struct gk_species *species; // Data for each charged species.
@@ -2026,12 +2031,13 @@ gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  * @param dir Direction of the boundary.
  * @param edge Edge of the boundary.
  * @param mom_type Name of the moment desired.
+ * @param bflux_moms Array of moments of boundary fluxes through every boundary.
  * @param out Array to copy the boundary flux moment into.
  * @param out_rng Range to copy the boundary flux moment into.
  */
 void
-gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, enum gkyl_distribution_moments mom_type, struct gkyl_array *out,
+gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+  enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out,
   const struct gkyl_range *out_rng);
 
 /**
@@ -2040,7 +2046,7 @@ gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
  * @param app Gyrokinetic app object.
  * @param bflux Species boundary flux object.
  * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs.
- * @param bflux_out Array of moments of boundary fluxes through every boundary.
+ * @param bflux_moms Array of moments of boundary fluxes through every boundary.
  */
 void gk_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
@@ -2080,7 +2086,33 @@ gk_species_bflux_scale(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bfl
  */
 void
 gk_species_bflux_step_f(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **bflux_out, double dt, const struct gkyl_array **bflux_in);
+  struct gkyl_array **bflux_out, double dt, struct gkyl_array **bflux_in);
+
+/**
+ * Set a stage of the boundary fluxes equal to another.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bflux Species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param fac Multiplicative factor.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_species_bflux_set(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_out, double fac, struct gkyl_array **bflux_in);
+
+/**
+ * Accumulate a stage of the boundary fluxes onto another.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bflux Species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param fac Multiplicative factor.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_species_bflux_accumulate(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_out, double fac, struct gkyl_array **bflux_in);
 
 /**
  * Combine the diagnotic boundary fluxes for multi-stage RK stepper.
@@ -2236,12 +2268,14 @@ gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  * @param dir Direction of the boundary.
  * @param edge Edge of the boundary.
  * @param mom_name Name of the moment desired.
+ * @param bflux_moms Array of moments of boundary fluxes through every boundary.
  * @param out Array to copy the boundary flux moment into.
  * @param out_rng Range to copy the boundary flux moment into.
  */
 void
-gk_neut_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, enum gkyl_distribution_moments mom_type, struct gkyl_array *out, const struct gkyl_range *out_rng);
+gk_neut_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+  enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out,
+  const struct gkyl_range *out_rng);
 
 /**
  * Compute moments of the boundary fluxes.
@@ -2289,7 +2323,33 @@ gk_neut_species_bflux_scale(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes
  */
 void
 gk_neut_species_bflux_step_f(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **bflux_out, double dt, const struct gkyl_array **bflux_in);
+  struct gkyl_array **bflux_out, double dt, struct gkyl_array **bflux_in);
+
+/**
+ * Set a stage of the boundary fluxes equal to another.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bflux Neutral species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param fac Multiplicative factor.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_neut_species_bflux_set(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_out, double fac, struct gkyl_array **bflux_in);
+
+/**
+ * Accumulate a stage of the boundary fluxes onto another.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bflux Neutral species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param fac Multiplicative factor.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_neut_species_bflux_accumulate(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_out, double fac, struct gkyl_array **bflux_in);
 
 /**
  * Combine the diagnotic boundary fluxes for multi-stage RK stepper.
@@ -3164,9 +3224,10 @@ void gk_neut_species_recycle_react_scale_rhs(gkyl_gyrokinetic_app *app, struct g
  * @param ns Neutral species object.
  * @param rrs Recycle react scale object.
  * @param fin Distribution/moments to scale.
+ * @param bflux Boundary fluxes of charged species.
  */
 void gk_neut_species_recycle_react_scale_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin);
+  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[]);
 
 /**
  * Write out recycle_react_scale diagnostics.
@@ -3495,9 +3556,10 @@ void gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, d
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
  * @param fin[] Input distribution function (num_species size).
+ * @param bflux Boundary fluxes of charged species.
  */
 void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /**
  * Compute EM field.
@@ -3558,8 +3620,10 @@ void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param fin Array of distribution functions (one for each species) .
+ * @param bflux Boundary fluxes of charged species.
  */
-void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
+void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /**
  * Compute the gyrokinetic fields and apply boundary conditions.
@@ -3567,10 +3631,11 @@ void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struc
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param distf Array of distribution functions (for each charged species).
+ * @param bflux Boundary fluxes of charged species.
  * @param distf_neut Array of distribution functions (for each neutral species).
  */
 void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
+  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
