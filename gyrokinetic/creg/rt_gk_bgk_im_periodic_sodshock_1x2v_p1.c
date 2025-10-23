@@ -283,7 +283,7 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_bgk_periodic_sodshock_1x2v_p1",
+    .name = "gk_bgk_im_periodic_sodshock_1x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },

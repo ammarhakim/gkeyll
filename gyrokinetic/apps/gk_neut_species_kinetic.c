@@ -43,7 +43,7 @@ gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_sp
 
 static double
 gk_neut_species_kinetic_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
 { 
   double omega_cfl = 1/DBL_MAX;
   gkyl_array_clear(species->cflrate, 0.0);
@@ -209,50 +209,50 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
 }
 
 static void
-gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for kinetic neutral species.
 
-  gkyl_array_release(s->f);
-  if (s->info.init_from_file.type == 0) {
-    gk_neut_species_projection_release(app, &s->proj_init);
+  gkyl_array_release(ns->f);
+  if (ns->info.init_from_file.type == 0) {
+    gk_neut_species_projection_release(app, &ns->proj_init);
   }
-  gkyl_comm_release(s->comm);
+  gkyl_comm_release(ns->comm);
 
   if (app->use_gpu) {
-    gkyl_array_release(s->f_host);
-    gkyl_cu_free(s->basis_on_dev);
+    gkyl_array_release(ns->f_host);
+    gkyl_cu_free(ns->basis_on_dev);
   }
 
-  gkyl_velocity_map_release(s->vel_map);
+  gkyl_velocity_map_release(ns->vel_map);
 
   // Release moment data.
-  gk_neut_species_moment_release(app, &s->m0);
-  for (int i=0; i<s->info.num_diag_moments; ++i)
-    gk_neut_species_moment_release(app, &s->moms[i]);
-  gkyl_free(s->moms);
+  gk_neut_species_moment_release(app, &ns->m0);
+  for (int i=0; i<ns->info.num_diag_moments; ++i)
+    gk_neut_species_moment_release(app, &ns->moms[i]);
+  gkyl_free(ns->moms);
 
-  gk_neut_species_bgk_release(app, &s->bgk);
+  gk_neut_species_bgk_release(app, &ns->bgk);
 
   // Free boundary flux memory.
-  gk_neut_species_bflux_release(app, s, &s->bflux);
+  gk_neut_species_bflux_release(app, ns, &ns->bflux);
   
-  gk_neut_species_lte_release(app, &s->lte);
+  gk_neut_species_lte_release(app, &ns->lte);
 
-  gkyl_array_release(s->gij);
-  gkyl_array_release(s->g_ij);
+  gkyl_array_release(ns->gij);
+  gkyl_array_release(ns->g_ij);
 
-  gkyl_array_release(s->hamil);
+  gkyl_array_release(ns->hamil);
   if (app->use_gpu)
-    gkyl_array_release(s->hamil_host);
+    gkyl_array_release(ns->hamil_host);
 
-  gk_neut_species_collisionless_release(app, &s->collisionless);
+  gk_neut_species_collisionless_release(app, &ns->collisionless);
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
+  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
 
-  s->release_is_static_func(app, s);
+  ns->release_is_static_func(app, ns);
 }
 
 void

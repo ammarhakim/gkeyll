@@ -725,6 +725,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
       has_implicit_coll_scheme = true;
     }
   }
+  for (int i=0; i<neuts; ++i){
+    if (gk->neut_species[i].collisions.is_implicit){
+      has_implicit_coll_scheme = true;
+    }
+  }
 
   // Set the appropriate update function for taking a single time step
   // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
@@ -1689,75 +1694,66 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 {
   double dtmin = DBL_MAX;
 
-  // Compute necessary moments and boundary corrections for collisions.
+  // Compute moments needed by various modules.
   for (int i=0; i<app->num_species; ++i) {
-    gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    gk_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_lbo_moms(app, gk_s, &gk_s->lbo, fin[i]);
+    gk_species_bgk_moms(app, gk_s, &gk_s->bgk, fin[i]);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    gk_neut_species_bgk_moms(app, gk_ns, &gk_ns->bgk, fin_neut[i]);
   }
 
-  // Compute necessary moments for cross-species collisions.
-  // Needs to be done after self-collisions moments, so separate loop over species.
+  // Compute cross-species moments needed by various modules.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
     // Elastic collisions.
-    gk_species_lbo_cross_moms(app, &app->species[i], &gk_s->lbo, fin[i]);        
-    gk_species_bgk_cross_moms(app, &app->species[i], &gk_s->bgk, fin[i]);        
+    gk_species_lbo_cross_moms(app, gk_s, &gk_s->lbo, fin[i]);        
+    gk_species_bgk_cross_moms(app, gk_s, &gk_s->bgk, fin[i]);        
 
-    // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
+    // Reactions (e.g. ionization, recombination charge exchange).
     if (gk_s->react.num_react) {
-      gk_species_react_cross_moms(app, &app->species[i], 
-        &gk_s->react, fin, fin_neut);
+      gk_species_react_cross_moms(app, gk_s, &gk_s->react, fin, fin_neut);
     }
     if (gk_s->react_neut.num_react) {
-      gk_species_react_cross_moms(app, &app->species[i], 
-        &gk_s->react_neut, fin, fin_neut);
+      gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin, fin_neut);
     }
-    // Compute necessary drag coefficients for radiation operator.
+    // Line radiation.
     if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
-      gk_species_radiation_moms(app, &app->species[i], 
-        &gk_s->rad, fin, fin_neut);
+      gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
     }
   }
-
   for (int i=0; i<app->num_neut_species; ++i) {
-    struct gk_neut_species *s = &app->neut_species[i];
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
 
-    if (s->react_neut.num_react) {
-      // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
-      gk_neut_species_react_cross_moms(app, s, &s->react_neut, fin, fin_neut);
+    // Reactions (e.g. ionization, recombination charge exchange).
+    if (gk_ns->react_neut.num_react) {
+      gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin, fin_neut);
     }
 
-    // Compute reaction coefficients fro scaling species according to balance
-    // between recycling and reactions.
-    gk_neut_species_recycle_react_scale_cross_moms(app, s, &s->rrs, fin, fin_neut);
+    // Scaling according to balance between recycling and reactions.
+    gk_neut_species_recycle_react_scale_cross_moms(app, gk_ns, &gk_ns->rrs, fin, fin_neut);
   }
 
-  // Compute collisionless terms of charged species.
+  // Compute df/dt (not including sources).
   for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
+    struct gk_species *gk_s = &app->species[i];
+    double dt1 = gk_species_rhs(app, gk_s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
-
-  // Compute collisionless terms of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    struct gk_neut_species *s = &app->neut_species[i];
-    double dt1 = gk_neut_species_rhs(app, s, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    double dt1 = gk_neut_species_rhs(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
-  // Compute plasma source term.
-  // Done here as the RHS update for all species should be complete before
-  // in case we are using boundary fluxes as a component of our source function
+  // Sources. Done after df/dt in case boundary fluxes are needed.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_source_rhs(app, &app->species[i], 
       &app->species[i].src, fin[i], fout[i]);
   }
-
-  // Compute neutral source term.
-  // Done here as the RHS update for all species should be complete before
-  // in case we are using boundary fluxes as a component of our source function.
   for (int i=0; i<app->num_neut_species; ++i) {
     gk_neut_species_source_rhs(app, &app->neut_species[i], 
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
@@ -1780,6 +1776,40 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+void
+gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
+  struct gkyl_update_status *st)
+{
+  // Compute moments needed by various modules.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_bgk_moms_implicit(app, gk_s, &gk_s->bgk, fin[i]);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    gk_neut_species_bgk_moms_implicit(app, gk_ns, &gk_ns->bgk, fin_neut[i]);
+  }
+
+  // Compute cross-species moments needed by various modules.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    // Elastic collisions.
+    gk_species_bgk_cross_moms_implicit(app, gk_s, &gk_s->bgk, fin[i]);        
+  }
+
+  // Compute df/dt from implicit terms (not including sources).
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_rhs_implicit(app, gk_s, fin[i], fout[i], bflux_out[i], dt);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    gk_neut_species_rhs_implicit(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i], dt);
+  }
 }
 
 struct gkyl_update_status
