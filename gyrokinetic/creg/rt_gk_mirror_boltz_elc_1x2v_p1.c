@@ -649,7 +649,7 @@ int main(int argc, char **argv)
       .num_steps = app_args.num_steps,
     },
     .print_verbosity = {
-      // .enabled = true
+      .enabled = true,
     }
   };
 
