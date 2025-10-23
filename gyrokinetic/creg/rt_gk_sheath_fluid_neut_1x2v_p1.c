@@ -791,6 +791,7 @@ main(int argc, char **argv)
     },
 
     .recycling_reaction_scaling = {
+      .type = GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE,
       .impacting_ion_name =  "ion" ,
       .impacting_ion_id = GKYL_ION_H,
       .electron_name = "elc",
