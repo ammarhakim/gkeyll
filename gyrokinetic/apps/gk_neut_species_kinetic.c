@@ -9,10 +9,7 @@ gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_sp
   gkyl_array_clear(rhs, 0.0);
   
   // Collisionless terms.
-  struct timespec wst = gkyl_wall_clock();
-  gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-    fin, species->cflrate, rhs);
-  app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+  gk_neut_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs);
 
   if (species->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
@@ -237,14 +234,6 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gkyl_velocity_map_release(s->vel_map);
 
-  gkyl_array_release(s->alpha_surf);
-  gkyl_array_release(s->sgn_alpha_surf);
-  gkyl_array_release(s->const_sgn_alpha);
-
-  // Release equation object and solver.
-  gkyl_dg_eqn_release(s->eqn_vlasov);
-  gkyl_dg_updater_vlasov_release(s->slvr);
-
   // Release moment data.
   gk_neut_species_moment_release(app, &s->m0);
   for (int i=0; i<s->info.num_diag_moments; ++i)
@@ -262,6 +251,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   gkyl_array_release(s->hamil);
   if (app->use_gpu)
     gkyl_array_release(s->hamil_host);
+
+  gk_neut_species_collisionless_release(app, &s->collisionless);
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
@@ -701,7 +692,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   }
 
   if (app->use_gpu) {
-    // allocate device basis if we are using GPUs
+    // Allocate device basis if we are using GPUs.
     s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     if (app->poly_order > 1) {
       gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
@@ -731,7 +722,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
+  // Model type is Canonical PB to handle curvilinear coordinates.
   s->model_id = GKYL_MODEL_CANONICAL_PB;
+  // Field type is null as this species doesn't interact with fields.
+  s->field_id = GKYL_FIELD_NULL;
 
   // Velocity space mapping.
   assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
@@ -761,16 +755,6 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
       s->upper_bc[d] = *bc_up;
     else
       s->upper_bc[d].type = GKYL_BC_GK_SKIP;
-  }
-
-  // Determine which directions are zero-flux. By default
-  // we do not have zero-flux boundary conditions in any direction.
-  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
-      is_zero_flux[dir] = true;
-    if (s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
-      is_zero_flux[dir+pdim] = true;
   }
 
   // Allocate distribution function array for initialization and I/O.
@@ -818,40 +802,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     gkyl_array_copy(s->hamil_host, s->hamil);
   }
 
-  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
-  struct gkyl_basis surf_basis, surf_quad_basis;
-  gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-  gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+  // Initialize the collisionless solver.
+  s->collisionless = (struct gk_collisionless) { };
+  gk_neut_species_collisionless_init(app, s, &s->collisionless);
 
-  int alpha_surf_sz = (cdim+vdim)*surf_basis.num_basis; 
-  int sgn_alpha_surf_sz = (cdim+vdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
-
-  // allocate arrays to store fields: 
-  // 1. alpha_surf (surface phase space velocity)
-  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
-  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-  s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
-  s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-  s->const_sgn_alpha = mk_int_arr(app->use_gpu, cdim+vdim, s->local_ext.volume);
-
-  // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
-  struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
-    &app->basis, &s->basis, app->use_gpu);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
-    s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
-  gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
-
-  struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
-    .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
-
-  // Set field type and model id for neutral species in GK system and create solver
-  s->field_id = GKYL_FIELD_NULL;
-  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->basis, &s->basis, 
-    &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
-
-  // Acquire equation object.
-  s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
-  
   // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
   // code duplication since the "ghost" array is needed.
   for (int dir=0; dir<cdim; ++dir) {

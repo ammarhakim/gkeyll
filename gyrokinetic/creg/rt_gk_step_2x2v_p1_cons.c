@@ -590,6 +590,10 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
+    },
+
     .react_neut = {
       .num_react = 3,
       .react_type = {

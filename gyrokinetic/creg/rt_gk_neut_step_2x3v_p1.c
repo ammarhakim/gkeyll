@@ -352,6 +352,10 @@ main(int argc, char **argv)
       //.correct_all_moms = true,
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
+    },
+
     .source = { 
        .source_id = GKYL_PROJ_SOURCE, 
        .num_sources = 1, 

@@ -488,6 +488,10 @@ main(int argc, char **argv)
       .temp = evalTempNeutInit,      
     },
 
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
+    },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,

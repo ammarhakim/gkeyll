@@ -547,7 +547,7 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
 
-    // neutral Deuterium
+  // Neutral Deuterium.
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.mass_ion,
     .vdim = ctx.vdim+1,
@@ -566,7 +566,10 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    //.bcx = { GKYL_BC_GK_SPECIES_ABSORB, GKYL_BC_GK_SPECIES_ABSORB},
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
+    },
+
     .react_neut = {
       .num_react = 3,
       .react_type = {

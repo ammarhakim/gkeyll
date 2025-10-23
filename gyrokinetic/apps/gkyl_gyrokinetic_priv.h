@@ -243,19 +243,43 @@ struct gk_collisionless {
   bool write_diagnostics; // Whether to write diagnostics out.
 
   // Organization of the different equation objects and the required data and solvers
-  struct gkyl_array *flux_surf; // Array for surface phase space flux
-  struct gkyl_array *apar; // A_parallel.
-  struct gkyl_array *apardot; // d/dt A_parallel.
+  union {
+    // Charged (gyrokinetic) species ............................................ //
+    struct {
+      struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *apar; // A_parallel.
+      struct gkyl_array *apardot; // d/dt A_parallel.
 
-  struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
-  gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
+      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
+      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
  
-  // Methods chosen at runtime.
-  void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    struct gk_collisionless *gkcls, const struct gkyl_array *fin);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+      // Methods chosen at runtime.
+      void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+        struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+    };
+    // Neutral (Vlasov) species ............................................ //
+    struct {
+      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
+      struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+                                         // utilized for numerical flux function
+                                         // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
+      struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+                                          // if true, numerical flux function inside kernels simplifies to
+                                          // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
+                                          // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+
+      gkyl_dg_updater_vlasov *vlasov_slvr; // Vlasov solver.
+
+    };
+  };
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_collisionless *gkcls, double tm, int frame);
+  // Methods for neutral species.
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_diags_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
     struct gk_collisionless *gkcls, double tm, int frame);
 };
 
@@ -977,19 +1001,7 @@ struct gk_neut_species {
       struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
-      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
-      struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
-                                         // utilized for numerical flux function
-                                         // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-      struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
-                                          // if true, numerical flux function inside kernels simplifies to
-                                          // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
-                                          // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
-
       struct gk_species_moment m0; // Computes density.
-
-      gkyl_dg_updater_vlasov *slvr; // Vlasov solver.
-      struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object.
 
       struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
       struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for ghost-buffer BCs.
@@ -1004,12 +1016,9 @@ struct gk_neut_species {
       struct gkyl_bc_basic *bc_lo[GKYL_MAX_CDIM];
       struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
 
-      // Collisions.
-      union {
-        struct {
-          struct gk_bgk_collisions bgk; // BGK collisions object
-        };
-      }; 
+      struct gk_collisionless collisionless; // Collisionless terms.
+
+      struct gk_bgk_collisions bgk; // BGK collisions object
 
       struct gk_react react_neut; // Reaction object.
 
@@ -1420,7 +1429,7 @@ void gk_species_moment_calc(const struct gk_species_moment *sm,
 void gk_species_moment_release(const struct gkyl_gyrokinetic_app *app,
   const struct gk_species_moment *sm);
 
-/** gk_collisionless API */
+/** gk_species_collisionless API */
 
 /**
  * Initialize species collisionless object.
@@ -1436,7 +1445,7 @@ void gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_s
  * Compute the collisionless phase-space flux.
  *
  * @param app Gyrokinetic app object.
- * @param species Pointer to species.
+ * @param gks Pointer to species.
  * @param gkcls Species collisionless object.
  * @param fin Input distribution function.
  */
@@ -1447,7 +1456,7 @@ void gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species 
  * Compute RHS contribution from collisionless terms.
  *
  * @param app Gyrokinetic app object.
- * @param species Pointer to species.
+ * @param gks Pointer to species.
  * @param gkcls Species collisionless object.
  * @param fin Input distribution function.
  * @param rhs collisionless contribution to df/dt.
@@ -1459,7 +1468,7 @@ void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *
  * Write out diagnostics from the collisionless terms.
  *
  * @param app Gyrokinetic app object.
- * @param species Pointer to species.
+ * @param gks Pointer to species.
  * @param gkcls Species collisionless object.
  * @param tm Current simulation time.
  * @param frame Current I/O frame.
@@ -1475,7 +1484,62 @@ void gk_species_collisionless_write_diags(gkyl_gyrokinetic_app* app, struct gk_s
  */
 void gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls);
 
-/** gk_species_radiation API */
+/** gk_neut_species_collisionless API */
+
+/**
+ * Initialize species collisionless object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Neutral species object.
+ * @param gkcls Species collisionless object.
+ */
+void gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  struct gk_collisionless *gkcls);
+
+/**
+ * Compute the collisionless phase-space flux.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Pointer to neutral species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ */
+void gk_neut_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+
+/**
+ * Compute RHS contribution from collisionless terms.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Pointer to neutral species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ * @param rhs collisionless contribution to df/dt.
+ */
+void gk_neut_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write out diagnostics from the collisionless terms.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Pointer to neutral species.
+ * @param gkcls Species collisionless object.
+ * @param tm Current simulation time.
+ * @param frame Current I/O frame.
+ */
+void gk_neut_species_collisionless_write_diags(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+  struct gk_collisionless *gkcls, double tm, int frame);
+
+/**
+ * Release species collisionless object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkcls Species collisionless object.
+ */
+void gk_neut_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls);
+
+/** gk_neut_species_radiation API */
 
 /**
  * Initialize species radiation drag object.

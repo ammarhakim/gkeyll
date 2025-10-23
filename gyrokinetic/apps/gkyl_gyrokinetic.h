@@ -330,8 +330,7 @@ struct gkyl_gyrokinetic_species {
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
-  // Collisionless terms.
-  struct gkyl_gyrokinetic_collisionless collisionless;
+  struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
   struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
@@ -388,6 +387,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+
+  struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;

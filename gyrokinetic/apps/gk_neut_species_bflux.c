@@ -588,9 +588,15 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     }
   
     // Create an array of equation objects with terms that produce boundary fluxes.
-    bflux->num_eqns = 1; // Collisionless terms.
+    bflux->num_eqns = 0;
+    if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL)
+      bflux->num_eqns += 1; // Collisionless terms.
+
     bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
-    bflux->eqns[0] = gkyl_dg_updater_vlasov_acquire_eqn(gkns->slvr);
+
+    int eqc = 0;
+    if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL)
+      bflux->eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(gkns->collisionless.vlasov_slvr);
   
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
