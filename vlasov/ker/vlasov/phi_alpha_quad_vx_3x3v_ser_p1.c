@@ -10,13 +10,13 @@ GKYL_CU_DH void phi_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *p
   alpha_quad[2] -= dx10*force_quad;
   alpha_quad[3] -= dx10*force_quad;
 
-  force_quad = -(0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
+  force_quad = (-0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
   alpha_quad[4] -= dx10*force_quad;
   alpha_quad[5] -= dx10*force_quad;
   alpha_quad[6] -= dx10*force_quad;
   alpha_quad[7] -= dx10*force_quad;
 
-  force_quad = -(0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
+  force_quad = (-0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
   alpha_quad[8] -= dx10*force_quad;
   alpha_quad[9] -= dx10*force_quad;
   alpha_quad[10] -= dx10*force_quad;
@@ -34,13 +34,13 @@ GKYL_CU_DH void phi_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *p
   alpha_quad[18] -= dx10*force_quad;
   alpha_quad[19] -= dx10*force_quad;
 
-  force_quad = -(0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
+  force_quad = (-0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
   alpha_quad[20] -= dx10*force_quad;
   alpha_quad[21] -= dx10*force_quad;
   alpha_quad[22] -= dx10*force_quad;
   alpha_quad[23] -= dx10*force_quad;
 
-  force_quad = -(0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
+  force_quad = (-0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1];
   alpha_quad[24] -= dx10*force_quad;
   alpha_quad[25] -= dx10*force_quad;
   alpha_quad[26] -= dx10*force_quad;

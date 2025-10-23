@@ -659,7 +659,9 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   }
 
   if (up->use_gpu) {
-    gkyl_cu_free(up->vmap_basis_on_dev);
+    if (up->use_vmap) {
+      gkyl_cu_free(up->vmap_basis_on_dev);
+    }
     gkyl_cu_free(up->p2c_qidx);
     gkyl_cu_free(up->p2v_qidx);
     gkyl_array_release(up->f_lte_quad);

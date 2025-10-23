@@ -116,20 +116,6 @@ vlasovApp = Vlasov.App.new {
       }
     },
 
-    -- collisions = {
-    --   collisionID = G0.Collisions.BGK,
-
-    --   selfNu = function (t, xn)
-    --     return nu -- Collision frequency.
-    --   end,
-      
-    --   useImplicitCollisionScheme = true,
-    --   correctAllMoments = true,
-    --   iterationEpsilon = 0.0,
-    --   maxIterations = 0,
-    --   useLastConverged = false
-    -- },
-
     bcx = {
       lower = {
         type = G0.SpeciesBc.bcAbsorb

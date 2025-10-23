@@ -42,12 +42,11 @@
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
-#include <gkyl_dg_updater_vlasov_poisson.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
 #include <gkyl_dg_vlasov_divide_Jv.h>
-#include <gkyl_dg_vlasov_poisson.h>
+#include <gkyl_dg_vlasov_conf_flux_surf.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -75,6 +74,7 @@
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
@@ -185,6 +185,9 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_sum; // BGK collision frequency 
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
+
+  int num_conf_basis; // number of configuration space basis functions
+  struct gkyl_array *actual_nu; // BGK collision frequency, corrected to 0 for regions where n,T< 0
 
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
@@ -360,6 +363,8 @@ struct vm_species {
   struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
+  bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
+
   bool use_vmap; // bool to determine if we are using mapped velocity-space grids
   struct gkyl_array *vmap; // mapping for mapped velocity-space grids
   struct gkyl_array *jacob_vel; // velocity-space Jacobian in each direction at 1V Gauss-Legendre quadrature points.
@@ -389,12 +394,16 @@ struct vm_species {
   bool has_B; // Do we have magnetic fields? 
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
+  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
+  int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
 
   // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
   struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
-  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes. 
+  struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel). 
   union {
     // Special relativistic Vlasov-Maxwell model.
     struct {
@@ -412,6 +421,9 @@ struct vm_species {
       struct gkyl_array *det_h_host; // Host side metric determinant
     };
   };
+
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+  struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation object.
   struct gkyl_hyper_dg *slvr; // Vlasov solver.   
@@ -814,10 +826,6 @@ struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app,  double d
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app,
-  double dt0);
-
-// Take a single time-step in Vlasov-Poisson using a SSP-RK3 stepper.
-struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app,
   double dt0);
 
 /** gkyl_vlasov_app private API */

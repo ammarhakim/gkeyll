@@ -23,11 +23,11 @@ GKYL_CU_DH void hamil_default_2v_ser_p1(const double *w, const double *dxv, cons
   hamil[0] = 0.5*hamil_nodal[3]+0.5*hamil_nodal[2]+0.5*hamil_nodal[1]+0.5*hamil_nodal[0]; 
   hamil[1] = 0.2886751345948129*hamil_nodal[3]-0.2886751345948129*hamil_nodal[2]+0.2886751345948129*hamil_nodal[1]-0.2886751345948129*hamil_nodal[0]; 
   hamil[2] = 0.2886751345948129*hamil_nodal[3]+0.2886751345948129*hamil_nodal[2]-0.2886751345948129*hamil_nodal[1]-0.2886751345948129*hamil_nodal[0]; 
-  hamil[3] = 0.16666666666666666*hamil_nodal[3]-0.16666666666666666*hamil_nodal[2]-0.16666666666666666*hamil_nodal[1]+0.16666666666666666*hamil_nodal[0]; 
+  hamil[3] = 0.1666666666666667*hamil_nodal[3]-0.1666666666666667*hamil_nodal[2]-0.1666666666666667*hamil_nodal[1]+0.1666666666666667*hamil_nodal[0]; 
 
   hamil_inv[0] = 0.5*hamil_inv_nodal[3]+0.5*hamil_inv_nodal[2]+0.5*hamil_inv_nodal[1]+0.5*hamil_inv_nodal[0]; 
   hamil_inv[1] = 0.2886751345948129*hamil_inv_nodal[3]-0.2886751345948129*hamil_inv_nodal[2]+0.2886751345948129*hamil_inv_nodal[1]-0.2886751345948129*hamil_inv_nodal[0]; 
   hamil_inv[2] = 0.2886751345948129*hamil_inv_nodal[3]+0.2886751345948129*hamil_inv_nodal[2]-0.2886751345948129*hamil_inv_nodal[1]-0.2886751345948129*hamil_inv_nodal[0]; 
-  hamil_inv[3] = 0.16666666666666666*hamil_inv_nodal[3]-0.16666666666666666*hamil_inv_nodal[2]-0.16666666666666666*hamil_inv_nodal[1]+0.16666666666666666*hamil_inv_nodal[0]; 
+  hamil_inv[3] = 0.1666666666666667*hamil_inv_nodal[3]-0.1666666666666667*hamil_inv_nodal[2]-0.1666666666666667*hamil_inv_nodal[1]+0.1666666666666667*hamil_inv_nodal[0]; 
 
 } 

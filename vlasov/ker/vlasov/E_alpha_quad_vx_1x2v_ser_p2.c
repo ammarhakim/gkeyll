@@ -4,28 +4,19 @@ GKYL_CU_DH void E_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *qme
   const double *Ex = &qmem[0]; 
 
   double force_quad = 0.0;
-  force_quad = 0.9681844646844028*Ex[2]-1.0546722811938851*Ex[1]+0.7071067811865475*Ex[0];
+  force_quad = 0.6324555320336759*Ex[2]-0.9486832980505137*Ex[1]+0.7071067811865475*Ex[0];
   alpha_quad[0] += force_quad;
   alpha_quad[1] += force_quad;
   alpha_quad[2] += force_quad;
-  alpha_quad[3] += force_quad;
 
-  force_quad = -(0.5164305132317774*Ex[2])-0.41639003950091297*Ex[1]+0.7071067811865475*Ex[0];
+  force_quad = 0.7071067811865475*Ex[0]-0.7905694150420947*Ex[2];
+  alpha_quad[3] += force_quad;
   alpha_quad[4] += force_quad;
   alpha_quad[5] += force_quad;
+
+  force_quad = 0.6324555320336759*Ex[2]+0.9486832980505137*Ex[1]+0.7071067811865475*Ex[0];
   alpha_quad[6] += force_quad;
   alpha_quad[7] += force_quad;
-
-  force_quad = -(0.5164305132317774*Ex[2])+0.41639003950091297*Ex[1]+0.7071067811865475*Ex[0];
   alpha_quad[8] += force_quad;
-  alpha_quad[9] += force_quad;
-  alpha_quad[10] += force_quad;
-  alpha_quad[11] += force_quad;
-
-  force_quad = 0.9681844646844028*Ex[2]+1.0546722811938851*Ex[1]+0.7071067811865475*Ex[0];
-  alpha_quad[12] += force_quad;
-  alpha_quad[13] += force_quad;
-  alpha_quad[14] += force_quad;
-  alpha_quad[15] += force_quad;
 
 } 

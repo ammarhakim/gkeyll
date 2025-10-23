@@ -18,7 +18,7 @@ extern "C" {
 __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *hamil, 
+  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
@@ -47,6 +47,11 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     } 
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
+    // Grab the cell center location for NC bracket calculation 
+    double xcC[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
+
+    const double *poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
     const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
     const double *qmem_d = (const double*) gkyl_array_cfetch(qmem, cidx); 
     const double *pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx); 
@@ -63,8 +68,8 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     // along that velocity-space edge. 
     for (int dir = 0; dir<vdim; ++dir) {
       if (idx[cdim+dir] == phase_range.lower[cdim+dir]) {
-        cflrate_d[0] += up->vel_flux_surf_edge(up, dir, up->phase_grid.dx, 
-          jacob_vel_surf ? (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
+        cflrate_d[0] += up->vel_flux_surf_edge(up, dir, xcC, up->phase_grid.dx, 
+          jacob_vel_surf ? (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx) : 0, poisson_tensor_conf_d,
           hamil_d, qmem_d, pot_tot_d, rad_d, f_c, flux); 
       }
       else {
@@ -72,8 +77,8 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
         idx_l[cdim+dir] = idx_l[cdim+dir]-1;
         long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
         const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);  
-        cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
-          jacob_vel_surf ? (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
+        cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx, 
+          jacob_vel_surf ? (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx) : 0, poisson_tensor_conf_d,
           hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);      
       }
     }    
@@ -83,14 +88,14 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
 void 
 gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *hamil, 
+  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, jacob_vel_surf ? jacob_vel_surf->on_dev : 0,
+    *conf_range, *phase_range, jacob_vel_surf ? jacob_vel_surf->on_dev : 0, poisson_tensor_conf->on_dev,
     hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);  
 }
 
@@ -99,7 +104,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad)
+  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_lo)
 {
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
@@ -113,44 +118,98 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
   int kernel_index = cv_index[cdim].vdim[vdim];   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      if ( use_lo ) {
+        up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      }
+      else {
+        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      }
 
       // Only have Hamiltonian forces in general geometry. 
       if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        up->hamil_alpha_quad[0] = ser_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[1] = ser_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = ser_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = ser_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (model_id == GKYL_MODEL_TRIAD) {
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = ser_nc_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_nc_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_nc_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        } 
+        else {
+          up->hamil_alpha_quad[0] = ser_nc_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_nc_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_nc_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
       }
 
-      if (has_E) {
-        up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+      if ( use_lo ) {
+        if (has_E) {
+          up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (has_phi) {
-        up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+        if (has_phi) {
+          up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (has_B) {
-        up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+        if (has_B) {
+          up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (has_rad) {
-        up->rad_alpha_quad[0] = ser_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[1] = ser_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[2] = ser_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }      
+        if (has_rad) {
+          up->rad_alpha_quad[0] = ser_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = ser_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = ser_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }    
+      } 
+      else {
+        if (has_E) {
+          up->E_alpha_quad[0] = ser_E_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = ser_E_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = ser_E_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (has_phi) {
+          up->phi_alpha_quad[0] = ser_phi_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = ser_phi_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = ser_phi_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (has_B) {
+          up->B_alpha_quad[0] = ser_B_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = ser_B_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = ser_B_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (has_rad) {
+          up->rad_alpha_quad[0] = ser_rad_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = ser_rad_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = ser_rad_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }    
+      }  
 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
+
       up->lax_flux_nodal_to_modal[0] = tensor_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
       up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
       up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
@@ -207,6 +266,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
   up->pdim = pdim; 
+  up->use_gpu = true;
 
   // Are we skipping cells with small phase space density?
   if (inp->skip_cell_thresh > 0.0) {
@@ -219,7 +279,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
   up->hamil_range = *inp->hamil_range; 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     up->hamil_dim = vdim; 
     up->hamil_offset = cdim; 
   }
@@ -236,7 +296,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad);  
+    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);  
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

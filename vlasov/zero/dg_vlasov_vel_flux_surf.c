@@ -23,7 +23,8 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
-  up->pdim = pdim; 
+  up->pdim = pdim;
+  up->use_gpu = inp->use_gpu; 
 
   // Are we skipping cells with small phase space density?
   if (inp->skip_cell_thresh > 0.0) {
@@ -36,7 +37,7 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
   up->hamil_range = *inp->hamil_range; 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     up->hamil_dim = vdim; 
     up->hamil_offset = cdim; 
   }
@@ -58,48 +59,103 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   int kernel_index = cv_index[cdim].vdim[vdim];   
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      if ( inp->use_lo ) {
+        up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      } 
+      else {
+        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
+      }
 
       // Only have Hamiltonian forces in general geometry. 
       if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        up->hamil_alpha_quad[0] = ser_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[1] = ser_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        if ( inp->use_lo ) {
+          up->hamil_alpha_quad[0] = ser_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = ser_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+        if ( inp->use_lo ) {
+          up->hamil_alpha_quad[0] = ser_nc_hamil_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_nc_hamil_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_nc_hamil_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        } 
+        else {
+          up->hamil_alpha_quad[0] = ser_nc_hamil_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_nc_hamil_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_nc_hamil_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
       }
 
-      if (inp->has_E) {
-        up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+      if ( inp->use_lo ) {
+        if (inp->has_E) {
+          up->E_alpha_quad[0] = ser_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = ser_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = ser_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (inp->has_phi) {
-        up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+        if (inp->has_phi) {
+          up->phi_alpha_quad[0] = ser_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = ser_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = ser_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (inp->has_B) {
-        up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+        if (inp->has_B) {
+          up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (inp->has_rad) {
-        up->rad_alpha_quad[0] = ser_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[1] = ser_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[2] = ser_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }      
+        if (inp->has_rad) {
+          up->rad_alpha_quad[0] = ser_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = ser_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = ser_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }    
+      }
+      else {
+        if (inp->has_E) {
+          up->E_alpha_quad[0] = ser_E_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = ser_E_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = ser_E_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (inp->has_phi) {
+          up->phi_alpha_quad[0] = ser_phi_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = ser_phi_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = ser_phi_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (inp->has_B) {
+          up->B_alpha_quad[0] = ser_B_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = ser_B_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = ser_B_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (inp->has_rad) {
+          up->rad_alpha_quad[0] = ser_rad_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = ser_rad_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = ser_rad_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }    
+      }
 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
+      
       up->lax_flux_nodal_to_modal[0] = tensor_lax_flux_nodal_to_modal_vx_kernels[kernel_index].kernels[poly_order];
       up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_vy_kernels[kernel_index].kernels[poly_order];
       up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_vz_kernels[kernel_index].kernels[poly_order];
-      
+
+
       // Only have Hamiltonian forces in general geometry. 
       if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
         gkyl_exit("dg_vlasov_vel_flux_surf: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
@@ -159,14 +215,14 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
 void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *hamil, 
+  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
   const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
     return gkyl_dg_vlasov_vel_flux_surf_advance_cu(up, conf_range, phase_range, 
-      jacob_vel_surf, hamil, qmem, pot_tot, rad, fin, cflrate, vel_flux_surf);
+      jacob_vel_surf, poisson_tensor_conf, hamil, qmem, pot_tot, rad, fin, cflrate, vel_flux_surf);
   }
 #endif
   int pdim = up->pdim;
@@ -191,6 +247,11 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
     } 
     long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
 
+    // Grab the cell center location for NC bracket calculation 
+    double xcC[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
+
+    const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, cidx);
     const double *hamil_d = gkyl_array_cfetch(hamil, hidx);
     const double *qmem_d = gkyl_array_cfetch(qmem, cidx); 
     const double *pot_tot_d = gkyl_array_cfetch(pot_tot, cidx); 
@@ -207,8 +268,8 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
     // along that velocity-space edge. 
     for (int dir = 0; dir<vdim; ++dir) {
       if (idx[cdim+dir] == phase_range->lower[cdim+dir]) {
-        cflrate_d[0] += up->vel_flux_surf_edge(up, dir, up->phase_grid.dx, 
-          jacob_vel_surf ? gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
+        cflrate_d[0] += up->vel_flux_surf_edge(up, dir, xcC, up->phase_grid.dx, 
+          jacob_vel_surf ? gkyl_array_cfetch(jacob_vel_surf, vidx) : 0, poisson_tensor_conf_d,
           hamil_d, qmem_d, pot_tot_d, rad_d, f_c, flux); 
       }
       else {
@@ -216,10 +277,21 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
         idx_l[cdim+dir] = idx_l[cdim+dir]-1;
         long pidx_l = gkyl_range_idx(phase_range, idx_l); 
         const double *f_l = gkyl_array_cfetch(fin, pidx_l);  
-        cflrate_d[0] += up->vel_flux_surf(up, dir, up->phase_grid.dx, 
-          jacob_vel_surf ? gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
+        cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx, 
+          jacob_vel_surf ? gkyl_array_cfetch(jacob_vel_surf, vidx) : 0, poisson_tensor_conf_d,
           hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);      
       }
     }
   }
+}
+
+void
+gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up)
+{
+  // Release memory associated with this updater.
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
+#endif
+  gkyl_free(up);
 }

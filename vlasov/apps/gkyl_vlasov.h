@@ -173,6 +173,7 @@ struct gkyl_vlasov_species {
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   bool write_cell_avg; // Boolean for only writing cell average of f.
+  bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
@@ -184,6 +185,18 @@ struct gkyl_vlasov_species {
   // Pointer to applied acceleration function.
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // Set to true if applied acceleration function is time dependent.
+
+  void *cov_tangent_basis_ctx; // Context for covariant tangent basis function.
+  // Pointer to covariant tangent basis function.
+  void (*cov_tangent_basis)(double t, const double *xn, double *aout, void *ctx);
+
+  void *triad_basis_ctx; // Context for triad basis function.
+  // Pointer to triad basis function.
+  void (*triad_basis)(double t, const double *xn, double *aout, void *ctx);
+
+  void *triad_basis_gradient_ctx; // Context for triad basis gradient function.
+  // Pointer to triad basis gradient function.
+  void (*triad_basis_gradient)(double t, const double *xn, double *aout, void *ctx);
 
   void *hamil_ctx; // Context for general (phase space) Hamiltonian function.
   // Pointer to general (phase space) Hamilonian function.

@@ -32,6 +32,45 @@ gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
 }
 
 void
+gkyl_bgk_collisions_correct_nu(const gkyl_bgk_collisions *up, const struct gkyl_range *crange,
+  const struct gkyl_array *marr, const struct gkyl_array *nu_input, struct gkyl_array *actual_nu)
+{
+  
+  // Set nu to zero for all points where n or T are negative/zero
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_bgk_collisions_correct_nu_cu(up, crange, marr, nu_input, actual_nu);
+#endif
+
+  int vdim = up->vdim;
+  int nc = up->cnum_basis;
+  int num_comp = vdim+2; // (n, V_drift, T/m)
+  int T_idx = num_comp-1; // T/m is always the last component
+
+  struct gkyl_range_iter citer;
+  gkyl_range_iter_init(&citer, crange);
+  while (gkyl_range_iter_next(&citer)) {
+
+    long cloc = gkyl_range_idx(crange, citer.idx);
+    const double *marr_d = gkyl_array_cfetch(marr, cloc);
+    const double m0_d = marr_d[0*nc];
+    const double mT_d = marr_d[T_idx*nc];
+    const double *nu_input_d = gkyl_array_cfetch(nu_input, cloc);
+    double *actual_nu_d = gkyl_array_fetch(actual_nu, cloc);
+
+    // Either set nu to zero or copy input nu to actual_nu
+    for (int i=0; i<nc; ++i){
+      if (m0_d <= 0.0 || mT_d <= 0.0) {
+       actual_nu_d[i] = 0.0;
+      } 
+      else {
+        actual_nu_d[i] = nu_input_d[i];
+      }
+    }
+  }
+}
+
+void
 gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,

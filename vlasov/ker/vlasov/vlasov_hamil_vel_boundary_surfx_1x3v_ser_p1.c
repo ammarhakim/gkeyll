@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH double vlasov_hamil_vel_boundary_surfx_1x3v_ser_p1(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, 
+  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
@@ -44,22 +44,22 @@ GKYL_CU_DH double vlasov_hamil_vel_boundary_surfx_1x3v_ser_p1(const double *w, c
   Ghat[6] = 0.6123724356957944*fUpwind[0]*hamil[7]+0.6123724356957944*hamil[1]*fUpwind[6]+0.6123724356957944*fUpwind[2]*hamil[5]+0.6123724356957944*fUpwind[3]*hamil[4]; 
   Ghat[7] = 0.6123724356957944*fUpwind[1]*hamil[7]+0.6123724356957944*hamil[1]*fUpwind[7]+0.6123724356957944*fUpwind[4]*hamil[5]+0.6123724356957944*hamil[4]*fUpwind[5]; 
 
-  out[0] += -(0.7071067811865475*Ghat[0]*dv10*dx10); 
-  out[1] += -(1.224744871391589*Ghat[0]*dv10*dx10); 
-  out[2] += -(0.7071067811865475*Ghat[1]*dv10*dx10); 
-  out[3] += -(0.7071067811865475*Ghat[2]*dv10*dx10); 
-  out[4] += -(0.7071067811865475*Ghat[3]*dv10*dx10); 
-  out[5] += -(1.224744871391589*Ghat[1]*dv10*dx10); 
-  out[6] += -(1.224744871391589*Ghat[2]*dv10*dx10); 
-  out[7] += -(0.7071067811865475*Ghat[4]*dv10*dx10); 
-  out[8] += -(1.224744871391589*Ghat[3]*dv10*dx10); 
-  out[9] += -(0.7071067811865475*Ghat[5]*dv10*dx10); 
-  out[10] += -(0.7071067811865475*Ghat[6]*dv10*dx10); 
-  out[11] += -(1.224744871391589*Ghat[4]*dv10*dx10); 
-  out[12] += -(1.224744871391589*Ghat[5]*dv10*dx10); 
-  out[13] += -(1.224744871391589*Ghat[6]*dv10*dx10); 
-  out[14] += -(0.7071067811865475*Ghat[7]*dv10*dx10); 
-  out[15] += -(1.224744871391589*Ghat[7]*dv10*dx10); 
+  out[0] += -0.7071067811865475*Ghat[0]*dv10*dx10; 
+  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
+  out[2] += -0.7071067811865475*Ghat[1]*dv10*dx10; 
+  out[3] += -0.7071067811865475*Ghat[2]*dv10*dx10; 
+  out[4] += -0.7071067811865475*Ghat[3]*dv10*dx10; 
+  out[5] += -1.224744871391589*Ghat[1]*dv10*dx10; 
+  out[6] += -1.224744871391589*Ghat[2]*dv10*dx10; 
+  out[7] += -0.7071067811865475*Ghat[4]*dv10*dx10; 
+  out[8] += -1.224744871391589*Ghat[3]*dv10*dx10; 
+  out[9] += -0.7071067811865475*Ghat[5]*dv10*dx10; 
+  out[10] += -0.7071067811865475*Ghat[6]*dv10*dx10; 
+  out[11] += -1.224744871391589*Ghat[4]*dv10*dx10; 
+  out[12] += -1.224744871391589*Ghat[5]*dv10*dx10; 
+  out[13] += -1.224744871391589*Ghat[6]*dv10*dx10; 
+  out[14] += -0.7071067811865475*Ghat[7]*dv10*dx10; 
+  out[15] += -1.224744871391589*Ghat[7]*dv10*dx10; 
 
   } else { 
 
@@ -96,21 +96,21 @@ GKYL_CU_DH double vlasov_hamil_vel_boundary_surfx_1x3v_ser_p1(const double *w, c
   Ghat[7] = 0.6123724356957944*fUpwind[1]*hamil[7]+0.6123724356957944*hamil[1]*fUpwind[7]+0.6123724356957944*fUpwind[4]*hamil[5]+0.6123724356957944*hamil[4]*fUpwind[5]; 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv10*dx10; 
-  out[1] += -(1.224744871391589*Ghat[0]*dv10*dx10); 
+  out[1] += -1.224744871391589*Ghat[0]*dv10*dx10; 
   out[2] += 0.7071067811865475*Ghat[1]*dv10*dx10; 
   out[3] += 0.7071067811865475*Ghat[2]*dv10*dx10; 
   out[4] += 0.7071067811865475*Ghat[3]*dv10*dx10; 
-  out[5] += -(1.224744871391589*Ghat[1]*dv10*dx10); 
-  out[6] += -(1.224744871391589*Ghat[2]*dv10*dx10); 
+  out[5] += -1.224744871391589*Ghat[1]*dv10*dx10; 
+  out[6] += -1.224744871391589*Ghat[2]*dv10*dx10; 
   out[7] += 0.7071067811865475*Ghat[4]*dv10*dx10; 
-  out[8] += -(1.224744871391589*Ghat[3]*dv10*dx10); 
+  out[8] += -1.224744871391589*Ghat[3]*dv10*dx10; 
   out[9] += 0.7071067811865475*Ghat[5]*dv10*dx10; 
   out[10] += 0.7071067811865475*Ghat[6]*dv10*dx10; 
-  out[11] += -(1.224744871391589*Ghat[4]*dv10*dx10); 
-  out[12] += -(1.224744871391589*Ghat[5]*dv10*dx10); 
-  out[13] += -(1.224744871391589*Ghat[6]*dv10*dx10); 
+  out[11] += -1.224744871391589*Ghat[4]*dv10*dx10; 
+  out[12] += -1.224744871391589*Ghat[5]*dv10*dx10; 
+  out[13] += -1.224744871391589*Ghat[6]*dv10*dx10; 
   out[14] += 0.7071067811865475*Ghat[7]*dv10*dx10; 
-  out[15] += -(1.224744871391589*Ghat[7]*dv10*dx10); 
+  out[15] += -1.224744871391589*Ghat[7]*dv10*dx10; 
 
   } 
   return 0.0;

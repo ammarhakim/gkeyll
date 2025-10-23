@@ -101,8 +101,16 @@ vlasovApp = Vlasov.App.new {
         return nu -- Collision frequency.
       end,
       
-      correctAllMoments = true
+      useImplicitCollisionScheme = false
     },
+
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1e-12,
+      maxIterations = 100,
+      useLastConverged = false
+    },
+
 
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
@@ -145,8 +153,16 @@ vlasovApp = Vlasov.App.new {
         return nu -- Collision frequency.
       end,
       
-      correctAllMoments = true
+      useImplicitCollisionScheme = false
     },
+
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1e-12,
+      maxIterations = 100,
+      useLastConverged = false
+    },
+
 
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }

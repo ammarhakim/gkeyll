@@ -341,6 +341,9 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
       .ctx = &ctx,
+    },
+
+    .correct = {
       .correct_all_moms = true,
     },
     
@@ -504,7 +507,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  double io_tm =  stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.

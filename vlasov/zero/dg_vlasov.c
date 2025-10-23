@@ -21,10 +21,14 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   }
   
   struct dg_vlasov *vlasov = container_of(base, struct dg_vlasov, eqn);
+  gkyl_array_release(vlasov->poisson_tensor_conf);
   gkyl_array_release(vlasov->hamil);
   gkyl_array_release(vlasov->qmem);
   gkyl_array_release(vlasov->pot_tot);
   gkyl_array_release(vlasov->rad);
+  if (vlasov->use_conf_flux_surf) {
+    gkyl_array_release(vlasov->conf_flux_surf);
+  }
   gkyl_array_release(vlasov->vel_flux_surf); 
   gkyl_array_release(vlasov->f_no_J); 
   gkyl_free(vlasov);
@@ -56,7 +60,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
     vlasov->hamil_dim = vdim; 
     vlasov->hamil_offset = cdim; 
   }
@@ -72,10 +76,16 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   if (inp->use_vmap) {
     vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
   }
+  vlasov->poisson_tensor_conf = gkyl_array_acquire(inp->poisson_tensor_conf); 
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 
   vlasov->qmem = gkyl_array_acquire(inp->qmem); 
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
   vlasov->rad = gkyl_array_acquire(inp->rad);
+  vlasov->use_conf_flux_surf = false;
+  if (inp->model_id == GKYL_MODEL_TRIAD ){
+    vlasov->use_conf_flux_surf = true;
+    vlasov->conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
+  }
   vlasov->vel_flux_surf = gkyl_array_acquire(inp->vel_flux_surf); 
   vlasov->f_no_J = gkyl_array_acquire(inp->f_no_J); 
 
@@ -99,6 +109,14 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   const gkyl_dg_vlasov_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, 
     *stream_boundary_surf_y_kernels,
     *stream_boundary_surf_z_kernels;
+
+  const gkyl_dg_vlasov_stream_surf_from_flux_kern_list *stream_surf_from_flux_x_kernels, 
+    *stream_surf_from_flux_y_kernels, 
+    *stream_surf_from_flux_z_kernels;
+
+  const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list *stream_boundary_surf_from_flux_x_kernels, 
+    *stream_boundary_surf_from_flux_y_kernels,
+    *stream_boundary_surf_from_flux_z_kernels;
 
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, 
     *accel_surf_vy_kernels, 
@@ -124,33 +142,76 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
         stream_surf_x_kernels = ser_stream_hamil_vel_surf_x_kernels;
         stream_surf_y_kernels = ser_stream_hamil_vel_surf_y_kernels;
-        stream_surf_z_kernels = ser_stream_hamil_vel_surf_z_kernels;
-        
+        stream_surf_z_kernels = ser_stream_hamil_vel_surf_z_kernels; 
         stream_boundary_surf_x_kernels = ser_stream_hamil_vel_boundary_surf_x_kernels;
         stream_boundary_surf_y_kernels = ser_stream_hamil_vel_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels;        
+        stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels; 
+
+      }
+      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+        vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+
+        if ( inp->use_lo ) {
+          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
+          
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels; 
+        } 
+        else {
+          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_ho_surf_z_kernels;
+          
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_z_kernels; 
+        }
       }
       else {
         vlasov->hamil_vol = ser_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
 
-        stream_surf_x_kernels = ser_stream_hamil_gen_surf_x_kernels;
-        stream_surf_y_kernels = ser_stream_hamil_gen_surf_y_kernels;
-        stream_surf_z_kernels = ser_stream_hamil_gen_surf_z_kernels;
-        
-        stream_boundary_surf_x_kernels = ser_stream_hamil_gen_boundary_surf_x_kernels;
-        stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;         
+        if ( inp->use_lo ) {
+          stream_surf_x_kernels = ser_stream_hamil_gen_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_hamil_gen_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_hamil_gen_surf_z_kernels;
+          
+          stream_boundary_surf_x_kernels = ser_stream_hamil_gen_boundary_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;    
+        } 
+        else {
+          stream_surf_x_kernels = ser_stream_hamil_gen_ho_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_hamil_gen_ho_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_hamil_gen_ho_surf_z_kernels;
+          
+          stream_boundary_surf_x_kernels = ser_stream_hamil_gen_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_ho_surf_z_kernels;    
+        }     
       }
       if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
-      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
 
-      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      if ( inp->use_lo ) {
+        accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      }
+      else {
+        accel_surf_vx_kernels = ser_accel_ho_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_accel_ho_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_accel_ho_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_accel_boundary_ho_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_accel_boundary_ho_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_accel_boundary_ho_surf_vz_kernels;
+      }
       
       break;
 
@@ -174,6 +235,9 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_y_kernels = tensor_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = tensor_stream_hamil_vel_boundary_surf_z_kernels;         
       }
+      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!"); 
+      }
       else {
         gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
       }
@@ -183,24 +247,35 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
       accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
       accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
-
       accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
       accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
       accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
-      
       break;      
 
     default:
       assert(false);
       break;    
   }
-  vlasov->stream_surf[0] = stream_surf_x_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_surf[1] = stream_surf_y_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_surf[2] = stream_surf_z_kernels[kernel_index].kernels[poly_order];
 
-  vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[kernel_index].kernels[poly_order];
-  vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[kernel_index].kernels[poly_order];    
+
+  if (inp->model_id == GKYL_MODEL_TRIAD) {
+    vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
+
+    vlasov->stream_boundary_surf_from_flux[0] = stream_boundary_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf_from_flux[1] = stream_boundary_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf_from_flux[2] = stream_boundary_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];    
+  } 
+  else {
+    vlasov->stream_surf[0] = stream_surf_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf[1] = stream_surf_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_surf[2] = stream_surf_z_kernels[kernel_index].kernels[poly_order];
+
+    vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[kernel_index].kernels[poly_order];
+    vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[kernel_index].kernels[poly_order]; 
+  }   
 
   vlasov->accel_surf[0] = accel_surf_vx_kernels[kernel_index].kernels[poly_order];
   vlasov->accel_surf[1] = accel_surf_vy_kernels[kernel_index].kernels[poly_order];
@@ -212,8 +287,13 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    assert(vlasov->stream_surf[i]);
-    assert(vlasov->stream_boundary_surf[i]);
+    if (inp->model_id == GKYL_MODEL_TRIAD) {
+      assert(vlasov->stream_surf_from_flux[i]);
+      assert(vlasov->stream_boundary_surf_from_flux[i]);
+    } else {
+      assert(vlasov->stream_surf[i]);
+      assert(vlasov->stream_boundary_surf[i]);
+    }
   }
   for (int i=0; i<vdim; ++i) {
     assert(vlasov->accel_surf[i]);

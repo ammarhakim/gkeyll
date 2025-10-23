@@ -53,7 +53,7 @@ static const gkyl_dg_divide_Jv_kern_list tensor_divide_Jv_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_divide_Jv_2x1v_tensor_p2, vlasov_divide_Jv_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_divide_Jv_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_divide_Jv_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -83,7 +83,7 @@ static const gkyl_dg_rescale_Jv_kern_list tensor_rescale_Jv_kernels[] = {
   // 2x kernels
   { NULL, NULL, vlasov_rescale_Jv_2x1v_tensor_p2, vlasov_rescale_Jv_2x1v_tensor_p3 }, // 3
   { NULL, NULL, vlasov_rescale_Jv_2x2v_tensor_p2, NULL }, // 4
-  { NULL, NULL, vlasov_rescale_Jv_2x3v_tensor_p2, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
