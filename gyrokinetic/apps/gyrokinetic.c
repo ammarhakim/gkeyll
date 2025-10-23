@@ -2646,7 +2646,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
   // Apply ICs that depend on other species.
   for (int i=0; i<app->num_neut_species; ++i)
-    gkyl_gyrokinetic_app_apply_ic_cross_neut_species(app, i, t0);
+    gkyl_gyrokinetic_app_apply_ic_cross_neut_species(app, i, 0.0);
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
