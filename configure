@@ -12,6 +12,7 @@ ALLTARGETS=gkeyll
 INSTALLTARGET=gkeyll
 
 FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/pkpm"
+FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0pkpm.so
 FIN_APP_LIB="-lg0pkpm"
 
 # default build options
@@ -264,18 +265,21 @@ then
     ALLTARGETS="moments moments-unit moments-regression"
     INSTALLTARGET="moments-install"
     FIN_APP_LIB_DIR="-L../${BUILD_DIR}/moments"
+    FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0moments.so
     FIN_APP_LIB="-lg0moments"
 elif [ "$APP" = "vlasov" ]
 then
     ALLTARGETS="vlasov vlasov-unit vlasov-regression"
     INSTALLTARGET="vlasov-install"
     FIN_APP_LIB_DIR="-L../${BUILD_DIR}/vlasov"
+    FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0vlasov.so
     FIN_APP_LIB="-lg0vlasov"
 elif [ "$APP" = "gyrokinetic" ]
 then
     ALLTARGETS="gyrokinetic gyrokinetic-unit gyrokinetic-regression"
     INSTALLTARGET="gyrokinetic-install"
     FIN_APP_LIB_DIR="-L../${BUILD_DIR}/gyrokinetic"
+    FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0gyrokinetic.so
     FIN_APP_LIB="-lg0gyrokinetic"
 elif [ "$APP" = "pkpm" ]
 then
