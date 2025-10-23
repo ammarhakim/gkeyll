@@ -43,6 +43,56 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
   }
 }
 
+// Step message context.
+struct step_message_trigs {
+  int log_count; // Number of times logging called.
+  int tenth, p1c; 
+  struct gkyl_tm_trigger log_trig; // 10% trigger.
+  struct gkyl_tm_trigger log_trig_1p; // 1% trigger.
+};
+
+// Write log message to console.
+static void
+write_step_message_singleb(const struct gkyl_gyrokinetic_app *app, struct step_message_trigs *trigs, int step, double t_curr, double dt_next)
+{
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
+    if (trigs->log_count > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tStep %d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+    }
+    else {
+      trigs->log_count += 1;
+    }
+    
+    trigs->tenth += 1;
+  }
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "%d", trigs->p1c);
+    trigs->p1c = (trigs->p1c+1) % 10;
+    fflush(stdout);
+  }
+}
+
+
+static void
+write_step_message_multib(const struct gkyl_gyrokinetic_multib_app *app, struct step_message_trigs *trigs, int step, double t_curr, double dt_next)
+{
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
+    if (trigs->log_count > 0) {
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tStep %d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+    }
+    else {
+      trigs->log_count += 1;
+    }
+    
+    trigs->tenth += 1;
+  }
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d", trigs->p1c);
+    trigs->p1c = (trigs->p1c+1) % 10;
+    fflush(stdout);
+  }
+}
+
 void
 gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
@@ -83,6 +133,13 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
   struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
                                                 .tcurr = t_curr, .curr = frame_curr };
+  struct step_message_trigs m_trig = {
+    .log_count = 0,
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
+  };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
@@ -99,8 +156,6 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
   int num_failures = 0, num_failures_max = timing.num_failures_max;
   struct timespec tm_loop_start = gkyl_wall_clock();
-  double last_printed_percent = -1;
-  double last_printed_decade = 0;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
@@ -109,20 +164,9 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     }
 
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
-
+      
     if (!verbose.enabled) {
-      // Print percentage completion every 1% with line breaks at decades
-      double pct_complete = 100.0 * t_curr / t_end;
-      if ( pct_complete - last_printed_percent >= 1.0 ) {
-        last_printed_percent = round(pct_complete);
-        if ( pct_complete - last_printed_decade >= 10.0 ) {
-          gkyl_gyrokinetic_app_cout(app, stdout, "\t %.0f %% complete\n", pct_complete);
-          last_printed_decade = round(pct_complete / 10.0) * 10.0;
-        }
-        gkyl_gyrokinetic_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
-        fflush(stdout); // Ensure output is printed immediately
-
-      }
+      write_step_message_singleb(app, &m_trig, step, t_curr, status.dt_suggested);
     }
     else if (verbose.enabled && step == 1) {
       gkyl_gyrokinetic_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
@@ -210,9 +254,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     int hours = (int)(wall_time_elapsed / 3600.0);
     int minutes = (int)((wall_time_elapsed - hours*3600.0) / 60.0); 
     int seconds = (int)(wall_time_elapsed - hours*3600.0 - minutes*60.0);
-    
-    gkyl_gyrokinetic_app_cout(app, stdout, "\t %.0f %% complete\nSimulation completed in %dh %dm %ds\n", 
-                 100.0, hours, minutes, seconds);
+    gkyl_gyrokinetic_app_cout(app, stdout, "\nSimulation completed in %dh %dm %ds\n",
+                 hours, minutes, seconds);
   }
 
 freeresources:
@@ -293,6 +336,13 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
   struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
     .tcurr = t_curr, .curr = frame_curr };
+  struct step_message_trigs m_trig = {
+    .log_count = 0,
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
+  };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
@@ -321,17 +371,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
 
     if (!verbose.enabled) {
-      // Print percentage completion every 1% with line breaks at decades
-      double pct_complete = 100.0 * t_curr / t_end;
-      if ( pct_complete - last_printed_percent >= 1.0 ) {
-        last_printed_percent = round(pct_complete);
-        if ( pct_complete - last_printed_decade >= 10.0 ) {
-          gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t %.0f %% complete\n", pct_complete);
-          last_printed_decade = round(pct_complete / 10.0) * 10.0;
-        }
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
-        fflush(stdout); // Ensure output is printed immediately
-      }
+      write_step_message_multib(app, &m_trig, step, t_curr, status.dt_suggested);
     }
     else if (verbose.enabled && step == 1) {
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
@@ -415,9 +455,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     int hours = (int)(wall_time_elapsed / 3600.0);
     int minutes = (int)((wall_time_elapsed - hours*3600.0) / 60.0);
     int seconds = (int)(wall_time_elapsed - hours*3600.0 - minutes*60.0);
-
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t %.0f %% complete\nSimulation completed in %dh %dm %ds\n", 
-                 100.0, hours, minutes, seconds);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "\nSimulation completed in %dh %dm %ds\n",
+                 hours, minutes, seconds);
   }
 
   freeresources:

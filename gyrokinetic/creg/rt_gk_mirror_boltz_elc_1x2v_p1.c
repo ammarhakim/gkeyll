@@ -447,7 +447,7 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 6.0e-8;
+  double t_end = 1.0e-7;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -647,6 +647,9 @@ int main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
+    },
+    .print_verbosity = {
+      // .enabled = true
     }
   };
 
