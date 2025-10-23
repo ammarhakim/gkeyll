@@ -46,6 +46,8 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moments_1x2v_ser_p1(struct gkyl_mat *A, s
   if (notCellAvg && (-(0.5*(2.4494897427831783*vtsq_other[1]-1.4142135623730951*vtsq_other[0])) < 0)) notCellAvg = false; 
   if (notCellAvg && (0.5*(2.4494897427831783*vtsq_other[1]+1.4142135623730951*vtsq_other[0]) < 0)) notCellAvg = false; 
  
+  if (notCellAvg && (-(0.5*(2.4494897427831783*alphaE[1]-1.4142135623730951*alphaE[0])) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(2.4494897427831783*alphaE[1]+1.4142135623730951*alphaE[0]) < 0)) notCellAvg = false; 
   if (notCellAvg) { 
     m0r[0] = moms_self[0]; 
     m0r[1] = moms_self[1]; 

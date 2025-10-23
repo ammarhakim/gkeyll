@@ -82,6 +82,14 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moments_3x2v_ser_p1(struct gkyl_mat *A, s
   if (notCellAvg && (-(0.25*(7.348469228349534*vtsq_other[7]-4.242640687119286*vtsq_other[6]+4.242640687119286*(vtsq_other[5]+vtsq_other[4])-2.4494897427831783*(vtsq_other[3]+vtsq_other[2])+2.4494897427831783*vtsq_other[1]-1.4142135623730951*vtsq_other[0])) < 0)) notCellAvg = false; 
   if (notCellAvg && (0.25*(7.348469228349534*vtsq_other[7]+4.242640687119286*(vtsq_other[6]+vtsq_other[5]+vtsq_other[4])+2.4494897427831783*(vtsq_other[3]+vtsq_other[2]+vtsq_other[1])+1.4142135623730951*vtsq_other[0]) < 0)) notCellAvg = false; 
  
+  if (notCellAvg && (-(0.25*(7.348469228349534*alphaE[7]-4.242640687119286*(alphaE[6]+alphaE[5]+alphaE[4])+2.4494897427831783*(alphaE[3]+alphaE[2]+alphaE[1])-1.4142135623730951*alphaE[0])) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.25*(7.348469228349534*alphaE[7]+4.242640687119286*alphaE[6]-4.242640687119286*(alphaE[5]+alphaE[4])-2.4494897427831783*(alphaE[3]+alphaE[2])+2.4494897427831783*alphaE[1]+1.4142135623730951*alphaE[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.25*(7.348469228349534*alphaE[7]-4.242640687119286*alphaE[6]+4.242640687119286*alphaE[5]-4.242640687119286*alphaE[4]-2.4494897427831783*alphaE[3]+2.4494897427831783*alphaE[2]-2.4494897427831783*alphaE[1]+1.4142135623730951*alphaE[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-(0.25*(7.348469228349534*alphaE[7]+4.242640687119286*(alphaE[6]+alphaE[5])-4.242640687119286*alphaE[4]+2.4494897427831783*alphaE[3]-2.4494897427831783*(alphaE[2]+alphaE[1])-1.4142135623730951*alphaE[0])) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.25*(7.348469228349534*alphaE[7]-4.242640687119286*(alphaE[6]+alphaE[5])+4.242640687119286*alphaE[4]+2.4494897427831783*alphaE[3]-2.4494897427831783*(alphaE[2]+alphaE[1])+1.4142135623730951*alphaE[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-(0.25*(7.348469228349534*alphaE[7]+4.242640687119286*alphaE[6]-4.242640687119286*alphaE[5]+4.242640687119286*alphaE[4]-2.4494897427831783*alphaE[3]+2.4494897427831783*alphaE[2]-2.4494897427831783*alphaE[1]-1.4142135623730951*alphaE[0])) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-(0.25*(7.348469228349534*alphaE[7]-4.242640687119286*alphaE[6]+4.242640687119286*(alphaE[5]+alphaE[4])-2.4494897427831783*(alphaE[3]+alphaE[2])+2.4494897427831783*alphaE[1]-1.4142135623730951*alphaE[0])) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.25*(7.348469228349534*alphaE[7]+4.242640687119286*(alphaE[6]+alphaE[5]+alphaE[4])+2.4494897427831783*(alphaE[3]+alphaE[2]+alphaE[1])+1.4142135623730951*alphaE[0]) < 0)) notCellAvg = false; 
   if (notCellAvg) { 
     m0r[0] = moms_self[0]; 
     m0r[1] = moms_self[1]; 
