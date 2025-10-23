@@ -128,66 +128,66 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geom_3d = gk_geometry_tok_init(geometry_inp);
     gkyl_position_map_release(geometry_inp->position_map);
   }
-  else if (geometry_inp->position_map->id == GKYL_PMAP_XPT_COMPRESSION) {
-    double zcenter, zcut, len;
-    switch(geometry_inp->tok_grid_info.ftype)
-    {
-      case GKYL_DN_SOL_OUT_MID:
-      case GKYL_DN_SOL_IN_MID:
-        len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcut = len/2.0;
-        zcenter = 0.0;
-        break;
-      case GKYL_CORE_R:
-        len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.lower[2] + len/2.0;
-        zcut = len/2.0;
-        break;
-      case GKYL_CORE_L:
-        len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.upper[2] - len/2.0;
-        zcut = len/2.0;
-        break;
-      case GKYL_PF_LO_R:
-      case GKYL_PF_UP_L:
-      case GKYL_DN_SOL_OUT_LO:
-      case GKYL_DN_SOL_IN_UP:
-        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.lower[2];
-        zcut = len;
-        break;
-      case GKYL_PF_LO_L:
-      case GKYL_PF_UP_R:
-      case GKYL_DN_SOL_OUT_UP:
-      case GKYL_DN_SOL_IN_LO:
-        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.upper[2];
-        zcut = len;
-        break;
-      default:
-        break;
+  else {
+    if (geometry_inp->position_map->id == GKYL_PMAP_XPT_COMPRESSION) {
+      double zcenter, zcut, len;
+      switch(geometry_inp->tok_grid_info.ftype)
+      {
+        case GKYL_DN_SOL_OUT_MID:
+        case GKYL_DN_SOL_IN_MID:
+          len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+          zcut = len/2.0;
+          zcenter = 0.0;
+          break;
+        case GKYL_CORE_R:
+          len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+          zcenter = geometry_inp->geo_grid.lower[2] + len/2.0;
+          zcut = len/2.0;
+          break;
+        case GKYL_CORE_L:
+          len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+          zcenter = geometry_inp->geo_grid.upper[2] - len/2.0;
+          zcut = len/2.0;
+          break;
+        case GKYL_PF_LO_R:
+        case GKYL_PF_UP_L:
+        case GKYL_DN_SOL_OUT_LO:
+        case GKYL_DN_SOL_IN_UP:
+          len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+          zcenter = geometry_inp->geo_grid.lower[2];
+          zcut = len;
+          break;
+        case GKYL_PF_LO_L:
+        case GKYL_PF_UP_R:
+        case GKYL_DN_SOL_OUT_UP:
+        case GKYL_DN_SOL_IN_LO:
+          len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+          zcenter = geometry_inp->geo_grid.upper[2];
+          zcut = len;
+          break;
+        default:
+          break;
+      }
+
+      gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter);
     }
+    else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
+             geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
+      // First construct the uniform 3d geometry
+      gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+      // The array mc2nu is computed using the uniform geometry, so we need to deflate it
+      // Must deflate the 3D uniform geometry in order for the allgather to work
+      if(geometry_inp->grid.ndim < 3)
+        gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
+      else
+        gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-    gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter);
-    gk_geom_3d = gk_geometry_tok_init(geometry_inp);
-  }
-  else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
-           geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
-    // First construct the uniform 3d geometry
-    gk_geom_3d = gk_geometry_tok_init(geometry_inp);
-    // The array mc2nu is computed using the uniform geometry, so we need to deflate it
-    // Must deflate the 3D uniform geometry in order for the allgather to work
-    if(geometry_inp->grid.ndim < 3)
-      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
-    else
-      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
+        gk_geom->geo_int.bmag);
 
-    gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
-      gk_geom->geo_int.bmag);
-
-    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-
+      gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+      gkyl_gk_geometry_release(gk_geom); // release 3d geometry
+    }
     // Construct the non-uniform grid
     gk_geom_3d = gk_geometry_tok_init(geometry_inp);
   }

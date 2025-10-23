@@ -818,8 +818,6 @@ position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx
   double zshift = uniform_coordinate - app->zcenter;
   double nonuniform_coordinate = A * (sin(M_PI*zshift/zcut)*zcut/M_PI + F*zshift) + app->zcenter;
   fout[0] = nonuniform_coordinate;
-  //double deriv = A * (cos(M_PI*zshift/zcut) + F);
-  //fout[1] = deriv;
 }
 
 /**
