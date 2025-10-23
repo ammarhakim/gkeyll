@@ -1812,16 +1812,16 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
   }
 
-  // Compute the electromagnetic field RHS (solves Ohm's law using RHS).
+  // Compute the electromagnetic field RHS (solves Ohm's law using the full ES RHS).
   gk_field_em_rhs(app, app->field, fout);
 
   // Add electromagnetic contributions to the collisionless update of charged species.
+  // This is done after all ES terms since we need to compute M1 of fdot.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     double dt1 = gk_species_em_rhs(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
-
 
   struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;

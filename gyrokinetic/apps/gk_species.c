@@ -176,25 +176,11 @@ gk_species_em_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // We want here to just add the EM contribution to the collisionless update.
-  // We do not clear the cflrate or rhs.
-  // 1. compute the gk vars from EM fields
-  // something like:
-  // gkyl_dg_calc_gyrokinetic_vars_alpha_surf_em(species->calc_gk_vars, 
-  //   &app->local, &species->local, &species->local_ext, 
-  //   app->field->apardot, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
-
-  // 2. add this contribution to the rhs
-  // If I understood correctly, the step 1. will set the variables required in step 2. so I can just
-  // call the same updater as in the collisionless electrostatic case.
-  // I think I can assume that this will add to rhs and cflrate and not overwrite them.
-  // gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
-  //   fin, species->cflrate, rhs);
+  gk_species_collisionless_add_em_rhs(app, species, &species->collisionless, fin, rhs);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
-  // 3. Update the bflux and its moments and compute cflrate as usual
-  // (this is the same as in the electrostatic case)
+  // Update the bflux and its moments and compute cflrate as usual
   double dt_out = gk_species_update_bflux_and_cfl(app, species, fin, rhs, bflux_moms);
   return dt_out;
 }
@@ -1623,6 +1609,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
+  gks->is_em = app->field->is_em;
+  if (gks->is_em) {
+    // We do not have FLR effects for EM yet.
+    gks->gyro_apardot = gkyl_array_acquire(app->field->apardot_smooth);
+  }
+
   // Initialize the collisionless solver.
   gks->collisionless = (struct gk_collisionless) { };
   gk_species_collisionless_init(app, gks, &gks->collisionless);
@@ -1993,6 +1985,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_array_release(s->flr_rhoSqD2);
     gkyl_array_release(s->flr_kSq);
     gkyl_deflated_fem_poisson_release(s->flr_op);
+  }
+
+  if (s->is_em) {
+    gkyl_array_release(s->gyro_apardot);
   }
 
   s->release_func(app, s);

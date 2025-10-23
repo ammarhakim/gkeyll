@@ -585,6 +585,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_old = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apardot_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
@@ -937,6 +938,9 @@ gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_a
   struct timespec wst = gkyl_wall_clock();
   field->accumulate_current_dot(app, field, rhs_in);
   field->ohm_solve(app, field);
+  
+  gk_field_fem_projection_par(app, field, field->apardot_smooth, field->apardot_smooth);
+
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -1078,6 +1082,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
     gkyl_array_release(f->apardot);
+    gkyl_array_release(f->apardot_smooth);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);

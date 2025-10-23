@@ -224,11 +224,18 @@ struct gk_collisionless {
 
   struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
   gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
- 
+
+  struct gkyl_gk_collisionless_flux *surf_flux_op_add_em; // To add EM collisionless fluxes.
+  gkyl_dg_updater_gyrokinetic *slvr_add_em; // To add EM collisionless rhs.
+
   // Methods chosen at runtime.
   void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin);
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*add_em_flux)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+  void (*add_em_rhs)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_collisionless *gkcls, double tm, int frame);
@@ -708,6 +715,8 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
+  struct gkyl_array *gyro_apardot; // Gyroaveraged parallel vector potential time derivative.
+  bool is_em; // Whether electromagnetic terms are present.
 
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment m1; // Computes current density.
@@ -1007,6 +1016,7 @@ struct gk_field {
       struct gkyl_array *apar_old; // Previous state of A_parallel (for update with apardot).
       struct gkyl_array *apar_host; // Host copy for use IO.
       struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
+      struct gkyl_array *apardot_smooth; // Smoothed d(A_parallel)/dt.
       struct gkyl_array *apardot_host; // Host copy for use IO.
       struct gkyl_array *currentDens; // Current density.
       struct gkyl_array *currentDens_global; // Current density.
@@ -1360,6 +1370,18 @@ void gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species 
  * @param rhs collisionless contribution to df/dt.
  */
 void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * @brief Add electromagnetic contribution to the collisionless RHS.
+ * 
+ * @param app Gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param gkcls Species collisionless object.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from collisionless terms including EM contribution.
+ */
+void gk_species_collisionless_add_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
@@ -3240,7 +3262,7 @@ void gk_field_step_apar(struct gk_field *field, struct gkyl_array* out, double d
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
- * Compute Apardot from fin m1 moment using the Ohm's law.
+ * Compute Apardot from Ohm's law using the m1 moment of the GK electrostatic RHS.
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.

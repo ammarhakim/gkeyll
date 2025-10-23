@@ -17,23 +17,24 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * Create new updater to compute the surface expansion of phase space
  * flux due to the collisionless gyrokinetic terms.
  * 
- * @param phase_grid Phase space grid (for getting cell spacing and cell center)
- * @param conf_basis Configuration space basis functions
- * @param phase_basis Phase space basis functions
- * @param charge Species charge
- * @param mass Species mass
- * @param no_by Whether to neglect the toroidal field (b_y=0)
+ * @param phase_grid Phase space grid (for getting cell spacing and cell center).
+ * @param conf_basis Configuration space basis functions.
+ * @param phase_basis Phase space basis functions.
+ * @param charge Species charge.
+ * @param mass Species mass.
+ * @param no_by Whether to neglect the toroidal field (b_y=0).
+ * @param add_em Whether this updater is meant to add EM terms only.
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
  * @param bctype_conf Type of conf-space BCs.
- * @param use_gpu bool to determine if on GPU
+ * @param use_gpu Whether to use GPU.
  * @return New updater pointer.
  */
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, const bool no_by,
+  const double charge, const double mass, const bool no_by, const bool add_em,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);

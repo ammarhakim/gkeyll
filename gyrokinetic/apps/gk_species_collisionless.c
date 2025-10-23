@@ -24,6 +24,15 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 }
 
 static void
+gk_species_collisionless_add_em_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
+{
+  gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_op_add_em, 
+    &app->local, &species->local, &app->local_ext, &species->local_ext, 
+    species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate);
+}
+
+static void
 gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
@@ -38,6 +47,20 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->flux_func(app, species, gkcls, fin);
 
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
+    fin, species->cflrate, rhs);
+
+  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_species_collisionless_add_em_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkcls->add_em_flux(app, species, gkcls, fin);
+
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_add_em, &species->local, 
     fin, species->cflrate, rhs);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
@@ -70,6 +93,8 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
+  gkcls->add_em_flux = gk_species_collisionless_flux_disabled;
+  gkcls->add_em_rhs = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
 
@@ -124,7 +149,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-      gks->info.charge, gks->info.mass, gkcls->no_by, app->gk_geom, 
+      gks->info.charge, gks->info.mass, gkcls->no_by, false, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
@@ -132,12 +157,16 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-      gks->info.skip_cell_threshold, gkcls->no_by, app->gk_geom, gks->vel_map, 
+      gks->info.skip_cell_threshold, gkcls->no_by, false, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
     // Methods chosen at runtime.
     gkcls->flux_func = gk_species_collisionless_flux_enabled;
     gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
+    if (gkcls->is_em) {
+      gkcls->add_em_flux = gk_species_collisionless_add_em_flux_enabled;
+      gkcls->add_em_rhs = gk_species_collisionless_add_em_rhs_enabled;
+    }
     if (gkcls->write_diagnostics) {
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
@@ -156,6 +185,20 @@ gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *speci
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   gkcls->rhs_func(app, species, gkcls, fin, rhs);
+}
+
+void
+gk_species_collisionless_add_em_flux(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
+{
+  gkcls->add_em_flux(app, species, gkcls, fin);
+}
+
+void
+gk_species_collisionless_add_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkcls->add_em_rhs(app, species, gkcls, fin, rhs);
 }
 
 void
