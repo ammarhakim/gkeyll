@@ -14,6 +14,12 @@ struct gkyl_gyrokinetic_timings {
   int num_steps; // Maximum number of time-steps to take.
 };
 
+struct gkyl_gyrokinetic_run_verbosity {
+  bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
+  double frequency; // Print information with given frequency. Defaults to 1.0
+  bool est_completion_time; // Estimate completion time based on current progress. Defaults false
+};
+
 enum gkyl_gyrokinetic_run_app_type {
     GKYL_GK_SINGLEB, // Single-block simulation. Default
     GKYL_GK_MULTIB, // Multi-block simulation
@@ -26,6 +32,7 @@ struct gkyl_gyrokinetic_run_inp {
     struct gkyl_gyrokinetic_multib multib_app_inp; // Multi-block application input.
   };
   struct gkyl_gyrokinetic_timings timing; // Timing parameters for the simulation.
+  struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.
 };
 
 /**

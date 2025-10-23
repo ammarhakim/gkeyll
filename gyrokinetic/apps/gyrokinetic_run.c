@@ -47,9 +47,14 @@ void
 gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
   struct gkyl_gyrokinetic_timings timing = inp->timing;
+  struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
+  struct timespec tm_init = gkyl_wall_clock();
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
+  }
  
   double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
@@ -83,18 +88,65 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
   write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, timing.is_restart, false);
 
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_init));
+  }
+
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
   int num_failures = 0, num_failures_max = timing.num_failures_max;
+  struct timespec tm_loop_start = gkyl_wall_clock();
+  double last_printed_percent = -1;
+  double last_printed_decade = 0;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0) || step == 1)) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %.5g ...", step, t_curr);
+    }
+
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
-    gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
+    if (!verbose.enabled) {
+      // Print percentage completion every 1% with line breaks at decades
+      double pct_complete = 100.0 * t_curr / t_end;
+      if ( pct_complete - last_printed_percent >= 1.0 ) {
+        last_printed_percent = round(pct_complete);
+        if ( pct_complete - last_printed_decade >= 10.0 ) {
+          gkyl_gyrokinetic_app_cout(app, stdout, "\t %.0f %% complete\n", pct_complete);
+          last_printed_decade = round(pct_complete / 10.0) * 10.0;
+        }
+        gkyl_gyrokinetic_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
+      }
+    }
+    else if (verbose.enabled && step == 1) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
+    }
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.5g ", status.dt_actual);
+      double pct_complete = 100.0 * t_curr / t_end;
+      gkyl_gyrokinetic_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
+    }
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.est_completion_time) {
+      // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
+      double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
+      double sim_time_remaining = t_end - t_curr; // simulated time left
+      double wall_time_per_sim_time = wall_time_elapsed / t_curr;
+      double wall_time_remaining = wall_time_per_sim_time * sim_time_remaining;
+
+      int hours = (int)(wall_time_remaining / 3600.0);
+      int minutes = (int)((wall_time_remaining - hours*3600.0) / 60.0);
+      int seconds = (int)(wall_time_remaining - hours*3600.0 - minutes*60.0);
+
+      double total_sim_span = (t_end) > 0.0 ? (t_end) : (t_curr + sim_time_remaining);
+      double progress_pct = 100.0 * t_curr / total_sim_span;
+
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.5g\t(%.1f%% complete, est. %dh %dm %ds remaining)\n", 
+                                status.dt_actual, progress_pct, hours, minutes, seconds);
+    }
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -136,17 +188,30 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   // Fetch simulation statistics.
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "\n");
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_print_timings(app, stdout);
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Ending simulation at t=%g\n", t_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, "\n");
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+    if (stat.nstage_2_fail > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    }  
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+    gkyl_gyrokinetic_app_print_timings(app, stdout);
+  }
+  else {
+    // Calculate total elapsed wall time
+    double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start);
+    int hours = (int)(wall_time_elapsed / 3600.0);
+    int minutes = (int)((wall_time_elapsed - hours*3600.0) / 60.0); 
+    int seconds = (int)(wall_time_elapsed - hours*3600.0 - minutes*60.0);
+    
+    gkyl_gyrokinetic_app_cout(app, stdout, "\t %.0f %% complete\nSimulation completed in %dh %dm %ds\n", 
+                 100.0, hours, minutes, seconds);
+  }
 
 freeresources:
   // Free resources after simulation completion.
@@ -190,9 +255,14 @@ void
 gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
   struct gkyl_gyrokinetic_timings timing = inp->timing;
+  struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
+  struct timespec tm_init = gkyl_wall_clock();
 
   // Create app object.
   gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
+  }
 
   double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
@@ -226,18 +296,65 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
   write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, timing.is_restart, false);
 
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_init));
+  }
+
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
   int num_failures = 0, num_failures_max = timing.num_failures_max;
+  struct timespec tm_loop_start = gkyl_wall_clock();
+  double last_printed_percent = -1;
+  double last_printed_decade = 0;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0) || step == 1)) {
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %.5g ...", step, t_curr);
+    }
+
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
+    if (!verbose.enabled) {
+      // Print percentage completion every 1% with line breaks at decades
+      double pct_complete = 100.0 * t_curr / t_end;
+      if ( pct_complete - last_printed_percent >= 1.0 ) {
+        last_printed_percent = round(pct_complete);
+        if ( pct_complete - last_printed_decade >= 10.0 ) {
+          gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t %.0f %% complete\n", pct_complete);
+          last_printed_decade = round(pct_complete / 10.0) * 10.0;
+        }
+        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
+      }
+    }
+    else if (verbose.enabled && step == 1) {
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
+    }
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.5g ", status.dt_actual);
+      double pct_complete = 100.0 * t_curr / t_end;
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
+    }
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.est_completion_time) {
+      // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
+      double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
+      double sim_time_remaining = t_end - t_curr; // simulated time left
+      double wall_time_per_sim_time = wall_time_elapsed / t_curr;
+      double wall_time_remaining = wall_time_per_sim_time * sim_time_remaining;
+
+      int hours = (int)(wall_time_remaining / 3600.0);
+      int minutes = (int)((wall_time_remaining - hours*3600.0) / 60.0);
+      int seconds = (int)(wall_time_remaining - hours*3600.0 - minutes*60.0);
+
+      double total_sim_span = (t_end) > 0.0 ? (t_end) : (t_curr + sim_time_remaining);
+      double progress_pct = 100.0 * t_curr / total_sim_span;
+
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.5g\t(%.1f%% complete, est. %dh %dm %ds remaining)\n", 
+                                status.dt_actual, progress_pct, hours, minutes, seconds);
+    }
 
     if (!status.success) {
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -276,18 +393,29 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Fetch simulation statistics.
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_multib_app_stat(app);
-
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "\n");
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  if (verbose.enabled) {
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "\n");
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+    if (stat.nstage_2_fail > 0) {
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    }
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
+    gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
   }
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
-  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
+  else {
+    // Calculate total elapsed wall time
+    double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start);
+    int hours = (int)(wall_time_elapsed / 3600.0);
+    int minutes = (int)((wall_time_elapsed - hours*3600.0) / 60.0);
+    int seconds = (int)(wall_time_elapsed - hours*3600.0 - minutes*60.0);
+
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t %.0f %% complete\nSimulation completed in %dh %dm %ds\n", 
+                 100.0, hours, minutes, seconds);
+  }
 
   freeresources:
   // Free resources after simulation completion.
@@ -297,6 +425,9 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 void
 gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
+  if (inp->print_verbosity.frequency == 0.0)
+    inp->print_verbosity.frequency = 1.0;
+
   if (inp->app_type == GKYL_GK_SINGLEB) {
     gyrokinetic_run_singleb_simulation(inp);
   }
