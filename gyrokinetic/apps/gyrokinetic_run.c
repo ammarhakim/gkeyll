@@ -120,6 +120,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
           last_printed_decade = round(pct_complete / 10.0) * 10.0;
         }
         gkyl_gyrokinetic_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
+        fflush(stdout); // Ensure output is printed immediately
+
       }
     }
     else if (verbose.enabled && step == 1) {
@@ -328,6 +330,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
           last_printed_decade = round(pct_complete / 10.0) * 10.0;
         }
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d", ((int)fabs(pct_complete)) % 10);
+        fflush(stdout); // Ensure output is printed immediately
       }
     }
     else if (verbose.enabled && step == 1) {
