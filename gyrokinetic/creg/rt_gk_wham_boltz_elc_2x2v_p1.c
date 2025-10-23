@@ -32,8 +32,7 @@ struct gk_mirror_ctx
   double alim;
   double alphaIC0;
   double alphaIC1;
-  double nuFrac;
-  // Ion-ion collision freq.
+  // Collision frequencies.
   double logLambdaIon;
   double nuIon;
   // Thermal speeds.
@@ -366,7 +365,6 @@ create_ctx(void)
     .alim = alim,
     .alphaIC0 = alphaIC0,
     .alphaIC1 = alphaIC1,
-    .nuFrac = nuFrac,
     .logLambdaIon = logLambdaIon,
     .nuIon = nuIon,
     .vti = vti,
@@ -470,8 +468,8 @@ int main(int argc, char **argv)
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {

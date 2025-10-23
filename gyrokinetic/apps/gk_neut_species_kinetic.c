@@ -11,9 +11,8 @@ gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_sp
   // Collisionless terms.
   gk_neut_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs);
 
-  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-    gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  }
+  // Elastic collisions.
+  gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
 
   if (species->react_neut.num_react) {
     gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
@@ -50,10 +49,9 @@ gk_neut_species_kinetic_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct g
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  // Compute implicit update and update rhs to new time step
-  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  }
+  // Compute implicit update and update rhs to new time step.
+  gk_neut_species_bgk_rhs_implicit(app, species, &species->bgk, fin, dt, rhs);
+
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
   
   app->stat.n_neut_species_omega_cfl +=1;
@@ -154,18 +152,13 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_cu_free(s->omega_cfl);
-  }
-  else {
+  else
     gkyl_free(s->omega_cfl);
-  }
 
   gk_neut_species_source_release(app, &s->src);
 
-  if (s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    gk_neut_species_bgk_release(app, &s->bgk);
-  }
   if (s->react_neut.num_react) {
     gk_neut_species_react_release(app, &s->react_neut);
   }
@@ -213,7 +206,6 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
     gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);
   }
-
 }
 
 static void
@@ -239,6 +231,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_neut_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
+
+  gk_neut_species_bgk_release(app, &s->bgk);
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, s, &s->bflux);
@@ -296,10 +290,6 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
   s->is_first_integ_write_call = true;
 
-  // Determine collision type and initialize it.
-  if (s->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
-    gk_neut_species_bgk_init(app, s, &s->bgk);
-  }
   // Determine reaction type(s) and initialize them. 
   if (s->info.react_neut.num_react) {
     gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
@@ -744,26 +734,31 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Store the BCs from the input file.
   for (int d=0; d<app->cdim; ++d) {
-    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
-    if (bc_lo != 0)
-      s->lower_bc[d] = *bc_lo;
-    else
-      s->lower_bc[d].type = GKYL_BC_GK_SKIP;
-
-    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
-    if (bc_up != 0)
-      s->upper_bc[d] = *bc_up;
-    else
-      s->upper_bc[d].type = GKYL_BC_GK_SKIP;
+    if (s->bc_is_np[d]) {
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0)
+        s->lower_bc[d] = *bc_lo;
+      else
+        s->lower_bc[d].type = GKYL_BC_GK_SKIP;
+  
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0)
+        s->upper_bc[d] = *bc_up;
+      else
+        s->upper_bc[d].type = GKYL_BC_GK_SKIP;
+    }
+    else {
+      s->lower_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+      s->upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+    }
   }
 
   // Allocate distribution function array for initialization and I/O.
   s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
-  if (app->use_gpu) {
+  if (app->use_gpu)
     s->f_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-  }
 
   if (app->cdim < 3) {
     // Reorganize g_ij and gij as done in calculation of Hamiltonian to
@@ -848,7 +843,6 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize boundary fluxes.
   s->bflux = (struct gk_boundary_fluxes) { };
-
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   // Set the operation type for the bflux app.
@@ -881,6 +875,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   s->enforce_positivity = false;
   
+  // Initialize elastic collisions.
+  s->bgk = (struct gk_bgk_collisions) { };
+  gk_neut_species_bgk_init(app, s, &s->bgk);
+
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).
   s->rrs = (struct gk_recycle_react_scale) { };
@@ -888,13 +886,11 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
-  s->bgk = (struct gk_bgk_collisions) { };
   s->react_neut = (struct gk_react) { };
-  if (!s->info.is_static) {
-    gk_neut_species_kinetic_init_dynamic(gk, app, s);
-  }
-  else {
+  if (s->info.is_static) {
     gk_neut_species_kinetic_init_static(gk, app, s);
   }
+  else {
+    gk_neut_species_kinetic_init_dynamic(gk, app, s);
+  }
 }
-

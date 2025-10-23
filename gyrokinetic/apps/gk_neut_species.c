@@ -446,4 +446,3 @@ gk_neut_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_
 { 
   // Do nothing.
 }
-
