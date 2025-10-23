@@ -748,6 +748,7 @@ struct gk_heating {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
+  int vdim; // Velocity space dimensions.
 
   struct gkyl_basis basis; // Phase-space basis.
 
@@ -906,6 +907,7 @@ struct gk_species {
 // Neutral species data.
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // Data for neutral species.
+  int vdim; // Velocity space dimensions.
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
@@ -1148,25 +1150,25 @@ struct gk_field {
 
 // Gyrokinetic object: used as opaque pointer in user code.
 struct gkyl_gyrokinetic_app {
-  char name[128]; // name of app
-  struct gkyl_job_pool *job_pool; // Job pool
+  char name[128]; // Name of app.
+  struct gkyl_job_pool *job_pool; // Job pool.
   
-  int cdim, vdim; // conf, velocity space dimensions
-  int poly_order; // polynomial order
-  double tcurr; // current time
-  double cfl; // CFL number
+  int cdim; // Configuration space dimensions.
+  int poly_order; // Polynomial order.
+  double tcurr; // Current time.
+  double cfl; // CFL number.
   double cfl_omegaH; // CFL number used for omega_H.
-  double bmag_ref; // Reference magnetic field
+  double bmag_ref; // Reference magnetic field.
 
-  bool use_gpu; // should we use GPU (if present)
+  bool use_gpu; // Should we use GPU (if present).
 
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[3]; // List of periodic directions.
     
-  struct gkyl_rect_grid grid; // config-space grid
-  struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges  
-  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_rect_grid grid; // Config-space grid.
+  struct gkyl_range local, local_ext; // Local, local-ext conf-space ranges.
+  struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
+  // To simplify BC application, store local skin and ghost ranges.
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];

@@ -129,8 +129,6 @@ static void
 gk_neut_species_lte_fluid_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
-  int cdim = app->cdim, vdim = 3;
-
   // Allocate moments needed for LTE update.
   gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
@@ -144,8 +142,6 @@ static void
 gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
-  int cdim = app->cdim, vdim = 3;
-
   // Allocate moments needed for LTE update.
   gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 

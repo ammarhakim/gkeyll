@@ -301,9 +301,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity-space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -311,6 +311,8 @@ struct gkyl_gyrokinetic_species {
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
   
+  double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
@@ -369,8 +371,9 @@ struct gkyl_gyrokinetic_neut_species {
   char name[128]; // Species name.
 
   double mass; // Mass.
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity-space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -456,7 +459,7 @@ struct gkyl_gyrokinetic_field {
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix.
 
-  int cdim, vdim; // Conf, velocity space dimensions.
+  int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
   int cells[3]; // Config-space cells.
   int poly_order; // Polynomial order.

@@ -589,6 +589,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -671,6 +672,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -760,7 +762,7 @@ main(int argc, char **argv)
     .bp = &target_corner_bc,
   };
 
-  // field
+  // Field.
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .polarization_bmag = ctx.Bref,
@@ -776,7 +778,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_geometry geometry = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.},
-    .mapc2p = mapc2p, // mapping of cCOREutational to physical space
+    .mapc2p = mapc2p, // Mapping of computational to physical space.
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field
     .bfield_ctx = &ctx,
@@ -794,20 +796,26 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_tcv_iwl_adapt_source_2x2v_p1",
+
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
+
     .cdim = ctx.cdim,
-    .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = geometry,
+
     .num_periodic_dir = 0,
+
     .num_species = 2,
     .species = { elc, ion },
+
     .field = field,
+
     .parallelism = parallelism
   };
 

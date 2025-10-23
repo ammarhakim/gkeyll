@@ -94,7 +94,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->write_diagnostics = s->info.collisions.write_diagnostics;
   lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
   
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim, vdim = s->info.vdim;
 
   // Allocate nu and initialize it.
   lbo->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

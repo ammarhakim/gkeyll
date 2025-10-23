@@ -148,7 +148,6 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   app_inp.geometry = bgi->geometry;
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -192,7 +191,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.cells[i] = bgi->cells[i];
   }
 
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -213,6 +211,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.mass = sp->mass;
 
     // Velocity-space information
+    int vdim = species_inp.vdim = sp->vdim;
     for (int v=0; v<vdim; ++v) {
       species_inp.lower[v] = sp->lower[v];
       species_inp.upper[v] = sp->upper[v];
@@ -294,7 +293,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.is_static = nsp->is_static; 
 
     // Velocity space information (neutrals are 3V)
-    for (int v=0; v<3; ++v) {
+    int vdim = neut_species_inp.vdim = nsp->vdim;
+    for (int v=0; v<vdim; ++v) {
       neut_species_inp.lower[v] = nsp->lower[v];
       neut_species_inp.upper[v] = nsp->upper[v];
       neut_species_inp.cells[v] = nsp->cells[v];

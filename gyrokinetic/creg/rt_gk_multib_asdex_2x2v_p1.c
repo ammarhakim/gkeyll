@@ -1187,6 +1187,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
     .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -1321,6 +1322,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
     .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -1398,7 +1400,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_asdex_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 1.0,

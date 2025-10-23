@@ -129,7 +129,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   recyc->write_diagnostics = edge == GKYL_LOWER_EDGE? s->lower_bc[dir].write_diagnostics : s->upper_bc[dir].write_diagnostics;
 
   int cdim = app->cdim;
-  int ndim = app->cdim + app->vdim+1;
+  int ndim = app->cdim + s->info.vdim;
 
   int e = recyc->edge == GKYL_LOWER_EDGE? 0 : 1;
 
@@ -204,7 +204,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   struct gk_recycle_wall *recyc)
 {
   int cdim = app->cdim;
-  int vdim = app->vdim+1; // from gk_neut_species
+  int vdim = s->info.vdim;
  
   // Define necessary grid, ranges, and array for calculating the desired Maxwellian for ghost.
   recyc->f_emit = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
@@ -244,7 +244,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     // Create boundary grids and ranges for impacting species.
     int cells[GKYL_MAX_DIM];
     double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-    for (int i=0; i<cdim+app->vdim; ++i) {
+    for (int i=0; i<cdim+gks->info.vdim; ++i) {
       cells[i] = gks->grid.cells[i];
       lower[i] = gks->grid.lower[i];
       upper[i] = gks->grid.upper[i];
@@ -252,12 +252,12 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     cells[recyc->dir] = 1;
     lower[recyc->dir] = e==0? gks->grid.lower[recyc->dir] - gks->grid.dx[recyc->dir] : gks->grid.upper[recyc->dir];
     upper[recyc->dir] = e==0? gks->grid.lower[recyc->dir] : gks->grid.upper[recyc->dir] + gks->grid.dx[recyc->dir];
-    gkyl_rect_grid_init(&recyc->impact_grid[i], cdim+app->vdim, lower, upper, cells);
+    gkyl_rect_grid_init(&recyc->impact_grid[i], cdim+gks->info.vdim, lower, upper, cells);
 
     struct gkyl_range *phase_skin_r = e==0? &gks->lower_skin[recyc->dir] : &gks->upper_skin[recyc->dir];
     struct gkyl_range *phase_ghost_r = e==0? &gks->lower_ghost[recyc->dir] : &gks->upper_ghost[recyc->dir];
     recyc->impact_ghost_r[i] = phase_ghost_r;
-    gkyl_range_init(&recyc->impact_buff_r[i], cdim+app->vdim, phase_ghost_r->lower, phase_ghost_r->upper);
+    gkyl_range_init(&recyc->impact_buff_r[i], cdim+gks->info.vdim, phase_ghost_r->lower, phase_ghost_r->upper);
     gkyl_range_init(&recyc->impact_cbuff_r[i], cdim, phase_ghost_r->lower, phase_ghost_r->upper);
 
     recyc->phase_flux_gk[i] = mkarr(app->use_gpu, gks->basis.num_basis, phase_ghost_r->volume);

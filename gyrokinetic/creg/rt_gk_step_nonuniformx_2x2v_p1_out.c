@@ -344,6 +344,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -446,6 +447,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -513,6 +515,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species Ar1 = {
     .name = "Ar1",
     .charge = ctx.chargeIon, .mass = ctx.massAr,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_Ar, 0.0},
     .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -591,6 +594,7 @@ main(int argc, char **argv)
   // Neutral Ar.
   struct gkyl_gyrokinetic_neut_species Ar0 = {
     .name = "Ar0", .mass = ctx.massAr,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
     .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
@@ -616,7 +620,6 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
-
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -650,7 +653,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_step_nonuniformx_2x2v_p1_out",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },

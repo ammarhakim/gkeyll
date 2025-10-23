@@ -465,6 +465,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -1.0, 0.0 },
     .upper = { 1.0, 1.0 },
     .cells = { cells_v[0], cells_v[1] },
@@ -536,6 +537,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
@@ -573,6 +575,7 @@ main(int argc, char **argv)
   // Ar1+ ions.
   struct gkyl_gyrokinetic_species Ar1 = {
     .name = "Ar1",
+    .vdim = ctx.vdim,
     .charge = ctx.charge_Ar1, .mass = ctx.mass_Ar1,
     .lower = { -ctx.vpar_max_Ar1, 0.0 },
     .upper = { ctx.vpar_max_Ar1, ctx.mu_max_Ar1 },
@@ -640,6 +643,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species Ar2 = {
     .name = "Ar2",
     .charge = ctx.charge_Ar2, .mass = ctx.mass_Ar2,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_Ar2, 0.0 },
     .upper = { ctx.vpar_max_Ar2, ctx.mu_max_Ar2 },
     .cells = { cells_v[0], cells_v[1] },
@@ -714,7 +718,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_ar_react_nonuniformv_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },

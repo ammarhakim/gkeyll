@@ -157,8 +157,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_gyrokinetic_app *app = gkyl_malloc(sizeof(gkyl_gyrokinetic_app));
 
   int cdim = app->cdim = gk->cdim;
-  int vdim = app->vdim = gk->vdim;
-  int pdim = cdim+vdim;
   int poly_order = app->poly_order = gk->poly_order;
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;

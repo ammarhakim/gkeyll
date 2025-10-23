@@ -413,6 +413,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0 },
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { cells_v[0], cells_v[1] },
@@ -442,6 +443,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
@@ -469,6 +471,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_neut_species neut = {
     .name = "neut", .mass = ctx.mass_ion,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.v_max_neut, -ctx.v_max_neut, -ctx.v_max_neut/64.0 },
     .upper = {  ctx.v_max_neut,  ctx.v_max_neut,  ctx.v_max_neut/64.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0]},
@@ -543,7 +546,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_neut_recycle_1x3v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz},
     .upper = {  0.5 * ctx.Lz},
     .cells = { cells_x[0] },

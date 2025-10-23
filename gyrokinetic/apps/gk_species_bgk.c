@@ -8,7 +8,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   bgk->collision_id = s->info.collisions.collision_id;
   bgk->write_diagnostics = s->info.collisions.write_diagnostics;
 
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim, vdim = s->info.vdim;
   // allocate nu and initialize it
   bgk->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

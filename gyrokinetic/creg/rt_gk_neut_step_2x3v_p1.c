@@ -334,6 +334,7 @@ main(int argc, char **argv)
   // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_D0*2.3, -ctx.vpar_max_D0*25.1, -ctx.vpar_max_D0*9.0},
     .upper = { ctx.vpar_max_D0*2.3, ctx.vpar_max_D0*25.1, ctx.vpar_max_D0*9.0 },
     .cells = { 24,24,24 },
@@ -417,7 +418,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_neut_step_2x3v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },

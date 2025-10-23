@@ -273,7 +273,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 void
 gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
+  int cdim = app->cdim, vdim = s->info.vdim;
   int pdim = cdim+vdim;
   
   // allocate additional distribution function arrays for time stepping
@@ -661,8 +661,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 {
   s->is_fluid = false; // Kinetic neutrals.
 
-  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
+  int cdim = app->cdim, vdim = s->info.vdim;
   int pdim = cdim+vdim;
+
+  assert(vdim > 0); // Ensure user provided vdim in input file.
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];

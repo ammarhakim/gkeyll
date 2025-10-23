@@ -15,7 +15,7 @@ gk_neut_species_projection_kinetic_calc(gkyl_gyrokinetic_app *app, struct gk_neu
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    int vdim = app->vdim+1;
+    int vdim = s->info.vdim;
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local, proj->udrift);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
@@ -94,7 +94,7 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    int vdim = app->vdim+1; // neutral species are 3v otherwise
+    int vdim = s->info.vdim;
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->udrift = mkarr(false, vdim*app->basis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
@@ -171,7 +171,6 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    int vdim = app->vdim+1;
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local, proj->udrift);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
@@ -248,15 +247,15 @@ gk_neut_species_projection_fluid_init(struct gkyl_gyrokinetic_app *app, struct g
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    int vdim = app->vdim+1; // neutral species are 3v otherwise
+    int udim = s->num_moments-2;
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    proj->udrift = mkarr(false, vdim*app->basis.num_basis, app->local_ext.volume);
+    proj->udrift = mkarr(false, udim*app->basis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       s->basis.poly_order+1, 1, inp.density, inp.ctx_density);
     proj->proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      s->basis.poly_order+1, vdim, inp.udrift, inp.ctx_udrift);
+      s->basis.poly_order+1, udim, inp.udrift, inp.ctx_udrift);
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       s->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
   }

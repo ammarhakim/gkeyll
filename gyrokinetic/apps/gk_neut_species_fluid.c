@@ -94,8 +94,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 static void
 gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
-  int cdim = app->cdim, vdim = app->vdim+1; // Neutral species are 3v.
-  int pdim = cdim+vdim;
+  int cdim = app->cdim;
   
   // Allocate additional moment arrays for time stepping.
   ns->f1 = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
@@ -167,6 +166,8 @@ void
 gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   ns->is_fluid = true; // Fluid neutrals.
+  assert(ns->info.vdim == 0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
+
   ns->model_id = GKYL_MODEL_DEFAULT;
   ns->field_id = GKYL_FIELD_NULL;
 

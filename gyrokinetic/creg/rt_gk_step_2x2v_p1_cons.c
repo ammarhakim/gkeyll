@@ -346,6 +346,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -455,6 +456,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -572,6 +574,7 @@ main(int argc, char **argv)
     // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0*3.0, -ctx.vpar_max_D0*4.0},
     .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0*3.0, ctx.vpar_max_D0*4.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
@@ -633,7 +636,6 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_LTE},
   };
 
-
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
@@ -651,7 +653,7 @@ main(int argc, char **argv)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
   };
 
-struct gkyl_tok_geo_grid_inp grid_inp = {
+  struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_DN_SOL_OUT, // type of geometry
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
@@ -666,7 +668,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
   struct gkyl_gk app_inp = {
     .name = "gk_step_2x2v_p1_cons",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },

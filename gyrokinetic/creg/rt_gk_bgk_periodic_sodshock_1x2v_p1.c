@@ -230,6 +230,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species neut = {
     .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = { ctx.vpar_max, ctx.mu_max },
     .cells = { cells_v[0], cells_v[1] },
@@ -283,7 +284,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_bgk_periodic_sodshock_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },

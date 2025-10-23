@@ -303,7 +303,6 @@ gk_neut_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk
 {
   struct timespec wst = gkyl_wall_clock();
 
-  int vdim = app->vdim+1; // Neutrals are always 3V
   int num_mom = gkns->integ_moms.num_mom;
   double avals_global[num_mom];
   
