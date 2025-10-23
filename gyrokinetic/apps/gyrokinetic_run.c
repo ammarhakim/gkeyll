@@ -160,7 +160,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
     if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0) || step == 1)) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %.5g ...", step, t_curr);
+      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %#11.8g ...", step, t_curr);
     }
 
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
@@ -169,10 +169,10 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
       write_step_message_singleb(app, &m_trig, step, t_curr, status.dt_suggested);
     }
     else if (verbose.enabled && step == 1) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.6e\n", status.dt_actual);
     }
     else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.5g ", status.dt_actual);
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.6e ", status.dt_actual);
       double pct_complete = 100.0 * t_curr / t_end;
       gkyl_gyrokinetic_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
     }
@@ -365,7 +365,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
     if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0) || step == 1)) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %.5g ...", step, t_curr);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %#11.8g ...", step, t_curr);
     }
 
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
@@ -374,10 +374,10 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
       write_step_message_multib(app, &m_trig, step, t_curr, status.dt_suggested);
     }
     else if (verbose.enabled && step == 1) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t\t\tdt = %.5g\n", status.dt_actual);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.6e\n", status.dt_actual);
     }
     else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.5g ", status.dt_actual);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.6e ", status.dt_actual);
       double pct_complete = 100.0 * t_curr / t_end;
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
     }
