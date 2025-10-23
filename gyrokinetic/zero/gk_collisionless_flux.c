@@ -42,35 +42,49 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   if (no_by) {
-    for (int d=0; d<cdim; ++d) {
-      // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-      up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+    if (add_em) {
+      for (int d=0; d<cdim; ++d) {
+        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+        up->flux_surf[d] = choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[d]);
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_add_em_no_by_edge_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      }
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_em_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+    } else {
+      for (int d=0; d<cdim; ++d) {
+        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+        up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[d]);
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      }
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-  } else if (add_em) {
-    for (int d=0; d<cdim; ++d) {
-      // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-      up->flux_surf[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_add_em_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
-    }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_em_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
-    for (int d=0; d<cdim; ++d) {
-      // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-      up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+    if (add_em) {
+      for (int d=0; d<cdim; ++d) {
+        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+        up->flux_surf[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[d]);
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_add_em_edge_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      }
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_em_surf_vpar_kern(cdim, vdim, poly_order);
+    } else {
+      for (int d=0; d<cdim; ++d) {
+        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+        up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[d]);
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
+          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      }
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
 
   up->flags = 0;
