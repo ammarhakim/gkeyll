@@ -352,6 +352,15 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
   gk_species_source_calc(app, s, &s->src, f_buffer, tm);
 }
 
+static void 
+gk_species_source_adapt_after_first_step(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
+{
+  // Re-point to the function that adapts the source, so it doesn't happen the
+  // first time we call gk_species_source_adapt.
+  src->adapt_func = gk_species_source_adapt_enabled;
+}
+
 void 
 gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src)
@@ -435,7 +444,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->num_adapt_sources = s->info.source.num_adapt_sources;
     assert(src->num_adapt_sources <= src->num_sources); // Adaptive source should be a subset of the sources.
     if (src->num_adapt_sources > 0){
-      src->adapt_func = gk_species_source_adapt_enabled;
+      src->adapt_func = gk_species_source_adapt_after_first_step;
 
       if (src->num_diag_int_mom > 0){
         // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
