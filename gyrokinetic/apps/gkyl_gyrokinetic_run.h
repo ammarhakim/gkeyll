@@ -1,7 +1,7 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_multib.h>
 
-struct gkyl_gyrokinetic_timings {
+struct gkyl_gyrokinetic_time_stepping_inp {
   double t_end; // End time for the simulation
   int num_frames; // Number of output frames. Output every (t_end/num_frames) time units.
   int write_phase_freq; // Frequency (in multiples of num_frames) of writing phase-space data. e.g. 0.2 means write every 5 frames.
@@ -17,7 +17,7 @@ struct gkyl_gyrokinetic_timings {
 struct gkyl_gyrokinetic_run_verbosity {
   bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
   double frequency; // Print information with given frequency. Defaults to 1.0
-  bool est_completion_time; // Estimate completion time based on current progress. Defaults false
+  bool estimate_completion_time; // Estimate completion time based on current progress. Defaults false
 };
 
 enum gkyl_gyrokinetic_run_app_type {
@@ -31,7 +31,7 @@ struct gkyl_gyrokinetic_run_inp {
     struct gkyl_gk app_inp; // Single-block application input struct.
     struct gkyl_gyrokinetic_multib multib_app_inp; // Multi-block application input.
   };
-  struct gkyl_gyrokinetic_timings timing; // Timing parameters for the simulation.
+  struct gkyl_gyrokinetic_time_stepping_inp timing; // Timing parameters for the simulation.
   struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.
 };
 

@@ -824,7 +824,7 @@ main(int argc, char **argv)
     .print_verbosity = {
       .enabled = true,
       .frequency = 0.1,
-      .est_completion_time = true,
+      .estimate_completion_time = true,
     }
   };
 

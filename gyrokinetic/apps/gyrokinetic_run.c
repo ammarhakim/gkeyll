@@ -46,7 +46,7 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
 // Step message context.
 struct step_message_trigs {
   int log_count; // Number of times logging called.
-  int tenth, p1c; 
+  int tenth, p1c; // 10% and 1% counters.
   struct gkyl_tm_trigger log_trig; // 10% trigger.
   struct gkyl_tm_trigger log_trig_1p; // 1% trigger.
 };
@@ -96,7 +96,7 @@ write_step_message_multib(const struct gkyl_gyrokinetic_multib_app *app, struct 
 void
 gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_timings timing = inp->timing;
+  struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
 
@@ -171,12 +171,12 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     else if (verbose.enabled && step == 1) {
       gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.6e\n", status.dt_actual);
     }
-    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.estimate_completion_time) {
       gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.6e ", status.dt_actual);
       double pct_complete = 100.0 * t_curr / t_end;
       gkyl_gyrokinetic_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
     }
-    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.est_completion_time) {
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.estimate_completion_time) {
       // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
       double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
       double sim_time_remaining = t_end - t_curr; // simulated time left
@@ -299,7 +299,7 @@ write_data_multib(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_
 void 
 gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_timings timing = inp->timing;
+  struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
 
@@ -376,12 +376,12 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     else if (verbose.enabled && step == 1) {
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.6e\n", status.dt_actual);
     }
-    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.est_completion_time) {
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && !verbose.estimate_completion_time) {
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.6e ", status.dt_actual);
       double pct_complete = 100.0 * t_curr / t_end;
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t(%.1f%% complete)\n", pct_complete);
     }
-    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.est_completion_time) {
+    else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.estimate_completion_time) {
       // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
       double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
       double sim_time_remaining = t_end - t_curr; // simulated time left
