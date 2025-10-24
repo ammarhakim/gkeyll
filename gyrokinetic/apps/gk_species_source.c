@@ -444,6 +444,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->num_adapt_sources = s->info.source.num_adapt_sources;
     assert(src->num_adapt_sources <= src->num_sources); // Adaptive source should be a subset of the sources.
     if (src->num_adapt_sources > 0){
+      assert(s->info.vdim > 1); // MF 2025/10/24: hasn't been tested in 1v.
       src->adapt_func = gk_species_source_adapt_after_first_step;
 
       if (src->num_diag_int_mom > 0){
