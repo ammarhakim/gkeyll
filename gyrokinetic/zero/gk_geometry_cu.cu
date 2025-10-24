@@ -14,7 +14,8 @@ extern "C" {
 __global__ static void
 gk_geometry_set_corn_cu_kernel(struct gk_geometry *gk_geom,
   struct gkyl_array *mc2p, struct gkyl_array *mc2nu_pos, struct gkyl_array *bmag,
-  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *bmag_nodal 
+  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *bmag_nodal,
+  struct gkyl_array *mc2p_deflated, struct gkyl_array *mc2nu_pos_deflated
  )
 {
   // Expansions.
@@ -25,6 +26,9 @@ gk_geometry_set_corn_cu_kernel(struct gk_geometry *gk_geom,
   gk_geom->geo_corn.mc2p_nodal = mc2p_nodal;
   gk_geom->geo_corn.mc2nu_pos_nodal = mc2nu_pos_nodal;
   gk_geom->geo_corn.bmag_nodal = bmag_nodal;
+  // Deflated.
+  gk_geom->geo_corn.mc2p_deflated = mc2p_deflated;
+  gk_geom->geo_corn.mc2nu_pos_deflated = mc2nu_pos_deflated;
 }
 
 __global__ static void
@@ -154,7 +158,8 @@ gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn *geo_
 {
   gk_geometry_set_corn_cu_kernel<<<1,1>>>(gk_geom, 
     geo_corn->mc2p->on_dev, geo_corn->mc2nu_pos->on_dev, geo_corn->bmag->on_dev,
-    geo_corn->mc2p_nodal->on_dev, geo_corn->mc2nu_pos_nodal->on_dev, geo_corn->bmag_nodal->on_dev);
+    geo_corn->mc2p_nodal->on_dev, geo_corn->mc2nu_pos_nodal->on_dev, geo_corn->bmag_nodal->on_dev,
+    geo_corn->mc2p_deflated->on_dev, geo_corn->mc2nu_pos_deflated->on_dev);
 }
 
 // Host-side wrapper for set_int_cu_kernel
@@ -448,7 +453,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 
   // Expansions.
   gkyl_array_copy(geo_corn_dev->mc2p, geo_host->geo_corn.mc2p);
+  gkyl_array_copy(geo_corn_dev->mc2p_deflated, geo_host->geo_corn.mc2p_deflated);
   gkyl_array_copy(geo_corn_dev->mc2nu_pos, geo_host->geo_corn.mc2nu_pos);
+  gkyl_array_copy(geo_corn_dev->mc2nu_pos_deflated, geo_host->geo_corn.mc2nu_pos_deflated);
   gkyl_array_copy(geo_corn_dev->bmag, geo_host->geo_corn.bmag);
   // Nodal.
   gkyl_array_copy(geo_corn_dev->mc2p_nodal, geo_host->geo_corn.mc2p_nodal);

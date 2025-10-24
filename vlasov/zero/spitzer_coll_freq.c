@@ -17,15 +17,14 @@ double plasma_frequency(double n, double m, double eps0, double eV)
 
 // Calculate the Coulomb Logarithm
 double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr,
-  double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
+  double qs, double qr, double bmag, double eps0, double hbar, double eV)
 {
-
   double vts = sqrt(Ts/ms); // Thermal velocity for species s
   double vtr = sqrt(Tr/mr);  // Thermal velocity for species r
-  double wps = plasma_frequency(ns,ms, eps0, eV); // Plasma Frequency for species s
-  double wpr = plasma_frequency(nr,mr, eps0, eV); // Plasma frequency for species r
-  double wcs = qs*bmag_mid/ms; // Cyclotron frequency for species s
-  double wcr = qr*bmag_mid/mr; // Cyclotron frequency for species r
+  double wps = plasma_frequency(ns, ms, eps0, eV); // Plasma Frequency for species s
+  double wpr = plasma_frequency(nr, mr, eps0, eV); // Plasma frequency for species r
+  double wcs = qs*bmag/ms; // Cyclotron frequency for species s
+  double wcr = qr*bmag/mr; // Cyclotron frequency for species r
   double inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms);
   double u = 3*(vts*vts + vtr*vtr); // Relative velocity
   double msr = ms*mr/(ms+mr); // Reduced mass
@@ -34,13 +33,19 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
   return 0.5*log(inner);
 }
 
-// Calculate the normNu
-double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr,
-  double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV)
+double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
 {
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV);
-  double cross_fac2 = fabs(ms - mr)/mr < 1e-16? 1.0 : 2.0*sqrt(2.0);
-  return cross_fac2 * (1.0/ms)*(1.0/mr+1.0/ms)*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2));
+  double clog = 0.5*( coulomb_log(ns, nr, ms, mr, Ts, Tr, qs, qr, bmag, eps0, hbar, eV)
+                     +coulomb_log(nr, ns, mr, ms, Tr, Ts, qr, qs, bmag, eps0, hbar, eV) );
+  return 2.0*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2)*ms*mr);
+}
+
+double gkyl_calc_Morse_alpha_E(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV)
+{
+  double alpha_E_fac = gkyl_calc_Morse_alpha_E_const(ns, nr, ms, mr, qs, qr, Ts, Tr, bmag, eps0, hbar, eV);
+  return alpha_E_fac * ns * nr / pow(sqrt(Ts/ms+Tr/mr),3.0);
 }
 
 // create range to loop over quadrature points.
@@ -215,8 +220,8 @@ calc_nu(const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double
 
 void
 gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
+  const struct gkyl_range *range, const struct gkyl_array *momsSelf, double vtSqMinSelf,
+  const struct gkyl_array *momsOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut)
 {
   // Scale project normNu*n_r/(v_ts^2+v_tr^2)^(3/2) onto the basis using
@@ -224,9 +229,11 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_spitzer_coll_freq_advance_normnu_cu(up, range, vtSqSelf, 
-      vtSqMinSelf, m0Other, vtSqOther, vtSqMinOther, normNu, nuOut);
+    return gkyl_spitzer_coll_freq_advance_normnu_cu(up, range, momsSelf, 
+      vtSqMinSelf, momsOther, vtSqMinOther, normNu, nuOut);
 #endif
+
+  int vtsq_idx = momsSelf->ncomp-up->num_basis;
 
   // Create range to loop over quadrature points.
   struct gkyl_range qrange = get_qrange(up->ndim, up->num_quad);
@@ -236,9 +243,12 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(range, iter.idx);
 
-    const double *vtSqSelf_d = gkyl_array_cfetch(vtSqSelf, linidx);
-    const double *m0Other_d = gkyl_array_cfetch(m0Other, linidx);
-    const double *vtSqOther_d = gkyl_array_cfetch(vtSqOther, linidx);
+    const double *momsSelf_d = gkyl_array_cfetch(momsSelf, linidx);
+    const double *momsOther_d = gkyl_array_cfetch(momsOther, linidx);
+
+    const double *vtSqSelf_d = &momsSelf_d[vtsq_idx];
+    const double *m0Other_d = momsOther_d;
+    const double *vtSqOther_d = &momsOther_d[vtsq_idx];
 
     calc_nu(up, qrange, vtSqSelf_d, vtSqMinSelf, m0Other_d, vtSqOther_d, vtSqMinOther, normNu, linidx, nuOut);
   }
@@ -248,8 +258,8 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 void
 gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
   const struct gkyl_range *range, const struct gkyl_array *bmag,  
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
+  double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *momsOther, double vtSqMinOther,
   struct gkyl_array *nuOut)
 {
   // Compute the Spitzer-like collision frequency
@@ -260,10 +270,11 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_spitzer_coll_freq_advance_cu(up, range, bmag, qSelf, mSelf, m0Self, vtSqSelf,
-      vtSqMinSelf, qOther, mOther, m0Other, vtSqOther, vtSqMinOther, nuOut);
+    return gkyl_spitzer_coll_freq_advance_cu(up, range, bmag, qSelf, mSelf, momsSelf,
+      vtSqMinSelf, qOther, mOther, momsOther, vtSqMinOther, nuOut);
 #endif
 
+  int vtsq_idx = momsSelf->ncomp-up->num_basis;
   double mReduced = 1./(1./mSelf+1./mOther);
   double timeConstFac = up->nufraceps0_fac*pow(qSelf*qOther,2)/(mSelf*mReduced);
 
@@ -276,10 +287,13 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
     long linidx = gkyl_range_idx(range, iter.idx);
 
     const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
-    const double *m0Self_d = gkyl_array_cfetch(m0Self, linidx);
-    const double *vtSqSelf_d = gkyl_array_cfetch(vtSqSelf, linidx);
-    const double *m0Other_d = gkyl_array_cfetch(m0Other, linidx);
-    const double *vtSqOther_d = gkyl_array_cfetch(vtSqOther, linidx);
+    const double *momsSelf_d = gkyl_array_cfetch(momsSelf, linidx);
+    const double *momsOther_d = gkyl_array_cfetch(momsOther, linidx);
+
+    const double *m0Self_d = momsSelf_d;
+    const double *vtSqSelf_d = &momsSelf_d[vtsq_idx];
+    const double *m0Other_d = momsOther_d;
+    const double *vtSqOther_d = &momsOther_d[vtsq_idx];
 
     // Compute the Coulomb logarithm using cell-average values.
     double bmagAv = bmag_d[0]*up->cellav_fac;
