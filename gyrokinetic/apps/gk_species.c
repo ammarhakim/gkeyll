@@ -1615,9 +1615,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
-  // Allocate data for density (for charge density or upar calculation).
-  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
-
   if (gks->collisionless.is_em) {
     // To compute current density for Ampere's law and current dot for Ohm's law.
     gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
@@ -1956,9 +1953,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_anomalous_diff_release(app, &s->anom_diff);
 
   // Release moment data.
-  gk_species_moment_release(app, &s->m0);
-  if (s->collisionless.is_em)
-    gk_species_moment_release(app, &s->m1);
+  gk_species_moment_release(app, &s->m0);    
 
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
@@ -1987,6 +1982,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
 
   if (s->is_em) {
+    gk_species_moment_release(app, &s->m1);
     gkyl_array_release(s->gyro_apar);
     gkyl_array_release(s->gyro_apardot);
   }
