@@ -401,9 +401,9 @@ struct gk_app_ctx create_ctx(void)
   double floor_srcRECY = 1e-10;
 
   // Grid parameters
-  int num_cell_x = 24; // The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
-  int num_cell_z = 12;
-  int num_cell_vpar = 12;
+  int num_cell_x = 9; // The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int num_cell_z = 8;
+  int num_cell_vpar = 8;
   int num_cell_mu = 8;
   int poly_order = 1;
   // Velocity box dimensions
