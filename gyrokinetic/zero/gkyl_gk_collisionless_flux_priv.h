@@ -306,8 +306,127 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
 };
 
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_surf_vpar_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_gk_collisionless_flux_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)                                       
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)                                       
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_gk_collisionless_flux_no_by_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+
 //
-// Serendipity surface kernels to add electromagnetic effects.
+// Electromagnetic serendipity surface kernels.
 //
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D
@@ -327,7 +446,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_edge_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
+// Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -336,7 +455,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
+// Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -345,7 +464,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_edge_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
+// Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -354,7 +473,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_surfz_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
+// Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_edge_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -394,7 +513,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
+// Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_multib_boundary_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -403,7 +522,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
+// Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_multib_boundary_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -412,7 +531,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
+// Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_multib_boundary_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -421,7 +540,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
 };
 
-// Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
+// Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_add_em_multib_boundary_edge_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -429,6 +548,7 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, NULL, NULL }, // 2
   { NULL, gk_collisionless_flux_add_em_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
 };
+
 
 //
 // Serendipity surface kernels without toroidal field (by=0)
@@ -554,125 +674,6 @@ static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux
   { NULL, gk_collisionless_flux_add_em_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
 };
 
-
-GKYL_CU_D
-static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
-{
-  if (bc == GKYL_BC_GK_SKIP) {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-  else {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
-{
-  if (bc == GKYL_BC_GK_SKIP) {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-  else {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surfvpar_t
-choose_gk_collisionless_flux_surf_vpar_kern(int cdim, int vdim, int poly_order)
-{
-  return ser_gk_collisionless_flux_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
-{
-  if (bc == GKYL_BC_GK_SKIP) {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)                                       
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)                                       
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-  else {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_no_by_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_no_by_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_no_by_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
-{
-  if (bc == GKYL_BC_GK_SKIP) {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-  else {
-    if (dir == 0)
-      return ser_gk_collisionless_flux_no_by_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
-      return ser_gk_collisionless_flux_no_by_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
-      return ser_gk_collisionless_flux_no_by_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else
-      return NULL;
-  }
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surfvpar_t
-choose_gk_collisionless_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
-{
-  return ser_gk_collisionless_flux_no_by_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-}
-
 GKYL_CU_D
 static gk_collisionless_flux_surf_t
 choose_gk_collisionless_flux_add_em_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
@@ -680,9 +681,9 @@ choose_gk_collisionless_flux_add_em_surf_conf_kern(int dir, int cdim, int vdim, 
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
       return ser_gk_collisionless_flux_add_em_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)                                       
+    else if (dir == 1)
       return ser_gk_collisionless_flux_add_em_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)                                       
+    else if (dir == 2)
       return ser_gk_collisionless_flux_add_em_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     else
       return NULL;
@@ -732,7 +733,6 @@ choose_gk_collisionless_flux_add_em_surf_vpar_kern(int cdim, int vdim, int poly_
   return ser_gk_collisionless_flux_add_em_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-
 GKYL_CU_D
 static gk_collisionless_flux_surf_t
 choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
@@ -740,9 +740,9 @@ choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(int dir, int cdim, int 
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
       return ser_gk_collisionless_flux_add_em_no_by_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 1)
+    else if (dir == 1)                                       
       return ser_gk_collisionless_flux_add_em_no_by_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    else if (dir == 2)
+    else if (dir == 2)                                       
       return ser_gk_collisionless_flux_add_em_no_by_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     else
       return NULL;
