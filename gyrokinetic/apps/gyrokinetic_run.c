@@ -234,29 +234,18 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   // Fetch simulation statistics.
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
 
-  if (verbose.enabled) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Ending simulation at t=%g\n", t_curr);
-    gkyl_gyrokinetic_app_cout(app, stdout, "\n");
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-    if (stat.nstage_2_fail > 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-      gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-    }  
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-    gkyl_gyrokinetic_app_print_timings(app, stdout);
-  }
-  else {
-    // Calculate total elapsed wall time
-    double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start);
-    int hours = (int)(wall_time_elapsed / 3600.0);
-    int minutes = (int)((wall_time_elapsed - hours*3600.0) / 60.0); 
-    int seconds = (int)(wall_time_elapsed - hours*3600.0 - minutes*60.0);
-    gkyl_gyrokinetic_app_cout(app, stdout, "\nSimulation completed in %dh %dm %ds\n",
-                 hours, minutes, seconds);
-  }
+  gkyl_gyrokinetic_app_cout(app, stdout, "Ending simulation at t=%g\n", t_curr);
+  gkyl_gyrokinetic_app_cout(app, stdout, "\n");
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.
