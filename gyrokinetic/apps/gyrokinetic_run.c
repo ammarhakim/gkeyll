@@ -468,7 +468,7 @@ void
 gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
   if (inp->print_verbosity.frequency == 0.0)
-    inp->print_verbosity.frequency = 1.0;
+    inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
 
   if (inp->app_type == GKYL_GK_SINGLEB) {
     gyrokinetic_run_singleb_simulation(inp);
