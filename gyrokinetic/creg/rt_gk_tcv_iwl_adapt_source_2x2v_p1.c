@@ -557,7 +557,7 @@ main(int argc, char **argv)
     .edge = {GKYL_LOWER_EDGE},
   };
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
-    .adapt_to_species = "elc", // Adapt to ion losses to maintain ambipolarity.
+    .adapt_to_species = "ion", // Adapt to ion losses to maintain ambipolarity.
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
