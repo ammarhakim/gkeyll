@@ -132,16 +132,6 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Allocate arrays to store surface phase space flux.
     gkcls->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
 
-    if (gkcls->is_em) {
-      // Parallel component of magnetic vector potential.
-      gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
-    }
-    else {
-      gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-      gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-    }
-
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
     for (int d=0; d<app->cdim; d++) {
       bctype_conf[d] = gks->lower_bc[d].type;
@@ -152,21 +142,44 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gks->info.charge, gks->info.mass, gkcls->no_by, false, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
+    if (gkcls->is_em) {
+    }
+    
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
       .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot };
-    // Create solver.
-    gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
-      &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-      gks->info.skip_cell_threshold, gkcls->no_by, false, app->gk_geom, gks->vel_map, 
-      &aux_inp, app->use_gpu);
+      // Create solver.
+      gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+        &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
+        gks->info.skip_cell_threshold, gkcls->no_by, false, app->gk_geom, gks->vel_map, 
+        &aux_inp, app->use_gpu);
+        
+        // Methods chosen at runtime.
+        gkcls->flux_func = gk_species_collisionless_flux_enabled;
+        gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
 
-    // Methods chosen at runtime.
-    gkcls->flux_func = gk_species_collisionless_flux_enabled;
-    gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
-    if (gkcls->is_em) {
-      gkcls->add_em_flux = gk_species_collisionless_add_em_flux_enabled;
-      gkcls->add_em_rhs = gk_species_collisionless_add_em_rhs_enabled;
+      // Electromagnetic additional setup
+      if (gkcls->is_em) {
+
+        gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+        gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);  
+
+        // Create solvers to add EM contributions.
+        gkcls->surf_flux_op_add_em = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
+          gks->info.charge, gks->info.mass, gkcls->no_by, true, app->gk_geom, 
+          app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
+        gkcls->slvr_add_em = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+          &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
+          gks->info.skip_cell_threshold, gkcls->no_by, true, app->gk_geom, gks->vel_map, 
+          &aux_inp, app->use_gpu);
+        
+        // Runtime methods for EM contributions.  
+        gkcls->add_em_flux = gk_species_collisionless_add_em_flux_enabled;
+        gkcls->add_em_rhs = gk_species_collisionless_add_em_rhs_enabled;
+    } else {
+      gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
+      gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
     }
+
     if (gkcls->write_diagnostics) {
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
@@ -220,7 +233,9 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
-    if (gkcls->write_diagnostics) {
+    if (gkcls->is_em) {
+      gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op_add_em);
+      gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_add_em);
     }
   }
 }

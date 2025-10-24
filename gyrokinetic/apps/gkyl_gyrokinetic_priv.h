@@ -715,6 +715,7 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
+  struct gkyl_array *gyro_apar; // Gyroaveraged parallel vector potential.
   struct gkyl_array *gyro_apardot; // Gyroaveraged parallel vector potential time derivative.
   bool is_em; // Whether electromagnetic terms are present.
 
@@ -992,7 +993,7 @@ struct gk_field {
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density
   struct gkyl_array *rho_c;
-  struct gkyl_array *rho_c_global_dg;
+  struct gkyl_array *rho_c_global_dg; // Auxiliary array for global charge density but also used in smoothing.
   struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
 
@@ -1014,9 +1015,10 @@ struct gk_field {
     struct {
       struct gkyl_array *apar; // Array for A_parallel (solved only in ic).
       struct gkyl_array *apar_old; // Previous state of A_parallel (for update with apardot).
+      struct gkyl_array *apar_fem; // FEM A_parallel. 
+      struct gkyl_array *apar_smooth; // Smoothed A_parallel.
       struct gkyl_array *apar_host; // Host copy for use IO.
       struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
-      struct gkyl_array *apardot_smooth; // Smoothed d(A_parallel)/dt.
       struct gkyl_array *apardot_host; // Host copy for use IO.
       struct gkyl_array *currentDens; // Current density.
       struct gkyl_array *currentDens_global; // Current density.
@@ -1104,7 +1106,7 @@ struct gk_field {
     struct gkyl_array *rhs_in[]);
   void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-  void (*step_apar) (struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
+  void (*step_apar) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -3241,13 +3243,15 @@ void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Step the parallel component of the magnetic vector potential, apar, forward in time.
+ * Also update apar_smooth used in the GK characteristics.
  * 
+ * @param app gyrokinetic app object.
  * @param field Pointer to field.
  * @param out Output array. (apar)
  * @param dt Timestep.
  * @param inp Input array. (apardot from Ohm's law)
  */
-void gk_field_step_apar(struct gk_field *field, struct gkyl_array* out, double dt,
+void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp);
 
 /**

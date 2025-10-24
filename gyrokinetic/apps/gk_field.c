@@ -250,14 +250,20 @@ gk_field_ampere_solve_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
 }
 
 static void
-gk_field_step_apar_dyn(struct gk_field *field, struct gkyl_array* out, double dt,
+gk_field_step_apar_dyn(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+  gkyl_array_accumulate(out, dt, inp);
+
+  // Update the smooth version of Apar (out).
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, out, field->rho_c_global_dg);
+  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
+  gkyl_array_copy_range_to_range(field->apar_smooth, field->apar_fem, &app->local, &field->global_sub_range);
 }
 
 static void
-gk_field_step_apar_none(struct gk_field *field, struct gkyl_array* out, double dt,
+gk_field_step_apar_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
   // do nothing
@@ -584,8 +590,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (f->is_em) {
     f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_old = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+    f->apar_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apardot_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
@@ -622,13 +629,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
       f->ohm_solve = gk_field_ohm_solve_1x;
       f->ampere_solve = gk_field_ampere_solve_1x;
-    }
-    else if (app->cdim > 1) {
+    } else if (app->cdim > 1) {
+
       // Compute the weights in front of the laplacian operator (metric x 1/mu0)
       struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
       for (int i=0; i<app->cdim-2/app->cdim; i++) {
         gkyl_array_set_offset(f->lapWeightAmpere, 1.0/f->info.mu0, Jgij[i], i*app->basis.num_basis);
       }
+
       // Translate input file BCs into Ampere BCs.
       for (int d=0; d<app->cdim-1; d++) {
         struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
@@ -645,12 +653,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
             f->ampere_bcs.up_value[d].v[i] = bc_up->value[i];
         }
       }
+
       // FEM solver for Ampere equation (solved at IC only).
       f->fem_apar_solver = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
           &f->ampere_bcs, f->lapWeightAmpere, NULL, app->use_gpu);
       // FEM solver for Ohm's law (evolves d(Apart)/dt).
       f->fem_apardot_solver = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
         &f->ampere_bcs, f->lapWeightAmpere, f->dApartdtSlvr_kSq, app->use_gpu);
+      // FEM smoother for Aparallel.
+      f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_NONE;
+      f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
+        f->fem_parproj_ampere_bc, 0, 0, app->use_gpu);
 
       f->ohm_solve = gk_field_ohm_solve;
       f->ampere_solve = gk_field_ampere_solve;
@@ -658,9 +671,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->accumulate_current = gk_field_accumulate_current_dens_dyn;
     f->accumulate_current_dot = gk_field_accumulate_current_dens_dot_dyn;
     f->step_apar = gk_field_step_apar_dyn;
-
+    
     // Factor for EM energy.
-    f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
     f->apar_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
     f->apar_energy_fac_1d = 0;
     assert(f->info.mu0 > 0.0);
@@ -671,6 +683,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     else if (app->cdim > 1) {
       gkyl_array_set(f->apar_energy_fac, -0.5, f->lapWeightAmpere);
     }
+    // Diagnostic for integrated Aparallel energy.
+    f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   }
 
   // Create operator needed for FLR effects.
@@ -928,19 +942,17 @@ void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field)
   field->ampere_solve(app, field);
 }
 
-void gk_field_step_apar (struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp)
+void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  field->step_apar(field, out, a, inp);
+  field->step_apar(app, field, out, a, inp);
 }
 
 void
-gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[]){
+gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[])
+{
   struct timespec wst = gkyl_wall_clock();
   field->accumulate_current_dot(app, field, rhs_in);
   field->ohm_solve(app, field);
-  
-  gk_field_fem_projection_par(app, field, field->apardot_smooth, field->apardot_smooth);
-
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -1081,8 +1093,9 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (f->is_em) {
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
+    gkyl_array_release(f->apar_fem);
+    gkyl_array_release(f->apar_smooth);
     gkyl_array_release(f->apardot);
-    gkyl_array_release(f->apardot_smooth);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);
@@ -1097,9 +1110,9 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->currentDensdot_global);
       gkyl_array_release(f->dApartdtSlvr_lhs_factor);
       gkyl_array_release(f->dApartdtSlvr_lhs_factor_global);
-      gkyl_fem_parproj_release(f->fem_apar_parproj);
       gkyl_fem_parproj_release(f->fem_apardot_parproj);  
     }
+    gkyl_fem_parproj_release(f->fem_apar_parproj);
     if (app->use_gpu) {
       gkyl_array_release(f->apar_host);
       gkyl_array_release(f->apardot_host);

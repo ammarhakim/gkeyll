@@ -1612,7 +1612,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_em = app->field->is_em;
   if (gks->is_em) {
     // We do not have FLR effects for EM yet.
-    gks->gyro_apardot = gkyl_array_acquire(app->field->apardot_smooth);
+    gks->gyro_apar = gkyl_array_acquire(app->field->apar_smooth);
+    gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
   }
 
   // Initialize the collisionless solver.
@@ -1988,6 +1989,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
 
   if (s->is_em) {
+    gkyl_array_release(s->gyro_apar);
     gkyl_array_release(s->gyro_apardot);
   }
 

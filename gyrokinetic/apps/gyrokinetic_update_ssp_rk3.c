@@ -33,7 +33,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_step_f(app, &gkns->bflux, bflux_out_neut[i], dta, bflux_in_neut[i]);
   }
-  gk_field_step_apar(app->field, app->field->apardot, dta, app->field->apar);
+  gk_field_step_apar(app, app->field, app->field->apar, dta, app->field->apardot);
 
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
