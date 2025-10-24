@@ -82,7 +82,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
     const double *nu_d = (const double*) gkyl_array_cfetch(nu, cstart);
 
     // Add contribution to CFL frequency.
-    if(implicit_step){
+    if (implicit_step) {
 
       // Add nu*f_M.
       array_acc1(pnum_basis, out_d, 1.0/(1.0 + nu_d[0]*cellav_fac*dt), nufM_d);
