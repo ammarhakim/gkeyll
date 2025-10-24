@@ -1842,13 +1842,6 @@ gk_species_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 double
-gk_species_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
-{
-  return species->em_rhs_func(app, species, fin, rhs, bflux_moms);
-}
-
-double
 gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
 {
