@@ -807,7 +807,7 @@ mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-jacob_mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+dmapz_dz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double a = 2.0;
   double s = 0.2;
@@ -819,7 +819,7 @@ void exact_gij_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, void
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2*sqrt(psi);
   double dThetadtheta;
-  jacob_mapz(0, &theta, &dThetadtheta, 0);
+  dmapz_dz(0, &theta, &dThetadtheta, 0);
   fout[0] = 1/psi; // g_11
   fout[1] = 0.0; // g_12
   fout[2] = 0.0; // g_13
@@ -833,7 +833,7 @@ void exact_g_contra_ij_pmap(double t, const double *xn, double* GKYL_RESTRICT fo
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2*sqrt(psi);
   double dThetadtheta;
-  jacob_mapz(0, &theta, &dThetadtheta, 0);
+  dmapz_dz(0, &theta, &dThetadtheta, 0);
   fout[0] = r*r/4; // g_11
   fout[1] = 0.0; // g_12
   fout[2] = 0.0; // g_13
@@ -847,7 +847,7 @@ void exact_dual_magnitude_pmap(double t, const double *xn, double* GKYL_RESTRICT
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2*sqrt(psi);
   double dThetadtheta;
-  jacob_mapz(0, &theta, &dThetadtheta, 0);
+  dmapz_dz(0, &theta, &dThetadtheta, 0);
   fout[0]  = r/2;
   fout[1] = 1/(2*sqrt(psi));
   fout[2] = 1.0 / dThetadtheta;
@@ -858,7 +858,7 @@ void exact_normals_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, 
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2*sqrt(psi);
   double dThetadtheta;
-  jacob_mapz(0, &theta, &dThetadtheta, 0);
+  dmapz_dz(0, &theta, &dThetadtheta, 0);
   // Remember cylindrical angle = - alpha
   fout[0] = -cos(-alpha);
   fout[1] = -sin(-alpha);
@@ -1109,7 +1109,7 @@ test_3x_p1_pmap_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[1] = {theta};
         double fout[1];
-        jacob_mapz(0.0, xn, fout, 0);
+        dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2/M_PI * fout[0];
         TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_analytic, 1e-6) );
       }
@@ -1129,7 +1129,7 @@ test_3x_p1_pmap_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[1] = {theta};
         double fout[1];
-        jacob_mapz(0.0, xn, fout, 0);
+        dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2/M_PI * fout[0];
         TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_analytic, 1e-6) );
       }
@@ -1149,7 +1149,7 @@ test_3x_p1_pmap_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[1] = {theta};
         double fout[1];
-        jacob_mapz(0.0, xn, fout, 0);
+        dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2/M_PI * fout[0];
         double magnetic_field = 0.5;
         double jacobtot_analytic = jacobian_analytic * magnetic_field;
@@ -1171,7 +1171,7 @@ test_3x_p1_pmap_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[1] = {theta};
         double fout[1];
-        jacob_mapz(0.0, xn, fout, 0);
+        dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2/M_PI * fout[0];
         double magnetic_field = 0.5;
         double jacobtot_analytic = jacobian_analytic * magnetic_field;

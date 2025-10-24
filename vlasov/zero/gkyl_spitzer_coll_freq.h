@@ -7,20 +7,6 @@
 // Object type
 typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
 
-
-/**
- * Calculate normNu based on reference parameters for species s and r
- * @param ns density of species s
- * @param nr density of species r
- * @param ms mass of species s
- * @param mr mass of species r
- * @param qs charge of species s
- * @param qr charge of species r
- * @param Ts Temperature of species s
- * @param Tr Temperature of species r
- */
-double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV);
-
 /**
  * Create new updater to either compute the Spitzer collision frequency from
  * scratch based on local parameters, or scale a normalized collision frequency
@@ -43,17 +29,16 @@ gkyl_spitzer_coll_freq* gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basi
  *
  * @param up Spizer collision frequency updater object.
  * @param range Config-space rang.e
- * @param vtSqSelf Thermal speed squared of this species. 
+ * @param momsSelf Maxwellian moments (n,u,v_t^2) of this species.
  * @param vtSqMinSelf Minimum vtSq of this species supported by the grid.
- * @param m0Other Thermal speed squared of the other species. 
- * @param vtSqOther Thermal speed squared of the other species. 
+ * @param momsOther Maxwellian moments (n,u,v_t^2) of other species.
  * @param vtSqMinOther Minimum vtSq of the other species supported by the grid.
  * @param normNu Normalized collision frequency to scale.
  * @param nuOut Output collision frequency.
  */
 void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
+  const struct gkyl_range *range, const struct gkyl_array *momsSelf, double vtSqMinSelf,
+  const struct gkyl_array *momsOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut);
 
 /**
@@ -65,20 +50,18 @@ void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
  * @param bmag Magnetic field magnitude.
  * @param qSelf Charge of this species.
  * @param mSelf Mass of this species.
- * @param m0Self Thermal speed squared of the other species. 
- * @param vtSqSelf Thermal speed squared of this species. 
+ * @param momsSelf Maxwellian moments (n,u,v_t^2) of this species.
  * @param vtSqMinSelf Minimum vtSq of this species supported by the grid.
  * @param qOther Charge of this species.
  * @param mOther Mass of this species.
- * @param m0Other Thermal speed squared of the other species. 
- * @param vtSqOther Thermal speed squared of the other species. 
+ * @param momsOther Maxwellian moments (n,u,v_t^2) of other species.
  * @param vtSqMinOther Minimum vtSq of the other species supported by the grid.
  * @param nuOut Output collision frequency.
  */
 void gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
   const struct gkyl_range *range, const struct gkyl_array *bmag,
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
+  double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *momsOther, double vtSqMinOther,
   struct gkyl_array *nuOut);
 
 /**
@@ -87,3 +70,50 @@ void gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
  * @param pob Updater to delete.
  */
 void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up);
+
+
+/**
+ *
+ * Auxiliary methods.
+ *
+ */
+
+/**
+ * Calculate the time-independent part of alpha_E from Morse Phys. Fluids 6, 10 (1963).
+ *
+ * @param ns density of species s.
+ * @param nr density of species r.
+ * @param ms mass of species s.
+ * @param mr mass of species r.
+ * @param qs charge of species s.
+ * @param qr charge of species r.
+ * @param Ts Temperature of species s.
+ * @param Tr Temperature of species r.
+ * @param bmag Magnetic field amplitude.
+ * @param eps0 Permittivity of vacuum.
+ * @param hbar Planck's constant divided by 2*pi.
+ * @param eV Elementary charge.
+ */
+double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+
+/**
+ * Calculate alpha_E from Morse Phys. Fluids 6, 10 (1963)
+ * using reference values.
+ *
+ * @param ns density of species s.
+ * @param nr density of species r.
+ * @param ms mass of species s.
+ * @param mr mass of species r.
+ * @param qs charge of species s.
+ * @param qr charge of species r.
+ * @param Ts Temperature of species s.
+ * @param Tr Temperature of species r.
+ * @param bmag Magnetic field amplitude.
+ * @param eps0 Permittivity of vacuum.
+ * @param hbar Planck's constant divided by 2*pi.
+ * @param eV Elementary charge.
+ */
+double gkyl_calc_Morse_alpha_E(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+

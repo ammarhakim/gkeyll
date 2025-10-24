@@ -29,7 +29,7 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param charge Species charge
  * @param mass Species mass
  * @param skip_cell_threshold Threshold for skipping cells in the gyrokinetic equation
- * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
+ * @param collless_type Type of collisionless terms.
  * @param gk_geom Geometry struct 
  * @param vel_map Velocity space mapping object.
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
@@ -39,8 +39,9 @@ struct gkyl_dg_updater_gyrokinetic_tm {
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_bc, double charge, double mass, double skip_cell_threshold, enum gkyl_gkmodel_id gkmodel_id,
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
+  const bool *is_zero_flux_bc, double charge, double mass, double skip_cell_threshold,
+  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
+  const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object.
