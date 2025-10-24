@@ -873,8 +873,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         // Compute moments of the boundary fluxes.
         gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
 
-        // Adapt the source term to the initial condition.
-        gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
       }
     }
 
@@ -2727,8 +2725,6 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // Compute moments of the boundary fluxes.
       gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
 
-      // Adapt the source term to the restart condition.
-      gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
     }
 
     // Apply boundary conditions.

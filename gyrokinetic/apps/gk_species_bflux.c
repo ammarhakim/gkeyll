@@ -3,13 +3,33 @@
 #include <gkyl_translate_dim.h>
 
 static int
-gk_species_bflux_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge) {
+gk_species_bflux_boundary_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge)
+{
   // Given a direction 'dir' and an edge 'edge' return the boundary index.
   for (int b=0; b<bflux->num_boundaries; ++b) {
     if (dir == bflux->boundaries_dir[b] && edge == bflux->boundaries_edge[b])
       return b;
   }
+  assert(false);
   return -1;
+}
+
+static int
+gk_species_bflux_mom_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge, 
+  enum gkyl_distribution_moments mom_type)
+{
+  // Given a direction 'dir', the edge 'edge', and the name of a moment
+  // `mom_type, return the moment index index.
+  int b = gk_species_bflux_boundary_idx(bflux, dir, edge);
+  int mom_idx = -1;
+  for (int m=0; m<bflux->num_calc_moms; m++) {
+    if (bflux->calc_mom_names[m] == mom_type) {
+      mom_idx = m;
+      break;
+    }
+  }
+  assert(mom_idx > -1);
+  return b*bflux->num_calc_moms+mom_idx;
 }
 
 static void
@@ -243,16 +263,9 @@ static void
 gk_species_bflux_get_flux_mom_enabled(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
   enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out, const struct gkyl_range *out_rng)
 {
-  int b = gk_species_bflux_idx(bflux, dir, edge);
-  int mom_idx = -1;
-  for (int m=0; m<bflux->num_calc_moms; m++) {
-    if (bflux->calc_mom_names[m] == mom_type) {
-      mom_idx = m;
-      break;
-    }
-  }
-  assert(mom_idx > -1);
-  gkyl_array_copy_range_to_range(out, bflux_moms[b*bflux->num_calc_moms+mom_idx], out_rng, bflux->boundaries_conf_ghost[b]);
+  int b = gk_species_bflux_boundary_idx(bflux, dir, edge);
+  int mom_idx = gk_species_bflux_mom_idx(bflux, dir, edge, mom_type);
+  gkyl_array_copy_range_to_range(out, bflux_moms[mom_idx], out_rng, bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -273,7 +286,7 @@ static void
 gk_species_bflux_get_flux_enabled(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
   struct gkyl_array *out, const struct gkyl_range *out_rng)
 {
-  int b = gk_species_bflux_idx(bflux, dir, edge);
+  int b = gk_species_bflux_boundary_idx(bflux, dir, edge);
   gkyl_array_copy_range_to_range(out, bflux->flux[b], out_rng, &bflux->boundaries_phase_ghost_nosub[b]);
 }
 
@@ -738,11 +751,13 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int m=0; m<bflux->num_calc_moms; m++) {
       gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
 
-      need_m2perp = need_m2perp || ( (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP)
+      need_m2perp = need_m2perp || (
+           (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP)
-        || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN) );
+        || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN)
+        );
       bflux->is_hamiltonian_mom[m] = bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN;
       bflux->a_hamiltonian_mom = bflux->a_hamiltonian_mom || bflux->is_hamiltonian_mom[m];
     }

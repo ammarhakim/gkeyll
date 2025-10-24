@@ -284,7 +284,7 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
 
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xc[0], y = 0.0, z = xc[1];
+  double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
   double r0 = app->r0;
@@ -408,9 +408,9 @@ struct gk_app_ctx create_ctx(void)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
-  double mu_max_elc = 1.*me*pow(4*vte,2)/(2*B0);
+  double mu_max_elc = me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
-  double mu_max_ion = 1.*mi*pow(4*vti,2)/(2*B0);
+  double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
   double final_time = 1.e-7; // Should take 8 time steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
@@ -651,6 +651,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+    .time_rate_diagnostics = true,
   };
 
   // ions
@@ -731,6 +732,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {
@@ -778,8 +780,7 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_tcv_iwl_adapt_source_2x2v_p1",
-
-    .cfl_frac_omegaH = 1.0e9,
+    .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,

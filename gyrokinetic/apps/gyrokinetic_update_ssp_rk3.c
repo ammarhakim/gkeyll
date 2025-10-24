@@ -80,6 +80,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.f1;
         }
 
+        for (int i=0; i<app->num_species; ++i) {
+          struct gk_species *gks = &app->species[i];
+          // Adapt sources.
+          gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_in, tcurr);
+        }
+
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
@@ -280,9 +286,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
             gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
-
-            // Adapt sources.
-            gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, tcurr);
           }
 
           for (int i=0; i<app->num_neut_species; ++i) {
