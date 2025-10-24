@@ -320,7 +320,7 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim  = 0;
+  int vdim = 0;
   struct gkyl_gyrokinetic_species gk_species = { };
   
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
@@ -1665,7 +1665,7 @@ gk_app_new(lua_State *L)
   
   for (int s = 0; s < gk.num_species; s++) {
     gk.species[s] = species[s]->gk_species;
-    gk.vdim = species[s]->vdim;
+    gk.species[s].vdim = species[s]->vdim;
 
     app_lw->has_mapc2p_mapping_func[s] = species[s]->has_mapc2p_mapping_func;
     app_lw->mapc2p_mapping_func_ctx[s] = species[s]->mapc2p_mapping_func_ref;

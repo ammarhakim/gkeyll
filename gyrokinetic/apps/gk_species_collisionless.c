@@ -71,7 +71,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
 
   if (gkcls->collisionless_id) {
 
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gks->info.vdim;
     int pdim = cdim+vdim;
 
     // Determine which directions are zero-flux. By default

@@ -17,7 +17,7 @@ gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_speci
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = app->vdim;
+  int vdim = s->info.vdim;
   double dv_min[vdim];
   gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
 
@@ -31,7 +31,7 @@ gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = app->vdim+1; // neutral species are 3v otherwise
+  int vdim = s->info.vdim;
   double dv_min[vdim];
   gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
 
@@ -50,7 +50,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
   react->f_react = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
-  int vdim = 3; // neutral species are 3v always
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
     react->type_self[i] = react->react_type[i].type_self;
@@ -96,13 +95,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
-        .grid = &s->grid, 
         .cbasis = &app->basis, 
-        .pbasis = &s->basis, 
         .conf_rng = &app->local, 
-        .conf_rng_ext = &app->local_ext,
-        .phase_rng = &s->local, 
-        .mass_ion = react->react_type[i].ion_mass, 
         .type_ion = react->react_type[i].ion_id, 
         .charge_state = react->react_type[i].charge_state, 
         .type_self = react->type_self[i], 
@@ -127,15 +121,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     else if (react->react_id[i] == GKYL_REACT_CX) {
       struct gk_species *gks = &app->species[react->ion_idx[i]];
       struct gkyl_dg_cx_inp cx_inp = {
-        .grid = &s->grid,
         .cbasis = &app->basis,
-        .pbasis_gk = &gks->basis,
-        .pbasis_vl = &s->basis,
         .conf_rng = &app->local,
-        .conf_rng_ext = &app->local_ext,
-        .phase_rng = &s->local,
-        .mass_ion = react->react_type[i].ion_mass,
-        .mass_neut = react->react_type[i].partner_mass,
         .vt_sq_ion_min = ion_vt_sq_min, 
         .vt_sq_neut_min = neut_vt_sq_min, 
         .type_ion = react->react_type[i].ion_id,

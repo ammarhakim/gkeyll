@@ -2,12 +2,147 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void
-gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
+gk_neut_species_lte_fluid_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_lte *lte, const struct gkyl_array *moms_lte)
+{
+  // Do nothing.
+}
+
+void
+gk_neut_species_lte_kinetic_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_lte *lte, const struct gkyl_array *moms_lte)
+{
+  // Compute f_lte from input LTE moments.
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_array_clear(lte->f_lte, 0.0);
+
+  // Project the LTE distribution function to obtain f_lte.
+  // Projection routine also corrects the density of the projected distribution function.
+  gkyl_vlasov_lte_proj_on_basis_advance(lte->proj_lte, &species->local, &app->local, 
+    moms_lte, lte->f_lte);
+
+  // Correct all the moments of the projected LTE distribution function.
+  if (lte->correct_all_moms) {
+    struct gkyl_vlasov_lte_correct_status status_corr;
+    status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
+      &species->local, &app->local);
+    double corr_vec[7] = { 0.0 };
+    corr_vec[0] = status_corr.num_iter;
+    corr_vec[1] = status_corr.iter_converged;
+    for (int i=0; i<5; ++i) {
+      corr_vec[2+i] = status_corr.error[i];
+    }
+    double corr_vec_global[7] = { 0.0 };
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);    
+    gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
+
+    lte->n_iter += status_corr.num_iter;
+  } 
+
+  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
+}
+
+void
+gk_neut_species_lte_fluid(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_lte *lte, const struct gkyl_array *fin)
+{
+  // Do nothing.
+}
+
+void
+gk_neut_species_lte_kinetic(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_lte *lte, const struct gkyl_array *fin)
+{
+  // Compute equivalent f_lte from fin.
+  struct timespec wst = gkyl_wall_clock();
+  gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
+
+  // Divide the density by the Jacobian.
+  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
+    0, lte->moms.marr, 0, lte->moms.marr, 0, 
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
+  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
+
+  gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
+}
+
+void
+gk_neut_species_lte_fluid_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_neut_species *gk_ns)
+{
+  // Do nothing.
+}
+
+void
+gk_neut_species_lte_kinetic_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_neut_species *gk_ns)
+{
+  if (gk_ns->lte.correct_all_moms) {
+    struct timespec wst = gkyl_wall_clock();
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // Write out correction status. 
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, "corr-max-stat");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, "corr-max-stat");
+
+      if (gk_ns->lte.is_first_corr_status_write_call) {
+        // Write to a new file (this ensure previous output is removed).
+        gkyl_dynvec_write(gk_ns->lte.corr_stat, fileNm);
+        gk_ns->lte.is_first_corr_status_write_call = false;
+      }
+      else {
+        // Append to existing file.
+        gkyl_dynvec_awrite(gk_ns->lte.corr_stat, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gk_ns->lte.corr_stat);
+
+    app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_neut_diag_io += 1;
+  }
+}
+
+void 
+gk_neut_species_lte_fluid_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
+{
+  gk_neut_species_moment_release(app, &lte->moms);
+}
+
+void 
+gk_neut_species_lte_kinetic_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
+{
+  gkyl_array_release(lte->f_lte);
+
+  gk_neut_species_moment_release(app, &lte->moms);
+
+  gkyl_vlasov_lte_proj_on_basis_release(lte->proj_lte);
+  if (lte->correct_all_moms) {
+    gkyl_vlasov_lte_correct_release(lte->corr_lte);
+    gkyl_dynvec_release(lte->corr_stat);
+  }
+}
+
+static void
+gk_neut_species_lte_fluid_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
-  int cdim = app->cdim, vdim = 3;
+  // Allocate moments needed for LTE update.
+  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
-  // allocate moments needed for lte update
+  lte->from_moms_func = gk_neut_species_lte_fluid_from_moms;
+  lte->from_f_func = gk_neut_species_lte_fluid;
+  lte->write_max_corr_status_func = gk_neut_species_lte_fluid_write_max_corr_status;
+  lte->release_func = gk_neut_species_lte_fluid_release;
+}
+
+static void
+gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
+  struct correct_all_moms_inp corr_inp)
+{
+  // Allocate moments needed for LTE update.
   gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
@@ -61,102 +196,45 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   }
 
   lte->f_lte = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+
+  lte->from_moms_func = gk_neut_species_lte_kinetic_from_moms;
+  lte->from_f_func = gk_neut_species_lte_kinetic;
+  lte->write_max_corr_status_func = gk_neut_species_lte_kinetic_write_max_corr_status;
+  lte->release_func = gk_neut_species_lte_kinetic_release;
 }
 
-// Compute f_lte from input LTE moments
+void
+gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
+  struct correct_all_moms_inp corr_inp)
+{
+  if (s->is_fluid)
+    gk_neut_species_lte_fluid_init(app, s, lte, corr_inp);
+  else
+    gk_neut_species_lte_kinetic_init(app, s, lte, corr_inp);
+}
+
 void
 gk_neut_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *moms_lte)
 {
-  struct timespec wst = gkyl_wall_clock();
-
-  gkyl_array_clear(lte->f_lte, 0.0);
-
-  // Project the LTE distribution function to obtain f_lte.
-  // Projection routine also corrects the density of the projected distribution function.
-  gkyl_vlasov_lte_proj_on_basis_advance(lte->proj_lte, &species->local, &app->local, 
-    moms_lte, lte->f_lte);
-
-  // Correct all the moments of the projected LTE distribution function.
-  if (lte->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_status status_corr;
-    status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
-      &species->local, &app->local);
-    double corr_vec[7] = { 0.0 };
-    corr_vec[0] = status_corr.num_iter;
-    corr_vec[1] = status_corr.iter_converged;
-    for (int i=0; i<5; ++i) {
-      corr_vec[2+i] = status_corr.error[i];
-    }
-    double corr_vec_global[7] = { 0.0 };
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);    
-    gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
-
-    lte->n_iter += status_corr.num_iter;
-  } 
-
-  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
+  lte->from_moms_func(app, species, lte, moms_lte);
 }
 
-// Compute equivalent f_lte from fin
 void
 gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
-  struct timespec wst = gkyl_wall_clock();
-  gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
-
-  // divide out the Jacobian from the density
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
-    0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->geo_int.jacobgeo, &app->local);  
-  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
-
-  gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
+  lte->from_f_func(app, species, lte, fin);
 }
 
 void
 gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_neut_species *gk_ns)
 {
-  if (gk_ns->lte.correct_all_moms) {
-    struct timespec wst = gkyl_wall_clock();
-
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-    if (rank == 0) {
-      // write out correction status 
-      const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, "corr-max-stat");
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, "corr-max-stat");
-
-      if (gk_ns->lte.is_first_corr_status_write_call) {
-        // write to a new file (this ensure previous output is removed)
-        gkyl_dynvec_write(gk_ns->lte.corr_stat, fileNm);
-        gk_ns->lte.is_first_corr_status_write_call = false;
-      }
-      else {
-        // append to existing file
-        gkyl_dynvec_awrite(gk_ns->lte.corr_stat, fileNm);
-      }
-    }
-    gkyl_dynvec_clear(gk_ns->lte.corr_stat);
-
-    app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.n_neut_diag_io += 1;
-  }
+  gk_ns->lte.write_max_corr_status_func(app, gk_ns);
 }
 
 void 
 gk_neut_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
 {
-  gkyl_array_release(lte->f_lte);
-
-  gk_neut_species_moment_release(app, &lte->moms);
-
-  gkyl_vlasov_lte_proj_on_basis_release(lte->proj_lte);
-  if (lte->correct_all_moms) {
-    gkyl_vlasov_lte_correct_release(lte->corr_lte);
-    gkyl_dynvec_release(lte->corr_stat);
-  }
+  lte->release_func(app, lte);
 }

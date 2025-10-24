@@ -320,6 +320,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.vpar_max_elc, 0.0 },
     .upper = { 0.5 * ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { cells_v[0], cells_v[1] },
@@ -374,6 +375,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc2 = {
     .name = "elc2",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.vpar_max_elc, 0.0 },
     .upper = { 0.5 * ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { cells_v[0], cells_v[1] },
@@ -426,6 +428,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
@@ -469,6 +472,7 @@ main(int argc, char **argv)
   // D0
   struct gkyl_gyrokinetic_neut_species test_sp_1 = {
     .name = "test_sp_1", .mass = ctx.mass_ion,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
     .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
@@ -491,6 +495,7 @@ main(int argc, char **argv)
   // Second D0
   struct gkyl_gyrokinetic_neut_species test_sp_2 = {
     .name = "test_sp_2", .mass = ctx.mass_ion,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
     .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
@@ -512,6 +517,7 @@ main(int argc, char **argv)
   // Third D0
   struct gkyl_gyrokinetic_neut_species test_sp_3 = {
     .name = "test_sp_3", .mass = ctx.mass_ion,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
     .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
@@ -533,6 +539,7 @@ main(int argc, char **argv)
   // Fourth D0
   struct gkyl_gyrokinetic_neut_species test_sp_4 = {
     .name = "test_sp_4", .mass = ctx.mass_ion,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
     .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
@@ -563,7 +570,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_rad_low_Te_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },

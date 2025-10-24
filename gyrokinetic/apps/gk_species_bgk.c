@@ -206,7 +206,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     bgk->implicit_step = gks->info.collisions.is_implicit;
     bgk->num_cross_collisions = gks->info.collisions.num_cross_collisions;
     
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gks->info.vdim;
   
     // Allocate self-species collision frequency and sum of collision frequencies.
     bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

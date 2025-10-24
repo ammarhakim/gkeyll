@@ -223,7 +223,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     lbo->num_cross_collisions = gks->info.collisions.num_cross_collisions;
     
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gks->info.vdim;
   
     // Allocate self-species collision frequency and sum of collision frequencies.
     lbo->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
