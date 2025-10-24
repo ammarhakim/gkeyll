@@ -67,9 +67,10 @@ gk_neut_species_rrs_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_speci
 
 static void
 gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin)
+  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ion = &app->species[rrs->ion_idx];
+  struct gkyl_array **bflux_ion = bflux[rrs->ion_idx];
 
   if (rrs->react_vol_integ > 0.0) {
     gkyl_array_clear(rrs->dndt_react, 0.0);
@@ -78,7 +79,7 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
     for (int j=0; j<rrs->num_boundaries; ++j) {
       // Add integrated M0 moments of boundary fluxes.
       gk_species_bflux_get_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
-        GKYL_F_MOMENT_M0, rrs->dndt_react, &rrs->boundaries_conf_ghost[j]);
+        GKYL_F_MOMENT_M0, bflux_ion, rrs->dndt_react, &rrs->boundaries_conf_ghost[j]);
       gkyl_array_integrate_advance(rrs->integrate_op, rrs->dndt_react, 1.0, 0,
         &rrs->boundaries_conf_ghost[j], 0, rrs->bflux_m0_vol_integ_local);
 
@@ -112,7 +113,7 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
 
 static void
 gk_neut_species_rrs_apply_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin)
+  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
   // Do nothing.
 }
@@ -278,9 +279,9 @@ gk_neut_species_recycle_react_scale_rhs(gkyl_gyrokinetic_app *app, struct gk_neu
 
 void
 gk_neut_species_recycle_react_scale_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin)
+  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
-  rrs->apply_func(app, ns, rrs, fin);
+  rrs->apply_func(app, ns, rrs, fin, bflux);
 }
 
 void

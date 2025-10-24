@@ -17,7 +17,7 @@ gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_speci
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = app->vdim;
+  int vdim = s->info.vdim;
   double dv_min[vdim];
   gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
 
@@ -31,7 +31,7 @@ gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = app->vdim+1; // neutral species are 3v otherwise
+  int vdim = s->info.vdim;
   double dv_min[vdim];
   gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
 
@@ -50,7 +50,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
   react->f_react = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
-  int vdim = 3; // neutral species are 3v always
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
     react->type_self[i] = react->react_type[i].type_self;

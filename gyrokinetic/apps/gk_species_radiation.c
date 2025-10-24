@@ -8,7 +8,7 @@ void
 gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad)
 {
   rad->radiation_id = s->info.radiation.radiation_id;
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim, vdim = s->info.vdim;
   int pdim = cdim+vdim;
   // make appropriate reduced bases and surface bases for radiation variables
   struct gkyl_basis rad_basis, surf_rad_vpar_basis, surf_rad_mu_basis, surf_vpar_basis, surf_mu_basis;
@@ -465,7 +465,6 @@ gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_sp
 {
   struct timespec wst = gkyl_wall_clock(); 
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
-    int vdim = app->vdim;
     int num_mom = gks->rad.integ_moms.num_mom;
     double avals_global[num_mom];
 

@@ -82,26 +82,29 @@ struct gkyl_gyrokinetic_collisionless {
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
-  enum gkyl_radiation_id radiation_id; // type of radiation
   bool write_diagnostics; // Whether to output diagnostics.
 
-  void *ctx; // Context for collision function.
+  double nu_frac; // Rescales collision frequencies (default = 1).
+
   // Function for computing self-collision frequency.
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
-
-  // Inputs for Spitzer collisionality.
-  bool normNu; // Set to true if you want to rescale collision frequency.
-  double n_ref; // Density used to calculate coulomb logarithm.
-  double T_ref; // Temperature used to calculate coulomb logarithm.
-  double bmag_mid; // bmag at the middle of the domain.
-  double nuFrac; // Parameter for rescaling collision frequency from SI values.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
-
-  // Boolean for using implicit BGK collisions (replaces rk3)   
-  bool has_implicit_coll_scheme; 
+  void *self_nu_ctx; // Context for self_nu.
 
   int num_cross_collisions; // Number of species to collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
+
+  // Functions for computing cross-collision frequencies (one for each num_cross_collisions).
+  evalf_t cross_nu[GKYL_MAX_SPECIES];
+  void *cross_nu_ctx; // Context for cross_nu.
+
+  // Parameters used to compute the Coulomb Logarithm.
+  double den_ref; // Reference density.
+  double temp_ref; // Regerence temperature.
+  double bmag_ref; // Reference magnetic field magnitude.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+
+  // Boolean for using implicit BGK collisions (replaces rk3).
+  bool is_implicit; 
 };
 
 // Parameters for species diffusion.
@@ -301,9 +304,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity-space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -311,6 +314,8 @@ struct gkyl_gyrokinetic_species {
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
   
+  double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
@@ -328,8 +333,7 @@ struct gkyl_gyrokinetic_species {
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
-  // Collisionless terms.
-  struct gkyl_gyrokinetic_collisionless collisionless;
+  struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
   struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
@@ -369,8 +373,9 @@ struct gkyl_gyrokinetic_neut_species {
   char name[128]; // Species name.
 
   double mass; // Mass.
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity-space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -385,6 +390,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+
+  struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -456,7 +463,7 @@ struct gkyl_gyrokinetic_field {
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix.
 
-  int cdim, vdim; // Conf, velocity space dimensions.
+  int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
   int cells[3]; // Config-space cells.
   int poly_order; // Polynomial order.
@@ -870,20 +877,20 @@ void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokine
  * 
  * @param app App object.
  * @param sidx Index of species whose LBO moments to write.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
 void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
- * Write BGK cross collisional moments for species to file.
+ * Write BGK collisional moments for species to file.
  * 
  * @param app App object.
  * @param sidx Index of species to write.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
-void gkyl_gyrokinetic_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_bgk_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
  * Write species integrated correct Maxwellian status of the to file. 

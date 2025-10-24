@@ -32,6 +32,35 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   return app->cfl/omega_cfl;
 }
 
+static double
+gk_neut_species_fluid_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
+{ 
+  double omega_cfl = 1/DBL_MAX;
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  // No implicit terms yet.
+
+  gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
+  
+  app->stat.n_neut_species_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+  
+  double omega_cfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omega_cfl_ho[0] = species->omega_cfl[0];
+  }
+  omega_cfl = omega_cfl_ho[0];
+  
+  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return app->cfl/omega_cfl;
+}
+
 static void
 gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
@@ -62,40 +91,41 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
 }
 
 static void
-gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
-  gkyl_array_release(s->f);
-  gkyl_array_release(s->f1);
-  gkyl_array_release(s->fnew);
-  gkyl_array_release(s->f_host);
+  gkyl_array_release(ns->f);
+  gkyl_array_release(ns->f1);
+  gkyl_array_release(ns->fnew);
+  gkyl_array_release(ns->f_host);
 
-  if (s->info.init_from_file.type == 0) {
-    gk_neut_species_projection_release(app, &s->proj_init);
+  if (ns->info.init_from_file.type == 0) {
+    gk_neut_species_projection_release(app, &ns->proj_init);
   }
-  gkyl_comm_release(s->comm);
+  gkyl_comm_release(ns->comm);
 
-  for (int i=0; i<s->info.num_diag_moments; ++i)
-    gk_neut_species_moment_release(app, &s->moms[i]);
-  gkyl_free(s->moms);
+  for (int i=0; i<ns->info.num_diag_moments; ++i)
+    gk_neut_species_moment_release(app, &ns->moms[i]);
+  gkyl_free(ns->moms);
+
+  gk_neut_species_bgk_release(app, &ns->bgk);
 
   // Free boundary flux memory.
-  gk_neut_species_bflux_release(app, s, &s->bflux);
+  gk_neut_species_bflux_release(app, ns, &ns->bflux);
 
-  gk_neut_species_lte_release(app, &s->lte);
+  gk_neut_species_lte_release(app, &ns->lte);
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &s->rrs);
+  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
 
-  s->release_is_static_func(app, s);
+  ns->release_is_static_func(app, ns);
 }
 
 static void
 gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
-  int cdim = app->cdim, vdim = app->vdim+1; // Neutral species are 3v.
-  int pdim = cdim+vdim;
+  int cdim = app->cdim;
   
   // Allocate additional moment arrays for time stepping.
   ns->f1 = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
@@ -124,7 +154,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 
   // Set function pointers
   ns->rhs_func = gk_neut_species_fluid_rhs_dynamic;
-  ns->rhs_implicit_func = gk_neut_species_rhs_implicit_static; // Not ready.
+  ns->rhs_implicit_func = gk_neut_species_fluid_rhs_implicit_dynamic;
   ns->bc_func = gk_neut_species_apply_bc_static; // Not ready.
   ns->release_func = gk_neut_species_fluid_release;
   ns->release_is_static_func = gk_neut_species_fluid_release_dynamic;
@@ -167,6 +197,8 @@ void
 gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   ns->is_fluid = true; // Fluid neutrals.
+  assert(ns->info.vdim == 0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
+
   ns->model_id = GKYL_MODEL_DEFAULT;
   ns->field_id = GKYL_FIELD_NULL;
 
@@ -278,6 +310,11 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   // between recycling and reactions.
   ns->rrs = (struct gk_recycle_react_scale) { };
   gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+
+  // Initialize BGK collisions with null type (not applicable to fluids).
+  ns->bgk = (struct gk_bgk_collisions) { };
+  ns->info.collisions.collision_id = 0;
+  gk_neut_species_bgk_init(app, ns, &ns->bgk);
 
   ns->src = (struct gk_source) { };
   ns->react_neut = (struct gk_react) { };

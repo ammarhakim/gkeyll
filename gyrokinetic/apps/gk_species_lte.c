@@ -5,7 +5,7 @@ void
 gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim;
 
   // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
   gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);

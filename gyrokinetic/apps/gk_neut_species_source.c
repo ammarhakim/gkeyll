@@ -8,7 +8,7 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
-    int vdim = app->vdim+1;
+    int vdim = s->info.vdim;
     // we need to ensure source has same shape as distribution function
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
@@ -154,7 +154,7 @@ gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
   if (gkns->src.source_id && gkns->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
-    int vdim = app->vdim+1; // Neutrals are always 3V
+    int vdim = gkns->info.vdim;
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
     gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);
