@@ -20,6 +20,8 @@ struct gkyl_position_map_inp {
   enum gkyl_position_map_id id;
   mc2nu_t maps[3]; // Position mapping in each position direction. This is defined in full 3x, 
   // not in deflated coordinates.
+  mc2nu_t map_derivs[3]; // Derivative of mapping in each position direction. This is defined in full 3x, 
+  // not in deflated coordinates.
   void *ctxs[3]; // Context for each position mapping function.
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
   // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate

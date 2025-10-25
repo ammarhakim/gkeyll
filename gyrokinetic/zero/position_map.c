@@ -75,6 +75,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       for (int i = 0; i < 3; i++){
         if (pmap_info.maps[i] != 0)
         { gpm->maps[i] = pmap_info.maps[i];
+          gpm->maps[i] = pmap_info.map_derivs[i];
           gpm->ctxs[i] = pmap_info.ctxs[i];
         }
       }
