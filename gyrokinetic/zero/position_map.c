@@ -168,7 +168,6 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
 void
 gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, double zcenter)
 {
-  int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
   gpm->xpt_ctx->zcut = zcut;
   gpm->xpt_ctx->zcenter = zcenter;
 

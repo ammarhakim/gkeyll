@@ -185,6 +185,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
         gk_geom->geo_int.bmag);
 
+      gkyl_position_map_optimize(geometry_inp->position_map, gk_geom_3d->grid, gk_geom_3d->global);
+
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry
     }
