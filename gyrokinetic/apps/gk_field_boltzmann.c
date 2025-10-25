@@ -26,25 +26,55 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    // Assumes symmetric sheath BCs for now only in 1D
     // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
-    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->geo_int.cmag, 
-      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
-    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->geo_int.cmag,
-      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
 
-    // Broadcast the sheath values from skin processes to other processes.
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off+1], field->sheath_vals[off+1], comm_sz-1);
+    bool has_lower_sheath = true;
+    bool has_upper_sheath = true;
+    
+    // Check which edges don't have sheath BCs
+    for (int j=0; j<2*app->cdim; ++j) {
+      struct gkyl_gyrokinetic_bc bc = field->boltzmann_bcs[j];
+      if (bc.dir == idx_par) {
+      if (bc.edge == GKYL_LOWER_EDGE && bc.type != GKYL_BC_GK_FIELD_BOLTZMANN_SHEATH) {
+        has_lower_sheath = false;
+      }
+      if (bc.edge == GKYL_UPPER_EDGE && bc.type != GKYL_BC_GK_FIELD_BOLTZMANN_SHEATH) {
+        has_upper_sheath = false;
+      }
+      }
+    }
 
-    // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-    gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
-      &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
-    gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
-    gkyl_array_scale(field->sheath_vals[off], 0.5);
+    // Calculate sheath values only on edges with SHEATH BCs
+    if (has_lower_sheath) {
+      gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
+        &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->geo_int.cmag, 
+        app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
+      // Broadcast the lower sheath values from skin process to other processes
+      gkyl_comm_array_bcast(app->comm, field->sheath_vals[off], field->sheath_vals[off], 0);
+    }
+    
+    if (has_upper_sheath) {
+      gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
+        &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->geo_int.cmag,
+        app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
+      // Broadcast the upper sheath values from skin process to other processes
+      gkyl_comm_array_bcast(app->comm, field->sheath_vals[off+1], field->sheath_vals[off+1], comm_sz-1);
+    }
+
+    // Average sheath values only if both edges have SHEATH BCs
+    if (has_lower_sheath && has_upper_sheath) {
+      // Copy upper sheath values into lower ghost & add to lower sheath values for averaging
+      gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
+        &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
+      gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
+      gkyl_array_scale(field->sheath_vals[off], 0.5);
+    } else if (has_upper_sheath) {
+      // If only upper edge has SHEATH BC, copy its sheath values to the lower edge
+      gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
+        &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
+      gkyl_array_copy(field->sheath_vals[off], field->sheath_vals[off+1]);
+    }
   } 
 }
 
@@ -94,6 +124,11 @@ gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f
   for (int j=0; j<app->cdim; ++j) {
     f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+  }
+
+  // Copy Boltzmann boundary conditions from field info
+  for (int j=0; j<2*app->cdim; ++j) {
+    f->boltzmann_bcs[j] = f->info.boltzmann_bcs[j];
   }
 
   enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;

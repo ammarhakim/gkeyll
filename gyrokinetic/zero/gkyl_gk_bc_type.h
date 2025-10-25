@@ -26,6 +26,9 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_FIELD_DIRICHLET_VARYING, // Spatially varying Dirichlet.
   GKYL_BC_GK_FIELD_BOUNDARY_VALUE, // Skin value at the boundary.
   GKYL_BC_GK_FIELD_TWISTSHIFT, // Twist-shift.
+  // GK Boltzmann electron BCs.
+  GKYL_BC_GK_FIELD_BOLTZMANN_SHEATH, // Boltzmann sheath BC.
+  GKYL_BC_GK_FIELD_BOLTZMANN_FLOAT, // Boltzmann float BC.
 };
 
 // Translates field BC types in gkyl_gyrokinetic_bc_type to

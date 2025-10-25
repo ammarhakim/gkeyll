@@ -1007,6 +1007,7 @@ struct gk_field {
     struct {
       struct gkyl_ambi_bolt_potential *ambi_pot;
       struct gkyl_array *sheath_vals[2*GKYL_MAX_CDIM];
+      struct gkyl_gyrokinetic_bc boltzmann_bcs[2*GKYL_MAX_CDIM];
     };
     // EM GK model
     struct {

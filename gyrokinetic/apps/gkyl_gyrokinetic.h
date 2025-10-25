@@ -387,6 +387,7 @@ struct gkyl_gyrokinetic_field {
   double electron_mass, electron_charge, electron_density, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
+  struct gkyl_gyrokinetic_bc boltzmann_bcs[2*GKYL_MAX_CDIM];
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
