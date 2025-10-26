@@ -12,15 +12,17 @@ charge_elc = -1.0 -- Electron charge.
 
 rhol_ion = 3.0 -- Left ion mass density.
 ul = 0.3 -- Left electron/ion velocity.
-pl = 3.0 -- Left electron/ion pressure.
+pl = 0.05 -- Left electron/ion pressure.
 
-rhor_ion = 1.0 -- Right ion mass density.
+rhor_ion = 0.01 -- Right ion mass density.
 ur = 0.0 -- Right electron/ion velocity.
-pr = 1.0 -- Right electron/ion pressure.
+pr = 0.01 -- Right electron/ion pressure.
+
+B0 = 0.05 -- Reference magnetic field strength.
 
 light_speed = 1.0 -- Speed of light.
 e_fact = 0.0 -- Factor of speed of light for electric field correction.
-b_fact = 0.0 -- Factor of speed of light for magnetic field correction.
+b_fact = 0.8 -- Factor of speed of light for magnetic field correction.
 
 -- Derived physical quantities (using normalized code units).
 rhol_elc = rhol_ion * mass_elc / mass_ion -- Left electron mass density.
@@ -28,7 +30,7 @@ rhor_elc = rhor_ion * mass_elc / mass_ion -- Right electron mass density.
 
 -- Spacetime parameters (using geometric units).
 mass = 0.3 -- Mass of the black hole.
-spin = -0.5 -- Spin of the black hole.
+spin = -0.9 -- Spin of the black hole.
 
 pos_x = 2.5 -- Position of the black hole (x-direction).
 pos_y = 2.5 -- Position of the black hole (y-direction).
@@ -43,7 +45,7 @@ cfl_frac = 0.95 -- CFL coefficient.
 
 reinit_freq = 100 -- Spacetime reinitialization frequency.
 
-t_end = 3.0 -- Final simulation time.
+t_end = 15.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -168,7 +170,7 @@ momentApp = Moments.App.new {
       local Dz = 0.0 -- Total electric field (z-direction).
 
       local Bx = 0.0 -- Total magnetic field (x-direction).
-      local By = 0.0 -- Total magnetic field (y-direction).
+      local By = B0 -- Total magnetic field (y-direction).
       local Bz = 0.0 -- Total magnetic field (z-direction).
 
       local excision = 0.0

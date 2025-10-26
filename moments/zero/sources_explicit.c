@@ -1109,16 +1109,31 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
       p_elc = pow(10.0, -8.0);
     }
 
-    fluid_new[1] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * Dx;
-    fluid_new[1] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vy_elc * Bz) - (vz_elc * By));
-    fluid_new[2] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * Dy;
-    fluid_new[2] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vz_elc * Bx) - (vx_elc * Bz));
-    fluid_new[3] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * Dz;
-    fluid_new[3] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vx_elc * By) - (vy_elc * Bx));
+    double D[3], B[3];
+    D[0] = Dx; D[1] = Dy; D[2] = Dz;
+    B[0] = Bx; B[1] = By; B[2] = Bz;
 
-    fluid_new[4] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * vx_elc * Dx;
-    fluid_new[4] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * vy_elc * Dy;
-    fluid_new[4] += dt * (charge_elc / mass_elc) * rho_elc * W_elc * vz_elc * Dz;
+    double covD[3], covB[3];
+    for (int i = 0; i < 3; i++) {
+      covD[i] = 0.0;
+      covB[i] = 0.0;
+
+      for (int j = 0; j < 3; j++) {
+        covD[i] += spatial_metric[i][j] * D[j];
+        covB[i] += spatial_metric[i][j] * B[j];
+      }
+    }
+
+    fluid_new[1] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[0];
+    fluid_new[1] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vy_elc * covB[2]) - (vz_elc * covB[1]));
+    fluid_new[2] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[1];
+    fluid_new[2] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vz_elc * covB[0]) - (vx_elc * covB[2]));
+    fluid_new[3] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[2];
+    fluid_new[3] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * ((vx_elc * covB[1]) - (vy_elc * covB[0]));
+
+    fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vx_elc * covD[0];
+    fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vy_elc * covD[1];
+    fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vz_elc * covD[2];
   }
 }
 
@@ -1211,16 +1226,31 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
       p_ion = pow(10.0, -8.0);
     }
     
-    fluid_new[6] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * Dx;
-    fluid_new[6] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vy_ion * Bz) - (vz_ion * By));
-    fluid_new[7] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * Dy;
-    fluid_new[7] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vz_ion * Bx) - (vx_ion * Bz));
-    fluid_new[8] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * Dz;
-    fluid_new[8] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vx_ion * By) - (vy_ion * Bx));
+    double D[3], B[3];
+    D[0] = Dx; D[1] = Dy; D[2] = Dz;
+    B[0] = Bx; B[1] = By; B[2] = Bz;
 
-    fluid_new[9] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * vx_ion * Dx;
-    fluid_new[9] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * vy_ion * Dy;
-    fluid_new[9] += dt * (charge_ion / mass_ion) * rho_ion * W_ion * vz_ion * Dz;
+    double covD[3], covB[3];
+    for (int i = 0; i < 3; i++) {
+      covD[i] = 0.0;
+      covB[i] = 0.0;
+
+      for (int j = 0; j < 3; j++) {
+        covD[i] += spatial_metric[i][j] * D[j];
+        covB[i] += spatial_metric[i][j] * B[j];
+      }
+    }
+
+    fluid_new[6] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[0];
+    fluid_new[6] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vy_ion * covB[2]) - (vz_ion * covB[1]));
+    fluid_new[7] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[1];
+    fluid_new[7] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vz_ion * covB[0]) - (vx_ion * covB[2]));
+    fluid_new[8] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[2];
+    fluid_new[8] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * ((vx_ion * covB[1]) - (vy_ion * covB[0]));
+
+    fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vx_ion * covD[0];
+    fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vy_ion * covD[1];
+    fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vz_ion * covD[2];
   }
 }
 

@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct bhl_spinning_multifluid_ctx
+struct bhl_static_multifluid_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma_elc; // Adiabatic index (electrons).
@@ -36,6 +36,8 @@ struct bhl_spinning_multifluid_ctx
   double rhor_ion; // Right ion mass density.
   double ur; // Right electron/ion velocity.
   double pr; // Right electron/ion pressure.
+
+  double B0; // Reference magnetic field strength.
 
   double light_speed; // Speed of light.
   double e_fact; // Factor of speed of light for electric field correction.
@@ -76,7 +78,7 @@ struct bhl_spinning_multifluid_ctx
   double x_loc; // Shock location (x-direction).
 };
 
-struct bhl_spinning_multifluid_ctx
+struct bhl_static_multifluid_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
@@ -89,15 +91,17 @@ create_ctx(void)
 
   double rhol_ion = 3.0; // Left ion mass density.
   double ul = 0.3; // Left electron/ion velocity.
-  double pl = 3.0; // Left electron/ion pressure.
+  double pl = 0.05; // Left electron/ion pressure.
 
-  double rhor_ion = 1.0; // Right ion mass density.
+  double rhor_ion = 0.01; // Right ion mass density.
   double ur = 0.0; // Right electron/ion velocity.
-  double pr = 1.0; // Right electron/ion pressure.
+  double pr = 0.01; // Right electron/ion pressure.
+
+  double B0 = 0.05; // Reference magnetic field strength.
 
   double light_speed = 1.0; // Speed of light.
   double e_fact = 0.0; // Factor of speed of light for electric field correction.
-  double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
+  double b_fact = 0.8; // Factor of speed of light for magnetic field correction.
 
   // Derived physical quantities (using normalized code units).
   double rhol_elc = rhol_ion * mass_elc / mass_ion; // Left electron mass density.
@@ -105,7 +109,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the black hole.
-  double spin = -0.9; // Spin of the black hole.
+  double spin = 0.0; // Spin of the black hole.
 
   double pos_x = 2.5; // Position of the black hole (x-direction).
   double pos_y = 2.5; // Position of the black hole (y-direction).
@@ -124,7 +128,7 @@ create_ctx(void)
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 100; // Spacetime reinitialization frequency.
 
-  double t_end = 3.0; // Final simulation time.
+  double t_end = 15.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -133,7 +137,7 @@ create_ctx(void)
 
   double x_loc = 1.0; // Shock location (x-direction).
 
-  struct bhl_spinning_multifluid_ctx ctx = {
+  struct bhl_static_multifluid_ctx ctx = {
     .gas_gamma_elc = gas_gamma_elc,
     .gas_gamma_ion = gas_gamma_ion,
     .mass_ion = mass_ion,
@@ -146,6 +150,7 @@ create_ctx(void)
     .rhor_ion = rhor_ion,
     .ur = ur,
     .pr = pr,
+    .B0 = B0,
     .light_speed = light_speed,
     .e_fact = e_fact,
     .b_fact = b_fact,
@@ -180,7 +185,7 @@ void
 evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct bhl_spinning_multifluid_ctx *app = ctx;
+  struct bhl_static_multifluid_ctx *app = ctx;
 
   double gas_gamma_elc = app->gas_gamma_elc;
   double gas_gamma_ion = app->gas_gamma_ion;
@@ -192,6 +197,8 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double rhor_ion = app->rhor_ion;
   double ur = app->ur;
   double pr = app->pr;
+
+  double B0 = app->B0;
 
   double rhol_elc = app->rhol_elc;
   double rhor_elc = app->rhor_elc;
@@ -297,7 +304,7 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double Dz = 0.0; // Total electric field (z-direction).
 
   double Bx = 0.0; // Total magnetic field (x-direction).
-  double By = 0.0; // Total magnetic field (y-direction).
+  double By = B0; // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electron relativistic mass density.
@@ -443,7 +450,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct bhl_spinning_multifluid_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bhl_static_multifluid_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -540,7 +547,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_bhl_spinning_multifluid",
+    .name = "gr_bhl_static_multifluid",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
