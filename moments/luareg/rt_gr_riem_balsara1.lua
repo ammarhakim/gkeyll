@@ -17,9 +17,9 @@ rhor_ion = 0.125 -- Right ion mass density
 pl = 1.0 -- Left electron/ion pressure.
 pr = 0.1 -- Right electron/ion pressure.
 
-Bx = 0.5e-2 -- Total magnetic field (x-direction).
-Byl = 1.0e-2 -- Left total magneic field (y-direction).
-Byr = -1.0e-2 -- Right total magnetic field (y-direction).
+Bx = 0.5 -- Total magnetic field (x-direction).
+Byl = 1.0 -- Left total magneic field (y-direction).
+Byr = -1.0 -- Right total magnetic field (y-direction).
 
 has_collision = false -- Whether to include collisions.
 nu_base_ei = 0.5 -- Base electron-ion collision frequency.
@@ -34,12 +34,12 @@ rhor_elc = rhor_ion * mass_elc / mass_ion -- Right electron mass density.
 
 -- Simulation parameters.
 Nx = 4096 -- Cell count (x-direction).
-Lx = 10.0 -- Domain size (x-direction).
+Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
 reinit_freq = 100 -- Spacetime reinitialization frequency.
 
-t_end = 2.0 -- Final simulation time.
+t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

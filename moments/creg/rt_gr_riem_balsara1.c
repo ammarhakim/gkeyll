@@ -87,9 +87,9 @@ create_ctx(void)
   double pl = 1.0; // Left electron/ion pressure.
   double pr = 0.1; // Right electron/ion pressure.
 
-  double Bx = 0.5e-2; // Total magnetic field (x-direction).
-  double Byl = 1.0e-2; // Left total magneic field (y-direction).
-  double Byr = -1.0e-2; // Right total magnetic field (y-direction).
+  double Bx = 0.5; // Total magnetic field (x-direction).
+  double Byl = 1.0; // Left total magneic field (y-direction).
+  double Byr = -1.0; // Right total magnetic field (y-direction).
 
   bool has_collision = false; // Whether to include collisions.
   double nu_base_ei = 0.5; // Base electron-ion collision frequency.
@@ -107,13 +107,13 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 4096; // Cell count (x-direction).
-  double Lx = 10.0; // Domain size (x-direction).
+  double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 100; // Spacetime reinitialization frequency.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
