@@ -266,6 +266,7 @@ test_triad_1x2v_flat_conf(int poly_order)
 
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  inp_basis_vectors.use_vierbein = false;
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_flat_2v; 
   inp_basis_vectors.eval_triad_basis = eval_triad_basis_flat_2v; 
   inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_flat_2v; 
@@ -420,6 +421,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
 
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  inp_basis_vectors.use_vierbein = false;
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_annulus_2v; 
   inp_basis_vectors.eval_triad_basis = eval_triad_basis_annulus_2v; 
   inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient_annulus_2v; 
