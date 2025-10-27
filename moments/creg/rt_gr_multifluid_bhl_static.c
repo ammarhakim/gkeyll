@@ -547,7 +547,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_bhl_static_multifluid",
+    .name = "gr_multifluid_bhl_static",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
