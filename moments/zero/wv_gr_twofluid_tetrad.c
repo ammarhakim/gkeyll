@@ -28,20 +28,6 @@ gkyl_gr_twofluid_tetrad_flux(double gas_gamma_elc, double gas_gamma_ion, double 
 
   double phi = v[16];
   double psi = v[17];
-
-  double lapse = v[18];
-  double shift_x = v[19];
-  double shift_y = v[20];
-  double shift_z = v[21];
-
-  double spatial_metric[3][3];
-  spatial_metric[0][0] = v[22]; spatial_metric[0][1] = v[23]; spatial_metric[0][2] = v[24];
-  spatial_metric[1][0] = v[25]; spatial_metric[1][1] = v[26]; spatial_metric[1][2] = v[27];
-  spatial_metric[2][0] = v[28]; spatial_metric[2][1] = v[29]; spatial_metric[2][2] = v[30];
-
-  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
   
   bool in_excision_region = false;
   if (v[40] < pow(10.0, -8.0)) {
@@ -49,18 +35,8 @@ gkyl_gr_twofluid_tetrad_flux(double gas_gamma_elc, double gas_gamma_ion, double 
   }
 
   if (!in_excision_region) {
-    double vel_elc[3];
-    double v_sq_elc = 0.0;
-    vel_elc[0] = vx_elc; vel_elc[1] = vy_elc; vel_elc[2] = vz_elc;
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        v_sq_elc += spatial_metric[i][j] * vel_elc[i] * vel_elc[j];
-      }
-    }
-
-    double W_elc = 1.0 / (sqrt(1.0 - v_sq_elc));
-    if (v_sq_elc > 1.0 - pow(10.0, -8.0)) {
+    double W_elc = 1.0 / (sqrt(1.0 - ((vx_elc * vx_elc) + (vy_elc * vy_elc) + (vz_elc * vz_elc))));
+    if ((vx_elc * vx_elc) + (vy_elc * vy_elc) + (vz_elc * vz_elc) > 1.0 - pow(10.0, -8.0)) {
       W_elc = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
@@ -72,18 +48,8 @@ gkyl_gr_twofluid_tetrad_flux(double gas_gamma_elc, double gas_gamma_ion, double 
     flux[3] = rho_elc * h_elc * (W_elc * W_elc) * (vz_elc * vx_elc);
     flux[4] = ((rho_elc * h_elc * (W_elc * W_elc)) -  (rho_elc * W_elc)) * vx_elc;
 
-    double vel_ion[3];
-    double v_sq_ion = 0.0;
-    vel_ion[0] = vx_ion; vel_ion[1] = vy_ion; vel_ion[2] = vz_ion;
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        v_sq_ion += spatial_metric[i][j] * vel_ion[i] * vel_ion[j];
-      }
-    }
-
-    double W_ion = 1.0 / (sqrt(1.0 - v_sq_ion));
-    if (v_sq_ion > 1.0 - pow(10.0, -8.0)) {
+    double W_ion = 1.0 / (sqrt(1.0 - ((vx_ion * vx_ion) + (vy_ion * vy_ion) + (vz_ion * vz_ion))));
+    if ((vx_ion * vx_ion) + (vy_ion * vy_ion) + (vz_ion * vz_ion) > 1.0 - pow(10.0, -8.0)) {
       W_ion = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
@@ -118,9 +84,132 @@ gkyl_gr_twofluid_tetrad_flux(double gas_gamma_elc, double gas_gamma_ion, double 
 void
 gkyl_gr_twofluid_tetrad_flux_correction(double gas_gamma_elc, double gas_gamma_ion, double light_speed, double e_fact, double b_fact, const double q[84], const double flux_sr[84], double flux_gr[84])
 {
-  // Placeholder.
-  for (int i = 0; i < 84; i++) {
-    flux_gr[i] = flux_sr[i];
+  double v[84] = { 0.0 };
+  gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
+  double rho_elc = v[0];
+  double vx_elc = v[1];
+  double vy_elc = v[2];
+  double vz_elc = v[3];
+  double p_elc = v[4];
+
+  double rho_ion = v[5];
+  double vx_ion = v[6];
+  double vy_ion = v[7];
+  double vz_ion = v[8];
+  double p_ion = v[9];
+
+  double Ex = v[10];
+  double Bx = v[13];
+
+  double lapse = v[18];
+  double shift_x = v[19];
+  double shift_y = v[20];
+  double shift_z = v[21];
+
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = v[22]; spatial_metric[0][1] = v[23]; spatial_metric[0][2] = v[24];
+  spatial_metric[1][0] = v[25]; spatial_metric[1][1] = v[26]; spatial_metric[1][2] = v[27];
+  spatial_metric[2][0] = v[28]; spatial_metric[2][1] = v[29]; spatial_metric[2][2] = v[30];
+
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+
+  bool in_excision_region = false;
+  if (v[40] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double vel_elc[3];
+    double v_sq_elc = 0.0;
+    vel_elc[0] = vx_elc; vel_elc[1] = vy_elc; vel_elc[2] = vz_elc;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_elc += spatial_metric[i][j] * vel_elc[i] * vel_elc[j];
+      }
+    }
+
+    double W_flat_elc = 1.0 / (sqrt(1.0 - ((vx_elc * vx_elc) + (vy_elc * vy_elc) + (vz_elc * vz_elc))));
+    if ((vx_elc * vx_elc) + (vy_elc * vy_elc) + (vz_elc * vz_elc) > 1.0 - pow(10.0, -8.0)) {
+      W_flat_elc = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double W_curved_elc = 1.0 / (sqrt(1.0 - v_sq_elc));
+    if (v_sq_elc > 1.0 - pow(10.0, -8.0)) {
+      W_curved_elc = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    if (fabs(vx_elc) < pow(10.0, -8.0)) {
+      if (vx_elc > 0.0) {
+        vx_elc = pow(10.0, -8.0);
+      }
+      else {
+        vx_elc = -pow(10.0, -8.0);
+      }
+    }
+
+    flux_gr[0] = (lapse * sqrt(spatial_det)) * ((flux_sr[0] * (vx_elc - (shift_x / lapse)) * W_curved_elc) / (vx_elc * W_flat_elc));
+    flux_gr[1] = (lapse * sqrt(spatial_det)) * ((((flux_sr[1] - p_elc) * (vx_elc - (shift_x / lapse)) * (W_curved_elc * W_curved_elc)) / (vx_elc * (W_flat_elc * W_flat_elc))) + p_elc);
+    flux_gr[2] = (lapse * sqrt(spatial_det)) * ((flux_sr[2] * (vx_elc - (shift_x / lapse)) * (W_curved_elc * W_curved_elc)) / (vx_elc * (W_flat_elc * W_flat_elc)));
+    flux_gr[3] = (lapse * sqrt(spatial_det)) * ((flux_sr[3] * (vx_elc - (shift_x / lapse)) * (W_curved_elc * W_curved_elc)) / (vx_elc * (W_flat_elc * W_flat_elc)));
+    flux_gr[4] = (lapse * sqrt(spatial_det)) * (((((flux_sr[4] + (rho_elc * vx_elc * W_flat_elc)) * (W_curved_elc * W_curved_elc)) / (vx_elc * (W_flat_elc * W_flat_elc))) - p_elc -
+      (rho_elc * W_curved_elc)) * (vx_elc - (shift_x / lapse)) + (p_elc * vx_elc));
+    
+    double vel_ion[3];
+    double v_sq_ion = 0.0;
+    vel_ion[0] = vx_ion; vel_ion[1] = vy_ion; vel_ion[2] = vz_ion;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_ion += spatial_metric[i][j] * vel_ion[i] * vel_ion[j];
+      }
+    }
+
+    double W_flat_ion = 1.0 / (sqrt(1.0 - ((vx_ion * vx_ion) + (vy_ion * vy_ion) + (vz_ion * vz_ion))));
+    if ((vx_ion * vx_ion) + (vy_ion * vy_ion) + (vz_ion * vz_ion) > 1.0 - pow(10.0, -8.0)) {
+      W_flat_ion = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double W_curved_ion = 1.0 / (sqrt(1.0 - v_sq_ion));
+    if (v_sq_ion > 1.0 - pow(10.0, -8.0)) {
+      W_curved_ion = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    if (fabs(vx_ion) < pow(10.0, -8.0)) {
+      if (vx_ion > 0.0) {
+        vx_ion = pow(10.0, -8.0);
+      }
+      else {
+        vx_ion = -pow(10.0, -8.0);
+      }
+    }
+
+    flux_gr[5] = (lapse * sqrt(spatial_det)) * ((flux_sr[5] * (vx_ion - (shift_x / lapse)) * W_curved_ion) / (vx_ion * W_flat_ion));
+    flux_gr[6] = (lapse * sqrt(spatial_det)) * ((((flux_sr[6] - p_ion) * (vx_ion - (shift_x / lapse)) * (W_curved_ion * W_curved_ion)) / (vx_ion * (W_flat_ion * W_flat_ion))) + p_ion);
+    flux_gr[7] = (lapse * sqrt(spatial_det)) * ((flux_sr[7] * (vx_ion - (shift_x / lapse)) * (W_curved_ion * W_curved_ion)) / (vx_ion * (W_flat_ion * W_flat_ion)));
+    flux_gr[8] = (lapse * sqrt(spatial_det)) * ((flux_sr[8] * (vx_ion - (shift_x / lapse)) * (W_curved_ion * W_curved_ion)) / (vx_ion * (W_flat_ion * W_flat_ion)));
+    flux_gr[9] = (lapse * sqrt(spatial_det)) * (((((flux_sr[9] + (rho_ion * vx_ion * W_flat_ion)) * (W_curved_ion * W_curved_ion)) / (vx_ion * (W_flat_ion * W_flat_ion))) - p_ion -
+      (rho_ion * W_curved_ion)) * (vx_ion - (shift_x / lapse)) + (p_ion * vx_ion));
+
+    flux_gr[10] = flux_sr[10];
+    flux_gr[11] = (lapse * flux_sr[11]) - (light_speed * light_speed) * ((shift_x * flux_sr[15]) - (shift_y * Ex));
+    flux_gr[12] = (lapse * flux_sr[12]) + (light_speed * light_speed) * ((shift_x * flux_sr[14]) + (shift_z * Ex));
+    flux_gr[13] = flux_sr[13];
+    flux_gr[14] = (lapse * flux_sr[14]) + ((shift_x * (flux_sr[12] / (light_speed * light_speed))) + (shift_y * Bx));
+    flux_gr[15] = (lapse * flux_sr[15]) - ((shift_x * (flux_sr[11] / (light_speed * light_speed))) - (shift_z * Bx));
+    flux_gr[16] = flux_sr[16];
+    flux_gr[17] = flux_sr[17];
+
+    for (int i = 18; i < 84; i++) {
+      flux_gr[i] = 0.0;
+    }
+  }
+  else {
+    for (int i = 0; i < 84; i++) {
+      flux_gr[i] = 0.0;
+    }
   }
 }
 
