@@ -1,13 +1,13 @@
 #include <acutest.h>
 
 #include <gkyl_util.h>
-#include <gkyl_wv_gr_twofluid.h>
-#include <gkyl_wv_gr_twofluid_priv.h>
+#include <gkyl_wv_gr_twofluid_tetrad.h>
+#include <gkyl_wv_gr_twofluid_tetrad_priv.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
 void
-test_gr_twofluid_basic_minkowski()
+test_gr_twofluid_tetrad_basic_minkowski()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -21,11 +21,11 @@ test_gr_twofluid_basic_minkowski()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_twofluid->num_equations == 84 );
-  TEST_CHECK( gr_twofluid->num_waves == 6 );
+  TEST_CHECK( gr_twofluid_tetrad->num_equations == 84 );
+  TEST_CHECK( gr_twofluid_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -145,7 +145,7 @@ test_gr_twofluid_basic_minkowski()
       q[81] = x; q[82] = y; q[83] = 0.0;
 
       double prims[84];
-      gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
+      gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
       
       TEST_CHECK( gkyl_compare(prims[0], rho_elc, 1e-12) );
       TEST_CHECK( gkyl_compare(prims[1], u, 1e-12) );
@@ -224,11 +224,12 @@ test_gr_twofluid_basic_minkowski()
         { 0.0, 1.0, 0.0 },
       };
 
-      double q_local[84], flux_local[84], flux[84];
+      double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
       for (int d = 0; d < 3; d++) {
-        gr_twofluid->rotate_to_local_func(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_local);
-        gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local);
-        gr_twofluid->rotate_to_global_func(gr_twofluid, tau1[d], tau2[d], norm[d], flux_local, flux);
+        gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
+        gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr, flux_local_gr);
+        gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
         for (int i = 0; i < 18; i++) {
           TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-8) );
@@ -237,16 +238,16 @@ test_gr_twofluid_basic_minkowski()
 
       double q_l[84], q_g[84];
       for (int d = 0; d < 3; d++) {
-        gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_l);
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], q_l, q_g);
+        gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
+        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 84; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
         double w1[84], q1[84];
-        gr_twofluid->cons_to_riem(gr_twofluid, q_local, q_local, w1);
-        gr_twofluid->riem_to_cons(gr_twofluid, q_local, w1, q1);
+        gr_twofluid_tetrad->cons_to_riem(gr_twofluid_tetrad, q_local, q_local, w1);
+        gr_twofluid_tetrad->riem_to_cons(gr_twofluid_tetrad, q_local, w1, q1);
 
         for (int i = 0; i < 84; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
@@ -273,12 +274,12 @@ test_gr_twofluid_basic_minkowski()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 void
-test_gr_twofluid_basic_schwarzschild()
+test_gr_twofluid_tetrad_basic_schwarzschild()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -292,11 +293,11 @@ test_gr_twofluid_basic_schwarzschild()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_twofluid->num_equations == 84 );
-  TEST_CHECK( gr_twofluid->num_waves == 6 );
+  TEST_CHECK( gr_twofluid_tetrad->num_equations == 84 );
+  TEST_CHECK( gr_twofluid_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -417,7 +418,7 @@ test_gr_twofluid_basic_schwarzschild()
         q[81] = x; q[82] = y; q[83] = 0.0;
 
         double prims[84];
-        gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
+        gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
         
         TEST_CHECK( gkyl_compare(prims[0], rho_elc, 1e-1) );
         TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
@@ -496,11 +497,12 @@ test_gr_twofluid_basic_schwarzschild()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[84], flux_local[84], flux[84];
-        for (int d = 0; d < 3; d++) {
-          gr_twofluid->rotate_to_local_func(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_local);
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local);
-          gr_twofluid->rotate_to_global_func(gr_twofluid, tau1[d], tau2[d], norm[d], flux_local, flux);
+      double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
+      for (int d = 0; d < 3; d++) {
+        gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
+        gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr, flux_local_gr);
+        gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
           for (int i = 0; i < 18; i++) {
             TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-1) );
@@ -509,16 +511,16 @@ test_gr_twofluid_basic_schwarzschild()
 
         double q_l[84], q_g[84];
         for (int d = 0; d < 3; d++) {
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_l);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], q_l, q_g);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
           double w1[84], q1[84];
-          gr_twofluid->cons_to_riem(gr_twofluid, q_local, q_local, w1);
-          gr_twofluid->riem_to_cons(gr_twofluid, q_local, w1, q1);
+          gr_twofluid_tetrad->cons_to_riem(gr_twofluid_tetrad, q_local, q_local, w1);
+          gr_twofluid_tetrad->riem_to_cons(gr_twofluid_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
@@ -546,12 +548,12 @@ test_gr_twofluid_basic_schwarzschild()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 void
-test_gr_twofluid_basic_kerr()
+test_gr_twofluid_tetrad_basic_kerr()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -565,11 +567,11 @@ test_gr_twofluid_basic_kerr()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_twofluid->num_equations == 84 );
-  TEST_CHECK( gr_twofluid->num_waves == 6 );
+  TEST_CHECK( gr_twofluid_tetrad->num_equations == 84 );
+  TEST_CHECK( gr_twofluid_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -690,7 +692,7 @@ test_gr_twofluid_basic_kerr()
         q[81] = x; q[82] = y; q[83] = 0.0;
 
         double prims[84];
-        gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
+        gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, prims);
         
         TEST_CHECK( gkyl_compare(prims[0], rho_elc, 1e-1) );
         TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
@@ -769,11 +771,12 @@ test_gr_twofluid_basic_kerr()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[84], flux_local[84], flux[84];
-        for (int d = 0; d < 3; d++) {
-          gr_twofluid->rotate_to_local_func(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_local);
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local);
-          gr_twofluid->rotate_to_global_func(gr_twofluid, tau1[d], tau2[d], norm[d], flux_local, flux);
+      double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
+      for (int d = 0; d < 3; d++) {
+        gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
+        gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr, flux_local_gr);
+        gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
           for (int i = 0; i < 18; i++) {
             TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-1) );
@@ -782,16 +785,16 @@ test_gr_twofluid_basic_kerr()
 
         double q_l[84], q_g[84];
         for (int d = 0; d < 3; d++) {
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], q, q_l);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], q_l, q_g);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
           
           double w1[84], q1[84];
-          gr_twofluid->cons_to_riem(gr_twofluid, q_local, q_local, w1);
-          gr_twofluid->riem_to_cons(gr_twofluid, q_local, w1, q1);
+          gr_twofluid_tetrad->cons_to_riem(gr_twofluid_tetrad, q_local, q_local, w1);
+          gr_twofluid_tetrad->riem_to_cons(gr_twofluid_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
@@ -819,12 +822,12 @@ test_gr_twofluid_basic_kerr()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 void
-test_gr_twofluid_waves_minkowski()
+test_gr_twofluid_tetrad_waves_minkowski()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -838,7 +841,7 @@ test_gr_twofluid_waves_minkowski()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -1057,34 +1060,38 @@ test_gr_twofluid_waves_minkowski()
         double speeds[3], waves[3 * 84], waves_local[3 * 84];
 
         double ql_local[84], qr_local[84];
-        gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], ql, ql_local);
-        gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], qr, qr_local);
+        gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+        gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
         double delta[84];
         for (int i = 0; i < 84; i++) {
           delta[i] = qr_local[i] - ql_local[i];
         }
 
-        gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+        gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
         double apdq_local[84], amdq_local[84];
-        gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+        gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 3; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
         }
 
         double apdq[84], amdq[84];
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-        double fl_local[84], fr_local[84];
-        gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local);
-        gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local);
+        double fl_local_sr[84], fr_local_sr[84];
+        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
+
+        double fl_local_gr[84], fr_local_gr[84];
+        gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
+        gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
         double fl[84], fr[84];
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fl_local, fl);
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fr_local, fr);
+        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
         for (int i = 0; i < 84; i++) {
           TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-15) );
@@ -1123,12 +1130,12 @@ test_gr_twofluid_waves_minkowski()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 void
-test_gr_twofluid_waves_schwarzschild()
+test_gr_twofluid_tetrad_waves_schwarzschild()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -1142,7 +1149,7 @@ test_gr_twofluid_waves_schwarzschild()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -1365,34 +1372,38 @@ test_gr_twofluid_waves_schwarzschild()
           double speeds[3], waves[3 * 84], waves_local[3 * 84];
 
           double ql_local[84], qr_local[84];
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], ql, ql_local);
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], qr, qr_local);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
           double delta[84];
           for (int i = 0; i < 84; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
-          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
+            gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
           }
 
           double apdq[84], amdq[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local[84], fr_local[84];
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local);
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local);
+          double fl_local_sr[84], fr_local_sr[84];
+          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
+
+          double fl_local_gr[84], fr_local_gr[84];
+          gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
+          gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
           double fl[84], fr[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fl_local, fl);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fr_local, fr);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
@@ -1432,12 +1443,12 @@ test_gr_twofluid_waves_schwarzschild()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 void
-test_gr_twofluid_waves_kerr()
+test_gr_twofluid_tetrad_waves_kerr()
 {
   double gas_gamma_elc = 5.0 / 3.0;
   double gas_gamma_ion = 5.0 / 3.0;
@@ -1451,7 +1462,7 @@ test_gr_twofluid_waves_kerr()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
     light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -1674,34 +1685,38 @@ test_gr_twofluid_waves_kerr()
           double speeds[3], waves[3 * 84], waves_local[3 * 84];
 
           double ql_local[84], qr_local[84];
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], ql, ql_local);
-          gkyl_wv_eqn_rotate_to_local(gr_twofluid, tau1[d], tau2[d], norm[d], qr, qr_local);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+          gkyl_wv_eqn_rotate_to_local(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
           double delta[84];
           for (int i = 0; i < 84; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
-          gkyl_wv_eqn_qfluct(gr_twofluid, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
+            gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
           }
 
           double apdq[84], amdq[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local[84], fr_local[84];
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local);
-          gkyl_gr_twofluid_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local);
+          double fl_local_sr[84], fr_local_sr[84];
+          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
+
+          double fl_local_gr[84], fr_local_gr[84];
+          gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
+          gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
           double fl[84], fr[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fl_local, fl);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid, tau1[d], tau2[d], norm[d], fr_local, fr);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
@@ -1741,16 +1756,16 @@ test_gr_twofluid_waves_kerr()
     }
   }
 
-  gkyl_wv_eqn_release(gr_twofluid);
+  gkyl_wv_eqn_release(gr_twofluid_tetrad);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 TEST_LIST = {
-  { "gr_twofluid_basic_minkowski", test_gr_twofluid_basic_minkowski },
-  { "gr_twofluid_basic_schwarzschild", test_gr_twofluid_basic_schwarzschild },
-  { "gr_twofluid_basic_kerr", test_gr_twofluid_basic_kerr },
-  { "gr_twofluid_waves_minkowski", test_gr_twofluid_waves_minkowski },
-  { "gr_twofluid_waves_schwarzschild", test_gr_twofluid_waves_schwarzschild },
-  { "gr_twofluid_waves_kerr", test_gr_twofluid_waves_kerr },
+  { "gr_twofluid_tetrad_basic_minkowski", test_gr_twofluid_tetrad_basic_minkowski },
+  { "gr_twofluid_tetrad_basic_schwarzschild", test_gr_twofluid_tetrad_basic_schwarzschild },
+  { "gr_twofluid_tetrad_basic_kerr", test_gr_twofluid_tetrad_basic_kerr },
+  { "gr_twofluid_tetrad_waves_minkowski", test_gr_twofluid_tetrad_waves_minkowski },
+  { "gr_twofluid_tetrad_waves_schwarzschild", test_gr_twofluid_tetrad_waves_schwarzschild },
+  { "gr_twofluid_tetrad_waves_kerr", test_gr_twofluid_tetrad_waves_kerr },
   { NULL, NULL },
 };
