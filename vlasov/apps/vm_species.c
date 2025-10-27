@@ -59,20 +59,30 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
       GKYL_MODEL_DEFAULT, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu);
 
-    struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
-    if ((vms->info.triad_basis && vms->info.triad_basis_gradient) 
-      && (vms->info.cov_tangent_basis))  {
-      inp_basis_vectors.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
-      inp_basis_vectors.eval_triad_basis = vms->info.triad_basis; 
-      inp_basis_vectors.eval_triad_basis_gradient = vms->info.triad_basis_gradient; 
-      inp_basis_vectors.eval_cov_tangent_basis_ctx = vms->info.cov_tangent_basis_ctx; 
-      inp_basis_vectors.eval_triad_basis_ctx = vms->info.triad_basis_ctx; 
-      inp_basis_vectors.eval_triad_basis_gradient_ctx = vms->info.triad_basis_gradient_ctx; 
+    struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+    inp_triad_geom.use_vierbein = vms->info.use_vierbein;
+    if ( (vms->info.use_vierbein) && (vms->info.vierbein) && (vms->info.vierbein_gradient) ) {
+      inp_triad_geom.eval_vierbein = vms->info.vierbein;
+      inp_triad_geom.eval_vierbein_gradient = vms->info.vierbein_gradient;
+      inp_triad_geom.eval_vierbein_ctx = vms->info.vierbein_ctx;
+      inp_triad_geom.eval_vierbein_gradient_ctx = vms->info.vierbein_gradient_ctx;
+    }
+    else if ((vms->info.triad_basis) && (vms->info.triad_basis_gradient) && (vms->info.cov_tangent_basis))  {
+      inp_triad_geom.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
+      inp_triad_geom.eval_triad_basis = vms->info.triad_basis; 
+      inp_triad_geom.eval_triad_basis_gradient = vms->info.triad_basis_gradient; 
+      inp_triad_geom.eval_cov_tangent_basis_ctx = vms->info.cov_tangent_basis_ctx; 
+      inp_triad_geom.eval_triad_basis_ctx = vms->info.triad_basis_ctx; 
+      inp_triad_geom.eval_triad_basis_gradient_ctx = vms->info.triad_basis_gradient_ctx; 
+    } 
+    else {
+      // Missing valid geometry inputs for triads
+      assert(false);
     }
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
-      &vms->grid, &vms->local, vms->basis, inp_basis_vectors, vms->conf_poisson_tensor_host);
+      &vms->grid, &vms->local, vms->basis, inp_triad_geom, vms->conf_poisson_tensor_host);
 
     // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
     if (app->use_gpu) {
@@ -1330,7 +1340,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   if (vms->info.use_lo == true) {
     vms->use_lo = true; 
   }
-
+  vms->use_vierbein = false; 
+  if (vms->info.use_vierbein == true) {
+    vms->use_vierbein = true; 
+  }
 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 

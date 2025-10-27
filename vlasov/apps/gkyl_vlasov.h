@@ -174,6 +174,7 @@ struct gkyl_vlasov_species {
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   bool write_cell_avg; // Boolean for only writing cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
+  bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
@@ -197,6 +198,14 @@ struct gkyl_vlasov_species {
   void *triad_basis_gradient_ctx; // Context for triad basis gradient function.
   // Pointer to triad basis gradient function.
   void (*triad_basis_gradient)(double t, const double *xn, double *aout, void *ctx);
+
+  void *vierbein_ctx; // Context for vierbein function.
+  // Pointer to vierbein function.
+  void (*vierbein)(double t, const double *xn, double *aout, void *ctx);
+
+  void *vierbein_gradient_ctx; // Context for vierbein gradient function.
+  // Pointer to vierbein gradient function.
+  void (*vierbein_gradient)(double t, const double *xn, double *aout, void *ctx);
 
   void *hamil_ctx; // Context for general (phase space) Hamiltonian function.
   // Pointer to general (phase space) Hamilonian function.

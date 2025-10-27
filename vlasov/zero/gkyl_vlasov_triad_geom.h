@@ -14,6 +14,13 @@ struct gkyl_vlasov_triad_geom_inp {
   void *eval_cov_tangent_basis_ctx; // Context for function evaluation. Can be NULL.
   void *eval_triad_basis_ctx; // Context for function evaluation. Can be NULL.
   void *eval_triad_basis_gradient_ctx; // Context for function evaluation. Can be NULL.
+
+  evalf_t eval_vierbein; // The vierbein to be evaluated within each configuration space cell.
+  evalf_t eval_vierbein_gradient; // The vierbein gradient to be evaluated within each configuration space cell.
+  void *eval_vierbein_ctx; // Context for function evaluation. Can be NULL.
+  void *eval_vierbein_gradient_ctx; // Context for function evaluation. Can be NULL.
+
+  bool use_vierbein; // bool for determining which geometry convention we are constructing PT from
 };
 
 /**
@@ -25,9 +32,9 @@ struct gkyl_vlasov_triad_geom_inp {
  * @param pgrid Phase-space grid object
  * @param prange Phase-space range
  * @param pbasis Phase-space basis
- * @param inp_basis_vectors Basis mapping input (function and context) cov_tangent_basis, traid_basis
+ * @param inp_triad_geom Basis mapping input (function and context) cov_tangent_basis, traid_basis
  * @param conf_poisson_tensor The configuration component of the Poisson tensor
  */
 void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors, struct gkyl_array *conf_poisson_tensor);
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor);

@@ -369,6 +369,12 @@ struct vlasov_species_lw {
 
   bool has_triad_basis_gradient_func; // Is there a triad basis gradient function?
   struct lua_func_ctx triad_basis_gradient_func_ref; // Lua registry reference to triad basis gradient function.
+  
+  bool has_vierbein_func; // Is there a vierbein function?
+  struct lua_func_ctx vierbein_func_ref; // Lua registry reference to vierbein function.
+
+  bool has_vierbein_gradient_func; // Is there a vierbein gradient function?
+  struct lua_func_ctx vierbein_gradient_func_ref; // Lua registry reference to vierbein gradient function.
 
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
@@ -500,6 +506,9 @@ vlasov_species_lw_new(lua_State *L)
   bool use_lo = glua_tbl_get_bool(L, "useLo", false);
   vm_species.use_lo = use_lo;
 
+  bool use_vierbein = glua_tbl_get_bool(L, "useVierbein", false);
+  vm_species.use_vierbein = use_vierbein;
+
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_species.is_static = !evolve; 
   bool write_cell_avg = glua_tbl_get_bool(L, "writeCellAvg", false);
@@ -574,6 +583,12 @@ vlasov_species_lw_new(lua_State *L)
   bool has_triad_basis_gradient_func = false;
   int triad_basis_gradient_func_ref = LUA_NOREF;
 
+  bool has_vierbein_func = false;
+  int vierbein_func_ref = LUA_NOREF;
+
+  bool has_vierbein_gradient_func = false;
+  int vierbein_gradient_func_ref = LUA_NOREF;
+
   bool has_hamiltonian_func = false;
   int hamiltonian_func_ref = LUA_NOREF;
 
@@ -599,6 +614,16 @@ vlasov_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "triadBasisGradient")) {
     triad_basis_gradient_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_triad_basis_gradient_func = true;
+  }
+  
+  if (glua_tbl_get_func(L, "vierbein")) {
+    vierbein_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_vierbein_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "vierbeinGradient")) {
+    vierbein_gradient_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_vierbein_gradient_func = true;
   }
 
   if (glua_tbl_get_func(L, "hamiltonian")) {
@@ -896,6 +921,22 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->has_triad_basis_gradient_func = has_triad_basis_gradient_func;
   vms_lw->triad_basis_gradient_func_ref = (struct lua_func_ctx) {
     .func_ref = triad_basis_gradient_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim * vdim * vdim,
+    .L = L,
+  };
+
+  vms_lw->has_vierbein_func = has_vierbein_func;
+  vms_lw->vierbein_func_ref = (struct lua_func_ctx) {
+    .func_ref = vierbein_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim * vdim,
+    .L = L,
+  };
+
+  vms_lw->has_vierbein_gradient_func = has_vierbein_gradient_func;
+  vms_lw->vierbein_gradient_func_ref = (struct lua_func_ctx) {
+    .func_ref = vierbein_gradient_func_ref,
     .ndim = 0, // This will be set later.
     .nret = vdim * vdim * vdim,
     .L = L,
@@ -1491,6 +1532,12 @@ struct vlasov_app_lw {
   bool has_triad_basis_gradient_func[GKYL_MAX_SPECIES]; // Is there a triad basis gradient function?
   struct lua_func_ctx triad_basis_gradient_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to triad basis gradient function.
 
+  bool has_vierbein_func[GKYL_MAX_SPECIES]; // Is there a vierbein function?
+  struct lua_func_ctx vierbein_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to vierbein function.
+
+  bool has_vierbein_gradient_func[GKYL_MAX_SPECIES]; // Is there a vierbein gradient function?
+  struct lua_func_ctx vierbein_gradient_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to vierbein gradient function.
+
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
 
@@ -1634,6 +1681,14 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
 
         if (vms->has_triad_basis_gradient_func) {
           vms->triad_basis_gradient_func_ref.ndim = cdim;
+        }
+
+        if (vms->has_vierbein_func) {
+          vms->vierbein_func_ref.ndim = cdim;
+        }
+
+        if (vms->has_vierbein_gradient_func) {
+          vms->vierbein_gradient_func_ref.ndim = cdim;
         }
 
         if (vms->has_hamiltonian_func) {
@@ -1975,6 +2030,12 @@ vm_app_new(lua_State *L)
     app_lw->has_triad_basis_gradient_func[s] = species[s]->has_triad_basis_gradient_func;
     app_lw->triad_basis_gradient_func_ctx[s] = species[s]->triad_basis_gradient_func_ref;
 
+    app_lw->has_vierbein_func[s] = species[s]->has_vierbein_func;
+    app_lw->vierbein_func_ctx[s] = species[s]->vierbein_func_ref;
+
+    app_lw->has_vierbein_gradient_func[s] = species[s]->has_vierbein_gradient_func;
+    app_lw->vierbein_gradient_func_ctx[s] = species[s]->vierbein_gradient_func_ref;
+
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
@@ -2002,6 +2063,16 @@ vm_app_new(lua_State *L)
       vm.species[s].triad_basis_gradient_ctx = &app_lw->triad_basis_gradient_func_ctx[s];
     }
 
+    if (species[s]->has_vierbein_func) {
+      vm.species[s].vierbein = gkyl_lw_eval_cb;
+      vm.species[s].vierbein_ctx = &app_lw->vierbein_func_ctx[s];
+    }
+
+    if (species[s]->has_vierbein_gradient_func) {
+      vm.species[s].vierbein_gradient = gkyl_lw_eval_cb;
+      vm.species[s].vierbein_gradient_ctx = &app_lw->vierbein_gradient_func_ctx[s];
+    }
+    
     if (species[s]->has_hamiltonian_func) {
       vm.species[s].hamil = gkyl_lw_eval_cb;
       vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];

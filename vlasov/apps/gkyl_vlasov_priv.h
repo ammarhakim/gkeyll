@@ -364,6 +364,7 @@ struct vm_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
+  bool use_vierbein; // bool to determine if using vierbein inputs for triads.
 
   bool use_vmap; // bool to determine if we are using mapped velocity-space grids
   struct gkyl_array *vmap; // mapping for mapped velocity-space grids
