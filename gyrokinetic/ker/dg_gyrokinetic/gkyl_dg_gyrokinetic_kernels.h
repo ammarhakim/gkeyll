@@ -228,16 +228,15 @@ GKYL_CU_DH double dg_gyrokinetic_boundary_surfvpar_3x2v_ser_p1(const double *w, 
               const double *flux_surf_edge, const double *flux_surf_skin, 
               const int edge, double* GKYL_RESTRICT out); 
 
-
-GKYL_CU_DH double dg_gyrokinetic_add_em_vol_1x1v_ser_p1(const double *w, const double *dxv,
+              GKYL_CU_DH double dg_gyrokinetic_add_em_vol_1x1v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_1x1v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_1x1v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -256,42 +255,15 @@ GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_1x1v_ser_p1(const doub
               const double *flux_surf_edge, const double *flux_surf_skin, 
               const int edge, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH double dg_gyrokinetic_add_em_vol_1x1v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_1x1v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_1x1v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfx_1x1v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfvpar_1x1v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_1x1v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-
 GKYL_CU_DH double dg_gyrokinetic_add_em_vol_1x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_1x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_1x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -310,42 +282,15 @@ GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_1x2v_ser_p1(const doub
               const double *flux_surf_edge, const double *flux_surf_skin, 
               const int edge, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH double dg_gyrokinetic_add_em_vol_1x2v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_1x2v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_1x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfx_1x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfvpar_1x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_1x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-
 GKYL_CU_DH double dg_gyrokinetic_add_em_vol_2x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_2x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_2x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -372,50 +317,15 @@ GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_2x2v_ser_p1(const doub
               const double *flux_surf_edge, const double *flux_surf_skin, 
               const int edge, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH double dg_gyrokinetic_add_em_vol_2x2v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_2x2v_ser_p2(const double *w, const double *dxv,
-            const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
-            const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfx_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfy_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfy_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_surfvpar_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
-              const double *flux_surf_l, const double *flux_surf_r, 
-              double* GKYL_RESTRICT out); 
-GKYL_CU_DH double dg_gyrokinetic_add_em_boundary_surfvpar_2x2v_ser_p2(const double *w, const double *dxv,
-              const double *vmap_prime_edge, const double *vmap_prime_skin, 
-              const double *flux_surf_edge, const double *flux_surf_skin, 
-              const int edge, double* GKYL_RESTRICT out); 
-
 GKYL_CU_DH double dg_gyrokinetic_add_em_vol_3x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_no_by_vol_3x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
-            const double *bmag, const double *phi,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *bmag, const double *apar, const double *apardot,
+            const double *rtg33inv, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_add_em_surfx_3x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
