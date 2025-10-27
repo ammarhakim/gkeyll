@@ -1251,19 +1251,17 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 
   bool scale_by_jacobtot = false;
   with_file(fp, inp.jacobtot_inv_file_name, "r") {
-    // Set up configuration space donor grid and basis
+    // Configuration space donor grid and basis
     struct gkyl_rect_grid conf_grid_do;
     gkyl_rect_grid_init(&conf_grid_do, cdim_do, grid_do.lower, grid_do.upper, grid_do.cells);
-    // Create configuration space global ranges
-    struct gkyl_range conf_local_ext_do, conf_local_do, conf_global_ext_do, conf_global_do;
-    gkyl_create_grid_ranges(&conf_grid_do, ghost_do, &conf_global_ext_do, &conf_global_do);
-    // Create configuration space local ranges
-    struct gkyl_rect_decomp *conf_decomp_do = gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global_do);
-    gkyl_create_ranges(&conf_decomp_do->ranges[my_rank], ghost_do, &conf_local_ext_do, &conf_local_do);
-    // Create a configuration space basis.
     struct gkyl_basis conf_basis_do;
     gkyl_cart_modal_serendip(&conf_basis_do, cdim_do, poly_order);
-    // Array for Jacobian inverse
+    // Configuration space donor ranges and decomposition.
+    struct gkyl_range conf_local_ext_do, conf_local_do, conf_global_ext_do, conf_global_do;
+    gkyl_create_grid_ranges(&conf_grid_do, ghost_do, &conf_global_ext_do, &conf_global_do);
+    struct gkyl_rect_decomp *conf_decomp_do = gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global_do);
+    gkyl_create_ranges(&conf_decomp_do->ranges[my_rank], ghost_do, &conf_local_ext_do, &conf_local_do);
+    // Read and multiply by the reciprocal of jacobtot.
     struct gkyl_array *jacobtot_inv_do_host = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
     rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobtot_inv_do_host, inp.jacobtot_inv_file_name);
     gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobtot_inv_do_host, fdo_host, &conf_local_ext_do, &local_ext_do);
@@ -1293,6 +1291,17 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       gkyl_dg_interpolate_advance(interp, fdo, gks->f);
       gkyl_dg_interpolate_release(interp);
     }
+  }
+
+  if (inp.enforce_positivity) {
+    // Positivity enforcing by shifting f (ps=positivity shift).
+    struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
+      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+
+    gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
+      gks->f, gks->m0.marr, gks->m0.marr);
+
+    gkyl_positivity_shift_gyrokinetic_release(pos_shift_op);
   }
 
   if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
