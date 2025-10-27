@@ -4,8 +4,9 @@
 #include <gkyl_gr_spacetime.h>
 
 // Type of Riemann-solver to use:
-enum gkyl_wv_gr_twofluid_rp {
-  WV_GR_TWOFLUID_TETRAD_RP_LAX, // Default (Lax fluxes).
+enum gkyl_wv_gr_twofluid_tetrad_rp {
+  WV_GR_TWOFLUID_TETRAD_RP_HLL, // Default (HLL fluxes).
+  WV_GR_TWOFLUID_TETRAD_RP_LAX
 };
 
 // Input context, packaged as a struct.
@@ -24,7 +25,7 @@ struct gkyl_wv_gr_twofluid_tetrad_inp {
   int reinit_freq; // Spacetime reinitialization frequency.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
 
-  enum gkyl_wv_gr_twofluid_rp rp_type; // Type of Riemann-solver to use.
+  enum gkyl_wv_gr_twofluid_tetrad_rp rp_type; // Type of Riemann-solver to use.
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
 };
 

@@ -430,7 +430,7 @@ main(int argc, char **argv)
     .equation = gr_twofluid_tetrad,
     
     .init = evalGRTwoFluidTetradInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
