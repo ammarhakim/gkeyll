@@ -99,9 +99,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
+  gkyl_gyrokinetic_app *app = inp->app;
 
-  // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
@@ -114,7 +113,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
+      return;
     }
 
     frame_curr = status.frame;
@@ -251,10 +250,6 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_print_timings(app, stdout);
-
-freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_app_release(app);
 }
 
 void
@@ -296,9 +291,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
+  gkyl_gyrokinetic_multib_app *app = inp->app_multib;
 
-  // Create app object.
-  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
@@ -311,7 +305,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
+      return;
     }
 
     frame_curr = status.frame;
@@ -446,14 +440,10 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
   gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
-
-  freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_multib_app_release(app);
 }
 
 void
-gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
+gkyl_gyrokinetic_run(struct gkyl_gyrokinetic_run_inp* inp)
 {
   if (inp->print_verbosity.frequency == 0.0)
     inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
@@ -463,6 +453,39 @@ gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
   else if (inp->app_type == GKYL_GK_MULTIB) {
     gyrokinetic_run_multib_simulation(inp);
+  }
+  else {
+    gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");
+  }
+}
+
+void
+gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* inp)
+{
+  if (inp->print_verbosity.frequency == 0.0)
+    inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
+
+  if (inp->app_type == GKYL_GK_SINGLEB) {
+    gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
+    struct gkyl_gyrokinetic_run_inp run_inp = {
+      .app_type = inp->app_type,
+      .app = app,
+      .timing = inp->timing,
+      .print_verbosity = inp->print_verbosity
+    };
+    gyrokinetic_run_singleb_simulation(&run_inp);
+    gkyl_gyrokinetic_app_release(app);
+  }
+  else if (inp->app_type == GKYL_GK_MULTIB) {
+    gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
+    struct gkyl_gyrokinetic_run_inp run_inp = {
+      .app_type = inp->app_type,
+      .app_multib = app,
+      .timing = inp->timing,
+      .print_verbosity = inp->print_verbosity
+    };
+    gyrokinetic_run_multib_simulation(&run_inp);
+    gkyl_gyrokinetic_multib_app_release(app);
   }
   else {
     gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");
