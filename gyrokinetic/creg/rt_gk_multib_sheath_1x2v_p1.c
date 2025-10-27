@@ -775,23 +775,13 @@ main(int argc, char **argv)
     .comm = comm
   };
 
-  struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_type = GKYL_GK_MULTIB,
-    .multib_app_inp = app_inp,
-    .timing = {
-      .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps,
-    }
-  };
+  // Create app object.
+  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&app_inp);
+j
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
+
+  gkyl_gyrokinetic_multib_app_release(app);
 
   gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);

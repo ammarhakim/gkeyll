@@ -99,9 +99,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
+  struct gkyl_gyrokinetic_app *app = inp->app;
 
-  // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
@@ -253,8 +252,6 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_app_release(app);
 }
 
 void
@@ -296,9 +293,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
   struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
+  struct gkyl_gyrokinetic_multib_app *app = inp->app_multib;
 
-  // Create app object.
-  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
@@ -448,8 +444,6 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
 
   freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_multib_app_release(app);
 }
 
 void

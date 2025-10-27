@@ -1,5 +1,7 @@
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
+#include <gkyl_gyrokinetic_multib_priv.h>
 
 struct gkyl_gyrokinetic_time_stepping_inp {
   double t_end; // End time for the simulation
@@ -28,8 +30,8 @@ enum gkyl_gyrokinetic_run_app_type {
 struct gkyl_gyrokinetic_run_inp {
   enum gkyl_gyrokinetic_run_app_type app_type; // Type of gyrokinetic application to run.
   union{
-    struct gkyl_gk app_inp; // Single-block application input struct.
-    struct gkyl_gyrokinetic_multib multib_app_inp; // Multi-block application input.
+    struct gkyl_gyrokinetic_app *app; // Single-block application input struct.
+    struct gkyl_gyrokinetic_multib_app *app_multib; // Multi-block application input.
   };
   struct gkyl_gyrokinetic_time_stepping_inp timing; // Timing parameters for the simulation.
   struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.

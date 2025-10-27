@@ -373,8 +373,10 @@ main(int argc, char **argv)
     },
   };
 
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
+
   struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_inp = app_inp,
+    .app = app,
     .timing = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
@@ -389,6 +391,8 @@ main(int argc, char **argv)
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
+
+  gkyl_gyrokinetic_app_release(app);
 
   compareToAnalytics(&app_inp, &ctx);
 
