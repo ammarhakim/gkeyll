@@ -1,8 +1,5 @@
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
-#include <gkyl_gyrokinetic_multib_priv.h>
-
 struct gkyl_gyrokinetic_time_stepping_inp {
   double t_end; // End time for the simulation
   int num_frames; // Number of output frames. Output every (t_end/num_frames) time units.
