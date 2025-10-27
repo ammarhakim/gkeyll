@@ -156,6 +156,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
   int num_failures = 0, num_failures_max = timing.num_failures_max;
   struct timespec tm_loop_start = gkyl_wall_clock();
+  double t_loop_start = t_curr;  // Track simulation time at start of timing window
 
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
@@ -179,8 +180,9 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.estimate_completion_time) {
       // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
       double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
+      double sim_time_progressed = t_curr - t_loop_start; // simulated time in this timing window
       double sim_time_remaining = t_end - t_curr; // simulated time left
-      double wall_time_per_sim_time = wall_time_elapsed / t_curr;
+      double wall_time_per_sim_time = wall_time_elapsed / sim_time_progressed;
       double wall_time_remaining = wall_time_per_sim_time * sim_time_remaining;
 
       int hours = (int)(wall_time_remaining / 3600.0);
@@ -192,6 +194,10 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
       gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.5g\t(%.1f%% complete, est. %dh %dm %ds remaining)\n", 
                                 status.dt_actual, progress_pct, hours, minutes, seconds);
+      
+      // Reset timing window for next batch of steps
+      tm_loop_start = gkyl_wall_clock();
+      t_loop_start = t_curr;
     }
 
     if (!status.success) {
@@ -348,8 +354,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
   int num_failures = 0, num_failures_max = timing.num_failures_max;
   struct timespec tm_loop_start = gkyl_wall_clock();
-  double last_printed_percent = -1;
-  double last_printed_decade = 0;
+  double t_loop_start = t_curr;  // Track simulation time at start of timing window
 
   long step = 1;
   while ((t_curr < t_end) && (step <= timing.num_steps)) {
@@ -373,8 +378,9 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     else if (verbose.enabled && (((int)(step % (long)(1/verbose.frequency)) == 0)) && verbose.estimate_completion_time) {
       // Calculate elapsed wall time and estimate remaining time based on simulated time progressed.
       double wall_time_elapsed = gkyl_time_diff_now_sec(tm_loop_start); // seconds
+      double sim_time_progressed = t_curr - t_loop_start; // simulated time in this timing window
       double sim_time_remaining = t_end - t_curr; // simulated time left
-      double wall_time_per_sim_time = wall_time_elapsed / t_curr;
+      double wall_time_per_sim_time = wall_time_elapsed / sim_time_progressed;
       double wall_time_remaining = wall_time_per_sim_time * sim_time_remaining;
 
       int hours = (int)(wall_time_remaining / 3600.0);
@@ -386,6 +392,10 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.5g\t(%.1f%% complete, est. %dh %dm %ds remaining)\n", 
                                 status.dt_actual, progress_pct, hours, minutes, seconds);
+      
+      // Reset timing window for next batch of steps
+      tm_loop_start = gkyl_wall_clock();
+      t_loop_start = t_curr;
     }
 
     if (!status.success) {
