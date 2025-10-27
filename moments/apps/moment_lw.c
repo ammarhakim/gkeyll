@@ -30,6 +30,7 @@
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_gr_twofluid.h>
+#include <gkyl_wv_gr_twofluid_tetrad.h>
 #include <gkyl_wv_gr_mhd.h>
 #include <gkyl_wv_gr_mhd_tetrad.h>
 #include <gkyl_wv_advect.h>
@@ -271,6 +272,13 @@ static const struct gkyl_str_int_pair gr_medium_rp_type[] = {
 static const struct gkyl_str_int_pair gr_twofluid_rp_type[] = {
   { "hll", WV_GR_TWOFLUID_RP_HLL },
   { "lax", WV_GR_TWOFLUID_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic two-fluid Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_twofluid_tetrad_rp_type[] = {
+  { "hll", WV_GR_TWOFLUID_TETRAD_RP_HLL },
+  { "lax", WV_GR_TWOFLUID_TETRAD_RP_LAX },
   { 0, 0 }
 };
 
@@ -1346,6 +1354,93 @@ static struct luaL_Reg eqn_gr_twofluid_ctor[] = {
   { 0, 0 }
 };
 
+/* **************************************************************************************** */
+/* General Relativistic Two-Fluid Equations in the Tetrad Basis (General Equation of State) */
+/* **************************************************************************************** */
+
+// GRTwoFluidTetrad.new { massElc = 1.0 / 1836.2, massIon = 1.0, chargeElc = -1.0, chargeIon = 1.0, gasGammaElc = 5.0 / 3.0, gasGammaIon = 5.0 / 3.0,
+// lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
+// where rpType is one of "hll" or "lax".
+static int
+eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_twofluid_tetrad_lw = gkyl_malloc(sizeof(*gr_twofluid_tetrad_lw));
+
+  double mass_elc = glua_tbl_get_number(L, "massElc", 1.0 / 1836.2);
+  double mass_ion = glua_tbl_get_number(L, "massIon", 1.0);
+  double charge_elc = glua_tbl_get_number(L, "chargeElc", -1.0);
+  double charge_ion = glua_tbl_get_number(L, "chargeIon", 1.0);
+  double gas_gamma_elc = glua_tbl_get_number(L, "gasGammaElc", 5.0 / 3.0);
+  double gas_gamma_ion = glua_tbl_get_number(L, "gasGammaIon", 5.0 / 3.0);
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_twofluid_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_twofluid_tetrad_rp_type, rp_str, WV_GR_TWOFLUID_TETRAD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
+  gr_twofluid_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_twofluid_tetrad_lw->eqn = gkyl_wv_gr_twofluid_tetrad_inew( &(struct gkyl_wv_gr_twofluid_tetrad_inp) {
+      .mass_elc = mass_elc,
+      .mass_ion = mass_ion,
+      .charge_elc = charge_elc,
+      .charge_ion = charge_ion,
+      .gas_gamma_elc = gas_gamma_elc,
+      .gas_gamma_ion = gas_gamma_ion,
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_twofluid_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_twofluid_tetrad_lw = gr_twofluid_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_twofluid_tetrad_ctor[] = {
+  { "new", eqn_gr_twofluid_tetrad_lw_new },
+  { 0, 0 }
+};
+
 /* ********************************************************************************* */
 /* General Relativistic Magnetohydrodynamics Equations (Ideal Gas Equation of State) */
 /* ********************************************************************************* */
@@ -1592,6 +1687,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.GRTwoFluid", eqn_gr_twofluid_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRTwoFluidTetrad", eqn_gr_twofluid_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMHD", eqn_gr_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMHDTetrad", eqn_gr_mhd_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.LinearAdvection", eqn_advect_ctor);
