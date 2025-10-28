@@ -21,6 +21,9 @@
 
 struct bhl_static_multifluid_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
   double gas_gamma_elc; // Adiabatic index (electrons).
   double gas_gamma_ion; // Adiabatic index (ions).
@@ -81,6 +84,9 @@ struct bhl_static_multifluid_ctx
 struct bhl_static_multifluid_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
   double gas_gamma_elc = 5.0 / 3.0; // Adiabatic index (electrons).
   double gas_gamma_ion = 5.0 / 3.0; // Adiabatic index (ions).
@@ -93,7 +99,7 @@ create_ctx(void)
   double ul = 0.3; // Left electron/ion velocity.
   double pl = 0.05; // Left electron/ion pressure.
 
-  double rhor_ion = 0.01; // Right ion mass density.
+  double rhor_ion = 1.0 / (4.0 * pi); // Right ion mass density.
   double ur = 0.0; // Right electron/ion velocity.
   double pr = 0.01; // Right electron/ion pressure.
 
@@ -138,6 +144,7 @@ create_ctx(void)
   double x_loc = 1.0; // Shock location (x-direction).
 
   struct bhl_static_multifluid_ctx ctx = {
+    .pi = pi,
     .gas_gamma_elc = gas_gamma_elc,
     .gas_gamma_ion = gas_gamma_ion,
     .mass_ion = mass_ion,
