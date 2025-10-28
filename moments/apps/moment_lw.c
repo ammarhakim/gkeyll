@@ -307,6 +307,8 @@ struct wv_eqn_lw {
   struct gkyl_wv_eqn *eqn; // Equation object.
   bool has_nn; // Does this equation object have a neural network attached?
   kann_t *ann; // Neural network.
+  bool has_spacetime; // Does this equation object have a spacetime object attached?
+  struct gkyl_gr_spacetime *spacetime; // Spacetime.
 };
 
 // Clean up memory allocated for equation object.
@@ -319,6 +321,9 @@ wv_eqn_lw_gc(lua_State *L)
   gkyl_wv_eqn_release(wv_lw->eqn);
   if (wv_lw->has_nn) {
     kann_delete(wv_lw->ann);
+  }
+  if (wv_lw->has_spacetime) {
+    gkyl_gr_spacetime_release(wv_lw->spacetime);
   }
   gkyl_free(*l_wv_lw);
   
@@ -358,6 +363,8 @@ eqn_euler_lw_new(lua_State *L)
   );
   euler_lw->has_nn = false;
   euler_lw->ann = 0;
+  euler_lw->has_spacetime = false;
+  euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -395,6 +402,8 @@ eqn_iso_euler_lw_new(lua_State *L)
   iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt, false);
   iso_euler_lw->has_nn = false;
   iso_euler_lw->ann = 0;
+  iso_euler_lw->has_spacetime = false;
+  iso_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -429,6 +438,8 @@ eqn_sr_euler_lw_new(lua_State *L)
   sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
   sr_euler_lw->has_nn = false;
   sr_euler_lw->ann = 0;
+  sr_euler_lw->has_spacetime = false;
+  sr_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -461,6 +472,8 @@ eqn_coldfluid_lw_new(lua_State *L)
   coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
   coldfluid_lw->has_nn = false;
   coldfluid_lw->ann = 0;
+  coldfluid_lw->has_spacetime = false;
+  coldfluid_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -518,6 +531,8 @@ eqn_tenmoment_lw_new(lua_State *L)
   tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, has_nn_closure, poly_order, ann, false);
   tenm_lw->has_nn = has_nn_closure;
   tenm_lw->ann = ann;
+  tenm_lw->has_spacetime = false;
+  tenm_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -567,6 +582,8 @@ eqn_mhd_lw_new(lua_State *L)
   );
   mhd_lw->has_nn = false;
   mhd_lw->ann = 0;
+  mhd_lw->has_spacetime = false;
+  mhd_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -618,6 +635,8 @@ eqn_reactive_euler_lw_new(lua_State *L)
   );
   reactive_euler_lw->has_nn = false;
   reactive_euler_lw->ann = 0;
+  reactive_euler_lw->has_spacetime = false;
+  reactive_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_reactive_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -669,6 +688,8 @@ eqn_euler_mixture_lw_new(lua_State *L)
   );
   euler_mixture_lw->has_nn = false;
   euler_mixture_lw->ann = 0;
+  euler_mixture_lw->has_spacetime = false;
+  euler_mixture_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -720,6 +741,10 @@ eqn_euler_rgfm_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  euler_rgfm_lw->has_nn = false;
+  euler_rgfm_lw->ann = 0;
+  euler_rgfm_lw->has_spacetime = false;
+  euler_rgfm_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_rgfm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -771,6 +796,8 @@ eqn_iso_euler_mixture_lw_new(lua_State *L)
   );
   iso_euler_mixture_lw->has_nn = false;
   iso_euler_mixture_lw->ann = 0;
+  iso_euler_mixture_lw->has_spacetime = false;
+  iso_euler_mixture_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -846,6 +873,8 @@ eqn_gr_maxwell_lw_new(lua_State *L)
   );
   gr_maxwell_lw->has_nn = false;
   gr_maxwell_lw->ann = 0;
+  gr_maxwell_lw->has_spacetime = true;
+  gr_maxwell_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -921,6 +950,8 @@ eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
   );
   gr_maxwell_tetrad_lw->has_nn = false;
   gr_maxwell_tetrad_lw->ann = 0;
+  gr_maxwell_tetrad_lw->has_spacetime = true;
+  gr_maxwell_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -992,6 +1023,8 @@ eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
   );
   gr_ultra_rel_euler_lw->has_nn = false;
   gr_ultra_rel_euler_lw->ann = 0;
+  gr_ultra_rel_euler_lw->has_spacetime = true;
+  gr_ultra_rel_euler_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1063,6 +1096,8 @@ eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
   );
   gr_ultra_rel_euler_tetrad_lw->has_nn = false;
   gr_ultra_rel_euler_tetrad_lw->ann = 0;
+  gr_ultra_rel_euler_tetrad_lw->has_spacetime = true;
+  gr_ultra_rel_euler_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1134,6 +1169,8 @@ eqn_gr_euler_lw_new(lua_State *L)
   );
   gr_euler_lw->has_nn = false;
   gr_euler_lw->ann = 0;
+  gr_euler_lw->has_spacetime = true;
+  gr_euler_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1205,6 +1242,8 @@ eqn_gr_euler_tetrad_lw_new(lua_State *L)
   );
   gr_euler_tetrad_lw->has_nn = false;
   gr_euler_tetrad_lw->ann = 0;
+  gr_euler_tetrad_lw->has_spacetime = true;
+  gr_euler_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1249,6 +1288,8 @@ eqn_gr_medium_lw_new(lua_State *L)
   );
   gr_medium_lw->has_nn = false;
   gr_medium_lw->ann = 0;
+  gr_medium_lw->has_spacetime = false;
+  gr_medium_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_medium_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1336,6 +1377,10 @@ eqn_gr_twofluid_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_twofluid_lw->has_nn = false;
+  gr_twofluid_lw->ann = 0;
+  gr_twofluid_lw->has_spacetime = true;
+  gr_twofluid_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_twofluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1423,6 +1468,10 @@ eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_twofluid_tetrad_lw->has_nn = false;
+  gr_twofluid_tetrad_lw->ann = 0;
+  gr_twofluid_tetrad_lw->has_spacetime = true;
+  gr_twofluid_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_twofluid_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1499,6 +1548,10 @@ eqn_gr_mhd_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_mhd_lw->has_nn = false;
+  gr_mhd_lw->ann = 0;
+  gr_mhd_lw->has_spacetime = true;
+  gr_mhd_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1575,6 +1628,10 @@ eqn_gr_mhd_tetrad_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_mhd_tetrad_lw->has_nn = false;
+  gr_mhd_tetrad_lw->ann = 0;
+  gr_mhd_tetrad_lw->has_spacetime = true;
+  gr_mhd_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_mhd_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1609,6 +1666,8 @@ eqn_advect_lw_new(lua_State *L)
   advect_lw->eqn = gkyl_wv_advect_new(c, false);
   advect_lw->has_nn = false;
   advect_lw->ann = 0;
+  advect_lw->has_spacetime = false;
+  advect_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1641,6 +1700,8 @@ eqn_burgers_lw_new(lua_State *L)
   burgers_lw->eqn = gkyl_wv_burgers_new(false);
   burgers_lw->has_nn = false;
   burgers_lw->ann = 0;
+  burgers_lw->has_spacetime = false;
+  burgers_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
