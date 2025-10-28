@@ -9,9 +9,9 @@ pi = math.pi
 gas_gamma_elc = 5.0 / 3.0 -- Adiabatic index (electrons).
 gas_gamma_ion = 5.0 / 3.0 -- Adiabatic index (ions).
 mass_ion = 1.0 -- Proton mass.
-charge_ion = 1.0 / (4.0 * pi) -- Proton charge.
+charge_ion = 1.0 -- Proton charge.
 mass_elc = 1.0 / 1836.2 -- Electron mass.
-charge_elc = -1.0 / (4.0 * pi) -- Electron charge.
+charge_elc = -1.0 -- Electron charge.
 
 rhol_ion = 3.0 -- Left ion mass density.
 ul = 0.3 -- Left electron/ion velocity.

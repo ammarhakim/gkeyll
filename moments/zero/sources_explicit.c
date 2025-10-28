@@ -1395,12 +1395,12 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
       p_ion = pow(10.0, -8.0);
     }
 
-    fluid_new[10] -= (4.0 * M_PI) * (charge_elc / mass_elc) * rho_elc * W_elc * vx_elc;
-    fluid_new[10] -= (4.0 * M_PI) * (charge_ion / mass_ion) * rho_ion * W_ion * vx_ion;
-    fluid_new[11] -= (4.0 * M_PI) * (charge_elc / mass_elc) * rho_elc * W_elc * vy_elc;
-    fluid_new[11] -= (4.0 * M_PI) * (charge_ion / mass_ion) * rho_ion * W_ion * vy_ion;
-    fluid_new[12] -= (4.0 * M_PI) * (charge_elc / mass_elc) * rho_elc * W_elc * vz_elc;
-    fluid_new[12] -= (4.0 * M_PI) * (charge_ion / mass_ion) * rho_ion * W_ion * vz_ion;
+    fluid_new[10] -= (4.0 * M_PI) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vx_elc;
+    fluid_new[10] -= (4.0 * M_PI) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vx_ion;
+    fluid_new[11] -= (4.0 * M_PI) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vy_elc;
+    fluid_new[11] -= (4.0 * M_PI) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vy_ion;
+    fluid_new[12] -= (4.0 * M_PI) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * vz_elc;
+    fluid_new[12] -= (4.0 * M_PI) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * vz_ion;
   }
 }
 

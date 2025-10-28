@@ -2,18 +2,15 @@ local Moments = G0.Moments
 local GRTwoFluidTetrad = G0.Moments.Eq.GRTwoFluidTetrad
 local Minkowski = G0.Moments.Spacetime.Minkowski
 
--- Mathematical constants (dimensionless).
-pi = math.pi
-
 -- Physical constants (using normalized code units).
 gas_gamma_elc = 2.0 -- Adiabatic index (electrons).
 gas_gamma_ion = 2.0 -- Adiabatic index (ions).
 epsilon0 = 1.0 -- Permittivity of free space.
 mu0 = 1.0 -- Permeability of free space.
 mass_ion = 1.0 -- Proton mass.
-charge_ion = 1.0 / (4.0 * pi) -- Proton charge.
+charge_ion = 1.0 -- Proton charge.
 mass_elc = 1.0 / 1836.2 -- Electron mass.
-charge_elc = -1.0 / (4.0 * pi) -- Electron charge.
+charge_elc = -1.0 -- Electron charge.
 
 rhol_ion = 1.0 -- Left ion mass density.
 rhor_ion = 0.125 -- Right ion mass density
