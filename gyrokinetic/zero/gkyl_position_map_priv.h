@@ -655,7 +655,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         return;
       }
       else {
-        printf("Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
+        fprintf(stderr, "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
         fout[0] = theta;
         return;
       }
