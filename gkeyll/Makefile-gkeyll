@@ -1,0 +1,115 @@
+# -*- makefile-gmake -*-
+
+PREFIX ?= ${HOME}/gkylsoft
+SUPERLU_INC = $(PREFIX)/superlu/include
+ifeq ($(UNAME_S),Linux)
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
+else
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
+endif
+
+SRC_DIRS := lua/Comm lua/Tool
+SRCS := $(shell find $(SRC_DIRS) -name "*.c")
+OBJS := $(SRCS:%=../$(BUILD_DIR)/gkeyll/%.o)
+DEPS := $(OBJS:.o=.d)
+
+EXT_INCS := -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
+APP_LW_INCS := -I../core/apps -I../moments/apps -I../vlasov/apps -I../pkpm/apps -I../gyrokinetic/apps
+
+CORE_INCS := -I../core/minus -I../core/zero
+
+# Project install directory for all libraries and includes
+PROJ_INSTALL_LIB_DIR := ${INSTALL_PREFIX}/${PROJ_NAME}/lib
+PROJ_INSTALL_INC := -I${INSTALL_PREFIX}/${PROJ_NAME}/include
+TCC_EXEC := ${PREFIX}/tcc/bin/tcc
+TCC_RUN_CMD := -run $$\@
+
+# Core libraries to link to
+CORE_LIB_DIR := -L../${BUILD_DIR}/core
+CORE_LIB_INSTALL_DIR := 
+CORE_LIB := -lg0core
+
+# We need to link to the most dependent App
+FINAL_APP_LIB_DIR := ${FIN_APP_LIB_DIR}
+FINAL_APP_LIB := ${FIN_APP_LIB}
+
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+INSTALLED_EXEC_LIBS = -L${PROJ_INSTALL_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS}
+
+## All internal includes
+ALL_INCS := ${CORE_INCS} -Ilua/Comm -Ilua/Tool -I../core/minus/STC/include
+
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/pkpm
+
+INSTALLED_LDFLAGS += -Wl,-rpath,${PROJ_INSTALL_LIB_DIR}
+
+ifeq ($(UNAME), Darwin)
+EXPORT_SYMBOLS_FLAGS =
+else
+EXPORT_SYMBOLS_FLAGS = -Wl,-E
+endif
+
+gkeyll: gkeyll.c ${FIN_APP_LIB_NAME}
+	@echo "Hello", ${SRC_DIRS} ${SRCS} ${OBJS}
+	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
+	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${EXPORT_SYMBOLS_FLAGS} ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${LDFLAGS} ${EXEC_LIB_DIRS} ${FINAL_APP_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS} 
+
+gkeyll-install: gkeyll.c ${FIN_APP_LIB_NAME}
+	@echo "Hello", ${OBJS}
+	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
+	${CC} ${CFLAGS} ${LDFLAGS} ${SRCS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${EXPORT_SYMBOLS_FLAGS} ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS} 
+
+.PHONY: cgkeyll-install
+cgkeyll-install:
+	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
+	rm -rf ../${BUILD_DIR}/gkeyll/cgkeyll
+	echo "#!/bin/sh" >> ../${BUILD_DIR}/gkeyll/cgkeyll
+	echo ${TCC_EXEC} ${CFLAGS} ${EXT_INCS} ${PROJ_INSTALL_INC} ${PROJ_INSTALL_INC_DIR} ${INSTALLED_LDFLAGS} ${EXEC_LIB_DIRS} ${INSTALLED_EXEC_LIBS} ${TCC_RUN_CMD} >> ../${BUILD_DIR}/gkeyll/cgkeyll
+
+.PHONY: gkeyll-header
+gkeyll-header:
+	$(MKDIR_P) ${BUILD_DIR}
+	../core/minus/gengkylzeroh.sh ${INSTALL_PREFIX}/${PROJ_NAME}/include > ${INSTALL_PREFIX}/${PROJ_NAME}/include/gkylzero.h
+
+.PHONY: install
+install: gkeyll-install cgkeyll-install gkeyll-header
+# Construct install dir
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+# Install rt_ary_parse.h
+	cp ../moments/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include
+# Install executables
+	cp ../${BUILD_DIR}/gkeyll/gkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/gkeyll
+	cp ../${BUILD_DIR}/gkeyll/cgkeyll ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
+	chmod u+x ${INSTALL_PREFIX}/${PROJ_NAME}/bin/cgkeyll
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+
+.PHONY: clean
+clean: ## Clean build output
+	rm -rf ../${BUILD_DIR}/gkeyll
