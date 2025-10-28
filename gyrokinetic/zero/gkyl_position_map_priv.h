@@ -614,6 +614,16 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
     }
+    else if (fabs(interval_lower_eval) < 1e-10 || fabs(interval_upper_eval) < 1e-10) {
+      // If either evaluation is very close to zero, we're at or very near the solution
+      // Just use the corresponding endpoint
+      if (fabs(interval_lower_eval) < fabs(interval_upper_eval)) {
+        fout[0] = interval_lower;
+      } else {
+        fout[0] = interval_upper;
+      }
+      return;
+    }
     else {
       // It means we are in the wrong region
       if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0) {
@@ -633,6 +643,21 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
           fout[0] = theta_hi;
           return;
         }
+      }
+      else if (fabs(interval_lower_eval) < 1e-14) {
+        // Lower evaluation is very close to zero
+        fout[0] = interval_lower;
+        return;
+      }
+      else if (fabs(interval_upper_eval) < 1e-14) {
+        // Upper evaluation is very close to zero
+        fout[0] = interval_upper;
+        return;
+      }
+      else {
+        printf("Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
+        fout[0] = theta;
+        return;
       }
     }
   }
