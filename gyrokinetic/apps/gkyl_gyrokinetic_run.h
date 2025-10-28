@@ -35,9 +35,10 @@ struct gkyl_gyrokinetic_run_inp {
 };
 
 /**
- * Run the gyrokinetic simulation.
+ * Perform the time loop for a simulation
+ * Also projects the initial conditions
  * 
- * @param inp Input parameters for the simulation.
+ * @param inp Input parameters for the simulation. Includes an already initilized gyrokinetic_app
  */
 void
 gkyl_gyrokinetic_run(struct gkyl_gyrokinetic_run_inp* inp);
@@ -53,9 +54,10 @@ struct gkyl_gyrokinetic_init_run_release_inp {
 };
 
 /**
- * Run the gyrokinetic simulation.
- * 
- * @param inp Input parameters for the simulation.
+ * Perform the complete gyrokinetic simulation, including initialization, the time loop,
+ * and release of resources.
+ *
+ * @param inp Input parameters for the simulation. Includes application input structs.
  */
 void
 gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* inp);

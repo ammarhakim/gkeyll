@@ -8,6 +8,11 @@
 
 #include <rt_arg_parse.h>
 
+// This file contains standard routines to run gyrokinetic simulations.
+// If a user would like to customize the time-stepping loop, they can copy the relevant methods
+// from this file into their input file and modify as needed. Make sure not to #include this file
+// in that case.
+
 // Step message context.
 struct message_trigs {
   int log_count; // Number of times logging called.
@@ -26,13 +31,16 @@ struct message_trigs {
 // 
 
 // Function pointer types for output handlers.
-typedef void (*write_message_pre_update_singleb_t)(const struct gkyl_gyrokinetic_app*, long, double, struct message_trigs*);
-typedef void (*write_message_post_update_singleb_t)(const struct gkyl_gyrokinetic_app*, long, double, double, struct message_trigs*);
+typedef void (*write_message_pre_update_singleb_t)(const struct gkyl_gyrokinetic_app*, long, double,
+  struct message_trigs*);
+typedef void (*write_message_post_update_singleb_t)(const struct gkyl_gyrokinetic_app*, long, double,
+  double, struct message_trigs*);
 
 // Write log message to console.
 // Verbose output functions for single-block
 static void
-write_message_pre_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app, long step, double t_curr, struct message_trigs *trigs)
+write_message_pre_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app, long step, double t_curr, 
+  struct message_trigs *trigs)
 {
   if (((step % trigs->io_period) == 0) || step == 1) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %#11.8g ...", step, t_curr);
@@ -41,8 +49,7 @@ write_message_pre_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app,
 
 static void
 write_message_post_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app, long step, 
-                                  double t_curr, double dt_actual,
-                                  struct message_trigs *trigs)
+  double t_curr, double dt_actual, struct message_trigs *trigs)
 {
   if (step == 1) {
     gkyl_gyrokinetic_app_cout(app, stdout, "\tdt = %.6e\n", dt_actual);
@@ -63,7 +70,7 @@ write_message_post_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app
       int seconds = (int)(wall_time_remaining - hours*3600.0 - minutes*60.0);
 
       gkyl_gyrokinetic_app_cout(app, stdout, "\t(%.1f%% complete, est. %dh %dm %ds remaining)\n", 
-                                pct_complete, hours, minutes, seconds);
+        pct_complete, hours, minutes, seconds);
       
       // Reset timing window for next batch
       trigs->tm_loop_start = gkyl_wall_clock();
@@ -76,19 +83,20 @@ write_message_post_update_verbose_singleb(const struct gkyl_gyrokinetic_app *app
 }
 
 static void
-write_message_pre_update_nonverbose_singleb(const struct gkyl_gyrokinetic_app *app, long step, double t_curr, struct message_trigs *trigs)
+write_message_pre_update_nonverbose_singleb(const struct gkyl_gyrokinetic_app *app, long step, double t_curr,
+  struct message_trigs *trigs)
 {
   // No output before update in non-verbose mode
 }
 
 static void
 write_message_post_update_nonverbose_singleb(const struct gkyl_gyrokinetic_app *app, long step,
-                                         double t_curr, double dt_actual,
-                                         struct message_trigs *trigs)
+  double t_curr, double dt_actual, struct message_trigs *trigs)
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "\tStep %ld at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_actual, trigs->tenth * 10.0, "%");
+      gkyl_gyrokinetic_app_cout(app, stdout, "\tStep %ld at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n",
+        step, t_curr, dt_actual, trigs->tenth * 10.0, "%");
     }
     else {
       trigs->log_count += 1;
@@ -130,7 +138,6 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
       gkyl_gyrokinetic_app_write_dt(app);
     }
   }
-
   bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
   if (trig_now_phase || force_write) {
     int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
@@ -157,7 +164,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, timing.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status));
       return;
     }
 
@@ -173,10 +181,12 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Create triggers for IO.
   int num_frames = timing.num_frames, num_int_diag_calc = timing.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-                                                .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_conf = 
+    { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_phase = 
+    { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger trig_calc_intdiag = 
+    { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
@@ -209,7 +219,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   write_message_pre_update_singleb_t write_message_pre_update;
   write_message_post_update_singleb_t write_message_post_update;
-                           
+
   if (verbose.enabled) {
     write_message_pre_update = write_message_pre_update_verbose_singleb;
     write_message_post_update = write_message_post_update_verbose_singleb;
@@ -284,12 +294,15 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 // ............. Multi-block simulations ............... //
 // 
 
-typedef void (*write_message_pre_update_multib_t)(const struct gkyl_gyrokinetic_multib_app*, long, double, struct message_trigs*);
-typedef void (*write_message_post_update_multib_t)(const struct gkyl_gyrokinetic_multib_app*, long, double, double, struct message_trigs*);
+typedef void (*write_message_pre_update_multib_t)(const struct gkyl_gyrokinetic_multib_app*, 
+  long, double, struct message_trigs*);
+typedef void (*write_message_post_update_multib_t)(const struct gkyl_gyrokinetic_multib_app*, 
+  long, double, double, struct message_trigs*);
 
 // Verbose output functions for multi-block
 static void
-write_message_pre_update_verbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr, struct message_trigs *trigs)
+write_message_pre_update_verbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step,
+  double t_curr, struct message_trigs *trigs)
 {
   if (((step % trigs->io_period) == 0) || step == 1) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %#11.8g ...", step, t_curr);
@@ -298,8 +311,7 @@ write_message_pre_update_verbose_multib(const struct gkyl_gyrokinetic_multib_app
 
 static void
 write_message_post_update_verbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step,
-                                 double t_curr, double dt_actual,
-                                 struct message_trigs *trigs)
+  double t_curr, double dt_actual, struct message_trigs *trigs)
 {
   if (step == 1) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tdt = %.6e\n", dt_actual);
@@ -320,7 +332,7 @@ write_message_post_update_verbose_multib(const struct gkyl_gyrokinetic_multib_ap
       int seconds = (int)(wall_time_remaining - hours*3600.0 - minutes*60.0);
 
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "\t(%.1f%% complete, est. %dh %dm %ds remaining)\n",
-                                       pct_complete, hours, minutes, seconds);
+        pct_complete, hours, minutes, seconds);
       
       // Reset timing window for next batch
       trigs->tm_loop_start = gkyl_wall_clock();
@@ -333,19 +345,20 @@ write_message_post_update_verbose_multib(const struct gkyl_gyrokinetic_multib_ap
 }
 
 static void
-write_message_pre_update_nonverbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr, struct message_trigs *trigs)
+write_message_pre_update_nonverbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step, 
+  double t_curr, struct message_trigs *trigs)
 {
   // No output before update in non-verbose mode
 }
 
 static void
 write_message_post_update_nonverbose_multib(const struct gkyl_gyrokinetic_multib_app *app, long step,
-                                        double t_curr, double dt_actual,
-                                        struct message_trigs *trigs)
+  double t_curr, double dt_actual, struct message_trigs *trigs)
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tStep %ld at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_actual, trigs->tenth * 10.0, "%");
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "\tStep %ld at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n",
+        step, t_curr, dt_actual, trigs->tenth * 10.0, "%");
     }
     else {
       trigs->log_count += 1;
@@ -412,7 +425,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, timing.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status));
       return;
     }
 
@@ -428,17 +442,20 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Create triggers for IO.
   int num_frames = timing.num_frames, num_int_diag_calc = timing.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_conf = 
+    { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_phase = 
+    { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger trig_calc_intdiag = 
+    { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
   write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, timing.is_restart, false);
 
   if (verbose.enabled) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_init));
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Initialization completed in %g sec\n\n",
+      gkyl_time_diff_now_sec(tm_init));
   }
 
   // Compute initial guess of maximum stable time-step.
