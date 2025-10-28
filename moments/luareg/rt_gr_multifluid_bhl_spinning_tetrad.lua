@@ -2,19 +2,22 @@ local Moments = G0.Moments
 local GRTwoFluidTetrad = G0.Moments.Eq.GRTwoFluidTetrad
 local BlackHole = G0.Moments.Spacetime.BlackHole
 
+-- Mathematical constants (dimensionless).
+pi = math.pi
+
 -- Physical constants (using normalized code units).
 gas_gamma_elc = 5.0 / 3.0 -- Adiabatic index (electrons).
 gas_gamma_ion = 5.0 / 3.0 -- Adiabatic index (ions).
 mass_ion = 1.0 -- Proton mass.
-charge_ion = 1.0 -- Proton charge.
+charge_ion = 1.0 / (4.0 * pi) -- Proton charge.
 mass_elc = 1.0 / 1836.2 -- Electron mass.
-charge_elc = -1.0 -- Electron charge.
+charge_elc = -1.0 / (4.0 * pi) -- Electron charge.
 
 rhol_ion = 3.0 -- Left ion mass density.
 ul = 0.3 -- Left electron/ion velocity.
 pl = 0.05 -- Left electron/ion pressure.
 
-rhor_ion = 0.01 -- Right ion mass density.
+rhor_ion = 1.0 / (4.0 * pi) -- Right ion mass density.
 ur = 0.0 -- Right electron/ion velocity.
 pr = 0.01 -- Right electron/ion pressure.
 
