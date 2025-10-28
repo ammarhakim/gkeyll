@@ -474,6 +474,7 @@ main(int argc, char **argv)
     .gr_twofluid_charge_ion = ctx.charge_ion,
     .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
     .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
+    .gr_twofluid_e_fact = ctx.e_fact,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

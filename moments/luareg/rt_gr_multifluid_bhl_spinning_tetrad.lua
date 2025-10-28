@@ -102,6 +102,7 @@ momentApp = Moments.App.new {
     GRTwoFluidChargeIon = charge_ion,
     GRTwoFluidGasGammaElc = gas_gamma_elc,
     GRTwoFluidGasGammaIon = gas_gamma_ion,
+    GRTwoFluidEFact = e_fact,
   
     -- Initial conditions function.
     init = function (t, xn)

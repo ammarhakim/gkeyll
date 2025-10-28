@@ -3321,6 +3321,7 @@ moment_species_lw_new(lua_State *L)
     mom_species.gr_twofluid_charge_ion = glua_tbl_get_number(L, "GRTwoFluidChargeIon", 1.0);
     mom_species.gr_twofluid_gas_gamma_elc = glua_tbl_get_number(L, "GRTwoFluidGasGammaElc", 5.0 / 3.0);
     mom_species.gr_twofluid_gas_gamma_ion = glua_tbl_get_number(L, "GRTwoFluidGasGammaIon", 5.0 / 3.0);
+    mom_species.gr_twofluid_e_fact = glua_tbl_get_number(L, "GRTwoFluidEFact", 0.0);
   }
 
   mom_species.has_gr_mhd = glua_tbl_get_bool(L, "hasGRMHD", false);
