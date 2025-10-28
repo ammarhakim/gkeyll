@@ -27,8 +27,8 @@ enum gkyl_gyrokinetic_run_app_type {
 struct gkyl_gyrokinetic_run_inp {
   enum gkyl_gyrokinetic_run_app_type app_type; // Type of gyrokinetic application to run.
   union{
-    struct gkyl_gyrokinetic_app *app; // Single-block application input struct.
-    struct gkyl_gyrokinetic_multib_app *app_multib; // Multi-block application input.
+    struct gkyl_gyrokinetic_app *app; // Single-block application, already initialized.
+    struct gkyl_gyrokinetic_multib_app *app_multib; // Multi-block, already initialized.
   };
   struct gkyl_gyrokinetic_time_stepping_inp timing; // Timing parameters for the simulation.
   struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.
