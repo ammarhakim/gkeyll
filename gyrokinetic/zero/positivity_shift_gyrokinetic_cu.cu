@@ -78,8 +78,9 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
   const struct gkyl_range conf_range, const struct gkyl_range vel_range, const struct gkyl_range phase_range,
   double *ffloor, double ffloor_fac, double cellav_fac, double mass, const struct gkyl_array* GKYL_RESTRICT bmag, 
-  const struct gkyl_array *vmap, struct gkyl_array* GKYL_RESTRICT shiftedf, struct gkyl_array* GKYL_RESTRICT distf,
-  struct gkyl_array* GKYL_RESTRICT m0, struct gkyl_array* GKYL_RESTRICT delta_m0)
+  const struct gkyl_array* GKYL_RESTRICT jacobtot, const struct gkyl_array* GKYL_RESTRICT jacobtot_inv, 
+  const struct gkyl_array *vmap, const struct gkyl_array *jacobvel, struct gkyl_array* GKYL_RESTRICT shiftedf,
+  struct gkyl_array* GKYL_RESTRICT distf, struct gkyl_array* GKYL_RESTRICT m0, struct gkyl_array* GKYL_RESTRICT delta_m0)
 {
   int pidx[GKYL_MAX_DIM];
   double distf_max = -DBL_MAX;
@@ -100,7 +101,10 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
 
     int *shiftedf_c = (int*) gkyl_array_fetch(shiftedf, clinidx);
     const double *bmag_c = (const double*) gkyl_array_cfetch(bmag, clinidx);
+    const double *jacobtot_inv_c = (const double*) gkyl_array_cfetch(jacobtot_inv, clinidx);
+    const double *jacobtot_c = (const double*) gkyl_array_cfetch(jacobtot, clinidx);
     const double *vmap_c = (const double*) gkyl_array_cfetch(vmap, vlinidx);
+    const double *jacobvel_c = (const double*) gkyl_array_cfetch(jacobvel, plinidx);
     double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
     double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
     double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
@@ -115,8 +119,18 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
       atomicAdd(&delta_m0_c[k], m0Local_in[k]);
 
+    // Divide by jacobtot and jacobvel so that we are shifting just f.
+    kers->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
+    for (int k=0; k<distf->ncomp; k++)
+      distf_c[k] /= jacobvel_c[0];
+
     // Shift f if needed.
     bool shifted_node = kers->shift(ffloor[0], distf_c);
+
+    // Multiply by jacobtot and jacobvel to compute M0.
+    kers->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
+    for (int k=0; k<distf->ncomp; k++)
+      distf_c[k] *= jacobvel_c[0];
 
     if (shifted_node) {
       // Compute the new number density local to this phase-space cell.

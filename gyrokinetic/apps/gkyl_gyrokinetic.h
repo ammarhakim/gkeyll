@@ -251,6 +251,7 @@ struct gkyl_gyrokinetic_ic_import {
   enum gkyl_ic_import_type type;
   char file_name[128]; // Name of file that contains IC, J*f_in.
   char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
   bool enforce_positivity; // =true sets f to 0 where it was negative.
   void *conf_scale_ctx;
   void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).

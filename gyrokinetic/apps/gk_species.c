@@ -1270,6 +1270,16 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     scale_by_jacobtot = true;
   }
 
+  bool scale_by_jacobvel = false;
+  with_file(fp, inp.jacobvel_file_name, "r") {
+    // Read and multiply by the reciprocal of jacobvel.
+    struct gkyl_array *jacobvel_do_host = mkarr(false, 1, local_ext_do.volume);
+    rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, jacobvel_do_host, inp.jacobvel_file_name);
+    gkyl_array_divide_by_cell(fdo_host, jacobvel_do_host);
+    gkyl_array_release(jacobvel_do_host);
+    scale_by_jacobvel = true;
+  }
+
   if (app->use_gpu) {
     gkyl_array_copy(fdo, fdo_host);
   }
@@ -1291,17 +1301,6 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       gkyl_dg_interpolate_advance(interp, fdo, gks->f);
       gkyl_dg_interpolate_release(interp);
     }
-  }
-
-  if (inp.enforce_positivity) {
-    // Positivity enforcing by shifting f (ps=positivity shift).
-    struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
-      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
-
-    gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
-      gks->f, gks->m0.marr, gks->m0.marr);
-
-    gkyl_positivity_shift_gyrokinetic_release(pos_shift_op);
   }
 
   if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
@@ -1330,6 +1329,21 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   // Multiply f by the Jacobian.
   if (scale_by_jacobtot)
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, app->gk_geom->geo_int.jacobtot, gks->f, &app->local, &gks->local);
+
+  // Multiply f by the velocity space Jacobian.
+  if (scale_by_jacobvel)
+    gkyl_array_scale_by_cell(gks->f, gks->vel_map->jacobvel);
+
+  if (inp.enforce_positivity) {
+    // Positivity enforcing by shifting f (ps=positivity shift).
+    struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
+      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+
+    gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
+      gks->f, gks->m0.marr, gks->m0.marr);
+
+    gkyl_positivity_shift_gyrokinetic_release(pos_shift_op);
+  }
 
   gkyl_rect_decomp_release(decomp_do);
   gkyl_comm_release(comm_do);
