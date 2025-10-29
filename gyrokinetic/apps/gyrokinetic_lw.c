@@ -126,6 +126,32 @@ static const struct gkyl_str_int_pair gk_react_self_type[] = {
   { 0, 0 }
 };
 
+// Species boundary conditions -> enum map.
+static const struct gkyl_str_int_pair gk_bcs[] = {
+  // Particle BCs.
+  { "speciesSkip", GKYL_BC_GK_SKIP }, // Do not apply any BCs
+  { "speciesCopy", GKYL_BC_GK_SPECIES_COPY }, // Copy skin into ghost.
+  { "speciesReflect", GKYL_BC_GK_SPECIES_REFLECT }, // Reflect particles.
+  { "speciesAbsorb", GKYL_BC_GK_SPECIES_ABSORB }, // Absorbing BCs.
+  { "speciesFunc", GKYL_BC_GK_SPECIES_FUNC }, // Fill ghost cell using a user-function.
+  { "speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC }, // Fixed function, time-independent.
+  { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
+  { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
+  { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
+  { "speciesIWL", GKYL_BC_GK_SPECIES_IWL }, // Inner wall limited.
+  { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
+  { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
+  // Field BCs.
+  { "fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC }, // Periodic.
+  { "fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET }, // Dirichlet.
+  { "fieldNeumann", GKYL_BC_GK_FIELD_NEUMANN }, // Nemann.
+  { "fieldDirichletVarying", GKYL_BC_GK_FIELD_DIRICHLET_VARYING }, // Spatially varying Dirichlet.
+  { "fieldBoundaryValue", GKYL_BC_GK_FIELD_BOUNDARY_VALUE }, // Skin value at the boundary.
+  { "fieldTwistshift", GKYL_BC_GK_FIELD_TWISTSHIFT }, // Twist-shift.
+  { 0, 0 }
+};
+
+
 void
 gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
 {
@@ -186,6 +212,11 @@ gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
   register_types(L, gk_react_self_type, "Self");
 }
 
+void
+gkyl_register_gyrokinetic_bc_types(lua_State *L)
+{
+  register_types(L, gk_bcs, "GyrokineticBc");
+}
 
 // Magic IDs for use in distinguishing various species and field types.
 enum gyrokinetic_magic_ids {
@@ -2617,6 +2648,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_reaction_types(L);
   gkyl_register_gyrokinetic_ion_types(L);
   gkyl_register_gyrokinetic_self_reaction_types(L);
+  gkyl_register_gyrokinetic_bc_types(L);
   
   app_openlibs(L);
 }
