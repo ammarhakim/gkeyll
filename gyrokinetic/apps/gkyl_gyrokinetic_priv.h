@@ -224,14 +224,15 @@ struct gk_lte {
 };
 
 struct gk_rad_drag {  
-  enum gkyl_radiation_id radiation_id; // type of radiation
-  int num_cross_collisions; // number of species we cross-collide with
-  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
-  struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // pointers to neutral cross-species we collide with
-  int collide_with_idx[2*GKYL_MAX_SPECIES]; // index of species we collide with
-  bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
+  enum gkyl_radiation_id radiation_id; // Type of radiation.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  int num_cross_collisions; // Number of species we cross-collide with.
+  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // Cross-species we collide with.
+  struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // Neutral cross-species we collide with.
+  int collide_with_idx[2*GKYL_MAX_SPECIES]; // Index of species we collide with.
+  bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or Gk species.
   
-  // drag coefficients in vparallel and mu for each species being collided with
+  // Drag coefficients in vparallel and mu for each species being collided with.
   struct gkyl_gk_rad_drag *vnu_surf;
   struct gkyl_gk_rad_drag *vnu;
   struct gkyl_gk_rad_drag *vsqnu_surf;
@@ -239,37 +240,47 @@ struct gk_rad_drag {
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars;
   struct gkyl_array *rad_fit_ne[2*GKYL_MAX_SPECIES];
 
-  struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
+  struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // Moments needed in radiation update (need number density).
 
-  struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
+  struct gk_species_moment m2; // M2 of radiation update (needed for emissivity).
   struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_host[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_rhs;
   struct gkyl_array *emissivity_denominator;
 
-  struct gkyl_array *nvnu_surf; // total vparallel radiation drag surface expansion including density scaling
-  struct gkyl_array *nvnu; // total vparallel radiation drag volume expansion including density scaling
-  struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
-  struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
+  struct gkyl_array *nvnu_surf; // Total vparallel radiation drag surface expansion including density scaling.
+  struct gkyl_array *nvnu; // Total vparallel radiation drag volume expansion including density scaling.
+  struct gkyl_array *nvsqnu_surf; // Total mu radiation drag surface expansion including density scaling.
+  struct gkyl_array *nvsqnu; // Total mu radiation drag volume expansion including density scaling.
 
   struct gkyl_array **vtsq_min_per_species;  // Smallest vtsq that radiation is calculated (one for each
                                              // fit), divided by configuration space normalization
-  struct gk_species_moment prim_moms;
-  struct gkyl_array *vtsq;
-  struct gkyl_array *m0;
+  struct gk_species_moment prim_moms; // Primitive moments.
+  struct gkyl_array *vtsq; // Thermal speed squared.
+  struct gkyl_array *m0; // M0 moment.
 
-  // host-side copies for I/O
+  // Host-side copies for I/O.
   struct gkyl_array *nvnu_surf_host; 
   struct gkyl_array *nvnu_host; 
   struct gkyl_array *nvsqnu_surf_host; 
   struct gkyl_array *nvsqnu_host; 
 
-  gkyl_dg_updater_collisions *drag_slvr; // radiation solver
+  gkyl_dg_updater_collisions *drag_slvr; // Radiation solver.
 
-  struct gk_species_moment integ_moms; // integrated moments
-  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
-  gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  struct gk_species_moment integ_moms; // Integrated moments.
+  double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
+  gkyl_dynvec integ_diag; // Integrated moments in time.
+  bool is_first_integ_write_call; // Whether dynvec is being written for the 1st time.
+  
+  // Methods chosen at runtime:
+  void (*moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_drag_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_emissivity_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 };
 
 struct gk_collisionless {
@@ -1178,9 +1189,6 @@ struct gk_field {
   struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
-  // radial skin & ghost ranges and ssfg operator for BC of phi
-  struct gkyl_range lower_skin_x, lower_ghost_x;
-  struct gkyl_skin_surf_from_ghost *ssfg_x_lo;
   
   // Pointer to functions for the twist-and-shift BCs.
   void (*enforce_parallel_bc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
@@ -1640,31 +1648,6 @@ void gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
  * @param fin_neut Input neutral distribution functions (size num_species)
  */
 void gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-
-/**
- * Compute emissivities 
- *
- * @param app gyrokinetic app object
- * @param species Pointer to species
- * @param rad Species radiation drag object
- * @param fin Input distribution functions (size num_species)
- * @param fin_neut Input neutral distribution functions (size num_species)
- */
-void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-
-/**
- * Compute integrated moments of radiation drag object
- *
- * @param app gyrokinetic app object
- * @param species Pointer to species
- * @param rad Species radiation drag object
- * @param fin Input distribution functions (size num_species)
- * @param fin_neut Input neutral distribution functions (size num_species)
- */
-void
-gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**

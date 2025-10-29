@@ -182,33 +182,33 @@ struct gkyl_gyrokinetic_bc {
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
 
-  void *c2p_ctx; // context for mapc2p function
-  // pointer to mapc2p function: xc are the computational space
+  // Pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+  void *c2p_ctx; // Context for mapc2p function.
 
-  void *bfield_ctx; // context for bfield function
-  // pointer to bfield function
+  // Pointer to bfield function.
   void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
+  void *bfield_ctx; // Context for bfield function.
 
-  double world[3]; // extra computational coordinates for cases with reduced dimensionality
+  double world[3]; // Extra computational coordinates for cases with reduced dimensionality.
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
-  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
-  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
-  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
-  struct gkyl_position_map_inp position_map_info; // position map object
+  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_position_map_inp position_map_info; // Position map object.
 };
 
 // Parameters for species radiation.
 struct gkyl_gyrokinetic_radiation {
   enum gkyl_radiation_id radiation_id; // Type of radiation.
 
-  int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[2*GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  int num_cross_collisions; // Number of species to cross-collide with.
+  char collide_with[2*GKYL_MAX_SPECIES][128]; // Names of species to cross collide with.
 
   int atomic_Z[2*GKYL_MAX_SPECIES]; // Z of element for desired fit information.
   int charge_state[2*GKYL_MAX_SPECIES]; // Charge state of element for desired fit information.
@@ -220,21 +220,23 @@ struct gkyl_gyrokinetic_radiation {
 
   enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te).
   double Te_min; // Minimum temperature (in J) at which to stop radiating.
+
+  bool write_diagnostics; // Whether to write diagnostics.
 };
 
 struct gkyl_gyrokinetic_react_type {
-  enum gkyl_react_id react_id; // what type of reaction (ionization, charge exchange, recombination)
-  enum gkyl_react_self_type type_self; // what is the role of species in this reaction
-  enum gkyl_ion_type ion_id; // what type of ion is reacting
-  char elc_nm[128]; // names of electron species in reaction
-  char ion_nm[128]; // name of ion species in reaction
-  char donor_nm[128]; // name of donor species in reaction
-  char recvr_nm[128]; // name of receiver species in reaction
-  char partner_nm[128]; // name of neut species in cx reaction
-  int charge_state; // charge state of species in reaction
-  double ion_mass; // mass of ion in reaction
-  double elc_mass; // mass of electron in reaction
-  double partner_mass; // mass of neutral in cx reaction
+  enum gkyl_react_id react_id; // What type of reaction (ionization, charge exchange, recombination).
+  enum gkyl_react_self_type type_self; // What is the role of species in this reaction.
+  enum gkyl_ion_type ion_id; // What type of ion is reacting.
+  char elc_nm[128]; // Names of electron species in reaction.
+  char ion_nm[128]; // Name of ion species in reaction.
+  char donor_nm[128]; // Name of donor species in reaction.
+  char recvr_nm[128]; // Name of receiver species in reaction.
+  char partner_nm[128]; // Name of neut species in cx reaction.
+  int charge_state; // Charge state of species in reaction.
+  double ion_mass; // Mass of ion in reaction.
+  double elc_mass; // Mass of electron in reaction.
+  double partner_mass; // Mass of neutral in cx reaction.
   double vt_sq_ion_min;
   double vt_sq_partner_min;
 };

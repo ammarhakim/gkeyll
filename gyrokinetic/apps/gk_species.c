@@ -95,9 +95,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Anomalous diffusion.
   gk_species_anomalous_diff_rhs(app, species, &species->anom_diff, fin, rhs);
 
-  if (species->rad.radiation_id == GKYL_GK_RADIATION) {
-    gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
-  }
+  // Line radiation.
+  gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
   if (species->react.num_react) {
     gk_species_react_rhs(app, species, &species->react, fin, rhs);
@@ -115,7 +114,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
-  // Reduce the CFL frequency anc compute stable dt needed by this species.
+  // Reduce the CFL frequency anD compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
@@ -719,10 +718,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   }
   if (s->react_neut.num_react) {
     gk_species_react_release(app, &s->react_neut);  
-  }
-
-  if (s->rad.radiation_id == GKYL_GK_RADIATION) {
-    gk_species_radiation_release(app, &s->rad);
   }
 
   // Copy BCs are allocated by default. Need to free.
@@ -1924,6 +1919,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_bgk_release(app, &s->bgk);
 
   gk_species_heating_release(app, &s->heat_src);
+
+  gk_species_radiation_release(app, &s->rad);
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);

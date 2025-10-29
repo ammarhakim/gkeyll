@@ -681,10 +681,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
     }
-    // Initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
-    if (gk_s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
-      gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
-    }
+
+    // Initialize line radiation.
+    gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
   }
 
   // Initialize neutral species cross-species reactions with plasma species.
@@ -1718,10 +1717,9 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin, fin_neut);
     }
+
     // Line radiation.
-    if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
-      gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
-    }
+    gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gk_ns = &app->neut_species[i];
