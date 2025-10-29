@@ -450,7 +450,7 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_init_run_release_inp run_inp = {
+  struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
       .t_end = ctx.t_end,
@@ -465,7 +465,7 @@ main(int argc, char **argv)
     }
   };
 
-  gkyl_gyrokinetic_init_run_release(&run_inp);
+  gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 

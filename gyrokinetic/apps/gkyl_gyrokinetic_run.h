@@ -27,25 +27,6 @@ enum gkyl_gyrokinetic_run_app_type {
 struct gkyl_gyrokinetic_run_inp {
   enum gkyl_gyrokinetic_run_app_type app_type; // Type of gyrokinetic application to run.
   union{
-    struct gkyl_gyrokinetic_app *app; // Single-block application, already initialized.
-    struct gkyl_gyrokinetic_multib_app *app_multib; // Multi-block, already initialized.
-  };
-  struct gkyl_gyrokinetic_time_stepping_inp time_stepping; // Timing parameters for the simulation.
-  struct gkyl_gyrokinetic_run_verbosity_inp print_verbosity; // Verbosity settings for the simulation.
-};
-
-/**
- * Perform the time loop for a simulation
- * Also projects the initial conditions
- * 
- * @param inp Input parameters for the simulation. Includes an already initilized gyrokinetic_app
- */
-void
-gkyl_gyrokinetic_run(struct gkyl_gyrokinetic_run_inp* inp);
-
-struct gkyl_gyrokinetic_init_run_release_inp {
-  enum gkyl_gyrokinetic_run_app_type app_type; // Type of gyrokinetic application to run.
-  union{
     struct gkyl_gk app_inp; // Single-block application input struct.
     struct gkyl_gyrokinetic_multib multib_app_inp; // Multi-block application input.
   };
@@ -55,9 +36,10 @@ struct gkyl_gyrokinetic_init_run_release_inp {
 
 /**
  * Perform the complete gyrokinetic simulation, including initialization, the time loop,
- * and release of resources.
+ * and release of resources. If one wants to make modifications at the input file level,
+ * copy this function to the input file and modify as needed
  *
  * @param inp Input parameters for the simulation. Includes application input structs.
  */
 void
-gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* inp);
+gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp);

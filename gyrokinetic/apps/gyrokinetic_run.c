@@ -151,7 +151,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
   struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
-  gkyl_gyrokinetic_app *app = inp->app;
+
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
@@ -166,7 +167,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status));
-      return;
+      goto freeresources;
     }
 
     frame_curr = status.frame;
@@ -288,6 +289,9 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_print_timings(app, stdout);
+
+  freeresources:
+  gkyl_gyrokinetic_app_release(app);
 }
 
 //
@@ -427,7 +431,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status));
-      return;
+      goto freeresources;
     }
 
     frame_curr = status.frame;
@@ -548,52 +552,22 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
   gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
+
+  freeresources:
+  gkyl_gyrokinetic_multib_app_release(app);
 }
 
 void
-gkyl_gyrokinetic_run(struct gkyl_gyrokinetic_run_inp* inp)
+gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
   if (inp->print_verbosity.frequency == 0.0)
     inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
 
   if (inp->app_type == GKYL_GK_SINGLEB) {
-    gyrokinetic_run_singleb_simulation(inp);
+    gyrokinetic_run_singleb_simulation(&inp);
   }
   else if (inp->app_type == GKYL_GK_MULTIB) {
-    gyrokinetic_run_multib_simulation(inp);
-  }
-  else {
-    gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");
-  }
-}
-
-void
-gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* inp)
-{
-  if (inp->print_verbosity.frequency == 0.0)
-    inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
-
-  if (inp->app_type == GKYL_GK_SINGLEB) {
-    gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
-    struct gkyl_gyrokinetic_run_inp run_inp = {
-      .app_type = inp->app_type,
-      .app = app,
-      .time_stepping = inp->time_stepping,
-      .print_verbosity = inp->print_verbosity
-    };
-    gyrokinetic_run_singleb_simulation(&run_inp);
-    gkyl_gyrokinetic_app_release(app);
-  }
-  else if (inp->app_type == GKYL_GK_MULTIB) {
-    gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
-    struct gkyl_gyrokinetic_run_inp run_inp = {
-      .app_type = inp->app_type,
-      .app_multib = app,
-      .time_stepping = inp->time_stepping,
-      .print_verbosity = inp->print_verbosity
-    };
-    gyrokinetic_run_multib_simulation(&run_inp);
-    gkyl_gyrokinetic_multib_app_release(app);
+    gyrokinetic_run_multib_simulation(&inp);
   }
   else {
     gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");

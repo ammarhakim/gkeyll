@@ -681,7 +681,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
     },
   };
 
-  struct gkyl_gyrokinetic_init_run_release_inp run_inp = {
+  struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
       .t_end = ctx.t_end,
@@ -696,7 +696,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
     }
   };
 
-  gkyl_gyrokinetic_init_run_release(&run_inp);
+  gkyl_gyrokinetic_run_simulation(&run_inp);
   
   gkyl_gyrokinetic_comms_release(comm);
 
