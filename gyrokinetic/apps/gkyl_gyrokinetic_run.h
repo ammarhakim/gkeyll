@@ -13,7 +13,7 @@ struct gkyl_gyrokinetic_time_stepping_inp {
   int num_steps; // Maximum number of time-steps to take.
 };
 
-struct gkyl_gyrokinetic_run_verbosity {
+struct gkyl_gyrokinetic_run_verbosity_inp {
   bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
   double frequency; // Print information with given frequency. Defaults to 1.0
   bool estimate_completion_time; // Estimate completion time based on current progress. Defaults false
@@ -30,8 +30,8 @@ struct gkyl_gyrokinetic_run_inp {
     struct gkyl_gyrokinetic_app *app; // Single-block application, already initialized.
     struct gkyl_gyrokinetic_multib_app *app_multib; // Multi-block, already initialized.
   };
-  struct gkyl_gyrokinetic_time_stepping_inp timing; // Timing parameters for the simulation.
-  struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.
+  struct gkyl_gyrokinetic_time_stepping_inp time_stepping; // Timing parameters for the simulation.
+  struct gkyl_gyrokinetic_run_verbosity_inp print_verbosity; // Verbosity settings for the simulation.
 };
 
 /**
@@ -49,8 +49,8 @@ struct gkyl_gyrokinetic_init_run_release_inp {
     struct gkyl_gk app_inp; // Single-block application input struct.
     struct gkyl_gyrokinetic_multib multib_app_inp; // Multi-block application input.
   };
-  struct gkyl_gyrokinetic_time_stepping_inp timing; // Timing parameters for the simulation.
-  struct gkyl_gyrokinetic_run_verbosity print_verbosity; // Verbosity settings for the simulation.
+  struct gkyl_gyrokinetic_time_stepping_inp time_stepping; // Timing parameters for the simulation.
+  struct gkyl_gyrokinetic_run_verbosity_inp print_verbosity; // Verbosity settings for the simulation.
 };
 
 /**

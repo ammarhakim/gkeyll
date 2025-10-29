@@ -148,8 +148,8 @@ write_data_singleb(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot
 void
 gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
-  struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
+  struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
+  struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
   gkyl_gyrokinetic_app *app = inp->app;
 
@@ -157,11 +157,11 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
  
-  double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
+  double t_curr = 0.0, t_end = time_stepping.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
 
-  if (timing.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, timing.restart_frame);
+  if (time_stepping.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, time_stepping.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
@@ -180,17 +180,17 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
 
   // Create triggers for IO.
-  int num_frames = timing.num_frames, num_int_diag_calc = timing.int_diag_calc_num;
+  int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = 
     { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger trig_write_phase = 
-    { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
+    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
   struct gkyl_tm_trigger trig_calc_intdiag = 
     { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
-  write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, timing.is_restart, false);
+  calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, time_stepping.is_restart, false, -1.0);
+  write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, time_stepping.is_restart, false);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_init));
@@ -200,8 +200,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   double dt = t_end - t_curr;
 
   // Initialize small time-step check.
-  double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
-  int num_failures = 0, num_failures_max = timing.num_failures_max;
+  double dt_init = -1.0, dt_failure_tol = time_stepping.dt_failure_tol;
+  int num_failures = 0, num_failures_max = time_stepping.num_failures_max;
 
   // Set up function pointers based on verbosity mode
   struct message_trigs m_trig = {
@@ -230,7 +230,7 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= timing.num_steps)) {
+  while ((t_curr < t_end) && (step <= time_stepping.num_steps)) {
     write_message_pre_update(app, step, t_curr, &m_trig);
 
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
@@ -409,8 +409,8 @@ write_data_multib(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_
 void 
 gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 {
-  struct gkyl_gyrokinetic_time_stepping_inp timing = inp->timing;
-  struct gkyl_gyrokinetic_run_verbosity verbose = inp->print_verbosity;
+  struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
+  struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
   gkyl_gyrokinetic_multib_app *app = inp->app_multib;
 
@@ -418,11 +418,11 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
   }
 
-  double t_curr = 0.0, t_end = timing.t_end; // Initial and final simulation times.
+  double t_curr = 0.0, t_end = time_stepping.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
 
-  if (timing.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, timing.restart_frame);
+  if (time_stepping.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, time_stepping.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
@@ -441,17 +441,17 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
 
   // Create triggers for IO.
-  int num_frames = timing.num_frames, num_int_diag_calc = timing.int_diag_calc_num;
+  int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = 
     { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger trig_write_phase = 
-    { .dt = t_end/(timing.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
+    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
   struct gkyl_tm_trigger trig_calc_intdiag = 
     { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, timing.is_restart, false, -1.0);
-  write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, timing.is_restart, false);
+  calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, time_stepping.is_restart, false, -1.0);
+  write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, time_stepping.is_restart, false);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Initialization completed in %g sec\n\n",
@@ -462,8 +462,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   double dt = t_end - t_curr;
 
   // Initialize small time-step check.
-  double dt_init = -1.0, dt_failure_tol = timing.dt_failure_tol;
-  int num_failures = 0, num_failures_max = timing.num_failures_max;
+  double dt_init = -1.0, dt_failure_tol = time_stepping.dt_failure_tol;
+  int num_failures = 0, num_failures_max = time_stepping.num_failures_max;
 
   // Set up function pointers based on verbosity mode
   struct message_trigs m_trig = {
@@ -492,7 +492,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= timing.num_steps)) {
+  while ((t_curr < t_end) && (step <= time_stepping.num_steps)) {
     write_message_pre_update(app, step, t_curr, &m_trig);
 
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
@@ -578,7 +578,7 @@ gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* 
     struct gkyl_gyrokinetic_run_inp run_inp = {
       .app_type = inp->app_type,
       .app = app,
-      .timing = inp->timing,
+      .time_stepping = inp->time_stepping,
       .print_verbosity = inp->print_verbosity
     };
     gyrokinetic_run_singleb_simulation(&run_inp);
@@ -589,7 +589,7 @@ gkyl_gyrokinetic_init_run_release(struct gkyl_gyrokinetic_init_run_release_inp* 
     struct gkyl_gyrokinetic_run_inp run_inp = {
       .app_type = inp->app_type,
       .app_multib = app,
-      .timing = inp->timing,
+      .time_stepping = inp->time_stepping,
       .print_verbosity = inp->print_verbosity
     };
     gyrokinetic_run_multib_simulation(&run_inp);
