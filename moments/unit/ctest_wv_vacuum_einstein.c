@@ -226,7 +226,7 @@ test_vacuum_einstein_basic_minkowski()
           }
         }
       }
-
+      
       double spatial_metric_der_flux[3][3][3][3];
       for (int d = 0; d < 3; d++) {
         for (int i = 0; i < 3; i++) {
