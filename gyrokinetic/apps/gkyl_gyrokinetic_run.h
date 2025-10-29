@@ -4,7 +4,7 @@
 struct gkyl_gyrokinetic_timings {
   double t_end; // End time for the simulation
   int num_frames; // Number of output frames. Output every (t_end/num_frames) time units.
-  int write_phase_freq; // Frequency (in multiples of num_frames) of writing phase-space data. e.g. 0.2 means write every 5 frames.
+  double write_phase_freq; // Frequency (in multiples of num_frames) of writing phase-space data. e.g. 0.2 means write every 5 frames.
   int int_diag_calc_num; // Number of integrated diagnostic calculations to do. 100*num_frames means 100 calculations per frame.
   double dt_failure_tol; // Tolerance for small time-step failures. Typical value is 1e-4
   int num_failures_max; // Maximum number of consecutive small time-step failures before aborting simulation. Typical value is 20.
