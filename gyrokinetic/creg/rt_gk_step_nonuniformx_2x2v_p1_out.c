@@ -377,8 +377,8 @@ main(int argc, char **argv)
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "Ar1" },
-      .z = 18,
-      .charge_state = 1,
+      .atomic_Z = {18},
+      .charge_state = {1},
       .num_of_densities = 1, // Must be 1 for now
     },
 

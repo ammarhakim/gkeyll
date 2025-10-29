@@ -1846,7 +1846,7 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->radiation_num_cross_collisions[s]; i++) {
       strcpy(gk.species[s].radiation.collide_with[i], app_lw->radiation_collide_with[s][i]);
 
-      gk.species[s].radiation.z[i] = app_lw->radiation_z[s][i];
+      gk.species[s].radiation.atomic_Z[i] = app_lw->radiation_z[s][i];
       gk.species[s].radiation.charge_state[i] = app_lw->radiation_charge_state[s][i];
       gk.species[s].radiation.num_of_densities[i] = app_lw->radiation_num_of_densities[s][i];
     }

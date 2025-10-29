@@ -89,24 +89,16 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
 
   // Add the SSFG updater for lower and upper application.
   f->ssfg_z_lo = gkyl_skin_surf_from_ghost_new(par_dir,  GKYL_LOWER_EDGE,
-    app->basis,  &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
-
-  int ghost_radial[] = {1, 1, 1};
-  int xdir = 0;
-  // Create lower ssfg updater for the radial direction.
-  gkyl_skin_ghost_ranges( &f->lower_skin_x, &f->lower_ghost_x, xdir, 
-                          GKYL_LOWER_EDGE, &app->local_ext, ghost_radial);
-  f->ssfg_x_lo = gkyl_skin_surf_from_ghost_new(xdir, GKYL_LOWER_EDGE,
-                  app->basis, &f->lower_skin_x, &f->lower_ghost_x,  app->use_gpu);
+    app->basis, &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
 }
 
 static void
-gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
-  // Apply the periodicity to fill the ghost cells
-  int num_periodic_dir = 1; // we need only periodicity in z
-  int zdir = app->cdim - 1;
-  int periodic_dirs[] = {zdir};
+  // Apply the periodicity along the field to fill ghost cells.
+  int num_periodic_dir = 1;
+  int par_dir = app->cdim - 1;
+  int periodic_dirs[] = {par_dir};
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
   
@@ -115,7 +107,7 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, st
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
   }
 
-  // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
+  // Sync ghost cells between MPI processes.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
 
   // Force the lower skin surface value to match the ghost cell at the node position.
@@ -123,8 +115,9 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, st
 }
 
 static void
-gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
+  // Do nothing.
 }
 
 // Initialize field object.
@@ -504,10 +497,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
-  f->enforce_zbc = gk_field_enforce_zbc_none;
+  f->enforce_parallel_bc = gk_field_enforce_parallel_bc_disabled;
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
-    f->enforce_zbc = gk_field_enforce_zbc;
+    f->enforce_parallel_bc = gk_field_enforce_parallel_bc_enabled;
   }
   
   return f;
@@ -679,7 +672,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       field->invert_flr(app, field, field->phi_smooth);
 
       // Enforce a BC of the field in the parallel direction.
-      field->enforce_zbc(app, field, field->phi_smooth);
+      field->enforce_parallel_bc(app, field, field->phi_smooth);
     }
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -839,7 +832,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
-    gkyl_skin_surf_from_ghost_release(f->ssfg_x_lo);
   }
 
   gkyl_dynvec_release(f->integ_energy);

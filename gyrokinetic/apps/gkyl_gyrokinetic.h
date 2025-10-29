@@ -203,24 +203,22 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_position_map_inp position_map_info; // position map object
 };
 
-// Parameters for species radiation
+// Parameters for species radiation.
 struct gkyl_gyrokinetic_radiation {
-  enum gkyl_radiation_id radiation_id; // type of radiation
+  enum gkyl_radiation_id radiation_id; // Type of radiation.
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[2*GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
-  // Atomic z and charge state of species colliding with
-  int z[2*GKYL_MAX_SPECIES];
-  int charge_state[2*GKYL_MAX_SPECIES];
+  int atomic_Z[2*GKYL_MAX_SPECIES]; // Z of element for desired fit information.
+  int charge_state[2*GKYL_MAX_SPECIES]; // Charge state of element for desired fit information.
   int num_of_densities[GKYL_MAX_RAD_DENSITIES]; // Max number of densities to use per charge state
 
-  // reference, Max and min electron densities to specify range of density fits (when more than 1 density)
-  double reference_ne;
-  double max_ne;
-  double min_ne;
+  // Reference, max and min electron densities to specify range of density fits
+  // (when more than 1 density).
+  double reference_ne, max_ne, min_ne;
 
-  enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te)
+  enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te).
   double Te_min; // Minimum temperature (in J) at which to stop radiating.
 };
 
