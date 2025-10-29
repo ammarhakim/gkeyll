@@ -44,6 +44,18 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 static void
+gklbo_copy_maxwellian_moms_disabled(struct gkyl_array *mout, struct gkyl_array *min)
+{
+  // Do nothing.
+}
+
+static void
+gklbo_copy_maxwellian_moms_enabled(struct gkyl_array *mout, struct gkyl_array *min)
+{
+  gkyl_array_copy(mout, min);
+}
+
+static void
 gklbo_self_nu_calc_constNu(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
@@ -58,6 +70,9 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
+
+  // Copy Maxwellian moments into local array for normNu cross-collisions.
+  lbo->copy_maxwellian_moms_func(lbo->maxwellian_moms, species->lte.moms.marr);
 
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
     species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
@@ -77,8 +92,8 @@ gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
   // Calculate nu_sr(x,t).
-  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, s->lte.moms.marr, lbo->vtsq_min,
-    lbo->collide_with[coll_idx]->lte.moms.marr, lbo->collide_with[coll_idx]->lbo.vtsq_min,
+  gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, s->lbo.maxwellian_moms, lbo->vtsq_min,
+    lbo->collide_with[coll_idx]->lbo.maxwellian_moms, lbo->collide_with[coll_idx]->lbo.vtsq_min,
     lbo->norm_nu_fac_cross[coll_idx], lbo->cross_nu[coll_idx]);
 
   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
@@ -96,7 +111,7 @@ static void
 gklbo_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lbo.maxwellian_moms, &app->local);
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -219,6 +234,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
   lbo->moms_func = gklbo_moms_disabled;
   lbo->rhs_func = gklbo_rhs_disabled;
   lbo->write_mom_func = gklbo_write_mom_disabled;
+  lbo->copy_maxwellian_moms_func = gklbo_copy_maxwellian_moms_disabled;
 
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     lbo->num_cross_collisions = gks->info.collisions.num_cross_collisions;
@@ -445,10 +461,13 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
 
           lbo->alpha_E_fac[i] = (lbo->delta_sr*lbo->betaGreenep1*mass_self)/(mass_self+mass_other);
         }
+
+        lbo->maxwellian_moms = mkarr(app->use_gpu, gks->lte.moms.marr->ncomp, gks->lte.moms.marr->size); // Maxwellian moments.
     
         // Set pointers to functions chosen at runtime.
         lbo->cross_nu_func = gklbo_cross_nu_calc_normNu;
         lbo->alpha_E_func = gklbo_alpha_E_normNu;
+        lbo->copy_maxwellian_moms_func = gklbo_copy_maxwellian_moms_enabled;
       }
 
       // Cross-primitive moment calculator.
@@ -499,6 +518,9 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
         gkyl_array_release(lbo->cross_nu[i]);
 
       gkyl_array_release(lbo->alpha_E);
+      if (lbo->norm_nu_cross) {
+        gkyl_array_release(lbo->maxwellian_moms);
+      }
     }
 
     gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);

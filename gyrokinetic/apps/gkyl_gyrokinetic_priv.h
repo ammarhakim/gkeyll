@@ -284,6 +284,7 @@ struct gk_lbo_collisions {
   double betaGreenep1; // Galue of Greene's factor beta + 1.
   double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
   double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
+  struct gkyl_array *maxwellian_moms; // Maxwellian moments.
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
   struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // Cross-primitive moments.
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // Cross-species collision frequencies.
@@ -300,6 +301,7 @@ struct gk_lbo_collisions {
     struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
   void (*self_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
+  void (*copy_maxwellian_moms_func)(struct gkyl_array *mout, struct gkyl_array *min);
   void (*cross_nu_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     struct gk_lbo_collisions *lbo, int coll_idx);
   void (*alpha_E_func)(gkyl_gyrokinetic_app *app, const struct gk_species *s,
