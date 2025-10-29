@@ -422,7 +422,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->phi_wall_lo, f->phi_wall_lo_host);
   }
 
-  // setup biased upper wall (same size as electrostatic potential), by default is 0.0
+  // Setup biased upper wall (same size as electrostatic potential), by default is 0.0.
   f->phi_wall_up = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_up = false;
   f->phi_wall_up_evolve = false;
@@ -438,9 +438,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->phi_wall_up_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis,
       1, f->info.phi_wall_up, f->info.phi_wall_up_ctx);
 
-    // Compute phi_wall_up at t = 0
+    // Compute phi_wall_up at t = 0.
     gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
-    if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
+    if (app->use_gpu) // Note: phi_wall_up_host is same as phi_wall_up when not on GPUs.
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
 
@@ -650,13 +650,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
           field->phi_bc, field->phi_smooth);
       }
       else {
-//        // This workflow solves Poisson on planes (doesn't conserve energy).
-//        gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-//        gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-//        gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
-//        gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
-//          field->phi_bc, field->phi_smooth);
-
         // Smooth the charge density along z.
         gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
 
