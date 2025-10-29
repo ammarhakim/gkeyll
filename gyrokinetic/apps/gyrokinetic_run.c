@@ -416,7 +416,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
   struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
   struct timespec tm_init = gkyl_wall_clock();
-  gkyl_gyrokinetic_multib_app *app = inp->app_multib;
+
+  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
@@ -564,10 +565,10 @@ gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.
 
   if (inp->app_type == GKYL_GK_SINGLEB) {
-    gyrokinetic_run_singleb_simulation(&inp);
+    gyrokinetic_run_singleb_simulation(inp);
   }
   else if (inp->app_type == GKYL_GK_MULTIB) {
-    gyrokinetic_run_multib_simulation(&inp);
+    gyrokinetic_run_multib_simulation(inp);
   }
   else {
     gkyl_exit("gyrokinetic_run: No valid application input provided to run simulation.");
