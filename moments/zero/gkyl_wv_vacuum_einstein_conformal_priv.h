@@ -160,13 +160,16 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 * @param delta Jump across interface to split.
 * @param ql Conserved variables on the left of the interface.
 * @param qr Conserved variables on the right of the interface.
+* @param phil Embedded boundary function on the left of the interface.
+* @param phir Embedded boundary function on the right of the interface.
 * @param waves Waves (output).
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
 GKYL_CU_D
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir,
+  double* waves, double* s);
 
 /**
 * Compute fluctuations using Lax fluxes (with potential fallback),
@@ -175,6 +178,8 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 * @param type Type of Riemann-solver flux to use.
 * @param ql Conserved variable vector on the left of the interface.
 * @param qr Conserved variable vector on the right of the interface.
+* @param phil Embedded boundary function on the left of the interface.
+* @param phir Embedded boundary function on the right of the interface.
 * @param waves Waves (input).
 * @param s Wave speeds (input).
 * @param amdq Left-moving fluctuations (output).
@@ -182,8 +187,8 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
-  double* amdq, double* apdq);
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
+  const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using HLL fluxes.
@@ -223,13 +228,16 @@ qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 * @param delta Jump across interface to split.
 * @param ql Conserved variables on the left of the interface.
 * @param qr Conserved variables on the right of the interface.
+* @param phil Embedded boundary function on the left of the interface.
+* @param phir Embedded boundary function on the right of the interface.
 * @param waves Waves (output).
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
 GKYL_CU_D
 static double
-wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir,
+  double* waves, double* s);
 
 /**
 * Compute fluctuations using HLL fluxes (with potential fallback),
@@ -238,6 +246,8 @@ wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 * @param type Type of Riemann-solver flux to use.
 * @param ql Conserved variable vector on the left of the interface.
 * @param qr Conserved variable vector on the right of the interface.
+* @param phil Embedded boundary function on the left of the interface.
+* @param phir Embedded boundary function on the right of the interface.
 * @param waves Waves (input).
 * @param s Wave speeds (input).
 * @param amdq Left-moving fluctuations (output).
@@ -245,8 +255,8 @@ wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
-  double* amdq, double* apdq);
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
+  const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute jump in flux given two conserved variable states.
