@@ -98,12 +98,11 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Line radiation.
   gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
-  if (species->react.num_react) {
-    gk_species_react_rhs(app, species, &species->react, fin, rhs);
-  }
-  if (species->react_neut.num_react) {
-    gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
-  }
+  // Reactions with charged species.
+  gk_species_react_rhs(app, species, &species->react, fin, rhs);
+
+  // Reactions with neutral species.
+  gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
   // Heating source.
   gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
@@ -713,13 +712,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_array_release(s->cflrate_ho);
   }
 
-  if (s->react.num_react) {
-    gk_species_react_release(app, &s->react);
-  }
-  if (s->react_neut.num_react) {
-    gk_species_react_release(app, &s->react_neut);  
-  }
-
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
@@ -892,14 +884,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
   }
   
-  // Determine reaction type(s) and initialize them.
-  if (gks->info.react.num_react) {
-    gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
-  }
-  if (gks->info.react_neut.num_react) {
-    gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
-  }
-
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
   for (int dir=0; dir<cdim; ++dir) {
@@ -1691,6 +1675,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   
+  // Initialize empty structs. New methods will fill them if specified.
+  gks->src = (struct gk_source) { };
+  gks->rad = (struct gk_rad_drag) { };
+
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
   // This routine is utilized by both reactions and BGK collisions
@@ -1707,11 +1695,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   };
   gk_species_lte_init(app, gks, &gks->lte, corr_inp);
 
-  // Initialize empty structs. New methods will fill them if specified.
-  gks->src = (struct gk_source) { };
+  // Initialize reactions with charged species.
   gks->react = (struct gk_react) { };
+  gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
+
+  // Initialize reactions with neutral species.
   gks->react_neut = (struct gk_react) { };
-  gks->rad = (struct gk_rad_drag) { };
+  gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
 
   // Initialize LBO collisions.
   gks->lbo = (struct gk_lbo_collisions) { };
@@ -1921,6 +1911,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_heating_release(app, &s->heat_src);
 
   gk_species_radiation_release(app, &s->rad);
+
+  gk_species_react_release(app, &s->react);
+
+  gk_species_react_release(app, &s->react_neut);  
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);

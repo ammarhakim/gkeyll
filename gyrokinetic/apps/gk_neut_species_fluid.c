@@ -110,6 +110,8 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 
   gk_neut_species_bgk_release(app, &ns->bgk);
 
+  gk_neut_species_react_release(app, &ns->react_neut);
+
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, ns, &ns->bflux);
 
@@ -316,8 +318,12 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->info.collisions.collision_id = 0;
   gk_neut_species_bgk_init(app, ns, &ns->bgk);
 
-  ns->src = (struct gk_source) { };
+  // Initialize reactions with charged species (NYI for fluids).
   ns->react_neut = (struct gk_react) { };
+  ns->info.react_neut.num_react = 0;
+  gk_neut_species_react_init(app, ns, ns->info.react_neut, &ns->react_neut);
+
+  ns->src = (struct gk_source) { };
   if (!ns->info.is_static) {
     gk_neut_species_fluid_init_dynamic(gk, app, ns);
   }

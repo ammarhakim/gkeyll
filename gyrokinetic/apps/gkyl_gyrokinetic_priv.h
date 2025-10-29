@@ -595,56 +595,71 @@ struct gk_recycle_wall {
 };
 
 struct gk_react {
-  int num_react; // number of reactions
-  bool all_gk; // boolean for if reactions are only between gyrokinetic species
+  int num_react; // Number of reactions.
+  bool all_gk; // Boolean for if reactions are only between gyrokinetic species.
   bool write_diagnostics; // Whether to write diagnostics out.
-  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT]; // input struct for type of reactions
+  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT]; // Input struct for type of reactions.
 
-  struct gkyl_array *f_react; // distribution function array which holds update for each reaction
+  struct gkyl_array *f_react; // Distribution function array which holds update for each reaction
                               // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
                               // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
                               // RHS update is then obtained by incrementing rhs += coeff_react*f_react
 
-  enum gkyl_react_id react_id[GKYL_MAX_REACT]; // what type of reaction (ionization, charge exchange, recombination)
-  enum gkyl_react_self_type type_self[GKYL_MAX_REACT]; // what is the role of species in this reaction
-  struct gk_species *species_elc[GKYL_MAX_REACT]; // pointers to electron species being reacted with
-  struct gk_species *species_ion[GKYL_MAX_REACT]; // pointers to ion species being reacted with
-  int elc_idx[GKYL_MAX_REACT]; // integer index of electron species being reacted with 
-  int ion_idx[GKYL_MAX_REACT]; // integer index of ion species being reacted with 
-  int donor_idx[GKYL_MAX_REACT]; // integer index of donor species being reacted with 
-  int partner_idx[GKYL_MAX_REACT]; // integer index of neut species in cx reaction
+  enum gkyl_react_id react_id[GKYL_MAX_REACT]; // What type of reaction (ionization, charge exchange, recombination).
+  enum gkyl_react_self_type type_self[GKYL_MAX_REACT]; // What is the role of species in this reaction
+  struct gk_species *species_elc[GKYL_MAX_REACT]; // Electron species being reacted with.
+  struct gk_species *species_ion[GKYL_MAX_REACT]; // Ion species being reacted with.
+  int elc_idx[GKYL_MAX_REACT]; // Integer index of electron species being reacted with.
+  int ion_idx[GKYL_MAX_REACT]; // Integer index of ion species being reacted with.
+  int donor_idx[GKYL_MAX_REACT]; // Integer index of donor species being reacted with.
+  int partner_idx[GKYL_MAX_REACT]; // Integer index of neut species in cx reaction.
 
-  struct gkyl_array *coeff_react[GKYL_MAX_REACT]; // reaction rate
-  struct gkyl_array *coeff_react_host[GKYL_MAX_REACT]; // reaction rate
-  struct gkyl_array *vt_sq_iz1[GKYL_MAX_REACT]; // ionization temperature
-  struct gkyl_array *vt_sq_iz2[GKYL_MAX_REACT]; // ionization temperature
-  struct gkyl_array *Jm0_elc[GKYL_MAX_REACT]; // J*electron density
-  struct gkyl_array *Jm0_ion[GKYL_MAX_REACT]; // J*ion density
-  struct gkyl_array *Jm0_donor[GKYL_MAX_REACT]; // J*donor density
-  struct gkyl_array *Jm0_partner[GKYL_MAX_REACT]; // J*partner density
+  struct gkyl_array *coeff_react[GKYL_MAX_REACT]; // Reaction rate.
+  struct gkyl_array *coeff_react_host[GKYL_MAX_REACT]; // Reaction rate.
+  struct gkyl_array *vt_sq_iz1[GKYL_MAX_REACT]; // Ionization temperature.
+  struct gkyl_array *vt_sq_iz2[GKYL_MAX_REACT]; // Ionization temperature.
+  struct gkyl_array *Jm0_elc[GKYL_MAX_REACT]; // J*electron density.
+  struct gkyl_array *Jm0_ion[GKYL_MAX_REACT]; // J*ion density.
+  struct gkyl_array *Jm0_donor[GKYL_MAX_REACT]; // J*donor density.
+  struct gkyl_array *Jm0_partner[GKYL_MAX_REACT]; // J*partner density.
 
-  struct gkyl_array *react_lte_moms[GKYL_MAX_REACT]; // LTE/Maxwellian moments used for Maxwellian projection
-  struct gkyl_array *u_i[GKYL_MAX_REACT]; // Vector flow velocity for neutrals (ux, uy, uz)
-  struct gkyl_array *u_i_dot_b_i[GKYL_MAX_REACT]; // u_i . b_i (Cartesian compoments of magnetic field unit vector)
-  struct gkyl_array *vt_sq_donor[GKYL_MAX_REACT]; // Donor thermal velocity 
-  struct gkyl_array *upar_ion[GKYL_MAX_REACT]; // Ion vector parallel flow velocity upar b_i
-  struct gkyl_array *vt_sq_ion[GKYL_MAX_REACT]; // Ion thermal velocity 
-  struct gkyl_array *vt_sq_partner[GKYL_MAX_REACT]; // Neutral (partner) thermal velocity
+  struct gkyl_array *react_lte_moms[GKYL_MAX_REACT]; // LTE/Maxwellian moments used for Maxwellian projection.
+  struct gkyl_array *u_i[GKYL_MAX_REACT]; // Vector flow velocity for neutrals (ux, uy, uz).
+  struct gkyl_array *u_i_dot_b_i[GKYL_MAX_REACT]; // u_i . b_i (Cartesian compoments of magnetic field unit vector).
+  struct gkyl_array *vt_sq_donor[GKYL_MAX_REACT]; // Donor thermal velocity.
+  struct gkyl_array *upar_ion[GKYL_MAX_REACT]; // Ion vector parallel flow velocity upar b_i.
+  struct gkyl_array *vt_sq_ion[GKYL_MAX_REACT]; // Ion thermal velocity.
+  struct gkyl_array *vt_sq_partner[GKYL_MAX_REACT]; // Neutral (partner) thermal velocity.
   
   union {
-    // ionization
+    // Ionization.
     struct {
       struct gkyl_dg_iz *iz[GKYL_MAX_REACT];
     };
-    // recombination
+    // Recombination.
     struct {
       struct gkyl_dg_recomb *recomb[GKYL_MAX_REACT];
     };
-    // charge exchange
+    // Charge exchange.
     struct {
       struct gkyl_dg_cx *cx[GKYL_MAX_REACT];
     };
   };
+
+  // Methods chosen at runtime:
+  void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *s,
+    struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+    int ridx, double tm, int frame);
+  // Neutral methods (MF 2025/10/28: to get rid of by unifying species types).
+  void (*cross_moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+    struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+    struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
+    int ridx, double tm, int frame);
 };
 
 struct gk_recycle_react_scale {
@@ -1025,8 +1040,15 @@ struct gk_neut_species {
     
   bool enforce_positivity; // Enforces positivity of f or mass/energy density.
 
-  double *omega_cfl;
+  double *omega_cfl; // CFL frequency.
 
+  struct gk_bgk_collisions bgk; // BGK collisions object.
+
+  struct gk_react react_neut; // Reaction object.
+
+  // Boundary fluxes used for other solvers and diagnostics.
+  struct gk_boundary_fluxes bflux;
+        
   union {
     // Kinetic neutrals ............................................ //
     struct {
@@ -1054,13 +1076,6 @@ struct gk_neut_species {
       struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
 
       struct gk_collisionless collisionless; // Collisionless terms.
-
-      // Boundary fluxes used for other solvers and diagnostics.
-      struct gk_boundary_fluxes bflux;
-        
-      struct gk_bgk_collisions bgk; // BGK collisions object.
-
-      struct gk_react react_neut; // Reaction object.
 
       // Updater that enforces positivity by shifting f.
       struct gkyl_positivity_shift_vlasov *pos_shift_op;

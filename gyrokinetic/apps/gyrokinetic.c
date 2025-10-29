@@ -673,25 +673,21 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
 
-    // Initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
-    if (gk_s->react.num_react) {
-      gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
-    }
-    // Initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
-    if (gk_s->react_neut.num_react) {
-      gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
-    }
+    // Initialize cross-species reactions (ionization, recombination, charge exchange) with charged species.
+    gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
+
+    // Initialize cross-species reactions (ionization, recombination, charge exchange) with neutral species.
+    gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
 
     // Initialize line radiation.
     gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
   }
 
-  // Initialize neutral species cross-species reactions with plasma species.
   for (int i=0; i<neuts; ++i) {
+    // Initialize neutral species cross-species reactions with charged species.
     struct gk_neut_species *gkns = &app->neut_species[i]; 
-    if (gkns->react_neut.num_react) {
-      gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
-    }
+
+    gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
 
     // Initialize cross-species part of the object that scales the species
     // according to a balance between recycling and reactions.
@@ -1711,12 +1707,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_species_bgk_cross_moms(app, gk_s, &gk_s->bgk, fin[i]);        
 
     // Reactions (e.g. ionization, recombination charge exchange).
-    if (gk_s->react.num_react) {
-      gk_species_react_cross_moms(app, gk_s, &gk_s->react, fin, fin_neut);
-    }
-    if (gk_s->react_neut.num_react) {
-      gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin, fin_neut);
-    }
+    gk_species_react_cross_moms(app, gk_s, &gk_s->react, fin, fin_neut);
+    gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin, fin_neut);
 
     // Line radiation.
     gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
@@ -1725,9 +1717,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     struct gk_neut_species *gk_ns = &app->neut_species[i];
 
     // Reactions (e.g. ionization, recombination charge exchange).
-    if (gk_ns->react_neut.num_react) {
-      gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin, fin_neut);
-    }
+    gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin, fin_neut);
 
     // Scaling according to balance between recycling and reactions.
     gk_neut_species_recycle_react_scale_cross_moms(app, gk_ns, &gk_ns->rrs, fin, fin_neut);

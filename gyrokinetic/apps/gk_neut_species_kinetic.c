@@ -14,9 +14,8 @@ gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_sp
   // Elastic collisions.
   gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
 
-  if (species->react_neut.num_react) {
-    gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
-  }
+  // Reactions with charged species.
+  gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   
   // Compute and store (in the ghost cell of rhs) the boundary fluxes.
   gk_neut_species_bflux_rhs(app, &species->bflux, fin, rhs);
@@ -159,10 +158,6 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
 
   gk_neut_species_source_release(app, &s->src);
 
-  if (s->react_neut.num_react) {
-    gk_neut_species_react_release(app, &s->react_neut);
-  }
-
   // Release integrated mom data.
   gk_neut_species_moment_release(app, &s->integ_moms); 
 
@@ -239,6 +234,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   
   gk_neut_species_lte_release(app, &ns->lte);
 
+  gk_neut_species_react_release(app, &ns->react_neut);
+
   gkyl_array_release(ns->gij);
   gkyl_array_release(ns->g_ij);
 
@@ -289,11 +286,6 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   // Allocate dynamic-vector to store all-reduced integrated moments.
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
   s->is_first_integ_write_call = true;
-
-  // Determine reaction type(s) and initialize them. 
-  if (s->info.react_neut.num_react) {
-    gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
-  }
 
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
@@ -884,9 +876,13 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->rrs = (struct gk_recycle_react_scale) { };
   gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
 
+  // Initialize reactions with charged species.
+  s->react_neut = (struct gk_react) { };
+  gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
-  s->react_neut = (struct gk_react) { };
+
   if (s->info.is_static) {
     gk_neut_species_kinetic_init_static(gk, app, s);
   }
