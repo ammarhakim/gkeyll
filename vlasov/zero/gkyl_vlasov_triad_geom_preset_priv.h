@@ -1,33 +1,7 @@
 #include <gkyl_vlasov_triad_geom.h>
 
 void
-eval_cylindrical_vierbein_1v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-
-  // Downstairs components of the Vierbeins
-  double q_r = xn[0];
-
-  // e_ij = e_i(x) . \sigma_j(x)
-  double e_rr = 1.0; // Vierbein Coefficients (r-r coefficient).
-  
-  fout[0] = e_rr;
-}
-
-void
-eval_cylindrical_vierbein_gradient_1v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-
-  // Downstairs components of the Vierbein Gradients 
-  double q_r = xn[0];
-
-  // d (e_ij) / dr 
-  double d_e_rr_dr = 0.0; // Vierbein Gradient Coefficients (r-r coefficient).
-  
-  fout[0] = d_e_rr_dr;
-}
-
-void
-eval_cylindrical_vierbein_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_annulus_vierbein_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Downstairs components of the Vierbeins
@@ -46,7 +20,7 @@ eval_cylindrical_vierbein_2v(double t, const double* GKYL_RESTRICT xn, double* G
 }
 
 void
-eval_cylindrical_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_annulus_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Downstairs components of the Vierbein Gradients 
@@ -77,7 +51,7 @@ eval_cylindrical_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, 
 }
 
 void
-eval_cylindrical_vierbein_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_rz_cylindrical_vierbein_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Downstairs components of the Vierbeins
@@ -110,7 +84,7 @@ eval_cylindrical_vierbein_3v(double t, const double* GKYL_RESTRICT xn, double* G
 }
 
 void
-eval_cylindrical_vierbein_gradient_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_rz_cylindrical_vierbein_gradient_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Downstairs components of the Vierbein Gradients 
@@ -192,24 +166,40 @@ eval_cylindrical_vierbein_gradient_3v(double t, const double* GKYL_RESTRICT xn, 
 typedef struct { evalf_t kernels[3]; } vierbein_kern_list;
 typedef struct { evalf_t kernels[3]; } vierbein_gradient_kern_list;
 
-static const vierbein_kern_list cylindrical_vierbein_list[] = {
-  { eval_cylindrical_vierbein_1v },
-  { eval_cylindrical_vierbein_2v },
-  { eval_cylindrical_vierbein_3v }
+
+static const vierbein_kern_list annulus_vierbein_list[] = {
+  { NULL },
+  { eval_annulus_vierbein_2v },
+  { NULL }
 };
 
-static const vierbein_gradient_kern_list cylindrical_vierbein_gradient_list[] = {
-  { eval_cylindrical_vierbein_gradient_1v },
-  { eval_cylindrical_vierbein_gradient_2v },
-  { eval_cylindrical_vierbein_gradient_3v }
+static const vierbein_gradient_kern_list annulus_vierbein_gradient_list[] = {
+  { NULL },
+  { eval_annulus_vierbein_gradient_2v },
+  { NULL }
+};
+
+static const vierbein_kern_list rz_cylindrical_vierbein_list[] = {
+  { NULL },
+  { NULL },
+  { eval_rz_cylindrical_vierbein_3v }
+};
+
+static const vierbein_gradient_kern_list rz_cylindrical_vierbein_gradient_list[] = {
+  { NULL },
+  { NULL },
+  { eval_rz_cylindrical_vierbein_gradient_3v }
 };
 
 static evalf_t
-choose_vierbein_kern(enum gkyl_triad_vierbein_type type, int vdim)
+choose_vierbein_kern(enum gkyl_triad_preset_geom_type type, int vdim)
 {
   switch(type) {
-    case GKYL_TRIAD_CYLINDRICAL:
-      return cylindrical_vierbein_list[vdim-1].kernels[0];
+    case GKYL_TRIAD_ANNULUS:
+      return annulus_vierbein_list[vdim-1].kernels[0];
+      break;
+    case GKYL_TRIAD_CYLINDRICAL_RZ:
+      return rz_cylindrical_vierbein_list[vdim-1].kernels[0];
       break;
     default:
       assert(false);
@@ -217,11 +207,14 @@ choose_vierbein_kern(enum gkyl_triad_vierbein_type type, int vdim)
 }
 
 static evalf_t
-choose_vierbein_gradient_kern(enum gkyl_triad_vierbein_type type, int vdim)
+choose_vierbein_gradient_kern(enum gkyl_triad_preset_geom_type type, int vdim)
 {
   switch(type) {
-    case GKYL_TRIAD_CYLINDRICAL:
-      return cylindrical_vierbein_gradient_list[vdim-1].kernels[0];
+    case GKYL_TRIAD_ANNULUS:
+      return annulus_vierbein_gradient_list[vdim-1].kernels[0];
+      break;
+    case GKYL_TRIAD_CYLINDRICAL_RZ:
+      return rz_cylindrical_vierbein_gradient_list[vdim-1].kernels[0];
       break;
     default:
       assert(false);

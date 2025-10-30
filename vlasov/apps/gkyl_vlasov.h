@@ -175,8 +175,10 @@ struct gkyl_vlasov_species {
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   bool write_cell_avg; // Boolean for only writing cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
+
   bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
-  enum gkyl_triad_vierbein_type vierbein_type; // preset vierbien type for automatically defined vierbein and gradients of vierbien
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 

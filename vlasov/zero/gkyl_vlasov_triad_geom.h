@@ -8,9 +8,10 @@
 #include <gkyl_util.h>
 
 
-enum gkyl_triad_vierbein_type {
+enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_NONE = 0,
-  GKYL_TRIAD_CYLINDRICAL,
+  GKYL_TRIAD_ANNULUS,
+  GKYL_TRIAD_CYLINDRICAL_RZ,
 };
 
 struct gkyl_vlasov_triad_geom_inp {
@@ -26,8 +27,9 @@ struct gkyl_vlasov_triad_geom_inp {
   void *eval_vierbein_ctx; // Context for function evaluation. Can be NULL.
   void *eval_vierbein_gradient_ctx; // Context for function evaluation. Can be NULL.
 
+  bool use_preset_geom; // bool for determining if we have specified a preset geometry.
   bool use_vierbein; // bool for determining which geometry convention we are constructing PT from
-  enum gkyl_triad_vierbein_type vierbein_type  ;
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type;  // geom type for preset geometries for triads
 };
 
 /**

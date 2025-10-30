@@ -117,6 +117,7 @@ test_triad_1x1v_flat_conf(int poly_order)
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
   inp_triad_geom.use_vierbein = true;
+  inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_1v; 
   inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_1v; 
   inp_triad_geom.eval_vierbein_ctx = 0; 
@@ -221,6 +222,7 @@ test_triad_1x2v_flat_conf(int poly_order)
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
   inp_triad_geom.use_vierbein = true;
+  inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_2v; 
   inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_2v; 
   inp_triad_geom.eval_vierbein_ctx = 0; 
@@ -358,6 +360,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
   // Construct the input map
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
   inp_triad_geom.use_vierbein = true;
+  inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_annulus_2v; 
   inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_annulus_2v; 
   inp_triad_geom.eval_vierbein_ctx = 0; 

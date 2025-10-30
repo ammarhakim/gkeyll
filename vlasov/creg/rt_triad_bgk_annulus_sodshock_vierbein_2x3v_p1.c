@@ -386,8 +386,8 @@ main(int argc, char **argv)
     .upper = { ctx.vr_max, ctx.vz_max, ctx.vtheta_max },
     .cells = { NVR, NVZ, NVTHETA },
 
-    .use_vierbein = true,
-    .vierbein_type = GKYL_TRIAD_CYLINDRICAL,
+    .use_preset_geom = true,
+    .triad_preset_geom_type = GKYL_TRIAD_CYLINDRICAL_RZ,
 
     .num_init = 1, 
     .projection[0] = {
