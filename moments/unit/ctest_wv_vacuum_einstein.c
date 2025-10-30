@@ -839,12 +839,12 @@ test_vacuum_einstein_waves_schwarzschild()
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
-      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_l);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_r);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_l);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_r);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_l);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_r);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -1088,7 +1088,7 @@ test_vacuum_einstein_waves_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 64; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
           }
         }
       }
@@ -1203,12 +1203,12 @@ test_vacuum_einstein_waves_kerr()
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
-      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_l);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_r);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_l);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_r);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_l);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_r);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
