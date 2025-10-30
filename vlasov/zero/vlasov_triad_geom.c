@@ -9,6 +9,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_triad_geom_priv.h>
+#include <gkyl_vlasov_triad_geom_preset_priv.h>
 
 
 void
@@ -230,6 +231,10 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
 
   // Choose between constructing from Vierbeins or constructing from basis vectors
   if (inp_triad_geom.use_vierbein) {
+    if(inp_triad_geom.vierbein_type) {
+      inp_triad_geom.eval_vierbein = choose_vierbein_kern(inp_triad_geom.vierbein_type, pgrid->ndim - cgrid->ndim);
+      inp_triad_geom.eval_vierbein_gradient = choose_vierbein_gradient_kern(inp_triad_geom.vierbein_type, pgrid->ndim - cgrid->ndim);
+    }
     gkyl_vlasov_triad_geom_from_vierbein(cgrid, crange, cbasis, pgrid, prange, pbasis, 
       inp_triad_geom, conf_poisson_tensor);
   }

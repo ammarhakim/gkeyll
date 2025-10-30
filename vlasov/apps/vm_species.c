@@ -67,6 +67,9 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       inp_triad_geom.eval_vierbein_ctx = vms->info.vierbein_ctx;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->info.vierbein_gradient_ctx;
     }
+    else if ((vms->info.use_vierbein) && (vms->info.vierbein_type)) {
+      inp_triad_geom.vierbein_type = vms->info.vierbein_type;
+    }
     else if ((vms->info.triad_basis) && (vms->info.triad_basis_gradient) && (vms->info.cov_tangent_basis))  {
       inp_triad_geom.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
       inp_triad_geom.eval_triad_basis = vms->info.triad_basis; 

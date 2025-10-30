@@ -9,6 +9,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_vlasov_comms.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_vlasov_triad_geom.h>
 
 #include <stdbool.h>
 
@@ -175,6 +176,7 @@ struct gkyl_vlasov_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
+  enum gkyl_triad_vierbein_type vierbein_type; // preset vierbien type for automatically defined vierbein and gradients of vierbien
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
