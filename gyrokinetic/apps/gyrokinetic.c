@@ -648,7 +648,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   app->enforce_positivity = gk->enforce_positivity;
   app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_disabled;
-  if (app->enforce_positivity) {
+  if (app->enforce_positivity && ns > 1) {
     // Number density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -2743,7 +2743,7 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app)
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
-  if (app->enforce_positivity) {
+  if (app->enforce_positivity && app->num_species > 1) {
     gkyl_array_release(app->ps_delta_m0_ions);
     gkyl_array_release(app->ps_delta_m0_elcs);
   }

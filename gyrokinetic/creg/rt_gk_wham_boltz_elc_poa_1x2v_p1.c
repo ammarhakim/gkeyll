@@ -446,6 +446,10 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
 
   // Reset simulation parameters and function pointers.
+  struct gkyl_gyrokinetic_collisionless collisionless_inp = {
+    .type = GKYL_GK_COLLISIONLESS_ES,
+    .scale_factor = pparams->alpha,
+  };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
     .type = pparams->fdot_mult_type,
     .cellwise_const = true,
@@ -459,9 +463,8 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .polarization_bmag = ctx->B_p,
     .is_static = pparams->is_static_field,
   };
-  double alpha = pparams->alpha;
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, t_curr, "ion", fdot_mult);
-  gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", alpha);
+  gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);
   gkyl_gyrokinetic_app_reset_species_positivity(app, t_curr, "ion", pparams->is_positivity_enabled);
   gkyl_gyrokinetic_app_reset_field(app, t_curr, reset_field);
 
@@ -561,7 +564,6 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
-    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -578,7 +580,11 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
 
-    .collisionless_scale_factor = 1.0,
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .scale_factor = 1.0, // Will be replaced below.
+    },
+
     .time_rate_multiplier = {
       .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
       .cellwise_const = true,
@@ -587,13 +593,11 @@ int main(int argc, char **argv)
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Ti0,
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0,
       .write_diagnostics = true,
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -613,10 +617,12 @@ int main(int argc, char **argv)
         .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
       },
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
@@ -655,7 +661,9 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .enforce_positivity = true,
+
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},

@@ -712,7 +712,6 @@ void
 gk_species_positivity_init(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
   gks->enforce_positivity = true;
-  gks->positivity_is_initialized = true;
 
   gks->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
@@ -725,7 +724,7 @@ gk_species_positivity_init(gkyl_gyrokinetic_app* app, struct gk_species *gks)
   gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
   gks->is_first_ps_integ_write_call = true;
 
-  if (app->enforce_positivity) {
+  if (app->enforce_positivity && app->num_species > 1) {
     // Set pointers to total ion/electron Delta m0, used to enforce quasineutrality.
     if (gks->info.charge > 0.0) {
       gks->ps_delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
@@ -747,7 +746,7 @@ gk_species_positivity_release(const gkyl_gyrokinetic_app* app, const struct gk_s
   gkyl_positivity_shift_gyrokinetic_release(gks->pos_shift_op);
   gk_species_moment_release(app, &gks->ps_moms);
   gkyl_dynvec_release(gks->ps_integ_diag);
-  if (app->enforce_positivity) {
+  if (app->enforce_positivity && app->num_species > 1) {
     gkyl_array_release(gks->ps_delta_m0s_tot);
     gkyl_array_release(gks->ps_delta_m0r_tot);
   }
@@ -813,7 +812,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     }
   }
   
-  if (s->positivity_is_initialized)
+  if (s->enforce_positivity)
     gk_species_positivity_release(app, s);
 
   if (app->use_gpu) {
@@ -1069,9 +1068,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
   }
 
-  gks->enforce_positivity = false;
-  gks->positivity_is_initialized = false;
-  gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   if (app->enforce_positivity || gks->info.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
     gk_species_positivity_init(app, gks);
@@ -1725,12 +1721,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_heating_init(app, gks, &gks->heat_src);
 
   gks->enforce_positivity = false;
+  gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
 
-  if (!gks->info.is_static) {
-    gk_species_init_dynamic(gk_app_inp, app, gks);
+  if (gks->info.is_static) {
+    gk_species_init_static(gk_app_inp, app, gks);
   }
   else {
-    gk_species_init_static(gk_app_inp, app, gks);
+    gk_species_init_dynamic(gk_app_inp, app, gks);
   }
 }
 
@@ -1945,9 +1942,15 @@ void
 gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
   struct gk_species *gks, bool enforce_positivity)
 {
-  gks->enforce_positivity = enforce_positivity;
-  if (enforce_positivity) {
-    gks->apply_pos_shift_func = gk_species_apply_pos_shift_enabled;
+  if (gks->enforce_positivity) {
+    // Already allocated positivity operator. Need to free previous objects.
+    gk_species_positivity_release(app, gks);
+  }
+
+  if ((app->enforce_positivity && app->num_species >1) || enforce_positivity) {
+    // Positivity enforcing by shifting f (ps=positivity shift).
+    gks->info.enforce_positivity = true,
+    gk_species_positivity_init(app, gks);
   }
   else {
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
