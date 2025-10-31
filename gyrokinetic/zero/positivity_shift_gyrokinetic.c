@@ -134,17 +134,16 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
           m0phase_out_c[k] = 0.0;
         up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_out_c);
 
-        if (up->kernels->is_m0_positive(m0phase_in_c)) {
-          // Rescale f in this cell so it keeps the same density.
-          double m0ratio_c[num_cbasis];
-          up->kernels->conf_inv_op(m0phase_out_c, m0ratio_c);
-          up->kernels->conf_mul_op(m0phase_in_c, m0ratio_c, m0ratio_c);
+        if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
+          // Rescale f in this cell so it keeps the same cell-averaged density.
+          double m0ratio = m0phase_in_c[0]/m0phase_out_c[0];
 
-          up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
+          for (unsigned int k=0; k<distf->ncomp; ++k)
+            distf_c[k] *= m0ratio;
 
           // Add contribution from this phase-space cell to the new number density.
-          for (int k=0; k<num_cbasis; k++)
-            m0_c[k] += m0phase_in_c[k];
+          for (unsigned int k = 0; k < m0->ncomp; ++k)
+            m0_c[k] += m0ratio*m0phase_out_c[k];
         }
         else {
           // Add contribution from this phase-space cell to the new number density.
