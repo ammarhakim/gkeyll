@@ -32,6 +32,7 @@ struct gkyl_position_map_inp {
   double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
   double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
                              // near the X-point
+  double radial_compression_factor; // Factor by which cells are compressed radially near xpt
 };
 struct gkyl_position_map_inew_inp {
   struct gkyl_position_map_inp pmap_info;
@@ -95,8 +96,11 @@ struct gkyl_position_map_xpt_ctx {
   mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
   double compression_factor; // Factor by which cells near X-point are compressed
+  double radial_compression_factor; // Factor by which cells are compressed in radial direction at separatrix
   double zcut; // Half-wavelength of sinusoidal mapping
   double zcenter; // Location of largest cells
+  double w; // Radial width of domain in psi
+  double psisep; // Separatrix psi value
 };
 
 
@@ -162,10 +166,12 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
  * @param gpm Position map object.
  * @param zcut half wavelength of sinusoidal mapping.
  * @param zcenter location of largest cells.
+ * @param w radial width of domain in psi
+ * @param psisep separatrix psi value.
  */
 void
 gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, 
-    double zcenter);
+    double zcenter, double w, double psisep);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.

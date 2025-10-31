@@ -170,7 +170,11 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
           break;
       }
 
-      gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter);
+      double w = geometry_inp->geo_grid.upper[0] - geometry_inp->geo_grid.lower[0];
+      struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
+      double psisep = efit->psisep;
+      gkyl_efit_release(efit);
+      gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter, w, psisep);
     }
     else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
              geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {

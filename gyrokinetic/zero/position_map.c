@@ -132,6 +132,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
         }
       }
       gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
+      gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
   }
 
   gpm->grid = grid;
@@ -177,18 +178,35 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
 }
 
 void
-gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, double zcenter)
+gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, double zcenter, double w, double psisep)
 {
   gpm->xpt_ctx->zcut = zcut;
   gpm->xpt_ctx->zcenter = zcenter;
+  gpm->xpt_ctx->w = w;
+  gpm->xpt_ctx->psisep = psisep;
 
-  gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
-  gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
+  if (gpm->xpt_ctx->radial_compression_factor!=0.0) {
+    gpm->maps[0] = position_map_sep_compression;
+    gpm->map_derivs[0] = position_map_deriv_sep_compression;
+    gpm->ctxs[0] = gpm->xpt_ctx;
+  }
+  else {
+    gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
+    gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
+  }
+
   gpm->maps[1] = gpm->xpt_ctx->maps_backup[1];
   gpm->ctxs[1] = gpm->xpt_ctx->ctxs_backup[1];
-  gpm->maps[2] = position_map_xpt_compression;
-  gpm->map_derivs[2] = position_map_deriv_xpt_compression;
-  gpm->ctxs[2] = gpm->xpt_ctx;
+
+  if (gpm->xpt_ctx->compression_factor!=0.0) {
+    gpm->maps[2] = position_map_xpt_compression;
+    gpm->map_derivs[2] = position_map_deriv_xpt_compression;
+    gpm->ctxs[2] = gpm->xpt_ctx;
+  }
+  else {
+    gpm->maps[2] = gpm->xpt_ctx->maps_backup[2];
+    gpm->ctxs[2] = gpm->xpt_ctx->ctxs_backup[2];
+  }
 }
 
 void 
