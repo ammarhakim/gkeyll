@@ -650,7 +650,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp, 
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -660,7 +660,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

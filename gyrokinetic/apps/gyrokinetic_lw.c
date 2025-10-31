@@ -2301,7 +2301,7 @@ write_step_message(const struct gkyl_gyrokinetic_app *app, struct step_message_t
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+      gkyl_gyrokinetic_app_cout(app, stdout, " Step %d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
     }
     else {
       trigs->log_count += 1;
