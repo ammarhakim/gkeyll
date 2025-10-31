@@ -218,4 +218,3 @@ gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_s
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
   }
 }
-
