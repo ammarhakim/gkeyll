@@ -9,6 +9,7 @@
 
 enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT = 0, // Function projection. User specified. Default
+  GKYL_PMAP_USER_INPUT_W_DERIVATIVE, // Function projection and derivative user specified
   GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, // Makes a uniform dB in each cell. Polynomial approximation, assuming 2 local maxima in Bmag
   GKYL_PMAP_CONSTANT_DB_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
   GKYL_PMAP_XPT_COMPRESSION, // Compresses cells near X-point (For use in MB Tokamaks)
@@ -54,6 +55,7 @@ struct gkyl_position_map {
   uint32_t flags;
   struct gkyl_ref_count ref_count;
   bool to_optimize; // Whether to optimize the position map for constant B mapping.
+  bool use_map_dervis; // Whether to use analytical derivatives of the mapping
 
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
