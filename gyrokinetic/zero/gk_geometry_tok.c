@@ -75,6 +75,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
+  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
 
   // calculate bmag and mapc2p in cylindrical coords at corner nodes for
   // getting cell coordinates (used only for plotting)
@@ -184,8 +185,6 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
       gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
         gk_geom->geo_int.bmag);
-
-      gkyl_position_map_optimize(geometry_inp->position_map, gk_geom_3d->grid, gk_geom_3d->global);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry
