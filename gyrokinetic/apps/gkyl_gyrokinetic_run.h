@@ -1,5 +1,6 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_multib.h>
+
 struct gkyl_gyrokinetic_time_stepping_inp {
   double t_end; // End time for the simulation
   int num_frames; // Number of output frames. Output every (t_end/num_frames) time units.
@@ -17,10 +18,33 @@ struct gkyl_gyrokinetic_run_verbosity_inp {
   bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
   double frequency; // Print information with given frequency. Defaults to 1.0
   bool estimate_completion_time; // Estimate completion time based on current progress. Defaults false
+  bool multirate_phase_start_info; // Print information at start of each multirate phase. Defaults false
+};
+
+struct multirate_time_frame_state {
+  double t_curr; // Current simulation time.
+  double t_end; // End time of current phase.
+  int frame_curr; // Current frame.
+  int num_frames; // Number of frames at the end of current phase.
+};
+
+struct gkyl_gyrokinetic_multirate_phase_params {
+  int num_frames; // Number of frames.
+  double duration; // Duration.
+  double alpha; // Factor multiplying collisionless terms.
+  bool is_static_field; // Whether to evolve the field.
+  bool is_positivity_enabled; // Whether positivity is enabled.
+  enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type; // Type of df/dt multipler.
+};
+
+struct gkyl_gyrokinetic_multirate {
+  int num_phases; // Number of phases.
+  struct gkyl_gyrokinetic_multirate_phase_params *phases; // Phase parameters.
 };
 
 enum gkyl_gyrokinetic_run_app_type {
     GKYL_GK_SINGLEB, // Single-block simulation. Default
+    GKYL_GK_SINGLEB_MULTIRATE, // Single-block simulation with multirate phases
     GKYL_GK_MULTIB, // Multi-block simulation
 };
 
@@ -32,6 +56,7 @@ struct gkyl_gyrokinetic_run_inp {
   };
   struct gkyl_gyrokinetic_time_stepping_inp time_stepping; // Timing parameters for the simulation.
   struct gkyl_gyrokinetic_run_verbosity_inp print_verbosity; // Verbosity settings for the simulation.
+  struct gkyl_gyrokinetic_multirate multirate; // Multirate phase settings for the simulation.
 };
 
 /**
