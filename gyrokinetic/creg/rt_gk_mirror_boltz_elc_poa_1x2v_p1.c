@@ -540,22 +540,22 @@ create_ctx(void)
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 2400.0e-6;
-  double tau_fdp = 24.0e-6;
+  double tau_oap = 2400.0e-9;
+  double tau_fdp = 24.0e-9;
   double tau_fdp_extra = 2*tau_fdp;
-  int num_cycles = 40; // Number of OAP+FDP cycles to run.
+  int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 24;        // Frames per OAP phase
-  int num_frames_fdp = 24;        // Frames per FDP phase
-  int num_frames_fdp_extra = 48;  // Frames for the extra FDP phase
+  int num_frames_oap = 4; // Frames per OAP phase
+  int num_frames_fdp = 4; // Frames per FDP phase
+  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
   bool is_static_field_fdp = false;
   // Whether to enable positivity.
   bool is_positivity_enabled_oap = false;
-  bool is_positivity_enabled_fdp = false;
+  bool is_positivity_enabled_fdp = true;
   // Type of df/dt multipler.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_oap = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE;
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE;
@@ -586,7 +586,7 @@ create_ctx(void)
     poa_phases[2*i+1].fdot_mult_type = fdot_mult_type_fdp;
     poa_phases[2*i+1].is_positivity_enabled = is_positivity_enabled_fdp;
   }
-  // The final stage is an extra, longer FDP.
+  // Add an extra, longer FDP.
   poa_phases[num_phases-1].phase = GK_POA_FDP;
   poa_phases[num_phases-1].num_frames = num_frames_fdp_extra;
   poa_phases[num_phases-1].duration = tau_fdp_extra;
@@ -595,8 +595,8 @@ create_ctx(void)
   poa_phases[num_phases-1].fdot_mult_type = fdot_mult_type_fdp;
   poa_phases[num_phases-1].is_positivity_enabled = is_positivity_enabled_fdp;
 
-  double write_phase_freq = 0.1; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
-  double int_diag_calc_freq = 100; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
+  double write_phase_freq = 0.5; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double int_diag_calc_freq = 5; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -733,8 +733,8 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   int num_int_diag_calc = ctx->int_diag_calc_freq*num_frames;
 
   // Prevent division by zero when frame_curr equals num_frames
-  int frames_remaining = GKYL_MAX2(1, num_frames - frame_curr);
-  double time_remaining = GKYL_MAX2(1e-12, t_end - t_curr);
+  int frames_remaining = num_frames - frame_curr;
+  double time_remaining = t_end - t_curr;
 
   trig_write_conf->dt = time_remaining / frames_remaining;
   trig_write_conf->tcurr = t_curr;
@@ -744,7 +744,7 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   trig_write_phase->tcurr = t_curr;
   trig_write_phase->curr = frame_curr;
 
-  int diag_frames = GKYL_MAX2(frames_remaining, (num_int_diag_calc/GKYL_MAX2(1, num_frames)) * frames_remaining);
+  int diag_frames = GKYL_MAX2(frames_remaining, (num_int_diag_calc/num_frames) * frames_remaining);
   trig_calc_intdiag->dt = time_remaining / diag_frames;
   trig_calc_intdiag->tcurr = t_curr;
   trig_calc_intdiag->curr = frame_curr;
@@ -803,12 +803,12 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps))
   {
-    if (step == 1 || step % 1000 == 0)
+    if (step == 1 || step % 20 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
 
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
 
-    if (step == 1 || step % 1000 == 0)
+    if (step == 1 || step % 20 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success)
@@ -931,10 +931,10 @@ int main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
-//    .positivity = {
-//      .type = GKYL_GK_POSITIVITY_SHIFT,
-//      .write_diagnostics = true,
-//    },
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+    },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
@@ -1050,6 +1050,7 @@ int main(int argc, char **argv)
 
   // Loop over number of number of phases;
   for (int pit=phase_idx_init; pit<phase_idx_end; pit++) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Running phase %d ... \n", pit);
     struct gk_poa_phase_params *phase_params = &ctx.poa_phases[pit];
     run_phase(app, &ctx, app_args.num_steps, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
   }

@@ -153,6 +153,7 @@ gks_pos_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
     if (pos->is_first_integ_write_call) {
       gkyl_dynvec_write(pos->integ_diag, fileNm);
       pos->is_first_integ_write_call = false;
+      pos->integ_diag_file_exists = true;
     }
     else {
       gkyl_dynvec_awrite(pos->integ_diag, fileNm);
@@ -326,4 +327,11 @@ gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
     gyrokinetic_post_positivity_quasineut_init(app);
 
   gk_species_positivity_init(app, gks, pos);
+
+  if (pos_inp.type) {
+    if (pos->integ_diag_file_exists) {
+      pos->is_first_integ_write_call = false;
+      pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_calc;
+    }
+  }
 }

@@ -754,6 +754,7 @@ struct gk_positivity {
   double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments of the positivity shift.
   bool is_first_integ_write_call; // Flag first time writing integ_diag.
+  bool integ_diag_file_exists; // Whether the integrated diagnostics file exists.
  
   // Methods chosen at runtime.
   void (*apply_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
