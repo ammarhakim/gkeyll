@@ -36,44 +36,46 @@ struct gk_mirror_ctx
   int cdim, vdim; // Dimensionality.
 
   // Plasma parameters
-  double mi;
-  double qi;
-  double me;
-  double qe;
-  double Te0;
-  double n0;
-  double B_p;
-  double beta;
-  double tau;
-  double Ti0;
+  double mi; // Ion mass.
+  double me; // Electron mass.
+  double qi; // Ion charge.
+  double qe; // Electron charge.
+  double Te0; // Electron temperature.
+  double Ti0; // Ion temperature.
+  double n0; // Density.
+  double B_p; // Plasma magnetic field (mirror center).
+  double beta; // Plasma beta in the center.
+  double tau; // Temperature ratio.
+
   // Parameters controlling initial conditions.
   double alim;
   double alphaIC0;
   double alphaIC1;
-  double nuFrac;
-  // Ion-ion collision freq.
-  double logLambdaIon;
-  double nuIon;
-  // Thermal speeds.
-  double vti;
-  double vte;
-  double c_s;
-  // Gyrofrequencies and gyroradii.
-  double omega_ci;
-  double rho_s;
+
+  double nuFrac; // Fraction multiplying collision frequency.
+  double logLambdaIon; // Ion Coulomb logarithm.
+  double nuIon; // Ion-ion collision freq.
+
+  double vti; // Ion thermal speed.
+  double vte; // Electron thermal speed.
+  double c_s; // Ion sound speed.
+  double omega_ci; // Ion gyrofrequency.
+  double rho_s; // Ion sound gyroradius.
+
   double RatZeq0; // Radius of the field line at Z=0.
-  // Axial coordinate Z extents. Endure that Z=0 is not on
-  double Z_min;
-  double Z_max;
-  double z_min;
-  double z_max;
-  double psi_eval;
-  double psi_in;
-  double z_in;
+  double Z_min; // Minimum axial coordinate Z.
+  double Z_max; // Maximum axial coordinate Z.
+  double z_min; // Minimum value of the position along the field line.
+  double z_max; // Maximum value of the position along the field line.
+  double psi_eval; // Psi (poloidal flux) of the field line.
+  double psi_in, z_in; // Auxiliary psi and z.
+
   // Magnetic equilibrium model.
   double mcB;
   double gamma;
-  double Z_m;
+  double Z_m; // Axial coordinate at mirror throat.
+  double z_m; // Computational coordinate at mirror throat.
+
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt;
   double R_bt;
@@ -81,7 +83,6 @@ struct gk_mirror_ctx
   double z_bt;
   double R_m;
   double B_m;
-  double z_m;
   // Physics parameters at mirror throat
   double n_m;
   double Ti_m;
@@ -93,7 +94,7 @@ struct gk_mirror_ctx
   double NSrcFloorIon;
   double TSrc0Ion;
   double TSrcFloorIon;
-  double alpha; // Multirate factor.
+
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
@@ -102,6 +103,7 @@ struct gk_mirror_ctx
   int Nmu;
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order;
+
   double t_end; // End time.
   int num_frames; // Number of output frames.
   int num_phases; // Number of phases.
@@ -218,9 +220,10 @@ Z_psiz(double psiIn, double zIn, void *ctx)
 void
 eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
-  double z = xn[0];
   double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
   double NSrc = app->NSrcIon;
   double zSrc = app->lineLengthSrcIon;
@@ -246,9 +249,10 @@ eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 void
 eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
-  double z = xn[0];
   double sigSrc = app->sigSrcIon;
   double TSrc0 = app->TSrc0Ion;
   double Tfloor = app->TSrcFloorIon;
@@ -266,9 +270,10 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
-  double z = xn[0];
   double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
   double R = R_psiZ(psi, Z, ctx); // Cylindrical radial coordinate.
   double BRad, BZ, Bmag;
@@ -290,9 +295,10 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
-  double z = xn[0];
   if (fabs(z) <= app->z_m)
   {
     fout[0] = 0.0;
@@ -310,9 +316,10 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 void
 eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
-  double z = xn[0];
   double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
   double R = R_psiZ(psi, Z, ctx); // Cylindrical radial coordinate.
   double BRad, BZ, Bmag;
@@ -363,8 +370,9 @@ mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 void
 bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mirror_ctx *app = ctx;
   double z = xc[2];
+
+  struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double Z = Z_psiz(psi, z, ctx);
   double BRad, BZ, Bmag;
@@ -376,8 +384,9 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 void
 bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mirror_ctx *app = ctx;
   double z = xc[2];
+
+  struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double Z = Z_psiz(psi, z, ctx);
   double BRad, BZ, Bmag;
@@ -391,36 +400,6 @@ bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = BZ;
 }
 
-void
-loss_cone_mask_profile(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double z = xn[0], vpar = xn[1], mu = xn[2];
-
-  struct gk_mirror_ctx *app = ctx;
-
-  double B_m = app->B_m;
-  double charge = app->qi;
-  double mass = app->mi;
-  double z_m = app->z_m;
-
-  double bmag[1];
-  double xc[] = {0.0, 0.0, z};
-  bmag_func(t, xc, bmag, ctx);
-
-  double Rm = B_m/bmag[0]; // Mirror ratio.
-
-  double Delta_phi = 0.0; // Potential difference.
-
-  double mu_bound = (0.5*mass*pow(vpar,2)+charge*Delta_phi)/(bmag[0]*(Rm-1));
-  double loss_cone_mask;
-  if ((mu_bound < mu) && (fabs(z) < z_m)) 
-    loss_cone_mask = 1.0;
-  else
-    loss_cone_mask = 0.0;
-
-  fout[0] = loss_cone_mask;
-}
-
 struct gk_mirror_ctx
 create_ctx(void)
 {
@@ -428,9 +407,9 @@ create_ctx(void)
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0;
-  double mu0 = GKYL_MU0; // Not sure if this is right
+  double mu0 = GKYL_MU0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  double mp = GKYL_PROTON_MASS; // ion mass
+  double mp = GKYL_PROTON_MASS;
   double me = GKYL_ELECTRON_MASS;
   double qi = eV;  // ion charge
   double qe = -eV; // electron charge
@@ -475,6 +454,7 @@ create_ctx(void)
   double mcB = 6.51292;
   double gamma = 0.124904;
   double Z_m = 0.98;
+  double z_m = 0.982544;
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
@@ -491,15 +471,12 @@ create_ctx(void)
   double z_bt = 0.468243;
   double R_m = 0.017845;
   double B_m = 16.662396;
-  double z_m = 0.982544;
 
   // Physics parameters at mirror throat
   double n_m = 1.105617e19;
   double Te_m = 346.426583 * eV;
   double Ti_m = 3081.437703 * eV;
   double cs_m = 4.037740e5;
-
-  double alpha = 0.01; // Multirate factor.
 
   // Grid parameters
   double vpar_max_ion = 20 * vti;
@@ -508,7 +485,6 @@ create_ctx(void)
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
-
 
   // Factor multiplying collisionless terms.
   double alpha_oap = 0.01;
@@ -601,33 +577,38 @@ create_ctx(void)
     .RatZeq0 = RatZeq0,
     .Z_min = Z_min,
     .Z_max = Z_max,
+    // Parameters controlling the magnetic equilibrium model.
     .mcB = mcB,
     .gamma = gamma,
     .Z_m = Z_m,
+    .z_m = z_m,
+    // Initial condition parameters.
     .B_bt = B_bt,
     .R_bt = R_bt,
     .Z_bt = Z_bt,
     .z_bt = z_bt,
     .R_m = R_m,
     .B_m = B_m,
-    .z_m = z_m,
     .n_m = n_m,
     .Ti_m = Ti_m,
     .cs_m = cs_m,
+    // Source parameters
     .NSrcIon = NSrcIon,
     .lineLengthSrcIon = lineLengthSrcIon,
     .sigSrcIon = sigSrcIon,
     .NSrcFloorIon = NSrcFloorIon,
     .TSrc0Ion = TSrc0Ion,
     .TSrcFloorIon = TSrcFloorIon,
-    .alpha = alpha,
+    // Velocity space limits.
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    // Grid DOF.
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .cells = {Nz, Nvpar, Nmu},
     .poly_order = poly_order,
+    // Time integration and I/O parameters.
     .t_end = t_end,
     .num_frames = num_frames,
     .num_phases = num_phases,
