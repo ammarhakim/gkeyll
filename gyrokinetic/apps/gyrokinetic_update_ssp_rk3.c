@@ -244,23 +244,24 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           // Apply positivity shift if requested.
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
-            gk_species_apply_pos_shift(app, gks);
+            gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, gks->f);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             struct gk_neut_species *gkns = &app->neut_species[i];
             gk_neut_species_apply_pos_shift(app, gkns);
           }
 
-          // Enforce quasineutrality of the positivity shifts.
-          gyrokinetic_pos_shift_quasineutrality(app);
-
-          // Compute the fields and apply BCs
           for (int i=0; i<app->num_species; ++i) {
             fout[i] = app->species[i].f;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             fout_neut[i] = app->neut_species[i].f;
           }
+
+          // Enforce quasineutrality of the positivity shifts.
+          gyrokinetic_post_positivity_quasineut(app, fout);
+
+          // Compute the fields and apply BCs
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
           for (int i=0; i<app->num_species; ++i) {

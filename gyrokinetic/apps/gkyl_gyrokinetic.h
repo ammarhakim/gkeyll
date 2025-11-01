@@ -265,6 +265,18 @@ struct gkyl_gyrokinetic_correct_inp {
                            // *even if* the scheme fails to converge.   
 };
 
+enum gkyl_gyrokinetic_positivity_type {
+  GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
+  GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
+  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+};
+
+struct gkyl_gyrokinetic_positivity {
+  enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
+  bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
@@ -311,7 +323,7 @@ struct gkyl_gyrokinetic_species {
 
   bool is_static; // Set to true if species does not change in time.
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
+  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
@@ -468,9 +480,6 @@ struct gkyl_gk {
 
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
-
-  bool enforce_positivity; // Enforce f>=0 for all species and quasineutrality
-                           // of charged species after enforcing f_s>=0.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -1316,10 +1325,10 @@ void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app,
  *
  * @param app App object.
  * @param tm Time-stamp.
- * @param enforce_positivity Whether to enforce positivity.
+ * @param pos_inp Positivity input parameters.
  */
 void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, bool enforce_positivity);
+  const char *species_name, struct gkyl_gyrokinetic_positivity pos_inp);
 
 /**
  * Reset the field solver.

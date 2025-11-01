@@ -463,9 +463,14 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .polarization_bmag = ctx->B_p,
     .is_static = pparams->is_static_field,
   };
+  struct gkyl_gyrokinetic_positivity positivity_inp = {
+    .type = pparams->is_positivity_enabled? GKYL_GK_POSITIVITY_SHIFT : GKYL_GK_POSITIVITY_NONE,
+    .write_diagnostics = pparams->is_positivity_enabled,
+  };
+
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, t_curr, "ion", fdot_mult);
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);
-  gkyl_gyrokinetic_app_reset_species_positivity(app, t_curr, "ion", pparams->is_positivity_enabled);
+  gkyl_gyrokinetic_app_reset_species_positivity(app, t_curr, "ion", positivity_inp);
   gkyl_gyrokinetic_app_reset_field(app, t_curr, reset_field);
 
   // Compute initial guess of maximum stable time-step.
@@ -618,6 +623,11 @@ int main(int argc, char **argv)
       },
     },
 
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
@@ -661,8 +671,6 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
-    .enforce_positivity = true,
 
     .geometry = {
       .geometry_id = GKYL_MIRROR,

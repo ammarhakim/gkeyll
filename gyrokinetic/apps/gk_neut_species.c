@@ -639,7 +639,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
   }
 
-  if (app->enforce_positivity || s->info.enforce_positivity) {
+  if (s->info.enforce_positivity) {
     s->enforce_positivity = true;
 
     // Positivity enforcing by shifting f (ps=positivity shift).
