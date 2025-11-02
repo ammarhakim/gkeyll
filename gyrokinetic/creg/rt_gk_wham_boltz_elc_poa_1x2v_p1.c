@@ -15,7 +15,6 @@
 
 #include <rt_arg_parse.h>
 
-
 // State of the pseudo orbit-averaged integrator.
 enum gk_poa_state {
   GK_POA_NONE = 0, // Haven't started.
@@ -74,21 +73,20 @@ struct gk_mirror_ctx
   int Nmu;
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order;
-  double t_end;
-  int num_frames;
-  double write_phase_freq; // Frequency of writing phase-space data.
-  double int_diag_calc_freq; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
-  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
-  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
   // Source parameters
   double ion_source_amplitude;
   double ion_source_sigma;
   double ion_source_temp;
 
-  // POA parameters
+  double t_end; // End time.
+  int num_frames; // Number of output frames.
   int num_phases; // Number of phases.
   struct gk_poa_phase_params *poa_phases; // Phases to run.
+  double write_phase_freq; // Frequency of writing phase-space data.
+  double int_diag_calc_freq; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 // Evaluate collision frequencies
@@ -238,10 +236,6 @@ create_ctx(void)
   int Nvpar = 32; // 96 uniform
   int Nmu = 32;  // 192 uniform
   int poly_order = 1;
-  double write_phase_freq = 0.2;
-  double int_diag_calc_freq = 100; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
-  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   // Source parameters
   double ion_source_amplitude = 1.e20;
@@ -253,7 +247,7 @@ create_ctx(void)
   double alpha_oap = 0.000005;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 3.0e-4;
+  double tau_oap = 3.0e-6;
   double tau_fdp = 2.0e-9;
   double tau_fdp_extra = 2.*tau_fdp;
   int num_cycles = 3; // Number of OAP+FDP cycles to run.
@@ -261,7 +255,7 @@ create_ctx(void)
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 5;        // Frames per OAP phase
   int num_frames_fdp = 5;        // Frames per FDP phase
-  int num_frames_fdp_extra = 10;  // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
   
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -308,6 +302,11 @@ create_ctx(void)
   poa_phases[num_phases-1].fdot_mult_type = fdot_mult_type_fdp;
   poa_phases[num_phases-1].is_positivity_enabled = is_positivity_enabled_fdp;
 
+  double write_phase_freq = 0.2;
+  double int_diag_calc_freq = 100; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  
   struct gk_mirror_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
@@ -413,8 +412,8 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   int num_int_diag_calc = ctx->int_diag_calc_freq*num_frames;
 
   // Prevent division by zero when frame_curr equals num_frames
-  int frames_remaining = GKYL_MAX2(1, num_frames - frame_curr);
-  double time_remaining = GKYL_MAX2(1e-12, t_end - t_curr);
+  int frames_remaining = num_frames - frame_curr;
+  double time_remaining = t_end - t_curr;
 
   trig_write_conf->dt = time_remaining / frames_remaining;
   trig_write_conf->tcurr = t_curr;
@@ -424,7 +423,7 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
   trig_write_phase->tcurr = t_curr;
   trig_write_phase->curr = frame_curr;
 
-  int diag_frames = GKYL_MAX2(frames_remaining, (num_int_diag_calc/GKYL_MAX2(1, num_frames)) * frames_remaining);
+  int diag_frames = GKYL_MAX2(frames_remaining, (num_int_diag_calc/num_frames) * frames_remaining);
   trig_calc_intdiag->dt = time_remaining / diag_frames;
   trig_calc_intdiag->tcurr = t_curr;
   trig_calc_intdiag->curr = frame_curr;
@@ -484,8 +483,10 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   while ((t_curr < t_end) && (step <= num_steps))
   {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    dt = t_end - t_curr; // Ensure we don't step beyond t_end.
+
+    dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
+
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success)
@@ -549,17 +550,6 @@ int main(int argc, char **argv)
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
-
-
-  int my_rank = 0;
-  int comm_sz = 1;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi){
-    gkyl_comm_get_rank(comm, &my_rank);
-    int comm_sz;
-    gkyl_comm_get_size(comm, &comm_sz);
-  }
-#endif
 
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
@@ -645,6 +635,7 @@ int main(int argc, char **argv)
       .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP},
     },
   };
+
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
