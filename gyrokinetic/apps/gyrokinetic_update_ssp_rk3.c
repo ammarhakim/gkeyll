@@ -248,7 +248,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             struct gk_neut_species *gkns = &app->neut_species[i];
-            gk_neut_species_apply_pos_shift(app, gkns);
+            gk_neut_species_positivity_apply(app, gkns, &gkns->positivity, gkns->fnew, gkns->f);
           }
 
           for (int i=0; i<app->num_species; ++i) {

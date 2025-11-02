@@ -52,11 +52,12 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     }, GKYL_GK_META_NONE, 0
   );
 
+  struct timespec wst = gkyl_wall_clock();
   // We placed the change in f in fbuffer_ptr.
   pos->deltaf_moms_func(app, gks, pos);
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_mom += 1;
 
-  struct timespec wst = gkyl_wall_clock();
   if (app->use_gpu)
     gkyl_array_copy(pos->moms.marr_host, pos->moms.marr);
 
@@ -68,7 +69,7 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
     pos->moms.marr_host, fileNm);
-  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
   
   gk_array_meta_release(mt); 
@@ -182,7 +183,7 @@ gks_pos_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   gkyl_array_set(pos->fbuffer_ptr, -1.0, fout);
 
   // Shift each species.
-  gkyl_positivity_shift_gyrokinetic_advance(pos->shift_op, &app->local, &gks->local,
+  gkyl_positivity_shift_gyrokinetic_advance(pos->shift_op_gk, &app->local, &gks->local,
     fout, gks->m0.marr, pos->delta_m0);
 
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
@@ -206,7 +207,7 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Positivity shift updater.
-    pos->shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
+    pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Methods chosen at runtime.
@@ -287,7 +288,7 @@ gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const stru
   if (pos->type) {
 
     gkyl_array_release(pos->delta_m0);
-    gkyl_positivity_shift_gyrokinetic_release(pos->shift_op);
+    gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
     if (app->post_positivity_quasineut) {
       gkyl_array_release(pos->delta_m0s_tot);
       gkyl_array_release(pos->delta_m0r_tot);

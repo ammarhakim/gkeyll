@@ -744,10 +744,17 @@ struct gk_positivity {
   bool write_diagnostics; // Whether to output diagnostics.
 
   struct gkyl_array *fbuffer_ptr; // Pointer to an array were we store delta f.
-  struct gkyl_positivity_shift_gyrokinetic *shift_op;
   struct gkyl_array *delta_m0; // Number density of the positivity shift.
-  struct gkyl_array *delta_m0s_tot; // Density of total positivity shift (like-species).
-  struct gkyl_array *delta_m0r_tot; // Density of total positivity shift (other species).
+  union {
+    struct {
+      struct gkyl_positivity_shift_gyrokinetic *shift_op_gk;
+      struct gkyl_array *delta_m0s_tot; // Density of total positivity shift (like-species).
+      struct gkyl_array *delta_m0r_tot; // Density of total positivity shift (other species).
+    };
+    struct {
+      struct gkyl_positivity_shift_vlasov *shift_op_vlasov;
+    };
+  };
   
   struct gk_species_moment moms; // Positivity shift diagnostic moments.
   struct gk_species_moment integ_moms; // Integrated moments.
@@ -768,6 +775,19 @@ struct gk_positivity {
   void (*calc_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_positivity *pos, double tm);
   void (*write_integrated_diags_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_positivity *pos);
+  // Neutral species methods (MF 2025/10/29: to get rid of when we unify species types).
+  void (*apply_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
+  void (*deltaf_moms_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos);
+  void (*deltaf_integ_moms_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos);
+  void (*write_diags_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos, double tm, int frame);
+  void (*calc_integrated_diags_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos, double tm);
+  void (*write_integrated_diags_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
     struct gk_positivity *pos);
 };
 
@@ -1014,13 +1034,7 @@ struct gk_neut_species {
 
   double *omega_cfl;
 
-  // Updater that enforces positivity by shifting f.
-  bool enforce_positivity;
-  struct gkyl_positivity_shift_vlasov *pos_shift_op;
-  struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
-  struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
-  gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
-  bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
+  struct gk_positivity positivity; // Positivity enforcing operator.
 
   // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
@@ -1379,6 +1393,9 @@ void gk_species_moment_release(const struct gkyl_gyrokinetic_app *app,
 void gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos);
 
+void gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  struct gk_positivity *pos);
+
 /**
  * Determine how many species participate in the quasineutrality enforcement
  * after applying the positivity operator.
@@ -1399,6 +1416,9 @@ int gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app* app);
 void gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
 
+void gk_neut_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
+
 /**
  * Write conf-space diagnostics of the positivity operator.
  *
@@ -1409,6 +1429,9 @@ void gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *g
  * @param frame Current I/O frame.
  */
 void gk_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos, double tm, int frame);
+
+void gk_neut_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_positivity *pos, double tm, int frame);
 
 /**
@@ -1422,6 +1445,9 @@ void gk_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_spec
 void gk_species_positivity_calc_integrated_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_positivity *pos, double tm);
 
+void gk_neut_species_positivity_calc_integrated_diags(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+  struct gk_positivity *pos, double tm);
+
 /**
  * Write integrated diagnostics of the positivity operator.
  *
@@ -1432,6 +1458,9 @@ void gk_species_positivity_calc_integrated_diags(gkyl_gyrokinetic_app* app, stru
 void gk_species_positivity_write_integrated_diags(gkyl_gyrokinetic_app *app,
   struct gk_species *gks, struct gk_positivity *pos);
 
+void gk_neut_species_positivity_write_integrated_diags(gkyl_gyrokinetic_app *app,
+  struct gk_neut_species *gkns, struct gk_positivity *pos);
+
 /**
  * Release species positivity operator.
  *
@@ -1439,6 +1468,8 @@ void gk_species_positivity_write_integrated_diags(gkyl_gyrokinetic_app *app,
  * @param pos Positivity object.
  */
 void gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos);
+
+void gk_neut_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos);
 
 /**
  * Reset the positivity operator.
@@ -1451,6 +1482,9 @@ void gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const
  */
 void gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
   struct gk_species *gks, struct gk_positivity *pos, struct gkyl_gyrokinetic_positivity pos_inp);
+
+void gk_neut_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
+  struct gk_neut_species *gkns, struct gk_positivity *pos, struct gkyl_gyrokinetic_positivity pos_inp);
 
 /** gk_species_lte API */
 

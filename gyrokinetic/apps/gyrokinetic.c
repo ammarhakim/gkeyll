@@ -612,7 +612,7 @@ gyrokinetic_post_positivity_quasineut_enabled(gkyl_gyrokinetic_app *app, struct 
     struct gk_species *gks = &app->species[i];
     struct gk_positivity *pos = &gks->positivity;
     if (pos->quasineut_rescale) {
-      gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(pos->shift_op, &app->local, &gks->local,
+      gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(pos->shift_op_gk, &app->local, &gks->local,
         pos->delta_m0, pos->delta_m0s_tot, pos->delta_m0r_tot, gks->m0.marr, fout[i]);
 
       gkyl_array_accumulate(pos->fbuffer_ptr, 1.0, fout[i]);
@@ -1450,6 +1450,27 @@ gkyl_gyrokinetic_app_write_species_positivity_integrated_diagnostics(gkyl_gyroki
   gk_species_positivity_write_integrated_diags(app, gks, &gks->positivity);
 }
 
+void
+gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_positivity_write_diags(app, gkns, &gkns->positivity, tm, frame);
+}
+
+void
+gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_positivity_calc_integrated_diags(app, gkns, &gkns->positivity, tm);
+}
+
+void
+gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_positivity_write_integrated_diags(app, gkns, &gkns->positivity);
+}
+
 //
 // ............. LTE outputs ............... //
 // 
@@ -1603,6 +1624,8 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
 
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
 
+  gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, sidx, tm, frame);
+
   struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
@@ -1637,6 +1660,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, i, tm, frame);
   }
 }
@@ -1655,6 +1679,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
 }
@@ -1682,6 +1707,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
+    gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(app, i);
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
@@ -1937,7 +1963,7 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Charged species:               %.4e sec. / %4.2f %%.\n", stat->fdot_tm  , ratio_to_percent(stat->fdot_tm  ,stat->time_rate_diags_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Phi:                           %.4e sec. / %4.2f %%.\n", stat->phidot_tm, ratio_to_percent(stat->phidot_tm,stat->time_rate_diags_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Accounted for:                 %4.2f %%.\n", ratio_to_percent(stat->time_rate_diags_sum_tm, stat->time_rate_diags_tm, 100.0));
-  gkyl_gyrokinetic_app_cout(app, iostream, "    * Positivity shift:                %.4e sec. / %4.2f %%.\n", stat->pos_shift_tm, ratio_to_percent(stat->pos_shift_tm,stat->time_loop_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "    * Positivity:                      %.4e sec. / %4.2f %%.\n", stat->pos_shift_tm, ratio_to_percent(stat->pos_shift_tm,stat->time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n", stat->species_pos_shift_tm     , ratio_to_percent(stat->species_pos_shift_tm     ,stat->pos_shift_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Species (neutral):             %.4e sec. / %4.2f %%.\n", stat->neut_species_pos_shift_tm, ratio_to_percent(stat->neut_species_pos_shift_tm,stat->pos_shift_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Quasineutrality:               %.4e sec. / %4.2f %%.\n", stat->pos_shift_quasineut_tm   , ratio_to_percent(stat->pos_shift_quasineut_tm   ,stat->pos_shift_tm, 0.0));
@@ -2670,6 +2696,8 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
   if (gk_ns->src.source_id) {
     gk_ns->src.is_first_integ_write_call = false;
   }
+  if (gk_ns->positivity.type)
+    gk_ns->positivity.is_first_integ_write_call = false;
   if (gk_ns->lte.correct_all_moms) {
     gk_ns->lte.is_first_corr_status_write_call = false;
   }
