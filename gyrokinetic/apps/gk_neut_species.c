@@ -1090,11 +1090,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
   s->react_neut = (struct gk_react) { };
-  if (!s->info.is_static) {
-    gk_neut_species_new_dynamic(gk, app, s);
+  if (s->info.is_static) {
+    gk_neut_species_new_static(gk, app, s);
   }
   else {
-    gk_neut_species_new_static(gk, app, s);
+    gk_neut_species_new_dynamic(gk, app, s);
   }
 }
 
