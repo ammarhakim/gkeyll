@@ -675,13 +675,16 @@ int main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
 
-    .collisionless_scale_factor = ctx.alpha,
-//    .no_collisionless_terms = true,
+    .collisionless = {
+//    .type = GKYL_GK_COLLISIONLESS_NONE,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .scale_factor = ctx.alpha,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {
@@ -707,10 +710,11 @@ int main(int argc, char **argv)
       .rate_profile_ctx = &ctx,
     },
 
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
+
     .num_diag_moments = 4,
     .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };

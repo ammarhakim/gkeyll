@@ -660,8 +660,6 @@ main(int argc, char **argv)
     .gk_block_geom = bgeom,
     .cfl_frac = 0.5,
     
-    .enforce_positivity = false,
-
     .num_species = 2,
     .species = { elc, ion},
 

@@ -53,7 +53,6 @@ struct gkyl_gyrokinetic_multib_species {
   // Reactions with neutral species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-
   bool duplicate_across_blocks; // Set to true if all blocks are identical.
   // Species inputs per-block: only one is needed if duplicate_across_blocks = true.
   const struct gkyl_gyrokinetic_multib_species_pb *blocks;
@@ -158,8 +157,6 @@ struct gkyl_gyrokinetic_multib {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
-
-  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_species; // number of species
   // species inputs
