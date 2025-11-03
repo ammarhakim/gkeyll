@@ -37,9 +37,7 @@ struct gk_app_ctx {
   double n0;  double Te0;  double Ti0; 
 
   // Collisions.
-  double nuFrac;
-  double nuElc;  double nuIon;
-  double nuElcIon;  double nuIonElc;
+  double nu_frac;
 
   // Source parameters.
   double n_srcOMP;        // Amplitude of the OMP source
@@ -330,28 +328,6 @@ void temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = Te0*((1./3.)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
-// Collision frequencies.
-void nuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-void nuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-void nuElcIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuElcIon;
-}
-void nuIonElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuIonElc;
-}
-
 void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
@@ -459,17 +435,7 @@ create_ctx(void)
   double Ti0 = 200*eV;
   double n0  = 2.0e19;   // [1/m^3]
 
-  double nuFrac = 1.0;
-  // Electron-electron collision freq.
-  double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuElc = nuFrac * logLambdaElc * pow(eV, 4) * n0 /
-    (6*sqrt(2.) * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(me) * pow(Te0,3./2.));
-  // Ion-ion collision freq.
-  double logLambdaIon = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuIon = nuFrac * logLambdaIon * pow(eV, 4) * n0 /
-    (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
-  double nuElcIon = sqrt(2.0)*nuElc;
-  double nuIonElc = nuElcIon*(me/mi);
+  double nu_frac = 1.0;
 
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
 
@@ -533,9 +499,7 @@ create_ctx(void)
     .mi = mi,  .qi = qi,
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
   
-    .nuFrac = nuFrac,
-    .nuElc = nuElc,  .nuIon = nuIon,
-    .nuElcIon = nuElcIon,  .nuIonElc = nuIonElc,
+    .nu_frac = nu_frac,
   
     .n_srcOMP     = n_srcOMP    ,
     .x_srcOMP     = x_srcOMP    ,
@@ -598,6 +562,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -619,14 +584,11 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = nuElc,
-      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
-      .cross_nu = { nuElcIon, },
-      .cross_nu_ctx = &ctx,
       .den_ref = ctx.n0,
-      .temp_ref = ctx.Te0, 
+      .temp_ref = ctx.Te0,
+      .nu_frac = ctx.nu_frac,
     },
 
     .source = {
@@ -690,6 +652,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -711,14 +674,11 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = nuIon,
-      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
-      .cross_nu = { nuIonElc, },
-      .cross_nu_ctx = &ctx,
       .den_ref = ctx.n0,
       .temp_ref = ctx.Ti0, 
+      .nu_frac = ctx.nu_frac,
     },
 
     .source = {
@@ -795,7 +755,7 @@ main(int argc, char **argv)
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.x_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1] },
