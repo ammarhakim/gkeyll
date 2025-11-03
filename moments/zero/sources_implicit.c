@@ -721,7 +721,10 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     explicit_gr_euler_source_update(mom_em, t_curr, dt, fluid_s);
   }
   if (mom_em->has_gr_twofluid_sources) {
-    explicit_gr_twofluid_source_update(mom_em, t_curr, dt, fluid_s);
+    // Subcycling capabilities: ratio set to 1 by default.
+    for (int i = 0; i < 1; i++) {
+      explicit_gr_twofluid_source_update(mom_em, t_curr, 1.0 * dt, fluid_s);
+    }
   }
   if (mom_em->has_gr_mhd_sources) {
     explicit_gr_mhd_source_update(mom_em, t_curr, dt, fluid_s);

@@ -11,18 +11,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 
-#include <gkyl_wv_euler_rgfm_priv.h>
-#include <gkyl_wv_gr_maxwell_priv.h>
-#include <gkyl_wv_gr_maxwell_tetrad_priv.h>
-#include <gkyl_wv_gr_euler_priv.h>
-#include <gkyl_wv_gr_euler_tetrad_priv.h>
-#include <gkyl_wv_gr_ultra_rel_euler_priv.h>
-#include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
-#include <gkyl_wv_gr_twofluid_priv.h>
-#include <gkyl_wv_gr_mhd_priv.h>
-#include <gkyl_wv_gr_mhd_tetrad_priv.h>
-#include <gkyl_gr_blackhole.h>
-
 /**
  * Reinitialize the level set function in the Riemann ghost fluid method for the Euler equations.
  *
@@ -142,7 +130,22 @@ gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_ran
  void
  gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
    struct gkyl_array *qout, int dir);
-  
+
+/**
+ * Impose gauge conditions for the general relativistic two-fluid equations in the tetrad basis.
+ *
+ * @param wv Wave propagation object.
+ * @param update_range Range of cells to be updated.
+ * @param idxl Index of cell(s) to update.
+ * @param loidx_c Lower index of cells to update.
+ * @param upidx_c Upper index of cells to update.
+ * @param qout Output array of fluid variables.
+ * @param dir Direction in which to perform the update.
+ */
+ void
+ gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
+   struct gkyl_array *qout, int dir);
+
 /**
  * Impose gauge conditions for the general relativistic magnetohydrodynamics equations.
  *
