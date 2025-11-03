@@ -56,7 +56,7 @@ struct gkyl_position_map {
   uint32_t flags;
   struct gkyl_ref_count ref_count;
   bool to_optimize; // Whether to optimize the position map for constant B mapping.
-  bool use_map_dervis; // Whether to use analytical derivatives of the mapping
+  bool use_map_derivs; // Whether to use analytical derivatives of the mapping
 
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
