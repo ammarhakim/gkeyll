@@ -878,6 +878,7 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi,  .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
     .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -957,7 +958,7 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = { 
     .name = "gk_mirror_boltz_elc_poa_1x2v_p1",
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },

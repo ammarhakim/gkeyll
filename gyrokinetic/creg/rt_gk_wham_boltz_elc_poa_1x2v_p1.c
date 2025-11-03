@@ -555,6 +555,7 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1]},
@@ -656,7 +657,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gk app_inp = {  // GK app
     .name = "gk_wham_poa_1x2v_p1",
-    .cdim = ctx.cdim ,  .vdim = ctx.vdim,
+    .cdim = ctx.cdim ,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
