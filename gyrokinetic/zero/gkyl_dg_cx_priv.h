@@ -6,55 +6,35 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-// The cv_index[cd].vdim[vd] is used to index the various list of
-// kernels below
-static struct { int vdim[4]; } cv_index[] = {
-  {-1, -1, -1, -1}, // 0x makes no sense
-  {-1,  0,  1,  2}, // 1x kernel indices
-  {-1, -1,  3,  4}, // 2x kernel indices
-  {-1, -1, -1,  5}, // 3x kernel indices  
-};
-
 typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, double* GKYL_RESTRICT v_sigma_cx) ;
+  const double *maxwellian_moms_ion, const double *maxwellian_moms_neut, const double *u_ion,
+  double* GKYL_RESTRICT v_sigma_cx) ;
 
 // for use in kernel tables
 typedef struct { dg_cx_react_ratef_t kernels[3]; } gkyl_cx_react_rate_kern_list;
 
+// CX reaction rate kernel list
+
 //
 // Serendipity basis kernels
 // 
-
-// CX reaction rate kernel list
 GKYL_CU_D
 static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
-  { NULL, sigma_cx_1x1v_ser_p1, sigma_cx_1x1v_ser_p2 }, // 0
-  { NULL, sigma_cx_1x2v_ser_p1, sigma_cx_1x2v_ser_p2 }, // 1
-  { NULL, sigma_cx_1x3v_ser_p1, sigma_cx_1x3v_ser_p2 }, // 2
-  { NULL, sigma_cx_2x2v_ser_p1, sigma_cx_2x2v_ser_p2 }, // 3
-  { NULL, sigma_cx_2x3v_ser_p1, sigma_cx_2x3v_ser_p2 }, // 4
-  { NULL, sigma_cx_3x3v_ser_p1, NULL }, // 5
+  { sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2 }, // 0
+  { sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2 }, // 4
+  { sigma_cx_3x_ser_p1, NULL }, // 5
 };
 
 struct gkyl_dg_cx {
-  const struct gkyl_rect_grid *grid; // grid object
-
   struct gkyl_basis *cbasis;
-  struct gkyl_basis *pbasis_gk;
-  struct gkyl_basis *pbasis_vl;
   const struct gkyl_range *conf_rng;
-  const struct gkyl_range *conf_rng_ext;
-  const struct gkyl_range *phase_rng; 
   
   double a; // Fitting function coefficient.
   double b; // Fitting function coefficient.
-  double mass_ion;
-  double mass_neut;
   double vt_sq_ion_min;
   double vt_sq_neut_min; 
   
   enum gkyl_ion_type type_ion;
-  enum gkyl_react_self_type type_self;
 
   uint32_t flags;
   dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
@@ -65,12 +45,15 @@ struct gkyl_dg_cx {
 
 GKYL_CU_D
 static dg_cx_react_ratef_t
-choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
+choose_kern(struct gkyl_basis cbasis)
 {
+  int cdim = cbasis.ndim;
+  int poly_order = cbasis.poly_order;
+  enum gkyl_basis_type b_type = cbasis.b_type;
+
   switch (b_type) {
-    case GKYL_BASIS_MODAL_HYBRID:
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ser_cx_react_rate_kernels[tblidx].kernels[poly_order];
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cx_react_rate_kernels[cdim-1].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -101,3 +84,28 @@ fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
   }
 }
 
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create new charge exchange updater type object on NV-GPU: 
+ * see new() method above for documentation.
+ */
+struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
+
+/**
+ * Compute CX reaction rate coefficient for use in neutral reactions
+ * on the NVIDIA GPU. The update_rng MUST be a sub-range of the
+ * range on which the array is defined.  That is, it must be either
+ * the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param cx charge exchange object.
+ * @param maxwellian_moms_ion  Ion Maxwellian moments (n, upar, T/m).
+ * @param maxwellian_moms_neut Neutral Maxwellian moments (n, ux, uy, uz, T/m).
+ * @param upar_b_i Ion drift velocity vector (upar b_x, upar b_y, upar b_z).
+ * @param coef_cx Output reaction rate coefficient
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
+ */
+void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, 
+  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+#endif

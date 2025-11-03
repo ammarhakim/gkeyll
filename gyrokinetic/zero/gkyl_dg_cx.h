@@ -9,15 +9,9 @@
 #include <gkyl_eqn_type.h>
 
 struct gkyl_dg_cx_inp {
-  const struct gkyl_rect_grid* grid; // Grid object needed for fmax
   struct gkyl_basis* cbasis; // Configuration-space basis-functions
-  struct gkyl_basis* pbasis_gk; // Phase-space basis-functions for ion (GK)`
-  struct gkyl_basis* pbasis_vl; // Phase-space basis-functions for neut (Vlasov)
   const struct gkyl_range *conf_rng; // Configuration-space range
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
-  const struct gkyl_range *phase_rng; // Phase-space range
-  double mass_ion; // Mass of the ion
-  double mass_neut; // Mass of the neutral
   double vt_sq_ion_min; // Min vtSq that can be represented on ion grid
   double vt_sq_neut_min; // Min vtSq that can be represented on neut grid
   enum gkyl_ion_type type_ion; // Enum for type of ion for CX (H,D,HE,NE)
@@ -33,12 +27,6 @@ typedef struct gkyl_dg_cx gkyl_dg_cx;
  */
 struct gkyl_dg_cx* gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu); 
 
-/**
- * Create new ionization updater type object on NV-GPU: 
- * see new() method above for documentation.
- */
-struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
-
 
 /**
  * Compute CX reaction rate coefficient for use in neutral reactions. 
@@ -48,19 +36,14 @@ struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * gkyl_sub_range_init method.
  *
  * @param cx charge exchange object.
- * @param prim_vars_ion (n, upar, T/m) for the ions
- * @param prim_vars_neut (n, ux, uy, uz, T/m) for the neutrals
- * @param upar_b_i (upar b_x, upar b_y, upar b_z) for computing relative velocity in charge exchange
+ * @param maxwellian_moms_ion  Ion Maxwellian moments (n, upar, T/m).
+ * @param maxwellian_moms_neut Neutral Maxwellian moments (n, ux, uy, uz, T/m).
+ * @param upar_b_i Ion drift velocity vector (upar b_x, upar b_y, upar b_z).
  * @param coef_cx Output reaction rate coefficient
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
-
 void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, 
-  struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
-  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
-
-void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, 
-  struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
+  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
   struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 
 /**

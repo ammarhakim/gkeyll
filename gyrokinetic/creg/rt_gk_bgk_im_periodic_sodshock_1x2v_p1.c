@@ -230,8 +230,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species neut = {
     .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max },
+    .upper = {  ctx.vpar_max, ctx.mu_max },
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
@@ -282,9 +283,9 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_bgk_periodic_sodshock_1x2v_p1",
+    .name = "gk_bgk_im_periodic_sodshock_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },
@@ -321,7 +322,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

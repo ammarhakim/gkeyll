@@ -33,6 +33,7 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
   double envelope = 1.0;
   for (int dir = 0; dir < inp->cdim; ++dir) {
     double dx = xn[dir] - inp->gaussian_mean[dir];
+    double sigma = inp->gaussian_std_dev[dir];
     double L = inp->box_size[dir];
     if (inp->is_dir_periodic[dir]) { 
       // Periodic wrapping
@@ -40,8 +41,8 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
       if (dx < 0) dx += L;
       dx -= L/2.0;
     }
-    if (inp->gaussian_std_dev[dir] > 0.0)
-      envelope *= exp(-dx*dx/(2.0*inp->gaussian_std_dev[dir]*inp->gaussian_std_dev[dir]));
+    if (sigma > 0.0)
+      envelope *= exp(-dx*dx/(2.0*sigma*sigma));
   }
   fout[0] = envelope + inp->f_floor;
 }
