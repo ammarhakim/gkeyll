@@ -626,27 +626,22 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_slab_2x2v_p1",
-
     .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
     .cfl_frac = 1.0,
-
     .gk_block_geom = bgeom,
-    
     .num_species = 2,
     .species = { elc, ion},
-
     .field = field,
-
     .comm = comm
   };
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -656,6 +651,11 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
+    },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 0.1,
+      .estimate_completion_time = true,
     }
   };
 

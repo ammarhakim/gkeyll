@@ -1,22 +1,28 @@
 local Moments = G0.Moments
-local GRTwoFluid = G0.Moments.Eq.GRTwoFluid
-local BlackHole = G0.Moments.Spacetime.BlackHole
+local GRTwoFluidTetrad = G0.Moments.Eq.GRTwoFluidTetrad
+local Minkowski = G0.Moments.Spacetime.Minkowski
 
 -- Physical constants (using normalized code units).
-gas_gamma_elc = 5.0 / 3.0 -- Adiabatic index (electrons).
-gas_gamma_ion = 5.0 / 3.0 -- Adiabatic index (ions).
+gas_gamma_elc = 2.0 -- Adiabatic index (electrons).
+gas_gamma_ion = 2.0 -- Adiabatic index (ions).
+epsilon0 = 1.0 -- Permittivity of free space.
+mu0 = 1.0 -- Permeability of free space.
 mass_ion = 1.0 -- Proton mass.
 charge_ion = 1.0 -- Proton charge.
 mass_elc = 1.0 / 1836.2 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-rhol_ion = 3.0 -- Left ion mass density.
-ul = 0.3 -- Left electron/ion velocity.
-pl = 3.0 -- Left electron/ion pressure.
+rhol_ion = 1.0 -- Left ion mass density.
+rhor_ion = 0.125 -- Right ion mass density
+pl = 1.0 -- Left electron/ion pressure.
+pr = 0.1 -- Right electron/ion pressure.
 
-rhor_ion = 1.0 -- Right ion mass density.
-ur = 0.0 -- Right electron/ion velocity.
-pr = 1.0 -- Right electron/ion pressure.
+Bx = 0.5 -- Total magnetic field (x-direction).
+Byl = 1.0 -- Left total magneic field (y-direction).
+Byr = -1.0 -- Right total magnetic field (y-direction).
+
+has_collision = false -- Whether to include collisions.
+nu_base_ei = 0.5 -- Base electron-ion collision frequency.
 
 light_speed = 1.0 -- Speed of light.
 e_fact = 0.0 -- Factor of speed of light for electric field correction.
@@ -26,31 +32,19 @@ b_fact = 0.0 -- Factor of speed of light for magnetic field correction.
 rhol_elc = rhol_ion * mass_elc / mass_ion -- Left electron mass density.
 rhor_elc = rhor_ion * mass_elc / mass_ion -- Right electron mass density.
 
--- Spacetime parameters (using geometric units).
-mass = 0.3 -- Mass of the black hole.
-spin = 0.0 -- Spin of the black hole.
-
-pos_x = 2.5 -- Position of the black hole (x-direction).
-pos_y = 2.5 -- Position of the black hole (y-direction).
-pos_z = 0.0 -- Position of the black hole (z-direction).
-
 -- Simulation parameters.
-Nx = 256 -- Cell count (x-direction).
-Ny = 256 -- Cell count (y-direction).
-Lx = 5.0 -- Domain size (x-direction).
-Ly = 5.0 -- Domain size (y-direction).
+Nx = 4096 -- Cell count (x-direction).
+Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
 reinit_freq = 100 -- Spacetime reinitialization frequency.
 
-t_end = 3.0 -- Final simulation time.
+t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
-
-x_loc = 1.0 -- Shock location (x-direction).
 
 momentApp = Moments.App.new {
   
@@ -60,33 +54,26 @@ momentApp = Moments.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.0, 0.0 },
-  upper = { Lx, Ly },
-  cells = { Nx, Ny },
+  lower = { 0.0 },
+  upper = { Lx },
+  cells = { Nx },
   cflFrac = cfl_frac,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1, 1 }, -- Cuts in each coodinate direction (x- and y-directions).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
   
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (none).
 
   -- Fluid.
   fluid = Moments.Species.new {
-    equation = GRTwoFluid.new {
+    equation = GRTwoFluidTetrad.new {
       massElc = mass_elc,
       massIon = mass_ion,
       chargeElc = charge_elc,
       chargeIon = charge_ion,
       gasGammaElc = gas_gamma_elc,
       gasGammaIon = gas_gamma_ion,
-      blackHoleParameters = {
-        mass = mass,
-        spin = spin,
-        posX = pos_x,
-        posY = pos_y,
-        posZ = pos_z
-      },
       reinitFreq = reinit_freq
     },
 
@@ -97,79 +84,67 @@ momentApp = Moments.App.new {
     GRTwoFluidChargeIon = charge_ion,
     GRTwoFluidGasGammaElc = gas_gamma_elc,
     GRTwoFluidGasGammaIon = gas_gamma_ion,
+    GRTwoFluidEFact = e_fact,
   
     -- Initial conditions function.
     init = function (t, xn)
-      local x, y = xn[1], xn[2]
+      local x = xn[1]
       
-      local rhoe = 0.0
-      local rhoi = 0.0
-      local u = 0.0
-      local p = 0.0
-    
-      if x < x_loc then
-        rhoe = rhol_elc -- Electron mass density (left).
-        rhoi = rhol_ion -- Ion mass density (left).
-        u = ul -- Electron/ion velocity (left).
-        p = pl -- Electron/ion pressure (left).
-      else
-        rhoe = rhor_elc -- Electron mass density (right).
-        rhoi = rhor_ion -- Ion mass density (right).
-        u = ur -- Electron/ion velocity (right).
-        p = pr -- Electron/ion pressure (right).
-      end
-
-      local lapse = BlackHole.lapseFunction(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
-      local shift = BlackHole.shiftVector(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
-      local spatial_metric = BlackHole.spatialMetricTensor(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
-      local spatial_det = BlackHole.spatialMetricDeterminant(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
-      local extrinsic_curvature = BlackHole.extrinsicCurvatureTensor(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0,
-        math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
-      local in_excision_region = BlackHole.excisionRegion(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
-      
-      local lapse_der = BlackHole.lapseFunctionDer(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0,
-        math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
-      local shift_der = BlackHole.shiftVectorDer(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0,
-        math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
-      local spatial_metric_der = BlackHole.spatialMetricTensorDer(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0,
-        math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
-
-      local vel = { u, 0.0, 0.0 }
-      local v_sq = 0.0
-
-      for i = 1, 3 do
-        for j = 1, 3 do
-          v_sq = v_sq + spatial_metric[i][j] * vel[i] * vel[j]
-        end
-      end
-
-      local W = 1.0 / math.sqrt(1.0 - v_sq)
-      if v_sq > 1.0 - math.pow(10.0, -8.0) then
-        W = 1.0 / math.sqrt(1.0 - pow(10.0, -8.0))
-      end
-
-      local he = 1.0 + ((p / rhoe) * (gas_gamma_elc / (gas_gamma_elc - 1.0)))
-      local hi = 1.0 + ((p / rhoi) * (gas_gamma_ion / (gas_gamma_ion - 1.0)))
-  
-      local rhoe_rel = math.sqrt(spatial_det) * rhoe * W -- Electron relativistic mass density.
-      local mome_x = math.sqrt(spatial_det) * rhoe * he * (W * W) * u -- Electron momentum density (x-direction).
-      local mome_y = 0.0 -- Electron momentum density (y-direction).
-      local mome_z = 0.0 -- Electron momentum density (z-direction).
-      local Ee_tot = math.sqrt(spatial_det) * ((rhoe * he * (W * W)) - p - (rhoe * W)) -- Electron total energy density.
-
-      local rhoi_rel = math.sqrt(spatial_det) * rhoi * W -- Ion relativistic mass density.
-      local momi_x = math.sqrt(spatial_det) * rhoi * hi * (W * W) * u -- Ion momentum density (x-direction).
-      local momi_y = 0.0 -- Ion momentum density (y-direction).
-      local momi_z = 0.0 -- Ion momentum density (z-direction).
-      local Ei_tot = math.sqrt(spatial_det) * ((rhoi * hi * (W * W)) - p - (rhoi * W)) -- Ion total energy density.
-
       local Dx = 0.0 -- Total electric field (x-direction).
       local Dy = 0.0 -- Total electric field (y-direction).
       local Dz = 0.0 -- Total electric field (z-direction).
 
-      local Bx = 0.0 -- Total magnetic field (x-direction).
-      local By = 0.0 -- Total magnetic field (y-direction).
+      local By = 0.0
       local Bz = 0.0 -- Total magnetic field (z-direction).
+
+      local rhoe = 0.0
+      local rhoi = 0.0
+      local p = 0.0
+
+      if x < 0.5 * Lx then
+        rhoe = rhol_elc -- Electron mass density (left).
+        rhoi = rhol_ion -- Ion mass density (left).
+        p = pl -- Electron/ion pressure (left).
+      else
+        rhoe = rhor_elc -- Electron mass density (right).
+        rhoi = rhor_ion -- Ion mass density (right).
+        p = pr -- Electron/ion pressure (right).
+      end
+
+      if x < 0.5 * Lx then
+        By = Byl -- Total magnetic field (y-direction, left).
+      else
+        By = Byr -- Total magnetic field (y-direction, right).
+      end
+
+      local lapse = Minkowski.lapseFunction(0.0, x, 0.0, 0.0)
+      local shift = Minkowski.shiftVector(0.0, x, 0.0, 0.0)
+      local spatial_metric = Minkowski.spatialMetricTensor(0.0, x, 0.0, 0.0)
+      local spatial_det = Minkowski.spatialMetricDeterminant(0.0, x, 0.0, 0.0)
+      local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+      local in_excision_region = Minkowski.excisionRegion(0.0, x, 0.0, 0.0)
+
+      local lapse_der = Minkowski.lapseFunctionDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+      local shift_der = Minkowski.shiftVectorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+      local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+
+      local We = 1.0
+      local Wi = 1.0
+
+      local he = 1.0 + ((p / rhoe) * (gas_gamma_elc / (gas_gamma_elc - 1.0)))
+      local hi = 1.0 + ((p / rhoi) * (gas_gamma_ion / (gas_gamma_ion - 1.0)))
+
+      local rhoe_rel = math.sqrt(spatial_det) * rhoe * We -- Electron relativistic mass density.
+      local mome_x = 0.0 -- Electron momentum density (x-direction).
+      local mome_y = 0.0 -- Electron momentum density (y-direction).
+      local mome_z = 0.0 -- Electron momentum density (z-direction).
+      local Ee_tot = math.sqrt(spatial_det) * ((rhoe * he * (We * We)) - p - (rhoe * We)) -- Electron total energy density.
+
+      local rhoi_rel = math.sqrt(spatial_det) * rhoi * Wi -- Ion relativistic mass density.
+      local momi_x = 0.0 -- Ion momentum density (x-direction).
+      local momi_y = 0.0 -- Ion momentum density (y-direction).
+      local momi_z = 0.0 -- Ion momentum density (z-direction).
+      local Ei_tot = math.sqrt(spatial_det) * ((rhoi * hi * (Wi * Wi)) - p - (rhoi * Wi)) -- Ion total energy density.
 
       local excision = 0.0
       if in_excision_region then
@@ -219,13 +194,13 @@ momentApp = Moments.App.new {
         spatial_metric_der[3][2][1], spatial_metric_der[3][2][2], spatial_metric_der[3][2][3],
         spatial_metric_der[3][3][1], spatial_metric_der[3][3][2], spatial_metric_der[3][3][3],
         0.0,
-        x, y, 0.0
+        x, 0.0, 0.0
     end,
 
     evolve = true, -- Evolve species?
-    forceLowOrderFlux = true, -- Use Lax fluxes.
+    limiter = G0.WaveLimiter.MinMod,
+    forceLowOrderFlux = false, -- Use HLL fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (x-direction).
-    bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (y-direction).
   }
 }
 

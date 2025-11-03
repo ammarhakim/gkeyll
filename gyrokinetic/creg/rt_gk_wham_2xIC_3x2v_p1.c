@@ -834,7 +834,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp_2x = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -993,7 +993,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp3x = {
     .app_inp = app_inp_3x,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

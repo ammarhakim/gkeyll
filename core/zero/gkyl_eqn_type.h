@@ -20,6 +20,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
+  GKYL_EQN_GR_TWOFLUID_TETRAD, // General relativistic two-fluid equations in the tetrad basis.
   GKYL_EQN_GR_MHD, // General relativistic magnetohydrodynamics equations.
   GKYL_EQN_GR_MHD_TETRAD, // General relativistic magnetohydrodynamics equations in the tetrad basis.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
