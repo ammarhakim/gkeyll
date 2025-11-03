@@ -453,7 +453,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = gk,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = 1,
