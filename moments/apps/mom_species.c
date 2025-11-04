@@ -279,6 +279,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             bc_copy, 0);
           break;
 
+        case GKYL_SPECIES_ABSORB:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_absorb, 0);
+          break;
+
         case GKYL_SPECIES_SKIP:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
@@ -315,6 +321,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_ABSORB:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_absorb, 0);
           break;
 
         case GKYL_SPECIES_SKIP:

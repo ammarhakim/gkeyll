@@ -368,6 +368,15 @@ bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// function for absorb BC
+static inline void
+bc_absorb(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
+  for (int c = 0; c < nc; ++c)
+    ghost[c] = 0.0;
+}
+
 // function for skip BCs
 static inline void
 bc_skip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
