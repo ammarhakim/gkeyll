@@ -55,7 +55,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, global_ext.volume);
   gpm->to_optimize = false;
-  gpm->use_map_derivs = (pmap_info.id == GKYL_PMAP_XPT_COMPRESSION || GKYL_PMAP_USER_INPUT_W_DERIVATIVE) ? true : false;
+  gpm->use_map_derivs = (pmap_info.id == GKYL_PMAP_XPT_COMPRESSION || pmap_info.id == GKYL_PMAP_USER_INPUT_W_DERIVATIVE) ? true : false;
 
 
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
