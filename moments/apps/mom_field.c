@@ -210,6 +210,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       &app->local, fld->embed_mask);
   }
 
+  fld->resistivity = mkarr(false, 1, app->local_ext.volume);
+  gkyl_array_clear(fld->resistivity, 0.0);
+
+  if (maxwell->resistive_layer) {
+    gkyl_wv_resistive_layer_new_profile(maxwell->resistive_layer, &app->grid,
+      &app->local, fld->resistivity);
+  }
+
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   gkyl_array_clear(fld->ext_em, 0.0);
   fld->has_ext_em = false;

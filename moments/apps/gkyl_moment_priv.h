@@ -40,6 +40,7 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_embed_geo.h>
+#include <gkyl_wv_resistive_layer.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
@@ -204,6 +205,8 @@ struct moment_field {
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   struct gkyl_array *embed_mask;
+
+  struct gkyl_array *resistivity;
 
  // scheme to update equations solvers and data to update fluid
  // equations

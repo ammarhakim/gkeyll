@@ -10,7 +10,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
-    .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
+    .mu0 = app->field.mu0 ? app->field.mu0 : 0.0,
     // is the field static?
     .static_field = app->field.is_static, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
@@ -343,7 +343,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
-      fluids, app_accels, pr_rhs_const, 
+      fluids, app_accels, pr_rhs_const, app->field.resistivity, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
   }
