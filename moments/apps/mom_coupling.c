@@ -23,8 +23,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      // If gradient-based or neural network-based closure is present, k0=0.0 in source solve to avoid applying local closure.
-      .k0 = (app->species[i].has_grad_closure || app->species[i].has_nn_closure) ? 0.0 : app->species[i].k0,
+      .nu0 = app->species[i].nu0,
     };
 
   src_inp.has_collision = app->has_collision;

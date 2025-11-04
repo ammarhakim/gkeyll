@@ -15,7 +15,7 @@ struct gkyl_moment_em_coupling_data {
   double charge; // Species charge.
   double mass; // Species mass.
 
-  double k0; // Closure parameter (for 10-moment equations only; defaults to 0.0).
+  double nu0; // Relaxation parameter (for 10-moment equations only; defaults to 0.0).
 };
 
 struct gkyl_moment_em_coupling_inp {

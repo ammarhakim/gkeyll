@@ -69,6 +69,7 @@ struct moment_species {
   bool update_sources;
   
   double k0; // Closure parameter (default is 0.0, used by 10 moment).
+  double nu0; // Relaxation parameter (default is 0.0, used by 10 moment).
   bool has_grad_closure; // Has gradient-based closure (only for 10 moment).
   bool has_nn_closure; // Has neural network-based closure (only for 10 moment).
   kann_t* ann; // Neural network architecture.
