@@ -35,7 +35,7 @@ void pressure_tensor_rotate(double q_over_m, double dt, const double* em, const 
 void
 implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
-  const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em);
+  const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em, const double* sigma);
 
 /**
 * Integrate the momentum source terms of a neutral multi-fluid equation system within a single cell, using an implicit forcing solver (specifically
@@ -124,4 +124,4 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
 void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
-  const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES]);
+  const double* ext_em, const double* sigma, const double* nT_sources_s[GKYL_MAX_SPECIES]);
