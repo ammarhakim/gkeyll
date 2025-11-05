@@ -6,6 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_dg_gyrokinetic_kernels.h>
@@ -45,9 +46,9 @@ struct dg_gyrokinetic {
   struct gkyl_range conf_range; // Configuration space range.
   struct gkyl_range phase_range; // Phase space range.
   double charge, mass;
-  double skip_cell_threshold; // Skip cell update if f0 smaller than this value.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  struct gkyl_skip_cell *skip_cell; // Skip cell object.
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -64,7 +65,9 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -73,7 +76,6 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_vol_1x1v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -93,7 +95,9 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -102,7 +106,6 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -122,7 +125,9 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -131,7 +136,6 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -151,16 +155,17 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
-  
+
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -196,8 +201,10 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -206,7 +213,6 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_no_by_vol_2x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -225,17 +231,18 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  if (fabs(qIn[0]) < gyrokinetic->skip_cell_threshold) {
+  
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  const bool *skip_cell = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
-  
+
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return dg_gyrokinetic_no_by_vol_3x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
@@ -380,7 +387,13 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qInL[0]) < gyrokinetic->skip_cell_threshold && fabs(qInC[0]) < gyrokinetic->skip_cell_threshold && fabs(qInR[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidxL = gkyl_range_idx(&gyrokinetic->phase_range, idxL);
+  long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
+  long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
+  const bool *skip_cellL = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidxL);
+  const bool *skip_cellC = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidxC);
+  const bool *skip_cellR = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidxR);
+  if (*skip_cellL && *skip_cellC && *skip_cellR) {
     return 0.;
   }
 
@@ -399,8 +412,6 @@ surf(const struct gkyl_dg_eqn *eqn,
     // Each cell owns the *lower* edge surface alpha
     // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
     // and fetch alpha_surf in right cell for upper edge
-    long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
-    long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
     return gyrokinetic->surf[dir](xcC, dxC, 
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
@@ -423,7 +434,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qInEdge[0]) < gyrokinetic->skip_cell_threshold && fabs(qInSkin[0]) < gyrokinetic->skip_cell_threshold) {
+  long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
+  long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
+  const bool *skip_cell_skin = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidxSkin);
+  const bool *skip_cell_edge = gkyl_array_cfetch(gyrokinetic->skip_cell->booleans, pidxEdge);
+  if (*skip_cell_skin && *skip_cell_edge) {
     return 0.;
   }
 
@@ -438,8 +453,6 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxSkin);
 
     // Each cell owns the *lower* edge surface alpha
-    long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
-    long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
     return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),

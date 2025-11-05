@@ -71,12 +71,12 @@ struct gkyl_positivity_shift_gyrokinetic {
   int num_cbasis;  // Number of conf-space basis monomials.
   struct gkyl_rect_grid grid;  // Phase-space grid.
   double mass;  // Species mass.
-  double skip_cell_threshold; // Cells with Jf[0] < this value are skipped.
   double *ffloor;  // Minimum f to shift distribution to when it's <0.
   double ffloor_fac;  // ffloor = max(f)*ffloor_fac.
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
+  struct gkyl_skip_cell *skip_cell; // Pointer to skip cell object.
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
   struct gkyl_array *shiftedf; // Marks if a shift occured at a given conf-cell.

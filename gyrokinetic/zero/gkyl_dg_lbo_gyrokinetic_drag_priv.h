@@ -42,7 +42,7 @@ struct dg_lbo_gyrokinetic_drag {
   lbo_gyrokinetic_drag_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
-  double skip_cell_threshold; // Skip cell update if f0 smaller than this value.
+  struct gkyl_skip_cell *skip_cell; // Object to skip cells based on criteria.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields auxfields; // Auxiliary fields.
@@ -62,7 +62,9 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qIn[0]) < lbo->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
+  const bool *skip_cell = gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -97,7 +99,9 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qIn[0]) < lbo->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
+  const bool *skip_cell = gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
 
@@ -132,7 +136,9 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qIn[0]) < lbo->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
+  const bool *skip_cell = gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
   
@@ -167,7 +173,9 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qIn[0]) < lbo->skip_cell_threshold) {
+  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
+  const bool *skip_cell = gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
+  if (*skip_cell) {
     return 0.;
   }
   
@@ -268,7 +276,13 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qInL[0]) < lbo->skip_cell_threshold && fabs(qInC[0]) < lbo->skip_cell_threshold && fabs(qInR[0]) < lbo->skip_cell_threshold) {
+  long pidxL = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxL);
+  long pidxC = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxC);
+  long pidxR = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxR);
+  const bool *skip_cell_L = gkyl_array_cfetch(lbo->skip_cell->booleans, pidxL);
+  const bool *skip_cell_C = gkyl_array_cfetch(lbo->skip_cell->booleans, pidxC);
+  const bool *skip_cell_R = gkyl_array_cfetch(lbo->skip_cell->booleans, pidxR);
+  if (*skip_cell_L && *skip_cell_C && *skip_cell_R) {
     return 0.;
   }
 
@@ -315,7 +329,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (fabs(qInEdge[0]) < lbo->skip_cell_threshold && fabs(qInSkin[0]) < lbo->skip_cell_threshold) {
+  long pidxEdge = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxEdge);
+  long pidxSkin = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxSkin);
+  const bool *skip_cell_edge = gkyl_array_cfetch(lbo->skip_cell->booleans, pidxEdge);
+  const bool *skip_cell_skin = gkyl_array_cfetch(lbo->skip_cell->booleans, pidxSkin);
+  if (*skip_cell_edge && *skip_cell_skin) {
     return 0.;
   }
 
@@ -355,7 +373,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, double skip_cell_threshold, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  double mass, struct gkyl_skip_cell *skip_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.

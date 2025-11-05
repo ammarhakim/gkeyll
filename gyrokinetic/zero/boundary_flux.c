@@ -8,17 +8,18 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_boundary_flux_priv.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_util.h>
 
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold, bool use_gpu)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_skip_cell *skip_cell, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, num_eqns, eqns, skip_cell_threshold);
-  } 
+    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, num_eqns, eqns, skip_cell);
+  }
 #endif
 
   gkyl_boundary_flux *up = gkyl_malloc(sizeof(gkyl_boundary_flux));
@@ -30,10 +31,7 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->ghost_r = *ghost_r;
   up->use_gpu = use_gpu;
 
-  if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
-  else
-    up->skip_cell_threshold = -DBL_MAX;
+  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
 
   up->num_eqns = num_eqns;
   up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
@@ -81,8 +79,9 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
     const double *fIn_g = gkyl_array_cfetch(fIn, linidx_g);
     double *fluxOut_g = gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (fabs(fIn_s[0]) < up->skip_cell_threshold && fabs(fIn_g[0]) < up->skip_cell_threshold)
-    {
+    const bool *skip_cell_s = gkyl_array_cfetch(up->skip_cell->booleans, linidx_s);
+    const bool *skip_cell_g = gkyl_array_cfetch(up->skip_cell->booleans, linidx_g);
+    if (*skip_cell_s && *skip_cell_g) {
       for (int d=0; d<fluxOut->ncomp; ++d) {
         fluxOut_g[d] = 0.0;
       }
@@ -108,6 +107,7 @@ gkyl_boundary_flux_release(gkyl_boundary_flux* up)
   for (int i=0; i<up->num_eqns; i++)
     gkyl_dg_eqn_release(up->eqns_ho[i]);
   gkyl_free(up->eqns_ho);
+  gkyl_skip_cell_release(up->skip_cell);
 
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

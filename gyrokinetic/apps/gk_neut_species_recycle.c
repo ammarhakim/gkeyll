@@ -185,7 +185,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
     eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(s->collisionless.vlasov_slvr);
 
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
-    recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, -1.0, app->use_gpu);  
+    recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, s->skip_cell, app->use_gpu);  
 
   for (int i=0; i<num_eqns; i++)
     gkyl_dg_eqn_release(eqns[i]);

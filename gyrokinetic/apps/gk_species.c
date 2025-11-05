@@ -1011,7 +1011,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, gks->info.skip_cell_threshold, app->gk_geom, gks->vel_map,
+      gks->grid, gks->info.mass, gks->skip_cell, app->gk_geom, gks->vel_map,
       &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
@@ -1450,6 +1450,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
+
+  gks->skip_cell = gkyl_skip_cell_new(gks->info.skip_cell, gks->local_ext, 
+    app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
@@ -1891,6 +1894,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
 
   gkyl_velocity_map_release(s->vel_map);
+
+  gkyl_skip_cell_release(s->skip_cell);
 
   gk_species_collisionless_release(app, &s->collisionless);
 

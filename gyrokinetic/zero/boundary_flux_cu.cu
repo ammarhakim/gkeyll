@@ -4,6 +4,7 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_boundary_flux_priv.h>
 }
@@ -11,7 +12,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_skip_cell *skip_cell)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -22,10 +23,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->ghost_r = *ghost_r;
   up->use_gpu = true;
 
-  if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
-  else
-    up->skip_cell_threshold = -DBL_MAX;
+  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -76,8 +74,9 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
     double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (fabs(fs_c[0]) < up->skip_cell_threshold && fabs(fg_c[0]) < up->skip_cell_threshold)
-    {
+    const bool *skip_cell_g = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, linidx_g);
+    const bool *skip_cell_s = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, linidx_s);
+    if (*skip_cell_g && *skip_cell_s) {
       for (int d=0; d<fluxOut->ncomp; ++d)
         fluxOut_g[d] = 0.0;
     }
