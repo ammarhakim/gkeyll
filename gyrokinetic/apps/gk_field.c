@@ -89,24 +89,16 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
 
   // Add the SSFG updater for lower and upper application.
   f->ssfg_z_lo = gkyl_skin_surf_from_ghost_new(par_dir,  GKYL_LOWER_EDGE,
-    app->basis,  &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
-
-  int ghost_radial[] = {1, 1, 1};
-  int xdir = 0;
-  // Create lower ssfg updater for the radial direction.
-  gkyl_skin_ghost_ranges( &f->lower_skin_x, &f->lower_ghost_x, xdir, 
-                          GKYL_LOWER_EDGE, &app->local_ext, ghost_radial);
-  f->ssfg_x_lo = gkyl_skin_surf_from_ghost_new(xdir, GKYL_LOWER_EDGE,
-                  app->basis, &f->lower_skin_x, &f->lower_ghost_x,  app->use_gpu);
+    app->basis, &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
 }
 
 static void
-gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
-  // Apply the periodicity to fill the ghost cells
-  int num_periodic_dir = 1; // we need only periodicity in z
-  int zdir = app->cdim - 1;
-  int periodic_dirs[] = {zdir};
+  // Apply the periodicity along the field to fill ghost cells.
+  int num_periodic_dir = 1;
+  int par_dir = app->cdim - 1;
+  int periodic_dirs[] = {par_dir};
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
   
@@ -115,7 +107,7 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, st
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
   }
 
-  // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
+  // Sync ghost cells between MPI processes.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
 
   // Force the lower skin surface value to match the ghost cell at the node position.
@@ -123,8 +115,9 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, struct gk_field *field, st
 }
 
 static void
-gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
+  // Do nothing.
 }
 
 static void
@@ -570,7 +563,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->phi_wall_lo, f->phi_wall_lo_host);
   }
 
-  // setup biased upper wall (same size as electrostatic potential), by default is 0.0
+  // Setup biased upper wall (same size as electrostatic potential), by default is 0.0.
   f->phi_wall_up = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_up = false;
   f->phi_wall_up_evolve = false;
@@ -586,9 +579,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->phi_wall_up_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis,
       1, f->info.phi_wall_up, f->info.phi_wall_up_ctx);
 
-    // Compute phi_wall_up at t = 0
+    // Compute phi_wall_up at t = 0.
     gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
-    if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
+    if (app->use_gpu) // Note: phi_wall_up_host is same as phi_wall_up when not on GPUs.
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
 
@@ -751,10 +744,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
-  f->enforce_zbc = gk_field_enforce_zbc_none;
+  f->enforce_parallel_bc = gk_field_enforce_parallel_bc_disabled;
   if (f->is_clopen) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
-    f->enforce_zbc = gk_field_enforce_zbc;
+    f->enforce_parallel_bc = gk_field_enforce_parallel_bc_enabled;
   }
   
   return f;
@@ -777,7 +770,7 @@ gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double
 
 void
 gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[])
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wst = gkyl_wall_clock();
   if (field->is_em)
@@ -787,6 +780,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density (and the ion density
       // times the conf-space Jacobian), not charge density.
@@ -795,12 +789,11 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         app->gk_geom->geo_int.jacobgeo, &app->local);  
 
       // We also need the M0 flux of the boundary flux through the z
-      // boundaries. Put it in the ghost cells of f and take its moment.
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, s->f1, &s->lower_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim-1], app->lower_ghost[app->cdim-1], s->f1);
-
-      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, s->f1, &s->upper_ghost[app->cdim-1]);
-      gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim-1], app->upper_ghost[app->cdim-1], s->f1);
+      // boundaries. Put it in the ghost cells of s->m0.marr.
+      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+        s->m0.marr, &app->lower_ghost[app->cdim-1]);
+      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+        s->m0.marr, &app->upper_ghost[app->cdim-1]);
     } else {
       // Gyroaverage the density if needed.
       s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -918,13 +911,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
           field->phi_bc, field->phi_smooth);
       }
       else {
-//        // This workflow solves Poisson on planes (doesn't conserve energy).
-//        gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-//        gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-//        gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
-//        gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
-//          field->phi_bc, field->phi_smooth);
-
         // Smooth the charge density along z.
         gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
 
@@ -940,7 +926,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       field->invert_flr(app, field, field->phi_smooth);
 
       // Enforce a BC of the field in the parallel direction.
-      field->enforce_zbc(app, field, field->phi_smooth);
+      field->enforce_parallel_bc(app, field, field->phi_smooth);
     }
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -1164,7 +1150,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
-    gkyl_skin_surf_from_ghost_release(f->ssfg_x_lo);
   }
 
   gkyl_dynvec_release(f->integ_energy);

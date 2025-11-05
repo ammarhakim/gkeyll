@@ -550,6 +550,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         if (wv->equation->type == GKYL_EQN_GR_TWOFLUID) {
           gr_twofluid_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }
+        if (wv->equation->type == GKYL_EQN_GR_TWOFLUID_TETRAD) {
+          gr_twofluid_tetrad_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
         if (wv->equation->type == GKYL_EQN_GR_MHD) {
           gr_mhd_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }
