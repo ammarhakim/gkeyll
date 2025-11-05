@@ -192,6 +192,7 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, do
   }
   else {
     gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
+    gpm->map_derivs[0] = gkyl_position_map_identity;
     gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
   }
 
@@ -205,6 +206,7 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, do
   }
   else {
     gpm->maps[2] = gpm->xpt_ctx->maps_backup[2];
+    gpm->map_derivs[2] = gkyl_position_map_identity;
     gpm->ctxs[2] = gpm->xpt_ctx->ctxs_backup[2];
   }
 }
