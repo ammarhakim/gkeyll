@@ -25,8 +25,13 @@ gkyl_bc_basic_gyrokinetic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge,
   struct gkyl_array_copy_func *fout = gkyl_malloc(sizeof(*fout));
   switch (bctype) {
     case GKYL_BC_GK_SPECIES_COPY:
-    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
       fout->func = copy_bc;
+      break;
+
+    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
+      assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
+      fout->func = phase_boundary_value_bc;
       break;
       
     case GKYL_BC_GK_SPECIES_ABSORB:
@@ -37,7 +42,14 @@ gkyl_bc_basic_gyrokinetic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge,
       fout->func = species_reflect_bc;
       break;
 
+    case GKYL_BC_GK_SPECIES_BOUNDARY_VALUE:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
+      assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
+      fout->func = phase_boundary_value_bc;
+      break;
+
     case GKYL_BC_GK_FIELD_BOUNDARY_VALUE:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
       fout->func = conf_boundary_value_bc;
       break;
 
@@ -105,9 +117,14 @@ gkyl_bc_basic_gyrokinetic_advance(const struct gkyl_bc_basic_gyrokinetic *up,
                                         up->skin_r, up->array_copy_func->on_dev);
       break;
 
+    case GKYL_BC_GK_SPECIES_BOUNDARY_VALUE:
+      gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
+                                   up->skin_r, up->array_copy_func->on_dev);
+      break;
+
     case GKYL_BC_GK_FIELD_BOUNDARY_VALUE:
-      gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir,
-                                        up->skin_r, up->array_copy_func->on_dev);
+      gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
+                                   up->skin_r, up->array_copy_func->on_dev);
       break;
 
     case GKYL_BC_GK_SPECIES_FIXED_FUNC: // if BC is fixed func, do nothing, buffer already full

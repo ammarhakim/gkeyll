@@ -34,10 +34,11 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   // MF 2025/09/10: as of now these options are meant for (here
   // N/A means not applicable):
   //            bound_surf  bound_diag  hyper_dg-zero_flux
-  // SKIP:      N/A         recovery    no
-  // PERIODIC:  N/A         N/A         no
-  // ZERO_FLUX: zero_flux   N/A         yes
-  // ELSE:      local       local       yes
+  // SKIP:       N/A         recovery    no
+  // PERIODIC:   N/A         N/A         no
+  // FIXED_FUNC: N/A         N/A         no
+  // ZERO_FLUX:  zero_flux   N/A         yes
+  // ELSE:       local       local       yes
 
   up->dgeqn = gkyl_gk_anomalous_diffusion_new(basis, cbasis,
     conf_range, bc_x_lower, bc_x_upper, skip_cell_threshold, up->use_gpu);
@@ -51,8 +52,8 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
 
   // Determine if hyper_dg should apply boundary_surf kernels.
   int use_boundary_surf[2*GKYL_MAX_DIM] = {0};
-  use_boundary_surf[0]      = !(bc_x_lower == GKYL_BC_GK_SKIP || bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC);
-  use_boundary_surf[0+pdim] = !(bc_x_upper == GKYL_BC_GK_SKIP || bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC);
+  use_boundary_surf[0]      = !(bc_x_lower == GKYL_BC_GK_SKIP || bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC || bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC);
+  use_boundary_surf[0+pdim] = !(bc_x_upper == GKYL_BC_GK_SKIP || bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC || bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC);
 
   up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, use_boundary_surf, 1, up->use_gpu);
 

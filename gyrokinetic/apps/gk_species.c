@@ -885,15 +885,40 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   }
   
   // Allocate buffer needed for BCs.
-  long buff_sz = 0;
+  bool need_bc_buffer = false;
+  bool need_bc_buffer_lo_fixed = false;
+  bool need_bc_buffer_up_fixed = false;
+  for (int d=0; d<cdim; ++d) {
+    if (gks->bc_is_np[d]) {
+      if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY   ) ||
+           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB ) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY   ) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB ) ) {
+        need_bc_buffer = true;
+      }
+      if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
+        need_bc_buffer_lo_fixed = true;
+      }
+      if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
+        need_bc_buffer_up_fixed = true;
+      }
+    }
+  }
+
+  long buff_sz = 1;
   for (int dir=0; dir<cdim; ++dir) {
     long vol = GKYL_MAX2(gks->lower_skin[dir].volume, gks->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  gks->bc_buffer = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
-  // buffer arrays for fixed function boundary conditions on distribution function
-  gks->bc_buffer_lo_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
-  gks->bc_buffer_up_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
+  gks->bc_buffer = need_bc_buffer? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                 : mkarr(app->use_gpu, 1, 1);
+  // Buffer arrays for fixed function BCs on distribution function.
+  gks->bc_buffer_lo_fixed = need_bc_buffer_lo_fixed? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                                   : mkarr(app->use_gpu, 1, 1);
+  gks->bc_buffer_up_fixed = need_bc_buffer_up_fixed? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                                   : mkarr(app->use_gpu, 1, 1);
 
   for (int d=0; d<cdim; ++d) {
     // Lower BC.

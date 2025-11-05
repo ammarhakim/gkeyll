@@ -120,6 +120,30 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     int num_periodic_dir = app->num_periodic_dir;
     gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
       num_periodic_dir, app->periodic_dirs, gkad->diffD); 
+    // FUNC and FIXED_FUNC BCs need to fill the ghost cell. MF 2025/11/03: The
+    // only sensible way to fill the ghost cell is to use the value at the
+    // boundary.
+    for (int b=0; b<2; ++b) {
+      if ((b == 0 && gks->lower_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) || 
+          (b == 1 && gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        int dir = 0;
+        enum gkyl_edge_loc edge = b==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+        struct gkyl_range *skin_r = b==0? &app->lower_skin[dir] : &app->upper_skin[dir];
+        struct gkyl_range *ghost_r = b==0? &app->lower_ghost[dir] : &app->upper_ghost[dir];
+
+        long vol = skin_r->volume;
+        long buff_sz = 1;
+        buff_sz = buff_sz > vol ? buff_sz : vol;
+        struct gkyl_array *bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(dir, edge,
+          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, &app->basis, skin_r, ghost_r, 1, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, bc_buffer, gkad->diffD);
+
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+        gkyl_array_release(bc_buffer);
+      }
+    }
     gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, gkad->diffD);
 
     // Create solver.
