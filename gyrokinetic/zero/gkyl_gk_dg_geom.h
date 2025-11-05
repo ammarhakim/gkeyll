@@ -165,10 +165,22 @@ void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg);
  */
 void gk_dg_geom_free(const struct gkyl_ref_count *ref);
 
+/**
+ * Populate volume quad point DG geometry objects 
+ * using geometry from gk_geom . 
+ *
+ * @param dg_geom dg_geom object (stores geo common to all simulation types)
+ * @param gk_dg_geom gk_dg_geom object (stores geo specific to gyrokinetics)
+ * @param gk_geom gk_geom object from which to populate dg geom objects
+ */
 void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
 
+/**
+ * Populate surface quad point DG geometry objects 
+ * using geometry from gk_geom . 
+ *
+ * @param dg_geom dg_geom object (stores geo common to all simulation types)
+ * @param gk_dg_geom gk_dg_geom object (stores geo specific to gyrokinetics)
+ * @param gk_geom gk_geom object from which to populate dg geom objects
+ */
 void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
-
-void gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name);
-
-void gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name);

@@ -161,23 +161,26 @@ test_mom_gyrokinetic()
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
-  double bmag[1];
-  bfield_func_1x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_1x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
-  double bmag[1];
-  bfield_func_1x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_1x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
-  double bmag[1];
-  bfield_func_2x(t, xn, &bmag[0], ctx); 
-  fout[0] = bmag[0]*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
+  double bfield[3];
+  bfield_func_2x(t, xn, &bfield[0], ctx); 
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
+  fout[0] = bmag*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
 }
 
 void

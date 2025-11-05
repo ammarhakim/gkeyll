@@ -193,7 +193,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         }
         
         for (int ia=inp->nrange.lower[NAL]; ia<=inp->nrange.upper[NAL]; ++ia){
-          double alpha_curr = ia + ia*dalpha;
+          double alpha_curr = alpha_lo + ia*dalpha;
           int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = root.res; rz[1] = zcurr; rz[2] = alpha_curr;

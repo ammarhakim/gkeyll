@@ -1,6 +1,5 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_bc_basic.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_gyrokinetic_multib.h>
@@ -335,23 +334,6 @@ gk_multib_is_bid_connected_in_dir(int bidx, struct gkyl_gyrokinetic_multib_app *
   return is_in_conn_dir;
 }
 
-static int
-gk_multib_translate_field_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
-{
-  // Translates gyrokinetic bc type into field bc type.
-  switch (bc_type) {
-    case GKYL_BC_GK_FIELD_DIRICHLET:
-      return 1;
-      break;
-    case GKYL_BC_GK_FIELD_NEUMANN:
-      return 2;
-      break;
-    default:
-      assert(false);
-      break;
-  }
-}
-
 static void
 gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
   struct gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf)
@@ -405,17 +387,19 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
 
     // Obtain the BCs for connected blocks.
     // Loop through input BCs and find those for the current connnected blocks.
-    struct gkyl_poisson_bc bcs;
+    struct gkyl_poisson_bc bcs = { };
     for (int i=0; i<mbinp->field.num_physical_bcs; i++) {
-      const struct gkyl_gyrokinetic_block_physical_bcs *bc_curr = &mbinp->field.bcs[i];
+      const struct gkyl_gyrokinetic_bc *bc_curr = &mbinp->field.bcs[i];
       if (gk_multib_is_bid_connected_in_dir(bc_curr->bidx, mbapp, bid, dir)) {
         if (bc_curr->edge == GKYL_LOWER_EDGE) {
-          bcs.lo_type[bc_curr->dir] = gk_multib_translate_field_bc_type(bc_curr->bc_type);
-          bcs.lo_value[bc_curr->dir].v[0] = 0.0; // MF hardcoded for now.
+          bcs.lo_type[bc_curr->dir] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_curr->type);
+          for (int k=0; k<3; k++)
+            bcs.lo_value[bc_curr->dir].v[k] = bc_curr->value[k];
         }
         else {
-          bcs.up_type[bc_curr->dir] = gk_multib_translate_field_bc_type(bc_curr->bc_type);
-          bcs.up_value[bc_curr->dir].v[0] = 0.0; // MF hardcoded for now.
+          bcs.up_type[bc_curr->dir] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_curr->type);
+          for (int k=0; k<3; k++)
+            bcs.up_value[bc_curr->dir].v[k] = bc_curr->value[k];
         }
       }
     }
@@ -460,19 +444,22 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 
 // Compute the electrostatic potential.
 void
-gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[])
+gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   // Every local block calculates its charge density.
   for (int bI=0; bI<mbf->num_local_blocks; bI++) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     // Construct fin for the local block.
     const struct gkyl_array *fin_local_block[mbapp->num_species];
+    struct gkyl_array **bflux_local_block[mbapp->num_species];
     int lin_idx = bI * mbapp->num_species;
     for (int i=0; i<mbapp->num_species; ++i) {
       fin_local_block[i] = fin[lin_idx+i];
+      bflux_local_block[i] = bflux[lin_idx+i];
     }
     // Accumulate rho_c in local block.
-    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
+    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block, bflux_local_block);
   }
 
   struct timespec wst = gkyl_wall_clock();

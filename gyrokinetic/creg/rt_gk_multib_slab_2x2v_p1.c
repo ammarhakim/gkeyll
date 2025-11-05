@@ -2,6 +2,7 @@
 #include <gkyl_const.h>
 #include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
+#include <gkyl_gyrokinetic_run.h>
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
@@ -191,6 +192,8 @@ void bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT
 {
   struct slab_ctx *app = ctx;
   double B0 = app->B0;
+  // zc are computational coords. 
+  // Set Cartesian components of magnetic field.
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = app->B0;
@@ -209,12 +212,12 @@ create_gk_block_geom(void *ctx)
    x  
    ^  
    |
-   1  +------------------+------------------+
-   |  |b0                |b1                |
-   |  |lower SOL         |upper             |
-   |  |                  |                  |
-   0  +------------------+------------------+
-      0 -----------------1------------------2----> z
+   1  +------------------+------------------+------------------+
+   |  |b0                |b1                |b2                |
+   |  |lower SOL         |upper             |upper             |
+   |  |                  |                  |                  |
+   0  +------------------+------------------+------------------+
+      0 -----------------1------------------2------------------3 ----> z
 
       Edges that touch coincide are physically connected unless
       otherwise indicated by a special symbol. Edges with a special
@@ -243,7 +246,6 @@ create_gk_block_geom(void *ctx)
         .bfield_func = bfield_func,
         .bfield_ctx = app 
       },
-
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -270,7 +272,6 @@ create_gk_block_geom(void *ctx)
         .bfield_ctx = app
       },
 
-
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -296,7 +297,6 @@ create_gk_block_geom(void *ctx)
         .bfield_func = bfield_func,
         .bfield_ctx = app
       },
-
 
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
@@ -393,62 +393,11 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
-evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct slab_ctx *app = ctx;
+  struct gk_step_ctx *app = ctx;
 
-  double nu_elc = app->nu_elc;
-
-  // Set electron collision frequency.
-  fout[0] = nu_elc;
-}
-
-void
-evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct slab_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
-  double t_curr, bool is_restart_IC, bool force_calc, double dt)
-{
-  if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
-    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
-
-    if ( !(dt < 0.0) )
-      gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
-  }
-}
-
-void
-write_data(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_phase,
-  gkyl_gyrokinetic_multib_app* app, double t_curr, bool is_restart_IC, bool force_write)
-{
-  bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
-  if (trig_now_conf || force_write) {
-    int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-    gkyl_gyrokinetic_multib_app_write_conf(app, t_curr, frame);
-
-    if (!is_restart_IC) {
-      gkyl_gyrokinetic_multib_app_write_field_energy(app);
-      gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
-      gkyl_gyrokinetic_multib_app_write_dt(app);
-    }
-  }
-
-  bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
-  if (trig_now_phase || force_write) {
-    int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-
-    gkyl_gyrokinetic_multib_app_write_phase(app, t_curr, frame);
-  }
+  fout[0] = 0.03; // Diffusivity [m^2/s].
 }
 
 int
@@ -514,56 +463,55 @@ main(int argc, char **argv)
 
   };
 
-
-  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
     // block 1 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .no_by = true,
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nu_frac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuElcInit,
+      .nu_frac = ctx.nu_frac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
     }, 
+
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
     .num_physical_bcs = 8,
     .bcs = elc_phys_bcs,
   };
-
 
   // Ion Species
   // all data is common across blocks
@@ -601,56 +549,55 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
     // block 1 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
-    .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
-    .no_by = true,
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nu_frac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuIonInit,
+      .nu_frac = ctx.nu_frac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
     }, 
   
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
     .num_physical_bcs = 8,
     .bcs = ion_phys_bcs,
   };
-
- 
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
@@ -658,16 +605,16 @@ main(int argc, char **argv)
     .polarization_bmag = 2.51,
   };
 
-  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
     // block 1 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 2 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     // block 3 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -679,128 +626,43 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_slab_2x2v_p1",
-
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
     .cfl_frac = 1.0,
-
     .gk_block_geom = bgeom,
-    
     .num_species = 2,
     .species = { elc, ion},
-
     .field = field,
-
     .comm = comm
   };
 
-  // Create app object.
-  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&app_inp);
-
-  double t_curr = 0.0, t_end = ctx.t_end; // Initial and final simulation times.
-  int frame_curr = 0; // Initialize simulation.
-
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, app_args.restart_frame);
-
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_type = GKYL_GK_MULTIB,
+    .multib_app_inp = app_inp,
+    .time_stepping = {
+      .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps,
+    },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 0.1,
+      .estimate_completion_time = true,
     }
+  };
 
-    frame_curr = status.frame;
-    t_curr = status.stime;
+  gkyl_gyrokinetic_run_simulation(&run_inp);
 
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
-  }
-
-  // Create triggers for IO.
-  int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(ctx.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
-
-  // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, app_args.is_restart, false, -1.0);
-  write_data(&trig_write_conf, &trig_write_phase, app, t_curr, app_args.is_restart, false);
-
-  // Compute initial guess of maximum stable time-step.
-  double dt = t_end - t_curr;
-
-  // Initialize small time-step check.
-  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
-  int num_failures = 0, num_failures_max = ctx.num_failures_max;
-
-  long step = 1;
-  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    if (!status.success) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
-      break;
-    }
-
-    t_curr += status.dt_actual;
-    dt = status.dt_suggested;
-
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
-    write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
-
-    if (dt_init < 0.0) {
-      dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
-      num_failures += 1;
-
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " num_failures = %d\n", num_failures);
-      if (num_failures >= num_failures_max) {
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
-        write_data(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
-        break;
-      }
-    }
-    else {
-      num_failures = 0;
-    }
-
-    step += 1;
-  }
-
-  gkyl_gyrokinetic_multib_app_stat_write(app);
-
-  // Fetch simulation statistics.
-  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_multib_app_stat(app);
-
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "\n");
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
-
-freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_multib_app_release(app);
-  gkyl_gyrokinetic_comms_release(comm);
   gkyl_gk_block_geom_release(bgeom);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

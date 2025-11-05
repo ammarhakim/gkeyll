@@ -743,7 +743,7 @@ euler_update_block_job_func(void* ctx)
   double t_curr = ub_ctx->t_curr;
   double dt = ub_ctx->dt;
 
-  ub_ctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], t_curr, dt, &bdata->range, bdata->f[d], bdata->f[d + 1]);
+  ub_ctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], t_curr, dt, &bdata->range, NULL, bdata->f[d], bdata->f[d + 1]);
 
   euler_block_bc_updaters_apply(bdata, t_curr, bdata->f[d + 1]);
 }

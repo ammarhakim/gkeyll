@@ -81,9 +81,9 @@ void gkyl_calc_metric_mirror_advance(
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1, gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1, gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
 }
 
 void 
@@ -105,7 +105,7 @@ gkyl_calc_metric_mirror_advance_interior( gkyl_calc_metric_mirror *up, struct gk
         const struct gkyl_mirror_grid_gen_geom *mirror_geo_n = gkyl_array_cfetch(mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_int, cidx));
 
         // Next fetch the gk_geometry nodal values at this location
-        double *mc2p_n = gkyl_array_fetch(gk_geom->geo_int.mc2p_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *mc2p_n = gkyl_array_fetch(gk_geom->geo_int.mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *gFld_n= gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
@@ -164,6 +164,15 @@ gkyl_calc_metric_mirror_advance_interior( gkyl_calc_metric_mirror *up, struct gk
         double Z = mc2p_n[Z_IDX];
         double phi = mc2p_n[PHI_IDX];
         double J = jFld_n[0];
+
+        // Calculate cartesian components of bhat
+        double bi[3];
+        bi[0] = gFld_n[2]/sqrt(gFld_n[5]);
+        bi[1] = gFld_n[4]/sqrt(gFld_n[5]);
+        bi[2] = gFld_n[5]/sqrt(gFld_n[5]);
+        bcartFld_n[0] = dualFld_n[0]*bi[0] + dualFld_n[3]*bi[1] + dualFld_n[6]*bi[2];
+        bcartFld_n[1] = dualFld_n[1]*bi[0] + dualFld_n[4]*bi[1] + dualFld_n[7]*bi[2];
+        bcartFld_n[2] = dualFld_n[2]*bi[0] + dualFld_n[5]*bi[1] + dualFld_n[8]*bi[2];
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);

@@ -81,7 +81,7 @@ writeList = [NW, NH,                                        #3i4
 
 #Header stuff
 header_fmt = "(a48,3i4)"
-label='AAAAAA'
+label='GKEYLL'
 creation_date = date.today().strftime("%d/%m/%Y")
 shot = int(0)
 time = int(0)

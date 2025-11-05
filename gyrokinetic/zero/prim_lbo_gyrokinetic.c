@@ -26,7 +26,7 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_prim_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis);
   } 
 #endif     
@@ -55,12 +55,11 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
       assert(false);
       break;    
   }
-  assert(cv_index[cdim].vdim[vdim] != -1);
-  assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-  assert(NULL != cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+  assert(NULL != self_prim_kernels[pdim-2].kernels[poly_order]);
+  assert(NULL != cross_prim_kernels[pdim-2].kernels[poly_order]);
     
-  prim_gyrokinetic->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-  prim_gyrokinetic->cross_prim = cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  prim_gyrokinetic->self_prim = self_prim_kernels[pdim-2].kernels[poly_order];
+  prim_gyrokinetic->cross_prim = cross_prim_kernels[pdim-2].kernels[poly_order];
 
   prim_gyrokinetic->prim.flag = 0;
   GKYL_CLEAR_CU_ALLOC(prim_gyrokinetic->prim.flag);
@@ -70,15 +69,3 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
     
   return &prim_gyrokinetic->prim;
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_prim_lbo_type*
-gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

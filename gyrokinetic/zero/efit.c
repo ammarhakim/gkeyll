@@ -38,7 +38,9 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // Get the dimensions
   size_t status;
 
-  status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
+  char header[49];   // case in eqdsk header
+  int idum; // idum in eqdsk header
+  status = fscanf(ptr, "%48c%4d%4d%4d", header, &idum, &up->nr, &up->nz);
 
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;

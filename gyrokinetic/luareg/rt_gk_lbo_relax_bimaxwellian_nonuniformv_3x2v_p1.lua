@@ -156,6 +156,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -196,6 +200,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -213,20 +221,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     femParBc = G0.ParProjBc.None,
 
     poissonBcs = {
-      lowerType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcDirichlet
-      },
-      upperType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcDirichlet
-      },
-      lowerValue = {
-        0.0, 0.0
-      },
-      upperValue = {
-        0.0, 0.0
-      }
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 1, edge = 0, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 1, edge = 1, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
     },
 
     zeroInitField = true, -- Don't compute the field at t = 0.

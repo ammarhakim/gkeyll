@@ -43,7 +43,7 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
 }
 
-void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield_1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -149,7 +149,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     bmag_ho = mkarr(false, bmag->ncomp, bmag->size);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
+    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -168,7 +168,7 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
-    .bfield_func = eval_bmag_1x,  .bfield_ctx = &proj_ctx,
+    .bfield_func = eval_bfield_1x,  .bfield_ctx = &proj_ctx,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,

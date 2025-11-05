@@ -70,9 +70,6 @@ gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *k
 
   int cdim = conf_skin_r.ndim;
 
-  const int num_basis_conf_surf = 8; // MF 2024/11/12: Hardcoded to 2x p2 for now.
-  const int num_basis_phase_surf = 24; // MF 2024/11/12: Hardcoded to 2x2v GkHybrid for now.
-
   // Loop over all points in the skin range using CUDA threads.
   for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x;
        linc < phase_ghost_r.volume; linc += blockDim.x * gridDim.x) {
@@ -92,14 +89,14 @@ gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *k
     const double *jacghost_surf_c = (const double *) gkyl_array_cfetch(jac_sync, clinidx_ghost);
 
     // Compute the reciprocal of the ghost cell jacobian.
-    double jacghost_surf_inv_c[num_basis_conf_surf];
+    double jacghost_surf_inv_c[8]; // MF 2024/11/12: Hardcoded to 2x p2 for now.
     kers->conf_inv_op(jacghost_surf_c, jacghost_surf_inv_c);
 
     long plinidx_ghost = gkyl_range_idx(&phase_ghost_r, gidx);
     double *jf_c = (double *) gkyl_array_fetch(jf, plinidx_ghost);
 
     // Deflate Jf in the ghost cell.
-    double jf_surf_c[num_basis_phase_surf];
+    double jf_surf_c[24]; // MF 2024/11/12: Hardcoded to 2x2v GkHybrid for now.
     kers->deflate_phase_ghost_op(jf_c, jf_surf_c);
 
     // Multiply the surface Jf by the surface 1/J_ghost and by the surface J_skin.

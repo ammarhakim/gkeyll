@@ -51,7 +51,7 @@ gkyl_gk_dg_geom_cu_dev_new_from_host(const struct gkyl_gk_dg_geom_inp *inp, stru
 
   dgg->flags = 0;
   GKYL_SET_CU_ALLOC(dgg->flags);
-  dgg->ref_count = gkyl_ref_count_init(dg_geom_free);
+  dgg->ref_count = gkyl_ref_count_init(gk_dg_geom_free);
 
   // Initialize the device geometry object
   struct gkyl_gk_dg_geom *dgg_cu = (struct gkyl_gk_dg_geom*) gkyl_cu_malloc(sizeof(struct gkyl_gk_dg_geom));

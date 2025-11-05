@@ -14,6 +14,7 @@ enum gkyl_wv_euler_rp {
 struct gkyl_wv_euler_inp {
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_euler_rp rp_type; // type of RP to use
+  struct gkyl_wv_embed_geo *embed_geo; // embedded geometry
   bool use_gpu; // Boolean to determine whether wave equation object is on host or device
 };
 

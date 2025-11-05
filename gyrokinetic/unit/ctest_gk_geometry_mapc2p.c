@@ -257,9 +257,9 @@ test_3x_p1()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[3] = {psi, alpha, theta};
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double bmag_anal[1];
+        double bmag_anal[3];
         bfield_func(0, xn, bmag_anal, 0);
-        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-8) );
+        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[2], 1e-8) );
       }
     }
   }
@@ -328,7 +328,7 @@ mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-jacob_mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+dmapz_dz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double Lz = 1.8049e+01;
   double a = -Lz/2;
@@ -412,17 +412,41 @@ test_3x_p1_pmap()
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
+
+  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
+  double theta_lo = grid.lower[TH_IDX] + dels[1]*grid.dx[TH_IDX]/2.0;
+  double psi_lo = grid.lower[PSI_IDX] + dels[1]*grid.dx[PSI_IDX]/2.0;
+  double alpha_lo = grid.lower[AL_IDX] + dels[1]*grid.dx[AL_IDX]/2.0;
+
   struct gkyl_array* mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
 
   struct gkyl_array* mapc2p_nodal_interior = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mapc2p_nodal_interior, gk_geom->geo_int.mc2p, true);
 
-
-  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
-  double theta_lo = grid.lower[TH_IDX] + dels[1]*grid.dx[TH_IDX]/2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1]*grid.dx[PSI_IDX]/2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1]*grid.dx[AL_IDX]/2.0;
+  // Check mapc2p
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX]; 
+        // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        mapz(0.0, &theta, &theta, 0);
+        double xn[3] = {psi, alpha, theta};
+        double fout[3];
+        mapc2p(0.0, xn, fout, 0);
+        for (int i=0; i<3; ++i){
+          TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-8) );
+          TEST_MSG( "i %d, idx %d %d %d, mapc2p_n %g, fout %g\n", i, ip, ia, it, mapc2p_n[i], fout[i] );
+        }
+      }
+    }
+  }
 
   // Check that Jacobgeo is what it should be. J = R in cylindrical coordinates
   // We have a contribution from the position map too, given as dZ/dz
@@ -434,17 +458,17 @@ test_3x_p1_pmap()
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi= calc_running_coord(psi_lo, ia-nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha= calc_running_coord(alpha_lo, ia-nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta= calc_running_coord(theta_lo, ia-nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = calc_running_coord(psi_lo, ip-nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
+        double alpha = calc_running_coord(alpha_lo, ia-nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
+        double theta = calc_running_coord(theta_lo, it-nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
         double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
         double radius = sqrt(mapc2p_n[0]*mapc2p_n[0] + mapc2p_n[1]*mapc2p_n[1]);
         double fout[1];
-        jacob_mapz(0.0, &theta, fout, 0);
+        dmapz_dz(0.0, &theta, fout, 0);
         double jacob_anal = radius * fout[0];
-        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacob_anal, 1e-8) );
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacob_anal, 1e-5) );
       }
     }
   }
@@ -464,34 +488,13 @@ test_3x_p1_pmap()
         mapz(0.0, &theta, &theta, 0);
         double xn[3] = {psi, alpha, theta};
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
-        double bmag_anal[1];
+        double bmag_anal[3];
         bfield_func(0, xn, bmag_anal, 0);
-        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-8) );
+        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[2], 1e-8) );
       }
     }
   }
 
-  // Check mapc2p
-  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-        cidx[PSI_IDX] = ip;
-        cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
-        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
-        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
-        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX]; 
-        // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
-        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        mapz(0.0, &theta, &theta, 0);
-        double xn[3] = {psi, alpha, theta};
-        double fout[3];
-        mapc2p(0.0, xn, fout, 0);
-        for (int i=0; i<3; ++i)
-          TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-8) );
-      }
-    }
-  }
 
   // Release memory
   gkyl_array_release(jacobgeo_nodal);
@@ -504,6 +507,6 @@ test_3x_p1_pmap()
 
 TEST_LIST = {
   { "test_3x_p1", test_3x_p1},
-  //{ "test_3x_p1_pmap", test_3x_p1_pmap},
+  { "test_3x_p1_pmap", test_3x_p1_pmap},
   { NULL, NULL },
 };

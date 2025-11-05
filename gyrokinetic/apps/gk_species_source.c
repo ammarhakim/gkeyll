@@ -4,6 +4,7 @@
 void
 gk_species_source_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // Empty.
 }
 
 void
@@ -45,6 +46,7 @@ gk_species_source_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *
 void
 gk_species_source_write_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // Empty.
 }
 
 void
@@ -68,7 +70,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
     // Rescale moment by inverse of Jacobian. 
     // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
     // the density (the 0th component).
-    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->basis, 
+    gkyl_dg_div_op_range(gks->src.moms[m].mem_geo, app->basis, 
       0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
       app->gk_geom->geo_int.jacobgeo, &app->local);      
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -104,6 +106,7 @@ gk_species_source_write_mom_init_only(gkyl_gyrokinetic_app* app, struct gk_speci
 void
 gk_species_source_calc_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
+  // Empty.
 }
 
 void
@@ -142,8 +145,20 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
     for (int k=0; k<num_mom; k++)
       avals_global[k] = avals_global_prev[k] + tau*avals_global[k];
   }
-
   gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
+
+  if (gks->src.num_adapt_sources > 0) {
+
+    // Adaptive sources diagnostic.
+    double temp[gks->src.num_adapt_sources];
+    double part[gks->src.num_adapt_sources];
+    for (int k=0; k < gks->src.num_adapt_sources; ++k) {
+      temp[k] = gks->src.adapt[k].temperature_curr;
+      part[k] = gks->src.adapt[k].particle_src_curr;
+    }
+    gkyl_dynvec_append(gks->src.part_diag, tm, part);
+    gkyl_dynvec_append(gks->src.temp_diag, tm, temp);
+  }
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
@@ -152,6 +167,7 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
 void
 gk_species_source_write_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
+  // empty
 }
 
 void
@@ -179,6 +195,44 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
   }
   gkyl_dynvec_clear(gks->src.integ_diag);
 
+  if (gks->src.num_adapt_sources > 0) {
+    if (rank == 0) {
+      // Write out particle diagnostics for adaptive sources.
+      const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "particle");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
+
+      if (gks->src.is_first_integ_write_call) {
+        gkyl_dynvec_write(gks->src.part_diag, fileNm);
+        gks->src.is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(gks->src.part_diag, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gks->src.part_diag);
+
+    if (rank == 0) {
+      // Write out temperature diagnostics for adaptive sources.
+      const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "temperature");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
+
+      if (gks->src.is_first_integ_write_call) {
+        gkyl_dynvec_write(gks->src.temp_diag, fileNm);
+        gks->src.is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(gks->src.temp_diag, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gks->src.temp_diag);
+  }
+
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag_io += 1;
 }
@@ -199,49 +253,63 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm) 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm) 
 {  
   struct timespec wst = gkyl_wall_clock();
 
-  src->adapt_func(app, s, src, f_buffer, tm);
+  src->adapt_func(app, s, src, f_buffer, bflux_moms, tm);
   
   app->stat.species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void 
 gk_species_source_adapt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm)
-{}
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
+{
+  // Empty.
+}
 
 static void
-gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm) 
+gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
 {
   for (int k=0; k < s->info.source.num_adapt_sources; ++k) {
     struct gk_adapt_source *adapt_src = &src->adapt[k];
     struct gk_species *s_adapt = adapt_src->adapt_species;
+    struct gkyl_array **s_adapt_bflux_moms = bflux_moms[adapt_src->adapt_species_idx];
 
-    adapt_src->particle_rate_loss = 0.0;
-    adapt_src->energy_rate_loss = 0.0;
-    int num_mom = adapt_src->integ_threemoms.num_mom;
-    // Accumulate energy and particle losses through the boundaries considered by the current adaptive source.
+    // Accumulate energy and particle losses through the boundaries.
+    double sum_particle_loss_local = 0.0;
+    double sum_energy_loss_local = 0.0;
     for (int j=0; j < adapt_src->num_boundaries; ++j) {
-      // Compute the moment of the bflux to get the integrated loss.
-      gk_species_bflux_get_flux(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source, &adapt_src->boundaries_phase_ghost[j]);
-      gk_species_moment_calc(&adapt_src->integ_threemoms, adapt_src->boundaries_phase_ghost[j], adapt_src->boundaries_conf_ghost[j], src->source);
-      app->stat.n_mom += 1;
-      
-      // Reduce the moment over the specified range and store it in the global array.
-      double red_int_mom_global[num_mom];
-      gkyl_array_reduce_range(adapt_src->red_integ_mom, adapt_src->integ_threemoms.marr, GKYL_SUM, &adapt_src->boundaries_conf_ghost[j]);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, adapt_src->red_integ_mom, adapt_src->red_integ_mom_global);
-      if (app->use_gpu)
-        gkyl_cu_memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-      else
-        memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]));
-      adapt_src->particle_rate_loss += red_int_mom_global[0] * adapt_src->mass_ratio; // n
-      adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1] * adapt_src->mass_ratio; // 1/2 * m * v^2
+
+      double integ_m0_local_j, integ_m2_local_j; // Integrated boundary flux moments summed over boundaries.
+
+      gk_species_bflux_get_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
+        GKYL_F_MOMENT_M0, s_adapt_bflux_moms, adapt_src->bflux_m0, &adapt_src->boundaries_conf_ghost[j]);
+      gk_species_bflux_get_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
+        GKYL_F_MOMENT_M2, s_adapt_bflux_moms, adapt_src->bflux_m2, &adapt_src->boundaries_conf_ghost[j]);
+
+      // Integrate the boundary flux moments to get the total loss through the j-th boundary.
+      gkyl_array_integrate_advance(adapt_src->integrate_op, adapt_src->bflux_m0, 1.0, 0,
+        &adapt_src->boundaries_conf_ghost[j], 0, adapt_src->integ_m0);
+      gkyl_array_integrate_advance(adapt_src->integrate_op, adapt_src->bflux_m2, 1.0, 0,
+        &adapt_src->boundaries_conf_ghost[j], 0, adapt_src->integ_m2);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(&integ_m0_local_j, adapt_src->integ_m0, sizeof(double), GKYL_CU_MEMCPY_D2H);
+        gkyl_cu_memcpy(&integ_m2_local_j, adapt_src->integ_m2, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        memcpy(&integ_m0_local_j, adapt_src->integ_m0, sizeof(double));
+        memcpy(&integ_m2_local_j, adapt_src->integ_m2, sizeof(double));
+      }
+      // Accumulate to the total losses.
+      sum_particle_loss_local += integ_m0_local_j; // n
+      sum_energy_loss_local += 0.5 * s_adapt->info.mass * integ_m2_local_j; // 1/2 * m * v^2
     }
+    // Sum over all MPI processes.
+    double total_particle_loss, total_energy_loss;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_particle_loss_local, &adapt_src->particle_rate_loss);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_energy_loss_local, &adapt_src->energy_rate_loss);
 
     double particle_input = s->info.source.projection[k].total_num_particles;
     double energy_input = s->info.source.projection[k].total_kin_energy;
@@ -260,7 +328,8 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
-    double temperature_new = 2./3. * energy_src_new/particle_src_new;
+    const double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
+    double temperature_new = (2./vdim_phys) * energy_src_new/particle_src_new;
 
     // Impose the temperature to be within the limits.  
     temperature_new = fmin(temperature_new, s->info.source.projection[k].temp_max);
@@ -281,6 +350,15 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
   // Reproject the source
   gk_species_source_calc(app, s, &s->src, f_buffer, tm);
+}
+
+static void 
+gk_species_source_adapt_after_first_step(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
+{
+  // Re-point to the function that adapts the source, so it doesn't happen the
+  // first time we call gk_species_source_adapt.
+  src->adapt_func = gk_species_source_adapt_enabled;
 }
 
 void 
@@ -365,8 +443,16 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     // Set up the adaptive source.
     src->num_adapt_sources = s->info.source.num_adapt_sources;
     assert(src->num_adapt_sources <= src->num_sources); // Adaptive source should be a subset of the sources.
-    if(src->num_adapt_sources > 0){
-      src->adapt_func = gk_species_source_adapt_dynamic;
+    if (src->num_adapt_sources > 0){
+      assert(s->info.vdim > 1); // MF 2025/10/24: hasn't been tested in 1v.
+      src->adapt_func = gk_species_source_adapt_after_first_step;
+
+      if (src->num_diag_int_mom > 0){
+        // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
+        src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+        src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+      }
+
       for (int k = 0; k < src->num_adapt_sources; ++k) {
         // Adaptive source must be a Maxwellian Gaussian projection.
         assert(src->proj_source[k].proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN);
@@ -378,25 +464,34 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_to_species);
         assert(adapt_src->adapt_species != NULL); // Make sure the adaptive species is found.
-
-        adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
+        adapt_src->adapt_species_idx = gk_find_species_idx(app, adapt_src->adapt_species->info.name);
 
         adapt_src->particle_src_curr = s->info.source.projection[k].total_num_particles;
         adapt_src->energy_src_curr = s->info.source.projection[k].total_kin_energy;
         // The temperature computation makes sense only if we inject particles.
+        const double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
-          2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
+          (2./vdim_phys) * adapt_src->energy_src_curr/adapt_src->particle_src_curr : s->info.source.projection[k].temp_min;
 
-        gk_species_moment_init(app, s, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
+        gk_species_moment_init(app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
+
+        // Initialize the infrastructure to compute integrated moments of the boundary fluxes.
+        adapt_src->bflux_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+        adapt_src->bflux_m2 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+        adapt_src->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
 
         int num_mom = adapt_src->integ_threemoms.num_mom;
         if (app->use_gpu){
           adapt_src->red_integ_mom = gkyl_cu_malloc(sizeof(double[num_mom]));
           adapt_src->red_integ_mom_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+          adapt_src->integ_m0 = gkyl_cu_malloc(sizeof(double));
+          adapt_src->integ_m2 = gkyl_cu_malloc(sizeof(double));
         }
         else {
           adapt_src->red_integ_mom = gkyl_malloc(sizeof(double[num_mom]));
           adapt_src->red_integ_mom_global = gkyl_malloc(sizeof(double[num_mom]));
+          adapt_src->integ_m0 = gkyl_malloc(sizeof(double));
+          adapt_src->integ_m2 = gkyl_malloc(sizeof(double));
         }
 
         adapt_src->num_boundaries = s->info.source.adapt[k].num_boundaries;
@@ -411,11 +506,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
           assert(is_dir_periodic[dir] == 0);
           if (edge == GKYL_LOWER_EDGE) {
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
-          } else {
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
-            assert(s->upper_bc[dir].type != GKYL_SPECIES_REFLECT);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->lower_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
+          } else {                                     
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_ZERO_FLUX);
+            assert(s->upper_bc[dir].type != GKYL_BC_GK_SPECIES_REFLECT);
           }
 
           // Default scenario: we set the ranges to the full range of the ghost cells.
@@ -425,7 +520,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) 
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
           {
             adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
             adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
@@ -503,16 +598,27 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_dynvec_release(src->integ_diag);
     }
     if (src->num_adapt_sources > 0) {
+      if (src->num_diag_int_mom > 0){
+        gkyl_dynvec_release(src->part_diag);
+        gkyl_dynvec_release(src->temp_diag);
+      }
       for (int k=0; k < src->num_adapt_sources; ++k) {
         const struct gk_adapt_source *adapt_src = &src->adapt[k];
         gk_species_moment_release(app, &adapt_src->integ_threemoms);
+        gkyl_array_integrate_release(adapt_src->integrate_op);
+        gkyl_array_release(adapt_src->bflux_m0);
+        gkyl_array_release(adapt_src->bflux_m2);
         if (app->use_gpu) {
           gkyl_cu_free(adapt_src->red_integ_mom);
           gkyl_cu_free(adapt_src->red_integ_mom_global);
+          gkyl_cu_free(adapt_src->integ_m0);
+          gkyl_cu_free(adapt_src->integ_m2);
         }
         else {
           gkyl_free(adapt_src->red_integ_mom);
           gkyl_free(adapt_src->red_integ_mom_global);
+          gkyl_free(adapt_src->integ_m0);
+          gkyl_free(adapt_src->integ_m2);
         }
       }
     }

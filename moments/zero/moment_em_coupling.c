@@ -113,6 +113,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->gr_twofluid_charge_ion = inp.gr_twofluid_charge_ion;
     mom_em->gr_twofluid_gas_gamma_elc = inp.gr_twofluid_gas_gamma_elc;
     mom_em->gr_twofluid_gas_gamma_ion = inp.gr_twofluid_gas_gamma_ion;
+    mom_em->gr_twofluid_e_fact = inp.gr_twofluid_e_fact;
+  }
+
+  mom_em->has_gr_mhd_sources = inp.has_gr_mhd_sources;
+  if (mom_em->has_gr_mhd_sources) {
+    mom_em->gr_mhd_gas_gamma = inp.gr_mhd_gas_gamma;
   }
 
   return mom_em;

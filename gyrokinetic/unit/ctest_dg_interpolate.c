@@ -781,7 +781,7 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
 }
 
-void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield_1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -793,7 +793,7 @@ void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[2] = B0;
 }
 
-void eval_bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -805,7 +805,7 @@ void eval_bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[2] = B0;
 }
 
-void eval_bmag_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_bfield_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -851,7 +851,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.0, 0.0, 0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
-    .bfield_func = cdim==1? eval_bmag_1x : (cdim==2? eval_bmag_2x : eval_bmag_3x),  .bfield_ctx = bfield_ctx,
+    .bfield_func = cdim==1? eval_bfield_1x : (cdim==2? eval_bfield_2x : eval_bfield_3x),  .bfield_ctx = bfield_ctx,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
@@ -974,7 +974,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
                                       : gkyl_array_acquire(bmag);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
+    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -1163,7 +1163,7 @@ void eval_distf_1x2v_gk(double t, const double *xn, double* restrict fout, void 
   double vtsq = temp/mass;
 
   double bmag[1] = {-1.0};
-  eval_bmag_1x(t, xn, bmag, ctx);
+  eval_bfield_1x(t, xn, bmag, ctx);
 
   fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
 }
@@ -1247,7 +1247,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
                                       : gkyl_array_acquire(bmag);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
+    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -1433,7 +1433,7 @@ void eval_distf_2x2v_gk(double t, const double *xn, double* restrict fout, void 
   double vtsq = temp/mass;
 
   double bmag[1] = {-1.0};
-  eval_bmag_2x(t, xn, bmag, ctx);
+  eval_bfield_2x(t, xn, bmag, ctx);
 
   fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
 }
@@ -1526,7 +1526,7 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
                                       : gkyl_array_acquire(bmag);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag_2x, &proj_ctx);
+    poly_order+1, 1, eval_bfield_2x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -1712,7 +1712,7 @@ void eval_distf_3x2v_gk(double t, const double *xn, double* restrict fout, void 
   double vtsq = temp/mass;
 
   double bmag[1] = {-1.0};
-  eval_bmag_3x(t, xn, bmag, ctx);
+  eval_bfield_3x(t, xn, bmag, ctx);
 
   fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
 }
@@ -1819,7 +1819,7 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
                                       : gkyl_array_acquire(bmag);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag_3x, &proj_ctx);
+    poly_order+1, 1, eval_bfield_3x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
