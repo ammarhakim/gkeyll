@@ -19,8 +19,10 @@ extern "C" {
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range,
   const struct gkyl_array* conf_basis_at_ords, int vdim, const struct gkyl_array* h_ij,
-  const struct gkyl_array* h_ij_inv, const struct gkyl_array* det_h, 
-  struct gkyl_array* h_ij_quad_d, struct gkyl_array* h_ij_inv_quad_d, struct gkyl_array* det_h_quad_d)
+  const struct gkyl_array* h_ij_inv, const struct gkyl_array* det_h, const bool use_extended_hamil_def, 
+  const struct gkyl_array* background_flows, const struct gkyl_array* effective_potential, struct gkyl_array* h_ij_quad_d, 
+  struct gkyl_array* h_ij_inv_quad_d, struct gkyl_array* det_h_quad_d, struct gkyl_array* background_flows_quad_d, 
+  struct gkyl_array* effective_potential_quad_d)
 {    
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
@@ -51,20 +53,45 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range
         }
       }
     }
+
+    if (use_extended_hamil_def) {
+      const double *background_flows_d = (const double*) gkyl_array_cfetch(background_flows, lincC);
+      const double *effective_potential_d = (const double*) gkyl_array_cfetch(effective_potential, lincC);
+      double *background_flows_quad = (double*) gkyl_array_fetch(background_flows_quad_d, lincC);
+      double *effective_potential_quad = (double*) gkyl_array_fetch(effective_potential_quad_d, lincC);
+
+      // Sum over basis for the geometric quantities at configuration-space quadrature points. 
+      for (int n=0; n<tot_conf_quad; ++n) {
+        const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, n);
+
+        for (int k=0; k<num_conf_basis; ++k) {
+          effective_potential_quad[n] += effective_potential_d[k]*b_ord[k];
+          for (int j=0; j<vdim; ++j) {
+            background_flows_quad[tot_conf_quad*j + n] += background_flows_d[num_conf_basis*j+k]*b_ord[k];
+          }
+        }
+      }
+    }
+
   }
 }
 
 void 
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
   const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h)
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h, 
+  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential)
 {
   int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
-    up->conf_basis_at_ords->on_dev, vdim, h_ij->on_dev,
-    h_ij_inv->on_dev, det_h->on_dev, up->h_ij_quad->on_dev,
-    up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev);
+    up->conf_basis_at_ords->on_dev, vdim, 
+    h_ij->on_dev, h_ij_inv->on_dev, det_h->on_dev, up->use_extended_hamil_def,
+    up->use_extended_hamil_def ? background_flows->on_dev : 0,
+    up->use_extended_hamil_def ? effective_potential->on_dev : 0,
+    up->h_ij_quad->on_dev, up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev,
+    up->use_extended_hamil_def ? up->background_flows_quad->on_dev : 0,
+    up->use_extended_hamil_def ? up->effective_potential_quad->on_dev : 0);
 }
 
 static void
@@ -140,6 +167,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
   const struct gkyl_array* moms_lte_quad, const struct gkyl_array* expamp_quad, 
   const struct gkyl_array* h_ij_inv_quad, 
   const int *p2c_qidx, const int *p2v_qidx, bool is_relativistic, bool is_canonical_pb, 
+  bool use_extended_hamil_def, struct gkyl_array* background_flows, struct gkyl_array* effective_potential,
   bool use_vmap, struct gkyl_array* vmap, struct gkyl_array* jacob_vel_gauss, struct gkyl_basis* vmap_basis, 
   struct gkyl_array* f_lte_quad)
 {
@@ -219,6 +247,10 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
       else if (is_canonical_pb) {
         // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j
         const double *h_ij_inv_quad_d = (const double*) gkyl_array_cfetch(h_ij_inv_quad, lincC);
+        const double *background_flows_quad;
+        if (use_extended_hamil_def) {
+          background_flows_quad =  (const double*) gkyl_array_cfetch(up->background_flows_quad, midx);
+        }
         double efact = 0.0;
         for (int d0=0; d0<vdim; ++d0) {
           for (int d1=d0; d1<vdim; ++d1) {
@@ -229,7 +261,13 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
             double h_ij_inv_loc = h_ij_inv_quad_d[tot_conf_quad*sym_tensor_index + cqidx]; 
             // For off-diagonal components, we need to count these twice, due to symmetry
             int sym_fact = (d0 == d1) ? 1 : 2;
-            efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[tot_conf_quad*d0 + cqidx])*(xmu[cdim+d1]-V_drift_quad[tot_conf_quad*d1 + cqidx]);
+            if (use_extended_hamil_def) {
+              efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[tot_conf_quad*d0 + cqidx] - background_flows_quad[tot_conf_quad*d0 + cqidx])
+                *(xmu[cdim+d1]-V_drift_quad[tot_conf_quad*d1 + cqidx] - background_flows_quad[tot_conf_quad*d1 + cqidx]);
+            }
+            else {
+              efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[tot_conf_quad*d0 + cqidx])*(xmu[cdim+d1]-V_drift_quad[tot_conf_quad*d1 + cqidx]);
+            }
           }
         }
         fq[linc2] += expamp_quad_d[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
@@ -272,6 +310,8 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
     up->p2c_qidx, up->p2v_qidx, up->is_relativistic, up->is_canonical_pb, 
+    up->use_extended_hamil_def, up->use_extended_hamil_def ? up->background_flows->on_dev : 0,
+    up->use_extended_hamil_def ? up->effective_potential->on_dev : 0,
     up->use_vmap, up->use_vmap ? up->vmap->on_dev : 0,
     up->use_vmap ? up->jacob_vel_gauss->on_dev : 0,
     up->use_vmap ? up->vmap_basis_on_dev : 0, up->f_lte_quad->on_dev);

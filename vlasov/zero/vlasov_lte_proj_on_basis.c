@@ -161,13 +161,14 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
 static void
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up, 
   const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h)
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h,
+  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential)
 {
 // Setup the intial geometric vars, on GPU 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range, h_ij,
-      h_ij_inv, det_h);
+      h_ij_inv, det_h, background_flows, effective_potential);
 #endif
 
   // Otherwise run the CPU Version to setup h_ij, h_ij_inv, det_h
@@ -201,6 +202,26 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up,
         for (int j=0; j<vdim*(vdim+1)/2; ++j) {
           h_ij_quad[tot_conf_quad*j + n] += h_ij_d[num_conf_basis*j+k]*b_ord[k];
           h_ij_inv_quad[tot_conf_quad*j + n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+        }
+      }
+    }
+
+    // Geometry for the extended can-pb when H has time-independant but spatially varying potentials
+    if ( up->use_extended_hamil_def ) {
+      const double *background_flows_d = gkyl_array_cfetch(background_flows, midx);
+      const double *effective_potential_d = gkyl_array_cfetch(effective_potential, midx);
+      double *background_flows_quad = gkyl_array_fetch(up->background_flows_quad, midx);
+      double *effective_potential_quad = gkyl_array_fetch(up->effective_potential_quad, midx);
+
+      // Sum over basis 
+      for (int n=0; n<tot_conf_quad; ++n) {
+        const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+        for (int k=0; k<num_conf_basis; ++k) {
+          effective_potential_quad[n] += effective_potential_d[k]*b_ord[k];
+          for (int j=0; j<vdim; ++j) {
+            background_flows_quad[tot_conf_quad*j + n] += background_flows_d[num_conf_basis*j+k]*b_ord[k];
+          }
         }
       }
     }
@@ -355,6 +376,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->is_relativistic = true;
   }
 
+  // Flag for using the extended hamiltonian defintion which includes background flows
+  up->use_extended_hamil_def = inp->use_extended_hamil_def;
+
   up->is_canonical_pb = false;
   if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     up->is_canonical_pb = true;
@@ -367,6 +391,12 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
         up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
         up->tot_conf_quad, inp->conf_range_ext->volume);
+      if (up->use_extended_hamil_def) {
+        up->background_flows_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+          up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
+        up->effective_potential_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+          up->tot_conf_quad, inp->conf_range_ext->volume);
+      }
     }
     else {
       up->h_ij_quad = gkyl_array_new(GKYL_DOUBLE, 
@@ -375,11 +405,23 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
         up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, 
         up->tot_conf_quad, inp->conf_range_ext->volume);
+      if (up->use_extended_hamil_def) {
+        up->background_flows_quad = gkyl_array_new(GKYL_DOUBLE, 
+          up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
+        up->effective_potential_quad = gkyl_array_new(GKYL_DOUBLE, 
+          up->tot_conf_quad, inp->conf_range_ext->volume);
+      }
     }
     gkyl_array_clear(up->h_ij_quad, 0.0); 
     gkyl_array_clear(up->h_ij_inv_quad, 0.0); 
     gkyl_array_clear(up->det_h_quad, 0.0); 
-    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij, inp->h_ij_inv, inp->det_h);
+    if (up->use_extended_hamil_def) {
+      gkyl_array_clear(up->background_flows_quad, 0.0); 
+      gkyl_array_clear(up->effective_potential_quad, 0.0); 
+    }
+    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij, inp->h_ij_inv, inp->det_h, 
+      inp->use_extended_hamil_def ? inp->background_flows : 0,
+      inp->use_extended_hamil_def ? inp->effective_potential : 0);
   }
 
   up->is_bimaxwellian = inp->is_bimaxwellian; 
@@ -405,6 +447,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
+    .use_extended_hamil_def = inp->use_extended_hamil_def,
+    .effective_potential = inp->effective_potential,
     .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );
@@ -591,6 +635,10 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
           else if (up->is_canonical_pb) {
             // Assumes a (particle) hamiltonian in canocial form: H = 1/2 g^{ij} p_i p_j
             const double *h_ij_inv_quad = gkyl_array_cfetch(up->h_ij_inv_quad, midx);
+            const double *background_flows_quad;
+            if (up->use_extended_hamil_def) {
+              background_flows_quad = gkyl_array_cfetch(up->background_flows_quad, midx);
+            }
             double efact = 0.0;
             for (int d0=0; d0<vdim; ++d0) {
               for (int d1=d0; d1<vdim; ++d1) {
@@ -601,7 +649,14 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
                 double h_ij_inv_loc = h_ij_inv_quad[tot_conf_quad*sym_tensor_index + cqidx]; 
                 // For off-diagnol components, we need to count these twice, due to symmetry
                 int sym_fact = (d0 == d1) ? 1 : 2;
-                efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
+                if (up->use_extended_hamil_def) {
+                  //printf(" (d0: %d, d1: %d) background_flows_quad[tot_conf_quad*d0 + cqidx]: %1.16e, background_flows_quad[tot_conf_quad*d1 + cqidx]: %1.16e\n",d0, d1, background_flows_quad[tot_conf_quad*d0 + cqidx], background_flows_quad[tot_conf_quad*d1 + cqidx]);
+                  efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0]-background_flows_quad[tot_conf_quad*d0 + cqidx]) 
+                    * (xmu[cdim+d1]-V_drift_quad[cqidx][d1]-background_flows_quad[tot_conf_quad*d1 + cqidx]);
+                }
+                else {
+                  efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0]) * (xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
+                }
               }
             }
             fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
@@ -656,6 +711,10 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_array_release(up->h_ij_quad);
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
+    if (up->use_extended_hamil_def) {
+      gkyl_array_release(up->background_flows_quad);
+      gkyl_array_release(up->effective_potential_quad);
+    }
   }
 
   if (up->use_gpu) {

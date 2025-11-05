@@ -73,6 +73,8 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
+    .use_extended_hamil_def = inp->use_extended_hamil_def,
+    .effective_potential = inp->effective_potential,
     .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );
@@ -102,6 +104,9 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,  
     .det_h = inp->det_h,
+    .use_extended_hamil_def = inp->use_extended_hamil_def,
+    .background_flows = inp->background_flows,
+    .effective_potential = inp->effective_potential,
     .use_gpu = inp->use_gpu,
   };
   up->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );

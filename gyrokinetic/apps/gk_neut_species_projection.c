@@ -50,6 +50,8 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       .det_h = app->gk_geom->geo_int.jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
+      .use_vel = false,
+      .use_extended_hamil_def = false,
       .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -71,6 +73,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,	
         .model_id = s->model_id,
+        .use_extended_hamil_def = false,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
         .eps = 1e-12,

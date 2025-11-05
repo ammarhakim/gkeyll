@@ -218,6 +218,8 @@ test_2x2v(int poly_order)
     .hamil = hamil,
     .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_vmap = false,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
@@ -241,6 +243,7 @@ test_2x2v(int poly_order)
     .hamil = hamil,
     .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
@@ -268,6 +271,8 @@ test_2x2v(int poly_order)
     .hamil = hamil,
     .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_vmap = false,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );

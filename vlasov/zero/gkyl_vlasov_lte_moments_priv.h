@@ -18,6 +18,7 @@ struct gkyl_vlasov_lte_moments
   int num_conf_basis; // Number of configuration-space basis functions
   int vdim; // Number of velocity dimensions
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
+  bool use_extended_hamil_def; // can-pb quantity: Determines if we are using an extended can-pb hamiltonian
 
   struct gkyl_array *M0; 
   struct gkyl_array *M1i;  
@@ -50,6 +51,8 @@ struct gkyl_vlasov_lte_moments
       struct gkyl_dg_calc_canonical_pb_vars *can_pb_vars;
       struct gkyl_array *M1i_cov;  
       struct gkyl_array *V_drift_cov;
+      struct gkyl_array *M0_V; 
+      struct gkyl_array *effective_potential; 
     };
   };
 };

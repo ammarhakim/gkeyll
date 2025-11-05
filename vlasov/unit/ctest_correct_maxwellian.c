@@ -169,6 +169,8 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .use_vmap = false,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
@@ -188,6 +190,8 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .use_vmap = false,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
@@ -206,6 +210,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,

@@ -29,6 +29,8 @@ struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_array *h_ij; // Can-pb quantity: metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // Can-pb quantity: Inverse metric tensor (contravaraint components)
   const struct gkyl_array *det_h; // Can-pb quantity: determinant of the metric tensor
+  bool use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian
+  const struct gkyl_array *effective_potential; // Can-pb quantity: specified effective potential 
   bool use_gpu; // bool for gpu useage
 };
 

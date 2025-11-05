@@ -35,6 +35,9 @@ struct gkyl_vlasov_lte_correct_inp {
   enum gkyl_quad_type quad_type; // type of quadrature to use: defaults to Gaussian
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge. 
+  bool use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian
+  const struct gkyl_array *background_flows; // Can-pb quantity: Background flows for extended hamiltonians
+  const struct gkyl_array *effective_potential; // Can-pb quantity: specified effective potential 
   bool use_gpu; // bool for gpu usage
   double eps; // tolerance for the iterator
   int max_iter; // number of total iterations

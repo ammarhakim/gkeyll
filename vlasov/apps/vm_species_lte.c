@@ -31,6 +31,9 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
     .h_ij = vms->h_ij,
     .h_ij_inv = vms->h_ij_inv,
     .det_h = vms->det_h,
+    .use_extended_hamil_def = vms->use_extended_hamil_def,
+    .background_flows = vms->background_flows,
+    .effective_potential = vms->effective_potential,
     .use_gpu = app->use_gpu,
   };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -62,6 +65,9 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
       .h_ij = vms->h_ij,
       .h_ij_inv = vms->h_ij_inv,
       .det_h = vms->det_h,
+      .use_extended_hamil_def = vms->use_extended_hamil_def,
+      .background_flows = vms->background_flows,
+      .effective_potential = vms->effective_potential,
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,

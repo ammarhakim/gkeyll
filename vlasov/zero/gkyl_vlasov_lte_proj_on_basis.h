@@ -33,6 +33,9 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor
+  bool use_extended_hamil_def; // (Can-pb) quantity, bool to determine if we wish to use an extended can-pb Hamil
+  const struct gkyl_array *background_flows; // (Can-bp quantity) background flows from the geometry (i.e. constant rotation)
+  const struct gkyl_array *effective_potential; // (Can-bp quantity) background effective potential from the geometry (i.e. constant rotation effective potential)
   bool is_bimaxwellian; // Are we projecting a bi-Maxwellian?
   bool use_gpu; // bool for gpu useage
 
@@ -76,7 +79,8 @@ void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
  */
 void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
   const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h, 
+  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential);
 
 /**
  * Host-side wrapper for projection of LTE distribution function on device

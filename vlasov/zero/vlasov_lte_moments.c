@@ -24,6 +24,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
   up->num_conf_basis = inp->conf_basis->num_basis;
   up->vdim = up->phase_basis.ndim - up->conf_basis.ndim;
   up->model_id = inp->model_id;
+  up->use_extended_hamil_def = inp->use_extended_hamil_def;
 
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
@@ -109,6 +110,18 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       up->M1i_cov = gkyl_array_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
       up->V_drift_cov = gkyl_array_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
     }
+
+    // Variables needed for extended hamiltonians 
+    if (up->use_extended_hamil_def) {
+      up->effective_potential = gkyl_array_acquire(inp->effective_potential);
+      if (inp->use_gpu) {
+        up->M0_V = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
+      }
+      else {
+        up->M0_V = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
+      }
+    }
+
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel
     up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
   }
@@ -200,11 +213,19 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
 
       // Compute MEnergy
       gkyl_mom_calc_advance(lte_moms->Pcalc, phase_local, conf_local, fin, lte_moms->energy_moment);
-      // Take covaraint momentum components and M1i components
-      // Solve for d*P*Jv: d*P*Jv = 2*E - n*h^{ij}*u_i*u_j 
-      //                          = 2*E - h^{ij}*M1_i*V_drift_j 
+      // Take covaraint momentum components and M1i components: V = 0 for non-extended can-pb cases
+      // Solve for d*P*Jv: d*P*Jv + 2(Jv*n*V)  = 2*E - Jv*n*h^{ij}*u_i*u_j 
+      //                                       = 2*E - h^{ij}*M1_i*V_drift_j
       gkyl_canonical_pb_pressure(lte_moms->can_pb_vars, conf_local, lte_moms->h_ij_inv, lte_moms->energy_moment,
         lte_moms->V_drift_cov, lte_moms->M1i_cov, lte_moms->pressure);
+
+      // Subtract off the effective potential in place
+      //d*P*Jv = (d*P*Jv + 2(Jv*n*V)) - 2(Jv*n*V)
+      if (lte_moms->use_extended_hamil_def) {
+        gkyl_dg_mul_op_range(lte_moms->conf_basis, 0, lte_moms->M0_V, 0, lte_moms->M0, 0, lte_moms->effective_potential, conf_local);
+        gkyl_array_accumulate_range(lte_moms->pressure, -2.0, lte_moms->M0_V, conf_local);
+      }
+
       // Rescale pressure by 2.0/vdim and set the first component of moms_out to be the density. 
       gkyl_array_scale(lte_moms->pressure, 1.0/vdim);
     }
@@ -253,6 +274,10 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   gkyl_array_release(lte_moms->pressure);
   gkyl_array_release(lte_moms->temperature);
   gkyl_dg_bin_op_mem_release(lte_moms->mem);
+  if (lte_moms->use_extended_hamil_def) {
+    gkyl_array_release(lte_moms->M0_V);
+    gkyl_array_release(lte_moms->effective_potential);
+  }
   if (lte_moms->model_id == GKYL_MODEL_SR) {
     gkyl_dg_calc_sr_vars_release(lte_moms->sr_vars);
     gkyl_array_release(lte_moms->V_drift_sq);

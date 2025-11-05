@@ -84,6 +84,10 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes, contravariant components
   struct gkyl_array *det_h_quad; // metric determinant at configuration-space quadrature nodes
 
+  bool use_extended_hamil_def; // (Can-pb) quantity, bool to determine if we wish to use an extended can-pb Hamil
+  struct gkyl_array *background_flows_quad; // (Can-bp quantity) background flows from the geometry (i.e. constant rotation)
+  struct gkyl_array *effective_potential_quad; // (Can-bp quantity) background effective potential from the geometry (i.e. constant rotation effective potential)
+
   bool use_vmap;
   struct gkyl_array *vmap; 
   struct gkyl_array *jacob_vel_gauss; 

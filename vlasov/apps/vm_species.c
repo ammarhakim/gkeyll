@@ -84,7 +84,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
       &vms->grid, &vms->local, vms->basis, inp_triad_geom, vms->conf_poisson_tensor_host);
 
-    // Copy h_ij, h_ij_inv, and det_h, Pi_conf onto the device.
+    // Copy Pi_conf onto the device.
     if (app->use_gpu) {
       gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host); 
     }
@@ -120,6 +120,24 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       vms->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
+    // Determine if we are using the extended Hamiltonian defintion
+    vms->use_extended_hamil_def = vms->info.use_extended_hamil_def;
+    if (vms->use_extended_hamil_def) {
+      // Allocate arrays for background flows
+      vms->background_flows = mkarr(app->use_gpu, app->basis.num_basis*vdim, app->local_ext.volume);
+      vms->background_flows_host = vms->background_flows;
+      if (app->use_gpu){
+        vms->background_flows_host = mkarr(false, app->basis.num_basis*vdim, app->local_ext.volume);
+      }
+
+      // Allocate arrays for the effective potential
+      vms->effective_potential = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      vms->effective_potential_host = vms->effective_potential;
+      if (app->use_gpu){
+        vms->effective_potential_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      }
+    }
+
     // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltoniam
     struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, vms->info.hamil, vms->info.hamil_ctx);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
@@ -151,6 +169,24 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       gkyl_array_copy(vms->det_h, vms->det_h_host);
     }
     gkyl_eval_on_nodes_release(det_h_proj);    
+
+    // Evaluate specified determinant metric function at nodes to ensure continuity of the background flows
+    if (vms->use_extended_hamil_def) {
+      struct gkyl_eval_on_nodes* background_flows_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim, vms->info.background_flows, vms->info.background_flows_ctx);
+      gkyl_eval_on_nodes_advance(background_flows_proj, 0.0, &app->local, vms->background_flows_host);
+      if (app->use_gpu){
+        gkyl_array_copy(vms->background_flows, vms->background_flows_host);
+      }
+      gkyl_eval_on_nodes_release(background_flows_proj);    
+
+      // Evaluate specified determinant metric function at nodes to ensure continuity of the effective potential
+      struct gkyl_eval_on_nodes* effective_potential_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, vms->info.effective_potential, vms->info.effective_potential_ctx);
+      gkyl_eval_on_nodes_advance(effective_potential_proj, 0.0, &app->local, vms->effective_potential_host);
+      if (app->use_gpu){
+        gkyl_array_copy(vms->effective_potential, vms->effective_potential_host);
+      }
+      gkyl_eval_on_nodes_release(effective_potential_proj); 
+    }   
   }
 }
 
@@ -1344,6 +1380,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   if (vms->info.use_vierbein == true) {
     vms->use_vierbein = true; 
   }
+  vms->use_extended_hamil_def = false; 
+  if (vms->info.use_extended_hamil_def == true) {
+    vms->use_extended_hamil_def = true; 
+  }
 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
@@ -1702,12 +1742,19 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_array_release(vms->h_ij);
     gkyl_array_release(vms->h_ij_inv);
     gkyl_array_release(vms->det_h);
+    if (vms->use_extended_hamil_def) {
+      gkyl_array_release(vms->background_flows);
+      gkyl_array_release(vms->effective_potential);
+    }
     if (app->use_gpu){
       gkyl_array_release(vms->hamil_host);
       gkyl_array_release(vms->h_ij_host);
       gkyl_array_release(vms->h_ij_inv_host);
       gkyl_array_release(vms->det_h_host);
-      
+      if (vms->use_extended_hamil_def) {
+        gkyl_array_release(vms->background_flows_host);
+        gkyl_array_release(vms->effective_potential_host);
+      }
     }
   }
   gkyl_array_release(vms->hamil);  

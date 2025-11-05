@@ -175,6 +175,7 @@ struct gkyl_vlasov_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
+  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
@@ -222,6 +223,14 @@ struct gkyl_vlasov_species {
   void *det_h_ctx; // Context for determinant of the spatial metric.
   // Pointer to the determinant of the spatial metric.
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
+
+  void *background_flows_ctx; // Context for background flows in can-pb
+  // Pointer to the background flows. 
+  void (*background_flows)(double t, const double *xn, double *aout, void *ctx);
+
+  void *effective_potential_ctx; // Context for effective potential in can-pb
+  // Pointer to the effective potential
+  void (*effective_potential)(double t, const double *xn, double *aout, void *ctx);
 
   // Input quantities used by LTE (local thermodynamic equilibrium) projection
   // This projection operator is used by BGK collisions.

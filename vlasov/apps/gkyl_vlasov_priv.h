@@ -365,6 +365,7 @@ struct vm_species {
 
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   bool use_vierbein; // bool to determine if using vierbein inputs for triads.
+  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
 
   bool use_vmap; // bool to determine if we are using mapped velocity-space grids
   struct gkyl_array *vmap; // mapping for mapped velocity-space grids
@@ -420,6 +421,10 @@ struct vm_species {
       struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
       struct gkyl_array *det_h; // Specified metric determinant
       struct gkyl_array *det_h_host; // Host side metric determinant
+      struct gkyl_array *background_flows; // Specified background flows
+      struct gkyl_array *background_flows_host; // Host side background flows
+      struct gkyl_array *effective_potential; // Specified effective potential
+      struct gkyl_array *effective_potential_host; // Host side effective potential
     };
   };
 
