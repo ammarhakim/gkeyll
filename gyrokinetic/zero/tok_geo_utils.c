@@ -873,7 +873,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->zmin_iwl = arc_ctx->zmin;
     arc_ctx->zmax_iwl = arc_ctx->zmax;
 
-    if (geo->plate_spec){
+    if (geo->plate_spec && ( (arc_ctx->psi > geo->efit->sibry && geo->efit->sibry > geo->efit->simag) || (arc_ctx->psi < geo->efit->sibry && geo->efit->sibry < geo->efit->simag) )){
       set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
       set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
     }
