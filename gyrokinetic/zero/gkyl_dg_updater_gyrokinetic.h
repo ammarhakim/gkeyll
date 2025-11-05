@@ -30,7 +30,8 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param mass Species mass
  * @param skip_cell_threshold Threshold for skipping cells in the gyrokinetic equation
  * @param no_by Whether to neglect the toroidal field (b_y=0)
- * @param add_em Whether to add electromagnetic terms
+ * @param is_em Whether to add electromagnetic terms
+ * @param add_apardot Whether to add the AparDot terms only.
  * @param gk_geom Geometry struct 
  * @param vel_map Velocity space mapping object.
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
@@ -41,7 +42,7 @@ gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_r
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_bc, double charge, double mass, double skip_cell_threshold,
-  const bool no_by, const bool add_em, const struct gk_geometry *gk_geom,
+  const bool no_by, const bool is_em, const bool add_apartdot, const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
@@ -67,6 +68,19 @@ gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* up);
  * @param rhs RHS output
  */
 void gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *gyrokinetic,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
+  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+
+/**
+ * Add Apardot electromagnetic contribution to the RHS.
+ * 
+ * @param gyrokinetic 
+ * @param update_rng 
+ * @param fIn 
+ * @param cflrate 
+ * @param rhs 
+ */
+void gkyl_dg_updater_gyrokinetic_add_apardot(gkyl_dg_updater_gyrokinetic *gyrokinetic,
   const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

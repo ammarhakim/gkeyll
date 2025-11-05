@@ -9,11 +9,16 @@
 #include <gkyl_gk_collisionless_flux_priv.h>
 #include <gkyl_util.h>
 
+// TODO: remove add_em flag and replace by the collisionless enum type.
+// TODO: Combine apar and ES kernel together to allow the add Apardot only option.
+// TODO: In particular I have to have the same signature for each kernels regardless of whether they add EM terms or not,
+//       so that we can pass apar, or apardot if needed.
+
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, const bool no_by, const bool add_em,
-  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const double charge, const double mass, const bool no_by, const bool is_em,
+  const bool add_apardot, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu)
 {
@@ -35,24 +40,28 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 
   up->charge = charge;
   up->mass = mass;
-  up->add_em = add_em;
+  up->is_em = is_em;
+  up->add_apardot = add_apardot;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->dg_geom = gkyl_dg_geom_acquire(dg_geom);
   up->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  if (no_by) {
-    if (add_em) {
-      for (int d=0; d<cdim; ++d) {
-        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_add_em_no_by_surf_conf_kern(d, cdim, vdim,
-          poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_add_em_no_by_edge_surf_conf_kern(d, cdim, vdim,
-          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
-      }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_em_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-    } else {
+  // Set apardot function to zero by default.
+  up->flux_surfvpar_add_apardot[0] = get_gk_collisionless_flux_surfvpar_zero_kern();
+  
+  // Choose appropriate kernels.
+  if (add_apardot){
+    // If we only add Apardot terms to the flux, we set every conf flux_surf kernel to 0 and we cable the vpar one to the
+    // appropriate add Apardot kernel (no conf surf contributions).
+    for (int d=0; d<cdim; ++d) {
+      up->flux_surf[d] = get_gk_collisionless_flux_surf_zero_kern();
+      up->flux_surf_edge_lo[d] = get_gk_collisionless_flux_surf_zero_kern();
+      up->flux_surf_edge_up[d] = get_gk_collisionless_flux_surf_zero_kern();
+    }
+    up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
+  } else {
+    if (no_by) {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
         up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
@@ -62,18 +71,6 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
           poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
       }
       up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-    }
-  } else {
-    if (add_em) {
-      for (int d=0; d<cdim; ++d) {
-        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_add_em_surf_conf_kern(d, cdim, vdim,
-          poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_add_em_edge_surf_conf_kern(d, cdim, vdim,
-          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
-      }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_em_surf_vpar_kern(cdim, vdim, poly_order);
     } else {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
@@ -96,7 +93,8 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 
 void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, 
+  const struct gkyl_array *phi, const struct gkyl_array *apar,
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -133,6 +131,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
+    const double *apar_d = gkyl_array_cfetch(apar, loc_conf);
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -156,11 +155,11 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
       if (idx[dir] == phase_range->lower[dir]) {
         // Lower domain/block boundary.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
         cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_d);
       }
 
       // Upper domain/block boundary.
@@ -187,7 +186,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
 
         cflrate_ext_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_ext_d);
       }  
     }
   }
@@ -206,6 +205,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
+    const double *apar_d = gkyl_array_cfetch(apar, loc_conf);
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -228,10 +228,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
     cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
-      dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
+      dgv, gkdgv, bmag_d, phi_d, apar_d, fL, fR, flux_surf_d);
   }
-
-
 }
 
 void gkyl_gk_collisionless_flux_release(gkyl_gk_collisionless_flux *up)

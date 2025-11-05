@@ -373,6 +373,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.B3_nodal, up->geo_int.B3_nodal, 1);
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.bmag_nodal, up->geo_int.bmag_nodal, 1);
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dualcurlbhat_nodal, up->geo_int.dualcurlbhat_nodal, 3);
+  gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dualmag_nodal, up->geo_int.dualmag_nodal, 3);
   gkyl_deflate_geo_release(deflator);
 
   if (up->grid.ndim==1) {

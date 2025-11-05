@@ -598,12 +598,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->accumulate_current = gk_field_accumulate_current_dens_none;
   f->accumulate_current_dot = gk_field_accumulate_current_dens_dot_none;
   f->step_apar = gk_field_step_apar_none;
+  f->apar_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   if (f->is_em) {
     f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_old = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-    f->apar_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
@@ -1099,12 +1099,13 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
 
+  // We need at least these two arrays even in ES case (kept 0).
+  gkyl_array_release(f->apar_smooth);
+  gkyl_array_release(f->apardot);
   if (f->is_em) {
     gkyl_array_release(f->apar);
     gkyl_array_release(f->apar_old);
     gkyl_array_release(f->apar_fem);
-    gkyl_array_release(f->apar_smooth);
-    gkyl_array_release(f->apardot);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);

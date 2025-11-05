@@ -20,17 +20,9 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   // where they are not defined.
   gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_op, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, fin, gkcls->flux_surf, species->cflrate);
+    species->gyro_phi, species->gyro_apar, fin, gkcls->flux_surf, species->cflrate);
 }
 
-static void
-gk_species_collisionless_add_em_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
-{
-  gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_op_add_em, 
-    &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate);
-}
 
 static void
 gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -52,15 +44,18 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void
-gk_species_collisionless_add_em_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+static void gk_species_collisionless_add_apardot_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkcls->add_em_flux(app, species, gkcls, fin);
+  // Add Apardot surface flux contribution to RHS
+  gkyl_gk_collisionless_flux_surf(gkcls->add_apardot_surf_flux_op, 
+    &app->local, &species->local, &app->local_ext, &species->local_ext, 
+    species->gyro_phi, species->gyro_apar, fin, gkcls->flux_surf, species->cflrate);
 
-  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_add_em, &species->local, 
+  // Advance the rhs adding only the Apardot volume contribution
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->add_apardot_slvr, &species->local,
     fin, species->cflrate, rhs);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
@@ -93,8 +88,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
-  gkcls->add_em_flux = gk_species_collisionless_flux_disabled;
-  gkcls->add_em_rhs = gk_species_collisionless_rhs_disabled;
+  gkcls->add_apardot_rhs_func = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
 
@@ -138,51 +132,39 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
     }
 
+    bool add_apardot = false;
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-      gks->info.charge, gks->info.mass, gkcls->no_by, false, app->gk_geom, 
+      gks->info.charge, gks->info.mass, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
-    if (gkcls->is_em) {
-    }
-    
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
-      .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot };
-      // Create solver.
-      gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+      .phi = gks->gyro_phi, .apar = gks->gyro_apar, .apardot = gks->gyro_apardot };
+    // Create solver.
+    gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+      &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
+      gks->info.skip_cell_threshold, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, gks->vel_map, 
+      &aux_inp, app->use_gpu);
+    
+    if (gkcls->is_em) {
+      add_apardot = true;
+      // Create a special flux operator that only adds the AparDot contribution.
+      gkcls->add_apardot_surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis,
+        gks->info.charge, gks->info.mass, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom,
+        app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
+      // Create solver that only adds AparDot terms.
+      gkcls->add_apardot_slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
         &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-        gks->info.skip_cell_threshold, gkcls->no_by, false, app->gk_geom, gks->vel_map, 
+        gks->info.skip_cell_threshold, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, gks->vel_map,
         &aux_inp, app->use_gpu);
-        
-        // Methods chosen at runtime.
-        gkcls->flux_func = gk_species_collisionless_flux_enabled;
-        gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
-
-      // Electromagnetic additional setup
-      if (gkcls->is_em) {
-
-        gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-        gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);  
-
-        // Create solvers to add EM contributions.
-        gkcls->surf_flux_op_add_em = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-          gks->info.charge, gks->info.mass, gkcls->no_by, true, app->gk_geom, 
-          app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
-        gkcls->slvr_add_em = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
-          &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-          gks->info.skip_cell_threshold, gkcls->no_by, true, app->gk_geom, gks->vel_map, 
-          &aux_inp, app->use_gpu);
-        
-        // Runtime methods for EM contributions.  
-        gkcls->add_em_flux = gk_species_collisionless_add_em_flux_enabled;
-        gkcls->add_em_rhs = gk_species_collisionless_add_em_rhs_enabled;
-    } else {
-      gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-      gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
     }
-
-    if (gkcls->write_diagnostics) {
+          
+    // Methods chosen at runtime.
+    gkcls->flux_func = gk_species_collisionless_flux_enabled;
+    gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
+    if (gkcls->is_em)
+      gkcls->add_apardot_rhs_func = gk_species_collisionless_add_apardot_rhs_enabled;
+    if (gkcls->write_diagnostics) 
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
-    }
   }
 }
 
@@ -200,18 +182,11 @@ gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *speci
   gkcls->rhs_func(app, species, gkcls, fin, rhs);
 }
 
-void
-gk_species_collisionless_add_em_flux(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
-{
-  gkcls->add_em_flux(app, species, gkcls, fin);
-}
-
-void
-gk_species_collisionless_add_em_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+void 
+gk_species_collisionless_add_apardot_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkcls->add_em_rhs(app, species, gkcls, fin, rhs);
+  gkcls->add_apardot_rhs_func(app, species, gkcls, fin, rhs);
 }
 
 void
@@ -227,15 +202,13 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
   if (gkcls->collisionless_id) {
 
     gkyl_array_release(gkcls->flux_surf);
-    gkyl_array_release(gkcls->apar);
-    gkyl_array_release(gkcls->apardot);
   
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
     if (gkcls->is_em) {
-      gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op_add_em);
-      gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_add_em);
+      gkyl_gk_collisionless_flux_release(gkcls->add_apardot_surf_flux_op);
+      gkyl_dg_updater_gyrokinetic_release(gkcls->add_apardot_slvr);
     }
   }
 }

@@ -1738,11 +1738,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // Compute collisionless terms of charged species.
+  // Compute collisionless terms of charged species. (Electrostatic + Apar)
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
-    dtmin = fmin(dtmin, dt1);
+    gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute collisionless terms of neutrals.
@@ -1772,10 +1771,12 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   gk_field_em_rhs(app, app->field, fout);
 
   // Add electromagnetic contributions to the collisionless update of charged species.
-  // This is done after all ES terms since we need to compute M1 of fdot.
+  // This is done after all ES+Apar terms since we need to compute M1 of fdot.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_em_rhs(app, s, fin[i], fout[i], bflux_out[i]);
+    gk_species_add_apardot_rhs(app, s, fin[i], fout[i], bflux_out[i]);
+    gk_species_update_bflux(app, s, fin[i], fout[i], bflux_out[i]);
+    double dt1 = gk_species_get_cfl(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
 

@@ -46,9 +46,15 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, double skip_cell_threshold, const bool no_by, const bool add_em,
+  const double charge, const double mass, double skip_cell_threshold, 
+  const bool no_by, const bool is_em, const bool add_apardot,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
+
+  // gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  // const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  // const double charge, const double mass, double skip_cell_threshold, enum gkyl_gk_collisionless_type collless_type,
+  // const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
@@ -77,6 +83,8 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
+  const gkyl_dg_gyrokinetic_vol_add_apar_kern_list *vol_add_apar_kernels;
+  const gkyl_dg_gyrokinetic_vol_kern_list *vol_add_apardot_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
@@ -89,6 +97,8 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
+      vol_add_apar_kernels = ser_add_apar_vol_kernels;
+      vol_add_apardot_kernels = ser_add_apardot_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
@@ -110,8 +120,15 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
     gyrokinetic->eqn.vol_term = CK(vol_no_by_kernels,cdim,vdim,poly_order);
   }
   else {
-    gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
+    if (add_apardot)
+      gyrokinetic->eqn.vol_term = CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+    else
+      gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
   }
+
+  // gyrokinetic->vol_add_apar_term = COLLESS_TYPE == GKYL_GK_COLLISIONLESS_EM ? CK(vol_add_apar_kernels,cdim,vdim,poly_order) 
+  // : kernel_dg_gyrokinetic_vol_return_zero;
+  gyrokinetic->vol_add_apar_term = is_em ? CK(vol_add_apar_kernels,cdim,vdim,poly_order) : kernel_dg_gyrokinetic_vol_return_zero;
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
