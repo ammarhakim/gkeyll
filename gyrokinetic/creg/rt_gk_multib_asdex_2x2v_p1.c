@@ -851,20 +851,6 @@ init_source_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
 }
 
 void
-init_nu_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_asdex_ctx *params = ctx;
-  fout[0] = params->nu_elc;
-}
-
-void
-init_nu_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_asdex_ctx *params = ctx;
-  fout[0] = params->nu_ion;
-}
-
-void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
@@ -1187,6 +1173,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
     .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -1202,12 +1189,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm.
-      .bmag_mid = ctx.B0,
-      .ctx = &ctx,
-      .self_nu = init_nu_elc,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm.
+      .bmag_ref = ctx.B0,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -1321,6 +1305,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
     .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -1336,12 +1321,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm.
-      .bmag_mid = ctx.B0,
-      .ctx = &ctx,
-      .self_nu = init_nu_ion,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm.
+      .bmag_ref = ctx.B0,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
@@ -1398,7 +1380,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_asdex_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 1.0,
@@ -1417,7 +1399,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

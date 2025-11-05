@@ -38,7 +38,7 @@ struct gk_app_ctx {
   double n0; double Te0; double Ti0; 
 
   // Collisions.
-  double nuFrac; double nuElc; double nuIon;
+  double nu_frac;
 
   // Source parameters.
   double n_srcOMP; // Amplitude of the OMP source
@@ -332,18 +332,6 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = Ti0*((1./3.)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
-// Collision frequencies.
-void nuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-void nuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-
 // Geometry evaluation functions for the gk app
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
@@ -526,15 +514,7 @@ create_ctx(void)
 
   double q0 = qprofile(R0); // Magnetic safety factor in the center of domain.
 
-  double nuFrac = 0.1;
-  // Electron-electron collision freq.
-  double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuElc = nuFrac * logLambdaElc * pow(eV, 4) * n0 /
-    (6*sqrt(2.) * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(me) * pow(Te0,3./2.));
-  // Ion-ion collision freq.
-  double logLambdaIon = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
-  double nuIon = nuFrac * logLambdaIon * pow(eV, 4) * n0 /
-    (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
+  double nu_frac = 0.1;
 
   // Source parameters
   double n_srcOMP = 9.e22;
@@ -596,7 +576,7 @@ create_ctx(void)
     .mi = mi, .qi = qi,
     .n0 = n0, .Te0 = Te0, .Ti0 = Ti0,
   
-    .nuFrac = nuFrac, .nuElc = nuElc, .nuIon = nuIon,
+    .nu_frac = nu_frac,
   
     .n_srcOMP = n_srcOMP,
     .x_srcOMP = x_srcOMP,
@@ -660,6 +640,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -686,10 +667,11 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
-      .self_nu = nuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
+      .nu_frac = ctx.nu_frac,
     },
 
     .source = {
@@ -746,6 +728,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -772,10 +755,11 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
-      .self_nu = nuIon,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0, 
+      .nu_frac = ctx.nu_frac,
     },
 
     .source = {
@@ -857,7 +841,7 @@ main(int argc, char **argv)
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -890,7 +874,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

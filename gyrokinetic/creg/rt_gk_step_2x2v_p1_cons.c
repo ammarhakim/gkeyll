@@ -165,20 +165,6 @@ eval_temp_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 }
 
 void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-
-void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-
-void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
@@ -346,6 +332,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -367,12 +354,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -455,6 +439,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -476,15 +461,13 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .self_nu = evalNuIon,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -572,6 +555,7 @@ main(int argc, char **argv)
     // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0*3.0, -ctx.vpar_max_D0*4.0},
     .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0*3.0, ctx.vpar_max_D0*4.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
@@ -585,6 +569,10 @@ main(int argc, char **argv)
       .udrift= eval_udrift,
       .ctx_temp = &ctx,
       .temp = evalTempD0Init,      
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
     },
 
     .react_neut = {
@@ -633,7 +621,6 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_LTE},
   };
 
-
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
@@ -651,7 +638,7 @@ main(int argc, char **argv)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
   };
 
-struct gkyl_tok_geo_grid_inp grid_inp = {
+  struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_DN_SOL_OUT, // type of geometry
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
@@ -666,7 +653,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
   struct gkyl_gk app_inp = {
     .name = "gk_step_2x2v_p1_cons",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },
@@ -702,7 +689,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

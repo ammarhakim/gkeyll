@@ -196,6 +196,28 @@ evalBumpNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = nu;
 }
 
+void
+evalBumpSquareNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0)*nu;
+}
+
+void
+evalSquareBumpNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0)*nu;
+}
+
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -246,6 +268,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = { ctx.vpar_max, ctx.mu_max },
     .cells = { cells_v[0], cells_v[1] },
@@ -264,9 +287,18 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalTopHatNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "bump" },
+      .cross_nu = {
+        evalSquareBumpNu,
+      },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2)*ctx.mass,
+      .eps0 = 1.0,
+      .hbar = 1.0,
+      .eV = 1.0,
     },
     
     .num_diag_moments = 7,
@@ -277,6 +309,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = { ctx.vpar_max, ctx.mu_max },
     .cells = { cells_v[0], cells_v[1] },
@@ -295,9 +328,18 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalBumpNu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "square" },
+      .cross_nu = {
+        evalBumpSquareNu,
+      },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = pow(ctx.vt,2)*ctx.mass,
+      .eps0 = 1.0,
+      .hbar = 1.0,
+      .eV = 1.0,
     },
     
     .num_diag_moments = 7,
@@ -320,7 +362,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_bgk_relax_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { 0.0 },
     .upper = { ctx.Lz },
     .cells = { cells_x[0] },
@@ -357,7 +399,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

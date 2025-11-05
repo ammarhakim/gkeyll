@@ -14,17 +14,19 @@
 struct gk_solovev_ctx {
   int cdim, vdim; // Dimensionality.
 
-  double chargeElc; // electron charge
-  double massElc; // electron mass
-  double chargeIon; // ion charge
-  double massIon; // ion mass
-  double Te; // electron temperature
-  double Ti; // ion temperature
-  double c_s; // sound speed
-  double nuElc; // electron collision frequency
-  double nuIon; // ion collision frequency
-  double B0; // reference magnetic field
-  double n0; // reference density
+  double chargeElc; // Electron charge.
+  double massElc; // Electron mass.
+  double chargeIon; // Ion charge.
+  double massIon; // Ion mass.
+  double Te; // Electron temperature.
+  double Ti; // Ion temperature.
+  double c_s; // Sound speed.
+  double nuElc; // Electron collision frequency.
+  double nuIon; // Ion collision frequency.
+  double nuElcIon; // Electron-ion collision frequency.
+  double nuIonElc; // Ion-electron collision frequency.
+  double B0; // Reference magnetic field.
+  double n0; // Reference density.
   // Source parameters.
   double lambda_source;
   double x_source;
@@ -185,6 +187,20 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = app->nuIon;
 }
 
+void
+evalNuElcIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_solovev_ctx *app = ctx;
+  fout[0] = app->nuElcIon;
+}
+
+void
+evalNuIonElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_solovev_ctx *app = ctx;
+  fout[0] = app->nuIonElc;
+}
+
 struct gk_solovev_ctx
 create_ctx(void)
 {
@@ -213,10 +229,12 @@ create_ctx(void)
   // Collision parameters.
   double nuFrac = 0.1;
   double logLambdaElc = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Te/eV);
-  double nuElc = nuFrac*logLambdaElc*pow(eV, 4.0)*n0/(6.0*sqrt(2.0)*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(me)*(Te*sqrt(Te)));  // collision freq
+  double nuElc = nuFrac*logLambdaElc*pow(eV, 4.0)*n0/(6.0*sqrt(2.0)*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(me)*(Te*sqrt(Te)));
 
   double logLambdaIon = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Ti/eV);
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mi)*(Ti*sqrt(Ti)));
+  double nuElcIon = nuElc*sqrt(2.0);
+  double nuIonElc = nuElcIon*(me/mi);
 
   // Simulation box size (psi, alpha, theta).
   double q0 = 2.0;
@@ -261,6 +279,8 @@ create_ctx(void)
     .c_s = c_s, 
     .nuElc = nuElc, 
     .nuIon = nuIon, 
+    .nuElcIon = nuElcIon, 
+    .nuIonElc = nuIonElc, 
     .B0 = B0, 
     .n0 = n0, 
     .Lx = Lx, 
@@ -317,6 +337,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -338,10 +359,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .cross_nu = { evalNuElcIon, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te,
     },
 
     .source = {
@@ -391,6 +416,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -412,10 +438,14 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .cross_nu = { evalNuIonElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti,
     },
 
     .source = {
@@ -494,7 +524,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_solovev_out_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.08, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { -0.06, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -523,7 +553,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

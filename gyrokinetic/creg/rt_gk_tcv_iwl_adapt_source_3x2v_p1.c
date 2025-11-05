@@ -220,18 +220,6 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = c0*T0*(c1*(1.+tanh(c2*(-10*(x+x0))))+c3);
 }
 
-// Collision frequencies.
-void nuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuElc;
-}
-void nuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  fout[0] = app->nuIon;
-}
-
 // Geometry evaluation functions for the gk app
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
@@ -408,7 +396,7 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
-  double vol_frac = 1.0/(2.*M_PI*r0/q0/Ly); // Volume fraction of the simulation box.
+  double vol_frac = 1.0/(2.*M_PI*r0/q0/Ly); // Volume fraction of the simulation box (=0.5 here).
   double P_inj = P_exp * vol_frac / num_species; // Injection power normalized to the volume fraction and per species [W]
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).
@@ -614,6 +602,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = { 1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -646,12 +635,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te0, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = nuElc,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te0, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "ion"},
     },
@@ -701,6 +687,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = { 1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -733,12 +720,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti0, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = nuIon,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti0, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc"},
     },
@@ -829,27 +813,33 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_tcv_iwl_adapt_source_3x2v_p1",
+
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
+
     .cdim = ctx.cdim,
-    .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = geometry,
+
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
     .num_species = ctx.num_species,
     .species = { elc, ion },
+
     .field = field,
+
     .parallelism = parallelism
   };
   
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.final_time,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

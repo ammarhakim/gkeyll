@@ -32,8 +32,7 @@ struct gk_mirror_ctx
   double alim;
   double alphaIC0;
   double alphaIC1;
-  double nuFrac;
-  // Ion-ion collision freq.
+  // Collision frequencies.
   double logLambdaIon;
   double nuIon;
   // Thermal speeds.
@@ -366,7 +365,6 @@ create_ctx(void)
     .alim = alim,
     .alphaIC0 = alphaIC0,
     .alphaIC1 = alphaIC1,
-    .nuFrac = nuFrac,
     .logLambdaIon = logLambdaIon,
     .nuIon = nuIon,
     .vti = vti,
@@ -450,6 +448,7 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -469,8 +468,8 @@ int main(int argc, char **argv)
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {
@@ -520,7 +519,7 @@ int main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_wham_boltz_elc_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = {ctx.psi_min, ctx.z_min},
     .upper = {ctx.psi_max, ctx.z_max},
     .cells = { cells_x[0], cells_x[1] },
@@ -550,7 +549,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

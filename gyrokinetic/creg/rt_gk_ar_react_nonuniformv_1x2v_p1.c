@@ -347,50 +347,6 @@ evalAr2UparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = 0.0;
 }
 
-void
-evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_elc = app->nu_elc;
-
-  // Set electron collision frequency.
-  fout[0] = nu_elc;
-}
-
-void
-evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
-evalAr1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set Ar1+ ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
-evalAr2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct ar_react_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set Ar2+ collision frequency.
-  fout[0] = nu_ion;
-}
-
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -465,6 +421,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -1.0, 0.0 },
     .upper = { 1.0, 1.0 },
     .cells = { cells_v[0], cells_v[1] },
@@ -491,11 +448,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_elc,
-      .T_ref = ctx.Te,
-      .self_nu = evalElcNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_elc,
+      .temp_ref = ctx.Te,
       .num_cross_collisions = 3,
       .collide_with = { "ion", "Ar1", "Ar2" },
     },
@@ -536,6 +490,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
@@ -557,11 +512,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_elc,
-      .T_ref = ctx.Ti,
-      .self_nu = evalIonNu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_elc,
+      .temp_ref = ctx.Ti,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "Ar1", "Ar2" },
     },
@@ -573,6 +525,7 @@ main(int argc, char **argv)
   // Ar1+ ions.
   struct gkyl_gyrokinetic_species Ar1 = {
     .name = "Ar1",
+    .vdim = ctx.vdim,
     .charge = ctx.charge_Ar1, .mass = ctx.mass_Ar1,
     .lower = { -ctx.vpar_max_Ar1, 0.0 },
     .upper = { ctx.vpar_max_Ar1, ctx.mu_max_Ar1 },
@@ -595,11 +548,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_Ar1,
-      .T_ref = ctx.TAr1,
-      .self_nu = evalAr1Nu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_Ar1,
+      .temp_ref = ctx.TAr1,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "ion", "Ar2" },
     },
@@ -640,6 +590,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species Ar2 = {
     .name = "Ar2",
     .charge = ctx.charge_Ar2, .mass = ctx.mass_Ar2,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_Ar2, 0.0 },
     .upper = { ctx.vpar_max_Ar2, ctx.mu_max_Ar2 },
     .cells = { cells_v[0], cells_v[1] },
@@ -661,11 +612,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0_Ar2,
-      .T_ref = ctx.TAr2,
-      .self_nu = evalAr2Nu,
-      .ctx = &ctx,
+      .den_ref = ctx.n0_Ar2,
+      .temp_ref = ctx.TAr2,
       .num_cross_collisions = 3,
       .collide_with = { "elc", "ion", "Ar1" },
     },
@@ -714,7 +662,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_ar_react_nonuniformv_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },
@@ -751,7 +699,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

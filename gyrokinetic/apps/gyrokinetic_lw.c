@@ -126,6 +126,32 @@ static const struct gkyl_str_int_pair gk_react_self_type[] = {
   { 0, 0 }
 };
 
+// Species boundary conditions -> enum map.
+static const struct gkyl_str_int_pair gk_bcs[] = {
+  // Particle BCs.
+  { "speciesSkip", GKYL_BC_GK_SKIP }, // Do not apply any BCs
+  { "speciesCopy", GKYL_BC_GK_SPECIES_COPY }, // Copy skin into ghost.
+  { "speciesReflect", GKYL_BC_GK_SPECIES_REFLECT }, // Reflect particles.
+  { "speciesAbsorb", GKYL_BC_GK_SPECIES_ABSORB }, // Absorbing BCs.
+  { "speciesFunc", GKYL_BC_GK_SPECIES_FUNC }, // Fill ghost cell using a user-function.
+  { "speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC }, // Fixed function, time-independent.
+  { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
+  { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
+  { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
+  { "speciesIWL", GKYL_BC_GK_SPECIES_IWL }, // Inner wall limited.
+  { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
+  { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
+  // Field BCs.
+  { "fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC }, // Periodic.
+  { "fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET }, // Dirichlet.
+  { "fieldNeumann", GKYL_BC_GK_FIELD_NEUMANN }, // Nemann.
+  { "fieldDirichletVarying", GKYL_BC_GK_FIELD_DIRICHLET_VARYING }, // Spatially varying Dirichlet.
+  { "fieldBoundaryValue", GKYL_BC_GK_FIELD_BOUNDARY_VALUE }, // Skin value at the boundary.
+  { "fieldTwistshift", GKYL_BC_GK_FIELD_TWISTSHIFT }, // Twist-shift.
+  { 0, 0 }
+};
+
+
 void
 gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
 {
@@ -186,6 +212,11 @@ gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
   register_types(L, gk_react_self_type, "Self");
 }
 
+void
+gkyl_register_gyrokinetic_bc_types(lua_State *L)
+{
+  register_types(L, gk_bcs, "GyrokineticBc");
+}
 
 // Magic IDs for use in distinguishing various species and field types.
 enum gyrokinetic_magic_ids {
@@ -245,8 +276,8 @@ struct gyrokinetic_species_lw {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_norm_nu; // Are we rescaling the collision frequency?
-  double collision_n_ref; // Density used to calculate Coulomb logarithm for collision frequency.
-  double collision_T_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_den_ref; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_temp_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
   double collision_hbar; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0; // Vacuum permittivity for calculating collision frequency.
   double collision_eV; // Elementary charge for calculating collision frequency.
@@ -320,7 +351,7 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim  = 0;
+  int vdim = 0;
   struct gkyl_gyrokinetic_species gk_species = { };
   
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
@@ -468,8 +499,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   char collide_with[GKYL_MAX_SPECIES][128];
 
   bool collision_norm_nu = false;
-  double collision_n_ref = 0.0;
-  double collision_T_ref = 0.0;
+  double collision_den_ref = 0.0;
+  double collision_temp_ref = 0.0;
   double collision_hbar = 0.0;
   double collision_eps0 = 0.0;
   double collision_eV = 0.0;
@@ -491,8 +522,8 @@ gyrokinetic_species_lw_new(lua_State *L)
     }
 
     collision_norm_nu = glua_tbl_get_bool(L, "normalizeNu", false);
-    collision_n_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
-    collision_T_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
+    collision_den_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
+    collision_temp_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
     collision_hbar = glua_tbl_get_number(L, "hbar", 0.0);
     collision_eps0 = glua_tbl_get_number(L, "epsilon0", 0.0);
     collision_eV = glua_tbl_get_number(L, "eV", 0.0);
@@ -825,8 +856,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   }
 
   gks_lw->collision_norm_nu = collision_norm_nu;
-  gks_lw->collision_n_ref = collision_n_ref;
-  gks_lw->collision_T_ref = collision_T_ref;
+  gks_lw->collision_den_ref = collision_den_ref;
+  gks_lw->collision_temp_ref = collision_temp_ref;
   gks_lw->collision_hbar = collision_hbar;
   gks_lw->collision_eps0 = collision_eps0;
   gks_lw->collision_eV = collision_eV;
@@ -1159,8 +1190,8 @@ struct gyrokinetic_app_lw {
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_norm_nu[GKYL_MAX_SPECIES]; // Are we rescaling the collision frequency?
-  double collision_n_ref[GKYL_MAX_SPECIES]; // Density used to calculate Coulomb logarithm for collision frequency.
-  double collision_T_ref[GKYL_MAX_SPECIES]; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_den_ref[GKYL_MAX_SPECIES]; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_temp_ref[GKYL_MAX_SPECIES]; // Temperature used to calculate Coulomb logarithm for collision frequency.
   double collision_hbar[GKYL_MAX_SPECIES]; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0[GKYL_MAX_SPECIES]; // Vacuum permittivity for calculating collision frequency.
   double collision_eV[GKYL_MAX_SPECIES]; // Elementary charge for calculating collision frequency.
@@ -1665,7 +1696,7 @@ gk_app_new(lua_State *L)
   
   for (int s = 0; s < gk.num_species; s++) {
     gk.species[s] = species[s]->gk_species;
-    gk.vdim = species[s]->vdim;
+    gk.species[s].vdim = species[s]->vdim;
 
     app_lw->has_mapc2p_mapping_func[s] = species[s]->has_mapc2p_mapping_func;
     app_lw->mapc2p_mapping_func_ctx[s] = species[s]->mapc2p_mapping_func_ref;
@@ -1754,8 +1785,8 @@ gk_app_new(lua_State *L)
     }
 
     app_lw->collision_norm_nu[s] = species[s]->collision_norm_nu;
-    app_lw->collision_n_ref[s] = species[s]->collision_n_ref;
-    app_lw->collision_T_ref[s] = species[s]->collision_T_ref;
+    app_lw->collision_den_ref[s] = species[s]->collision_den_ref;
+    app_lw->collision_temp_ref[s] = species[s]->collision_temp_ref;
     app_lw->collision_hbar[s] = species[s]->collision_hbar;
     app_lw->collision_eps0[s] = species[s]->collision_eps0;
     app_lw->collision_eV[s] = species[s]->collision_eV;
@@ -1766,7 +1797,7 @@ gk_app_new(lua_State *L)
 
     if (species[s]->has_self_nu_func) {
       gk.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      gk.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+      gk.species[s].collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
     }
 
     gk.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
@@ -1774,9 +1805,8 @@ gk_app_new(lua_State *L)
       strcpy(gk.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
 
-    gk.species[s].collisions.normNu = app_lw->collision_norm_nu[s];
-    gk.species[s].collisions.n_ref = app_lw->collision_n_ref[s];
-    gk.species[s].collisions.T_ref = app_lw->collision_T_ref[s];
+    gk.species[s].collisions.den_ref = app_lw->collision_den_ref[s];
+    gk.species[s].collisions.temp_ref = app_lw->collision_temp_ref[s];
     gk.species[s].collisions.hbar = app_lw->collision_hbar[s];
     gk.species[s].collisions.eps0 = app_lw->collision_eps0[s];
     gk.species[s].collisions.eV = app_lw->collision_eV[s];
@@ -1847,7 +1877,7 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->radiation_num_cross_collisions[s]; i++) {
       strcpy(gk.species[s].radiation.collide_with[i], app_lw->radiation_collide_with[s][i]);
 
-      gk.species[s].radiation.z[i] = app_lw->radiation_z[s][i];
+      gk.species[s].radiation.atomic_Z[i] = app_lw->radiation_z[s][i];
       gk.species[s].radiation.charge_state[i] = app_lw->radiation_charge_state[s][i];
       gk.species[s].radiation.num_of_densities[i] = app_lw->radiation_num_of_densities[s][i];
     }
@@ -2302,7 +2332,7 @@ write_step_message(const struct gkyl_gyrokinetic_app *app, struct step_message_t
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+      gkyl_gyrokinetic_app_cout(app, stdout, " Step %d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
     }
     else {
       trigs->log_count += 1;
@@ -2618,6 +2648,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_reaction_types(L);
   gkyl_register_gyrokinetic_ion_types(L);
   gkyl_register_gyrokinetic_self_reaction_types(L);
+  gkyl_register_gyrokinetic_bc_types(L);
   
   app_openlibs(L);
 }

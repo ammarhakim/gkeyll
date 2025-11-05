@@ -298,6 +298,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -319,11 +320,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
-      .T_ref = ctx.Te, // Temperature used to claculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
+      .den_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .temp_ref = ctx.Te, // Temperature used to claculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "Ar1" },
     },
@@ -371,6 +369,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species Ar1 = {
     .name = "Ar1",
     .charge = ctx.chargeIon, .mass = ctx.massAr,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_Ar, 0.0},
     .upper = { ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -392,11 +391,8 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
-      .T_ref = ctx.TAr, // Temperature used to claculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
+      .den_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .temp_ref = ctx.TAr, // Temperature used to claculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
@@ -443,6 +439,7 @@ main(int argc, char **argv)
   // Neutral Ar
   struct gkyl_gyrokinetic_neut_species Ar0 = {
     .name = "Ar0", .mass = ctx.massAr,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
     .upper = { ctx.vpar_max_Ar, ctx.vpar_max_Ar, ctx.vpar_max_Ar },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
@@ -485,7 +482,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_mdpx_cart_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly, 0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -520,7 +517,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

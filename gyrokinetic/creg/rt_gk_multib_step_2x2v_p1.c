@@ -27,13 +27,13 @@ void shaped_pfunc_upper_outer(double s, double* RZ){
 
 //old inner plates
 void shaped_pfunc_upper_inner(double s, double* RZ){
-    RZ[0] = 1.651 + (1.8 - 1.651)*s;
-    RZ[1] = 6.331 + (6.777 - 6.331)*s;
+  RZ[0] = 1.651 + (1.8 - 1.651)*s;
+  RZ[1] = 6.331 + (6.777 - 6.331)*s;
 }
 
 void shaped_pfunc_lower_inner(double s, double* RZ){
-    RZ[0] = 1.651 + (1.8 - 1.651)*s;
-    RZ[1] = -(6.331 + (6.777 - 6.331)*s);
+  RZ[0] = 1.651 + (1.8 - 1.651)*s;
+  RZ[1] = -(6.331 + (6.777 - 6.331)*s);
 }
 
 struct gkyl_gk_block_geom*
@@ -73,8 +73,6 @@ create_gk_block_geom(void)
       edge with the same symbol. Edges that do not coincide with
       another edge are a physical boundary.
   */  
-
-
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
@@ -129,8 +127,6 @@ create_gk_block_geom(void)
   double zinner = 6.34;
   double zouter = 8.29;
   double rright_out = 5.2;
-
-
 
   // Note that for tokamak multi-block simulations, 
   // these theta limits are just placeholders and will be 
@@ -614,8 +610,6 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-
-
 struct gk_step_ctx
 create_ctx(void)
 {
@@ -786,7 +780,6 @@ init_density_pf(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   fout[0] = n/n_fac;
 }
 
-
 void
 source_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -799,7 +792,6 @@ source_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   else 
     fout[0] = nsource*1.0e-5;
 }
-
 
 void
 init_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -828,21 +820,6 @@ source_temp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   struct gk_step_ctx *app = ctx;
   double T = app->T_source;
   fout[0] = T;
-}
-
-
-void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *input = ctx;
-  fout[0] = input->nuElc;
-}
-
-void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *input = ctx;
-  fout[0] = input->nuIon;
 }
 
 static inline void
@@ -896,7 +873,6 @@ mapc2p_vel_ion(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT v
   // Set rescaled ion velocity space coordinates (vpar, mu) from old velocity space coordinates (cvpar, cmu):
   vp[0] = vpar ; vp[1] = mu;
 }
-
 
 void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
@@ -1232,6 +1208,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -1247,12 +1224,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -1281,7 +1255,6 @@ main(int argc, char **argv)
     .num_physical_bcs = 20,
     .bcs = elc_phys_bcs,
   };
-
 
   // Ion Species
   struct gkyl_gyrokinetic_multib_species_pb ion_blocks[12];
@@ -1535,7 +1508,6 @@ main(int argc, char **argv)
 
   };
 
-
   struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
@@ -1580,6 +1552,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { -1.0/sqrt(2.0), 0.0},
     .upper = {  1.0/sqrt(2.0), 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -1595,12 +1568,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
+      .nu_frac = ctx.nuFrac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
@@ -1677,7 +1647,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_step_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
@@ -1698,7 +1668,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

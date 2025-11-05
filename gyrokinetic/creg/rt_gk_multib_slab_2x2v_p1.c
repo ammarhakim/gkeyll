@@ -393,28 +393,6 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
-evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct slab_ctx *app = ctx;
-
-  double nu_elc = app->nu_elc;
-
-  // Set electron collision frequency.
-  fout[0] = nu_elc;
-}
-
-void
-evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct slab_ctx *app = ctx;
-
-  double nu_ion = app->nu_ion;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ion;
-}
-
-void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct gk_step_ctx *app = ctx;
@@ -502,6 +480,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -512,12 +491,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nu_frac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuElcInit,
+      .nu_frac = ctx.nu_frac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -590,6 +566,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -600,12 +577,9 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .nuFrac = ctx.nu_frac,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-      .ctx = &ctx,
-      .self_nu = evalNuIonInit,
+      .nu_frac = ctx.nu_frac,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
@@ -652,27 +626,22 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_slab_2x2v_p1",
-
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
     .cfl_frac = 1.0,
-
     .gk_block_geom = bgeom,
-    
     .num_species = 2,
     .species = { elc, ion},
-
     .field = field,
-
     .comm = comm
   };
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -682,6 +651,11 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
+    },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 0.1,
+      .estimate_completion_time = true,
     }
   };
 
