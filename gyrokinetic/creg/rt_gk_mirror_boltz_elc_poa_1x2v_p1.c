@@ -659,16 +659,6 @@ create_ctx(void)
   ctx.psi_eval = psi_RZ(ctx.RatZeq0, 0., &ctx);
   ctx.z_min    = z_psiZ(ctx.psi_eval, ctx.Z_min, &ctx);
   ctx.z_max    = z_psiZ(ctx.psi_eval, ctx.Z_max, &ctx);
-  printf("\n");
-  printf("  psi_eval = %e\n",ctx.psi_eval);
-  printf("  z_min    = %e\n",ctx.z_min   );
-  printf("  z_max    = %e\n",ctx.z_max   );
-
-  double Lz = ctx.z_max - ctx.z_min;
-  double tau_par_ion = (Lz/2.0)/vti;
-  double tau_coll_ion = 1.0/nuIon;
-  printf("  tau_par_ion = %.9e\n",tau_par_ion);
-  printf("  tau_coll_ion = %.9e\n",tau_coll_ion);
 
   return ctx;
 }
