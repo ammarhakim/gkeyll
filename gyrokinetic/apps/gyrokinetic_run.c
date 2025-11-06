@@ -370,7 +370,7 @@ write_message_post_update_nonverbose_multib(const struct gkyl_gyrokinetic_multib
     
     trigs->tenth += 1;
   }
-  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+  else if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d", trigs->p1c);
     trigs->p1c = (trigs->p1c+1) % 10;
     fflush(stdout);
