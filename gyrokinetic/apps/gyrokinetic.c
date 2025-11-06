@@ -1153,7 +1153,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-    if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+    if (app->field->is_em) {
       const char *fmt = "%s-apar_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
@@ -1163,7 +1163,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       }
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm);
     }
-    if (app->field->gkfield_id == GKYL_GK_FIELD_EM || app->field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+    if (app->field->is_em) {
       const char *fmt = "%s-apardot_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, frame);
       char fileNm[sz+1]; // ensures no buffer overflow

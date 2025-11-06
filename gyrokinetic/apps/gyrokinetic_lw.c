@@ -66,12 +66,10 @@ static const struct gkyl_str_int_pair gk_collisionless_type[] = {
 
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
-  { "Electrostatic", GKYL_GK_FIELD_ES },
+  { "Default", GKYL_GK_FIELD },
   { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
   { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
-  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
-  { "Electromagnetic", GKYL_GK_FIELD_EM },
-  { "ElectromagneticIWL", GKYL_GK_FIELD_EM_IWL },
+  { "Inner wall limited", GKYL_GK_FIELD_IWL },
   { 0, 0 }
 };
 

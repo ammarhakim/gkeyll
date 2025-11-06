@@ -1140,7 +1140,6 @@ struct gk_field {
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
   bool is_em; // Whether EM model.
-  bool is_clopen; // Whether we are in a closed + open field line geometry.
 
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density
