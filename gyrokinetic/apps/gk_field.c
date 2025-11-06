@@ -648,14 +648,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
       // Translate input file BCs into Ampere BCs.
       for (int d=0; d<app->cdim-1; d++) {
-        struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+        struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
         if (bc_lo != 0) {
           f->ampere_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
           for (int i=0; i<3; i++)
             f->ampere_bcs.lo_value[d].v[i] = bc_lo->value[i];
         }
 
-        struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+        struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
         if (bc_up != 0) {
           f->ampere_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
           for (int i=0; i<3; i++)
