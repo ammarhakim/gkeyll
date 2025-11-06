@@ -284,6 +284,7 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 * @param charge_elc Electron charge.
 * @param mass_ion Ion mass.
 * @param charge_ion Ion charge.
+* @param e_fact Electric field divergence error propagation speed.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
 * @param fluid_old Array of old fluid variables (before source update).
@@ -291,7 +292,7 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 */
 void
 explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double gas_gamma_ion,
-  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion, double t_curr, const double dt,
+  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion, double e_fact, double t_curr, const double dt,
   double* fluid_old, double* fluid_new);
 
 /**

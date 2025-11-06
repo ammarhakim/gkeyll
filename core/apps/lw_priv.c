@@ -41,9 +41,7 @@ static const struct gkyl_str_int_pair species_bcs[] = {
   { "bcFunc", GKYL_SPECIES_FUNC },
   { "bcFixedFunc", GKYL_SPECIES_FIXED_FUNC },
   { "bcZeroFlux", GKYL_SPECIES_ZERO_FLUX },
-  { "bcGkSheath", GKYL_SPECIES_GK_SHEATH },
   { "bcRecycle", GKYL_SPECIES_RECYCLE },
-  { "bcGkIWL", GKYL_SPECIES_GK_IWL },
   { 0, 0 }
 };
 

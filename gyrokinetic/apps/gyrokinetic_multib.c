@@ -148,7 +148,6 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   app_inp.geometry = bgi->geometry;
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -192,7 +191,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.cells[i] = bgi->cells[i];
   }
 
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -213,6 +211,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.mass = sp->mass;
 
     // Velocity-space information
+    int vdim = species_inp.vdim = sp->vdim;
     for (int v=0; v<vdim; ++v) {
       species_inp.lower[v] = sp->lower[v];
       species_inp.upper[v] = sp->upper[v];
@@ -294,7 +293,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.is_static = nsp->is_static; 
 
     // Velocity space information (neutrals are 3V)
-    for (int v=0; v<3; ++v) {
+    int vdim = neut_species_inp.vdim = nsp->vdim;
+    for (int v=0; v<vdim; ++v) {
       neut_species_inp.lower[v] = nsp->lower[v];
       neut_species_inp.upper[v] = nsp->upper[v];
       neut_species_inp.cells[v] = nsp->cells[v];
@@ -866,13 +866,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 }
 
 void
-gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr, const struct gkyl_array *fin[])
+gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute fields.
   if (app->update_field) {
     // Solve the field equation.
-    gk_multib_field_rhs(app, app->field, fin);
+    gk_multib_field_rhs(app, app->field, fin, bflux);
   }
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -929,14 +930,14 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
 
 void
 gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[])
 {
   // Compute fields and apply BCs.
 
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf);
+  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf, bflux);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
@@ -957,6 +958,7 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
 
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+  struct gkyl_array **bflux[app->num_species * app->num_local_blocks];
   struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
   for (int b=0; b<app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -964,12 +966,13 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
       distf[li_charged+i] = sbapp->species[i].f;
+      bflux[li_charged+i] = sbapp->species[i].bflux.f1;
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[li_neut+i] = sbapp->neut_species[i].f;
     }
   }
-  gyrokinetic_multib_calc_field_and_apply_bc(app, t0, distf, distf_neut);
+  gyrokinetic_multib_calc_field_and_apply_bc(app, t0, distf, bflux, distf_neut);
 }
 
 void
@@ -1038,6 +1041,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
     struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+    struct gkyl_array **bflux[app->num_species * app->num_local_blocks];
     struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
     for (int b=0; b<app->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -1045,6 +1049,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
       int li_neut = b * app->num_neut_species;
       for (int i=0; i<app->num_species; ++i) {
         distf[li_charged+i] = sbapp->species[i].f;
+        bflux[li_charged+i] = sbapp->species[i].bflux.f;
       }
       for (int i=0; i<app->num_neut_species; ++i) {
         distf_neut[li_neut+i] = sbapp->neut_species[i].f;
@@ -1064,7 +1069,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
 //        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
 //      }
 //    }
-    gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
+    gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, bflux, distf_neut);
   }
 
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];

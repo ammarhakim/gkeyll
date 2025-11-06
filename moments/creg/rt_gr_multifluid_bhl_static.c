@@ -8,6 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_twofluid.h>
 #include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
 
 #include <gkyl_null_comm.h>
 
@@ -18,29 +19,28 @@
 
 #include <rt_arg_parse.h>
 
-struct riem_balsara1_ctx
+struct bhl_static_multifluid_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
   double gas_gamma_elc; // Adiabatic index (electrons).
   double gas_gamma_ion; // Adiabatic index (ions).
-  double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_ion; // Proton mass.
   double charge_ion; // Proton charge.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
   double rhol_ion; // Left ion mass density.
-  double rhor_ion; // Right ion mass density;
+  double ul; // Left electron/ion velocity.
   double pl; // Left electron/ion pressure.
+
+  double rhor_ion; // Right ion mass density.
+  double ur; // Right electron/ion velocity.
   double pr; // Right electron/ion pressure.
 
-  double Bx; // Total magnetic field (x-direction).
-  double Byl; // Left total magneic field (y-direction).
-  double Byr; // Right total magnetic field (y-direction).
-
-  bool has_collision; // Whether to include collisions.
-  double nu_base_ei; // Base electron-ion collision frequency.
+  double B0; // Reference magnetic field strength.
 
   double light_speed; // Speed of light.
   double e_fact; // Factor of speed of light for electric field correction.
@@ -50,12 +50,22 @@ struct riem_balsara1_ctx
   double rhol_elc; // Left electron mass density.
   double rhor_elc; // Right electron mass density.
 
+  // Spacetime parameters (using geometric units).
+  double mass; // Mass of the black hole.
+  double spin; // Spin of the black hole.
+
+  double pos_x; // Position of the black hole (x-direction).
+  double pos_y; // Position of the black hole (y-direction).
+  double pos_z; // Position of the black hole (z-direction).
+
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
@@ -67,85 +77,102 @@ struct riem_balsara1_ctx
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double x_loc; // Shock location (x-direction).
 };
 
-struct riem_balsara1_ctx
+struct bhl_static_multifluid_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
-  double gas_gamma_elc = 2.0; // Adiabatic index (electrons).
-  double gas_gamma_ion = 2.0; // Adiabatic index (ions).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
+  double gas_gamma_elc = 5.0 / 3.0; // Adiabatic index (electrons).
+  double gas_gamma_ion = 5.0 / 3.0; // Adiabatic index (ions).
   double mass_ion = 1.0; // Proton mass.
   double charge_ion = 1.0; // Proton charge.
   double mass_elc = 1.0 / 1836.2; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double rhol_ion = 1.0; // Left ion mass density.
-  double rhor_ion = 0.125; // Right ion mass density;
-  double pl = 1.0; // Left electron/ion pressure.
-  double pr = 0.1; // Right electron/ion pressure.
+  double rhol_ion = 3.0; // Left ion mass density.
+  double ul = 0.3; // Left electron/ion velocity.
+  double pl = 0.05; // Left electron/ion pressure.
 
-  double Bx = 0.5e-2; // Total magnetic field (x-direction).
-  double Byl = 1.0e-2; // Left total magneic field (y-direction).
-  double Byr = -1.0e-2; // Right total magnetic field (y-direction).
+  double rhor_ion = 1.0 / (4.0 * pi); // Right ion mass density.
+  double ur = 0.0; // Right electron/ion velocity.
+  double pr = 0.01; // Right electron/ion pressure.
 
-  bool has_collision = false; // Whether to include collisions.
-  double nu_base_ei = 0.5; // Base electron-ion collision frequency.
+  double B0 = 0.05; // Reference magnetic field strength.
 
   double light_speed = 1.0; // Speed of light.
   double e_fact = 0.0; // Factor of speed of light for electric field correction.
-  double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
+  double b_fact = 0.8; // Factor of speed of light for magnetic field correction.
 
   // Derived physical quantities (using normalized code units).
   double rhol_elc = rhol_ion * mass_elc / mass_ion; // Left electron mass density.
   double rhor_elc = rhor_ion * mass_elc / mass_ion; // Right electron mass density.
 
+  // Spacetime parameters (using geometric units).
+  double mass = 0.3; // Mass of the black hole.
+  double spin = 0.0; // Spin of the black hole.
+
+  double pos_x = 2.5; // Position of the black hole (x-direction).
+  double pos_y = 2.5; // Position of the black hole (y-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
+
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 4096; // Cell count (x-direction).
-  double Lx = 10.0; // Domain size (x-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
+  double Lx = 5.0; // Domain size (x-direction).
+  double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 100; // Spacetime reinitialization frequency.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 15.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct riem_balsara1_ctx ctx = {
+  double x_loc = 1.0; // Shock location (x-direction).
+
+  struct bhl_static_multifluid_ctx ctx = {
+    .pi = pi,
     .gas_gamma_elc = gas_gamma_elc,
     .gas_gamma_ion = gas_gamma_ion,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_ion = mass_ion,
     .charge_ion = charge_ion,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .rhol_ion = rhol_ion,
-    .rhor_ion = rhor_ion,
+    .ul = ul,
     .pl = pl,
+    .rhor_ion = rhor_ion,
+    .ur = ur,
     .pr = pr,
-    .Bx = Bx,
-    .Byl = Byl,
-    .Byr = Byr,
-    .has_collision = has_collision,
-    .nu_base_ei = nu_base_ei,
+    .B0 = B0,
     .light_speed = light_speed,
     .e_fact = e_fact,
     .b_fact = b_fact,
     .rhol_elc = rhol_elc,
     .rhor_elc = rhor_elc,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
     .spacetime = spacetime,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
@@ -155,6 +182,7 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .x_loc = x_loc,
   };
 
   return ctx;
@@ -163,58 +191,50 @@ create_ctx(void)
 void
 evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct riem_balsara1_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct bhl_static_multifluid_ctx *app = ctx;
 
   double gas_gamma_elc = app->gas_gamma_elc;
   double gas_gamma_ion = app->gas_gamma_ion;
 
+  double rhol_ion = app->rhol_ion;
+  double ul = app->ul;
+  double pl = app->pl;
+
+  double rhor_ion = app->rhor_ion;
+  double ur = app->ur;
+  double pr = app->pr;
+
+  double B0 = app->B0;
+
   double rhol_elc = app->rhol_elc;
   double rhor_elc = app->rhor_elc;
 
-  double rhol_ion = app->rhol_ion;
-  double rhor_ion = app->rhor_ion;
+  struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double pl = app->pl;
-  double pr = app->pr;
-
-  double Bx = app->Bx; // Total magnetic field (x-direction).
-  double Byl = app->Byl;
-  double Byr = app->Byr;
+  double x_loc = app->x_loc;
 
   double Lx = app->Lx;
-
-  double Dx = 0.0; // Total electric field (x-direction).
-  double Dy = 0.0; // Total electric field (y-direction).
-  double Dz = 0.0; // Total electric field (z-direction).
-
-  double By = 0.0;
-  double Bz = 0.0; // Total magnetic field (z-direction).
-
-  struct gkyl_gr_spacetime *spacetime = app->spacetime;
+  double Ly = app->Ly;
 
   double rhoe = 0.0;
   double rhoi = 0.0;
+  double u = 0.0;
   double p = 0.0;
 
-  if (x < 0.5 * Lx) {
+  if (x < x_loc) {
     rhoe = rhol_elc; // Electron mass density (left).
     rhoi = rhol_ion; // Ion mass density (left).
+    u = ul; // Electron/ion velocity (left).
     p = pl; // Electron/ion pressure (left).
   }
   else {
     rhoe = rhor_elc; // Electron mass density (right).
     rhoi = rhor_ion; // Ion mass density (right).
+    u = ur; // Electron/ion velocity (right).
     p = pr; // Electron/ion pressure (right).
   }
-
-  if (x < 0.5 * Lx) {
-    By = Byl; // Total magnetic field (y-direction, left).
-  }
-  else {
-    By = Byr; // Total magnetic field (y-direction, right).
-  }
-
+  
   double spatial_det, lapse;
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
@@ -244,35 +264,55 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
     }
   }
 
-  spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
-  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
   
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
-  double We = 1.0;
-  double Wi = 1.0;
+  double *vel = gkyl_malloc(sizeof(double[3]));
+  double v_sq = 0.0;
+  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+    }
+  }
+
+  double W = 1.0 / (sqrt(1.0 - v_sq));
+  if (v_sq > 1.0 - pow(10.0, -8.0)) {
+    W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+  }
 
   double he = 1.0 + ((p / rhoe) * (gas_gamma_elc / (gas_gamma_elc - 1.0)));
   double hi = 1.0 + ((p / rhoi) * (gas_gamma_ion / (gas_gamma_ion - 1.0)));
-
-  double rhoe_rel = sqrt(spatial_det) * rhoe * We; // Electron relativistic mass density.
-  double mome_x = 0.0; // Electron momentum density (x-direction).
+  
+  double rhoe_rel = sqrt(spatial_det) * rhoe * W; // Electron relativistic mass density.
+  double mome_x = sqrt(spatial_det) * rhoe * he * (W * W) * u; // Electron momentum density (x-direction).
   double mome_y = 0.0; // Electron momentum density (y-direction).
   double mome_z = 0.0; // Electron momentum density (z-direction).
-  double Ee_tot = sqrt(spatial_det) * ((rhoe * he * (We * We)) - p - (rhoe * We)); // Electron total energy density.
+  double Ee_tot = sqrt(spatial_det) * ((rhoe * he * (W * W)) - p - (rhoe * W)); // Electron total energy density.
 
-  double rhoi_rel = sqrt(spatial_det) * rhoi * Wi; // Ion relativistic mass density.
-  double momi_x = 0.0; // Ion momentum density (x-direction).
+  double rhoi_rel = sqrt(spatial_det) * rhoi * W; // Ion relativistic mass density.
+  double momi_x = sqrt(spatial_det) * rhoi * hi * (W * W) * u; // Ion momentum density (x-direction).
   double momi_y = 0.0; // Ion momentum density (y-direction).
   double momi_z = 0.0; // Ion momentum density (z-direction).
-  double Ei_tot = sqrt(spatial_det) * ((rhoi * hi * (Wi * Wi)) - p - (rhoi * Wi)); // Ion total energy density.
+  double Ei_tot = sqrt(spatial_det) * ((rhoi * hi * (W * W)) - p - (rhoi * W)); // Ion total energy density.
+
+  double Dx = 0.0; // Total electric field (x-direction).
+  double Dy = 0.0; // Total electric field (y-direction).
+  double Dz = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = B0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electron relativistic mass density.
   fout[0] = rhoe_rel;
@@ -342,10 +382,10 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[80] = 0.0;
 
   // Set spatial coordinates.
-  fout[81] = x; fout[82] = 0.0; fout[83] = 0.0;
+  fout[81] = x; fout[82] = y; fout[83] = 0.0;
 
   if (in_excision_region) {
-    for (int i = 0; i < 84; i++) {
+    for (int i = 0; i < 80; i++) {
       fout[i] = 0.0;
     }
     fout[40] = -1.0;
@@ -417,9 +457,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct riem_balsara1_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bhl_static_multifluid_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
   struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(ctx.mass_elc, ctx.mass_ion, ctx.charge_elc, ctx.charge_ion, ctx.gas_gamma_elc, ctx.gas_gamma_ion,
@@ -430,8 +471,7 @@ main(int argc, char **argv)
     .equation = gr_twofluid,
     
     .init = evalGRTwoFluidInit,
-    .force_low_order_flux = false, // Use HLL fluxes.
-    .limiter = GKYL_MIN_MOD,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .has_gr_twofluid = true,
@@ -441,8 +481,10 @@ main(int argc, char **argv)
     .gr_twofluid_charge_ion = ctx.charge_ion,
     .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
     .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
+    .gr_twofluid_e_fact = ctx.e_fact,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -453,7 +495,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -513,12 +555,15 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_riem_balsara1",
+    .name = "gr_multifluid_bhl_static",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
+
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
+    .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 
@@ -527,7 +572,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };

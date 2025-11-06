@@ -82,12 +82,8 @@ test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
     poly_order+1, 1, eval_T_over_m_elc_100ev, NULL);
 
   struct gkyl_dg_iz_inp iz_inp = {
-    .grid = &phaseGrid_elc,
     .cbasis = &basis,
-    .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
-    .conf_rng_ext = &confRange_ext,
-    .phase_rng = &phaseRange_elc,
     .type_ion = type_ion,
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
