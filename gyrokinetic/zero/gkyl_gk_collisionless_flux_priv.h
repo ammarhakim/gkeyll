@@ -48,8 +48,6 @@ struct gkyl_gk_collisionless_flux {
                                                         // at upper configuration space edge
   gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
   
-  gk_collisionless_flux_surfvpar_t flux_surfvpar_add_apardot[1]; // kernel for adding dA_par/dt terms to surface expansion of phase space flux.
-
   double charge, mass;
   bool is_em; // Whether it is electromagnetic.
   bool only_apardot; // Whether it is meant to only add Apardot terms.
@@ -446,13 +444,6 @@ static gk_collisionless_flux_surf_t
 get_gk_collisionless_flux_surf_zero_kern()
 {
   return gk_collisionless_flux_surf_return_zero;
-}
-
-GKYL_CU_D
-static gk_collisionless_flux_surfvpar_t
-get_gk_collisionless_flux_surfvpar_zero_kern()
-{
-  return gk_collisionless_flux_surfvpar_return_zero;
 }
 
 GKYL_CU_D

@@ -126,7 +126,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
   }
 
-  gyrokinetic->vol_add_apar_term = collless_type == GKYL_GK_COLLISIONLESS_EM  ? 
+  gyrokinetic->vol_add_apar_term = collless_type == GKYL_GK_COLLISIONLESS_EM || GKYL_GK_COLLISIONLESS_EM_BPERP ? 
     CK(vol_add_apar_kernels,cdim,vdim,poly_order) : kernel_dg_gyrokinetic_vol_return_zero;
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);

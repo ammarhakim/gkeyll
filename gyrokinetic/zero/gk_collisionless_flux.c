@@ -46,9 +46,6 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   up->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  // Set apardot function to zero by default.
-  up->flux_surfvpar_add_apardot[0] = get_gk_collisionless_flux_surfvpar_zero_kern();
-  
   // Choose appropriate kernels.
   if (only_apardot){
     // If we only add Apardot terms to the flux, the only non zero kernel is the vpar one.
@@ -69,7 +66,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
           poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
       }
       up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-    } else {
+    } else { // The Apar term is included in the kernels. If we are ES, Apar=0.
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
         up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
