@@ -1330,17 +1330,17 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
 {
   // Check whether one of the neutral species has a recycle_react_scale
   // operation thats depend on this gyrokinetic species.
-  bool has_rrs = false;
+  bool has_sca = false;
   int neuts = app->num_neut_species;
   for (int i=0; i<neuts; ++i) {
     struct gk_neut_species *ns = &app->neut_species[i];
-    struct gkyl_gyrokinetic_recycling_reaction_scaling_inp *rrs_inp = &ns->info.recycling_reaction_scaling;
-    if ((rrs_inp->num_boundaries > 0) && (0 == strcmp(gks->info.name, rrs_inp->impacting_ion_name))) {
-      has_rrs = true;
+    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
+    if ((sca_inp->num_boundaries > 0) && (0 == strcmp(gks->info.name, sca_inp->impacting_ion_name))) {
+      has_sca = true;
       break;
     }
   }
-  return has_rrs;
+  return has_sca;
 }
 
 static bool

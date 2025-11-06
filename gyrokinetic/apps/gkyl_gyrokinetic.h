@@ -258,10 +258,11 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
 };
 
-// Input parameters for scaling a species according to recycling at specified
-// boundaries balanced by reactions.
-struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
+// Input parameters for scaling a species every time step.
+struct gkyl_gyrokinetic_scaling_inp {
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
+
+  // Info for GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE.
   int num_boundaries; // Number of boundaries.
   int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
   enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
@@ -269,6 +270,11 @@ struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
   enum gkyl_ion_type impacting_ion_id; // Type of impacting ion.
   char electron_name[128]; // Name of electron species.
   double recycling_coeff; // Recycling coefficient.
+  
+  // Info for GKYL_GK_SPECIES_SCALING_FIXED_FRACTION.
+  char ref_species_name[128]; // Name of reference species.
+  double fixed_fraction; // Fraction of reference species density.
+
   bool write_diagnostics; // Whether to write diagnostics.
 };
 
@@ -416,7 +422,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   // Inputs to operation that scales the species according to a balance of
   // recycling and reactions.
-  struct gkyl_gyrokinetic_recycling_reaction_scaling_inp recycling_reaction_scaling;
+  struct gkyl_gyrokinetic_scaling_inp scaling;
 };
 
 // Parameter for gk field.

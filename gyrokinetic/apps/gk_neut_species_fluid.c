@@ -13,8 +13,8 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
-  // Compute volume-integrated reactions in rrs.
-  gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
+  // Compute volume-integrated reactions in sca.
+  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
 
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -119,7 +119,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -310,8 +310,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions.
-  ns->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+  ns->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, ns, &ns->sca);
 
   // Initialize BGK collisions with null type (not applicable to fluids).
   ns->bgk = (struct gk_bgk_collisions) { };

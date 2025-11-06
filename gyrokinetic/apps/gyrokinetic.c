@@ -691,7 +691,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species part of the object that scales the species
     // according to a balance between recycling and reactions.
-    gk_neut_species_recycle_react_scale_cross_init(app, gkns, &gkns->rrs);
+    gk_neut_species_scaling_cross_init(app, gkns, &gkns->sca);
     
     // Initialize wall emission terms.
     for (int d=0; d<app->cdim; ++d) {
@@ -1720,7 +1720,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin, fin_neut);
 
     // Scaling according to balance between recycling and reactions.
-    gk_neut_species_recycle_react_scale_cross_moms(app, gk_ns, &gk_ns->rrs, fin, fin_neut);
+    gk_neut_species_scaling_cross_moms(app, gk_ns, &gk_ns->sca, fin, fin_neut);
   }
 
   // Compute df/dt (not including sources).
