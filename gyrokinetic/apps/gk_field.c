@@ -272,7 +272,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD;
   
-  f->is_em = false;
+  f->is_em = f->info.gkfield_id == GKYL_GK_FIELD_EM;
   // Ensure that if any species is electromagnetic, the field is electromagnetic.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
