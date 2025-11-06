@@ -20,6 +20,13 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
   fout[0] = xn[0];
 }
 
+void
+gkyl_position_map_identity_slope(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = 1.0;
+}
+
+
 struct gkyl_position_map*
 gkyl_position_map_null_new()
 {
@@ -63,7 +70,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
-    gpm->map_derivs[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
     gpm->ctxs[i] = 0;
     gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
     gpm->constB_ctx->ctxs_backup[i] = 0;
@@ -192,7 +199,6 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, do
   }
   else {
     gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
-    gpm->map_derivs[0] = gkyl_position_map_identity;
     gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
   }
 
@@ -206,7 +212,6 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, do
   }
   else {
     gpm->maps[2] = gpm->xpt_ctx->maps_backup[2];
-    gpm->map_derivs[2] = gkyl_position_map_identity;
     gpm->ctxs[2] = gpm->xpt_ctx->ctxs_backup[2];
   }
 }
