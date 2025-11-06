@@ -132,9 +132,9 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
     }
 
-    bool add_apardot = false;
+    bool only_apardot = false;
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-      gks->info.charge, gks->info.mass, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, 
+      gks->info.charge, gks->info.mass, gkcls->collisionless_id, only_apardot, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
@@ -142,20 +142,20 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-      gks->info.skip_cell_threshold, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, gks->vel_map, 
+      gks->info.skip_cell_threshold, gkcls->collisionless_id, only_apardot, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
     
     if (gkcls->is_em) {
-      add_apardot = true;
+      only_apardot = true;
       // Create a special flux operator that only adds the AparDot contribution.
-      gkcls->add_apardot_surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis,
-        gks->info.charge, gks->info.mass, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom,
-        app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
+      gkcls->add_apardot_surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
+      gks->info.charge, gks->info.mass, gkcls->collisionless_id, only_apardot, app->gk_geom, 
+      app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
       // Create solver that only adds AparDot terms.
-      gkcls->add_apardot_slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
-        &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-        gks->info.skip_cell_threshold, gkcls->no_by, gkcls->is_em, add_apardot, app->gk_geom, gks->vel_map,
-        &aux_inp, app->use_gpu);
+      gkcls->add_apardot_slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+      &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
+      gks->info.skip_cell_threshold, gkcls->collisionless_id, only_apardot, app->gk_geom, gks->vel_map, 
+      &aux_inp, app->use_gpu);
     }
           
     // Methods chosen at runtime.

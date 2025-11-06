@@ -52,7 +52,7 @@ struct gkyl_gk_collisionless_flux {
 
   double charge, mass;
   bool is_em; // Whether it is electromagnetic.
-  bool add_apardot; // Whether it is meant to only add Apardot terms.
+  bool only_apardot; // Whether it is meant to only add Apardot terms.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct.
   const struct gkyl_dg_geom *dg_geom; // Pointer to vol dg geometry struct.
   const struct gkyl_gk_dg_geom *gk_dg_geom; // Pointer to vol gk dg geometry struct.

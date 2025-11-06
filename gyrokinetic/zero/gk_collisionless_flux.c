@@ -17,8 +17,8 @@
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, const bool no_by, const bool is_em,
-  const bool add_apardot, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const double charge, const double mass, enum gkyl_gk_collisionless_type type,
+  const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu)
 {
@@ -40,8 +40,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 
   up->charge = charge;
   up->mass = mass;
-  up->is_em = is_em;
-  up->add_apardot = add_apardot;
+  up->only_apardot = only_apardot;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->dg_geom = gkyl_dg_geom_acquire(dg_geom);
   up->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
@@ -51,9 +50,8 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   up->flux_surfvpar_add_apardot[0] = get_gk_collisionless_flux_surfvpar_zero_kern();
   
   // Choose appropriate kernels.
-  if (add_apardot){
-    // If we only add Apardot terms to the flux, we set every conf flux_surf kernel to 0 and we cable the vpar one to the
-    // appropriate add Apardot kernel (no conf surf contributions).
+  if (only_apardot){
+    // If we only add Apardot terms to the flux, the only non zero kernel is the vpar one.
     for (int d=0; d<cdim; ++d) {
       up->flux_surf[d] = get_gk_collisionless_flux_surf_zero_kern();
       up->flux_surf_edge_lo[d] = get_gk_collisionless_flux_surf_zero_kern();
@@ -61,7 +59,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
-    if (no_by) {
+    if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
         up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
