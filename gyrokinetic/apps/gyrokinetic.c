@@ -1153,26 +1153,24 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-    if (app->field->is_em) {
-      const char *fmt = "%s-apar_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, frame);
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-      if (app->use_gpu) {
-        gkyl_array_copy(app->field->apar_host, app->field->apar);
-      }
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm);
+  if (app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+    const char *fmt = "%s-apar_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, frame);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->apar_host, app->field->apar);
     }
-    if (app->field->is_em) {
-      const char *fmt = "%s-apardot_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, frame);
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-      if (app->use_gpu) {
-        gkyl_array_copy(app->field->apardot_host, app->field->apardot);
-      }
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm);
+
+    fmt = "%s-apardot_%d.gkyl";
+    sz = gkyl_calc_strlen(fmt, app->name, frame);
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->apardot_host, app->field->apardot);
     }
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm);
+  }
 
     gk_array_meta_release(mt);
 
@@ -1213,12 +1211,13 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
 
+    bool write_em = app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL;
     if (rank == 0) {
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(app->field->integ_energy, fileNm0);
 
-        if (app->field->is_em)
+        if (write_em)
           gkyl_dynvec_write(app->field->integ_apar_energy, fileNm0_apar);
 
         app->field->is_first_energy_write_call = false;
@@ -1226,13 +1225,13 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       else {
         // Append to existing file.
         gkyl_dynvec_awrite(app->field->integ_energy, fileNm0);
-        if (app->field->is_em)
+        if (write_em)
           gkyl_dynvec_awrite(app->field->integ_apar_energy, fileNm0_apar);
       }
       app->stat.n_field_diag_io += 1;
     }
     gkyl_dynvec_clear(app->field->integ_energy);
-    if (app->field->is_em)
+    if (write_em)
       gkyl_dynvec_clear(app->field->integ_apar_energy);
 
     if (app->field->info.time_rate_diagnostics) {

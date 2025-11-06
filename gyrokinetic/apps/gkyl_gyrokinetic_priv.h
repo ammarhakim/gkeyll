@@ -286,7 +286,6 @@ struct gk_rad_drag {
 struct gk_collisionless {
   enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
   bool no_by; // Whether to neglect the toroidal field (b_y=0).
-  bool is_em; // Whether we have EM effects.
   bool write_diagnostics; // Whether to write diagnostics out.
 
   // Organization of the different equation objects and the required data and solvers
@@ -870,7 +869,6 @@ struct gk_species {
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
   struct gkyl_array *gyro_apar; // Gyroaveraged parallel vector potential.
   struct gkyl_array *gyro_apardot; // Gyroaveraged parallel vector potential time derivative.
-  bool is_em; // Whether electromagnetic terms are present.
 
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment m1; // Computes current density.
@@ -1139,7 +1137,7 @@ struct gk_field {
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
-  bool is_em; // Whether EM model.
+  bool is_em; // Whether we solve the EM field equations.
 
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density

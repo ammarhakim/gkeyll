@@ -1062,7 +1062,12 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
-  gks->add_apardot_rhs_func = gks->is_em ? gk_species_add_apardot_dynamic : gk_species_rhs_static;
+
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM || gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)
+    gks->add_apardot_rhs_func = gk_species_add_apardot_dynamic;
+  else
+    gks->add_apardot_rhs_func = gk_species_rhs_static;
+
   gks->bflux_update = gk_species_update_bflux_dynamic;
   gks->get_cfl = gk_species_get_cfl_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
@@ -1580,7 +1585,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
-  gks->is_em = app->field->is_em;
   // We do not have FLR effects for EM yet.
   gks->gyro_apar = gkyl_array_acquire(app->field->apar_smooth);
   gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
@@ -1593,7 +1597,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
-  if (gks->collisionless.is_em) {
+  if (app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL) {
     // To compute current density for Ampere's law and current dot for Ohm's law.
     gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
   }
@@ -1997,7 +2001,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gkyl_array_release(s->gyro_apar);
   gkyl_array_release(s->gyro_apardot);
-  if (s->is_em)
+  if (app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL)
     gk_species_moment_release(app, &s->m1);
 
   s->release_func(app, s);

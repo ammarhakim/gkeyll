@@ -56,26 +56,27 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
+    int em = (type == GKYL_GK_COLLISIONLESS_EM || type == GKYL_GK_COLLISIONLESS_EM_BPERP) ? 1 : 0;
     if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim,
+        up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim,
           poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim,
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(em, d, cdim, vdim,
           poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
       }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(em, cdim, vdim, poly_order);
     } else { // The Apar term is included in the kernels. If we are ES, Apar=0.
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
+        up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim,
           poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
+        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(em, d, cdim, vdim,
           poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
       }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
+      up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(em, cdim, vdim, poly_order);
     }
   }
 
