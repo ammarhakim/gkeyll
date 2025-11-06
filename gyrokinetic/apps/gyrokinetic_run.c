@@ -104,7 +104,7 @@ write_message_post_update_nonverbose_singleb(const struct gkyl_gyrokinetic_app *
     
     trigs->tenth += 1;
   }
-  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+  else if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "%d", trigs->p1c);
     trigs->p1c = (trigs->p1c+1) % 10;
     fflush(stdout);
@@ -236,8 +236,6 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
 
-    write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
-
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -245,6 +243,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
 
     calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
     write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
@@ -502,14 +502,14 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
 
-    write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
-
     if (!status.success) {
       gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
 
     calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
     write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
