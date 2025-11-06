@@ -155,15 +155,24 @@ gk_neut_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_sp
 {
   struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
 
+  sca->type = 0;
+  sca->num_boundaries = 0;
+  sca->cross_moms_func_neut = gk_neut_species_scaling_cross_moms_disabled;
+  sca->rhs_func_neut = gk_neut_species_scaling_rhs_disabled;
+  sca->apply_func_neut = gk_neut_species_scaling_apply_disabled;
+  sca->write_func_neut = gk_neut_species_scaling_write_disabled;
+
   if (sca_inp->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     assert(ns->is_fluid);
 
-    sca->num_boundaries = sca_inp->num_boundaries;
-    sca->recycling_coeff = sca_inp->recycling_coeff;
+    sca->type = sca_inp->type;
     sca->write_diagnostics = sca_inp->write_diagnostics;
 
     // Initial number density times conf-space Jacobian.
     sca->Jm0_init = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    sca->num_boundaries = sca_inp->num_boundaries;
+    sca->recycling_coeff = sca_inp->recycling_coeff;
 
     // Create an updater that integrates an array.
     sca->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
@@ -179,20 +188,13 @@ gk_neut_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_sp
       sca->bflux_m0_vol_integ_local = gkyl_malloc(sizeof(double));
     }
 
-    sca->cross_moms_func = gk_neut_species_scaling_cross_moms_enabled;
-    sca->rhs_func = gk_neut_species_scaling_rhs_enabled;
-    sca->apply_func = gk_neut_species_scaling_apply_enabled;
+    sca->cross_moms_func_neut = gk_neut_species_scaling_cross_moms_enabled;
+    sca->rhs_func_neut = gk_neut_species_scaling_rhs_enabled;
+    sca->apply_func_neut = gk_neut_species_scaling_apply_enabled;
     if (sca->write_diagnostics)
-      sca->write_func = gk_neut_species_scaling_write_enabled;
+      sca->write_func_neut = gk_neut_species_scaling_write_enabled;
     else
-      sca->write_func = gk_neut_species_scaling_write_disabled;
-  }
-  else {
-    sca->num_boundaries = 0;
-    sca->cross_moms_func = gk_neut_species_scaling_cross_moms_disabled;
-    sca->rhs_func = gk_neut_species_scaling_rhs_disabled;
-    sca->apply_func = gk_neut_species_scaling_apply_disabled;
-    sca->write_func = gk_neut_species_scaling_write_disabled;
+      sca->write_func_neut = gk_neut_species_scaling_write_disabled;
   }
 }
 
@@ -200,7 +202,7 @@ void
 gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
   struct gk_scaling *sca)
 {
-  if (sca->num_boundaries > 0) {
+  if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
 
     // Fetch index of species for indexing arrays.
@@ -257,7 +259,7 @@ void
 gk_neut_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
   struct gk_scaling *sca)
 {
-  if (sca->num_boundaries > 0) {
+  if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     // Store the initial particle number density.
     gkyl_array_set_offset(sca->Jm0_init, 1.0/ns->info.mass, ns->f, 0);
   }
@@ -267,35 +269,35 @@ void
 gk_neut_species_scaling_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns,
   struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
-  sca->cross_moms_func(app, ns, sca, fin, fin_neut);
+  sca->cross_moms_func_neut(app, ns, sca, fin, fin_neut);
 }
 
 void
 gk_neut_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
   struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  sca->rhs_func(app, ns, sca, fin, rhs);
+  sca->rhs_func_neut(app, ns, sca, fin, rhs);
 }
 
 void
 gk_neut_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
   struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
-  sca->apply_func(app, ns, sca, fin, bflux);
+  sca->apply_func_neut(app, ns, sca, fin, bflux);
 }
 
 void
 gk_neut_species_scaling_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_scaling *sca, int ridx, double tm, int frame)
 {
-  sca->write_func(app, gkns, sca, ridx, tm, frame);
+  sca->write_func_neut(app, gkns, sca, ridx, tm, frame);
 }
 
 void 
 gk_neut_species_scaling_release(const struct gkyl_gyrokinetic_app *app,
   const struct gk_scaling *sca)
 {
-  if (sca->num_boundaries > 0) {
+  if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     gkyl_array_release(sca->Jm0_init);
     gkyl_array_integrate_release(sca->integrate_op);
 

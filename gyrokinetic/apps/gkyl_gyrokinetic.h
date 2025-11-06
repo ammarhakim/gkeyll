@@ -370,6 +370,9 @@ struct gkyl_gyrokinetic_species {
   // Reactions with neutral species.
   struct gkyl_gyrokinetic_react react_neut;
 
+  // Inputs to operation that scales the species every time step.
+  struct gkyl_gyrokinetic_scaling_inp scaling;
+
   // Boundary conditions.
   struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
@@ -420,8 +423,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   double gas_gamma; // Adiabatic index (fluid neutrals).
 
-  // Inputs to operation that scales the species according to a balance of
-  // recycling and reactions.
+  // Inputs to operation that scales the species every time step.
   struct gkyl_gyrokinetic_scaling_inp scaling;
 };
 

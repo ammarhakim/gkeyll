@@ -1695,6 +1695,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   };
   gk_species_lte_init(app, gks, &gks->lte, corr_inp);
 
+  // Initialize the object that scales the species (meant for fluid neutrals for now).
+  gks->sca = (struct gk_scaling) { };
+  gk_species_scaling_init(app, gks, &gks->sca);
+
   // Initialize reactions with charged species.
   gks->react = (struct gk_react) { };
   gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
@@ -1774,6 +1778,9 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
     gkyl_dg_bin_op_mem_release(div_mem);
     gkyl_array_release(npol);
   }
+
+  // Store initial density in scaling operator.
+  gk_species_scaling_apply_ic_cross(app, gks_self, &gks_self->sca);
 }
 
 double
@@ -1892,6 +1899,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_velocity_map_release(s->vel_map);
 
   gk_species_collisionless_release(app, &s->collisionless);
+
+  // Free memory for the object that scales the species.
+  gk_species_scaling_release(app, &s->sca);
 
   gk_species_anomalous_diff_release(app, &s->anom_diff);
 

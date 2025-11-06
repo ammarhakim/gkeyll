@@ -245,8 +245,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
 
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
+  // Free memory for the object that scales the species.
   gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);

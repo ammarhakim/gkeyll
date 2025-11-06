@@ -196,6 +196,23 @@ void test_ltx(){
 
 }
 
+void test_west() {
+  struct gkyl_efit_inp inp  = {
+    .filepath = "/Users/mfrancis/Documents/gkeyll/code/gkyl-sims/west/west_62104_9000ms.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
+
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g psisep=%.9e\n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry, efit->psisep);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "west_62104_9000ms-psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "west_62104_9000ms-fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "west_62104_9000ms-q.gkyl");
+
+  gkyl_efit_release(efit);
+
+}
+
 TEST_LIST = {
   { "test_solovev", test_solovev},
   { "test_step", test_step},
@@ -207,5 +224,6 @@ TEST_LIST = {
   { "test_tcv", test_tcv},
   { "test_mast", test_mast},
   { "test_ltx", test_ltx},
+  { "test_west", test_west},
   { NULL, NULL },
 };
