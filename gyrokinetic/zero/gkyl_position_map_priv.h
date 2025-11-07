@@ -862,7 +862,6 @@ position_map_sep_compression(double t, const double *xn, double *fout, void *ctx
   double F = 1.0 / (1.0 - app->compression_factor);
   double A = 1.0/F;
   double w = app->w;
-  double psisol = app->psisep;
   double xshift = uniform_coordinate - app->psisep;
   double nonuniform_coordinate = A * (-sin(M_PI*xshift/w)*w/M_PI + F*xshift) + app->psisep;
   fout[0] = nonuniform_coordinate;
@@ -907,7 +906,6 @@ position_map_deriv_sep_compression(double t, const double *xn, double *fout, voi
   double F = 1.0 / (1.0 - app->compression_factor);
   double A = 1.0/F;
   double w = app->w;
-  double psisol = app->psisep;
   double xshift = uniform_coordinate - app->psisep;
   double deriv = A * (-cos(M_PI*xshift/w) + F);
   fout[0] = deriv;
