@@ -664,7 +664,7 @@ main(int argc, char **argv)
       .num_steps = app_args.num_steps,
     },
     .print_verbosity = {
-      .disable_timings = true,
+      .disable_timings = false,
     },
   };
 
