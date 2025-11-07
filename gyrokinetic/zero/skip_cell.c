@@ -25,10 +25,11 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
   // Allocate space for new skip cell object.
   struct gkyl_skip_cell *skip_cell = gkyl_malloc(sizeof(*skip_cell));
 
-  if (skip_cell_inp.threshold > 0.0)
+  skip_cell->type = skip_cell_inp.type;
+
+  if (skip_cell->type == GKYL_GK_SKIP_CELL_F_THRESHOLD) {
     skip_cell->skip_cell_threshold = skip_cell_inp.threshold * pow(sqrt(2.0), phase_rng.ndim);
-  else
-    skip_cell->skip_cell_threshold = -DBL_MAX;
+  }
 
   skip_cell->use_gpu = use_gpu;
   skip_cell->phase_rng = phase_rng;
@@ -62,6 +63,10 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
 void
 gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf)
 {
+  if (skip_cell->type == GKYL_GK_SKIP_CELL_NONE) {
+    return;
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (skip_cell->use_gpu) {
     gkyl_skip_cell_advance_cu(skip_cell, distf);

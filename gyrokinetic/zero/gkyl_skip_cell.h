@@ -11,18 +11,24 @@
  * on distribution function values falling below a threshold.
  */
 
+enum skip_cell_types {
+  GKYL_GK_SKIP_CELL_NONE = 0, // No skip cell operation.
+  GKYL_GK_SKIP_CELL_F_THRESHOLD, // Skip cells based on distribution function threshold.
+};
+
 /**
  * Input file parameters for skip cell object.
  */
 struct gkyl_skip_cell_inp {
-  double threshold; // Threshold below which to skip cells during various operations.
-  bool mask_diagnostics; // Whether to mask diagnostics in skipped cells.
+  enum skip_cell_types type; // Type of skip cell operation.
+  double threshold; // Skips cells where |JBf| < threshold. JBf is the distribution function output from simulations.
 };
 
 /**
  * Skip cell object definition.
  */
 struct gkyl_skip_cell {
+  enum skip_cell_types type; // Type of skip cell operation.
   struct gkyl_array *booleans; // Boolean mask array (GKYL_BOOL type).
   double skip_cell_threshold; // Threshold for marking cells as skippable.
   struct gkyl_range phase_rng; // Phase-space range.
