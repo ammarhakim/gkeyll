@@ -753,13 +753,6 @@ static const gkyl_gk_collisionless_flux_surfvpar_kern_list ser_gk_collisionless_
 };
 
 GKYL_CU_D
-static gk_collisionless_flux_surf_t
-get_gk_collisionless_flux_surf_zero_kern()
-{
-  return gk_collisionless_flux_surf_return_zero;
-}
-
-GKYL_CU_D
 static gk_collisionless_flux_surfvpar_t
 choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(int cdim, int vdim, int poly_order)
 {

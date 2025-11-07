@@ -418,13 +418,40 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_add_apardot_vol_kernels[] = {
 
 // To turn off EM effects:
 #include <gkyl_dg_gyrokinetic_kernels.h> 
-GKYL_CU_DH double kernel_dg_gyrokinetic_vol_return_zero(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
+GKYL_CU_DH double dg_gyrokinetic_vol_return_zero(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
     const double q_, const double m_, const double *bmag, const double *jacobtot_inv,
     const double *b_i, const double *phi, const double *apar, const double *fin, double* GKYL_RESTRICT out) 
 { 
   return 0.; 
 } 
 
+GKYL_CU_DH
+static double
+kernel_dg_gyrokinetic_vol_return_zero(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+  
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+  return dg_gyrokinetic_vol_return_zero(xc, dx,
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+    gyrokinetic->charge, gyrokinetic->mass,
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+    qIn, qRhsOut);
+}
 
 //
 // Serendipity surface kernels general geometry

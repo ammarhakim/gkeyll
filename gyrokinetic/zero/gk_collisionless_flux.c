@@ -50,9 +50,9 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   if (only_apardot){
     // If we only add Apardot terms to the flux, the only non zero kernel is the vpar one.
     for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = get_gk_collisionless_flux_surf_zero_kern();
-      up->flux_surf_edge_lo[d] = get_gk_collisionless_flux_surf_zero_kern();
-      up->flux_surf_edge_up[d] = get_gk_collisionless_flux_surf_zero_kern();
+      up->flux_surf[d] = gk_collisionless_flux_surf_return_zero;
+      up->flux_surf_edge_lo[d] = gk_collisionless_flux_surf_return_zero;
+      up->flux_surf_edge_up[d] = gk_collisionless_flux_surf_return_zero;
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
