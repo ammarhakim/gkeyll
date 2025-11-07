@@ -1597,10 +1597,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
-  if (app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL) {
-    // To compute current density for Ampere's law and current dot for Ohm's law.
-    gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
-  }
+  // To compute current density for Ampere's law and current dot for Ohm's law.
+  gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
@@ -2001,8 +1999,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gkyl_array_release(s->gyro_apar);
   gkyl_array_release(s->gyro_apardot);
-  if (app->field->info.gkfield_id == GKYL_GK_FIELD_EM || app->field->info.gkfield_id == GKYL_GK_FIELD_EM_IWL)
-    gk_species_moment_release(app, &s->m1);
+  gk_species_moment_release(app, &s->m1);
 
   s->release_func(app, s);
 }
