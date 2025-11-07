@@ -209,12 +209,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             for (int i=0; i<ns_charged; ++i) {
 	      struct gk_species *gks = &sbapp->species[i]; 
 	      gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
-              gk_species_bflux_accumulate(sbapp, &gks->bflux, gks->bflux.f1, 1.0/4.0, gks->bflux.fnew);
+              gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f1, 1.0/4.0, gks->bflux.fnew);
 	    }
             for (int i=0; i<ns_neut; ++i) {
 	      struct gk_neut_species *gkns = &sbapp->neut_species[i]; 
 	      gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
-              gk_neut_species_bflux_accumulate(sbapp, &gkns->bflux, gkns->bflux.f1, 1.0/4.0, gkns->bflux.fnew);
+              gk_neut_species_bflux_set(sbapp, &gkns->bflux, gkns->bflux.f1, 1.0/4.0, gkns->bflux.fnew);
             }
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
@@ -301,8 +301,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	      gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
 	      gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
               // Step boundary fluxes.
-              gk_species_bflux_accumulate(sbapp, &gks->bflux, gks->bflux.f1, 2.0/3.0, gks->bflux.fnew);
-              gk_species_bflux_copy(sbapp, &gks->bflux, gks->bflux.f, gks->bflux.f1);
+              gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f, 2.0/3.0, gks->bflux.fnew);
               gk_species_bflux_calc_voltime_integrated_mom(sbapp, gks, &gks->bflux, tcurr);
 	    }
             for (int i=0; i<ns_neut; ++i) {
@@ -310,8 +309,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	      gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
 	      gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
               // Step boundary fluxes.
-              gk_neut_species_bflux_accumulate(sbapp, &gkns->bflux, gkns->bflux.f1, 2.0/3.0, gkns->bflux.fnew);
-              gk_neut_species_bflux_copy(sbapp, &gkns->bflux, gkns->bflux.f, gkns->bflux.f1);
+              gk_neut_species_bflux_set(sbapp, &gkns->bflux, gkns->bflux.f, 2.0/3.0, gkns->bflux.fnew);
               gk_neut_species_bflux_calc_voltime_integrated_mom(sbapp, gkns, &gkns->bflux, tcurr);
             }
           }
