@@ -1,5 +1,5 @@
 #include <gkyl_dg_gyrokinetic_kernels.h> 
-GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(const double q_, const double m_, const double *apardot,
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(const double *vmap, const double q_, const double m_, const double *apardot,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
   // q_,m_: species charge and mass.

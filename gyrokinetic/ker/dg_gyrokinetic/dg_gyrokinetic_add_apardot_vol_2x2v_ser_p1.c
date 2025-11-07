@@ -1,5 +1,5 @@
 #include <gkyl_dg_gyrokinetic_kernels.h> 
-GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(const double q_, const double m_, const double *apardot,
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(const double *vmap, const double q_, const double m_, const double *apardot,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
   // q_,m_: species charge and mass.
@@ -8,10 +8,10 @@ GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(const double q_, co
   // out: output increment.
 
   double alphavpar[24] = {0.}; 
-  alphavpar[0] = -((2.0*apardot[0]*q_)/m_); 
-  alphavpar[1] = -((2.0*apardot[1]*q_)/m_); 
-  alphavpar[2] = -((2.0*apardot[2]*q_)/m_); 
-  alphavpar[5] = -((2.0*apardot[3]*q_)/m_); 
+  alphavpar[0] = -((1.6329931618554527*apardot[0]*q_)/(vmap[1]*m_)); 
+  alphavpar[1] = -((1.6329931618554527*apardot[1]*q_)/(vmap[1]*m_)); 
+  alphavpar[2] = -((1.6329931618554527*apardot[2]*q_)/(vmap[1]*m_)); 
+  alphavpar[5] = -((1.6329931618554527*apardot[3]*q_)/(vmap[1]*m_)); 
 
 
   out[3] += 0.4330127018922193*(alphavpar[5]*fin[5]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 

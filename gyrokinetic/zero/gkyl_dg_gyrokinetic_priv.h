@@ -342,9 +342,12 @@ kernel_dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
   if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
     return 0.;
   }
-  
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   return dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
     qIn, qRhsOut);
@@ -360,9 +363,12 @@ kernel_dg_gyrokinetic_add_apardot_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
   if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
     return 0.;
   }
-  
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   return dg_gyrokinetic_add_apardot_vol_1x2v_ser_p1(
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
     qIn, qRhsOut);
@@ -378,9 +384,12 @@ kernel_dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
   if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
     return 0.;
   }
-  
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   return dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
     qIn, qRhsOut);
@@ -396,9 +405,12 @@ kernel_dg_gyrokinetic_add_apardot_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
   if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
     return 0.;
   }
-  
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   return dg_gyrokinetic_add_apardot_vol_3x2v_ser_p1(
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
     qIn, qRhsOut);
