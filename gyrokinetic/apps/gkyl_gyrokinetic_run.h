@@ -15,7 +15,7 @@ struct gkyl_gyrokinetic_time_stepping_inp {
 
 struct gkyl_gyrokinetic_run_verbosity_inp {
   bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
-  double frequency; // Print information with given frequency. Defaults to 1.0
+  double frequency; // Print information with given frequency. Defaults to 0.1 (every 10 steps)
   bool estimate_completion_time; // Estimate completion time based on current progress. Defaults false
 };
 
