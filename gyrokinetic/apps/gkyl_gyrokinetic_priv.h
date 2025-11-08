@@ -288,6 +288,7 @@ struct gk_collisionless {
   enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
   bool write_diagnostics; // Whether to write diagnostics out.
   double scale_fac; // Factor multiplying collisionless terms.
+  struct gkyl_array *scale_fac_array; // Array of cell-wise scale factors (for omega_cfl screening).
 
   // Organization of the different equation objects and the required data and solvers
   union {
@@ -947,6 +948,8 @@ struct gk_species {
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+  struct gkyl_array *cflrate_prev_step; // CFL rate for the previous step
+  double dt_omegaH_prev_step; // dt_omegaH from the previous step
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 

@@ -61,6 +61,64 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
 }
 
 static void
+gk_species_collisionless_fdot_scaling_omegaH(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
+{
+  // Omega-based CFL screening: for each cell, compute scale_factor based on the
+  // ratio of omega_cfl (from previous step) to omega_H.
+  //   - If omega_cfl < omega_H: scale_factor = 1.0 (no screening)
+  //   - If omega_cfl > omega_H: scale_factor = omega_H/omega_cfl (slow down to omega_H)
+  //
+  // omega_H is computed from the previous step as: omega_H = cfl_omegaH / dt_omegaH_prev_step
+  // where dt_omegaH_prev_step is stored in gks->dt_omegaH_prev_step
+
+  // Can also be expressed as scale_fac = min(1.0, omega_H / omega_CFL)
+  
+  // Compute omega_H from previous step (global value)
+  double omega_H = (gks->dt_omegaH_prev_step > 1e-30) ?
+    1.0 / gks->dt_omegaH_prev_step : DBL_MAX;
+
+  // Loop over all cells in the range and compute cell-wise scale factors
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, rng);
+  
+  // This loop makes it clear that this should be inside an updater
+  // or use well known array methods
+  // The array methods do not have dividing operations, for good reason, 
+  
+  // To do this with array methods, first compute omega_H / omega_cell
+  // We have gkyl_dg_div_op, which divides 2 arrays, but we would need to make a basis
+  // and allocate dt_omegaH_prev_step to an array.
+  // We would need to implement a min operation in array_ops, called gkyl_array_min which
+  // computes min( a, arr ). I'm not sure how to do this in a general way > p0
+
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(rng, iter.idx);
+    
+    // Fetch the CFL rate from the previous step for this cell
+    const double *cflrate_prev_cell = gkyl_array_cfetch(gks->cflrate_prev_step, lidx);
+    double omega_cfl_cell = cflrate_prev_cell[0];
+    
+    // Compute scale factor for this cell: min(1.0, omega_H/omega_cfl)
+    double scale_factor = 1.0;
+    if (omega_cfl_cell > 1e-20 && omega_cfl_cell > omega_H) {
+      scale_factor = omega_H / omega_cfl_cell;
+    }
+    
+    // Store the scale factor in the scale_fac_array
+    double *scale_fac_cell = gkyl_array_fetch(gkcls->scale_fac_array, lidx);
+    scale_fac_cell[0] = scale_factor;
+  }
+  
+  // Apply cell-wise scaling to both rhs and cflrate
+  gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
+  gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
+
+  gkyl_array_scale_range(rhs, gkcls->scale_fac, rng);
+  gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
+}
+
+static void
 gk_species_collisionless_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_collisionless *gkcls, double tm, int frame)
 {
@@ -151,11 +209,19 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gks->info.skip_cell_threshold, gkcls->collisionless_id, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
-    gkcls->scale_fac = -1.0; // Not used if scale_factor in input file is not given.
+    gkcls->scale_fac = 1.0; // Not used if scale_factor in input file is not given.
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
     if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
       gkcls->scale_fac = gks->info.collisionless.scale_factor;
       gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
+    }
+
+    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_ES_OMEGA_CFL_SCREENING) {
+      // Allocate array to hold cell-wise scale factors for omega_cfl screening.
+      // This array will store min(1.0, omega_H/omega_cfl) for each cell.
+      gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
+      gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
+      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_omegaH;
     }
 
     // Other methods chosen at runtime.
@@ -199,6 +265,11 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
   
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
+
+    // Release scale_fac_array if it was allocated for omega_cfl screening
+    if (gkcls->scale_fac_array) {
+      gkyl_array_release(gkcls->scale_fac_array);
+    }
 
     if (gkcls->write_diagnostics) {
     }
