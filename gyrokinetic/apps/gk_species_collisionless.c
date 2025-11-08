@@ -69,18 +69,14 @@ gk_species_collisionless_fdot_scaling_omegaH(gkyl_gyrokinetic_app *app, struct g
   //   - If omega_cfl < omega_H: scale_factor = 1.0 (no screening)
   //   - If omega_cfl > omega_H: scale_factor = omega_H/omega_cfl (slow down to omega_H)
   //
-  // omega_H is computed from the previous step as: omega_H = cfl_omegaH / dt_omegaH_prev_step
-  // where dt_omegaH_prev_step is stored in gks->dt_omegaH_prev_step
+  // omega_H is computed from the previous step as: omega_H = cfl_omegaH / dt_omegaH
+  // where dt_omegaH is stored in gks->dt_omegaH
 
   // Can also be expressed as scale_fac = min(1.0, omega_H / omega_CFL)
   
   // Compute omega_H from previous step (global value)
-  double omega_H = (gks->dt_omegaH_prev_step > 1e-30) ?
-    1.0 / gks->dt_omegaH_prev_step : DBL_MAX;
-
-  // Loop over all cells in the range and compute cell-wise scale factors
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, rng);
+  double omega_H = (gks->dt_omegaH > 1e-30) ?
+    1.0 / gks->dt_omegaH : DBL_MAX;
   
   // This loop makes it clear that this should be inside an updater
   // or use well known array methods
@@ -88,34 +84,26 @@ gk_species_collisionless_fdot_scaling_omegaH(gkyl_gyrokinetic_app *app, struct g
   
   // To do this with array methods, first compute omega_H / omega_cell
   // We have gkyl_dg_div_op, which divides 2 arrays, but we would need to make a basis
-  // and allocate dt_omegaH_prev_step to an array.
+  // and allocate dt_omegaH to an array.
   // We would need to implement a min operation in array_ops, called gkyl_array_min which
   // computes min( a, arr ). I'm not sure how to do this in a general way > p0
 
-  while (gkyl_range_iter_next(&iter)) {
-    long lidx = gkyl_range_idx(rng, iter.idx);
-    
-    // Fetch the CFL rate from the previous step for this cell
-    const double *cflrate_prev_cell = gkyl_array_cfetch(gks->cflrate_prev_step, lidx);
-    double omega_cfl_cell = cflrate_prev_cell[0];
-    
-    // Compute scale factor for this cell: min(1.0, omega_H/omega_cfl)
-    double scale_factor = 1.0;
-    if (omega_cfl_cell > 1e-20 && omega_cfl_cell > omega_H) {
-      scale_factor = omega_H / omega_cfl_cell;
-    }
-    
-    // Store the scale factor in the scale_fac_array
-    double *scale_fac_cell = gkyl_array_fetch(gkcls->scale_fac_array, lidx);
-    scale_fac_cell[0] = scale_factor;
-  }
+  // I think really this is a dg_div_op, then we need to implement some kind of dg_min_op, which takes the minimum of element with a dg array. We could just implement this dg_bin_op_min for p0 only and make the kernels simple. Put a warning in there that it's only implemtned for p0. I'm not sure that this operation even makes sense in p>0 because of weak equality. Do you take the min operation at quadrature nodes? I'm really terrible at maxima kernel generation, so it would take me a long time to implement this p>0. I think I could hardcode p0 without kernels, but it's not really within the framework of dg_bin_ops.
+
+  // I'm also thinking that this logic with storing the omegacfl from previous step will lead to issues with resetting. It's kind of recursive how we have it set up. Instead, I think we should floor the CFL for just the collisionless module explicitly. Since this is the first one called in the gyrokinetic_rhs, we can floor CFL right here, just based on omegaH and input cflrate. We should also make a user option to specity GKYL_GK_COLLISIONLESS_ES_CFL_DT_FLOOR, which floors CFL timestep in general. We could use a boolean whether we want the floor based on omegaH or some user input. Maybe .omegaH_floor = true, or .floor_val = 8 to limit dt to 8 s here. I think when this option is specified without any parameters, it shouldn't do anything. You need to specity one of these parameters, at leasst.
+
+  // I don't think I should use an enum to control this behavior. It doesn't have to do with the equation solver. Maybe it's just a boolean flag like. .enable_cfl_dt_floor = true. However, this boolean doesn't make sense if there is no follow up. So maybe the logic should just be controlled by .cfl_dt_floor_min_omegaH = true, or .cfl_dt_floor = 8. The code should default these options to off, but if something is specified, then use it.
+
+  gkyl_dg_inv_op(cfl_basis, 0, gkcls->inv_cflrate_array, 0, cflrate);
+  gkyl_array_scale(gkcls->inv_cflrate_array, omega_H);
+  gkyl_array_min(gkcls->scale_fac_array, 1.0);
   
   // Apply cell-wise scaling to both rhs and cflrate
   gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
   gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
 
-  gkyl_array_scale_range(rhs, gkcls->scale_fac, rng);
-  gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
+  // Finish by scaling the entire rhs and cflrate by the scale_fac
+  gk_species_collisionless_fdot_scaling_enabled(app, gks, gkcls, rhs, cflrate, rng);
 }
 
 static void

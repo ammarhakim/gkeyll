@@ -948,8 +948,6 @@ struct gk_species {
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
-  struct gkyl_array *cflrate_prev_step; // CFL rate for the previous step
-  double dt_omegaH_prev_step; // dt_omegaH from the previous step
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
@@ -1067,6 +1065,7 @@ struct gk_species {
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
 
+  double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *m0_max; // Maximum number density in this MPI process.
 };

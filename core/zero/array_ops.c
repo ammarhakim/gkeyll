@@ -153,6 +153,40 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 struct gkyl_array*
+gkyl_array_min(struct gkyl_array* out, double a)
+{
+  assert(out->type == GKYL_DOUBLE);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_cu(out, a); return out; }
+#endif
+
+  double *out_d = out->data;
+  for (size_t i=0; i<NELM(out); ++i)
+    out_d[i] = fmin(out_d[i], a);
+  return out;
+}
+
+struct gkyl_array*
+gkyl_array_min_range(struct gkyl_array* out, double a, const struct gkyl_range *range)
+{
+  assert(out->type == GKYL_DOUBLE);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_range_cu(out, a, range); return out; }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    for (size_t c=0; c<NCOM(out); ++c)
+      out_d[c] = fmin(out_d[c], a);
+  }
+  return out;
+}
+
+struct gkyl_array*
 gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
 {
   assert(out->type == GKYL_DOUBLE);

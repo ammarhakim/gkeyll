@@ -136,15 +136,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   double dt_out = app->cfl/omega_cfl_ho[0];
   
   // Enforce the omega_H constraint on dt.
-  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
-  dt_out = fmin(dt_out, dt_omegaH);
-
-
-  if (species->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_ES_OMEGA_CFL_SCREENING) {
-    gkyl_array_copy(species->cflrate_prev_step, species->cflrate);
-    species->dt_omegaH_prev_step = dt_omegaH;
-  }
-
+  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, species->dt_omegaH);
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   return dt_out;
@@ -637,9 +630,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   if (s->info.write_omega_cfl) {
     gkyl_array_release(s->cflrate_ho);
   }
-  if (s->info.collisionless_id == GKYL_GK_COLLISIONLESS_ES_OMEGA_CFL_SCREENING) {
-    gkyl_array_release(s->cflrate_prev_step);
-  }
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
@@ -936,11 +926,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   }
   else {
     gks->write_cfl_func = gk_species_write_cfl_disabled;
-  }
-  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_ES_OMEGA_CFL_SCREENING) {
-    gks->cflrate_prev_step = mkarr(app->use_gpu, gks->cflrate->ncomp, gks->cflrate->size);
-    gkyl_array_clear(gks->cflrate_prev_step, 0.);
-    gks->dt_omegaH_prev_step = DBL_MAX;
   }
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
