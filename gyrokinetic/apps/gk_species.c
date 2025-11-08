@@ -350,6 +350,8 @@ gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 static void
 gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // The 0th frame is often wrong for this diagnostic because cflrate is computed AFTER
+  // the first time step
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,

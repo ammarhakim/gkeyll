@@ -568,6 +568,7 @@ int main(int argc, char **argv)
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
+      .cfl_dt_min_value = 1e-8,
     },
 
     .collisions =  {
@@ -595,6 +596,7 @@ int main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
+    .write_omega_cfl = true,
     .num_diag_moments = 7,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
@@ -656,6 +658,8 @@ int main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
+      .frequency = 1.0,
+      .disable_timings = true,
     }
   };
 

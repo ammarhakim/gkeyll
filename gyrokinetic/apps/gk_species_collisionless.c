@@ -60,13 +60,15 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
   gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
 }
 
-// Limit the timestep based on omega_H or a user specified minimum timestep dt  
+// Limit the timestep based on omega_H or a user specified minimum timestep dt.
+// This procedure is called time dilation. https://arxiv.org/html/2510.09756
 static void
 gk_species_collisionless_fdot_scaling_cfl_floor_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
 {
   // Compute the maximum omega from either dt_omegaH or cfl_dt_min_value
-  double omega_max = DBL_MAX; // A cieling on omegega is a floor on dt;
+  // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields! This takes infinite time steps
+  double omega_max = DBL_MAX; // A ceiling on omega is a floor on dt;
   if (gkcls->cfl_dt_min_omegaH) {
     omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
   }
@@ -74,9 +76,9 @@ gk_species_collisionless_fdot_scaling_cfl_floor_enabled(gkyl_gyrokinetic_app *ap
     double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
     omega_max = fmin(omega_max, omega_from_user);// Take the largest timestep from either condition
   }
-  
+
   // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
-  gkyl_dg_inv_op(gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
+  gkyl_dg_inv_op(*gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
   gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
   gkyl_array_min(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
   
@@ -194,12 +196,13 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->cfl_dt_min_value = gks->info.collisionless.cfl_dt_min_value;
       gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
       gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
-      // Create P0 basis for cflrate calculations.
+      // Create P0 basis for cflrate calculations. 1D p=0, because each cell
+      // just has a single number
       if (app->use_gpu) {
-        gkcls->cfl_basis = gkyl_cart_modal_serendip_cu_dev_new(pdim, 0);
+        gkcls->cfl_basis = gkyl_cart_modal_serendip_cu_dev_new(1, 0);
       }
       else {
-        gkcls->cfl_basis = gkyl_cart_modal_serendip_new(pdim, 0);
+        gkcls->cfl_basis = gkyl_cart_modal_serendip_new(1, 0);
       }
 
       gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_cfl_floor_enabled;
