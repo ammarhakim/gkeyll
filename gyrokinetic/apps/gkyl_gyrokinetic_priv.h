@@ -289,6 +289,9 @@ struct gk_collisionless {
   bool write_diagnostics; // Whether to write diagnostics out.
   double scale_fac; // Factor multiplying collisionless terms.
   struct gkyl_array *scale_fac_array; // Array of cell-wise scale factors (for omega_cfl screening).
+  struct gkyl_basis *cfl_basis; // P0 phase space Basis for cflrate calculations.
+  bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
+  double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring.
 
   // Organization of the different equation objects and the required data and solvers
   union {

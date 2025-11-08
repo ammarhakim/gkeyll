@@ -78,6 +78,8 @@ struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms.
+  bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
+  double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring.
 };
 
 // Parameters for species collisions

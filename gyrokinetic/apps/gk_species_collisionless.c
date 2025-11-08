@@ -60,43 +60,25 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
   gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
 }
 
+// Limit the timestep based on omega_H or a user specified minimum timestep dt  
 static void
-gk_species_collisionless_fdot_scaling_omegaH(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+gk_species_collisionless_fdot_scaling_cfl_floor_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
 {
-  // Omega-based CFL screening: for each cell, compute scale_factor based on the
-  // ratio of omega_cfl (from previous step) to omega_H.
-  //   - If omega_cfl < omega_H: scale_factor = 1.0 (no screening)
-  //   - If omega_cfl > omega_H: scale_factor = omega_H/omega_cfl (slow down to omega_H)
-  //
-  // omega_H is computed from the previous step as: omega_H = cfl_omegaH / dt_omegaH
-  // where dt_omegaH is stored in gks->dt_omegaH
-
-  // Can also be expressed as scale_fac = min(1.0, omega_H / omega_CFL)
+  // Compute the maximum omega from either dt_omegaH or cfl_dt_min_value
+  double omega_max = DBL_MAX; // A cieling on omegega is a floor on dt;
+  if (gkcls->cfl_dt_min_omegaH) {
+    omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
+  }
+  if (gkcls->cfl_dt_min_value > 0.0) {
+    double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
+    omega_max = fmin(omega_max, omega_from_user);// Take the largest timestep from either condition
+  }
   
-  // Compute omega_H from previous step (global value)
-  double omega_H = (gks->dt_omegaH > 1e-30) ?
-    1.0 / gks->dt_omegaH : DBL_MAX;
-  
-  // This loop makes it clear that this should be inside an updater
-  // or use well known array methods
-  // The array methods do not have dividing operations, for good reason, 
-  
-  // To do this with array methods, first compute omega_H / omega_cell
-  // We have gkyl_dg_div_op, which divides 2 arrays, but we would need to make a basis
-  // and allocate dt_omegaH to an array.
-  // We would need to implement a min operation in array_ops, called gkyl_array_min which
-  // computes min( a, arr ). I'm not sure how to do this in a general way > p0
-
-  // I think really this is a dg_div_op, then we need to implement some kind of dg_min_op, which takes the minimum of element with a dg array. We could just implement this dg_bin_op_min for p0 only and make the kernels simple. Put a warning in there that it's only implemtned for p0. I'm not sure that this operation even makes sense in p>0 because of weak equality. Do you take the min operation at quadrature nodes? I'm really terrible at maxima kernel generation, so it would take me a long time to implement this p>0. I think I could hardcode p0 without kernels, but it's not really within the framework of dg_bin_ops.
-
-  // I'm also thinking that this logic with storing the omegacfl from previous step will lead to issues with resetting. It's kind of recursive how we have it set up. Instead, I think we should floor the CFL for just the collisionless module explicitly. Since this is the first one called in the gyrokinetic_rhs, we can floor CFL right here, just based on omegaH and input cflrate. We should also make a user option to specity GKYL_GK_COLLISIONLESS_ES_CFL_DT_FLOOR, which floors CFL timestep in general. We could use a boolean whether we want the floor based on omegaH or some user input. Maybe .omegaH_floor = true, or .floor_val = 8 to limit dt to 8 s here. I think when this option is specified without any parameters, it shouldn't do anything. You need to specity one of these parameters, at leasst.
-
-  // I don't think I should use an enum to control this behavior. It doesn't have to do with the equation solver. Maybe it's just a boolean flag like. .enable_cfl_dt_floor = true. However, this boolean doesn't make sense if there is no follow up. So maybe the logic should just be controlled by .cfl_dt_floor_min_omegaH = true, or .cfl_dt_floor = 8. The code should default these options to off, but if something is specified, then use it.
-
-  gkyl_dg_inv_op(cfl_basis, 0, gkcls->inv_cflrate_array, 0, cflrate);
-  gkyl_array_scale(gkcls->inv_cflrate_array, omega_H);
-  gkyl_array_min(gkcls->scale_fac_array, 1.0);
+  // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
+  gkyl_dg_inv_op(gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
+  gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
+  gkyl_array_min(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
   
   // Apply cell-wise scaling to both rhs and cflrate
   gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
@@ -180,7 +162,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
-    for (int d=0; d<app->cdim; d++) {
+    for (int d=0; d<cdim; d++) {
       bctype_conf[d] = gks->lower_bc[d].type;
       bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
     }
@@ -204,12 +186,23 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
     }
 
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_ES_OMEGA_CFL_SCREENING) {
+    if (gks->info.collisionless.cfl_dt_min_omegaH || 
+        (gks->info.collisionless.cfl_dt_min_value > 0.0)) {
       // Allocate array to hold cell-wise scale factors for omega_cfl screening.
       // This array will store min(1.0, omega_H/omega_cfl) for each cell.
+      gkcls->cfl_dt_min_omegaH = gks->info.collisionless.cfl_dt_min_omegaH;
+      gkcls->cfl_dt_min_value = gks->info.collisionless.cfl_dt_min_value;
       gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
       gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
-      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_omegaH;
+      // Create P0 basis for cflrate calculations.
+      if (app->use_gpu) {
+        gkcls->cfl_basis = gkyl_cart_modal_serendip_cu_dev_new(pdim, 0);
+      }
+      else {
+        gkcls->cfl_basis = gkyl_cart_modal_serendip_new(pdim, 0);
+      }
+
+      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_cfl_floor_enabled;
     }
 
     // Other methods chosen at runtime.
@@ -257,6 +250,12 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     // Release scale_fac_array if it was allocated for omega_cfl screening
     if (gkcls->scale_fac_array) {
       gkyl_array_release(gkcls->scale_fac_array);
+      if(app->use_gpu) { 
+        gkyl_cu_free(gkcls->cfl_basis);
+      }
+      else {
+        gkyl_free(gkcls->cfl_basis);
+      }
     }
 
     if (gkcls->write_diagnostics) {
