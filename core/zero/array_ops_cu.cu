@@ -112,7 +112,7 @@ gkyl_array_shiftc_cu_kernel(struct gkyl_array* out, double a, unsigned k)
 }
 
 __global__ void
-gkyl_array_min_cu_kernel(struct gkyl_array* out, double a)
+gkyl_array_min_by_cell_cu_kernel(struct gkyl_array* out, double a)
 {
   double *out_d = (double*) out->data;
   for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
@@ -171,9 +171,9 @@ gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
 }
 
 void
-gkyl_array_min_cu(struct gkyl_array* out, double a)
+gkyl_array_min_by_cell_cu(struct gkyl_array* out, double a)
 {
-  gkyl_array_min_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
+  gkyl_array_min_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
 }
 
 // Range-based methods
@@ -440,7 +440,7 @@ gkyl_array_shiftc_range_cu_kernel(struct gkyl_array* out, double a,
 }
 
 __global__ void
-gkyl_array_min_range_cu_kernel(struct gkyl_array* out, double a, struct gkyl_range range)
+gkyl_array_min_by_cell_range_cu_kernel(struct gkyl_array* out, double a, struct gkyl_range range)
 {
   long ncomp = NCOM(out);
   int idx[GKYL_MAX_DIM];
@@ -702,12 +702,12 @@ gkyl_array_shiftc_range_cu(struct gkyl_array* out, double a, unsigned k, const s
 }
 
 void
-gkyl_array_min_range_cu(struct gkyl_array* out, double a, const struct gkyl_range *range)
+gkyl_array_min_by_cell_range_cu(struct gkyl_array* out, double a, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
-  gkyl_array_min_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, *range);
+  gkyl_array_min_by_cell_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, *range);
 }
 
 void

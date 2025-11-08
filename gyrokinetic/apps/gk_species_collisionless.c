@@ -78,7 +78,7 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
     // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
     gkyl_dg_inv_op(*gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
     gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
-    gkyl_array_min(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
+    gkyl_array_min_by_cell(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
     
     // Apply cell-wise scaling to both rhs and cflrate
     gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
