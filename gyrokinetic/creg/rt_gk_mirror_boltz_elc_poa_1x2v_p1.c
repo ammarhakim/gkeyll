@@ -540,8 +540,8 @@ create_ctx(void)
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 2400.0e-9;
-  double tau_fdp = 24.0e-9;
+  double tau_oap = 100e-9;
+  double tau_fdp = 1e-9;
   double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
@@ -793,13 +793,13 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps))
   {
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
 
     dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
 
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success)

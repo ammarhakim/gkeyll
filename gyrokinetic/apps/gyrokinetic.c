@@ -1444,7 +1444,7 @@ gkyl_gyrokinetic_app_write_species_fdot_multiplier(gkyl_gyrokinetic_app* app, in
 }
 
 //
-// ............. Collisionless utputs ............... //
+// ............. Collisionless outputs ............... //
 // 
 void
 gkyl_gyrokinetic_app_write_species_collisionless(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)

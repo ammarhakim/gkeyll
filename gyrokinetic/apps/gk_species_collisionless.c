@@ -56,39 +56,36 @@ static void
 gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
 {
+  // First scale both rhs and cflrate by scale_fac
   gkyl_array_scale_range(rhs, gkcls->scale_fac, rng);
   gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
+
+  // Limit the timestep based on omega_H or a user specified minimum timestep dt.
+  // This procedure is called time dilation. https://arxiv.org/html/2510.09756
+  if (gkcls->cfl_dt_min_omegaH || (gkcls->cfl_dt_min_value > 0.0))
+  {
+    // Compute the maximum omega from either dt_omegaH or cfl_dt_min_value
+    // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields! This takes infinite time steps
+    double omega_max = DBL_MAX; // A ceiling on omega is a floor on dt;
+    if (gkcls->cfl_dt_min_omegaH) {
+      omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
+    }
+    if (gkcls->cfl_dt_min_value > 0.0) {
+      double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
+      omega_max = fmin(omega_max, omega_from_user);// Take the largest timestep from either condition
+    }
+
+    // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
+    gkyl_dg_inv_op(*gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
+    gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
+    gkyl_array_min(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
+    
+    // Apply cell-wise scaling to both rhs and cflrate
+    gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
+    gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
+  }
 }
 
-// Limit the timestep based on omega_H or a user specified minimum timestep dt.
-// This procedure is called time dilation. https://arxiv.org/html/2510.09756
-static void
-gk_species_collisionless_fdot_scaling_cfl_floor_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
-{
-  // Compute the maximum omega from either dt_omegaH or cfl_dt_min_value
-  // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields! This takes infinite time steps
-  double omega_max = DBL_MAX; // A ceiling on omega is a floor on dt;
-  if (gkcls->cfl_dt_min_omegaH) {
-    omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
-  }
-  if (gkcls->cfl_dt_min_value > 0.0) {
-    double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
-    omega_max = fmin(omega_max, omega_from_user);// Take the largest timestep from either condition
-  }
-
-  // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
-  gkyl_dg_inv_op(*gkcls->cfl_basis, 0, gkcls->scale_fac_array, 0, cflrate); // 1/omega_cfl
-  gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
-  gkyl_array_min(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
-  
-  // Apply cell-wise scaling to both rhs and cflrate
-  gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
-  gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
-
-  // Finish by scaling the entire rhs and cflrate by the scale_fac
-  gk_species_collisionless_fdot_scaling_enabled(app, gks, gkcls, rhs, cflrate, rng);
-}
 
 static void
 gk_species_collisionless_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
@@ -215,19 +212,25 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
 
     gkcls->scale_fac = 1.0; // Not used if scale_factor in input file is not given.
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
-    if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
-      gkcls->scale_fac = gks->info.collisionless.scale_factor;
+    if (1.0e-16 < fabs(gks->info.collisionless.scale_factor) || 
+        gks->info.collisionless.cfl_dt_min_omegaH || 
+        (gks->info.collisionless.cfl_dt_min_value > 0.0))
+    {
       gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
-    }
+      // We want to set scale_fac to 1 if not provided 
+      if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
+        gkcls->scale_fac = gks->info.collisionless.scale_factor;
+      } else {
+        gkcls->scale_fac = 1.0;
+      }
 
-    if (gks->info.collisionless.cfl_dt_min_omegaH || 
-        (gks->info.collisionless.cfl_dt_min_value > 0.0)) {
       // Allocate array to hold cell-wise scale factors for omega_cfl screening.
       // This array will store min(1.0, omega_H/omega_cfl) for each cell.
       gkcls->cfl_dt_min_omegaH = gks->info.collisionless.cfl_dt_min_omegaH;
       gkcls->cfl_dt_min_value = gks->info.collisionless.cfl_dt_min_value;
       gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
       gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
+
       // Create P0 basis for cflrate calculations. 1D p=0, because each cell
       // just has a single number
       if (app->use_gpu) {
@@ -236,8 +239,6 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       else {
         gkcls->cfl_basis = gkyl_cart_modal_serendip_new(1, 0);
       }
-
-      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_cfl_floor_enabled;
     }
 
     // Other methods chosen at runtime.
@@ -302,12 +303,22 @@ void
 gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_gyrokinetic_collisionless gkcls_inp)
 {
-  gkcls->scale_fac = 0.0;
-  gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
-  if (1.0e-16 < fabs(gkcls_inp.scale_factor)) {
-    gks->info.collisionless.scale_factor = gkcls_inp.scale_factor;
+  // Update input struct
+  gks->info.collisionless.scale_factor = gkcls_inp.scale_factor;
+  gks->info.collisionless.cfl_dt_min_omegaH = gkcls_inp.cfl_dt_min_omegaH;
+  gks->info.collisionless.cfl_dt_min_value = gkcls_inp.cfl_dt_min_value;
 
-    gkcls->scale_fac = gkcls_inp.scale_factor;
+  // Update local struct
+  gkcls->scale_fac = gkcls_inp.scale_factor;
+  gkcls->cfl_dt_min_omegaH = gkcls_inp.cfl_dt_min_omegaH;
+  gkcls->cfl_dt_min_value = gkcls_inp.cfl_dt_min_value;
+
+  // Choose appropriate scaling method
+  gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
+  if (1.0e-16 < fabs(gkcls_inp.scale_factor) ||
+            gkcls->cfl_dt_min_omegaH || 
+            (gkcls->cfl_dt_min_value > 0.0)) {              
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
+    gkyl_array_clear(gkcls->scale_fac_array, 1.0);
   }
 }
