@@ -37,9 +37,10 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD = 0, // This is default.
   GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
-  GKYL_GK_FIELD_IWL = 3, // Inner-wall limited ES.
-  GKYL_GK_FIELD_EM = 4, // To force electromagnetic field solve (even if no species is EM).
-  GKYL_GK_FIELD_EM_IWL = 5, // As above but for IWL.
+  GKYL_GK_FIELD_IWL = 3, // Inner-wall limited.
+  GKYL_GK_FIELD_ES = 4, // Electrostatic field.
+  GKYL_GK_FIELD_EM = 5, // To force electromagnetic field solve (even if no species is EM).
+  GKYL_GK_FIELD_EM_IWL = 6, // As above but for IWL.
 };
 
 // Identifiers for specific field object types.
