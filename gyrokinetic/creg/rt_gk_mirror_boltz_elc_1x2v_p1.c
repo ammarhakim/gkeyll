@@ -569,6 +569,7 @@ int main(int argc, char **argv)
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
       .cfl_dt_min_value = 1e-8,
+      .write_diagnostics = true,
     },
 
     .collisions =  {

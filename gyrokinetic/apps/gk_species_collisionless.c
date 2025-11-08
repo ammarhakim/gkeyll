@@ -103,8 +103,40 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // Write scale factor array to file.
+  char fileNm[256];
+
+  if ((gkcls->cfl_dt_min_omegaH || (gkcls->cfl_dt_min_value > 0.0))) {
+    snprintf(fileNm, sizeof fileNm, "%s-%s_collisionless_scale_fac_%d.gkyl", 
+      app->name, gks->info.name, frame);
+
+    struct gkyl_msgpack_data *mt = gk_array_meta_new(
+      (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = 0,
+        .basis_type = gkcls->cfl_basis->id
+      }, GKYL_GK_META_NONE, 0
+    );
+
+    if (app->use_gpu) {
+      struct gkyl_array *scale_fac_host = mkarr(false, 1, gks->local_ext.volume);
+      gkyl_array_copy(scale_fac_host, gkcls->scale_fac_array);
+      gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, 
+        scale_fac_host, fileNm);
+      gkyl_array_release(scale_fac_host);
+    }
+    else {
+      gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, 
+        gkcls->scale_fac_array, fileNm);
+    }
+
+    gk_array_meta_release(mt);
+  }
+
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
+
 
 void 
 gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 

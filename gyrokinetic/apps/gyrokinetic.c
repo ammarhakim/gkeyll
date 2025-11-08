@@ -1434,13 +1434,23 @@ gkyl_gyrokinetic_app_write_species_damping(gkyl_gyrokinetic_app* app, int sidx, 
 }
 
 //
-// ............. df/dt multiplier utputs ............... //
+// ............. df/dt multiplier outputs ............... //
 // 
 void
 gkyl_gyrokinetic_app_write_species_fdot_multiplier(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_fdot_multiplier_write(app, gks, tm, frame);
+}
+
+//
+// ............. Collisionless utputs ............... //
+// 
+void
+gkyl_gyrokinetic_app_write_species_collisionless(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_collisionless_write_diags(app, gks, &gks->collisionless, tm, frame);
 }
 
 //
@@ -1604,6 +1614,8 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species_damping(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_fdot_multiplier(app, sidx, tm, frame);
+
+  gkyl_gyrokinetic_app_write_species_collisionless(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
 }
