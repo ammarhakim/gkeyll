@@ -129,7 +129,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_elc, mu_max_elc },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
-    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -177,6 +176,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     source = {
       sourceID = G0.Source.Proj,
   
@@ -219,6 +222,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       }
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES_no_by,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -231,10 +238,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 1, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 1, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 1, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 1, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -250,7 +257,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_ion, mu_max_ion },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
-    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -298,6 +304,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     source = {
       sourceID = G0.Source.Proj,
   
@@ -340,6 +350,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       }
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES_no_by,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -352,10 +366,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 1, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 1, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 1, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 1, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -367,8 +381,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     femParBc = G0.ParProjBc.None,
 
     poissonBcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
     }
   }
 }

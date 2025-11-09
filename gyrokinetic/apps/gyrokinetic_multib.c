@@ -148,7 +148,6 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   app_inp.geometry = bgi->geometry;
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -192,7 +191,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.cells[i] = bgi->cells[i];
   }
 
-  int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
 
@@ -200,8 +198,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac; 
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH; 
-
-  app_inp.enforce_positivity = mbinp->enforce_positivity;
 
   for (int i=0; i<num_species; ++i) {
     const struct gkyl_gyrokinetic_multib_species *sp = &mbinp->species[i];
@@ -211,10 +207,9 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
     species_inp.charge = sp->charge;
     species_inp.mass = sp->mass;
-    species_inp.gkmodel_id = sp->gkmodel_id;
-    species_inp.no_by = sp->no_by;
 
     // Velocity-space information
+    int vdim = species_inp.vdim = sp->vdim;
     for (int v=0; v<vdim; ++v) {
       species_inp.lower[v] = sp->lower[v];
       species_inp.upper[v] = sp->upper[v];
@@ -222,9 +217,10 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     }
     species_inp.mapc2p = sp->mapc2p;
 
-    // Species physics modules
+    // Species physics modules.
+    species_inp.collisionless = sp->collisionless;
     species_inp.collisions = sp->collisions;
-    species_inp.diffusion = sp->diffusion;
+    species_inp.anomalous_diffusion = sp->anomalous_diffusion;
     species_inp.radiation = sp->radiation;
     species_inp.react = sp->react;
     species_inp.react_neut = sp->react_neut; 
@@ -295,7 +291,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.is_static = nsp->is_static; 
 
     // Velocity space information (neutrals are 3V)
-    for (int v=0; v<3; ++v) {
+    int vdim = neut_species_inp.vdim = nsp->vdim;
+    for (int v=0; v<vdim; ++v) {
       neut_species_inp.lower[v] = nsp->lower[v];
       neut_species_inp.upper[v] = nsp->upper[v];
       neut_species_inp.cells[v] = nsp->cells[v];
@@ -354,49 +351,43 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     memcpy(&app_inp.neut_species[i], &neut_species_inp, sizeof(struct gkyl_gyrokinetic_neut_species));
   } 
 
-  // Initialize field.
+  // Initialize the single-block field solver (only used for num_blocks=1).
   const struct gkyl_gyrokinetic_multib_field *fld = &mbinp->field;
   struct gkyl_gyrokinetic_field field_inp = { };
   field_inp.gkfield_id = fld->gkfield_id;
   field_inp.kperpSq = fld->kperpSq; 
   field_inp.time_rate_diagnostics = fld->time_rate_diagnostics; 
-
+  
   // Adiabatic electron inputs.
   field_inp.electron_mass = fld->electron_mass;
   field_inp.electron_charge = fld->electron_charge;
   field_inp.electron_density = fld->electron_density; 
   field_inp.electron_temp = fld->electron_temp; 
-
+  
   // BCs.
-  for (int i=0; i<2*cdim; i++) {
-    // Set it to Dirichlet first, reset below. This avoids problems in
-    // creating the single block field solve, which may not be used.
-    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
-    for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs[i].value[k] = -1.0e3;
-
-    field_inp.poisson_bcs[i].type = GKYL_BC_GK_FIELD_DIRICHLET;
-    for (int k=0; k<3; ++k)
-      field_inp.poisson_bcs[i].value[k] = -1.0e3;
-  }
-  int bc_count_fld[num_blocks];
-  for (int i=0; i<num_blocks; i++)
-    bc_count_fld[i] = 0;
-
-  for (int i=0; i<fld->num_physical_bcs; i++) { 
-    if (bid == fld->bcs[i].bidx) {
-      field_inp.poisson_bcs[bc_count_fld[bid]].dir = fld->bcs[i].dir;
-      field_inp.poisson_bcs[bc_count_fld[bid]].edge = fld->bcs[i].edge;
-      field_inp.poisson_bcs[bc_count_fld[bid]].type = fld->bcs[i].type;
-      field_inp.poisson_bcs[bc_count_fld[bid]].aux_profile = fld->bcs[i].aux_profile;
-      field_inp.poisson_bcs[bc_count_fld[bid]].aux_ctx = fld->bcs[i].aux_ctx;
+  for (int d=0; d<cdim; d++) {
+    for (int i=0; i<2; i++) {
+      // Set it to Dirichlet first, reset below. This avoids problems in
+      // creating the single block field solve, which may not be used.
+      field_inp.poisson_bcs[2*d+i].dir = d;
+      field_inp.poisson_bcs[2*d+i].edge = i==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+      field_inp.poisson_bcs[2*d+i].type = GKYL_BC_GK_FIELD_DIRICHLET;
       for (int k=0; k<3; ++k)
-        field_inp.poisson_bcs[bc_count_fld[bid]].value[k] = fld->bcs[i].value[k];
-
-      bc_count_fld[bid] += 1;
+        field_inp.poisson_bcs[i].value[k] = -1.0e3;
     }
   }
-
+  
+  for (int i=0; i<fld->num_physical_bcs; i++) { 
+    if (bid == fld->bcs[i].bidx) {
+      struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(field_inp.poisson_bcs, 2*cdim, fld->bcs[i].dir, fld->bcs[i].edge);
+      bc_curr->type = fld->bcs[i].type;
+      bc_curr->aux_profile = fld->bcs[i].aux_profile;
+      bc_curr->aux_ctx = fld->bcs[i].aux_ctx;
+      for (int k=0; k<3; ++k)
+        bc_curr->value[k] = fld->bcs[i].value[k];
+    }
+  }
+  
   const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
   // Choose proper block-specific field input.
   if (!fld->duplicate_across_blocks) {
@@ -407,7 +398,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
       }
     }
   }
-
+  
   if (!fld->duplicate_across_blocks) {
     for (int i=0; i<num_blocks; ++i) {
       if (bid == fld->blocks[i].block_id) {
@@ -416,18 +407,19 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
       }
     }
   }
-
+  
   field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
   field_inp.kperpSq = fld_pb->kperpSq;
   field_inp.time_rate_diagnostics = fld_pb->time_rate_diagnostics; 
-
+  
   field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
   field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
   field_inp.phi_wall_lo_evolve = fld_pb->phi_wall_lo_evolve; 
-
+  
   field_inp.phi_wall_up_ctx = fld_pb->phi_wall_up_ctx; 
   field_inp.phi_wall_up = fld_pb->phi_wall_up; 
   field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;   
+  
 
   // Copy field input into app input.
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  
@@ -775,7 +767,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     }
   }
 
-
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
   struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
@@ -786,56 +777,79 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   // Sync across blocks.
   gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
     mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol);
-  // Store myJ/otherJ in ghost of jacobgeo_ghost
-  for (int b=0; b<mbapp->num_local_blocks; ++b) {
-    int bid = mbapp->local_blocks[b];
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-    int d = 0;
-    struct gkyl_dg_bin_op_mem *div_mem = mbapp->use_gpu? 
-      gkyl_dg_bin_op_mem_cu_dev_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis) :
-      gkyl_dg_bin_op_mem_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis);
-    for (int e=0; e<2; ++e) {
-      if (mbapp->block_topo->conn[bid].connections[d][e].edge != GKYL_PHYSICAL) {
-        gkyl_array_copy_range_to_range(sbapp->gk_geom->geo_int.jacobgeo, sbapp->gk_geom->geo_int.jacobgeo, 
-          e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d], 
-          e == 0 ? &sbapp->lower_skin[d] : &sbapp->upper_skin[d]);
 
-        gkyl_dg_div_op_range(div_mem, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0,
-          sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 
-          e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d]);
-      }
-    }
-    gkyl_dg_bin_op_mem_release(div_mem);
-  }
-
-  // Sync the conf-space Jacobian needed for syncing quantities that include a
-  // jacobgeo factor in them.
-  for(int d = 0; d<cdim; d++) {
+  // Sync the surface conf-space Jacobian, compute its reciprocal, and 
+  // store its product with the Jacobian of this block (in the ghost cell).
+  for (int d = 0; d<cdim; d++) {
+    // Sync jacobgeo.
     struct gkyl_array *jacs[mbapp->num_local_blocks];
     for (int b=0; b<mbapp->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-      jacs[b] = sbapp->gk_geom->geo_surf[d].jacobgeo_sync;
-      gkyl_array_copy_range_to_range(jacs[b], jacs[b], &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+      jacs[b] = geo_surf.jacobgeo_ratio;
+      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->lower_skin[d]);
+      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
     }
-    // Sync across blocks.
     gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
       mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
+
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+      struct gkyl_array *jacgeo = mkarr(mbapp->use_gpu, geo_surf.jacobgeo_ratio->ncomp, geo_surf.jacobgeo_ratio->size);
+
+      // Compute 1/jacobgeo in ghost cells.
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->lower_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->upper_ghost[d]);
+      // Multiply by the Jacobian of this block.
+      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->lower_ghost[d], &sbapp->lower_skin[d]);
+      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->upper_ghost[d]);
+      gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
+      gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
+      // Set the ratio to 1 in the interior (shouldn't be in use).
+      gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
+      gkyl_array_shiftc_range(geo_surf.jacobgeo_ratio, pow(sqrt(2.0),sbapp->cdim), 0, &sbapp->local);
+
+      gkyl_array_release(jacgeo);
+    }
+
   }
 
-  // Allocate updaters to rescale jac*f by the jacobians in the skin/ghost cells.
-  while (true) {
-    struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
-    for (int d=0; d<cdim; d++) {
-      for (int e=0; e<2; e++) {
-        mbapp->jf_rescale_charged[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
-          &sbapp0->species[0].basis, mbapp->use_gpu);
-        if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
-          mbapp->jf_rescale_neut[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
-            &sbapp0->neut_species[0].basis, mbapp->use_gpu);
-        }
-      }
+  // Sync the effective diffusivity of the anomalous diffusion operator.
+  // Assume they either all have anomalous diffusion or none of them do.
+  bool any_anomalous_diff = false;
+  for (int i=0; i<mbapp->num_species; ++i) {
+    bool has_anomalous_diff = true;
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      has_anomalous_diff = has_anomalous_diff && sbapp->species[i].anom_diff.anom_diff_id;
     }
-    break;
+
+    if (has_anomalous_diff) {
+      any_anomalous_diff = true;
+      struct gkyl_array *gkad_nu[mbapp->num_local_blocks];
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        gkad_nu[b] = sbapp->species[i].anom_diff.diffD;
+      }
+      gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+        mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, gkad_nu, gkad_nu);
+    }
+  }
+
+  if (any_anomalous_diff) {
+    // Sync the interior conf-space reciprocal Jacobian.
+    struct gkyl_array *jacs_inv_vol[mbapp->num_local_blocks];
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      jacs_inv_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_inv;
+    }
+    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_inv_vol, jacs_inv_vol);
   }
 
   mbapp->stat = (struct gkyl_gyrokinetic_stat) {};
@@ -850,13 +864,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 }
 
 void
-gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr, const struct gkyl_array *fin[])
+gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute fields.
   if (app->update_field) {
     // Solve the field equation.
-    gk_multib_field_rhs(app, app->field, fin);
+    gk_multib_field_rhs(app, app->field, fin, bflux);
   }
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -890,47 +905,6 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     }
     gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
       app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
-
-    // copy ghost into another array, fghost_vol
-    // rescale fghost_vol = (my_jacobian/other_jacobian) * fghost_vol
-    for (int b=0; b<app->num_local_blocks; ++b) {
-      int bid = app->local_blocks[b];
-      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-      int li_charged = b * app->num_species;
-      gkyl_array_copy(sbapp->species[i].fghost_vol, distf[li_charged+i]);
-      // rescale fghost_vol in the ghost ...
-      for (int e=0; e<2; ++e) {
-        int dir  = 0;
-        if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
-          gkyl_dg_mul_conf_phase_op_range(&sbapp->basis, 
-              &sbapp->species[i].basis, sbapp->species[i].fghost_vol, 
-              sbapp->gk_geom->geo_int.jacobgeo_ghost, sbapp->species[i].fghost_vol,
-              e ==0 ? &sbapp->lower_ghost[dir] : &sbapp->upper_ghost[dir],
-              e == 0 ? &sbapp->species[i].lower_ghost[dir] : &sbapp->species[i].upper_ghost[dir]);
-        }
-      }
-    }
-
-    // Divide and multiply by the appropriate jacobians if not at a z boundary.
-    for (int b=0; b<app->num_local_blocks; ++b) {
-      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-      int bid = app->local_blocks[b];
-      int li_charged = b * app->num_species;
-
-      struct gk_species *gks = &sbapp->species[i];
-
-      for (int dir=0; dir<cdim; ++dir) {
-        for (int e=0; e<2; ++e) {
-          if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
-            gkyl_rescale_ghost_jacf_advance(app->jf_rescale_charged[dir*2+e],
-              e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
-              e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
-              e==0? &gks->global_lower_ghost[dir] : &gks->global_upper_ghost[dir],
-              sbapp->gk_geom->geo_surf[dir].jacobgeo_sync, distf[li_charged+i]);
-          }
-        }
-      }
-    }
   }
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 
@@ -946,25 +920,6 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
       }
       gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
         app->mbcc_sync_neut[i].send, app->mbcc_sync_neut[i].recv, fs, fs);
-      // Divide and multiply by the appropriate jacobians.
-      for (int b=0; b<app->num_local_blocks; ++b) {
-        struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-        int bid = app->local_blocks[b];
-        int li_neut = b * app->num_neut_species;
-
-        for (int dir=0; dir<cdim; ++dir) {
-          for (int e=0; e<2; ++e) {
-            if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
-              struct gk_neut_species *gkns = &sbapp->neut_species[i];
-              gkyl_rescale_ghost_jacf_advance(app->jf_rescale_neut[dir*2+e],
-                e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
-                e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
-                e==0? &gkns->global_lower_ghost[dir] : &gkns->global_upper_ghost[dir],
-                sbapp->gk_geom->geo_surf[dir].jacobgeo_sync, distf_neut[li_neut+i]);
-            }
-          }
-        }
-      }
     }
   }
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst_neut);
@@ -973,14 +928,14 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
 
 void
 gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[])
 {
   // Compute fields and apply BCs.
 
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf);
+  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf, bflux);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
@@ -1001,6 +956,7 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
 
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+  struct gkyl_array **bflux[app->num_species * app->num_local_blocks];
   struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
   for (int b=0; b<app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -1008,12 +964,13 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
       distf[li_charged+i] = sbapp->species[i].f;
+      bflux[li_charged+i] = sbapp->species[i].bflux.f1;
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[li_neut+i] = sbapp->neut_species[i].f;
     }
   }
-  gyrokinetic_multib_calc_field_and_apply_bc(app, t0, distf, distf_neut);
+  gyrokinetic_multib_calc_field_and_apply_bc(app, t0, distf, bflux, distf_neut);
 }
 
 void
@@ -1082,6 +1039,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
     struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+    struct gkyl_array **bflux[app->num_species * app->num_local_blocks];
     struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
     for (int b=0; b<app->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -1089,6 +1047,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
       int li_neut = b * app->num_neut_species;
       for (int i=0; i<app->num_species; ++i) {
         distf[li_charged+i] = sbapp->species[i].f;
+        bflux[li_charged+i] = sbapp->species[i].bflux.f;
       }
       for (int i=0; i<app->num_neut_species; ++i) {
         distf_neut[li_neut+i] = sbapp->neut_species[i].f;
@@ -1099,7 +1058,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
 //        struct gk_species *s = &app->species[i];
 //
 //        // Compute advection speeds so we can compute the initial boundary flux.
-//        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+//        gkyl_gk_collisionless_flux_alpha_surf(s->calc_gk_vars, 
 //          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
 //          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 //
@@ -1108,7 +1067,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
 //        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
 //      }
 //    }
-    gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
+    gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, bflux, distf_neut);
   }
 
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
@@ -1445,10 +1404,10 @@ gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app* a
 }
 
 void
-gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+gkyl_gyrokinetic_multib_app_write_species_bgk_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
 {
   for (int b=0; b<app->num_local_blocks; ++b) {
-    gkyl_gyrokinetic_app_write_species_bgk_cross_mom(app->singleb_apps[b], sidx, tm, frame);
+    gkyl_gyrokinetic_app_write_species_bgk_mom(app->singleb_apps[b], sidx, tm, frame);
   }
 }
 
@@ -1534,7 +1493,7 @@ gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app* app, double t
     gkyl_gyrokinetic_multib_app_write_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_multib_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_multib_app_write_species_lbo_mom(app, i, tm, frame);
-    gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_multib_app_write_species_bgk_mom(app, i, tm, frame);
     gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(app, i, tm, frame);
   }
 
@@ -1888,19 +1847,6 @@ void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp
 
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {
-  while (true) {
-    struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
-    for (int d=0; d<sbapp0->cdim; d++) {
-      for (int e=0; e<2; e++) {
-        gkyl_rescale_ghost_jacf_release(mbapp->jf_rescale_charged[d*2+e]);
-        if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
-          gkyl_rescale_ghost_jacf_release(mbapp->jf_rescale_neut[d*2+e]);
-        }
-      }
-    }
-    break;
-  }
-
   for (int i=0; i<mbapp->num_neut_species; ++i) {
     for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
       gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].send[bI]);

@@ -614,6 +614,16 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
     }
+    else if (fabs(interval_lower_eval) < 1e-10 || fabs(interval_upper_eval) < 1e-10) {
+      // If either evaluation is very close to zero, we're at or very near the solution
+      // Just use the corresponding endpoint
+      if (fabs(interval_lower_eval) < fabs(interval_upper_eval)) {
+        fout[0] = interval_lower;
+      } else {
+        fout[0] = interval_upper;
+      }
+      return;
+    }
     else {
       // It means we are in the wrong region
       if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0) {
@@ -633,6 +643,21 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
           fout[0] = theta_hi;
           return;
         }
+      }
+      else if (fabs(interval_lower_eval) < 1e-14) {
+        // Lower evaluation is very close to zero
+        fout[0] = interval_lower;
+        return;
+      }
+      else if (fabs(interval_upper_eval) < 1e-14) {
+        // Upper evaluation is very close to zero
+        fout[0] = interval_upper;
+        return;
+      }
+      else {
+        fprintf(stderr, "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
+        fout[0] = theta;
+        return;
       }
     }
   }
@@ -696,5 +721,104 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     {
       fout[0] = left_straight_line_value;
     }
+  }
+}
+
+// Context for Gaussian-weighted integration
+struct gaussian_weight_ctx
+{
+  struct gkyl_position_map *gpm;
+  double theta_c; // Center point for Gaussian
+  double wd2; // Half-width of averaging window
+  double sigma; // Standard deviation for Gaussian weight
+};
+
+double
+position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
+{
+  struct gaussian_weight_ctx *gw_ctx = ctx;
+  double fout[3];
+  position_map_constB_z_numeric(0.0, &z, fout, gw_ctx->gpm);
+  
+  // Apply Gaussian weight: exp(-(z-theta_c)^2 / (2*sigma^2))
+  double dz = z - gw_ctx->theta_c;
+  double weight = exp(-dz * dz / (2.0 * gw_ctx->sigma * gw_ctx->sigma));
+  
+  return fout[0] * weight;
+}
+
+double
+gaussian_norm_wrapper(double z, void *ctx)
+{
+  struct gaussian_weight_ctx *gw_ctx = ctx;
+  
+  // Return just the Gaussian weight for normalization
+  double dz = z - gw_ctx->theta_c;
+  double weight = exp(-dz * dz / (2.0 * gw_ctx->sigma * gw_ctx->sigma));
+  
+  return weight;
+}
+
+/**
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
+static void
+position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map *gpm = ctx;
+  if (gpm->constB_ctx->moving_average_width == 0.0)
+  {
+    position_map_constB_z_numeric(t, xn, fout, ctx);
+  }
+  else
+  {
+    const double theta_c = xn[0];
+    double wd2 = gpm->constB_ctx->moving_average_width / 2.0;
+    const double tmin = gpm->grid.lower[0];
+    const double tmax = gpm->grid.upper[0];
+    double rng_lo = theta_c - wd2;
+    double rng_up = theta_c + wd2;
+
+    if (rng_lo < tmin || rng_up > tmax)
+    {
+      wd2 = fmin(fabs(theta_c - tmin), fabs(theta_c - tmax));
+      rng_lo = theta_c - wd2;
+      rng_up = theta_c + wd2;
+      if (wd2 <= 1e-6)
+      {
+        position_map_constB_z_numeric(t, xn, fout, ctx);
+        return;
+      }
+    }
+    double rng_len = rng_up - rng_lo;
+
+    // Create Gaussian weight context
+    // Gaussian standard deviation (sigma = width/2 gives ~95% of weight within the window)
+    double sigma = wd2 / 2.0;
+    struct gaussian_weight_ctx gw_ctx = {
+      .gpm = gpm,
+      .theta_c = theta_c,
+      .wd2 = wd2,
+      .sigma = sigma,
+    };
+
+    struct gkyl_qr_res res = gkyl_dbl_exp(
+      position_map_constB_z_numeric_dbl_exp_wrapper, &gw_ctx,
+      rng_lo, rng_up, 7, 1e-16);
+
+    // Normalize by the integral of the Gaussian weight over the range
+    // For a Gaussian, we need to divide by the normalization factor
+    struct gkyl_qr_res norm_res = gkyl_dbl_exp(
+      gaussian_norm_wrapper, &gw_ctx,
+      rng_lo, rng_up, 7, 1e-16);
+
+    double theta_avg = res.res / norm_res.res;
+    fout[0] = theta_avg;
   }
 }

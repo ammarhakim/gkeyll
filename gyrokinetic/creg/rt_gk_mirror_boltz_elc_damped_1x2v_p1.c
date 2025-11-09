@@ -659,6 +659,7 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
+    .vdim = ctx.vdim,
     .lower = {-ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
@@ -675,13 +676,16 @@ int main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
 
-    .collisionless_scale_factor = ctx.alpha,
-//    .no_collisionless_terms = true,
+    .collisionless = {
+//    .type = GKYL_GK_COLLISIONLESS_NONE,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .scale_factor = ctx.alpha,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIon,
+      .self_nu_ctx = &ctx,
     },
 
     .source = {
@@ -711,7 +715,7 @@ int main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
-    
+
     .num_diag_moments = 4,
     .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };
@@ -727,7 +731,7 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = { 
     .name = "gk_mirror_boltz_elc_damped_1x2v_p1",
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },

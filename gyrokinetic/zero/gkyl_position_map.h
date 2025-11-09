@@ -25,6 +25,14 @@ struct gkyl_position_map_inp {
   // xnu' = xnu * s + xc * (1-s)
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+  double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
+};
+struct gkyl_position_map_inew_inp {
+  struct gkyl_position_map_inp pmap_info;
+  struct gkyl_rect_grid grid; // Position space grid.
+  struct gkyl_range local, local_ext; // Local & extended local position-space range.
+  struct gkyl_range global, global_ext; // Global & extended global position-space range.
+  struct gkyl_basis basis;  // Basis for position mapping.
 };
 
 struct gkyl_position_map {
@@ -59,6 +67,7 @@ struct gkyl_position_map_const_B_ctx {
   bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
+  double moving_average_width; // The width of the moving average for the map to smooth it
 
   // Polynomial-based mapping
   double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field
@@ -92,6 +101,22 @@ struct gkyl_position_map_const_B_ctx {
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
   struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
   struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
+
+/**
+ * Create a new position map object using the input structure.
+ * @param inp Input structure (see definition of gkyl_position_map_inew_inp).
+ * @return New position map object.
+ */
+struct gkyl_position_map*
+gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp);
+
+
+/** Create a new null position map object. This is a position map that does nothing.
+ *  All maps are identity maps.
+ * @return New null position map object.
+ */
+struct gkyl_position_map*
+gkyl_position_map_null_new();
 
 /**
  * Set the position map object. Copy the non-uniform map array to the position map object.
@@ -132,14 +157,14 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
  * @param gpm Gkyl position map object.
  * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
  * @param x Computational position coordinates.
- * @param dx Computational position increment.
+ * @param dx Computational position increment to use for finite difference.
  * @param ix_comp Index in the geometry loop of which cell we are discussing
  * @param nrange Range of the computational coordinates.
  * @return Slope of the position mapping.
  */
 double
 gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
-  double x, double dx, int ix_comp, struct gkyl_range *nrange);
+  double x, double dx, int ix_comp, const struct gkyl_range *nrange);
 
 /**
  * Create a new pointer to the position map object.

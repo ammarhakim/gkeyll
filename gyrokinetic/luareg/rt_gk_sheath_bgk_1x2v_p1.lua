@@ -147,6 +147,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     source = {
       sourceID = G0.Source.Proj,
   
@@ -187,8 +191,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -228,6 +232,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     source = {
@@ -270,8 +278,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?

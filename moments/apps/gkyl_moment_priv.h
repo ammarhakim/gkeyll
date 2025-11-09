@@ -39,6 +39,7 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
@@ -109,6 +110,7 @@ struct moment_species {
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+  double gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
 
   bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
@@ -129,6 +131,8 @@ struct moment_species {
   bool nT_source_is_set; // to be set at run time
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
+
+  struct gkyl_array *embed_mask;
 
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
@@ -198,6 +202,8 @@ struct moment_field {
   double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
+
+  struct gkyl_array *embed_mask;
 
  // scheme to update equations solvers and data to update fluid
  // equations
@@ -310,7 +316,7 @@ struct gkyl_moment_app {
     struct gkyl_array *ql, *qr;     // expansions on left/right edge of cell
     struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
-
+  
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
 
@@ -474,8 +480,8 @@ void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
-  int nstrang, double tcurr, double dt);
+struct gkyl_update_status moment_coupling_update(gkyl_moment_app *app,
+  struct moment_coupling *src, int nstrang, double tcurr, double dt);
 
 // Release coupling sources
 void moment_coupling_release(const struct gkyl_moment_app *app,

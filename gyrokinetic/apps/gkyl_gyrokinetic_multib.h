@@ -22,17 +22,11 @@ struct gkyl_gyrokinetic_multib_species_pb {
 struct gkyl_gyrokinetic_multib_species {
   char name[128]; // Species name.
 
-  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
-
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
   struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
-
-
-  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
-              // These more computationally efficient kernels are for slab or mirror 
-              // calculations where there is no toroidal field. 
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
@@ -42,11 +36,14 @@ struct gkyl_gyrokinetic_multib_species {
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
+  // Collisionless terms.
+  struct gkyl_gyrokinetic_collisionless collisionless;
+
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // Diffusion coupling to include.
-  struct gkyl_gyrokinetic_diffusion diffusion;
+  // Anomalous diffusion.
+  struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
@@ -55,7 +52,6 @@ struct gkyl_gyrokinetic_multib_species {
   struct gkyl_gyrokinetic_react react;
   // Reactions with neutral species to include.
   struct gkyl_gyrokinetic_react react_neut;
-
 
   bool duplicate_across_blocks; // Set to true if all blocks are identical.
   // Species inputs per-block: only one is needed if duplicate_across_blocks = true.
@@ -82,8 +78,9 @@ struct gkyl_gyrokinetic_multib_neut_species {
   char name[128]; // Species name.
 
   double mass; // Mass.
-  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
-  int cells[3]; // Velocity-space cells.
+  int vdim; // Velocity space dimensions.
+  double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -149,34 +146,32 @@ struct gkyl_gyrokinetic_multib_field {
 
 // Top-level app parameters: this
 struct gkyl_gyrokinetic_multib {
-  char name[128]; // name of app
+  char name[128]; // Name of app.
 
-  int cdim, vdim; // conf, velocity space dimensions
-  int poly_order; // polynomial order
-  enum gkyl_basis_type basis_type; // type of basis functions to use
+  int cdim; // Configuration space dimensions.
+  int poly_order; // Polynomial order.
+  enum gkyl_basis_type basis_type; // Type of basis functions to use.
   bool use_gpu; // Flag to indicate if solver should use GPUs
 
-  // geometry and topology of all blocks in simulation
+  // Geometry and topology of all blocks in simulation.
   struct gkyl_gk_block_geom *gk_block_geom;
 
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
-
-  int num_species; // number of species
-  // species inputs
+  int num_species; // Number of species.
+  // Species inputs.
   struct gkyl_gyrokinetic_multib_species species[GKYL_MAX_SPECIES];
 
-  int num_neut_species; // number of neutral species  
-  // neutral species inputs
+  int num_neut_species; // Number of neutral species.
+  // Neutral species inputs.
   struct gkyl_gyrokinetic_multib_neut_species neut_species[GKYL_MAX_SPECIES];
 
-  bool skip_field; // Skip field update -> phi = 0 for all time  
-  // field inputs
+  bool skip_field; // Skip field update -> phi = 0 for all time.
+  // Field inputs.
   struct gkyl_gyrokinetic_multib_field field;
 
-  // communicator to use.  
+  // Communicator to use.  
   struct gkyl_comm *comm;  
 };
 
@@ -542,8 +537,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyr
  * 
  * @param app App object.
  * @param sidx Index of species to write.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
 void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
@@ -552,10 +547,10 @@ void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_a
  * 
  * @param app App object.
  * @param sidx Index of species to write.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
-void gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
  * Write radiation drag coefficients for species to file.

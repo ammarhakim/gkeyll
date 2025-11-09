@@ -18,12 +18,14 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_RECYCLE, // Recycling.
   GKYL_BC_GK_SPECIES_IWL, // Inner wall limited.
   GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
+  GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.
   // Field BCs.
   GKYL_BC_GK_FIELD_PERIODIC, // Periodic.
   GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet.
   GKYL_BC_GK_FIELD_NEUMANN, // Nemann.
   GKYL_BC_GK_FIELD_DIRICHLET_VARYING, // Spatially varying Dirichlet.
   GKYL_BC_GK_FIELD_BOUNDARY_VALUE, // Skin value at the boundary.
+  GKYL_BC_GK_FIELD_TWISTSHIFT, // Twist-shift.
 };
 
 // Translates field BC types in gkyl_gyrokinetic_bc_type to
@@ -37,7 +39,7 @@ enum gkyl_gyrokinetic_bc_type {
 //     GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.  
 //     GKYL_POISSON_DIRICHLET_VARYING, // sets the value, spatially varying.
 //   };
-inline enum gkyl_poisson_bc_type
+static inline enum gkyl_poisson_bc_type
 gkyl_gyrokinetic_translate_poisson_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
 {
   enum gkyl_poisson_bc_type poisson_bc_type;
@@ -73,7 +75,7 @@ gkyl_gyrokinetic_translate_poisson_bc_type(enum gkyl_gyrokinetic_bc_type bc_type
 //     GKYL_BC_FIXED_FUNC,
 //     GKYL_BC_CONF_BOUNDARY_VALUE, 
 //   };
-inline enum gkyl_bc_basic_type
+static inline enum gkyl_bc_basic_type
 gkyl_gyrokinetic_translate_bc_basic_type(enum gkyl_gyrokinetic_bc_type bc_type)
 {
   enum gkyl_bc_basic_type bc_basic_type;
