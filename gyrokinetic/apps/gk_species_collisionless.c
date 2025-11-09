@@ -111,8 +111,8 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
       (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
-        .poly_order = 0,
-        .basis_type = gkcls->cfl_basis->id
+        .poly_order = gkcls->cfl_basis->poly_order,
+        .basis_type = gkcls->cfl_basis->id,
       }, GKYL_GK_META_NONE, 0
     );
 
@@ -233,12 +233,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
 
       // Create P0 basis for cflrate calculations. 1D p=0, because each cell
       // just has a single number
-      if (app->use_gpu) {
-        gkcls->cfl_basis = gkyl_cart_modal_serendip_cu_dev_new(1, 0);
-      }
-      else {
-        gkcls->cfl_basis = gkyl_cart_modal_serendip_new(1, 0);
-      }
+      gkcls->cfl_basis = gkyl_cart_modal_serendip_new(1, 0);
     }
 
     // Other methods chosen at runtime.
@@ -286,12 +281,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     // Release scale_fac_array if it was allocated for omega_cfl screening
     if (gkcls->scale_fac_array) {
       gkyl_array_release(gkcls->scale_fac_array);
-      if(app->use_gpu) { 
-        gkyl_cu_free(gkcls->cfl_basis);
-      }
-      else {
-        gkyl_free(gkcls->cfl_basis);
-      }
+      gkyl_free(gkcls->cfl_basis);
     }
 
     if (gkcls->write_diagnostics) {
