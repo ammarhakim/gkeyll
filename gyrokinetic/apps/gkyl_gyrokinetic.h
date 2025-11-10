@@ -79,7 +79,7 @@ struct gkyl_gyrokinetic_collisionless {
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms.
   bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
-  double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring.
+  double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring. Set to 0.0 to disable
 };
 
 // Parameters for species collisions
