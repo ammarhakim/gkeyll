@@ -1153,7 +1153,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-  if (!(app->field->info.gkfield_id == GKYL_GK_FIELD_ES)) {
+  if (!(app->field->info.gkfield_id == GKYL_GK_FIELD_ES || app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL)) {
     const char *fmt1 = "%s-apar_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt1, app->name, frame);
     char fileNm1[sz+1]; // ensures no buffer overflow
@@ -1212,7 +1212,7 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
 
-    bool write_em = !(app->field->info.gkfield_id == GKYL_GK_FIELD_ES);
+    bool write_em = !(app->field->info.gkfield_id == GKYL_GK_FIELD_ES || app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL);
     if (rank == 0) {
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
