@@ -271,6 +271,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->info = gk->field;
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD;
+
+  bool is_iwl = f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_ES_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL;
   
   f->is_em = f->info.gkfield_id == GKYL_GK_FIELD_EM || f->info.gkfield_id == GKYL_GK_FIELD_EM_IWL;
   // Ensure that if any species is electromagnetic, the field is electromagnetic.
@@ -468,7 +470,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Potential smoothing (in z) updater
-  if (f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+  if (is_iwl) {
     enum gkyl_fem_parproj_bc_type fem_parproj_bc_core, fem_parproj_bc_sol;
     if (app->cdim == 2) {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
@@ -750,7 +752,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
   f->enforce_parallel_bc = gk_field_enforce_parallel_bc_disabled;
-  if (f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+  if (is_iwl) {
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_parallel_bc = gk_field_enforce_parallel_bc_enabled;
   }
@@ -906,7 +908,11 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       // Gather charge density into global array.
       // Smooth the charge density. Input is rho_c_global_dg, globally smoothed in z,
       // and then output should be in *local* phi_smooth.
-      if (field->gkfield_id == GKYL_GK_FIELD_IWL || field->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+      if (
+        field->gkfield_id == GKYL_GK_FIELD_IWL ||
+        field->gkfield_id == GKYL_GK_FIELD_ES_IWL ||
+        field->gkfield_id == GKYL_GK_FIELD_EM_IWL
+      ) {
         gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
         gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
@@ -1142,7 +1148,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
   }
 
-  if (app->cdim > 1 && (f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL)) {
+  bool is_iwl = (f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_ES_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL);
+  if (app->cdim > 1 && is_iwl) {
     gkyl_fem_parproj_release(f->fem_parproj_core);
     gkyl_fem_parproj_release(f->fem_parproj_sol);
   } else {
@@ -1150,7 +1157,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release TS BS and SSFG updater
-  if (f->gkfield_id == GKYL_GK_FIELD_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
+  if (is_iwl) {
     if(app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
