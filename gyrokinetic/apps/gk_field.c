@@ -277,10 +277,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
 
       // Initialize the Poisson solver.
-      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-        app->local, f->global_sub_range, f->epsilon, 0, poisson_bcs, f->info.bias_plane_list, app->use_gpu);
       f->fem_poisson = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-        &poisson_bcs, f->epsilon, NULL, app->use_gpu);
+        &poisson_bcs, f->info.bias_line_list, f->epsilon, NULL, app->use_gpu);
 
       f->phi_bc = 0;
       f->is_dirichletvar = false;
@@ -637,29 +635,15 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
     }
     else if (app->cdim > 1) {
-      // Gather charge density into global array.
-      // Smooth the charge density. Input is rho_c_global_dg, globally smoothed in z,
-      // and then output should be in *local* phi_smooth.
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-        gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-        gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
-        gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
-        gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg);
-        gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_global_smooth);
-        gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
-          field->phi_bc, field->phi_smooth);
-      }
-      else {
-        // Smooth the charge density along z.
-        gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
+      // Smooth the charge density along z.
+      gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
 
-        // Solve the Poisson equation.
-        gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c);
-        gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
+      // Solve the Poisson equation.
+      gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c);
+      gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
 
-        // Smooth the potential along z.
-        gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
-      }
+      // Smooth the potential along z.
+      gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
 
       // Finish the Poisson solve with FLR effects.
       field->invert_flr(app, field, field->phi_smooth);
@@ -804,7 +788,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     gkyl_array_release(f->epsilon);
     if (app->cdim > 1) {
-      gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
       gkyl_fem_poisson_perp_release(f->fem_poisson);
       if (f->is_dirichletvar) {
         gkyl_array_release(f->phi_bc);

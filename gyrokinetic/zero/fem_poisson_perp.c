@@ -2,10 +2,75 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 #include <gkyl_array_reduce.h>
 
+void
+fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+{
+}
+
+void
+fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(rhsin));
+
+    gkyl_fem_poisson_perp_bias_src_enabled_cu(up, rhsin);
+    return;
+  }
+#endif
+
+  double *brhs_p = gkyl_array_fetch(up->brhs, 0);
+
+  int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+    while (gkyl_range_iter_next(&up->perp_iter2d)) {
+      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+      for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
+      idx1[up->pardir] = up->par_iter1d.idx[0];
+
+      int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
+      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
+      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+      long parProbOff = paridx*up->numnodes_global;
+
+      for (int i=0; i<up->num_bias_line; i++) {
+        // Index of the cell that abuts the line from below.
+        struct gkyl_poisson_bias_line *bl = &up->bias_lines[i];
+        int bl_idx_m[up->bl_ndim_perp];
+        for (int d=0; d<up->bl_ndim_perp; d++) {
+          int perp_dir = bl->perp_dirs[d];
+          double dx = up->grid.dx[perp_dir];
+          bl_idx_m[d] = (bl->perp_coords[d]-1e-3*dx - up->grid.lower[perp_dir])/dx+1;
+        }
+
+        if (
+            ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+            ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+            ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
+            ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
+           ) {
+          int edge[2] = {
+            -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
+            -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
+          };
+          up->kernels->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, up->globalidx, brhs_p);
+        }
+      }
+    }
+
+  }
+}
+
 struct gkyl_fem_poisson_perp*
 gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
-  struct gkyl_array *kSq, bool use_gpu)
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_line_list *bias_lines,
+  struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu)
 {
 
   struct gkyl_fem_poisson_perp *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson_perp));
@@ -163,6 +228,67 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
     fem_poisson_perp_choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
 #endif
 
+  // Copy the biasing line list (bias_lines) into this updater.
+  up->num_bias_line = 0;
+  if (bias_lines) {
+    if (bias_lines->num_bias_line > 0) {
+      // Check if any bias lines are in solve_range, and copy their info into updater.
+      bool bl_in_solve_range[bias_lines->num_bias_line];
+      for (int i=0; i<bias_lines->num_bias_line; i++)
+        bl_in_solve_range[bias_lines->num_bias_line] = false;
+
+      for (int i=0; i<bias_lines->num_bias_line; i++) {
+        struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
+
+        // MF 2025/11/10: For now limit ourselves to lines perpendicular to x and z.
+        up->bl_ndim_perp = 2;
+        assert(bl->perp_dirs[0] == 0 && bl->perp_dirs[1] == 2)
+
+        double line_coords[up->ndim];
+        for (int d=0; d<up->ndim; d++)
+          line_coords[up->ndim] = grid->lower[d]+grid->dx[d]/2.0;
+
+        for (int d=0; d<up->bl_ndim_perp; d++)
+          line_coords[bl->perp_dirs[d]] = bl->perp_coords[d];
+
+        int line_idx[GKYL_MAX_CDIM];
+        gkyl_rect_grid_coord_idx(grid, line_coords, line_idx);
+
+        bl_in_solve_range[i] = line_idx(solve_range, line_idx);
+        if (bl_in_solve_range[i])
+          up->num_bias_line++;
+      }
+
+      if (up->num_bias_line) {
+        // Copy biased lines in solve range into a temporary struct.
+        size_t bl_sz = up->num_bias_line * sizeof(struct gkyl_poisson_bias_line);
+        struct gkyl_poisson_bias_line *bias_lines_buff = gkyl_malloc(bl_sz);
+        int blc = 0;
+        for (int i=0; i<bias_lines->num_bias_line; i++) {
+          if (bl_in_solve_range[i]) {
+            struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
+            memcpy(&bias_lines_buff[blc], &bias_lines->bl[i], sizeof(struct gkyl_poisson_bias_line));
+            blc++;
+          }
+        }
+
+        if (up->use_gpu) {
+          up->bias_lines = gkyl_cu_malloc(bl_sz);
+          gkyl_cu_memcpy(up->bias_lines, bias_lines_buff, bl_sz, GKYL_CU_MEMCPY_H2D);
+        }
+        else {
+          up->bias_lines = gkyl_malloc(bl_sz);
+          memcpy(up->bias_lines, bias_lines_buff, bl_sz);
+        }
+        gkyl_free(bias_lines_buff);
+
+        // Select biasing kernels:
+        fem_poisson_perp_choose_bias_lhs_kernels(&basis, up->isdirperiodic, up->kernels->bias_lhs_ker);
+        fem_poisson_perp_choose_bias_src_kernels(&basis, up->isdirperiodic, up->kernels->bias_src_ker);
+      }
+    }
+  }
+
   // Create a linear Ax=B problem for each perp plane. Here A is the discrete (global)
   // matrix representation of the LHS of the perpendiculat Helmholtz equation.
   // cuSolverRF may support for A_i x_i = B_i, so we may revisit this
@@ -212,6 +338,57 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
       up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
     }
   }
+
+  if (up->num_bias_line > 0) {
+    // If biased lines are specified, replace the corresponding equation in the
+    // linear system so it only has a 1.
+    gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+    while (gkyl_range_iter_next(&up->par_iter1d)) {
+      long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+      gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+      while (gkyl_range_iter_next(&up->perp_iter2d)) {
+        long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+        for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
+        idx1[up->pardir] = up->par_iter1d.idx[0];
+
+        int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
+        for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
+        up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+        for (int i=0; i<bias_lines->num_bias_line; i++) {
+          // Index of the cell that abuts the line from below.
+          struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
+          int bl_idx_m[up->bl_ndim_perp];
+          for (int d=0; d<up->bl_ndim_perp; d++) {
+            int perp_dir = bl->perp_dirs[d];
+            double dx = up->grid.dx[perp_dir];
+            bl_idx_m[d] = (bl->perp_coords[d]-1e-3*dx - up->grid.lower[perp_dir])/dx+1;
+          }
+
+          if (
+              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
+              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
+             ) {
+            int edge[2] = {
+              -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
+              -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
+            };
+            up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[0]);
+          }
+        }
+      }
+    }
+
+    up->bias_line_src = fem_poisson_perp_bias_src_enabled;
+  }
+  else {
+    up->bias_line_src = fem_poisson_perp_bias_src_disabled;
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
@@ -304,6 +481,9 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
   }
 
+  // Set the corresponding entries to the biasing potential.
+  up->bias_line_src(up, rhsin);
+
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 
 }
@@ -364,11 +544,19 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_culinsolver_prob_release(up->prob_cu);
+
+    if (up->num_bias_line > 0)
+      gkyl_cu_free(up->bias_lines);
   } else {
     gkyl_superlu_prob_release(up->prob);
+
+    if (up->num_bias_line > 0)
+      gkyl_free(up->bias_lines);
   }
 #else
   gkyl_superlu_prob_release(up->prob);
+  if (up->num_bias_line > 0)
+    gkyl_free(up->bias_lines);
 #endif
 
   gkyl_array_release(up->brhs);

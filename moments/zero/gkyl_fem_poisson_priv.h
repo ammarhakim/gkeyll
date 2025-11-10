@@ -2244,7 +2244,7 @@ void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin,
  * @param rhsin DG field to set as RHS source.
  */
 void
-gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
+gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem on the device.

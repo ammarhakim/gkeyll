@@ -292,7 +292,7 @@ gkyl_fem_poisson_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
 }
 
 void 
-gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, up->grid,

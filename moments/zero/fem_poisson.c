@@ -2,19 +2,19 @@
 #include <gkyl_fem_poisson_priv.h>
 #include <gkyl_array_reduce.h>
 
-void
-fem_poisson_bias_src_none(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_disabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 }
 
-void
-fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_enabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
 
-    gkyl_fem_poisson_bias_src_cu(up, rhsin);
+    gkyl_fem_poisson_bias_src_enabled_cu(up, rhsin);
     return;
   }
 #endif
@@ -286,10 +286,10 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
       }
     }
 
-    up->bias_plane_src = fem_poisson_bias_src;
+    up->bias_plane_src = fem_poisson_bias_src_enabled;
   }
   else {
-    up->bias_plane_src = fem_poisson_bias_src_none;
+    up->bias_plane_src = fem_poisson_bias_src_disabled;
   }
   
 #ifdef GKYL_HAVE_CUDA

@@ -735,15 +735,22 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  struct gkyl_poisson_bias_plane target_corner_bc = {
-    .dir = 0, // Direction perpendicular to the plane.
-    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
-    .val = 0.0, // Biasing value.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 1}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
   };
   
-  struct gkyl_poisson_bias_plane_list bias_plane_list = {
-    .num_bias_plane = 1,
-    .bp = &target_corner_bc,
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bp = target_corner_bc,
   };
 
   // Field.
