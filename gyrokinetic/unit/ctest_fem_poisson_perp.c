@@ -4322,6 +4322,36 @@ void gpu_test_2x_p1_dirichletx_neumannx_consteps() {
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
+void gpu_test_2x_p1_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_neumannx_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_neumannx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
 void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -4438,6 +4468,32 @@ void gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_dirichletx_periodicy_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
 }
 
 void gpu_test_3x_p2_periodicx_periodicy_consteps() {
@@ -4594,9 +4650,11 @@ TEST_LIST = {
   { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps },
   { "gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps },
   { "gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps },
+  { "gpu_test_2x_p1_dirichletx_bias", gpu_test_2x_p1_dirichletx_consteps_bias },
+  { "gpu_test_2x_p1_neumannx_dirichletx_bias", gpu_test_2x_p1_neumannx_dirichletx_consteps_bias },
+  { "gpu_test_2x_p1_dirichletx_neumannx_bias", gpu_test_2x_p1_dirichletx_neumannx_consteps_bias },
 
   { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
-  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy_consteps },
   { "gpu_test_3x_p1_periodicx_dirichlety", gpu_test_3x_p1_periodicx_dirichlety_consteps },
@@ -4605,6 +4663,8 @@ TEST_LIST = {
   { "gpu_test_3x_p1_neumannx_dirichletx_dirichlety", gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_neumannx_dirichlety", gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
   { "gpu_test_3x_p1_neumannx_dirichletx_periodicy", gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety_bias", gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias },
+  { "gpu_test_3x_p1_dirichletx_periodicy_bias", gpu_test_3x_p1_dirichletx_periodicy_consteps_bias },
 //  { "gpu_test_3x_p2_periodicx_periodicy", gpu_test_3x_p2_periodicx_periodicy_consteps },
 //  { "gpu_test_3x_p2_dirichletx_dirichlety", gpu_test_3x_p2_dirichletx_dirichlety_consteps },
 //  { "gpu_test_3x_p2_dirichletx_periodicy", gpu_test_3x_p2_dirichletx_periodicy_consteps },
