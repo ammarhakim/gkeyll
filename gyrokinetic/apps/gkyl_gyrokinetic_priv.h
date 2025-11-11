@@ -1116,21 +1116,21 @@ struct gk_neut_species {
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 };
 
-// field data
+// Field data.
 struct gk_field {
-  struct gkyl_gyrokinetic_field info; // data for field
+  struct gkyl_gyrokinetic_field info; // Data for field.
 
   enum gkyl_gkfield_id gkfield_id;
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
 
-  struct gkyl_job_pool *job_pool; // Job pool  
-  // arrays for local charge density, global charge density, and global smoothed (in z) charge density
+  struct gkyl_job_pool *job_pool; // Job pool  .
+  // Arrays for local charge density, global charge density, and global smoothed (in z) charge density.
   struct gkyl_array *rho_c;
   struct gkyl_array *rho_c_global_dg;
   struct gkyl_array *rho_c_global_smooth; 
-  struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
+  struct gkyl_array *phi_fem, *phi_smooth; // Arrays for updates.
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
@@ -1206,7 +1206,9 @@ struct gk_field {
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
   
   // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_parallel_bc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*enforce_parallel_bc_func)(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*fem_projection_par_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

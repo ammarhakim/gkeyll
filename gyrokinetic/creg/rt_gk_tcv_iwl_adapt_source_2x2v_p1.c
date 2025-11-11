@@ -750,7 +750,7 @@ main(int argc, char **argv)
   
   struct gkyl_poisson_bias_line_list bias_line_list = {
     .num_bias_line = 2,
-    .bl = target_corner_bc,
+    .bl = target_corner_bcs,
   };
 
   // Field.
