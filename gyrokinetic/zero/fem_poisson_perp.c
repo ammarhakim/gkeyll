@@ -373,7 +373,6 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
               ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
               ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
              ) {
-            printf("idx1 = %d,%d\n",idx1[0],idx1[1]);
             int edge[2] = {
               -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
               -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),

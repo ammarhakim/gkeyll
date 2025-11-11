@@ -750,7 +750,7 @@ main(int argc, char **argv)
   
   struct gkyl_poisson_bias_line_list bias_line_list = {
     .num_bias_line = 2,
-    .bp = target_corner_bc,
+    .bl = target_corner_bc,
   };
 
   // Field.
@@ -761,7 +761,7 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
-    .bias_plane_list = &bias_plane_list,
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
 
