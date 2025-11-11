@@ -456,7 +456,7 @@ struct gkyl_gyrokinetic_field {
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
-  struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
+  struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
 // Top-level app parameters

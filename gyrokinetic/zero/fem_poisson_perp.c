@@ -3,12 +3,12 @@
 #include <gkyl_array_reduce.h>
 
 void
-fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin)
 {
 }
 
 void
-fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -242,7 +242,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
         // MF 2025/11/10: For now limit ourselves to lines perpendicular to x and z.
         up->bl_ndim_perp = 2;
-        assert(bl->perp_dirs[0] == 0 && bl->perp_dirs[1] == 2)
+        assert(bl->perp_dirs[0] == 0 && bl->perp_dirs[1] == up->ndim-1);
 
         double line_coords[up->ndim];
         for (int d=0; d<up->ndim; d++)
@@ -254,7 +254,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_coord_idx(grid, line_coords, line_idx);
 
-        bl_in_solve_range[i] = line_idx(solve_range, line_idx);
+        bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
         if (bl_in_solve_range[i])
           up->num_bias_line++;
       }
@@ -373,6 +373,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
               ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
               ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
              ) {
+            printf("idx1 = %d,%d\n",idx1[0],idx1[1]);
             int edge[2] = {
               -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
               -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),

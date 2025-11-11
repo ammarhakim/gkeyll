@@ -262,7 +262,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 
- if (up->num_bias_plane > 0) {
+  if (up->num_bias_plane > 0) {
     // If biased planes are specified, replace the corresponding equation in the
     // linear system so it only has a 1.
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);

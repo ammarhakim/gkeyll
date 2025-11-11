@@ -425,7 +425,7 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 };
 
 // Function pointer type for kernels that enforce biasing in LHS matrix.
-typedef void (*bias_lhs_t)(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+typedef void (*bias_lhs_t)(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
 
 // For use in kernel tables.
 typedef struct { bias_lhs_t kernels[2]; } bias_lhs_kern_loc_list_2x;
@@ -439,12 +439,12 @@ typedef struct { bias_lhs_kern_bcy_list_3x list[2]; } bias_lhs_kern_bcx_list_3x;
 static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = {
   // periodicx
   { .list = {{NULL, NULL},
-             {fem_poisson_perp_bias_plane_lhs_2x_ser_p1_inx, fem_poisson_perp_bias_plane_lhs_2x_ser_p1_upx_periodicx},
-             {fem_poisson_perp_bias_plane_lhs_2x_ser_p2_inx, fem_poisson_perp_bias_plane_lhs_2x_ser_p2_upx_periodicx}}, },
+             {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx, fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_periodicx},
+             {NULL, NULL}}, },
   // nonperiodicx
   { .list = {{NULL, NULL},
-            {fem_poisson_perp_bias_plane_lhs_2x_ser_p1_inx, fem_poisson_perp_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx},
-            {fem_poisson_perp_bias_plane_lhs_2x_ser_p2_inx, fem_poisson_perp_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx}}, }
+             {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx, fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_nonperiodicx},
+             {NULL, NULL}}, }
 };
 
 static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = {
@@ -452,32 +452,32 @@ static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = {
   { .list = {
     // periodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_periodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_upy_periodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_periodicy}},
+               {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
+               {NULL, NULL, NULL, NULL}},
     },
     // nonperiodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_periodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_nonperiodicy},}
+               {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+               {NULL, NULL, NULL, NULL},}
     }}
   },
   // nonperiodicx
   { .list = {
     // periodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_upy_periodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_periodicy}},
+               {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
+               {NULL, NULL, NULL, NULL}},
     },
     // nonperiodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-               {fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy},}
+               {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+               {NULL, NULL, NULL, NULL},}
     }}
   }
 };
 
 // Function pointer type for kernels that enforce biasing in RHS source.
-typedef void (*bias_src_t)(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+typedef void (*bias_src_t)(const int *edge, const int *perp_dirs, double val, long perpOff, const long *globalIdxs, double *bsrc);
 
 // For use in kernel tables.
 typedef struct { bias_src_t kernels[2]; } bias_src_kern_loc_list_2x;
@@ -492,12 +492,12 @@ GKYL_CU_D
 static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = {
   // periodicx
   { .list = {{NULL, NULL},
-             {fem_poisson_perp_bias_plane_src_2x_ser_p1_inx, fem_poisson_perp_bias_plane_src_2x_ser_p1_upx_periodicx},
-             {fem_poisson_perp_bias_plane_src_2x_ser_p2_inx, fem_poisson_perp_bias_plane_src_2x_ser_p2_upx_periodicx}}, },
+             {fem_poisson_perp_bias_line_src_2x_ser_p1_inx, fem_poisson_perp_bias_line_src_2x_ser_p1_upx_periodicx},
+             {NULL, NULL}}, },
   // nonperiodicx
   { .list = {{NULL, NULL},
-            {fem_poisson_perp_bias_plane_src_2x_ser_p1_inx, fem_poisson_perp_bias_plane_src_2x_ser_p1_upx_nonperiodicx},
-            {fem_poisson_perp_bias_plane_src_2x_ser_p2_inx, fem_poisson_perp_bias_plane_src_2x_ser_p2_upx_nonperiodicx}}, }
+             {fem_poisson_perp_bias_line_src_2x_ser_p1_inx, fem_poisson_perp_bias_line_src_2x_ser_p1_upx_nonperiodicx},
+             {NULL, NULL}}, }
 };
 
 GKYL_CU_D
@@ -506,26 +506,26 @@ static const bias_src_kern_bcx_list_3x ser_bias_src_list_3x[] = {
   { .list = {
     // periodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_periodicx_upy_periodicy},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_periodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_upy_periodicy, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_periodicx_upy_periodicy}},
+               {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_periodicy},
+               {NULL, NULL, NULL, NULL}},
     },
     // nonperiodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_periodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_periodicx_upy_nonperiodicy},}
+               {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+               {NULL, NULL, NULL, NULL},}
     }}
   },
   // nonperiodicx
   { .list = {
     // periodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_upy_periodicy, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_periodicy}},
+               {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
+               {NULL, NULL, NULL, NULL}},
     },
     // nonperiodicy
     { .list = {{NULL, NULL, NULL, NULL},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-               {fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_nonperiodicx_iny, fem_poisson_perp_bias_plane_src_3x_ser_p2_inx_upy_nonperiodicy, fem_poisson_perp_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy},}
+               {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+               {NULL, NULL, NULL, NULL},}
     }}
   }
 };
@@ -770,9 +770,9 @@ fem_poisson_perp_choose_bias_lhs_kernels(const struct gkyl_basis* basis,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
         if (dim == 2) {
-          blhs_out[k] = CK1(ser_bias_lhs_list_2x, poly_order, k, bckey[0]);
+          blhs_out[k] = CK2x(ser_bias_lhs_list_2x, poly_order, k, bckey[0]);
         } else if (dim == 3) {
-          blhs_out[k] = CK2(ser_bias_lhs_list_3x, poly_order, k, bckey[0], bckey[1]);
+          blhs_out[k] = CK3x(ser_bias_lhs_list_3x, poly_order, k, bckey[0], bckey[1]);
         }
       }
       break;
@@ -799,9 +799,9 @@ fem_poisson_perp_choose_bias_src_kernels(const struct gkyl_basis* basis,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
         if (dim == 2) {
-          bsrc_out[k] = CK1(ser_bias_src_list_2x, poly_order, k, bckey[0]);
+          bsrc_out[k] = CK2x(ser_bias_src_list_2x, poly_order, k, bckey[0]);
         } else if (dim == 3) {
-          bsrc_out[k] = CK2(ser_bias_src_list_3x, poly_order, k, bckey[0], bckey[1]);
+          bsrc_out[k] = CK3x(ser_bias_src_list_3x, poly_order, k, bckey[0], bckey[1]);
         }
       }
       break;
