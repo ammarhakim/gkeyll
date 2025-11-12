@@ -29,7 +29,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 
 __global__ static void
 gkyl_apply_dg_gaussian_filter_ker(struct gkyl_rect_grid conf_grid, struct gkyl_range conf_range, 
-  const struct gkyl_array* ordinates, const struct gkyl_array* weights, 
+  int tot_quad, const struct gkyl_array* ordinates, const struct gkyl_array* weights, 
   const struct gkyl_array* conf_arr_quad, struct gkyl_array* conf_arr_filter)
 {
   int cdim = conf_range.ndim;
@@ -107,7 +107,7 @@ gkyl_dg_gaussian_filter_advance_cu(gkyl_dg_gaussian_filter *up,
   dim3 dimGrid_conf, dimBlock_conf;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid_conf, &dimBlock_conf, *conf_range, up->tot_quad);
   gkyl_apply_dg_gaussian_filter_ker<<<dimGrid_conf, dimBlock_conf>>>(up->conf_grid, *conf_range, 
-    up->ordinates->on_dev, up->weights->on_dev,
+    up->tot_quad, up->ordinates->on_dev, up->weights->on_dev,
     up->conf_arr_quad->on_dev, up->conf_arr_filter->on_dev);
 
   // Convert back to modal basis
