@@ -246,18 +246,49 @@ static void
 gk_field_step_apar_dyn(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate(out, dt, inp);
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 
   // Update the smooth version of Apar (out).
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, out, field->rho_c_global_dg);
-  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
-  gkyl_array_copy_range_to_range(field->apar_smooth, field->apar_fem, &app->local, &field->global_sub_range);
+  // gkyl_comm_array_allgather(app->comm, &app->local, &app->global, out, field->rho_c_global_dg);
+  // gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  // gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
+  // gkyl_array_copy_range_to_range(field->apar_smooth, field->apar_fem, &app->local, &field->global_sub_range);
 }
 
 static void
 gk_field_step_apar_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
+{
+  // do nothing
+}
+
+static void
+gk_field_combine_dynamic(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
+}
+
+static void
+gk_field_combine_static(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  // do nothing
+}
+
+static void
+gk_field_copy_range_dynamic(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
+static void
+gk_field_copy_range_static(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   // do nothing
 }
@@ -598,11 +629,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->accumulate_current = gk_field_accumulate_current_dens_none;
   f->accumulate_current_dot = gk_field_accumulate_current_dens_dot_none;
   f->step_apar = gk_field_step_apar_none;
+  f->combine_func = gk_field_combine_static;
+  f->copy_func = gk_field_copy_range_static;
   f->apar_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   if (f->is_em) {
     f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar_old = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apar_curr = f->apar;
+    f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
     
     f->apar_host = f->apar;
@@ -682,6 +717,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->accumulate_current = gk_field_accumulate_current_dens_dyn;
     f->accumulate_current_dot = gk_field_accumulate_current_dens_dot_dyn;
     f->step_apar = gk_field_step_apar_dyn;
+    f->combine_func = gk_field_combine_dynamic;
+    f->copy_func = gk_field_copy_range_dynamic;
     
     // Factor for EM energy.
     f->apar_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
@@ -954,6 +991,21 @@ void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struc
 }
 
 void
+gk_field_combine(struct gk_field *field, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  field->combine_func(out, c1, arr1, c2, arr2, rng);
+}
+
+void
+gk_field_copy_range(struct gk_field *field, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  field->copy_func(out, inp, range);
+}
+
+void
 gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[])
 {
   struct timespec wst = gkyl_wall_clock();
@@ -1101,7 +1153,9 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->apardot);
   if (f->is_em) {
     gkyl_array_release(f->apar);
-    gkyl_array_release(f->apar_old);
+    gkyl_array_release(f->apar_curr);
+    gkyl_array_release(f->apar1);
+    gkyl_array_release(f->aparnew);
     gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);

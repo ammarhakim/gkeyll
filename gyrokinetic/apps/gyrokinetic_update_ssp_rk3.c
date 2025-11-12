@@ -3,6 +3,7 @@
 static void
 gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *aparin, struct gkyl_array *aparout,
   struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
@@ -18,7 +19,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   // Compute the time rate of change of the distributions, df/dt.
-  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
+  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, 
+    aparin, aparout, st);
 
   struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
@@ -33,7 +35,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_accumulate(app, &gkns->bflux, bflux_out_neut[i], 1.0, bflux_in_neut[i]);
   }
-  gk_field_step_apar(app, app->field, app->field->apar, dta, app->field->apardot);
+  gk_field_step_apar(app, app->field, aparout, dta, aparin);
+  app->field->apar_curr = aparout; // Update current A_parallel.
 
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
@@ -48,6 +51,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   // from the actual time-step.
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
+  const struct gkyl_array *aparin;
+  struct gkyl_array *aparout;
   struct gkyl_array **bflux_in[app->num_species];
   struct gkyl_array **bflux_out[app->num_species];
 
@@ -73,6 +78,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_in[i] = gks->bflux.f;
           bflux_out[i] = gks->bflux.f1;
         }
+        aparin = app->field->apar;
+        aparout = app->field->apar1;
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
@@ -88,7 +95,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_in, tcurr);
         }
 
-        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
 
@@ -139,8 +146,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_in_neut[i] = gkns->bflux.f1;
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
+        aparin = app->field->apar1;
+        aparout = app->field->aparnew;
 
-        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
@@ -211,8 +220,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_in_neut[i] = gkns->bflux.f1;
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
+        aparin = app->field->apar1;
+        aparout = app->field->aparnew;
 
-        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
@@ -257,6 +268,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_set(app, &gkns->bflux, gkns->bflux.f, 2.0/3.0, gkns->bflux.fnew);
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
           }
+          // Step A_parallel.
+          gk_field_combine(app->field, app->field->apar1, 1.0/3.0, app->field->apar, 2.0/3.0, app->field->aparnew, 
+            &app->local_ext);
+          gk_field_copy_range(app->field, app->field->apar, app->field->apar1, &app->local_ext);
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
