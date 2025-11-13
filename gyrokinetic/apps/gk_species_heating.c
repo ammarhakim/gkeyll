@@ -148,7 +148,8 @@ gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   src->rhs_func = gk_species_heating_rhs_disabled;
 
   if (src->heating_id) {
-    src->norm_power = 2.0*gks->info.heating.power/((app->vdim == 1? 1.0 : 3.0)*gks->info.mass);
+    int vdim_phys = gks->info.vdim == 1? 1 : 3;
+    src->norm_power = 2.0*gks->info.heating.power/(vdim_phys*gks->info.mass);
 
     // Heating rate.
     src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

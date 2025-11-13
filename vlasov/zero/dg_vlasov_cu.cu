@@ -19,6 +19,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
+  vlasov->eqn.boundary_diag_term = boundary_diag;
 
   // By default, we have no forces from E, phi, B, or radiation. 
   vlasov->E_vol = no_E_vol; 

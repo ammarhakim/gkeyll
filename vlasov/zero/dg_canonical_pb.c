@@ -62,6 +62,7 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   canonical_pb->eqn.num_equations = 1;
   canonical_pb->eqn.surf_term = surf;
   canonical_pb->eqn.boundary_surf_term = boundary_surf;
+  canonical_pb->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_canonical_pb_vol_kern_list *vol_kernels;
   const gkyl_dg_canonical_pb_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
