@@ -631,11 +631,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->step_apar = gk_field_step_apar_none;
   f->combine_func = gk_field_combine_static;
   f->copy_func = gk_field_copy_range_static;
-  f->apar_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar_curr = f->apar;
   if (f->is_em) {
-    f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar_curr = f->apar;
     f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
@@ -1011,6 +1010,7 @@ gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_a
   struct timespec wst = gkyl_wall_clock();
   field->accumulate_current_dot(app, field, rhs_in);
   field->ohm_solve(app, field);
+  gkyl_array_clear(field->apardot, 0.0);
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -1149,11 +1149,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->phi_smooth);
 
   // We need at least these two arrays even in ES case (kept 0).
-  gkyl_array_release(f->apar_smooth);
+  gkyl_array_release(f->apar);
   gkyl_array_release(f->apardot);
+  gkyl_array_release(f->apar_curr);
   if (f->is_em) {
     gkyl_array_release(f->apar);
-    gkyl_array_release(f->apar_curr);
     gkyl_array_release(f->apar1);
     gkyl_array_release(f->aparnew);
     gkyl_array_release(f->apar_fem);

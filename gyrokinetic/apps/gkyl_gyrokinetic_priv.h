@@ -1165,7 +1165,6 @@ struct gk_field {
       struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
       struct gkyl_array *apar_curr; // A_parallel at current RK stage.
       struct gkyl_array *apar_fem; // FEM A_parallel. 
-      struct gkyl_array *apar_smooth; // Smoothed A_parallel.
       struct gkyl_array *apar_host; // Host copy for use IO.
       struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
       struct gkyl_array *apardot_host; // Host copy for use IO.
@@ -3700,7 +3699,6 @@ void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Step the parallel component of the magnetic vector potential, apar, forward in time.
- * Also update apar_smooth used in the GK characteristics.
  * 
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
