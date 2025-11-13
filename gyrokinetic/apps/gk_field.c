@@ -1010,7 +1010,6 @@ gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_a
   struct timespec wst = gkyl_wall_clock();
   field->accumulate_current_dot(app, field, rhs_in);
   field->ohm_solve(app, field);
-  gkyl_array_clear(field->apardot, 0.0);
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
 }
 
