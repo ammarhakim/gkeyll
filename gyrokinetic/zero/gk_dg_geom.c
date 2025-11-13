@@ -168,8 +168,7 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
       gkdgv[qvloc].g_33 = global_val[5]; // g_{33}
 
       // set magnitude of e_3
-      global_val = gkyl_array_cfetch(gk_geom->geo_int.dualmag_nodal, global_loc);
-      gkdgv[qvloc].mag_e_3 = global_val[2]; // |e^3|
+      gkdgv[qvloc].mag_e_3 = sqrt(gkdgv[qvloc].g_33); // |e_3|
     }
   }
 }
