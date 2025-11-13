@@ -114,8 +114,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, aparin, aparout, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
 
         // Subtract boundary flux f from f1 so that we only step boundary
@@ -179,8 +179,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, aparin, aparout, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr+dt, dt, fin, fout, aparin, aparout, 
+          bflux_in, bflux_out, fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
 
@@ -268,8 +268,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, aparin, aparout, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr+dt/2, dt, fin, fout, aparin, aparout,
+          bflux_in, bflux_out, fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
