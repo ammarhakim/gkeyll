@@ -208,6 +208,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       }
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -219,13 +223,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "ion" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -298,6 +298,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       }
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -309,13 +313,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "elc" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcGkSheath
-      },
-      upper = {
-        type = G0.SpeciesBc.bcGkSheath
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?

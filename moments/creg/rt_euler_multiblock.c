@@ -308,7 +308,7 @@ update_block_job_func(void *ctx)
 
   // run wave-prop updater
   ubctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], tcurr, dt,
-    &bdata->range, bdata->f[d], bdata->f[d+1]);
+    &bdata->range, NULL, bdata->f[d], bdata->f[d+1]);
 
   // apply block-local boundary conditions
   block_bc_updaters_apply(bdata, tcurr, bdata->f[d+1]);

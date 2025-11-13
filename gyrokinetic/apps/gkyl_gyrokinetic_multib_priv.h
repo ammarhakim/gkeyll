@@ -6,7 +6,6 @@
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
-#include <gkyl_rescale_ghost_jacf.h>
 
 // A multib_comm_conn send/recv pair used for communicating between blocks.
 struct gkyl_mbcc_sr {
@@ -46,10 +45,6 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for conf-space sync.
   struct gkyl_mbcc_sr *mbcc_sync_charged; // Connections for charged species phase-space.
   struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
-
-  // Updaters to rescale jac*f in the ghost cell.
-  struct gkyl_rescale_ghost_jacf *jf_rescale_charged[2*GKYL_MAX_CDIM];
-  struct gkyl_rescale_ghost_jacf *jf_rescale_neut[2*GKYL_MAX_CDIM];
 
   double tcurr; // current time
   
@@ -125,8 +120,10 @@ struct gk_multib_field {
  * @param app Multiblock gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param fin Array of distribution functions (one for each species) .
+ * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  */
-void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr, const struct gkyl_array *fin[]);
+void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /**
  * Compute the gyrokinetic fields and apply boundary conditions.
@@ -134,10 +131,11 @@ void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, doub
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param distf Array of distribution functions (for each charged species).
+ * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  * @param distf_neut Array of distribution functions (for each neutral species).
  */
 void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
+  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
 
 /**
  * Take time-step using the RK3 method. Also sets the status object
@@ -148,7 +146,6 @@ void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_a
  * @param dt0 Suggessted time step.
  */
 struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, double dt0);
-
 
 /** Field API */
 
@@ -165,9 +162,10 @@ struct gk_multib_field* gk_multib_field_new(const struct gkyl_gyrokinetic_multib
  * @param mbapp Gyrokinetic multib app.
  * @param mbf Multib field object.
  * @param fin Distribution function (for all local blocks).
+ * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
 */
-void gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
-  struct gk_multib_field *mbf, const struct gkyl_array *fin[]);
+void gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /** Releas the resources for the multib field object
  * @param mbf Multib field object.

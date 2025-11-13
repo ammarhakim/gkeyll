@@ -36,3 +36,14 @@ typedef void (*wv_bc_func_t)(const struct gkyl_wv_eqn* eqn, double t, int ncomp,
  * @param ctx Context for function evaluation. Can be NULL
  */
 typedef void (*array_copy_func_t)(size_t nc, double *out, const double *inp, void *ctx);
+
+/**
+ * Type of function to apply to embedded surface
+ *
+ * @param q Pointer to outside surface data.
+ * @param qphi Pointer to inside surface data.
+ * @param delta Difference across surface.
+ * @param ctx Context for function evaluation. Can be NULL
+ */
+typedef void (*wv_embed_func_t)(const double *q, double *qphi, double *delta,
+  void *ctx);

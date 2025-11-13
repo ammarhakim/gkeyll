@@ -1,0 +1,268 @@
+#include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
+
+GKYL_CU_DH double dg_diffusion_gyrokinetic_order6_boundary_diagy_3x2v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, int edge, const double *qSkin, const double *qGhost, double* GKYL_RESTRICT out) 
+{
+  // w[NDIM]: Cell-center coordinate.
+  // dxv[NDIM]: Cell length.
+  // coeff: Diffusion coefficient.
+  // jacobgeo_inv: one divided by the configuration space Jacobian.
+  // edge: -1 for lower boundary, +1 for upper boundary.
+  // qGhost/qSkin: scalar field in skin and egde cells.
+  // out: Incremented output.
+
+  const double rdx2Sq = pow(2./dx[1],6.);
+
+  double boundSurf_incr[112] = {0.0}; 
+
+  if (edge == -1) { 
+
+  boundSurf_incr[2] = 19.062339907114627*coeff[1]*qSkin[17]-4.921875*coeff[1]*qSkin[2]; 
+  boundSurf_incr[6] = 19.062339907114634*coeff[1]*qSkin[32]-4.921875*coeff[1]*qSkin[6]; 
+  boundSurf_incr[8] = 19.062339907114634*coeff[1]*qSkin[34]-4.921875*coeff[1]*qSkin[8]; 
+  boundSurf_incr[10] = 19.062339907114634*coeff[1]*qSkin[38]-4.921875*coeff[1]*qSkin[10]; 
+  boundSurf_incr[13] = 19.062339907114634*coeff[1]*qSkin[44]-4.921875*coeff[1]*qSkin[13]; 
+  boundSurf_incr[17] = 19.062339907114627*coeff[1]*qSkin[2]-73.828125*coeff[1]*qSkin[17]; 
+  boundSurf_incr[21] = 19.062339907114627*coeff[1]*qSkin[57]-4.921875*coeff[1]*qSkin[21]; 
+  boundSurf_incr[22] = 19.062339907114627*coeff[1]*qSkin[60]-4.921875*coeff[1]*qSkin[22]; 
+  boundSurf_incr[24] = 19.062339907114627*coeff[1]*qSkin[62]-4.921875*coeff[1]*qSkin[24]; 
+  boundSurf_incr[25] = 19.062339907114627*coeff[1]*qSkin[69]-4.921875*coeff[1]*qSkin[25]; 
+  boundSurf_incr[27] = 19.062339907114627*coeff[1]*qSkin[71]-4.921875*coeff[1]*qSkin[27]; 
+  boundSurf_incr[29] = 19.062339907114627*coeff[1]*qSkin[75]-4.921875*coeff[1]*qSkin[29]; 
+  boundSurf_incr[31] = -(4.921875*coeff[1]*qSkin[31]); 
+  boundSurf_incr[32] = 19.062339907114634*coeff[1]*qSkin[6]-73.828125*coeff[1]*qSkin[32]; 
+  boundSurf_incr[34] = 19.062339907114634*coeff[1]*qSkin[8]-73.828125*coeff[1]*qSkin[34]; 
+  boundSurf_incr[36] = -(4.921875*coeff[1]*qSkin[36]); 
+  boundSurf_incr[38] = 19.062339907114634*coeff[1]*qSkin[10]-73.828125*coeff[1]*qSkin[38]; 
+  boundSurf_incr[41] = -(4.921875*coeff[1]*qSkin[41]); 
+  boundSurf_incr[44] = 19.062339907114634*coeff[1]*qSkin[13]-73.828125*coeff[1]*qSkin[44]; 
+  boundSurf_incr[48] = -(4.921875*coeff[1]*qSkin[48]); 
+  boundSurf_incr[51] = 19.062339907114634*coeff[1]*qSkin[88]-4.921875*coeff[1]*qSkin[51]; 
+  boundSurf_incr[52] = 19.062339907114634*coeff[1]*qSkin[92]-4.921875*coeff[1]*qSkin[52]; 
+  boundSurf_incr[53] = 19.062339907114634*coeff[1]*qSkin[95]-4.921875*coeff[1]*qSkin[53]; 
+  boundSurf_incr[55] = 19.062339907114634*coeff[1]*qSkin[97]-4.921875*coeff[1]*qSkin[55]; 
+  boundSurf_incr[56] = -(4.921875*coeff[1]*qSkin[56]); 
+  boundSurf_incr[57] = 19.062339907114627*coeff[1]*qSkin[21]-73.828125*coeff[1]*qSkin[57]; 
+  boundSurf_incr[58] = -(4.921875*coeff[1]*qSkin[58]); 
+  boundSurf_incr[59] = -(4.921875*coeff[1]*qSkin[59]); 
+  boundSurf_incr[60] = 19.062339907114627*coeff[1]*qSkin[22]-73.828125*coeff[1]*qSkin[60]; 
+  boundSurf_incr[62] = 19.062339907114627*coeff[1]*qSkin[24]-73.828125*coeff[1]*qSkin[62]; 
+  boundSurf_incr[64] = -(4.921875*coeff[1]*qSkin[64]); 
+  boundSurf_incr[65] = -(4.921875*coeff[1]*qSkin[65]); 
+  boundSurf_incr[67] = -(4.921875*coeff[1]*qSkin[67]); 
+  boundSurf_incr[68] = -(4.921875*coeff[1]*qSkin[68]); 
+  boundSurf_incr[69] = 19.062339907114627*coeff[1]*qSkin[25]-73.828125*coeff[1]*qSkin[69]; 
+  boundSurf_incr[71] = 19.062339907114627*coeff[1]*qSkin[27]-73.828125*coeff[1]*qSkin[71]; 
+  boundSurf_incr[73] = -(4.921875*coeff[1]*qSkin[73]); 
+  boundSurf_incr[75] = 19.062339907114627*coeff[1]*qSkin[29]-73.828125*coeff[1]*qSkin[75]; 
+  boundSurf_incr[78] = -(4.921875*coeff[1]*qSkin[78]); 
+  boundSurf_incr[80] = -(4.921875*coeff[1]*qSkin[80]); 
+  boundSurf_incr[82] = -(4.921875*coeff[1]*qSkin[82]); 
+  boundSurf_incr[84] = -(4.921875*coeff[1]*qSkin[84]); 
+  boundSurf_incr[86] = 19.062339907114627*coeff[1]*qSkin[108]-4.921875*coeff[1]*qSkin[86]; 
+  boundSurf_incr[87] = -(4.921875*coeff[1]*qSkin[87]); 
+  boundSurf_incr[88] = 19.062339907114634*coeff[1]*qSkin[51]-73.828125*coeff[1]*qSkin[88]; 
+  boundSurf_incr[89] = -(4.921875*coeff[1]*qSkin[89]); 
+  boundSurf_incr[90] = -(4.921875*coeff[1]*qSkin[90]); 
+  boundSurf_incr[91] = -(4.921875*coeff[1]*qSkin[91]); 
+  boundSurf_incr[92] = 19.062339907114634*coeff[1]*qSkin[52]-73.828125*coeff[1]*qSkin[92]; 
+  boundSurf_incr[93] = -(4.921875*coeff[1]*qSkin[93]); 
+  boundSurf_incr[94] = -(4.921875*coeff[1]*qSkin[94]); 
+  boundSurf_incr[95] = 19.062339907114634*coeff[1]*qSkin[53]-73.828125*coeff[1]*qSkin[95]; 
+  boundSurf_incr[97] = 19.062339907114634*coeff[1]*qSkin[55]-73.828125*coeff[1]*qSkin[97]; 
+  boundSurf_incr[99] = -(4.921875*coeff[1]*qSkin[99]); 
+  boundSurf_incr[100] = -(4.921875*coeff[1]*qSkin[100]); 
+  boundSurf_incr[102] = -(4.921875*coeff[1]*qSkin[102]); 
+  boundSurf_incr[103] = -(4.921875*coeff[1]*qSkin[103]); 
+  boundSurf_incr[104] = -(4.921875*coeff[1]*qSkin[104]); 
+  boundSurf_incr[106] = -(4.921875*coeff[1]*qSkin[106]); 
+  boundSurf_incr[107] = -(4.921875*coeff[1]*qSkin[107]); 
+  boundSurf_incr[108] = 19.062339907114627*coeff[1]*qSkin[86]-73.828125*coeff[1]*qSkin[108]; 
+  boundSurf_incr[109] = -(4.921875*coeff[1]*qSkin[109]); 
+  boundSurf_incr[110] = -(4.921875*coeff[1]*qSkin[110]); 
+  boundSurf_incr[111] = -(4.921875*coeff[1]*qSkin[111]); 
+
+  } else { 
+
+  boundSurf_incr[2] = -(19.062339907114627*coeff[1]*qSkin[17])-4.921875*coeff[1]*qSkin[2]; 
+  boundSurf_incr[6] = -(19.062339907114634*coeff[1]*qSkin[32])-4.921875*coeff[1]*qSkin[6]; 
+  boundSurf_incr[8] = -(19.062339907114634*coeff[1]*qSkin[34])-4.921875*coeff[1]*qSkin[8]; 
+  boundSurf_incr[10] = -(19.062339907114634*coeff[1]*qSkin[38])-4.921875*coeff[1]*qSkin[10]; 
+  boundSurf_incr[13] = -(19.062339907114634*coeff[1]*qSkin[44])-4.921875*coeff[1]*qSkin[13]; 
+  boundSurf_incr[17] = -(73.828125*coeff[1]*qSkin[17])-19.062339907114627*coeff[1]*qSkin[2]; 
+  boundSurf_incr[21] = -(19.062339907114627*coeff[1]*qSkin[57])-4.921875*coeff[1]*qSkin[21]; 
+  boundSurf_incr[22] = -(19.062339907114627*coeff[1]*qSkin[60])-4.921875*coeff[1]*qSkin[22]; 
+  boundSurf_incr[24] = -(19.062339907114627*coeff[1]*qSkin[62])-4.921875*coeff[1]*qSkin[24]; 
+  boundSurf_incr[25] = -(19.062339907114627*coeff[1]*qSkin[69])-4.921875*coeff[1]*qSkin[25]; 
+  boundSurf_incr[27] = -(19.062339907114627*coeff[1]*qSkin[71])-4.921875*coeff[1]*qSkin[27]; 
+  boundSurf_incr[29] = -(19.062339907114627*coeff[1]*qSkin[75])-4.921875*coeff[1]*qSkin[29]; 
+  boundSurf_incr[31] = -(4.921875*coeff[1]*qSkin[31]); 
+  boundSurf_incr[32] = -(73.828125*coeff[1]*qSkin[32])-19.062339907114634*coeff[1]*qSkin[6]; 
+  boundSurf_incr[34] = -(73.828125*coeff[1]*qSkin[34])-19.062339907114634*coeff[1]*qSkin[8]; 
+  boundSurf_incr[36] = -(4.921875*coeff[1]*qSkin[36]); 
+  boundSurf_incr[38] = -(73.828125*coeff[1]*qSkin[38])-19.062339907114634*coeff[1]*qSkin[10]; 
+  boundSurf_incr[41] = -(4.921875*coeff[1]*qSkin[41]); 
+  boundSurf_incr[44] = -(73.828125*coeff[1]*qSkin[44])-19.062339907114634*coeff[1]*qSkin[13]; 
+  boundSurf_incr[48] = -(4.921875*coeff[1]*qSkin[48]); 
+  boundSurf_incr[51] = -(19.062339907114634*coeff[1]*qSkin[88])-4.921875*coeff[1]*qSkin[51]; 
+  boundSurf_incr[52] = -(19.062339907114634*coeff[1]*qSkin[92])-4.921875*coeff[1]*qSkin[52]; 
+  boundSurf_incr[53] = -(19.062339907114634*coeff[1]*qSkin[95])-4.921875*coeff[1]*qSkin[53]; 
+  boundSurf_incr[55] = -(19.062339907114634*coeff[1]*qSkin[97])-4.921875*coeff[1]*qSkin[55]; 
+  boundSurf_incr[56] = -(4.921875*coeff[1]*qSkin[56]); 
+  boundSurf_incr[57] = -(73.828125*coeff[1]*qSkin[57])-19.062339907114627*coeff[1]*qSkin[21]; 
+  boundSurf_incr[58] = -(4.921875*coeff[1]*qSkin[58]); 
+  boundSurf_incr[59] = -(4.921875*coeff[1]*qSkin[59]); 
+  boundSurf_incr[60] = -(73.828125*coeff[1]*qSkin[60])-19.062339907114627*coeff[1]*qSkin[22]; 
+  boundSurf_incr[62] = -(73.828125*coeff[1]*qSkin[62])-19.062339907114627*coeff[1]*qSkin[24]; 
+  boundSurf_incr[64] = -(4.921875*coeff[1]*qSkin[64]); 
+  boundSurf_incr[65] = -(4.921875*coeff[1]*qSkin[65]); 
+  boundSurf_incr[67] = -(4.921875*coeff[1]*qSkin[67]); 
+  boundSurf_incr[68] = -(4.921875*coeff[1]*qSkin[68]); 
+  boundSurf_incr[69] = -(73.828125*coeff[1]*qSkin[69])-19.062339907114627*coeff[1]*qSkin[25]; 
+  boundSurf_incr[71] = -(73.828125*coeff[1]*qSkin[71])-19.062339907114627*coeff[1]*qSkin[27]; 
+  boundSurf_incr[73] = -(4.921875*coeff[1]*qSkin[73]); 
+  boundSurf_incr[75] = -(73.828125*coeff[1]*qSkin[75])-19.062339907114627*coeff[1]*qSkin[29]; 
+  boundSurf_incr[78] = -(4.921875*coeff[1]*qSkin[78]); 
+  boundSurf_incr[80] = -(4.921875*coeff[1]*qSkin[80]); 
+  boundSurf_incr[82] = -(4.921875*coeff[1]*qSkin[82]); 
+  boundSurf_incr[84] = -(4.921875*coeff[1]*qSkin[84]); 
+  boundSurf_incr[86] = -(19.062339907114627*coeff[1]*qSkin[108])-4.921875*coeff[1]*qSkin[86]; 
+  boundSurf_incr[87] = -(4.921875*coeff[1]*qSkin[87]); 
+  boundSurf_incr[88] = -(73.828125*coeff[1]*qSkin[88])-19.062339907114634*coeff[1]*qSkin[51]; 
+  boundSurf_incr[89] = -(4.921875*coeff[1]*qSkin[89]); 
+  boundSurf_incr[90] = -(4.921875*coeff[1]*qSkin[90]); 
+  boundSurf_incr[91] = -(4.921875*coeff[1]*qSkin[91]); 
+  boundSurf_incr[92] = -(73.828125*coeff[1]*qSkin[92])-19.062339907114634*coeff[1]*qSkin[52]; 
+  boundSurf_incr[93] = -(4.921875*coeff[1]*qSkin[93]); 
+  boundSurf_incr[94] = -(4.921875*coeff[1]*qSkin[94]); 
+  boundSurf_incr[95] = -(73.828125*coeff[1]*qSkin[95])-19.062339907114634*coeff[1]*qSkin[53]; 
+  boundSurf_incr[97] = -(73.828125*coeff[1]*qSkin[97])-19.062339907114634*coeff[1]*qSkin[55]; 
+  boundSurf_incr[99] = -(4.921875*coeff[1]*qSkin[99]); 
+  boundSurf_incr[100] = -(4.921875*coeff[1]*qSkin[100]); 
+  boundSurf_incr[102] = -(4.921875*coeff[1]*qSkin[102]); 
+  boundSurf_incr[103] = -(4.921875*coeff[1]*qSkin[103]); 
+  boundSurf_incr[104] = -(4.921875*coeff[1]*qSkin[104]); 
+  boundSurf_incr[106] = -(4.921875*coeff[1]*qSkin[106]); 
+  boundSurf_incr[107] = -(4.921875*coeff[1]*qSkin[107]); 
+  boundSurf_incr[108] = -(73.828125*coeff[1]*qSkin[108])-19.062339907114627*coeff[1]*qSkin[86]; 
+  boundSurf_incr[109] = -(4.921875*coeff[1]*qSkin[109]); 
+  boundSurf_incr[110] = -(4.921875*coeff[1]*qSkin[110]); 
+  boundSurf_incr[111] = -(4.921875*coeff[1]*qSkin[111]); 
+
+  }
+
+  out[0] += boundSurf_incr[0]*rdx2Sq; 
+  out[1] += boundSurf_incr[1]*rdx2Sq; 
+  out[2] += boundSurf_incr[2]*rdx2Sq; 
+  out[3] += boundSurf_incr[3]*rdx2Sq; 
+  out[4] += boundSurf_incr[4]*rdx2Sq; 
+  out[5] += boundSurf_incr[5]*rdx2Sq; 
+  out[6] += boundSurf_incr[6]*rdx2Sq; 
+  out[7] += boundSurf_incr[7]*rdx2Sq; 
+  out[8] += boundSurf_incr[8]*rdx2Sq; 
+  out[9] += boundSurf_incr[9]*rdx2Sq; 
+  out[10] += boundSurf_incr[10]*rdx2Sq; 
+  out[11] += boundSurf_incr[11]*rdx2Sq; 
+  out[12] += boundSurf_incr[12]*rdx2Sq; 
+  out[13] += boundSurf_incr[13]*rdx2Sq; 
+  out[14] += boundSurf_incr[14]*rdx2Sq; 
+  out[15] += boundSurf_incr[15]*rdx2Sq; 
+  out[16] += boundSurf_incr[16]*rdx2Sq; 
+  out[17] += boundSurf_incr[17]*rdx2Sq; 
+  out[18] += boundSurf_incr[18]*rdx2Sq; 
+  out[19] += boundSurf_incr[19]*rdx2Sq; 
+  out[20] += boundSurf_incr[20]*rdx2Sq; 
+  out[21] += boundSurf_incr[21]*rdx2Sq; 
+  out[22] += boundSurf_incr[22]*rdx2Sq; 
+  out[23] += boundSurf_incr[23]*rdx2Sq; 
+  out[24] += boundSurf_incr[24]*rdx2Sq; 
+  out[25] += boundSurf_incr[25]*rdx2Sq; 
+  out[26] += boundSurf_incr[26]*rdx2Sq; 
+  out[27] += boundSurf_incr[27]*rdx2Sq; 
+  out[28] += boundSurf_incr[28]*rdx2Sq; 
+  out[29] += boundSurf_incr[29]*rdx2Sq; 
+  out[30] += boundSurf_incr[30]*rdx2Sq; 
+  out[31] += boundSurf_incr[31]*rdx2Sq; 
+  out[32] += boundSurf_incr[32]*rdx2Sq; 
+  out[33] += boundSurf_incr[33]*rdx2Sq; 
+  out[34] += boundSurf_incr[34]*rdx2Sq; 
+  out[35] += boundSurf_incr[35]*rdx2Sq; 
+  out[36] += boundSurf_incr[36]*rdx2Sq; 
+  out[37] += boundSurf_incr[37]*rdx2Sq; 
+  out[38] += boundSurf_incr[38]*rdx2Sq; 
+  out[39] += boundSurf_incr[39]*rdx2Sq; 
+  out[40] += boundSurf_incr[40]*rdx2Sq; 
+  out[41] += boundSurf_incr[41]*rdx2Sq; 
+  out[42] += boundSurf_incr[42]*rdx2Sq; 
+  out[43] += boundSurf_incr[43]*rdx2Sq; 
+  out[44] += boundSurf_incr[44]*rdx2Sq; 
+  out[45] += boundSurf_incr[45]*rdx2Sq; 
+  out[46] += boundSurf_incr[46]*rdx2Sq; 
+  out[47] += boundSurf_incr[47]*rdx2Sq; 
+  out[48] += boundSurf_incr[48]*rdx2Sq; 
+  out[49] += boundSurf_incr[49]*rdx2Sq; 
+  out[50] += boundSurf_incr[50]*rdx2Sq; 
+  out[51] += boundSurf_incr[51]*rdx2Sq; 
+  out[52] += boundSurf_incr[52]*rdx2Sq; 
+  out[53] += boundSurf_incr[53]*rdx2Sq; 
+  out[54] += boundSurf_incr[54]*rdx2Sq; 
+  out[55] += boundSurf_incr[55]*rdx2Sq; 
+  out[56] += boundSurf_incr[56]*rdx2Sq; 
+  out[57] += boundSurf_incr[57]*rdx2Sq; 
+  out[58] += boundSurf_incr[58]*rdx2Sq; 
+  out[59] += boundSurf_incr[59]*rdx2Sq; 
+  out[60] += boundSurf_incr[60]*rdx2Sq; 
+  out[61] += boundSurf_incr[61]*rdx2Sq; 
+  out[62] += boundSurf_incr[62]*rdx2Sq; 
+  out[63] += boundSurf_incr[63]*rdx2Sq; 
+  out[64] += boundSurf_incr[64]*rdx2Sq; 
+  out[65] += boundSurf_incr[65]*rdx2Sq; 
+  out[66] += boundSurf_incr[66]*rdx2Sq; 
+  out[67] += boundSurf_incr[67]*rdx2Sq; 
+  out[68] += boundSurf_incr[68]*rdx2Sq; 
+  out[69] += boundSurf_incr[69]*rdx2Sq; 
+  out[70] += boundSurf_incr[70]*rdx2Sq; 
+  out[71] += boundSurf_incr[71]*rdx2Sq; 
+  out[72] += boundSurf_incr[72]*rdx2Sq; 
+  out[73] += boundSurf_incr[73]*rdx2Sq; 
+  out[74] += boundSurf_incr[74]*rdx2Sq; 
+  out[75] += boundSurf_incr[75]*rdx2Sq; 
+  out[76] += boundSurf_incr[76]*rdx2Sq; 
+  out[77] += boundSurf_incr[77]*rdx2Sq; 
+  out[78] += boundSurf_incr[78]*rdx2Sq; 
+  out[79] += boundSurf_incr[79]*rdx2Sq; 
+  out[80] += boundSurf_incr[80]*rdx2Sq; 
+  out[81] += boundSurf_incr[81]*rdx2Sq; 
+  out[82] += boundSurf_incr[82]*rdx2Sq; 
+  out[83] += boundSurf_incr[83]*rdx2Sq; 
+  out[84] += boundSurf_incr[84]*rdx2Sq; 
+  out[85] += boundSurf_incr[85]*rdx2Sq; 
+  out[86] += boundSurf_incr[86]*rdx2Sq; 
+  out[87] += boundSurf_incr[87]*rdx2Sq; 
+  out[88] += boundSurf_incr[88]*rdx2Sq; 
+  out[89] += boundSurf_incr[89]*rdx2Sq; 
+  out[90] += boundSurf_incr[90]*rdx2Sq; 
+  out[91] += boundSurf_incr[91]*rdx2Sq; 
+  out[92] += boundSurf_incr[92]*rdx2Sq; 
+  out[93] += boundSurf_incr[93]*rdx2Sq; 
+  out[94] += boundSurf_incr[94]*rdx2Sq; 
+  out[95] += boundSurf_incr[95]*rdx2Sq; 
+  out[96] += boundSurf_incr[96]*rdx2Sq; 
+  out[97] += boundSurf_incr[97]*rdx2Sq; 
+  out[98] += boundSurf_incr[98]*rdx2Sq; 
+  out[99] += boundSurf_incr[99]*rdx2Sq; 
+  out[100] += boundSurf_incr[100]*rdx2Sq; 
+  out[101] += boundSurf_incr[101]*rdx2Sq; 
+  out[102] += boundSurf_incr[102]*rdx2Sq; 
+  out[103] += boundSurf_incr[103]*rdx2Sq; 
+  out[104] += boundSurf_incr[104]*rdx2Sq; 
+  out[105] += boundSurf_incr[105]*rdx2Sq; 
+  out[106] += boundSurf_incr[106]*rdx2Sq; 
+  out[107] += boundSurf_incr[107]*rdx2Sq; 
+  out[108] += boundSurf_incr[108]*rdx2Sq; 
+  out[109] += boundSurf_incr[109]*rdx2Sq; 
+  out[110] += boundSurf_incr[110]*rdx2Sq; 
+  out[111] += boundSurf_incr[111]*rdx2Sq; 
+
+  return 0.;
+}
+

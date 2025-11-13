@@ -36,19 +36,23 @@ struct gem_grad_closure_ctx
   double charge_ion; // Ion charge.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
-  double Ti_over_Te; // Ion temperature / electron temperature.
-  double lambda; // Wavelength.
-  double n0; // Reference number density.
+
+  double di; // Ion skin depth.
+  double n0; // Reference in-plane number density.
   double nb_over_n0; // Background number density / reference number density.
   double B0; // Reference magnetic field strength.
-  double beta; // Plasma beta.
+  double Ti_over_Te; // Ion temperature / electron temperature.
+  double beta; // Total plasma beta.
   
   // Derived physical quantities (using normalized code units).
+  double lambda; // Current sheet width.
   double psi0; // Reference magnetic scalar potential.
 
   double Ti_frac; // Fraction of total temperature from ions.
   double Te_frac; // Fraction of total temperature from electrons.
   double T_tot; // Total temperature.
+
+  double omega_ci; // Ion cyclotron frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -84,29 +88,33 @@ create_ctx(void)
   double charge_ion = 1.0; // Ion charge.
   double mass_elc = 1.0 / 25.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
-  double Ti_over_Te = 5.0; // Ion temperature / electron temperature.
-  double lambda = 0.5; // Wavelength
-  double n0 = 1.0; // Reference number density.
+
+  double di = 1.0; // Ion skin depth.
+  double n0 = 1.0; // Reference in-plane number density.
   double nb_over_n0 = 0.2; // Background number density / reference number density.
   double B0 = 0.1; // Reference magnetic field strength.
-  double beta = 1.0; // Plasma beta.
+  double Ti_over_Te = 5.0; // Ion temperature / electron temperature.
+  double beta = 1.0; // Total plasma beta.
   
   // Derived physical quantities (using normalized code units).
-  double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
+  double lambda = 0.5 * di; // Current sheet width.
+  double psi0 = 0.1 * B0 * di; // Reference magnetic scalar potential.
 
   double Ti_frac = Ti_over_Te / (1.0 + Ti_over_Te); // Fraction of total temperature from ions.
   double Te_frac = 1.0 / (1.0 + Ti_over_Te); // Fraction of total temperature from electrons.
-  double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
+  double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature.
+
+  double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (x-drection).
   int Ny = 64; // Cell count (y-direction).
-  double Lx = 25.6; // Domain size (x-direction).
-  double Ly = 12.8; // Domain size (y-direction).
+  double Lx = 25.6 * di; // Domain size (x-direction).
+  double Ly = 12.8 * di; // Domain size (y-direction).
   double k0 = 5.0; // Closure parameter.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 250.0; // Final simulation time.
+  double t_end = 25.0 / omega_ci; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -126,16 +134,18 @@ create_ctx(void)
     .charge_ion = charge_ion,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .Ti_over_Te = Ti_over_Te,
-    .lambda = lambda,
+    .di = di,
     .n0 = n0,
     .nb_over_n0 = nb_over_n0,
     .B0 = B0,
+    .Ti_over_Te = Ti_over_Te,
     .beta = beta,
+    .lambda = lambda,
     .psi0 = psi0,
     .Ti_frac = Ti_frac,
     .Te_frac = Te_frac,
     .T_tot = T_tot,
+    .omega_ci = omega_ci,
     .Nx = Nx,
     .Ny = Ny,
     .Lx = Lx,
