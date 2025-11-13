@@ -751,7 +751,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_nonuniformx_1x2v_p1_numeric",
+    .name = "gk_wham_nonuniformx_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -765,8 +765,8 @@ int main(int argc, char **argv)
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
         .map_strength = 1.0,
-        // .maximum_slope_at_min_B = 2,
-        // .moving_average_width = 0.5,
+        .maximum_slope_at_min_B = 2,
+        .moving_average_width = 0.5,
       },
     },
     .num_periodic_dir = 0,

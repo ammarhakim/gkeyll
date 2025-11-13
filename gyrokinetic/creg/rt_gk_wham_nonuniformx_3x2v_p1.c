@@ -800,7 +800,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_nonuniformx_3x2v_p1_numeric",
+    .name = "gk_wham_nonuniformx_3x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.psi_min, - M_PI, ctx.z_min},
     .upper = {ctx.psi_max,   M_PI, ctx.z_max},

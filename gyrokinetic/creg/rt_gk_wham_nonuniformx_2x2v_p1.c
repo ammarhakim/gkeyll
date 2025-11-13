@@ -796,7 +796,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_nonuniformx_2x2v_p1_numeric",
+    .name = "gk_wham_nonuniformx_2x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.psi_min, ctx.z_min},
     .upper = {ctx.psi_max, ctx.z_max},
