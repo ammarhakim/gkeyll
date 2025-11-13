@@ -76,6 +76,8 @@ get_idx(int dir, double x, const struct gkyl_rect_grid *grid, const struct gkyl_
 struct RdRdZ_sol {
   int nsol;
   double R[2], dRdZ[2];
+  double dR[2];
+  double dZ[2];
 };
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=1 DG cell
@@ -182,6 +184,8 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
       double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
       double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
       sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      sol.dR[sidx] = -C*dx[0];
+      sol.dZ[sidx] = A*dx[1];
       
       sidx += 1;
     }
@@ -193,6 +197,8 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
       double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
       double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
       sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      sol.dR[sidx] = -C*dx[0];
+      sol.dZ[sidx] = A*dx[1];
       
       sidx += 1;
     }
@@ -368,7 +374,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
 // these arrays are big enough to hold all roots required
 static int
 R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR)
+  double *R, double *dRdZ, double* dR, double *dZ)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
 
@@ -397,7 +403,9 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
       for (int s=0; s<sol.nsol; ++s) {
         if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
           R[sidx] = sol.R[s];
-          dR[sidx] = sol.dRdZ[s];
+          dRdZ[sidx] = sol.dRdZ[s];
+          dR[sidx] = sol.dR[s];
+          dZ[sidx] = sol.dZ[s];
           sidx += 1;
         }
       }
@@ -420,7 +428,9 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
         for (int s=0; s<sol.nsol; ++s) {
           if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
             R[sidx] = sol.R[s];
-            dR[sidx] = sol.dRdZ[s];
+            dRdZ[sidx] = sol.dRdZ[s];
+            dR[sidx] = sol.dR[s];
+            dZ[sidx] = sol.dZ[s];
             sidx += 1;
           }
         }
@@ -524,12 +534,13 @@ contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = { 0 }, dR[4] = { 0 };
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
   
-  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
-  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR,nr);
+  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
+  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ,nr);
   
-  return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
+  return nr>0 ? sqrt(1+drdz*drdz) : 0.0;
 }
 
 static inline double
@@ -537,10 +548,11 @@ phi_contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = { 0 }, dR[4] = { 0 };
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
   
-  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
-  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
+  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
+  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {
@@ -551,7 +563,7 @@ phi_contour_func(double Z, void *ctx)
     double dpsidZ = fout[2]; 
     double grad_psi_mag = sqrt(dpsidR*dpsidR + dpsidZ*dpsidZ);
 
-    double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
+    double result  = (1/r_curr/grad_psi_mag) *sqrt(1+drdz*drdz) ;
     return nr>0 ? result : 0.0;
   }
   else {
@@ -576,7 +588,7 @@ phi_contour_func(double Z, void *ctx)
     double eta[2] = {x,y};
     double grad_psi_mag = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
 
-    double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
+    double result  = (1/r_curr/grad_psi_mag) *sqrt(1+drdz*drdz) ;
     return nr>0 ? result : 0.0;
   }
 }
@@ -586,10 +598,11 @@ dphidtheta_integrand(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = { 0 }, dR[4] = { 0 };
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
   
-  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
-  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
+  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
+  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {

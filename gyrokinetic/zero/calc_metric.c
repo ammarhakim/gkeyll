@@ -56,6 +56,75 @@ matTvec(double M[3][3], double v[3], double result[3]) {
   }
 }
 
+static inline double dot(const double a[3], const double b[3]) {
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
+static inline void cross(const double a[3], const double b[3], double c[3]) {
+    c[0] = a[1]*b[2] - a[2]*b[1];
+    c[1] = a[2]*b[0] - a[0]*b[2];
+    c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+static inline double
+check_right_handed(double tan[9], double dual[9]) {
+  // calculate e_i \dot e^j
+  double prod[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      prod[i][j] = tan[3*i +0]*dual[3*j +0] + tan[3*i +1]*dual[3*j +1] + tan[3*i +2]*dual[3*j +2];
+    }
+  }
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if ( i==j && prod[i][j] < 0 ) {
+        printf("Orthonormality violated : e_%d . e^%d = %g\n", i+1, j+1, prod[i][j]);
+        assert(false);
+      }
+    }
+  }
+
+  const double *e1 = &tan[0];
+  const double *e2 = &tan[3];
+  const double *e3 = &tan[6];
+
+  double cross_e2e3[3];
+  cross(e2, e3, cross_e2e3);
+
+  double J = dot(e1, cross_e2e3);
+  if (J < 0.0) {
+    printf("Left Handed Coordinate System, J < 0\n");
+    assert(false);
+  }
+  else if (J == 0.0) {
+    printf("Degenerate Coordinate System, J < 0\n");
+    assert(false);
+  }
+  return J;
+}
+
+
+
+double check_right_handed2(const double tan[9], const double dual[9]) {
+    const double *e1 = &tan[0];
+    const double *e2 = &tan[3];
+    const double *e3 = &tan[6];
+
+    double cross_e2e3[3];
+    cross(e2, e3, cross_e2e3);
+
+    double J = dot(e1, cross_e2e3);
+
+    if (J > 0.0) {
+        return J;  // right-handed
+    } else if (J < 0.0) {
+        printf("LEFT  HANDED\n");
+        return J;  // left-handed
+    } else {
+        return J;
+    }
+}
+
 void gkyl_calc_metric_advance_rz(
   gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
@@ -341,8 +410,8 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         tanvecFld_n[1] = dxdz[0][0]*sin(phi)  + R*cos(phi)*dxdz[2][0]; 
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = +R*sin(phi); 
-        tanvecFld_n[4] = -R*cos(phi); 
+        tanvecFld_n[3] = -R*sin(phi); 
+        tanvecFld_n[4] = +R*cos(phi); 
         tanvecFld_n[5] = 0.0; 
 
         tanvecFld_n[6] = dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta; 
@@ -350,17 +419,20 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         tanvecFld_n[8] = dxdz[1][2];
 
         double *dualFld_n= gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        dualFld_n[0] = -R/J*cos(phi)*dxdz[1][2];
-        dualFld_n[1] = -R/J*sin(phi)*dxdz[1][2];
-        dualFld_n[2] = +R/J*dxdz[0][2];
+        dualFld_n[0] = +R/J*cos(phi)*dxdz[1][2];
+        dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
+        dualFld_n[2] = -R/J*dxdz[0][2];
 
         dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
         dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
-        dualFld_n[6] = +R/J*cos(phi)*dxdz[1][0];
-        dualFld_n[7] = +R/J*sin(phi)*dxdz[1][0];
-        dualFld_n[8] = -R/J*dxdz[0][0];
+        dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
+        dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
+        dualFld_n[8] = +R/J*dxdz[0][0];
+
+        check_right_handed(tanvecFld_n, dualFld_n);
+        check_right_handed2(tanvecFld_n, dualFld_n);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -528,8 +600,8 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         tanvecFld_n[1] = dxdz[0][0]*sin(phi)  + R*cos(phi)*dxdz[2][0]; 
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = +R*sin(phi); 
-        tanvecFld_n[4] = -R*cos(phi); 
+        tanvecFld_n[3] = -R*sin(phi); 
+        tanvecFld_n[4] = +R*cos(phi); 
         tanvecFld_n[5] = 0.0; 
 
         tanvecFld_n[6] = dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta; 
@@ -537,17 +609,20 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         tanvecFld_n[8] = dxdz[1][2];
 
         double *dualFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        dualFld_n[0] = -R/J*cos(phi)*dxdz[1][2];
-        dualFld_n[1] = -R/J*sin(phi)*dxdz[1][2];
-        dualFld_n[2] = +R/J*dxdz[0][2];
+        dualFld_n[0] = +R/J*cos(phi)*dxdz[1][2];
+        dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
+        dualFld_n[2] = -R/J*dxdz[0][2];
 
         dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
         dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
-        dualFld_n[6] = +R/J*cos(phi)*dxdz[1][0];
-        dualFld_n[7] = +R/J*sin(phi)*dxdz[1][0];
-        dualFld_n[8] = -R/J*dxdz[0][0];
+        dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
+        dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
+        dualFld_n[8] = +R/J*dxdz[0][0];
+
+        check_right_handed(tanvecFld_n, dualFld_n);
+        check_right_handed2(tanvecFld_n, dualFld_n);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1307,6 +1382,10 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          tanvecFld_n[7] = dxdz[1][2]; 
          tanvecFld_n[8] = dxdz[2][2]; 
 
+
+          check_right_handed(tanvecFld_n, dualFld_n);
+          check_right_handed2(tanvecFld_n, dualFld_n);
+
          double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
          double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
          double norm3 = sqrt(dualFld_n[6]*dualFld_n[6] + dualFld_n[7]*dualFld_n[7] + dualFld_n[8]*dualFld_n[8]);
@@ -1538,6 +1617,10 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
         tanvecFld_n[6] = dxdz[0][2]; 
         tanvecFld_n[7] = dxdz[1][2]; 
         tanvecFld_n[8] = dxdz[2][2]; 
+
+
+        check_right_handed(tanvecFld_n, dualFld_n);
+        check_right_handed2(tanvecFld_n, dualFld_n);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
