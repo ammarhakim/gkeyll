@@ -13,10 +13,12 @@ struct gkyl_gyrokinetic_time_stepping_inp {
   int num_steps; // Maximum number of time-steps to take.
 };
 
+// Settings for the text which is output into the terminal during the simulation
 struct gkyl_gyrokinetic_run_verbosity_inp {
   bool enabled; // Is verbosity enabled? Prints information every time step. Defaults false
-  double frequency; // Print information with given frequency. Defaults to 1.0
+  double frequency; // Print information with given frequency. Defaults to 0.1 (every 10 steps)
   bool estimate_completion_time; // Estimate completion time based on current progress. Defaults false
+  bool disable_timings; // Disable timing information output in the terminal. Defaults false, printing all timing information. This information is always output in the .json file
 };
 
 enum gkyl_gyrokinetic_run_app_type {
