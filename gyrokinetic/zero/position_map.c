@@ -34,6 +34,9 @@ gkyl_position_map_null_new()
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(gpm->flags);
+  gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
   return gpm;
 }
 

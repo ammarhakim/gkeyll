@@ -258,6 +258,8 @@ test_3x_p1_straight_cylinder()
     .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
 
+  struct gkyl_position_map *pos_map = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MIRROR,
@@ -274,6 +276,7 @@ test_3x_p1_straight_cylinder()
     .geo_global = range,
     .geo_global_ext = ext_range,
     .geo_basis = basis,
+    .position_map = pos_map,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
@@ -692,6 +695,7 @@ test_3x_p1_straight_cylinder()
           .local = gk_geom->local,
           .global = gk_geom->global,
           .dir = dir,
+          .position_map = pos_map,
           
           .R = { psi_grid.lower[0], psi_grid.upper[0] },
           .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -783,6 +787,7 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(bhat_nodal);
   gkyl_array_release(dualmag_nodal);
   gkyl_array_release(bmag_nodal);
+  gkyl_array_release(bmag_nodal_interior);
   gkyl_array_release(cmag_nodal);
   gkyl_array_release(gij_nodal);
   gkyl_array_release(gij_contra_nodal);
@@ -794,7 +799,12 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(mc2p_nodal_interior);
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
+  gkyl_array_release(psi);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pos_map);
+  for (int dir = 0; dir < cdim; dir++) {
+    gkyl_mirror_grid_gen_release(mirror_grid_surf[dir]);
+  }
   gkyl_gk_geometry_release(gk_geom);
 }
 
