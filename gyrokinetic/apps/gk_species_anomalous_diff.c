@@ -137,7 +137,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
         struct gkyl_array *bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
         struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(dir, edge,
-          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, &app->basis, skin_r, ghost_r, 1, app->cdim, app->use_gpu);
+          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, app->basis_on_dev, skin_r, ghost_r, 1, app->cdim, app->use_gpu);
         gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, bc_buffer, gkad->diffD);
 
         gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
