@@ -11,6 +11,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_dg_bin_ops.h>
 
 #include <math.h>
 #include <string.h>
@@ -819,6 +820,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
   gkyl_nodal_ops_release(n2m);
+
+  // Need 1/B for LBO collisions, computed weakly.
+  gkyl_dg_inv_op_range(inp->cbasis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local); 
 
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);

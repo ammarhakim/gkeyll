@@ -335,6 +335,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2p, up->geo_corn.mc2p, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2nu_pos, up->geo_corn.mc2nu_pos, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag, up->geo_corn.bmag, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag_inv, up->geo_corn.bmag_inv, 1);
 
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag, up->geo_int.bmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij, up->geo_int.g_ij, 6);
@@ -353,8 +354,6 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.cmag, up->geo_int.cmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot, up->geo_int.jacobtot, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot_inv, up->geo_int.jacobtot_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv, up->geo_int.bmag_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv_sq, up->geo_int.bmag_inv_sq, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxxj, up->geo_int.gxxj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxyj, up->geo_int.gxyj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gyyj, up->geo_int.gyyj, 1);
@@ -384,12 +383,12 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     // In 2D geometry, make mapc2p a function of only R and Z 
     // and mc2nu_pos only a function of psi and length along field line
     struct gkyl_array *temp = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, up->geo_corn.mc2p, 0 * up->basis.num_basis); // 
-    gkyl_array_set_offset(temp,              1.0, up->geo_corn.mc2p, 1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, temp,     1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0 * up->basis.num_basis);
-    gkyl_array_set_offset(temp,                   1.0, up->geo_corn.mc2nu_pos, 2 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp,          1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, up->geo_corn.mc2p     , 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2p     , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, temp                  , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2nu_pos, 2*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp                  , 1*up->basis.num_basis);
     gkyl_array_release(temp);
   }
   else if (up->grid.ndim==3) {
@@ -456,6 +455,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_corn.mc2p);
   gkyl_array_release(up->geo_corn.mc2nu_pos);
   gkyl_array_release(up->geo_corn.bmag);
+  gkyl_array_release(up->geo_corn.bmag_inv);
   gkyl_array_release(up->geo_corn.mc2p_deflated);
   gkyl_array_release(up->geo_corn.mc2nu_pos_deflated);
 
@@ -477,8 +477,6 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.cmag);
   gkyl_array_release(up->geo_int.jacobtot);
   gkyl_array_release(up->geo_int.jacobtot_inv);
-  gkyl_array_release(up->geo_int.bmag_inv);
-  gkyl_array_release(up->geo_int.bmag_inv_sq);
   gkyl_array_release(up->geo_int.gxxj);
   gkyl_array_release(up->geo_int.gxyj);
   gkyl_array_release(up->geo_int.gyyj);

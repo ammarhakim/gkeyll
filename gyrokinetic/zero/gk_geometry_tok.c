@@ -76,41 +76,41 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   }
 
 
-  // calculate bmag and mapc2p in cylindrical coords at corner nodes for
-  // getting cell coordinates (used only for plotting)
+  // Calculate bmag and mapc2p in cylindrical coords at corner nodes for
+  // getting cell coordinates (used only for plotting).
   gkyl_tok_geo_calc(up, &up->nrange_corn, geo, &ginp, geometry_inp->position_map);
-  // calculate bmag and mapc2p in cylindrical coords at interior nodes for
-  // calculating geo quantity volume expansions 
+  // Calculate bmag and mapc2p in cylindrical coords at interior nodes for
+  // calculating geo quantity volume expansions.
   gkyl_tok_geo_calc_interior(up, &up->nrange_int, up->dzc, geo, &ginp, geometry_inp->position_map);
-  // calculate bmag and mapc2p in cylindrical coords at surfaces
+  // Calculate bmag and mapc2p in cylindrical coords at surfaces.
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gkyl_tok_geo_calc_surface(up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp, geometry_inp->position_map);
 
-  // Now calculate the metrics at interior nodes
+  // Now calculate the metrics at interior nodes.
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance_rz_interior(mcalc, up);
   gkyl_array_copy(up->geo_int.jacobgeo_ghost, up->geo_int.jacobgeo);
-  // Calculate neutral metrics at interior nodes
+  // Calculate neutral metrics at interior nodes.
   gkyl_calc_metric_advance_rz_neut_interior(mcalc, up);
-  // calculate the derived geometric quantities at interior nodes
+  // calculate the derived geometric quantities at interior nodes.
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
     up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot, up->geo_int.jacobtot_inv, 
-    up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+    up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
   gkyl_tok_calc_derived_geo_release(jcalculator);
-  // Calculate metrics/derived geo quantities at surface
+  // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_calc_metric_advance_rz_surface(mcalc, dir,  up);
   }
   gkyl_calc_metric_release(mcalc);
-  // Calculate surface expansions
+  // Calculate surface expansions.
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gk_geometry_surf_calc_expansions(up, dir, up->nrange_surf[dir]);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
-  up->on_dev = up; // CPU eqn obj points to itself
+  up->on_dev = up; // CPU eqn obj points to itself.
 
   gkyl_tok_geo_release(geo);
 

@@ -59,7 +59,8 @@ struct gk_geom_corn {
   struct gkyl_array* mc2p_deflated; // cdim components. Component removed (Z in 1x, R,Z in 2x, R,Z,phi in 3x)
   struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
   struct gkyl_array* mc2nu_pos_deflated; // cdim components. Uniform computational space to non-uniform computational space mapping
-  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field.
+  struct gkyl_array* bmag_inv; // 1 component. 1/bmag.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
@@ -96,8 +97,6 @@ struct gk_geom_int {
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
   struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
-  struct gkyl_array* bmag_inv; // 1 component. 1/B.
-  struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
   struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
   struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
