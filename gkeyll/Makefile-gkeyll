@@ -18,7 +18,7 @@ DEPS := $(OBJS:.o=.d)
 EXT_INCS := -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
 APP_LW_INCS := -I../core/apps -I../moments/apps -I../vlasov/apps -I../pkpm/apps -I../gyrokinetic/apps
 
-CORE_INCS := -I../core/minus -I../core/zero
+CORE_INCS := -I../core/minus -I../core/zero -I../gyrokinetic/zero
 
 # Project install directory for all libraries and includes
 PROJ_INSTALL_LIB_DIR := ${INSTALL_PREFIX}/${PROJ_NAME}/lib
