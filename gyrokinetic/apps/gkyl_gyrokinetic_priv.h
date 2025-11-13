@@ -1162,8 +1162,8 @@ struct gk_field {
     };
     // EM GK model
     struct {
-      struct gkyl_array *apar; // Array for A_parallel (solved only in ic).
-      struct gkyl_array *apar_old; // Previous state of A_parallel (for update with apardot).
+      struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
+      struct gkyl_array *apar_curr; // A_parallel at current RK stage.
       struct gkyl_array *apar_fem; // FEM A_parallel. 
       struct gkyl_array *apar_smooth; // Smoothed A_parallel.
       struct gkyl_array *apar_host; // Host copy for use IO.
@@ -1253,6 +1253,8 @@ struct gk_field {
   void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*step_apar) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
+  void (*combine_func) (struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,const struct gkyl_range *rng);
+  void (*copy_func) (struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -3710,6 +3712,33 @@ void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struc
   const struct gkyl_array* inp);
 
 /**
+ * Combine for rk3 method.
+ *
+ * @param field Pointer to field.
+ * @param out Output array.
+ * @param c1 Scaling factor.
+ * @param arr1 Input array.
+ * @param c2 Scaling factor.
+ * @param arr2 Input array.
+ * @param rng Range.
+ */
+void gk_field_combine(struct gk_field *field, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param field Pointer to field.
+ * @param out Output array.
+ * @param inp Input array.
+ * @param range Range.
+ */
+void gk_field_copy_range(struct gk_field *field, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+
+/**
  * Compute electrostatic potential, phi, from charge density and
  * time derivative of the parallel component of the vector potential, apardot,
  * from the m1 moment of the GK rhs computed in the last gyrokinetic_rhs call,
@@ -3809,11 +3838,14 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param fin_neut Input array of neutral-species distribution functions.
  * @param fout_neut Output array of neutral-species distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @param aparin Input array for parallel component of magnetic vector potential.
+ * @param aparout Output array for parallel component of magnetic vector potential.
  * @param st Time stepping status object.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  const struct gkyl_array *aparin, struct gkyl_array *aparout,
   struct gkyl_update_status *st); 
 
 /**

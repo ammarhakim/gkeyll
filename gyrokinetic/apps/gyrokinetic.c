@@ -1721,7 +1721,8 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  const struct gkyl_array *aparin, struct gkyl_array *aparout,
   struct gkyl_update_status *st)
 {
   double dtmin = DBL_MAX;
@@ -1783,11 +1784,12 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
   }
 
-  // Compute the electromagnetic field RHS (solves Ohm's law using the full ES RHS).
+  // Compute Apardot (solves Ohm's law using the previously built RHS).
   gk_field_em_rhs(app, app->field, fout);
+  // Update aparout.
+  gk_field_copy_range(app->field, aparout, app->field->apardot, &app->local_ext);
 
-  // Add electromagnetic contributions to the collisionless update of charged species.
-  // This is done after all ES+Apar terms since we need to compute M1 of fdot.
+  // Add Apardot contributions to the collisionless update of charged species.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_add_apardot_rhs(app, s, fin[i], fout[i], bflux_out[i]);
