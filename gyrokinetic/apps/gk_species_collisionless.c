@@ -49,12 +49,14 @@ static void gk_species_collisionless_add_apardot_rhs_enabled(gkyl_gyrokinetic_ap
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Add Apardot surface flux contribution to RHS
+  // First remove the current ES+Apar contribution from the flux_surf array.
+  // Otherwise it will be counted twice in the gkyl_dg update.
+  gkyl_array_clear(gkcls->flux_surf, 0.0);
   gkyl_gk_collisionless_flux_surf(gkcls->add_apardot_surf_flux_op, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
     species->gyro_phi, species->gyro_apar, fin, gkcls->flux_surf, species->cflrate);
 
-  // Advance the rhs adding only the Apardot volume contribution
+  // Advance the rhs adding only the Apardot volume contribution.
   gkyl_dg_updater_gyrokinetic_advance(gkcls->add_apardot_slvr, &species->local,
     fin, species->cflrate, rhs);
 

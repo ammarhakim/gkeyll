@@ -1153,7 +1153,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-  if (!(app->field->info.gkfield_id == GKYL_GK_FIELD_ES || app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL)) {
+  if (app->field->is_em) {
     const char *fmt1 = "%s-apar_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt1, app->name, frame);
     char fileNm1[sz+1]; // ensures no buffer overflow
@@ -1212,7 +1212,7 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
 
-    bool write_em = !(app->field->info.gkfield_id == GKYL_GK_FIELD_ES || app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL);
+    bool write_em = app->field->is_em;
     if (rank == 0) {
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
@@ -1767,7 +1767,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
     gk_species_rhs(app, gk_s, fin[i], fout[i], bflux_out[i]);
-  }
+    gk_species_update_bflux(app, gk_s, fin[i], fout[i], bflux_out[i]);
+}
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gk_ns = &app->neut_species[i];
     double dt1 = gk_neut_species_rhs(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
@@ -1791,10 +1792,9 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Add Apardot contributions to the collisionless update of charged species.
   for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    gk_species_add_apardot_rhs(app, s, fin[i], fout[i], bflux_out[i]);
-    gk_species_update_bflux(app, s, fin[i], fout[i], bflux_out[i]);
-    double dt1 = gk_species_get_cfl(app, s, fin[i], fout[i], bflux_out[i]);
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_add_apardot_rhs(app, gk_s, fin[i], fout[i], bflux_out[i]);
+    double dt1 = gk_species_get_cfl(app, gk_s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
 

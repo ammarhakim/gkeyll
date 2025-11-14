@@ -184,7 +184,7 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
  * 
  * (k_perp^2/mu_0 + sum_s q_s^2/m_s int dv F_s) dApar/dt = sum_s q_s int dv vpar d/dt(F_s)
  * 
- * The first parenthesis is computed in dApartdtSlvr_lhs_factor_global. The right hand side is in currentDensdot_global.
+ * The first parenthesis is computed in dApartdtSlvr_lhs_factor_global. The right hand side is in currentDensdot.
  */
 static void 
 gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
@@ -193,19 +193,11 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   // Compute the new dApartdtSlvr_kSq (= k_perp^2/mu_0 + sum_s q_s^2 n_s/m_s)
   gkyl_array_set(field->dApartdtSlvr_lhs_factor, 1.0, field->dApartdtSlvr_kSq);
   gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor, 1.0, field->lapWeightAmpere, &app->local);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->dApartdtSlvr_lhs_factor, field->dApartdtSlvr_lhs_factor_global);
+
+  // Weak division method dApar/dt = sum_s q_s int dv vpar d/dt(F_s) / ( (k_perp^2/mu_0 + sum_s q_s^2/m_s int dv F_s) )
+  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, field->apardot, 0, field->currentDensdot, 
+    0, field->dApartdtSlvr_lhs_factor, &app->local);
   
-  gkyl_fem_parproj_release(field->fem_apardot_parproj);
-  field->fem_apardot_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-    field->fem_parproj_ampere_bc, field->dApartdtSlvr_lhs_factor_global, 0, app->use_gpu);
-
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->currentDensdot, field->currentDensdot_global);
-
-  gkyl_fem_parproj_set_rhs(field->fem_apardot_parproj, field->currentDensdot_global, field->currentDensdot_global);
-  gkyl_fem_parproj_solve(field->fem_apardot_parproj, field->phi_fem);
-
-  gkyl_array_copy_range_to_range(field->apardot, field->phi_fem, &app->local, &field->global_sub_range);
-
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -248,11 +240,11 @@ gk_field_step_apar_dyn(gkyl_gyrokinetic_app *app, struct gk_field *field, struct
 {
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 
-  // Update the smooth version of Apar (out).
+  // Smooth apar
   // gkyl_comm_array_allgather(app->comm, &app->local, &app->global, out, field->rho_c_global_dg);
   // gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
   // gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
-  // gkyl_array_copy_range_to_range(field->apar_smooth, field->apar_fem, &app->local, &field->global_sub_range);
+  // gkyl_array_copy_range_to_range(out, field->apar_fem, &app->local, &field->global_sub_range);
 }
 
 static void
@@ -634,6 +626,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apar_curr = f->apar;
+  f->div_mem = NULL;
   if (f->is_em) {
     f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -653,9 +646,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
     if (app->cdim == 1) {
       f->currentDens_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-      f->currentDensdot_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
       f->dApartdtSlvr_lhs_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      f->dApartdtSlvr_lhs_factor_global = mkarr(app->use_gpu, f->dApartdtSlvr_lhs_factor->ncomp, app->global_ext.volume);
+      f->div_mem = app->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis)
+        : gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
       
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
       gkyl_array_copy(f->lapWeightAmpere, app->gk_geom->geo_int.jacobgeo);
@@ -667,10 +660,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
       f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
         f->fem_parproj_ampere_bc, f->lapWeightAmpere, 0, app->use_gpu);
-
-      // Declare a dummy solver for d(Apar)/dt (will be updated at each time step).
-      f->fem_apardot_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-        f->fem_parproj_ampere_bc, f->dApartdtSlvr_kSq, 0, app->use_gpu);
 
       f->ohm_solve = gk_field_ohm_solve_1x;
       f->ampere_solve = gk_field_ampere_solve_1x;
@@ -1164,13 +1153,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     if (app->cdim > 1) {
       gkyl_fem_poisson_perp_release(f->fem_apar_solver);
       gkyl_fem_poisson_perp_release(f->fem_apardot_solver);  
+      gkyl_dg_bin_op_mem_release(f->div_mem);
     }
     else {
       gkyl_array_release(f->currentDens_global);
-      gkyl_array_release(f->currentDensdot_global);
       gkyl_array_release(f->dApartdtSlvr_lhs_factor);
-      gkyl_array_release(f->dApartdtSlvr_lhs_factor_global);
-      gkyl_fem_parproj_release(f->fem_apardot_parproj);  
     }
     gkyl_fem_parproj_release(f->fem_apar_parproj);
     if (app->use_gpu) {

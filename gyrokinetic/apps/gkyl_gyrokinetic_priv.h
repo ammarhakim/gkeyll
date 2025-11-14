@@ -1171,14 +1171,12 @@ struct gk_field {
       struct gkyl_array *currentDens; // Current density.
       struct gkyl_array *currentDens_global; // Current density.
       struct gkyl_array *currentDensdot; // Time derivative of current density.
-      struct gkyl_array *currentDensdot_global; // Time derivative of current density (accross all MPI ranks).
       struct gkyl_array *dApartdtSlvr_kSq; // Contains sum_s q_s^2/m_s n_s.
       struct gkyl_array *dApartdtSlvr_lhs_factor; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
-      struct gkyl_array *dApartdtSlvr_lhs_factor_global; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
       struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
+      gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law. 
       struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0).
       struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
-      struct gkyl_fem_parproj *fem_apardot_parproj; // FEM smoother for projecting d(Apar)/dt onto continuous FEM basis
       struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
       struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
       struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
