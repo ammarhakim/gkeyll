@@ -25,7 +25,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_gk_collisionless_flux_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, no_by, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
+      charge, mass, type, only_apardot, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
 #endif     
 
   gkyl_gk_collisionless_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_flux));
@@ -96,7 +96,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(flux_surf)) {
     return gkyl_gk_collisionless_flux_surf_cu(up, conf_range, phase_range,
-      conf_ext_range, phase_ext_range, phi, fin, flux_surf, cflrate);
+      conf_ext_range, phase_ext_range, phi, apar, fin, flux_surf, cflrate);
   }
 #endif
   int pdim = up->pdim;

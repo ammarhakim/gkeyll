@@ -767,7 +767,7 @@ choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(int cdim, int vdim, int 
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const bool no_by,
+  double charge, double mass, enum gkyl_gk_collisionless_type type, const bool only_apardot,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf);
@@ -778,5 +778,5 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
 void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
+  const struct gkyl_array *apar, const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
 #endif
