@@ -652,7 +652,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
       gkyl_array_copy(f->lapWeightAmpere, app->gk_geom->geo_int.jacobgeo);
-      gkyl_array_scale(f->lapWeightAmpere, f->info.kperpSq);
+      gkyl_array_scale(f->lapWeightAmpere, f->info.kperpSq/f->info.mu0);
 
       f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_NONE;
       for (int d=0; d<app->num_periodic_dir; ++d)
