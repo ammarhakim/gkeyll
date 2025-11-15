@@ -771,7 +771,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         struct gkyl_range *skin_r = bflux->boundaries_conf_skin[b];
     
         bflux->gfss_bc_op[b] = gkyl_bc_basic_gyrokinetic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
-          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, &app->basis, skin_r, bflux->boundaries_conf_ghost[b], 1, app->cdim, app->use_gpu);
+          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, &app->basis, skin_r, bflux->boundaries_conf_ghost[b], app->basis.num_basis, app->cdim, app->use_gpu);
         
         long vol = skin_r->volume;
         buff_sz = buff_sz > vol ? buff_sz : vol;

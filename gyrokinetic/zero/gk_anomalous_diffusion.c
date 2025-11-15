@@ -72,6 +72,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   // N/A means not applicable):
   //             bound_surf  bound_diag  hyper_dg-zero_flux
   // SKIP:       N/A         recovery    no
+  // ABSORB:     N/A         N/A         no
   // PERIODIC:   N/A         N/A         no
   // FIXED_FUNC: N/A         N/A         no
   // ZERO_FLUX:  zero_flux   N/A         yes
@@ -82,6 +83,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
       vol_kernels            = ser_vol_kernels;
       surfx_kernels          = ser_gyrokinetic_surfx_kernels;
       if ((bc_x_lower == GKYL_BC_GK_SKIP) ||
+          (bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) || 
           (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC) || 
           (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)
          ) {
@@ -100,6 +102,7 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
       }
 
       if ((bc_x_upper == GKYL_BC_GK_SKIP) ||
+          (bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
           (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC) ||
           (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)
          ) {

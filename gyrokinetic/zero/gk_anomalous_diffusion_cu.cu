@@ -59,6 +59,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
       vol_kernels   = ser_vol_kernels;
       surfx_kernels = ser_gyrokinetic_surfx_kernels;
       if ((bc_x_lower == GKYL_BC_GK_SKIP) ||
+          (bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
           (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC) ||
           (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)
          ){
@@ -77,6 +78,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
       }
 
       if ((bc_x_upper == GKYL_BC_GK_SKIP) ||
+          (bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
           (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC) ||
           (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)
          ){
