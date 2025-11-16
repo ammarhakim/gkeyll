@@ -964,10 +964,17 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         &gks->lower_skin[d], &gks->lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
       if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
-        // Fill the buffer used for BCs.
+        // Project distribution desired in the ghost cell.
         struct gk_proj gk_proj_bc_lo;
         gk_species_projection_init(app, gks, gks->lower_bc[d].projection, &gk_proj_bc_lo);
         gk_species_projection_calc(app, gks, &gk_proj_bc_lo, gks->f1, 0.0); // Temporarily use f1.
+        // Fill ghost cell with the boundary value.
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d, GKYL_LOWER_EDGE,
+          GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev, &gks->lower_skin[d], &gks->lower_ghost[d],
+	  gks->f->ncomp, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_lo_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+	// Copy ghost range into buffer.
         gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_lo[d], gks->bc_buffer_lo_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_lo);
@@ -1017,10 +1024,17 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         &gks->upper_skin[d], &gks->upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
       if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
-        // Fill the buffer used for BCs.
+        // Project distribution desired in the ghost cell.
         struct gk_proj gk_proj_bc_up;
         gk_species_projection_init(app, gks, gks->upper_bc[d].projection, &gk_proj_bc_up);
         gk_species_projection_calc(app, gks, &gk_proj_bc_up, gks->f1, 0.0); // Temporarily use f1.
+        // Fill ghost cell with the boundary value.
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d, GKYL_UPPER_EDGE,
+          GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev, &gks->upper_skin[d], &gks->upper_ghost[d],
+	  gks->f->ncomp, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_up_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+	// Copy ghost range into buffer.
         gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_up[d], gks->bc_buffer_up_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_up);

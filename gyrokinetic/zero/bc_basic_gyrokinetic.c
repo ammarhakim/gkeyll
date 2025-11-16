@@ -96,7 +96,7 @@ gkyl_bc_basic_gyrokinetic_buffer_fixed_func(const struct gkyl_bc_basic_gyrokinet
 {
   if (up->bctype == GKYL_BC_GK_SPECIES_FIXED_FUNC)
     gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
-      up->skin_r, up->array_copy_func->on_dev);    
+      up->ghost_r, up->array_copy_func->on_dev);    
 }
 
 void
