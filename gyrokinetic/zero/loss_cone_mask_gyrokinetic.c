@@ -593,7 +593,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         }
         else if (in_central_cell) {
           // In central cell or between tandem and mirror - check maximum boundary
-          double mu_bound = GKYL_MAX2(mu_bound_outer, mu_bound_inner);
+          double mu_bound = GKYL_MIN2(mu_bound_outer, mu_bound_inner);
           if (mu_bound < xmu[cdim+1]) {
             fq[0] = 1.0 * up->norm_fac;
           }

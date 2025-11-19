@@ -206,7 +206,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       if ( (is_symmetric && num_extrema == 5) || (!is_symmetric && num_extrema == 3) ) {
         is_tandem = false;
       }
-      else if ((is_symmetric && num_extrema == 7) || (!is_symmetric && num_extrema == 5)) {
+      else if ((is_symmetric && num_extrema == 9) || (!is_symmetric && num_extrema == 5)) {
         is_tandem = true;
       }
       else {

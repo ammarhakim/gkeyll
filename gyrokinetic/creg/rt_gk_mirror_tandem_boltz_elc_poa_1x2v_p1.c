@@ -113,8 +113,8 @@ psi_RZ(double RIn, double ZIn, void *ctx)
   double psi = 0.5 * pow(RIn, 2.) * mcB *
                (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2.))) +
                 1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))) + 
-                1. / (M_PI * gamma * (1. + pow((ZIn - 2*Z_m) / gamma, 2.))) +
-                1. / (M_PI * gamma * (1. + pow((ZIn + 2*Z_m) / gamma, 2.))));
+                2. / (M_PI * gamma * (1. + pow((ZIn - 2*Z_m) / gamma, 2.))) +
+                2. / (M_PI * gamma * (1. + pow((ZIn + 2*Z_m) / gamma, 2.))));
   return psi;
 }
 
@@ -125,8 +125,8 @@ R_psiZ(double psiIn, double ZIn, void *ctx)
   double Rout = sqrt(2.0 * psiIn / (app->mcB * 
     (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
      1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))) +
-     1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - 2*app->Z_m) / app->gamma, 2.))) +
-     1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + 2*app->Z_m) / app->gamma, 2.)))
+     2.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - 2*app->Z_m) / app->gamma, 2.))) +
+     2.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + 2*app->Z_m) / app->gamma, 2.)))
     )));
   return Rout;
 }
@@ -142,14 +142,14 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
   *BRad = -(1.0 / 2.0) * Rcoord * mcB *
           (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2.), 2.))) +
            -2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))) +
-           -2.0 * (ZIn - 2*Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - 2*Z_m) / gamma, 2.), 2.))) +
-           -2.0 * (ZIn + 2*Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + 2*Z_m) / gamma, 2.), 2.)))
+           -4.0 * (ZIn - 2*Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - 2*Z_m) / gamma, 2.), 2.))) +
+           -4.0 * (ZIn + 2*Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + 2*Z_m) / gamma, 2.), 2.)))
           );
   *BZ = mcB *
         (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2.))) +
          1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))) +
-         1.0 / (M_PI * gamma * (1.0 + pow((ZIn - 2*Z_m) / gamma, 2.))) +
-         1.0 / (M_PI * gamma * (1.0 + pow((ZIn + 2*Z_m) / gamma, 2.)))
+         2.0 / (M_PI * gamma * (1.0 + pow((ZIn - 2*Z_m) / gamma, 2.))) +
+         2.0 / (M_PI * gamma * (1.0 + pow((ZIn + 2*Z_m) / gamma, 2.)))
         );
   *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
@@ -389,7 +389,7 @@ create_ctx(void)
   double mu_max_ion_c = 1.;
 
   // Grid DOF:
-  int Nz = 400; // Number of cells in z direction.
+  int Nz = 200; // Number of cells in z direction.
   int Nvpar = 48; // Number of cells in parallel velocity direction.
   int Nmu = 16;  // Number of cells in mu direction.
   int poly_order = 1;
