@@ -48,6 +48,10 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   double *bmag_max_loc; // Location of bmag_max.
   double *bmag_wall; // Minimum magnetic field amplitude.
   double *bmag_wall_loc; // Location of bmag_wall.
+  double *bmag_tandem; // Maximum B at inner peak
+  double *bmag_tandem_loc; // location of inner peak
+  bool is_tandem; // Whether we are doing a tandem configuration
+
   bool use_gpu; // Boolean if we are performing projection on device.
 
   loss_cone_mask_gyrokinetic_c2p_t c2p_pos; // Function transforming position comp to phys coords.
@@ -78,8 +82,11 @@ struct gkyl_loss_cone_mask_gyrokinetic {
                                       // at configuration-space quadrature nodes.
   struct gkyl_array *qDphiDbmag_quad_wall; // Array keeping q*phi/(B_wall-B)
                                       // at configuration-space quadrature nodes.
+  struct gkyl_array *qDphiDbmag_quad_tandem; // Array keeping q*phi/(B_tandem-B)
+                                      // at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad_wall; // B_wall-B at configuration-space quadrature nodes.
+  struct gkyl_array *Dbmag_quad_tandem; // B_inner_tandem-B at configuration-space quadrature nodes
 
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts  
                                                           // stores the info to convert phase
@@ -109,10 +116,12 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *u
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
  * @param phi_m Electrostatic potential at the mirror throat (on GPU).
+ * @param phi_tandem Electrostatic potential at the tandem mirror throat (on GPU).
  * @param mask_out Output masking function.
  */
 void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const double *phi_m, const double *phi_tandem,
+  struct gkyl_array *mask_out);
 #endif

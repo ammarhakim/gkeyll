@@ -18,8 +18,7 @@ extern "C" {
 
 __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(struct gkyl_range conf_range,
-  const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* bmag, const double *bmag_max,
-  const double *bmag_wall, struct gkyl_array* Dbmag_quad_d, struct gkyl_array* Dbmag_quad_wall_d)
+  const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* bmag, const double *bmag_max, struct gkyl_array* Dbmag_quad_d)
 {    
   int num_basis_conf = basis_at_ords_conf->ncomp;
   int tot_quad_conf = basis_at_ords_conf->size;
@@ -33,19 +32,41 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(struct gkyl_range conf_range,
     long linidx = gkyl_range_idx(&conf_range, cidx);
 
     const double *bmag_d = (const double*) gkyl_array_cfetch(bmag, linidx);
-
     double *bmag_quad = (double*) gkyl_array_fetch(Dbmag_quad_d, linidx);
+
+    for (int n=0; n<tot_quad_conf; ++n) {
+      const double *b_ord = (const double*) gkyl_array_cfetch(basis_at_ords_conf, n);
+      for (int k=0; k<num_basis_conf; ++k){
+        bmag_quad[n] += bmag_d[k]*b_ord[k];
+      }
+      bmag_quad[n] = bmag_max[0] - bmag_quad[n];
+    }
+  }
+}
+
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall_cu_ker(struct gkyl_range conf_range,
+  const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* bmag, const double *bmag_wall, struct gkyl_array* Dbmag_quad_wall_d)
+{    
+  int num_basis_conf = basis_at_ords_conf->ncomp;
+  int tot_quad_conf = basis_at_ords_conf->size;
+
+  int cidx[GKYL_MAX_CDIM];
+
+  for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+      tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
+
+    gkyl_sub_range_inv_idx(&conf_range, tid, cidx);
+    long linidx = gkyl_range_idx(&conf_range, cidx);
+
+    const double *bmag_d = (const double*) gkyl_array_cfetch(bmag, linidx);
     double *bmag_quad_wall = (double*) gkyl_array_fetch(Dbmag_quad_wall_d, linidx);
 
     for (int n=0; n<tot_quad_conf; ++n) {
       const double *b_ord = (const double*) gkyl_array_cfetch(basis_at_ords_conf, n);
-
       for (int k=0; k<num_basis_conf; ++k){
-        bmag_quad[n] += bmag_d[k]*b_ord[k];
         bmag_quad_wall[n] += bmag_d[k]*b_ord[k];
       }
-
-      bmag_quad[n] = bmag_max[0] - bmag_quad[n];
       bmag_quad_wall[n] = bmag_quad_wall[n] - bmag_wall[0];
     }
   }
@@ -53,12 +74,20 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(struct gkyl_range conf_range,
 
 void 
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max,
-  const double *bmag_wall)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, struct gkyl_array *Dbmag_quad, const double *bmag_max)
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker<<<nblocks, nthreads>>>(*conf_range,
-    up->basis_at_ords_conf->on_dev, bmag->on_dev, bmag_max, bmag_wall, up->Dbmag_quad->on_dev, up->Dbmag_quad_wall->on_dev);
+    up->basis_at_ords_conf->on_dev, bmag->on_dev, bmag_max, Dbmag_quad->on_dev);
+}
+
+void 
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall_cu(gkyl_loss_cone_mask_gyrokinetic *up,
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, struct gkyl_array *Dbmag_quad_wall, const double *bmag_wall)
+{
+  int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall_cu_ker<<<nblocks, nthreads>>>(*conf_range,
+    up->basis_at_ords_conf->on_dev, bmag->on_dev, bmag_wall, Dbmag_quad_wall->on_dev);
 }
 
 static void

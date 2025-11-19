@@ -70,9 +70,18 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, con
     app->basis_on_dev, &app->grid, &app->local, fdmul->phi_m);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_m, fdmul->phi_m_global);
 
-  // Project the loss cone mask.
+  // For tandem mirrors, calculate the inner potential. For non-tandem, duplicate phi_m for safety.
+  if (fdmul->is_tandem) {
+    gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, fdmul->bmag_tandem_coord,
+      app->basis_on_dev, &app->grid, &app->local, fdmul->phi_tandem);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_tandem, fdmul->phi_tandem_global);
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_m_global, fdmul->multiplier);
+      phi, fdmul->phi_m_global, fdmul->phi_tandem_global, fdmul->multiplier);
+  }
+  else {
+    gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
+      phi, fdmul->phi_m_global, fdmul->phi_m_global, fdmul->multiplier);
+  }
 
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -182,20 +191,57 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       double *theta_extrema = gpm->constB_ctx->theta_extrema;
       int num_extrema = gpm->constB_ctx->num_extrema;
 
-      // Identify walls (endpoints) and find the actual mirror point
-      double bmag_wall = (bmag_extrema[0] + bmag_extrema[num_extrema - 1] ) / 2.0;
+      // Declare variables for mirror, wall, and tandem locations
+      double bmag_tandem = 0.0, theta_tandem = 0.0; // Initialize for non-tandem cases
+
+      bool is_symmetric, is_tandem;
+      if (gkyl_compare_double(app->grid.lower[cdim-1], app->grid.upper[cdim-1], 1e-14)) {
+        is_symmetric = true;
+      }
+      else if (gkyl_compare_double(app->grid.lower[cdim-1], 0.0, 1e-14)){
+        is_symmetric = false;
+      }
+      else {
+        assert(false); // Needs either the lower bound at 0 or symmetric grid
+      }
+
+      if ( (is_symmetric && num_extrema == 5) || (!is_symmetric && num_extrema == 3) ) {
+        is_tandem = false;
+      }
+      else if ((is_symmetric && num_extrema == 7) || (!is_symmetric && num_extrema == 5)) {
+        is_tandem = true;
+      }
+      else {
+        assert(false); // Unsupported number of extrema for loss-cone multiplier
+      }
+
+      // Identify wall values
+      double bmag_wall = bmag_extrema[num_extrema - 1];
       double theta_wall = theta_extrema[num_extrema - 1];
-      double bmag_mirror = fmin(bmag_extrema[1], bmag_extrema[num_extrema - 2]);
+      // Identify walls (endpoints) and find the actual mirror point
+      double bmag_mirror = bmag_extrema[num_extrema - 2];
       double theta_mirror = theta_extrema[num_extrema - 2];
+      // Find the inner peak for tandem mirrors, or duplicate for non-tandem
+      double bmag_tandem, theta_tandem;
+      if (!is_symmetric && !is_tandem) {
+        bmag_tandem = bmag_mirror;
+        theta_tandem = theta_mirror;
+      }
+      else {
+        bmag_tandem = bmag_extrema[num_extrema - 4];
+        theta_tandem = theta_extrema[num_extrema - 4];
+      }
 
       double coord_mirror[GKYL_MAX_CDIM];
       double coord_wall[GKYL_MAX_CDIM];
+      double coord_tandem[GKYL_MAX_CDIM];
       if (app->cdim==1){
         coord_mirror[0] = theta_mirror;
         coord_wall[0] = theta_wall;
+        coord_tandem[0] = theta_tandem;
       }
       else{
-        assert(false);
+        assert(false); // only implemented for 1D config space
       }
 
       if (app->use_gpu) {
@@ -203,30 +249,44 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
         fdmul->bmag_wall = gkyl_cu_malloc(sizeof(double));
         fdmul->bmag_wall_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
+        fdmul->bmag_tandem = gkyl_cu_malloc(sizeof(double));
+        fdmul->bmag_tandem_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
+        
         gkyl_cu_memcpy(fdmul->bmag_max, &bmag_mirror, sizeof(double), GKYL_CU_MEMCPY_H2D);
         gkyl_cu_memcpy(fdmul->bmag_max_coord, &coord_mirror, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
         gkyl_cu_memcpy(fdmul->bmag_wall, &bmag_wall, sizeof(double), GKYL_CU_MEMCPY_H2D);
         gkyl_cu_memcpy(fdmul->bmag_wall_coord, &coord_wall, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_tandem, &bmag_tandem, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_tandem_coord, &coord_tandem, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         fdmul->bmag_max = gkyl_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
         fdmul->bmag_wall = gkyl_malloc(sizeof(double));
         fdmul->bmag_wall_coord = gkyl_malloc(app->cdim*sizeof(double));
+        fdmul->bmag_tandem = gkyl_malloc(sizeof(double));
+        fdmul->bmag_tandem_coord = gkyl_malloc(app->cdim*sizeof(double));
+        
         memcpy(fdmul->bmag_max, &bmag_mirror, sizeof(double));
         memcpy(fdmul->bmag_max_coord, &coord_mirror, app->cdim*sizeof(double));
         memcpy(fdmul->bmag_wall, &bmag_wall, sizeof(double));
         memcpy(fdmul->bmag_wall_coord, &coord_wall, app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_tandem, &bmag_tandem, sizeof(double));
+        memcpy(fdmul->bmag_tandem_coord, &coord_tandem, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.
       if (app->use_gpu) {
         fdmul->phi_m = gkyl_cu_malloc(sizeof(double));
         fdmul->phi_m_global = gkyl_cu_malloc(sizeof(double));
+        fdmul->phi_tandem = gkyl_cu_malloc(sizeof(double));
+        fdmul->phi_tandem_global = gkyl_cu_malloc(sizeof(double));
       }
       else {
         fdmul->phi_m = gkyl_malloc(sizeof(double));
         fdmul->phi_m_global = gkyl_malloc(sizeof(double));
+        fdmul->phi_tandem = gkyl_malloc(sizeof(double));
+        fdmul->phi_tandem_global = gkyl_malloc(sizeof(double));
       }
 
       // Operator that projects the loss cone mask.
@@ -243,6 +303,9 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .bmag_max_loc = fdmul->bmag_max_coord,
         .bmag_wall = fdmul->bmag_wall,
         .bmag_wall_loc = fdmul->bmag_wall_coord,
+        .bmag_tandem = fdmul->bmag_tandem,
+        .bmag_tandem_loc = fdmul->bmag_tandem_coord,
+        .is_tandem = is_tandem,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .qtype = qtype,
@@ -322,16 +385,24 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
         gkyl_cu_free(fdmul->bmag_max_coord);
         gkyl_cu_free(fdmul->bmag_wall);
         gkyl_cu_free(fdmul->bmag_wall_coord);
+        gkyl_cu_free(fdmul->bmag_tandem);
+        gkyl_cu_free(fdmul->bmag_tandem_coord);
         gkyl_cu_free(fdmul->phi_m);
         gkyl_cu_free(fdmul->phi_m_global);
+        gkyl_cu_free(fdmul->phi_tandem);
+        gkyl_cu_free(fdmul->phi_tandem_global);
       }
       else {
         gkyl_free(fdmul->bmag_max);
         gkyl_free(fdmul->bmag_max_coord);
         gkyl_free(fdmul->bmag_wall);
         gkyl_free(fdmul->bmag_wall_coord);
+        gkyl_free(fdmul->bmag_tandem);
+        gkyl_free(fdmul->bmag_tandem_coord);
         gkyl_free(fdmul->phi_m);
         gkyl_free(fdmul->phi_m_global);
+        gkyl_free(fdmul->phi_tandem);
+        gkyl_free(fdmul->phi_tandem_global);
       }
       gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
     }

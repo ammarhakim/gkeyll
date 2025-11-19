@@ -183,7 +183,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        app->field->phi_smooth, damp->phi_m_global, damp->rate);
+        app->field->phi_smooth, damp->phi_m_global, damp->phi_m_global, damp->rate);
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
     }
@@ -218,7 +218,7 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
 
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        phi, damp->phi_m_global, damp->rate);
+        phi, damp->phi_m_global, damp->phi_m_global, damp->rate);
 
       // Assemble the damping term -scale_prof * mask * f.
       gkyl_array_set(f_buffer, 1.0, fin);

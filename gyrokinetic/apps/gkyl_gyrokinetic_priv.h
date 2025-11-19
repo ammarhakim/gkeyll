@@ -828,6 +828,7 @@ struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
   bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
+  bool is_tandem; //  Whether we are doing a tandem mirror.
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
@@ -835,7 +836,10 @@ struct gk_fdot_multiplier {
   double *bmag_max_coord; // Location of bmag_max.
   double *bmag_wall; // Magnetic field at the wall.
   double *bmag_wall_coord; // Location of bmag_wall.
+  double *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  double *bmag_tandem_coord; // Location of bmag_tandem.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+  double *phi_tandem, *phi_tandem_global; // Electrostatic potential at bmag_tandem.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,

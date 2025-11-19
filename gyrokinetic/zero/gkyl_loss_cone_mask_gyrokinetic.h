@@ -32,6 +32,10 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const double *bmag_max_loc; // Location of maximum bmag (on GPU if use_gpu=true)..
   const double *bmag_wall; // Minimum bmag (on GPU if use_gpu=true).
   const double *bmag_wall_loc; // Location of minimum bmag (on GPU if use_gpu=true)..
+  const double *bmag_tandem; // For the tandem mirror, the inner peak in B
+  const double *bmag_tandem_loc; // For the tandem mirror, the location of the inner B peak
+  bool is_tandem; // Flag whether to compute tandem cases
+
   double mass; // Species mass.
   double charge; // Species charge.
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.
@@ -67,11 +71,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
  * @param phi_m Electrostatic potential at the mirror throat (on GPU if use_gpu=true).
+ * @param phi_tandem Electrostatic potential at the tandem mirror throat (on GPU if use_gpu=true).
  * @param mask_out Output masking function.
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const double *phi_m, const double *phi_tandem,
+  struct gkyl_array *mask_out);
 
 /**
  * Delete updater.
