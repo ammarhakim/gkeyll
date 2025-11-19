@@ -174,6 +174,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
       int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
                                               // at leat p+1 for Gauss-Lobatto.
+      int cdim = app->cdim;
 
       // Find the peaks of B magnitude using the position map infrastructure
       struct gkyl_position_map_inp pmap_info = {
@@ -191,11 +192,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       double *theta_extrema = gpm->constB_ctx->theta_extrema;
       int num_extrema = gpm->constB_ctx->num_extrema;
 
-      // Declare variables for mirror, wall, and tandem locations
-      double bmag_tandem = 0.0, theta_tandem = 0.0; // Initialize for non-tandem cases
-
       bool is_symmetric, is_tandem;
-      if (gkyl_compare_double(app->grid.lower[cdim-1], app->grid.upper[cdim-1], 1e-14)) {
+      if (gkyl_compare_double(app->grid.lower[cdim-1], -app->grid.upper[cdim-1], 1e-14)) {
         is_symmetric = true;
       }
       else if (gkyl_compare_double(app->grid.lower[cdim-1], 0.0, 1e-14)){
