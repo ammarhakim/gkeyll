@@ -369,7 +369,7 @@ create_ctx(void)
   double Z_max =  3.0;
 
   // Parameters controlling the magnetic equilibrium model.
-  double mcB = 6.51292;
+  double mcB = 1;
   double gamma = 0.124904;
   double Z_m = 1.0;
 
