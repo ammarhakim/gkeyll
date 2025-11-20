@@ -39,6 +39,7 @@ struct gk_geom_surf {
   struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot_inv_nodal; // 1 component. 1/(JB)
   struct gkyl_array* ddtheta_nodal;   // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes
+  struct gkyl_array* ddpsi_nodal;   // dPsi/dpsi at surf quad nodes
   struct gkyl_array* g_ij_nodal;   // g_{ij}
   struct gkyl_array* dxdz_nodal; // 9 components.
                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
@@ -112,6 +113,7 @@ struct gk_geom_int {
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
   struct gkyl_array *ddtheta_nodal;
+  struct gkyl_array *ddpsi_nodal;// dPsi/dpsi at interior quad nodes
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* mc2p_nodal_fd; // 39 components. Cartesian X,Y, and Z at nodes and FD nodes.
   /* Array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
