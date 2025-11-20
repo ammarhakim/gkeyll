@@ -294,7 +294,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
 }
 
 double
-q_func(void *ctx)
+qprofile_func(void *ctx)
 {
   // Function to calculate the flux surface averaged q profile.
 
@@ -340,14 +340,14 @@ q_func(void *ctx)
   gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
   double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
-  double q = -ival*fpol/M_PI;
+  double qout = -ival*fpol/M_PI;
 
   // AS 1/15/25: The 3 lines below are a useful check to compare against q from efit.
   //coeffs = gkyl_array_cfetch(actx->geo->qdg,loc);
   //double q_efit = actx->geo->fbasis.eval_expand(&fx, coeffs);
-  // printf("psi_curr = %g, my q = %g, efit q = %g\n", psi_fpol, q, q_efit);
+  // printf("psi_curr = %g, my q = %g, efit q = %g\n", psi_fpol, qout, q_efit);
 
-  return q;
+  return qout;
 }
 
 static double
@@ -982,7 +982,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
         // q = integral_0^2pi qhat dtheta
         //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
         //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
-        double qprofile = q_func(&arc_ctx);
+        double qprofile = qprofile_func(&arc_ctx);
 
         darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
           * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
