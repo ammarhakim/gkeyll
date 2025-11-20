@@ -177,6 +177,7 @@ gk_geometry_int_alloc_expansions(struct gk_geometry* up)
   up->geo_int.rtg33inv = gkyl_array_new(GKYL_DOUBLE, 1*up->basis.num_basis, up->local_ext.volume);
   up->geo_int.bioverJB = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->geo_int.B3 = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->geo_int.qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 }
 
 static void
@@ -246,7 +247,7 @@ gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir,
   struct gkyl_range local_ext_in_dir;
   int lower[3] = {gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2]};
   int upper[3] = {gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2]};
-  upper[dir]+=1;
+  upper[dir] += 1;
   gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);

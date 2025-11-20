@@ -364,7 +364,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.B3, up->geo_int.B3, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.qprofile, up->geo_int.qprofile, 1);
   // Done deflating modal
+
   // Deflate nodal quantities
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.jacobgeo_nodal, up->geo_int.jacobgeo_nodal, 1);
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dxdz_nodal, up->geo_int.dxdz_nodal, 9);
@@ -397,7 +399,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     gkyl_array_copy(up->geo_corn.mc2nu_pos_deflated, up->geo_corn.mc2nu_pos);
   }
   // Deflate surface geo
-  int  count = 0;
+  int count = 0;
   for (int dir = 0; dir < 3; dir++) {
     if(rem_dirs[dir] == 0) {
       struct gkyl_range local_ext_in_dir_3d;
@@ -487,6 +489,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.rtg33inv);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
+  gkyl_array_release(up->geo_int.qprofile);
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
