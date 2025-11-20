@@ -381,8 +381,8 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = B_r * cos(phi) - Bt * sin(phi);
-  fout[1] = B_r * sin(phi) + Bt * cos(phi);
+  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
+  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
   fout[2] = B_z;
 }
 

@@ -103,6 +103,28 @@ check_right_handed(double tan[9], double dual[9]) {
   return J;
 }
 
+static inline void
+check_parallel(double *v1, double *v2) {
+    // Check |v1 cross v2 | < eps 
+    // and also v1 dot v2 > 0
+    const double eps = 1e-12;
+
+    double cx = v1[1]*v2[2] - v1[2]*v2[1];
+    double cy = v1[2]*v2[0] - v1[0]*v2[2];
+    double cz = v1[0]*v2[1] - v1[1]*v2[0];
+
+    double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
+
+    double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+    if (c_mag < eps && dot >=0)
+      return;
+    else {
+      printf("B and mapc2p are inconsistent\n");
+      assert(false);
+    }
+
+}
+
 
 
 double check_right_handed2(const double tan[9], const double dual[9]) {
@@ -1389,8 +1411,11 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          tanvecFld_n[8] = dxdz[2][2]; 
 
 
-          check_right_handed(tanvecFld_n, dualFld_n);
-          check_right_handed2(tanvecFld_n, dualFld_n);
+         check_right_handed(tanvecFld_n, dualFld_n);
+         check_right_handed2(tanvecFld_n, dualFld_n);
+         double bhat_vec[3] = {bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX]};
+         double e_3_norm[3] = {tanvecFld_n[6]/sqrt(gFld_n[5]), tanvecFld_n[7]/sqrt(gFld_n[5]), tanvecFld_n[8]/sqrt(gFld_n[5])};
+         check_parallel(bhat_vec, e_3_norm);
 
          double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
          double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
