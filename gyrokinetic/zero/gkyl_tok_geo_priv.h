@@ -276,6 +276,8 @@ calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2]
       double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
 
       sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+      sol.dR[sidx] = -dpsidy*dx[0];
+      sol.dZ[sidx] = dpsidx*dx[1];
       sidx+=1;
     }
   }
@@ -361,6 +363,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
       double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
       double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
       sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+      sol.dR[sidx] = -dpsidy*dx[0];
+      sol.dZ[sidx] = dpsidx*dx[1];
       sidx+=1;
     }
   }
@@ -446,7 +450,7 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
 // these arrays are big enough to hold all roots required
 static int
 R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR)
+  double *R, double *dRdZ, double* dR, double *dZ)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid_cubic, &geo->rzlocal_cubic);
 
@@ -474,8 +478,9 @@ R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
     if (sol.nsol > 0)
       for (int s=0; s<sol.nsol; ++s) {
         if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
-          R[sidx] = sol.R[s];
-          dR[sidx] = sol.dRdZ[s];
+          dRdZ[sidx] = sol.dRdZ[s];
+          dR[sidx] = sol.dR[s];
+          dZ[sidx] = sol.dZ[s];
           sidx += 1;
         }
       }

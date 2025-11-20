@@ -580,7 +580,7 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
   double *R, double *dRdZ, double *dR, double *dZ)
 {
   if(geo->use_cubics)
-    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dRdZ);
+    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
   else
     return R_psiZ(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
 }
