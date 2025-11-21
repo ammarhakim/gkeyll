@@ -2390,6 +2390,10 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   gkyl_gyrokinetic_app_cout(app, fp, " species_rad_pct : %.2f,\n", ratio_to_percent(stat.species_rad_tm, stat.fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, fp, " species_react_tm : %.4e,\n", stat.species_react_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_react_pct : %.2f,\n", ratio_to_percent(stat.species_react_tm, stat.fwd_euler_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, fp, " species_damp_tm : %.4e,\n", stat.species_damp_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_damp_pct : %.2f,\n", ratio_to_percent(stat.species_damp_tm, stat.fwd_euler_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, fp, " species_fdot_mult_tm : %.4e,\n", stat.species_fdot_mult_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_fdot_mult_pct : %.2f,\n", ratio_to_percent(stat.species_fdot_mult_tm, stat.fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_calc_tm : %.4e,\n", stat.species_bflux_calc_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_moms_tm : %.4e,\n", stat.species_bflux_moms_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_tm : %.4e,\n", bflux_tm);
