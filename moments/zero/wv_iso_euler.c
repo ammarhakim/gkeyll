@@ -362,6 +362,8 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
   iso_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_iso_euler_free);
   iso_euler->eqn.on_dev = &iso_euler->eqn; // On the CPU, the equation object points to itself.
 
+  iso_euler->eqn.embed_geo = NULL;
+
   return &iso_euler->eqn;
 }
 
