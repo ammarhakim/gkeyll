@@ -160,6 +160,9 @@ struct gkyl_gyrokinetic_multib {
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
 
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[3]; // List of periodic directions.
+
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_species; // Number of species.
