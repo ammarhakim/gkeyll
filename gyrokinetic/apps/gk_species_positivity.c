@@ -208,7 +208,7 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     // Positivity shift updater.
     pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->grid, gks->info.mass, gks->skip_cell, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Methods chosen at runtime.
     pos->apply_func = gks_pos_apply_enabled;

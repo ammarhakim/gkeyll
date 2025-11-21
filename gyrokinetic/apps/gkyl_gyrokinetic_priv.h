@@ -948,8 +948,6 @@ struct gk_species {
 
   struct gkyl_skip_cell *skip_cell; // Object to skip cells in updates.
 
-  struct gkyl_skip_cell *skip_cell; // Object to skip cells in updates.
-
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
