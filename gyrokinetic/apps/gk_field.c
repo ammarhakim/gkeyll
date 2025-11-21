@@ -870,4 +870,3 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 
   gkyl_free(f);
 }
-

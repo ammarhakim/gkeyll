@@ -476,8 +476,6 @@ main(int argc, char **argv)
     .upper = {  ctx.v_max_neut,  ctx.v_max_neut,  ctx.v_max_neut/64.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0]},
 
-//    .enforce_positivity = true,
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
