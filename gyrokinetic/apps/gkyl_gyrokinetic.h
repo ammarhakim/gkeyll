@@ -434,13 +434,9 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-<<<<<<< HEAD
-  bool enforce_positivity; // Positivity enforcement via shift in f.
-
   struct gkyl_skip_cell_inp skip_cell; // Object for skipping cells during various operations.
-=======
+
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
->>>>>>> main
   
   struct gkyl_gyrokinetic_ic_import init_from_file;
   
