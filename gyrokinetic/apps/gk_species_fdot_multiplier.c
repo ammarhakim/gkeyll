@@ -96,7 +96,15 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
+  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
+}
+
+static void
+proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
 }
 
 void
@@ -128,12 +136,14 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
     fdmul->multiplier_host = app->use_gpu? mkarr(false, fdmul->multiplier->ncomp, fdmul->multiplier->size)
                                          : gkyl_array_acquire(fdmul->multiplier);
 
+    // Context for c2p function passed to proj_on_basis.
+    fdmul->proj_on_basis_c2p_ctx.cdim = app->cdim;
+    fdmul->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+    fdmul->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+    fdmul->proj_on_basis_c2p_ctx.pos_map = app->position_map;
+
     if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
 
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
-      proj_on_basis_c2p_ctx.cdim = app->cdim;
-      proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
-      proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
       gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
           .grid = &gks->grid,
           .basis = &basis_mult,
@@ -142,7 +152,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
           .eval = gks->info.time_rate_multiplier.profile,
           .ctx = gks->info.time_rate_multiplier.profile_ctx,
           .c2p_func = proj_on_basis_c2p_phase_func,
-          .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+          .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
         }
       );
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, fdmul->multiplier_host);
@@ -248,7 +258,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .qtype = qtype,
         .num_quad = num_quad,
         .cellwise_trap_loss = cellwise_const,
-        .c2p_pos_func = 0, // Change for nonuniform position grid.
+        .c2p_pos_func = proj_on_basis_c2p_position_func,
+        .c2p_pos_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
