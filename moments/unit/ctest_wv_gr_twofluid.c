@@ -21,7 +21,8 @@ test_gr_twofluid_basic_minkowski()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK( gr_twofluid->num_equations == 84 );
   TEST_CHECK( gr_twofluid->num_waves == 6 );
@@ -291,7 +292,8 @@ test_gr_twofluid_basic_schwarzschild()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK( gr_twofluid->num_equations == 84 );
   TEST_CHECK( gr_twofluid->num_waves == 6 );
@@ -563,7 +565,8 @@ test_gr_twofluid_basic_kerr()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK( gr_twofluid->num_equations == 84 );
   TEST_CHECK( gr_twofluid->num_waves == 6 );
@@ -835,7 +838,8 @@ test_gr_twofluid_waves_minkowski()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1138,7 +1142,8 @@ test_gr_twofluid_waves_schwarzschild()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1446,7 +1451,8 @@ test_gr_twofluid_waves_kerr()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid = gkyl_wv_gr_twofluid_new(mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion,
+    light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {

@@ -175,16 +175,6 @@ gkyl_range_is_sub_range(const struct gkyl_range *rng)
   return IS_SUB_RANGE(rng->flags);
 }
 
-int
-gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
-{
-  for (int i=0; i<rng->ndim; ++i) {
-    if ( (idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i]) )
-      return 0;
-  }
-  return 1;
-}
-
 void
 gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper)

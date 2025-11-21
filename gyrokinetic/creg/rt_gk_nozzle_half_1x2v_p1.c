@@ -231,8 +231,9 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
-    .lower = {- ctx.vpar_max_ion, 0.0},
-    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
+    .vdim = ctx.vdim,
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
 
     .projection = proj_init,
@@ -280,14 +281,12 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_nozzle_half_1x2v_p1",
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
-    // .enforce_positivity = true,
 
     .geometry = {
       .geometry_id = GKYL_MIRROR,
@@ -312,7 +311,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,

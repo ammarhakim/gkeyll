@@ -614,6 +614,16 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
     }
+    else if (fabs(interval_lower_eval) < 1e-10 || fabs(interval_upper_eval) < 1e-10) {
+      // If either evaluation is very close to zero, we're at or very near the solution
+      // Just use the corresponding endpoint
+      if (fabs(interval_lower_eval) < fabs(interval_upper_eval)) {
+        fout[0] = interval_lower;
+      } else {
+        fout[0] = interval_upper;
+      }
+      return;
+    }
     else {
       // It means we are in the wrong region
       if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0) {
@@ -633,6 +643,21 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
           fout[0] = theta_hi;
           return;
         }
+      }
+      else if (fabs(interval_lower_eval) < 1e-14) {
+        // Lower evaluation is very close to zero
+        fout[0] = interval_lower;
+        return;
+      }
+      else if (fabs(interval_upper_eval) < 1e-14) {
+        // Upper evaluation is very close to zero
+        fout[0] = interval_upper;
+        return;
+      }
+      else {
+        fprintf(stderr, "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
+        fout[0] = theta;
+        return;
       }
     }
   }
@@ -797,3 +822,92 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
     fout[0] = theta_avg;
   }
 }
+
+/**
+ * Converts our uniform coordinate along field line length to a non-uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
+static void
+position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map_xpt_ctx *app = ctx;
+  double uniform_coordinate  = xn[0];
+  double F = 1.0 / (1.0 - app->compression_factor);
+  double A = 1.0/F;
+  double zcut = app->zcut;
+  double zshift = uniform_coordinate - app->zcenter;
+  double nonuniform_coordinate = A * (sin(M_PI*zshift/zcut)*zcut/M_PI + F*zshift) + app->zcenter;
+  fout[0] = nonuniform_coordinate;
+}
+
+/**
+ * Converts our uniform coordinate psi to a non-uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
+static void
+position_map_sep_compression(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map_xpt_ctx *app = ctx;
+  double uniform_coordinate  = xn[0];
+  double F = 1.0 / (1.0 - app->compression_factor);
+  double A = 1.0/F;
+  double w = app->w;
+  double xshift = uniform_coordinate - app->psisep;
+  double nonuniform_coordinate = A * (-sin(M_PI*xshift/w)*w/M_PI + F*xshift) + app->psisep;
+  fout[0] = nonuniform_coordinate;
+}
+
+/**
+ * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate 
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
+static void
+position_map_deriv_xpt_compression(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map_xpt_ctx *app = ctx;
+  double uniform_coordinate  = xn[0];
+  double F = 1.0 / (1.0 - app->compression_factor);
+  double A = 1.0/F;
+  double zcut = app->zcut;
+  double zshift = uniform_coordinate - app->zcenter;
+  double deriv = A * (cos(M_PI*zshift/zcut) + F);
+  fout[0] = deriv;
+}
+
+/**
+ * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate 
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
+static void
+position_map_deriv_sep_compression(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map_xpt_ctx *app = ctx;
+  double uniform_coordinate  = xn[0];
+  double F = 1.0 / (1.0 - app->compression_factor);
+  double A = 1.0/F;
+  double w = app->w;
+  double xshift = uniform_coordinate - app->psisep;
+  double deriv = A * (-cos(M_PI*xshift/w) + F);
+  fout[0] = deriv;
+}
+

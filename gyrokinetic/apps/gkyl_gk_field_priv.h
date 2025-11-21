@@ -45,7 +45,7 @@ gk_field_fem_init_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
  * @param s Species object
  */
 void
-gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
+gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
 
 /**
  * Accumulate charge density for an adiabatic response.
@@ -55,7 +55,7 @@ gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *
  * @param s Species object
  */
 void
-gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
+gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
 
 /**
  * Accumulate charge density for a Poisson solve.
@@ -65,7 +65,7 @@ gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *
  * @param s Species object
  */
 void
-gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s);
+gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
 
 /**
  * Solve for the field using a Boltzmann response.

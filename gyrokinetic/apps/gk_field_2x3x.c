@@ -13,14 +13,14 @@
 #include <time.h>
 
 
-void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s)
+void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
   gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
 }
 
-void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s)
+void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -53,7 +53,7 @@ gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_
   field->invert_flr(app, field, field->phi_smooth);
 
   // Enforce a BC of the field in the parallel direction.
-  field->enforce_zbc(app, field, field->phi_smooth);
+  field->enforce_parallel_bc(app, field, field->phi_smooth);
 }
 
 void
@@ -73,7 +73,7 @@ gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field
   field->invert_flr(app, field, field->phi_smooth);
 
   // Enforce a BC of the field in the parallel direction.
-  field->enforce_zbc(app, field, field->phi_smooth);
+  field->enforce_parallel_bc(app, field, field->phi_smooth);
 }
 
 void

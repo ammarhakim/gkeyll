@@ -45,10 +45,10 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
       &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
     gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
     gkyl_array_scale(field->sheath_vals[off], 0.5);
-  } 
+  }
 }
 
-void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s)
+void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
 {
   // For Boltzmann electrons, we only need ion density (and the ion density
   // times the conf-space Jacobian), not charge density.
@@ -57,12 +57,9 @@ void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_fi
                        app->gk_geom->geo_int.jacobgeo, &app->local);
 
   // We also need the M0 flux of the boundary flux through the z
-  // boundaries. Put it in the ghost cells of f and take its moment.
-  gk_species_bflux_get_flux(&s->bflux, app->cdim - 1, GKYL_LOWER_EDGE, s->f1, &s->lower_ghost[app->cdim - 1]);
-  gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim - 1], app->lower_ghost[app->cdim - 1], s->f1);
-
-  gk_species_bflux_get_flux(&s->bflux, app->cdim - 1, GKYL_UPPER_EDGE, s->f1, &s->upper_ghost[app->cdim - 1]);
-  gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim - 1], app->upper_ghost[app->cdim - 1], s->f1);
+  // boundaries. Put it in the ghost cells of s->m0.marr.
+  gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0, bflux, s->m0.marr, &app->lower_ghost[app->cdim-1]);
+  gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux, s->m0.marr, &app->upper_ghost[app->cdim-1]);
 }
 
 void

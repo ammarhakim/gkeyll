@@ -356,6 +356,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
     .upper = { ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -411,6 +412,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
       
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -436,6 +443,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .vdim = ctx.vdim,
     .lower = { ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
     .upper = { ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
     .cells = { cells_v[0], cells_v[1] },
@@ -491,6 +499,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
 
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -534,15 +548,13 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_bgk_im_asdex_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { 0.15, -ctx.Lz/2.0 },   // Originally 0.16
     .upper = { 0.172, ctx.Lz/2.0 },   // Originally 0.175
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.05,
-
-    .enforce_positivity = true,
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
@@ -566,7 +578,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
