@@ -246,13 +246,24 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
         double line_coords[up->ndim];
         for (int d=0; d<up->ndim; d++)
-          line_coords[up->ndim] = grid->lower[d]+grid->dx[d]/2.0;
+          line_coords[d] = grid->lower[d]+grid->dx[d]/2.0;
 
         for (int d=0; d<up->bl_ndim_perp; d++)
           line_coords[bl->perp_dirs[d]] = bl->perp_coords[d];
 
+        // If biased line is at domain boundary, shift it minimally so it is inside the domain.
+        for (int d=0; d<up->ndim; d++) {
+          if (fabs(line_coords[d] - grid->lower[d]) < 1e-3*grid->dx[d]) {
+            line_coords[d] += 1e-3*grid->dx[d];
+          }
+          if (fabs(line_coords[d] - grid->upper[d]) < 1e-3*grid->dx[d]) {
+            line_coords[d] += -1e-3*grid->dx[d];
+          }
+        }
+
+        bool pick_lower = true; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
-        gkyl_rect_grid_coord_idx(grid, line_coords, line_idx);
+        gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
 
         bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
         if (bl_in_solve_range[i])

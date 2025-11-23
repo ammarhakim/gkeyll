@@ -32,6 +32,7 @@ struct gk_app_ctx {
   double x_LCFS; // Radial location of the last closed flux surface.
   double x_inner; // Domain size inside the separatrix.
 
+  double side_wall_bias; // Potential of the side wall.
   // Plasma parameters.
   double me; double qe;
   double mi; double qi;
@@ -481,6 +482,8 @@ create_ctx(void)
   double a_mid = a_shift<1e-13? R_LCFSmid-R_axis :
     R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
 
+  double side_wall_bias = 0.0; // Potential of the side wall.
+
   double r0 = R0-R_axis; // Minor radius of the simulation box [m].
   double B0 = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
   double kappa = 1.35; // Elongation (=1 for no elongation).
@@ -563,6 +566,7 @@ create_ctx(void)
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
+    .side_wall_bias = side_wall_bias,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -816,12 +820,12 @@ main(int argc, char **argv)
     {
      .perp_dirs = {0, 2}, // Directions perpendicular to line.
      .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
+     .val = ctx.side_wall_bias, // Biasing value.
     },
     {
      .perp_dirs = {0, 2}, // Directions perpendicular to line.
      .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
-     .val = 0.0, // Biasing value.
+     .val = ctx.side_wall_bias,, // Biasing value.
     },
   };
 
@@ -835,7 +839,7 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {ctx.side_wall_bias} },
     },
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
