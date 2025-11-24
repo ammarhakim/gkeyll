@@ -124,7 +124,7 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
       atomicAdd(&delta_m0_c[k], m0phase_in_c[k]);
     }
-
+    
     // Shift f if needed.
     bool shifted_node = false;
     const bool *to_skip_cell = (const bool *) gkyl_array_cfetch(skip_cell->booleans, plinidx);

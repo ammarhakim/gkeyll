@@ -1239,9 +1239,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxL = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxL);
   long pidxC = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxC);
   long pidxR = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxR);
-  const bool *skip_cell_L = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxL);
-  const bool *skip_cell_C = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxC);
-  const bool *skip_cell_R = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxR);
+  const bool *skip_cell_L = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxL);
+  const bool *skip_cell_C = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxC);
+  const bool *skip_cell_R = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxR);
   if (*skip_cell_L && *skip_cell_C && *skip_cell_R) {
     return 0.;
   }
@@ -1261,8 +1261,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const bool *skip_cell_edge = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
-  const bool *skip_cell_skin = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
+  const bool *skip_cell_edge = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
+  const bool *skip_cell_skin = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
   if (*skip_cell_edge && *skip_cell_skin) {
     return 0.;
   }
@@ -1285,8 +1285,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const bool *skip_cell_edge = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
-  const bool *skip_cell_skin = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
+  const bool *skip_cell_edge = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
+  const bool *skip_cell_skin = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
   if (*skip_cell_edge && *skip_cell_skin) {
     return 0.;
   }

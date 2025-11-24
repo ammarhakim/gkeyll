@@ -137,9 +137,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxL = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxL);
   long pidxC = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxC);
   long pidxR = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxR);
-  const bool *skipL = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxL);
-  const bool *skipC = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxC);
-  const bool *skipR = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxR);
+  const bool *skipL = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxL);
+  const bool *skipC = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxC);
+  const bool *skipR = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxR);
   if (*skipL && *skipC && *skipR) {
     return 0.;
   }
@@ -159,8 +159,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
-  const bool *skipEdge = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxEdge);
-  const bool *skipSkin = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
+  const bool *skipEdge = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxEdge);
+  const bool *skipSkin = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
   if (*skipEdge && *skipSkin) {
     return 0.;
   }
@@ -187,8 +187,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
 
   long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
   long pidxGhost = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxGhost);
-  const bool *skipSkin = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
-  const bool *skipGhost = gkyl_array_cfetch(gkad->skip_cell->booleans, pidxGhost);
+  const bool *skipSkin = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
+  const bool *skipGhost = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxGhost);
   if (*skipSkin && *skipGhost) {
     return 0.;
   }
