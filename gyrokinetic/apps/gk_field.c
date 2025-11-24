@@ -58,22 +58,20 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   struct gk_species *gks = &app->species[0];
   const struct gkyl_gyrokinetic_bc *par_lower_bc, *par_upper_bc;
   for (int i=0; i<2*app->cdim; i++) {
-    if (gks->info.bcs[i].dir) {
+    if (gks->info.bcs[i].dir == par_dir) {
       if (gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
         par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
-        break;
       }
       if (gks->info.bcs[i].edge == GKYL_UPPER_EDGE) {
         par_upper_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
-        break;
       }
     }
   }
 
   // TSBC updaters
-  int ghost[] = {1, 1, 1};
   if (app->cdim == 3) {
-    //TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
+    int ghost[] = {1, 1, 1};
+    // TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
     struct gkyl_bc_twistshift_inp T_LU_lo = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
@@ -90,7 +88,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
     };
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
 
-    // TS BC updater for low to up TS for the upper edge. This sets ghost_L = T_LU(ghost_L).
+    // TS BC updater for low to up TS for the upper edge. This sets ghost_U = T_UL(ghost_U).
     struct gkyl_bc_twistshift_inp T_UL_up = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
