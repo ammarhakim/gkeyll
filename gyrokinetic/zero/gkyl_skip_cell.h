@@ -60,6 +60,15 @@ void
 gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf);
 
 /**
+ * Invert the boolean mask array. Cells that were marked as skippable
+ * (true) become non-skippable (false), and vice versa.
+ *
+ * @param skip_cell Skip cell updater.
+ */
+void
+gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell);
+
+/**
  * Acquire a reference to the skip cell object.
  * 
  * @param skip_cell Skip cell object to acquire.

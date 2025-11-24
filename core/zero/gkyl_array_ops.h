@@ -131,6 +131,14 @@ struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 struct gkyl_array* gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
+ * Compute element-wise reciprocal, out = 1/out. Returns out.
+ *
+ * @param out Output array.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_invert_by_cell(struct gkyl_array *out);
+
+/**
  * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
  *
  * @param out Output array.
@@ -148,6 +156,23 @@ struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned 
  * @return out array.
  */
 struct gkyl_array* gkyl_array_min_by_cell(struct gkyl_array *out, double a);
+
+/**
+ * Invert boolean array (0 -> 1, 1 -> 0). Returns out.
+ *
+ * @param out Boolean array to invert (must be GKYL_BOOL type).
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_invert_bool(struct gkyl_array *out);
+
+/**
+ * Convert boolean array to double array (false -> 0.0, true -> 1.0).
+ *
+ * @param out Output double array (must be GKYL_DOUBLE type).
+ * @param inp Input boolean array (must be GKYL_BOOL type).
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_bool_to_double(struct gkyl_array *out, const struct gkyl_array *inp);
 
 /**
  * Clear out = val. Returns out.
@@ -364,9 +389,15 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 
 void gkyl_array_divide_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
+void gkyl_array_invert_by_cell_cu(struct gkyl_array* out);
+
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
 void gkyl_array_min_by_cell_cu(struct gkyl_array* out, double a);
+
+void gkyl_array_invert_bool_cu(struct gkyl_array* out);
+
+void gkyl_array_bool_to_double_cu(struct gkyl_array* out, const struct gkyl_array* inp);
 
 void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
 

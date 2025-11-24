@@ -97,6 +97,13 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
   }
 }
 
+void
+gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell)
+{
+  gkyl_array_invert_bool(skip_cell->booleans);
+}
+
+
 struct gkyl_skip_cell*
 gkyl_skip_cell_acquire(struct gkyl_skip_cell *skip_cell)
 {

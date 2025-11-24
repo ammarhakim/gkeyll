@@ -289,7 +289,10 @@ struct gk_collisionless {
   bool write_diagnostics; // Whether to write diagnostics out.
   double scale_fac; // Factor multiplying collisionless terms.
   struct gkyl_array *scale_fac_array; // Array of cell-wise scale factors (for omega_cfl screening).
-  struct gkyl_basis *cfl_basis; // P0 phase space Basis for cflrate calculations.
+  struct gkyl_array *scale_fac_ho; // Host array for scale_fac_array (for GPU diagnostic writes).
+  struct gkyl_array *mask_skip_cell; // Array of cell-wise mask for skipping cells below f_min_threshold.
+  double time_dilation_f_threshold; // Threshold value for skipping cells in time dilation.
+  struct gkyl_skip_cell *cfl_skip_cell; // Skip cell object for time dilation masking.
   bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
   double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring. Set to 0.0 to disable
 
