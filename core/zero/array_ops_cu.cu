@@ -35,9 +35,17 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
 __global__ void
 gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
 {
-  double *out_d = (double*) out->data;
-  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
-    out_d[linc] = val;
+  if (out->type == GKYL_DOUBLE) {
+    double *out_d = (double*) out->data;
+    for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+      out_d[linc] = val;
+  }
+  else if (out->type == GKYL_BOOL) {
+    bool *out_d = (bool*) out->data;
+    bool bval = (val != 0.0); // Convert double to bool
+    for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+      out_d[linc] = bval;
+  }
 }
 
 __global__ void
