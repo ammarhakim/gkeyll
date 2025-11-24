@@ -82,10 +82,6 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
       double omega_max_local;
       gkyl_array_reduce(&omega_max_local, gkcls->mask_skip_cell, GKYL_MAX);
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
-
-      gkyl_comm_array_write(app->comm, &gks->grid, &gks->local, NULL,
-        gkcls->mask_skip_cell, "debug_collisionless_time_dilation_mask.gkyl");
-      printf("Max omega from time dilation mask: %g\n", omega_max);
     }
     else {
       if (gkcls->cfl_dt_min_omegaH) {
