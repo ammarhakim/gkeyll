@@ -313,6 +313,12 @@ qprofile_func(void *ctx)
     ival = ival1 + ival2;
   }
 
+  if (actx->ftype == GKYL_IWL) {
+    double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo);
+    double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo);
+    ival = ival1 + ival2;
+  }
+
   if (actx->ftype == GKYL_LSN_SOL) {
     double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_right, actx->zmax, rright, false, false, arc_memo);
     double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_left, actx->zmax, rleft, false, false, arc_memo);
