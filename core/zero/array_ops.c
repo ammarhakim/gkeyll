@@ -186,6 +186,22 @@ gkyl_array_min_by_cell_range(struct gkyl_array* out, double a, const struct gkyl
   return out;
 }
 
+gkyl_array_divide_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == a->size && NCOM(a) == 1);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_divide_by_cell_cu(out, a); return out; }
+#endif
+
+  double *out_d = out->data;
+  const double *a_d = a->data;
+  for (size_t i=0; i<out->size; ++i)
+    for (size_t c=0; c<NCOM(out); ++c)
+      out_d[i*NCOM(out)+c] = out_d[i*NCOM(out)+c]/a_d[i];
+  return out;
+}
+
 struct gkyl_array*
 gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
 {

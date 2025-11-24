@@ -83,6 +83,8 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
     long clinidx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     const double *bmag_c = gkyl_array_cfetch(up->gk_geom->geo_int.bmag, clinidx);
+    const double *jacobtot_c = gkyl_array_cfetch(up->gk_geom->geo_int.jacobtot, clinidx);
+    const double *jacobtot_inv_c = gkyl_array_cfetch(up->gk_geom->geo_int.jacobtot_inv, clinidx);
 
     double *m0_c = gkyl_array_fetch(m0, clinidx);
     double *delta_m0_c = gkyl_array_fetch(delta_m0, clinidx);
@@ -101,28 +103,38 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
     while (gkyl_range_iter_next(&vel_iter)) {
       long plinidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       double *distf_c = gkyl_array_fetch(distf, plinidx);
+      double *jacobvel_c = gkyl_array_fetch(up->vel_map->jacobvel, plinidx);
 
-      int idx_vel[2];
-      for (int d=conf_rng->ndim; d<phase_rng->ndim; d++) idx_vel[d-conf_rng->ndim] = vel_iter.idx[d];
-      long vlinidx = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
+      long vlinidx = gkyl_range_idx(&up->vel_map->local_vel, vel_iter.idx);
       const double *vmap_c = gkyl_array_cfetch(up->vel_map->vmap, vlinidx);
 
       // Contribution to the old number density from this v-space cell.
       double m0phase_in_c[num_cbasis];
-      for (int k=0; k<num_cbasis; k++)
+      for (int k=0; k<num_cbasis; k++) {
         m0phase_in_c[k] = 0.0;
+      }
       up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_in_c);
 
       // Add to the old number density.
-      for (int k=0; k<num_cbasis; k++)
+      for (int k=0; k<num_cbasis; k++) {
         m0in_c[k] += m0phase_in_c[k];
+      }
 
       // Shift f if needed.
       bool shifted_node = false;
       const bool *skip_cell = gkyl_array_cfetch(up->skip_cell->booleans, plinidx);
       if (*skip_cell) {
+        // Divide by jacobtot and jacobvel so that we are shifting just f.
+        up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
+        for (int k=0; k<distf->ncomp; k++)
+          distf_c[k] /= jacobvel_c[0];
         shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
+        // Multiply by jacobtot and jacobvel to compute M0.
+        up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
+        for (int k=0; k<distf->ncomp; k++)
+          distf_c[k] *= jacobvel_c[0];
       }
+
 
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
@@ -131,30 +143,33 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
           m0phase_out_c[k] = 0.0;
         up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_out_c);
 
-        if (up->kernels->is_m0_positive(m0phase_in_c)) {
-          // Rescale f in this cell so it keeps the same density.
-          double m0ratio_c[num_cbasis];
-          up->kernels->conf_inv_op(m0phase_out_c, m0ratio_c);
-          up->kernels->conf_mul_op(m0phase_in_c, m0ratio_c, m0ratio_c);
+        if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
+          // Rescale f in this cell so it keeps the same cell-averaged density.
+          double m0ratio = m0phase_in_c[0]/m0phase_out_c[0];
 
-          up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
+          for (unsigned int k=0; k<distf->ncomp; ++k) {
+            distf_c[k] *= m0ratio;
+          }
 
           // Add contribution from this phase-space cell to the new number density.
-          for (int k=0; k<num_cbasis; k++)
-            m0_c[k] += m0phase_in_c[k];
+          for (unsigned int k = 0; k < m0->ncomp; ++k) {
+            m0_c[k] += m0ratio*m0phase_out_c[k];
+          }
         }
         else {
           // Add contribution from this phase-space cell to the new number density.
-          for (int k=0; k<num_cbasis; k++)
+          for (int k=0; k<num_cbasis; k++) {
             m0_c[k] += m0phase_out_c[k];
+          }
 
           shiftedf = true;
         }
       }
       else {
         // Add contribution from this phase-space cell to the new number density.
-        for (int k=0; k<num_cbasis; k++)
+        for (int k=0; k<num_cbasis; k++) {
           m0_c[k] += m0phase_in_c[k];
+        }
       }
 
       distf_max = GKYL_MAX2(distf_max, distf_c[0]);
@@ -174,12 +189,14 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
           up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
         }
 
-        for (int k=0; k<num_cbasis; k++)
+        for (int k=0; k<num_cbasis; k++) {
           m0_c[k] = m0in_c[k];
+        }
       }
       else {
-        for (int k=0; k<num_cbasis; k++)
+        for (int k=0; k<num_cbasis; k++) {
           delta_m0_c[k] = m0_c[k] - m0in_c[k];
+        }
       }
     }
   }
@@ -231,8 +248,9 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
       //   - Delta n_s,tot = sum of Delta n for species with same charge sign.
       //   - Delta n_r,tot = sum of Delta n for species with opposite charge sign.
       double delta_m0fac_c[num_cbasis];
-      for (int k=0; k<num_cbasis; k++)
+      for (int k=0; k<num_cbasis; k++) {
         delta_m0fac_c[k] = delta_m0r_tot_c[k] - delta_m0s_tot_c[k];
+      }
 
       up->kernels->conf_mul_op(delta_m0fac_c, delta_m0s_c, delta_m0fac_c);
 
@@ -241,8 +259,9 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
 
       up->kernels->conf_mul_op(delta_m0fac_c, delta_m0s_tot_inv_c, delta_m0fac_c);
 
-      for (int k=0; k<num_cbasis; k++)
+      for (int k=0; k<num_cbasis; k++) {
         delta_m0fac_c[k] += m0s_c[k];
+      }
 
       double m0s_inv_c[num_cbasis];
       up->kernels->conf_inv_op(m0s_c, m0s_inv_c);
