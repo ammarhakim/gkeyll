@@ -104,6 +104,13 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .use_gpu = app->use_gpu,
     };
     f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
+
+    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, app->lower_ghost_par_sol.volume);
+
+    f->gfss_bc_op_sol_lo = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+      &app->basis, &app->lower_skin_par_sol, &app->lower_ghost_par_sol, 1, app->cdim, app->use_gpu);
+    f->gfss_bc_op_sol_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+      &app->basis, &app->upper_skin_par_sol, &app->upper_ghost_par_sol, 1, app->cdim, app->use_gpu);
   }
 
   // Add the SSFG updater for lower and upper application.
@@ -125,6 +132,10 @@ gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_
   if (app->cdim == 3) {
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
     gkyl_bc_twistshift_advance(field->bc_T_UL_up, finout, finout);
+
+    // Apply BC in the SOL so the smoothing with Dirichlet BCs works.
+    gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_sol_lo, field->bc_buffer, finout);
+    gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_sol_up, field->bc_buffer, finout);
   }
 
   // Sync ghost cells between MPI processes.
@@ -853,6 +864,9 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     if(app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
       gkyl_bc_twistshift_release(f->bc_T_UL_up);
+      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_sol_lo);
+      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_sol_up);
+      gkyl_array_release(f->bc_buffer);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
   }

@@ -1204,6 +1204,8 @@ struct gk_field {
   struct gkyl_bc_twistshift *bc_T_LU_lo, *bc_T_UL_up; // TS BC updaters.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_sol_lo, *gfss_bc_op_sol_up;
+  struct gkyl_array *bc_buffer;
   
   // Pointer to functions for the twist-and-shift BCs.
   void (*enforce_parallel_bc_func)(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
