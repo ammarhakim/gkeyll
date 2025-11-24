@@ -2,6 +2,7 @@
 
 #include <gkyl_dg_diffusion_gyrokinetic.h>
 #include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_ref_count.h>
 
 // private header for use in diffusion DG equation object creation
@@ -44,7 +45,7 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
-  double skip_cell_thresh;
+  struct gkyl_skip_cell *skip_cell;
   int num_basis;
 };
 
@@ -1235,7 +1236,13 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
 
-  if (fabs(qInL[0]) < diffusion->skip_cell_thresh && fabs(qInC[0]) < diffusion->skip_cell_thresh && fabs(qInR[0]) < diffusion->skip_cell_thresh) {
+  long pidxL = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxL);
+  long pidxC = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxC);
+  long pidxR = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxR);
+  const bool *skip_cell_L = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxL);
+  const bool *skip_cell_C = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxC);
+  const bool *skip_cell_R = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxR);
+  if (*skip_cell_L && *skip_cell_C && *skip_cell_R) {
     return 0.;
   }
   
@@ -1252,9 +1259,14 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh && fabs(qInSkin[0]) < diffusion->skip_cell_thresh) {
+  long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
+  long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
+  const bool *skip_cell_edge = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
+  const bool *skip_cell_skin = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
+  if (*skip_cell_edge && *skip_cell_skin) {
     return 0.;
   }
+
   if (diffusion->diff_in_dir[dir])
     diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
 
@@ -1271,7 +1283,11 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh) {
+  long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
+  long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
+  const bool *skip_cell_edge = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
+  const bool *skip_cell_skin = gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
+  if (*skip_cell_edge && *skip_cell_skin) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])
@@ -1300,10 +1316,10 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count* ref);
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
  * @param diff_range Range object to index the diffusion coefficient.
- * @param skip_cell_threshold Threshold which to skip cells
+ * @param skip_cell Object for skipping cells during diffusion.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, double skip_cell_threshold);
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_skip_cell *skip_cell);
 #endif

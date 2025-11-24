@@ -1325,6 +1325,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
 
+  gks->skip_cell = gkyl_skip_cell_new(gks->info.skip_cell, gks->local_ext, 
+    app->use_gpu);
+
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
   gks->num_periodic_dir = app->num_periodic_dir;
@@ -1773,6 +1776,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
 
   gkyl_velocity_map_release(s->vel_map);
+
+  gkyl_skip_cell_release(s->skip_cell);
 
   gk_species_collisionless_release(app, &s->collisionless);
 

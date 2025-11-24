@@ -76,6 +76,7 @@ struct gkyl_positivity_shift_gyrokinetic {
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
+  struct gkyl_skip_cell *skip_cell; // Pointer to skip cell object.
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
   struct gkyl_array *shiftedf; // Marks if a shift occured at a given conf-cell.

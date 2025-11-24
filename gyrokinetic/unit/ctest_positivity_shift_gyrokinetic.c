@@ -8,6 +8,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_util.h>
@@ -229,8 +230,12 @@ test_1x2v(int poly_order, bool use_gpu)
   deltaf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_array_set(deltaf, -1.0, distf);
 
+
+  struct gkyl_skip_cell_inp skip_cell_inp = {.threshold = -1.0};
+  struct gkyl_skip_cell *skip_cell = gkyl_skip_cell_new(skip_cell_inp, local, use_gpu);
+
   struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
-    basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu);
+    basis, grid, proj_ctx.mass, skip_cell, gk_geom, gvm, &confLocal_ext, use_gpu);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
   // Project distf and apply the positivity shift again (using new ffloor).

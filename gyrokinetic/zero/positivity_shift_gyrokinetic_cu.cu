@@ -4,6 +4,7 @@ extern "C" {
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_priv.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_skip_cell.h>
 #include <float.h>
 }
 
@@ -77,7 +78,8 @@ __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
   const struct gkyl_range conf_range, const struct gkyl_range vel_range, const struct gkyl_range phase_range,
-  double *ffloor, double ffloor_fac, double cellav_fac, double mass, const struct gkyl_array* GKYL_RESTRICT bmag, 
+  double *ffloor, double ffloor_fac, double cellav_fac, double mass, struct gkyl_skip_cell *skip_cell,
+  const struct gkyl_array* GKYL_RESTRICT bmag, 
   const struct gkyl_array *vmap, struct gkyl_array* GKYL_RESTRICT shiftedf, struct gkyl_array* GKYL_RESTRICT distf,
   struct gkyl_array* GKYL_RESTRICT m0, struct gkyl_array* GKYL_RESTRICT delta_m0)
 {
@@ -116,7 +118,11 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
       atomicAdd(&delta_m0_c[k], m0Local_in[k]);
 
     // Shift f if needed.
-    bool shifted_node = kers->shift(ffloor[0], distf_c);
+    bool shifted_node = false;
+    const bool *to_skip_cell = (const bool *) gkyl_array_cfetch(skip_cell->booleans, plinidx);
+    if (!*to_skip_cell) {
+      shifted_node = kers->shift(ffloor[0], distf_c);
+    }
 
     if (shifted_node) {
       // Compute the new number density local to this phase-space cell.
@@ -249,7 +255,8 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
-     up->cellav_fac, up->mass, up->gk_geom->geo_int.bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
+     up->cellav_fac, up->mass, up->skip_cell,
+     up->gk_geom->geo_int.bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
      distf->on_dev, m0->on_dev, delta_m0->on_dev);
 
   // If a shift took place, rescale f so it keeps the same M0.

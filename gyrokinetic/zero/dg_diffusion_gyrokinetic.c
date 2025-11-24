@@ -1,11 +1,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_diffusion_gyrokinetic.h>
 #include <gkyl_dg_diffusion_gyrokinetic_priv.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_util.h>
 
 void
@@ -20,6 +22,7 @@ gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
   }
   
   struct dg_diffusion_gyrokinetic *diffusion = container_of(base, struct dg_diffusion_gyrokinetic, eqn);
+  gkyl_skip_cell_release(diffusion->skip_cell);
   gkyl_free(diffusion);
 }
 
@@ -41,11 +44,11 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, double skip_cell_threshold, bool use_gpu)
+  int diff_order, const struct gkyl_range *diff_range, struct gkyl_skip_cell *skip_cell, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range, skip_cell_threshold);
+    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range, skip_cell);
 #endif
   
   struct dg_diffusion_gyrokinetic *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
@@ -54,10 +57,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
-  else
-    diffusion->skip_cell_thresh = -1.0;
+  diffusion->skip_cell = gkyl_skip_cell_acquire(skip_cell);
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

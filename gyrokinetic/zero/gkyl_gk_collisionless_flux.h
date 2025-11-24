@@ -22,6 +22,7 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param phase_basis Phase space basis functions
  * @param charge Species charge
  * @param mass Species mass
+ * @param skip_cell Object to skip cells based on criteria.
  * @param collless_type Type of collisionless terms.
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
@@ -33,7 +34,8 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, struct gkyl_skip_cell *skip_cell,
+  enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);

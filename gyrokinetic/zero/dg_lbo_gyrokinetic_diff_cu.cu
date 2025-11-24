@@ -1,10 +1,12 @@
 /* -*- c++ -*- */
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_lbo_gyrokinetic_diff.h>    
+#include <gkyl_dg_lbo_gyrokinetic_diff.h>
 #include <gkyl_dg_lbo_gyrokinetic_diff_priv.h>
+#include <gkyl_skip_cell.h>
 }
 
 #include <cassert>
@@ -84,7 +86,7 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo, enu
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, double skip_cell_threshold, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
+  double mass, struct gkyl_skip_cell *skip_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_lbo_gyrokinetic_diff *lbo =
     (struct dg_lbo_gyrokinetic_diff*) gkyl_malloc(sizeof(*lbo));
@@ -99,16 +101,14 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo->mass = mass;
   lbo->conf_range = *conf_range;
 
-  if (skip_cell_threshold > 0.0)
-    lbo->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
-  else
-    lbo->skip_cell_thresh = -1.0;
-
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  lbo->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+  
   lbo->gk_geom = geom_ho->on_dev;
   lbo->vel_map = vel_map_ho->on_dev;
+
 
   lbo->vparMax = GKYL_MAX2(fabs(vel_map->vbounds[0]),vel_map->vbounds[vdim]);
   lbo->vparMaxSq = pow(lbo->vparMax,2);

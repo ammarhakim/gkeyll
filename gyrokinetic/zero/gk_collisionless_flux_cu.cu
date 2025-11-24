@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -11,6 +12,7 @@ extern "C" {
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_gk_collisionless_flux_priv.h>
+#include <gkyl_skip_cell.h>
 #include <gkyl_util.h>
 }
 
@@ -52,6 +54,7 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
     double* flux_surf_d = (double*) gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
+    double cfl_temp = 0.0;
 
     for (int dir = 0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(pdim, idx, idxL);
@@ -69,12 +72,18 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
       if (idx[dir] == phase_range.lower[dir]) {
         // Lower domain/block boundary.
-        cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cfl_temp = up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
-        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cfl_temp = up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
+      }
+
+      const bool *skipL = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, locL);
+      const bool *skipR = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
+      if (!*skipL && !*skipR) {
+        cflrate_d[0] += cfl_temp;
       }
 
       // If the phase space index is at the local configuration space upper value, we
@@ -99,8 +108,11 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
         double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cflrate_ext_d[0] = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
+        if (!skipL && !skipR) {
+          cflrate_ext_d[0] = cfl_temp;
+        } 
       }  
     }
   }
@@ -146,6 +158,7 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
 
     double* flux_surf_d = (double*) gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
+    double cfl_temp = 0.0;
 
     int dir = cdim;
     gkyl_copy_int_arr(pdim, idx, idxL);
@@ -160,13 +173,20 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
     const double *vpL = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
     const double *vpR = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
 
+    const bool *skipL = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, locL);
+    const bool *skipR = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
+
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
 
-    cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
+    cfl_temp += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
       vpL, vpR,
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
+
+    if (!*skipL && !*skipR) {
+      cflrate_d[0] += cfl_temp;
+    }
   }
 }
 
@@ -229,7 +249,8 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type type,
+  const double charge, const double mass, struct gkyl_skip_cell *skip_cell,
+  enum gkyl_gk_collisionless_type type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
@@ -246,6 +267,8 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
 
   up->charge = charge;
   up->mass = mass;
+
+  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
