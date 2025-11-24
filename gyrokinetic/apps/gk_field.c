@@ -56,19 +56,24 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   int par_dir = app->cdim - 1;
   // Take the TS function from the parallel BC of the first species.
   struct gk_species *gks = &app->species[0];
-  const struct gkyl_gyrokinetic_bc *par_lower_bc;
+  const struct gkyl_gyrokinetic_bc *par_lower_bc, *par_upper_bc;
   for (int i=0; i<2*app->cdim; i++) {
-    if (gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
-      par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
-      break;
+    if (gks->info.bcs[i].dir) {
+      if (gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
+        par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
+        break;
+      }
+      if (gks->info.bcs[i].edge == GKYL_UPPER_EDGE) {
+        par_upper_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
+        break;
+      }
     }
   }
 
   // TSBC updaters
   int ghost[] = {1, 1, 1};
   if (app->cdim == 3) {
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_LU(ghost_L)
+    //TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
     struct gkyl_bc_twistshift_inp T_LU_lo = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
@@ -76,15 +81,31 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
       .bcdir_ext_update_r = app->local_par_ext_core,
-      .num_ghost = ghost, // one ghost per config direction
+      .num_ghost = ghost,
       .basis = app->basis,
       .grid = app->grid,
       .shift_func = par_lower_bc->aux_profile,
       .shift_func_ctx = par_lower_bc->aux_ctx,
       .use_gpu = app->use_gpu,
     };
-    // Add the forward TS updater to f
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+
+    // TS BC updater for low to up TS for the upper edge. This sets ghost_L = T_LU(ghost_L).
+    struct gkyl_bc_twistshift_inp T_UL_up = {
+      .bc_dir = par_dir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_UPPER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = app->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = app->basis,
+      .grid = app->grid,
+      .shift_func = par_upper_bc->aux_profile,
+      .shift_func_ctx = par_upper_bc->aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
+    f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
   }
 
   // Add the SSFG updater for lower and upper application.
@@ -105,13 +126,14 @@ gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_
   // Update the lower z ghosts with twist-and-shift if we are in 3x2v
   if (app->cdim == 3) {
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
+    gkyl_bc_twistshift_advance(field->bc_T_UL_up, finout, finout);
   }
 
   // Sync ghost cells between MPI processes.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
 
-  // Force the lower skin surface value to match the ghost cell at the node position.
-  gkyl_skin_surf_from_ghost_advance(field->ssfg_z_lo, finout);
+//  // Force the lower skin surface value to match the ghost cell at the node position.
+//  gkyl_skin_surf_from_ghost_advance(field->ssfg_z_lo, finout);
 }
 
 static void
@@ -357,14 +379,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Potential smoothing (in z) updater
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+ // if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     enum gkyl_fem_parproj_bc_type fem_parproj_bc_core, fem_parproj_bc_sol;
     if (app->cdim == 2) {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     } else {
-      fem_parproj_bc_core = GKYL_FEM_PARPROJ_NONE;
-      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
+      fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
+      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_DIRICHLET;
     }
 
     f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,
@@ -372,9 +394,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
       
-    f->fem_projection_par_func = gk_field_fem_projection_par_iwl;
-  } 
-  else {
+    f->fem_projection_par_func_pre = gk_field_fem_projection_par;
+    f->fem_projection_par_func_post = gk_field_fem_projection_par_iwl;
+//  } 
+//  else {
     enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
     for (int d=0; d<app->num_periodic_dir; ++d)
       if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
@@ -382,8 +405,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
       fem_parproj_bc, epsilon_global, 0, app->use_gpu);
 
-    f->fem_projection_par_func = gk_field_fem_projection_par;
-  }
+//    f->fem_projection_par_func_pre = gk_field_fem_projection_par;
+//    f->fem_projection_par_func_post = gk_field_fem_projection_par;
+//  }
 
   if (epsilon_global)
     gkyl_array_release(epsilon_global);
@@ -660,20 +684,20 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     }
     else if (app->cdim > 1) {
       // Smooth the charge density along z.
-      field->fem_projection_par_func(app, field, field->rho_c, field->rho_c);
+      field->fem_projection_par_func_pre(app, field, field->rho_c, field->rho_c);
 
       // Solve the Poisson equation.
       gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c);
       gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
 
+      // Enforce a BC of the field in the parallel direction.
+      field->enforce_parallel_bc_func(app, field, field->phi_smooth);
+
       // Smooth the potential along z.
-      field->fem_projection_par_func(app, field, field->phi_smooth, field->phi_smooth);
+      field->fem_projection_par_func_post(app, field, field->phi_smooth, field->phi_smooth);
 
       // Finish the Poisson solve with FLR effects.
       field->invert_flr(app, field, field->phi_smooth);
-
-      // Enforce a BC of the field in the parallel direction.
-      field->enforce_parallel_bc_func(app, field, field->phi_smooth);
     }
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -819,17 +843,18 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
   }
 
-  if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+//  if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_fem_parproj_release(f->fem_parproj_core);
     gkyl_fem_parproj_release(f->fem_parproj_sol);
-  } else {
+//  } else {
     gkyl_fem_parproj_release(f->fem_parproj);
-  }
+//  }
 
   // Release TS BS and SSFG updater
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     if(app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
+      gkyl_bc_twistshift_release(f->bc_T_UL_up);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
   }
