@@ -45,14 +45,7 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
   }
 #endif
   
-  // Initialize all cells to false (not skipped).
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &skip_cell->phase_rng);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&skip_cell->phase_rng, iter.idx);
-    bool *skip_c = gkyl_array_fetch(skip_cell->booleans, linidx);
-    *skip_c = false;
-  }
+  gkyl_array_clear(skip_cell->booleans, false);
 
   // Initialize reference counter.
   skip_cell->ref_count = gkyl_ref_count_init(skip_cell_free);
