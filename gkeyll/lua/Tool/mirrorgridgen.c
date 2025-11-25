@@ -1,8 +1,10 @@
-#include <gkyl_array_rio.h>
-#include <gkyl_mirror_grid_gen.h>
+#include <stc/cstr.h>
 #include <gkylt_mirrorgridgen.h>
 
-#include <stc/cstr.h>
+#ifdef GKYL_HAVE_GYROKINETIC
+
+#include <gkyl_mirror_grid_gen.h>
+#include <gkyl_array_rio.h>
 
 static void
 split_mirror_grid_data(
@@ -227,3 +229,11 @@ gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp)
   
   return status;
 }
+
+#else
+bool
+gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp) {
+  fprintf(stderr, "Mirror grid generation tool not built with GYROKINETIC support!\n");
+  return false;
+}
+#endif

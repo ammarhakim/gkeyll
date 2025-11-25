@@ -1,9 +1,12 @@
 #pragma once
 
+#ifdef GKYL_HAVE_GYROKINETIC
 #include <gkyl_mirror_grid_gen.h>
-
+#endif
 struct gkylt_mirrorgridgen_inp {
+  #ifdef GKYL_HAVE_GYROKINETIC
   enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+  #endif
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
 
   double lower[3], upper[3]; // lower and upper bounds of computational space
