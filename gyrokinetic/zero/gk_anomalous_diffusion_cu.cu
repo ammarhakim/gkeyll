@@ -74,6 +74,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
         // Boundary surf kernel not used.
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      }
       else {
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
