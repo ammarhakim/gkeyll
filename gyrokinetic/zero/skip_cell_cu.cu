@@ -71,7 +71,7 @@ gkyl_skip_cell_advance_kernel(struct gkyl_range phase_rng,
       if (fabs(distf_c[0]) < f_threshold) {
         *skip_c = 1.0;
       } else {
-        *skip_c = 0.0;
+        *skip_c = -1.0;
       }
     }
   }

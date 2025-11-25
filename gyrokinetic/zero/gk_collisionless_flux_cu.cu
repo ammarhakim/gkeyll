@@ -82,7 +82,7 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
       const double *skipL = (const double *) gkyl_array_cfetch(up->skip_cell->mask, locL);
       const double *skipR = (const double *) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
-      if (*skipL < 0.5 && *skipR < 0.5) {
+      if (*skipL < 0.0 && *skipR < 0.0) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -184,7 +184,7 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
 
-    if (*skipL < 0.5 && *skipR < 0.5) {
+    if (*skipL < 0.0 && *skipR < 0.0) {
       cflrate_d[0] += cfl_temp;
     }
   }

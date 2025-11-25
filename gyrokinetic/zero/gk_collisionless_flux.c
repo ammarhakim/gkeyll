@@ -146,7 +146,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
       }
       const double *skip_cell_L = (const double*) gkyl_array_cfetch(up->skip_cell->mask, locL);
       const double *skip_cell_R = (const double*) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
-      if (*skip_cell_L < 0.5 && *skip_cell_R < 0.5) {
+      if (*skip_cell_L < 0.0 && *skip_cell_R < 0.0) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -224,7 +224,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     const double *skip_cell_L = (const double*) gkyl_array_cfetch(up->skip_cell->mask, locL);
     const double *skip_cell_R = (const double*) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
-    if (*skip_cell_L < 0.5 && *skip_cell_R < 0.5) {
+    if (*skip_cell_L < 0.0 && *skip_cell_R < 0.0) {
       cflrate_d[0] += cfl_temp;
     }
   }

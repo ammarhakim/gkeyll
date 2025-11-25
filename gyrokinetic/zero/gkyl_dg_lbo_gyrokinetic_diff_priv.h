@@ -67,7 +67,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
   const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (*skip_cell > 0.0) {
     return 0.;
   }
 
@@ -104,7 +104,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
   const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (*skip_cell > 0.0) {
     return 0.;
   }
 
@@ -141,7 +141,7 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
   const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (*skip_cell > 0.0) {
     return 0.;
   }
   
@@ -178,7 +178,7 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
   const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (*skip_cell > 0.0) {
     return 0.;
   }
   
@@ -326,7 +326,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double *skip_cell_L = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxL);
   const double *skip_cell_C = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxC);
   const double *skip_cell_R = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxR);
-  if (*skip_cell_L > 0.5 && *skip_cell_C > 0.5 && *skip_cell_R > 0.5) {
+  if (*skip_cell_L > 0.0 && *skip_cell_C > 0.0 && *skip_cell_R > 0.0) {
     return 0.;
   }
 
@@ -380,7 +380,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
   long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
   const double *skip_cell_edge = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxEdge);
   const double *skip_cell_skin = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.5 && *skip_cell_skin > 0.5) {
+  if (*skip_cell_edge > 0.0 && *skip_cell_skin > 0.0) {
     return 0.;
   }
 

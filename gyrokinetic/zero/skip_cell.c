@@ -86,11 +86,11 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
     double *skip_c = gkyl_array_fetch(skip_cell->mask, linidx);
     
     // Mark cell as skippable if distribution function is below threshold.
-    // Using fabs to check absolute value of the cell-averaged distribution function.
+    // 1.0 is true, -1.0 is false. True means we will skip this cell.
     if (fabs(distf_c[0]) < skip_cell->f_threshold) {
       *skip_c = 1.0;
     } else {
-      *skip_c = 0.0;
+      *skip_c = -1.0;
     }
   }
 }
