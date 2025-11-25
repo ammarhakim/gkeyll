@@ -81,7 +81,7 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
 
     const double *skip_cell_s = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_s);
     const double *skip_cell_g = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_g);
-    if (*skip_cell_s == 1.0 && *skip_cell_g == 1.0) {
+    if (*skip_cell_s > 0.5 && *skip_cell_g > 0.5) {
       for (int d=0; d<fluxOut->ncomp; ++d) {
         fluxOut_g[d] = 0.0;
       }
