@@ -339,7 +339,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_D0*2.3, ctx.vpar_max_D0*25.1, ctx.vpar_max_D0*9.0 },
     .cells = { 24,24,24 },
     .is_static = false,
-    .enforce_positivity = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -370,12 +369,17 @@ main(int argc, char **argv)
        }, 
     }, 
 
-    //.collisions =  { 
-    //  .collision_id = GKYL_BGK_COLLISIONS, 
-    //  .self_nu = evalNuD0, 
-    //  .ctx = &ctx, 
-    //  //.is_implicit = true, 
-    //}, 
+//    .collisions =  { 
+//      .collision_id = GKYL_BGK_COLLISIONS, 
+//      .self_nu = evalNuD0, 
+//      .ctx = &ctx, 
+//      //.is_implicit = true, 
+//    }, 
+
+//    .positivity = {
+//      .type = GKYL_GK_POSITIVITY_SHIFT,
+//      .write_diagnostics = true,
+//    },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
