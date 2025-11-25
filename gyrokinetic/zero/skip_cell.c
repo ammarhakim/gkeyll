@@ -50,7 +50,7 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
   struct gkyl_skip_cell *skip_cell_out = skip_cell;
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    skip_cell_out = gkyl_skip_cell_new_cu_dev(skip_cell);
+    skip_cell_out = gkyl_skip_cell_cu_dev_new(skip_cell);
     gkyl_skip_cell_release(skip_cell);
   }
 #endif

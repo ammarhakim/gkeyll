@@ -13,7 +13,7 @@ extern "C" {
 #ifdef GKYL_HAVE_CUDA
 
 struct gkyl_skip_cell* 
-gkyl_skip_cell_new_cu_dev(struct gkyl_skip_cell *skip_cell_ho)
+gkyl_skip_cell_cu_dev_new(struct gkyl_skip_cell *skip_cell_ho)
 {
   struct gkyl_skip_cell *skip_cell = (struct gkyl_skip_cell *) gkyl_malloc(sizeof(*skip_cell));
 

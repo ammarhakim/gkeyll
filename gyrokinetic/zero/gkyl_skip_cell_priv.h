@@ -23,7 +23,7 @@ gkyl_skip_cell_free(const struct gkyl_ref_count *ref);
  * @return New skip cell object on device.
  */
 struct gkyl_skip_cell*
-gkyl_skip_cell_new_cu_dev(struct gkyl_skip_cell *skip_cell_ho);
+gkyl_skip_cell_cu_dev_new(struct gkyl_skip_cell *skip_cell_ho);
 
 /**
  * CUDA device function to update skip cell mask on GPU.
