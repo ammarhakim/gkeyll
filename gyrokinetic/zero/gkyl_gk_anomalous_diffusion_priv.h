@@ -137,10 +137,10 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxL = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxL);
   long pidxC = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxC);
   long pidxR = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxR);
-  const bool *skipL = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxL);
-  const bool *skipC = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxC);
-  const bool *skipR = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxR);
-  if (*skipL && *skipC && *skipR) {
+  const double *skipL = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxL);
+  const double *skipC = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxC);
+  const double *skipR = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxR);
+  if (*skipL == 1.0 && *skipC == 1.0 && *skipR == 1.0) {
     return 0.;
   }
   
@@ -159,9 +159,9 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
-  const bool *skipEdge = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxEdge);
-  const bool *skipSkin = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
-  if (*skipEdge && *skipSkin) {
+  const double *skipEdge = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxEdge);
+  const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
+  if (*skipEdge == 1.0 && *skipSkin == 1.0) {
     return 0.;
   }
 
@@ -187,9 +187,9 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
 
   long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
   long pidxGhost = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxGhost);
-  const bool *skipSkin = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxSkin);
-  const bool *skipGhost = (const bool*) gkyl_array_cfetch(gkad->skip_cell->booleans, pidxGhost);
-  if (*skipSkin && *skipGhost) {
+  const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
+  const double *skipGhost = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxGhost);
+  if (*skipSkin == 1.0 && *skipGhost == 1.0) {
     return 0.;
   }
 

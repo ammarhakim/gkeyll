@@ -29,10 +29,14 @@ struct gkyl_skip_cell_inp {
  */
 struct gkyl_skip_cell {
   enum skip_cell_types type; // Type of skip cell operation.
-  struct gkyl_array *booleans; // Boolean mask array (GKYL_BOOL type).
-  double skip_cell_threshold; // Threshold for marking cells as skippable.
+  struct gkyl_array *mask; // Boolean mask array (GKYL_BOOL type).
+  double f_threshold; // Threshold for marking cells as skippable.
   struct gkyl_range phase_rng; // Phase-space range.
   bool use_gpu; // Flag indicating GPU usage.
+  
+  uint32_t flags;
+  struct gkyl_skip_cell *on_dev; // Pointer to device object.
+  
   struct gkyl_ref_count ref_count; // Reference counter.
 };
 
@@ -67,6 +71,15 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
  */
 void
 gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell);
+
+/**
+ * Check if skip_cell object is on CUDA device.
+ *
+ * @param skip_cell Skip cell object.
+ * @return True if on device, false otherwise.
+ */
+bool 
+gkyl_skip_cell_is_cu_dev(const struct gkyl_skip_cell* skip_cell);
 
 /**
  * Acquire a reference to the skip cell object.

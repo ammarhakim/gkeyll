@@ -101,7 +101,10 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  diffusion->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+
+  // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gkyl_skip_cell *skip_cell_ho = gkyl_skip_cell_acquire(skip_cell);
+  diffusion->skip_cell = skip_cell_ho->on_dev;
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;
@@ -119,6 +122,9 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
   struct dg_diffusion_gyrokinetic* diffusion_cu = (struct dg_diffusion_gyrokinetic*) gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);
   dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
+
+  // Updater should store host pointers.
+  diffusion->skip_cell = skip_cell_ho;
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

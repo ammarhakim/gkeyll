@@ -665,46 +665,10 @@ void test_cu_array_dev_kernel()
 
 #endif
 
-void test_array_bool()
-{
-  struct gkyl_array *arr = gkyl_array_new(GKYL_BOOL, 1, 100);
-
-  TEST_CHECK( arr->type == GKYL_BOOL );
-  TEST_CHECK( arr->elemsz == sizeof(bool) );
-  TEST_CHECK( arr->ncomp == 1 );
-  TEST_CHECK( arr->size == 100 );
-  TEST_CHECK( arr->ref_count.count == 1 );
-
-  bool *arrData = arr->data;
-  
-  // Check initialization to false
-  for (unsigned i=0; i<arr->size; ++i)
-    TEST_CHECK( arrData[i] == false );
-
-  // Set some values to true
-  for (unsigned i=0; i<arr->size; ++i)
-    arrData[i] = (i % 2 == 0);
-
-  // Verify values
-  for (unsigned i=0; i<arr->size; ++i)
-    TEST_CHECK( arrData[i] == (i % 2 == 0) );
-
-  // Clone array and verify
-  struct gkyl_array *brr = gkyl_array_clone(arr);
-  bool *brrData = brr->data;
-  
-  for (unsigned i=0; i<brr->size; ++i)
-    TEST_CHECK( brrData[i] == arrData[i] );
-
-  gkyl_array_release(arr);
-  gkyl_array_release(brr);
-}
-
 TEST_LIST = {
   { "array_0", test_array_0 },  
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
-  { "array_bool", test_array_bool },
   { "non_numeric", test_non_numeric },
   { "grid_sub_array_read_1", test_grid_sub_array_read_1 },
   { "grid_sub_array_read_2", test_grid_sub_array_read_2 },  

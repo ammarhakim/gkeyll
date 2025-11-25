@@ -66,8 +66,8 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const bool *skip_cell = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
-  if (*skip_cell) {
+  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
+  if (*skip_cell == 1.0) {
     return 0.;
   }
 
@@ -103,8 +103,8 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const bool *skip_cell = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
-  if (*skip_cell) {
+  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
+  if (*skip_cell == 1.0) {
     return 0.;
   }
 
@@ -140,8 +140,8 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const bool *skip_cell = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
-  if (*skip_cell) {
+  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
+  if (*skip_cell == 1.0) {
     return 0.;
   }
   
@@ -177,8 +177,8 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const bool *skip_cell = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidx);
-  if (*skip_cell) {
+  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
+  if (*skip_cell == 1.0) {
     return 0.;
   }
   
@@ -323,10 +323,10 @@ surf(const struct gkyl_dg_eqn *eqn,
   long pidxL = gkyl_range_idx(&lbo->vel_map->local, idxL);
   long pidxC = gkyl_range_idx(&lbo->vel_map->local, idxC);
   long pidxR = gkyl_range_idx(&lbo->vel_map->local, idxR);
-  const bool *skip_cell_L = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidxL);
-  const bool *skip_cell_C = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidxC);
-  const bool *skip_cell_R = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidxR);
-  if (*skip_cell_L && *skip_cell_C && *skip_cell_R) {
+  const double *skip_cell_L = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxL);
+  const double *skip_cell_C = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxC);
+  const double *skip_cell_R = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxR);
+  if (*skip_cell_L == 1.0 && *skip_cell_C == 1.0 && *skip_cell_R == 1.0) {
     return 0.;
   }
 
@@ -378,9 +378,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 
   long pidxEdge = gkyl_range_idx(&lbo->vel_map->local, idxEdge);
   long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
-  const bool *skip_cell_edge = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidxEdge);
-  const bool *skip_cell_skin = (const bool*) gkyl_array_cfetch(lbo->skip_cell->booleans, pidxSkin);
-  if (*skip_cell_edge && *skip_cell_skin) {
+  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxEdge);
+  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxSkin);
+  if (*skip_cell_edge == 1.0 && *skip_cell_skin == 1.0) {
     return 0.;
   }
 

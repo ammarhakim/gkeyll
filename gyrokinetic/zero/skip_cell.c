@@ -1,20 +1,24 @@
 #include <gkyl_skip_cell.h>
 #include <gkyl_skip_cell_priv.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 
 #include <assert.h>
 #include <float.h>
 
 // Free function for reference counting.
-static void
-skip_cell_free(const struct gkyl_ref_count *ref)
+void
+gkyl_skip_cell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_skip_cell *skip_cell = container_of(ref, struct gkyl_skip_cell, ref_count);
   
-  // Release the boolean array.
-  if (skip_cell->booleans)
-    gkyl_array_release(skip_cell->booleans);
+  // Release the mask array.
+  if (skip_cell->mask)
+    gkyl_array_release(skip_cell->mask);
+  
+  if (GKYL_IS_CU_ALLOC(skip_cell->flags))
+    gkyl_cu_free(skip_cell->on_dev);
   
   gkyl_free(skip_cell);
 }
@@ -28,29 +32,30 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
   skip_cell->type = skip_cell_inp.type;
 
   if (skip_cell->type == GKYL_GK_SKIP_CELL_F_THRESHOLD) {
-    skip_cell->skip_cell_threshold = skip_cell_inp.threshold * pow(sqrt(2.0), phase_rng.ndim);
+    skip_cell->f_threshold = skip_cell_inp.threshold * pow(sqrt(2.0), phase_rng.ndim);
   }
 
   skip_cell->use_gpu = use_gpu;
   skip_cell->phase_rng = phase_rng;
   
-  // Initialize the boolean mask array.
-  // Size is the total number of cells in phase space.
-  if (!use_gpu) {
-    skip_cell->booleans = gkyl_array_new(GKYL_BOOL, 1, phase_rng.volume);
-  }
+  // Initialize the mask array on host.
+  skip_cell->mask = gkyl_array_new(GKYL_DOUBLE, 1, phase_rng.volume);
+  gkyl_array_clear(skip_cell->mask, false);
+
+  skip_cell->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(skip_cell->flags);
+  skip_cell->ref_count = gkyl_ref_count_init(gkyl_skip_cell_free);
+  skip_cell->on_dev = skip_cell; // CPU skip_cell points to itself
+
+  struct gkyl_skip_cell *skip_cell_out = skip_cell;
 #ifdef GKYL_HAVE_CUDA
-  else {
-    skip_cell->booleans = gkyl_array_cu_dev_new(GKYL_BOOL, 1, phase_rng.volume);
+  if (use_gpu) {
+    skip_cell_out = gkyl_skip_cell_new_cu_dev(skip_cell);
+    gkyl_skip_cell_release(skip_cell);
   }
 #endif
   
-  gkyl_array_clear(skip_cell->booleans, false);
-
-  // Initialize reference counter.
-  skip_cell->ref_count = gkyl_ref_count_init(skip_cell_free);
-  
-  return skip_cell;
+  return skip_cell_out;
 }
 
 void
@@ -67,7 +72,7 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
   }
 #endif
 
-  // Host implementation: iterate over phase space and update boolean mask.
+  // Host implementation: iterate over phase space and update mask.
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &skip_cell->phase_rng);
   
@@ -77,15 +82,15 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
     // Fetch the distribution function at this cell.
     const double *distf_c = gkyl_array_cfetch(distf, linidx);
     
-    // Fetch the boolean mask value for this cell.
-    bool *skip_c = gkyl_array_fetch(skip_cell->booleans, linidx);
+    // Fetch the mask value for this cell.
+    double *skip_c = gkyl_array_fetch(skip_cell->mask, linidx);
     
     // Mark cell as skippable if distribution function is below threshold.
     // Using fabs to check absolute value of the cell-averaged distribution function.
-    if (fabs(distf_c[0]) < skip_cell->skip_cell_threshold) {
-      *skip_c = true;
+    if (fabs(distf_c[0]) < skip_cell->f_threshold) {
+      *skip_c = 1.0;
     } else {
-      *skip_c = false;
+      *skip_c = 0.0;
     }
   }
 }
@@ -93,9 +98,14 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
 void
 gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell)
 {
-  gkyl_array_invert_bool(skip_cell->booleans);
+  gkyl_array_invert_by_cell(skip_cell->mask);
 }
 
+bool
+gkyl_skip_cell_is_cu_dev(const struct gkyl_skip_cell* skip_cell)
+{
+  return GKYL_IS_CU_ALLOC(skip_cell->flags);
+}
 
 struct gkyl_skip_cell*
 gkyl_skip_cell_acquire(struct gkyl_skip_cell *skip_cell)

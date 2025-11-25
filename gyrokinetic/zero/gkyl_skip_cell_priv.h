@@ -5,8 +5,25 @@
 #include <gkyl_skip_cell.h>
 #include <gkyl_ref_count.h>
 
+/**
+ * Function that actually frees memory associated with this
+ * object when the number of references has decreased to zero.
+ *
+ * @param ref Reference counter for this object.
+ */
+void
+gkyl_skip_cell_free(const struct gkyl_ref_count *ref);
 
 #ifdef GKYL_HAVE_CUDA
+
+/**
+ * Create a new skip cell object on CUDA device.
+ *
+ * @param skip_cell_ho Host-side skip cell object.
+ * @return New skip cell object on device.
+ */
+struct gkyl_skip_cell*
+gkyl_skip_cell_new_cu_dev(struct gkyl_skip_cell *skip_cell_ho);
 
 /**
  * CUDA device function to update skip cell mask on GPU.

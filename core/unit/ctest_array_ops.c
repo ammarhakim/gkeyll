@@ -35,32 +35,6 @@ void test_array_clear()
   gkyl_array_release(a1);
 }
 
-void test_array_clear_bool()
-{
-  struct gkyl_array *a_bool = gkyl_array_new(GKYL_BOOL, 1, 10);
-
-  // Test setting to true (non-zero value)
-  gkyl_array_clear(a_bool, 1.0);
-  bool *a_bool_d = a_bool->data;
-  
-  for (unsigned i=0; i<a_bool->size; ++i)
-    TEST_CHECK( a_bool_d[i] == true );
-
-  // Test setting to false (zero value)
-  gkyl_array_clear(a_bool, 0.0);
-  
-  for (unsigned i=0; i<a_bool->size; ++i)
-    TEST_CHECK( a_bool_d[i] == false );
-
-  // Test that any non-zero value becomes true
-  gkyl_array_clear(a_bool, 42.7);
-  
-  for (unsigned i=0; i<a_bool->size; ++i)
-    TEST_CHECK( a_bool_d[i] == true );
-
-  gkyl_array_release(a_bool);
-}
-
 void test_array_clear_range()
 {
   int shape[] = {10, 20};
@@ -2201,7 +2175,6 @@ void test_array_min_range_dev() {
 
 TEST_LIST = {
   { "array_clear", test_array_clear },
-  { "array_clear_bool", test_array_clear_bool },
   { "array_clear_range", test_array_clear_range },
   { "array_accumulate", test_array_accumulate },
   { "array_accumulate_range", test_array_accumulate_range },

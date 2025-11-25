@@ -19,23 +19,15 @@ gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)
 struct gkyl_array*
 gkyl_array_clear(struct gkyl_array* out, double val)
 {
-  assert(out->type == GKYL_DOUBLE || out->type == GKYL_BOOL);
+  assert(out->type == GKYL_DOUBLE);
 
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {gkyl_array_clear_cu(out, val); return out; }
 #endif
 
-  if (out->type == GKYL_DOUBLE) {
-    double *out_d = out->data;
-    for (size_t i=0; i<NELM(out); ++i)
-      out_d[i] = val;
-  }
-  else if (out->type == GKYL_BOOL) {
-    bool *out_d = out->data;
-    bool bval = (val != 0.0); // Convert double to bool
-    for (size_t i=0; i<NELM(out); ++i)
-      out_d[i] = bval;
-  }
+  double *out_d = out->data;
+  for (size_t i=0; i<NELM(out); ++i)
+    out_d[i] = val;
   return out;
 }
 

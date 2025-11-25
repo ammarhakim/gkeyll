@@ -45,8 +45,7 @@ bool
 gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
 
 /**
- * Clear out = val. Returns out. Works with both GKYL_DOUBLE and GKYL_BOOL arrays.
- * For boolean arrays, val is converted to bool (0.0 = false, non-zero = true).
+ * Clear out = val. Returns out.
  *
  * @param out Output array
  * @param val Factor to set 

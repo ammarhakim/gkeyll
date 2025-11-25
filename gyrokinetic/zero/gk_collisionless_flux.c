@@ -144,9 +144,9 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         cfl_temp = up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       }
-      const bool *skip_cell_L = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, locL);
-      const bool *skip_cell_R = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
-      if (!*skip_cell_L && !*skip_cell_R) {
+      const double *skip_cell_L = (const double*) gkyl_array_cfetch(up->skip_cell->mask, locL);
+      const double *skip_cell_R = (const double*) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
+      if (*skip_cell_L == 0.0 && *skip_cell_R == 0.0) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -222,9 +222,9 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     cfl_temp += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
 
-    const bool *skip_cell_L = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, locL);
-    const bool *skip_cell_R = (const bool*) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
-    if (!*skip_cell_L && !*skip_cell_R) {
+    const double *skip_cell_L = (const double*) gkyl_array_cfetch(up->skip_cell->mask, locL);
+    const double *skip_cell_R = (const double*) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
+    if (*skip_cell_L == 0.0 && *skip_cell_R == 0.0) {
       cflrate_d[0] += cfl_temp;
     }
   }
