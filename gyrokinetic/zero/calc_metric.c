@@ -297,6 +297,9 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         dxdz[1][1] = 0.0;
         dxdz[2][1] = -1.0;
 
+        // Get position map deriv for psi
+        double *ddpsi_n = gkyl_array_fetch(gk_geom->geo_int.ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
@@ -306,7 +309,7 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
+        double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
         // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
         if (ddtheta_n[2] < 0) {
@@ -477,6 +480,9 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         dxdz[1][1] = 0.0;
         dxdz[2][1] = -1.0;
 
+        // Get position map deriv for psi
+        double *ddpsi_n = gkyl_array_fetch(gk_geom->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
@@ -486,7 +492,7 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
+        double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
         // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
         if (ddtheta_n[2] < 0) {

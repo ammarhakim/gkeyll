@@ -39,6 +39,7 @@ struct gk_geom_surf {
   struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot_inv_nodal; // 1 component. 1/(JB)
   struct gkyl_array* ddtheta_nodal;   // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes
+  struct gkyl_array* ddpsi_nodal;   // dPsi/dpsi at surf quad nodes
   struct gkyl_array* g_ij_nodal;   // g_{ij}
   struct gkyl_array* dxdz_nodal; // 9 components.
                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
@@ -112,6 +113,7 @@ struct gk_geom_int {
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
   struct gkyl_array *ddtheta_nodal;
+  struct gkyl_array *ddpsi_nodal;// dPsi/dpsi at interior quad nodes
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* mc2p_nodal_fd; // 39 components. Cartesian X,Y, and Z at nodes and FD nodes.
   /* Array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
@@ -272,8 +274,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
  * Augment a grid with dim < 3 to 3d by adding 1 cell in the other directions
  * If dim=1, the input grid is assumed to be in z
  * If dim =2, the input grid is assumed to be in xz
- * @param grid input grid with dim <3
- * @ param geometry geometry input struct with context for augmenting grid
+ *
+ * @param grid Input grid with dim <3.
+ * @param geometry Geometry input struct with context for augmenting grid.
  */
 struct gkyl_rect_grid 
 gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometry_inp geometry);
@@ -283,42 +286,58 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
  * Augment a range with dim < 3 to 3d by adding 1 cell in the other directions
  * If dim=1, the input range is assumed to be in z
  * If dim =2, the input range is assumed to be in xz
- * @param inrange input range with dim <3
- * @param nghost number of ghost cells
- * @param ext_range output, augmented extended range
- * @param range output, augmented range
+ *
+ * @param inrange Input range with dim <3.
+ * @param nghost Number of ghost cells.
+ * @param ext_range Output, augmented extended range.
+ * @param range Output, augmented range.
  */
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
 
 /**
- * Reduce bmag to get min or max value.
- * Only to be used during initialization because it allocates memory
- *  @param up gk_geometry object
- *  @param op operation to perform (GKYL_MAX or GKYL_MIN)
+ * Reduce bmag to get min or max value, by evaluating bmag at basis nodes.
+ * Only to be used during initialization because it allocates memory.
+ *
+ *  @param up gk_geometry object.
+ *  @param op Pperation to perform (GKYL_MAX or GKYL_MIN).
  */
 double gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op);
 
 /**
+ * Reduce bmag to get min or max value, by evaluating bmag at basis nodes,
+ * and the location of the extrema.
+ * Only to be used during initialization because it allocates memory.
+ *
+ *  @param up gk_geometry object.
+ *  @param op Operation to perform (GKYL_MAX or GKYL_MIN).
+ *  @param op Coordinate where extrema occurs.
+ */
+double gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry* up, enum gkyl_array_op op, double *coord);
+
+/**
  * Init nodal range from modal range
- * @param nrange nodal range to be initialized
- * @param range modal range
- * @param poly_order polynomial order
+ *
+ * @param nrange nodal Range to be initialized.
+ * @param range modal Range.
+ * @param poly_order Polynomial order.
  */
 void
 gkyl_gk_geometry_init_nodal_range( struct gkyl_range *nrange, struct gkyl_range *range, int poly_order);
 
 /**
  * Init nodal grid from modal grid
- * @param ngrid nodal grid to be initialized
- * @param grid modal grid
- * @param nrange nodal range
+ *
+ * @param ngrid Nodal grid to be initialized.
+ * @param grid Modal grid.
+ * @param nrange Nodal range.
  */
 void
 gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange);
 
 /**
- * deflate geometry to lower dimensionality
+ * Deflate geometry to lower dimensionality.
+ *
  * param up_3d 3d geometry object to deflate
  * param grid deflated grid
  * param local deflated local range
