@@ -40,7 +40,7 @@ gkyl_skip_cell_new(struct gkyl_skip_cell_inp skip_cell_inp, struct gkyl_range ph
   
   // Initialize the mask array on host.
   skip_cell->mask = gkyl_array_new(GKYL_DOUBLE, 1, phase_rng.volume);
-  gkyl_array_clear(skip_cell->mask, false);
+  gkyl_array_clear(skip_cell->mask, -1.0);
 
   skip_cell->flags = 0;
   GKYL_CLEAR_CU_ALLOC(skip_cell->flags);
