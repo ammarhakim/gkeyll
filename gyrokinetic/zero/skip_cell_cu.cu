@@ -69,9 +69,9 @@ gkyl_skip_cell_advance_kernel(struct gkyl_range phase_rng,
       
       // Mark cell as skippable if distribution function is below threshold.
       if (fabs(distf_c[0]) < f_threshold) {
-        *skip_c = true;
+        *skip_c = 1.0;
       } else {
-        *skip_c = false;
+        *skip_c = 0.0;
       }
     }
   }
