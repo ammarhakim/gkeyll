@@ -123,7 +123,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
       // Shift f if needed.
       bool shifted_node = false;
       const double *skip_cell = (const double *) gkyl_array_cfetch(up->skip_cell->mask, plinidx);
-      if (*skip_cell == 0.0) {
+      if (*skip_cell < 0.5) {
         // Divide by jacobtot and jacobvel so that we are shifting just f.
         up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
         for (int k=0; k<distf->ncomp; k++) {

@@ -140,7 +140,7 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   const double *skipL = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxL);
   const double *skipC = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxC);
   const double *skipR = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxR);
-  if (*skipL == 1.0 && *skipC == 1.0 && *skipR == 1.0) {
+  if (*skipL > 0.5 && *skipC > 0.5 && *skipR > 0.5) {
     return 0.;
   }
   
@@ -161,7 +161,7 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
   const double *skipEdge = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxEdge);
   const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
-  if (*skipEdge == 1.0 && *skipSkin == 1.0) {
+  if (*skipEdge > 0.5 && *skipSkin > 0.5) {
     return 0.;
   }
 
@@ -189,7 +189,7 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxGhost = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxGhost);
   const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
   const double *skipGhost = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxGhost);
-  if (*skipSkin == 1.0 && *skipGhost == 1.0) {
+  if (*skipSkin > 0.5 && *skipGhost > 0.5) {
     return 0.;
   }
 
