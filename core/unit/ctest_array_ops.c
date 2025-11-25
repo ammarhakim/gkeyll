@@ -498,49 +498,6 @@ void test_array_shiftc()
   gkyl_array_release(a2);
 }
 
-void test_array_invert_bool()
-{
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_BOOL, 3, 8);
-  bool *a1_d = a1->data;
-  
-  // Set alternating pattern: 0, 1, 0, 1, ...
-  for (unsigned i=0; i<a1->size; ++i)
-    for (size_t k=0; k<a1->ncomp; ++k)
-      a1_d[i*a1->ncomp+k] = (i+k) % 2;
-
-  gkyl_array_invert_bool(a1);
-
-  // Check pattern inverted: 1, 0, 1, 0, ...
-  for (unsigned i=0; i<a1->size; ++i)
-    for (size_t k=0; k<a1->ncomp; ++k)
-      TEST_CHECK( a1_d[i*a1->ncomp+k] == ((i+k+1) % 2) );
-
-  gkyl_array_release(a1);
-}
-
-void test_array_bool_to_double()
-{
-  struct gkyl_array *a_bool = gkyl_array_new(GKYL_BOOL, 3, 8);
-  struct gkyl_array *a_double = gkyl_array_new(GKYL_DOUBLE, 3, 8);
-  bool *a_bool_d = a_bool->data;
-  double *a_double_d = a_double->data;
-  
-  // Set alternating pattern: 0, 1, 0, 1, ...
-  for (unsigned i=0; i<a_bool->size; ++i)
-    for (size_t k=0; k<a_bool->ncomp; ++k)
-      a_bool_d[i*a_bool->ncomp+k] = (i+k) % 2;
-
-  gkyl_array_bool_to_double(a_double, a_bool);
-
-  // Check conversion: 0.0, 1.0, 0.0, 1.0, ...
-  for (unsigned i=0; i<a_double->size; ++i)
-    for (size_t k=0; k<a_double->ncomp; ++k)
-      TEST_CHECK( gkyl_compare(a_double_d[i*a_double->ncomp+k], (double)((i+k) % 2), 1e-14) );
-
-  gkyl_array_release(a_bool);
-  gkyl_array_release(a_double);
-}
-
 void test_array_invert_by_cell()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 8);
@@ -1826,67 +1783,6 @@ void test_cu_array_shiftc()
   gkyl_array_release(a2_cu);
 }
 
-void test_cu_array_invert_bool()
-{
-  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_BOOL, 3, 8);
-  struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_BOOL, 3, 8);
-  bool *a1_ho_d = a1_ho->data;
-  
-  // Set alternating pattern: 0, 1, 0, 1, ...
-  for (unsigned i=0; i<a1_ho->size; ++i)
-    for (size_t k=0; k<a1_ho->ncomp; ++k)
-      a1_ho_d[i*a1_ho->ncomp+k] = (i+k) % 2;
-
-  // Copy to device
-  gkyl_array_copy(a1, a1_ho);
-
-  gkyl_array_invert_bool(a1);
-
-  // Copy back from device
-  gkyl_array_copy(a1_ho, a1);
-
-  // Check pattern inverted: 1, 0, 1, 0, ...
-  for (unsigned i=0; i<a1_ho->size; ++i)
-    for (size_t k=0; k<a1_ho->ncomp; ++k)
-      TEST_CHECK( a1_ho_d[i*a1_ho->ncomp+k] == ((i+k+1) % 2) );
-
-  gkyl_array_release(a1_ho);
-  gkyl_array_release(a1);
-}
-
-void test_cu_array_bool_to_double()
-{
-  struct gkyl_array *a_bool_ho = gkyl_array_new(GKYL_BOOL, 3, 8);
-  struct gkyl_array *a_bool = gkyl_array_cu_dev_new(GKYL_BOOL, 3, 8);
-  struct gkyl_array *a_double_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
-  struct gkyl_array *a_double = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 8);
-  bool *a_bool_ho_d = a_bool_ho->data;
-  double *a_double_ho_d = a_double_ho->data;
-  
-  // Set alternating pattern: 0, 1, 0, 1, ...
-  for (unsigned i=0; i<a_bool_ho->size; ++i)
-    for (size_t k=0; k<a_bool_ho->ncomp; ++k)
-      a_bool_ho_d[i*a_bool_ho->ncomp+k] = (i+k) % 2;
-
-  // Copy to device
-  gkyl_array_copy(a_bool, a_bool_ho);
-
-  gkyl_array_bool_to_double(a_double, a_bool);
-
-  // Copy back from device
-  gkyl_array_copy(a_double_ho, a_double);
-
-  // Check conversion: 0.0, 1.0, 0.0, 1.0, ...
-  for (unsigned i=0; i<a_double_ho->size; ++i)
-    for (size_t k=0; k<a_double_ho->ncomp; ++k)
-      TEST_CHECK( gkyl_compare(a_double_ho_d[i*a_double_ho->ncomp+k], (double)((i+k) % 2), 1e-14) );
-
-  gkyl_array_release(a_bool_ho);
-  gkyl_array_release(a_bool);
-  gkyl_array_release(a_double_ho);
-  gkyl_array_release(a_double);
-}
-
 void test_cu_array_invert_by_cell()
 {
   struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
@@ -2187,8 +2083,6 @@ TEST_LIST = {
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
-  { "array_invert_bool", test_array_invert_bool },
-  { "array_bool_to_double", test_array_bool_to_double },
   { "array_invert_by_cell", test_array_invert_by_cell },
   { "array_shiftc", test_array_shiftc },
   { "array_shiftc_range", test_array_shiftc_range_ho },
@@ -2216,8 +2110,6 @@ TEST_LIST = {
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
-  { "cu_array_invert_bool", test_cu_array_invert_bool },
-  { "cu_array_bool_to_double", test_cu_array_bool_to_double },
   { "cu_array_invert_by_cell", test_cu_array_invert_by_cell },
   { "cu_array_shiftc", test_cu_array_shiftc },
   { "cu_array_shiftc_range", test_array_shiftc_range_dev },

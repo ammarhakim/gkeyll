@@ -12,7 +12,6 @@
 #include <gkyl_binop_cross_mul_tensor.h>
 #include <gkyl_binop_cross_mul_hyb.h>
 #include <gkyl_binop_cross_mul_gkhyb.h>
-#include <gkyl_basis_ser_1x_p0_inv.h>
 #include <gkyl_basis_ser_1x_p1_inv.h>
 #include <gkyl_basis_ser_2x_p1_inv.h>
 #include <gkyl_basis_ser_3x_p1_inv.h>

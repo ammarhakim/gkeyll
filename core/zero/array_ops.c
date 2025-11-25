@@ -167,38 +167,6 @@ gkyl_array_min_by_cell(struct gkyl_array* out, double a)
 }
 
 struct gkyl_array*
-gkyl_array_invert_bool(struct gkyl_array* out)
-{
-  assert(out->type == GKYL_BOOL);
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_invert_bool_cu(out); return out; }
-#endif
-
-  bool *out_d = out->data;
-  for (size_t i=0; i<NELM(out); ++i)
-    out_d[i] = !out_d[i];
-  return out;
-}
-
-struct gkyl_array*
-gkyl_array_bool_to_double(struct gkyl_array* out, const struct gkyl_array* inp)
-{
-  assert(out->type == GKYL_DOUBLE);
-  assert(inp->type == GKYL_BOOL);
-  assert(out->size == inp->size && out->ncomp == inp->ncomp);
-#ifdef GKYL_HAVE_CUDA
-  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_bool_to_double_cu(out, inp); return out; }
-#endif
-
-  double *out_d = out->data;
-  const bool *inp_d = inp->data;
-  for (size_t i=0; i<NELM(out); ++i)
-    out_d[i] = inp_d[i] ? 1.0 : 0.0;
-  return out;
-}
-
-struct gkyl_array*
 gkyl_array_min_by_cell_range(struct gkyl_array* out, double a, const struct gkyl_range *range)
 {
   assert(out->type == GKYL_DOUBLE);

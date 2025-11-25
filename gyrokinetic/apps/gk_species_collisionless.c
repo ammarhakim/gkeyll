@@ -75,7 +75,6 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
       // Invert the mask
       gkyl_skip_cell_advance(gkcls->cfl_skip_cell, gks->f);
       gkyl_skip_cell_invert_mask(gkcls->cfl_skip_cell);
-      gkyl_array_bool_to_double(gkcls->mask_skip_cell, gkcls->cfl_skip_cell->booleans);
   
       gkyl_array_scale_by_cell(gkcls->mask_skip_cell, gkcls->scale_fac_array); // Apply mask to cflrate
   

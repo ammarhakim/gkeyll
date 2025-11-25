@@ -136,23 +136,6 @@ gkyl_array_min_by_cell_cu_kernel(struct gkyl_array* out, double a)
     out_d[linc] = fmin(out_d[linc], a);
 }
 
-__global__ void
-gkyl_array_invert_bool_cu_kernel(struct gkyl_array* out)
-{
-  bool *out_d = (bool*) out->data;
-  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
-    out_d[linc] = !out_d[linc];
-}
-
-__global__ void
-gkyl_array_bool_to_double_cu_kernel(struct gkyl_array* out, const struct gkyl_array* inp)
-{
-  double *out_d = (double*) out->data;
-  const bool *inp_d = (const bool*) inp->data;
-  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
-    out_d[linc] = inp_d[linc] ? 1.0 : 0.0;
-}
-
 // Host-side wrappers for array operations
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
@@ -220,18 +203,6 @@ void
 gkyl_array_min_by_cell_cu(struct gkyl_array* out, double a)
 {
   gkyl_array_min_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
-}
-
-void
-gkyl_array_invert_bool_cu(struct gkyl_array* out)
-{
-  gkyl_array_invert_bool_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev);
-}
-
-void
-gkyl_array_bool_to_double_cu(struct gkyl_array* out, const struct gkyl_array* inp)
-{
-  gkyl_array_bool_to_double_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev);
 }
 
 // Range-based methods
