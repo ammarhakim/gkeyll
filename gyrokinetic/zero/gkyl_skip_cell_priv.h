@@ -34,4 +34,13 @@ gkyl_skip_cell_new_cu_dev(struct gkyl_skip_cell *skip_cell_ho);
 void
 gkyl_skip_cell_advance_cu(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf);
 
+/**
+ * CUDA device function to update skip cell mask with inverted logic on GPU.
+ *
+ * @param skip_cell Skip cell object.
+ * @param distf Distribution function array.
+ */
+void
+gkyl_skip_cell_advance_inverse_cu(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf);
+
 #endif

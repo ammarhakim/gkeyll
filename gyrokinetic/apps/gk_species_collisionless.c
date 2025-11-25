@@ -70,16 +70,21 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
     // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields! This takes infinite time steps
     double omega_max = DBL_MAX; // A ceiling on omega is a floor on dt;
     if (gkcls->time_dilation_f_threshold > 0.0) {
-      // This operation gives us cfl_skip_cell->booleans, which indicates where f<threshold
-      // Outside this mask, we want to calculate the minimum time step
-      // Invert the mask
-      gkyl_skip_cell_advance(gkcls->cfl_skip_cell, gks->f);
-      gkyl_skip_cell_invert_mask(gkcls->cfl_skip_cell);
-  
+      gkyl_skip_cell_advance_inverse(gkcls->cfl_skip_cell, gks->f);
+        
+      gkyl_array_copy(gkcls->mask_skip_cell, gkcls->cfl_skip_cell->mask);
       gkyl_array_scale_by_cell(gkcls->mask_skip_cell, gkcls->scale_fac_array); // Apply mask to cflrate
   
       double omega_max_local;
-      gkyl_array_reduce(&omega_max_local, gkcls->mask_skip_cell, GKYL_MAX);
+      if (app->use_gpu) {
+      #ifdef GKYL_HAVE_CUDA
+        gkyl_array_reduce(gkcls->omega_max_local_cu, gkcls->mask_skip_cell, GKYL_MAX);
+        gkyl_cu_memcpy(&omega_max_local, gkcls->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      #endif
+      }
+      else {
+        gkyl_array_reduce(&omega_max_local, gkcls->mask_skip_cell, GKYL_MAX);
+      }
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
     }
     else {
@@ -238,6 +243,14 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
       gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
 
+      // Allocate GPU scratch space for reduce operation if using GPU.
+      gkcls->omega_max_local_cu = 0; // Initialize to NULL.
+      if (app->use_gpu) {
+      #ifdef GKYL_HAVE_CUDA
+        gkcls->omega_max_local_cu = (double*) gkyl_cu_malloc(sizeof(double));
+      #endif
+      }
+
       gkcls->time_dilation_f_threshold = 0.0;
       gkcls->cfl_skip_cell = 0; // Initialize to NULL.
       if (gks->info.collisionless.time_dilation_f_threshold > 0.0) {
@@ -300,6 +313,13 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
 
     if (gkcls->scale_fac_array) {
       gkyl_array_release(gkcls->scale_fac_array);
+    }
+
+    // Free GPU scratch space if it was allocated.
+    if (gkcls->omega_max_local_cu) {
+    #ifdef GKYL_HAVE_CUDA
+      gkyl_cu_free(gkcls->omega_max_local_cu);
+    #endif
     }
 
     if (gkcls->time_dilation_f_threshold > 0.0) {

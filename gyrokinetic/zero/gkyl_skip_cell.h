@@ -64,13 +64,15 @@ void
 gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf);
 
 /**
- * Invert the boolean mask array. Cells that were marked as skippable
- * (true) become non-skippable (false), and vice versa.
+ * Update the boolean mask array with inverted logic based on distribution 
+ * function values. Marks cells as 1.0 where f >= threshold, 0.0 where f < threshold.
+ * This avoids floating-point arithmetic issues with inversion.
  *
  * @param skip_cell Skip cell updater.
+ * @param distf Distribution function array.
  */
 void
-gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell);
+gkyl_skip_cell_advance_inverse(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf);
 
 /**
  * Check if skip_cell object is on CUDA device.

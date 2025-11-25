@@ -96,10 +96,39 @@ gkyl_skip_cell_advance(struct gkyl_skip_cell *skip_cell, const struct gkyl_array
 }
 
 void
-gkyl_skip_cell_invert_mask(struct gkyl_skip_cell *skip_cell)
+gkyl_skip_cell_advance_inverse(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf)
 {
-  gkyl_array_shiftc(skip_cell->mask, -1.0, 0);
-  gkyl_array_scale(skip_cell->mask, -1.0);
+  if (skip_cell->type == GKYL_GK_SKIP_CELL_NONE) {
+    return;
+  }
+
+#ifdef GKYL_HAVE_CUDA
+  if (skip_cell->use_gpu) {
+    gkyl_skip_cell_advance_inverse_cu(skip_cell, distf);
+    return;
+  }
+#endif
+
+  // Host implementation: iterate over phase space and update inverted mask.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip_cell->phase_rng);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&skip_cell->phase_rng, iter.idx);
+
+    // Fetch the distribution function at this cell.
+    const double *distf_c = gkyl_array_cfetch(distf, linidx);
+    
+    // Fetch the mask value for this cell.
+    double *skip_c = gkyl_array_fetch(skip_cell->mask, linidx);
+    
+    // Inverted mask: 0.0 where f < threshold, 1.0 where f >= threshold
+    if (fabs(distf_c[0]) < skip_cell->f_threshold) {
+      *skip_c = 0.0;
+    } else {
+      *skip_c = 1.0;
+    }
+  }
 }
 
 bool
