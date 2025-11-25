@@ -853,6 +853,8 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 
+  mhd->eqn.embed_geo = NULL;
+
   return &mhd->eqn;
 }
 
