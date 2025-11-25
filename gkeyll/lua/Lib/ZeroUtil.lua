@@ -1,7 +1,7 @@
 local ffi = require "ffi"
 
 ffi.cdef [[
-enum gkyl_elem_type { GKYL_INT, GKYL_INT_64, GKYL_FLOAT, GKYL_DOUBLE, GKYL_BOOL, GKYL_USER };
+enum gkyl_elem_type { GKYL_INT, GKYL_INT_64, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
 
 /**
  * Object holding use count and pointer to destructor function.
