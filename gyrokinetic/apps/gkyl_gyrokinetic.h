@@ -77,6 +77,7 @@ struct gkyl_phase_diagnostics_inp {
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
+  double scale_factor; // Factor multiplying collisionless terms.
 };
 
 // Parameters for species collisions
@@ -286,6 +287,8 @@ struct gkyl_gyrokinetic_ic_import {
   enum gkyl_ic_import_type type;
   char file_name[128]; // Name of file that contains IC, J*f_in.
   char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
+  bool enforce_positivity; // =true sets f to 0 where it was negative.
   void *conf_scale_ctx;
   void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
   struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
@@ -297,6 +300,51 @@ struct gkyl_gyrokinetic_correct_inp {
   int max_iter; // maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge.   
+};
+
+enum gkyl_gyrokinetic_positivity_type {
+  GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
+  GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
+  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+};
+
+struct gkyl_gyrokinetic_positivity {
+  enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
+  bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
+enum gkyl_gyrokinetic_damping_type {
+  GKYL_GK_DAMPING_NONE = 0,
+  GKYL_GK_DAMPING_USER_INPUT,
+  GKYL_GK_DAMPING_LOSS_CONE,
+};
+
+struct gkyl_gyrokinetic_damping {
+  // Add a damping term to the RHS of the gyrokinetic equation
+  //   df/dt = - rate(z) * f
+  // with the function rate(z) being:
+  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
+  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
+  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  enum gkyl_gyrokinetic_damping_type type;
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *rate_profile_ctx; // Context for rate_profile function.
+  int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
+};
+
+enum gkyl_gyrokinetic_fdot_multiplier_type {
+  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+};
+
+struct gkyl_gyrokinetic_fdot_multiplier {
+  enum gkyl_gyrokinetic_fdot_multiplier_type type;
+  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
+  void *profile_ctx; // Context for profile function.
+  bool cellwise_const; // Whether the multiplier has a single value per cell.
+  bool write_diagnostics; // Whether to output diagnostics.
 };
 
 // Parameters for gk species.
@@ -312,7 +360,7 @@ struct gkyl_gyrokinetic_species {
 
   bool is_static; // Set to true if species does not change in time.
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
+  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
   double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
 
@@ -320,6 +368,9 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
+
+  // Phase-space field multiplying df/dt.
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -349,6 +400,9 @@ struct gkyl_gyrokinetic_species {
 
   // Source of particles/momentum/energy.
   struct gkyl_gyrokinetic_source source;
+
+  // A damping term -rate*f on RHS.
+  struct gkyl_gyrokinetic_damping damping; 
 
   // Anomalous diffusion.
   struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
@@ -381,7 +435,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
+  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
   struct gkyl_gyrokinetic_ic_import init_from_file;
   
@@ -474,9 +528,6 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
-  bool enforce_positivity; // Enforce f>=0 for all species and quasineutrality
-                           // of charged species after enforcing f_s>=0.
-
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
 
@@ -519,6 +570,8 @@ struct gkyl_gyrokinetic_stat {
   double species_bflux_moms_tm; // Time for species boundary flux moments.
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
+  double species_damp_tm; // Time to accumulate species damping onto RHS.
+  double species_fdot_mult_tm; // Time to spent on the df/dt multiplier.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
@@ -645,8 +698,8 @@ void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app, struct gkyl_
  * Write field data to file.
  * 
  * @param app App object.
- * @param tm Time-stamp
- * @param frame Frame number
+ * @param tm Time-stamp.
+ * @param frame Frame number.
  */
 void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame);
 
@@ -1259,3 +1312,45 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
  * @param app App to release.
  */
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
+
+/**
+ * Reset the df/dt multiplier operator for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param fdot_mult_inp Input struct for the fdot_multiplier.
+ */
+void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+
+/**
+ * Reset the collisionless multiplier for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param gkcls Input parameters for collisionless terms.
+ */
+void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_collisionless gkcls_inp);
+
+/**
+ * Reset enforce_positivity for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param pos_inp Positivity input parameters.
+ */
+void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_positivity pos_inp);
+
+/**
+ * Reset the field solver.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param field_inp Input struct for the field object.
+ */
+void gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
+  struct gkyl_gyrokinetic_field field_inp);

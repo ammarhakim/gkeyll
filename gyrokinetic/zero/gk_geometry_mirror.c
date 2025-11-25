@@ -7,7 +7,7 @@
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_position_map.h>
 #include <gkyl_mirror_grid_gen.h>
-#include <gkyl_tok_calc_derived_geo.h>
+#include <gkyl_rz_calc_derived_geo.h>
 #include <gkyl_calc_metric_mirror.h>
 
 struct gk_geometry*
@@ -129,12 +129,12 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_calc_metric_mirror_advance(mcalc, up, mirror_grid_corn);
   gkyl_calc_metric_mirror_advance_interior(mcalc, up, mirror_grid_int);
   // calculate the derived geometric quantities at interior nodes
-  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
-  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
+  gkyl_rz_calc_derived_geo *jcalculator = gkyl_rz_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
+  gkyl_rz_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
     up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, 
     up->geo_int.jacobtot, up->geo_int.jacobtot_inv, up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, 
     up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
-  gkyl_tok_calc_derived_geo_release(jcalculator);
+  gkyl_rz_calc_derived_geo_release(jcalculator);
   // Calculate metrics/derived geo quantities at surface
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_calc_metric_mirror_advance_surface(mcalc, dir,  up, mirror_grid_surf[dir]);

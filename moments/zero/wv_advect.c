@@ -307,5 +307,7 @@ gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp* inp)
   advect->eqn.ref_count = gkyl_ref_count_init(gkyl_advect_free);
   advect->eqn.on_dev = &advect->eqn; // On the CPU, the equation object points to itself.
 
+  advect->eqn.embed_geo = NULL;
+
   return &advect->eqn;
 }

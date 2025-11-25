@@ -22,8 +22,8 @@ struct gkyl_gyrokinetic_run_verbosity_inp {
 };
 
 enum gkyl_gyrokinetic_run_app_type {
-    GKYL_GK_SINGLEB, // Single-block simulation. Default
-    GKYL_GK_MULTIB, // Multi-block simulation
+  GKYL_GK_SINGLEB, // Single-block simulation. Default
+  GKYL_GK_MULTIB, // Multi-block simulation
 };
 
 struct gkyl_gyrokinetic_run_inp {

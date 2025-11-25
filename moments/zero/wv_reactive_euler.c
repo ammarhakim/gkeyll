@@ -465,6 +465,8 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
   reactive_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_reactive_euler_free);
   reactive_euler->eqn.on_dev = &reactive_euler->eqn; // On the CPU, the equation object points to itself.
 
+  reactive_euler->eqn.embed_geo = NULL;
+
   return &reactive_euler->eqn;
 }
 

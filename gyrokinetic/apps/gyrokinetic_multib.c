@@ -199,8 +199,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.cfl_frac = mbinp->cfl_frac; 
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH; 
 
-  app_inp.enforce_positivity = mbinp->enforce_positivity;
-
   for (int i=0; i<num_species; ++i) {
     const struct gkyl_gyrokinetic_multib_species *sp = &mbinp->species[i];
     
