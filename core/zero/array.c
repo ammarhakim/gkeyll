@@ -43,7 +43,6 @@ static const size_t array_elem_size[] = {
   [GKYL_INT] = sizeof(int),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_BOOL] = sizeof(bool),
   [GKYL_USER] = 1,
 };
 
@@ -118,10 +117,6 @@ array_new(enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_ext
     }
     else if (type == GKYL_DOUBLE) {
       double *dat_p = arr->data;
-      set_arr_dat_zero_ho(arr, dat_p);
-    }
-    else if (type == GKYL_BOOL) {
-      bool *dat_p = arr->data;
       set_arr_dat_zero_ho(arr, dat_p);
     }
   }
@@ -312,11 +307,6 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
     set_arr_dat_zero_dev(arr, data_ho);
     gkyl_free(data_ho);
   }
-  else if (type == GKYL_BOOL) {
-    bool *data_ho = gkyl_malloc(arr->size*arr->esznc);
-    set_arr_dat_zero_dev(arr, data_ho);
-    gkyl_free(data_ho);
-  }
 
   return arr;
 }
@@ -360,10 +350,6 @@ gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   }
   else if (type == GKYL_DOUBLE) {
     double *dat_p = arr->data;
-    set_arr_dat_zero_ho(arr, dat_p);
-  }
-  else if (type == GKYL_BOOL) {
-    bool *dat_p = arr->data;
     set_arr_dat_zero_ho(arr, dat_p);
   }
 

@@ -29,8 +29,8 @@ struct gkyl_skip_cell_inp {
  */
 struct gkyl_skip_cell {
   enum skip_cell_types type; // Type of skip cell operation.
-  struct gkyl_array *booleans; // Boolean mask array (GKYL_BOOL type).
-  double skip_cell_threshold; // Threshold for marking cells as skippable.
+  struct gkyl_array *mask; // Boolean mask array (GKYL_BOOL type).
+  double f_threshold; // Threshold for marking cells as skippable.
   struct gkyl_range phase_rng; // Phase-space range.
   bool use_gpu; // Flag indicating GPU usage.
   struct gkyl_ref_count ref_count; // Reference counter.

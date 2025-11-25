@@ -19,8 +19,7 @@ static MPI_Datatype g2_mpi_datatype[] = {
   [GKYL_INT] = MPI_INT,
   [GKYL_INT_64] = MPI_INT64_T,
   [GKYL_FLOAT] = MPI_FLOAT,
-  [GKYL_DOUBLE] = MPI_DOUBLE,
-  [GKYL_BOOL] = MPI_C_BOOL
+  [GKYL_DOUBLE] = MPI_DOUBLE
 };
 
 // Mapping of Gkeyll ops to MPI_Op

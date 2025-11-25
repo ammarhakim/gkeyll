@@ -13,8 +13,8 @@ extern "C" {
 // CUDA kernel to update skip cell mask.
 __global__ void
 gkyl_skip_cell_advance_kernel(struct gkyl_range phase_rng,
-  const struct gkyl_array *distf, struct gkyl_array *booleans,
-  double skip_cell_threshold)
+  const struct gkyl_array *distf, struct gkyl_array *mask,
+  double f_threshold)
 {
   int idx[GKYL_MAX_DIM];
   
@@ -32,10 +32,10 @@ gkyl_skip_cell_advance_kernel(struct gkyl_range phase_rng,
       const double *distf_c = (const double*) gkyl_array_cfetch(distf, linidx);
       
       // Fetch the boolean mask value for this cell.
-      bool *skip_c = (bool*)gkyl_array_fetch(booleans, linidx);
+      bool *skip_c = (bool*)gkyl_array_fetch(mask, linidx);
       
       // Mark cell as skippable if distribution function is below threshold.
-      if (fabs(distf_c[0]) < skip_cell_threshold) {
+      if (fabs(distf_c[0]) < f_threshold) {
         *skip_c = true;
       } else {
         *skip_c = false;
@@ -48,12 +48,12 @@ gkyl_skip_cell_advance_kernel(struct gkyl_range phase_rng,
 void
 gkyl_skip_cell_advance_cu(struct gkyl_skip_cell *skip_cell, const struct gkyl_array *distf)
 {
-  int nblocks = skip_cell->booleans->nblocks;
-  int nthreads = skip_cell->booleans->nthreads;
+  int nblocks = skip_cell->mask->nblocks;
+  int nthreads = skip_cell->mask->nthreads;
   
   gkyl_skip_cell_advance_kernel<<<nblocks, nthreads>>>(
-    skip_cell->phase_rng, distf->on_dev, skip_cell->booleans->on_dev,
-    skip_cell->skip_cell_threshold);
+    skip_cell->phase_rng, distf->on_dev, skip_cell->mask->on_dev,
+    skip_cell->f_threshold);
 }
 
 #endif

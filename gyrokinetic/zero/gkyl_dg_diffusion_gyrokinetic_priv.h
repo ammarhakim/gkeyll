@@ -1239,10 +1239,10 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxL = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxL);
   long pidxC = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxC);
   long pidxR = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxR);
-  const bool *skip_cell_L = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxL);
-  const bool *skip_cell_C = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxC);
-  const bool *skip_cell_R = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxR);
-  if (*skip_cell_L && *skip_cell_C && *skip_cell_R) {
+  const double *skip_cell_L = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxL);
+  const double *skip_cell_C = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxC);
+  const double *skip_cell_R = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxR);
+  if (*skip_cell_L == 1.0 && *skip_cell_C == 1.0 && *skip_cell_R == 1.0) {
     return 0.;
   }
   
@@ -1261,9 +1261,9 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const bool *skip_cell_edge = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
-  const bool *skip_cell_skin = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
-  if (*skip_cell_edge && *skip_cell_skin) {
+  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
+  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
+  if (*skip_cell_edge == 1.0 && *skip_cell_skin == 1.0) {
     return 0.;
   }
 
@@ -1285,9 +1285,9 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const bool *skip_cell_edge = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxEdge);
-  const bool *skip_cell_skin = (const bool*) gkyl_array_cfetch(diffusion->skip_cell->booleans, pidxSkin);
-  if (*skip_cell_edge && *skip_cell_skin) {
+  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
+  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
+  if (*skip_cell_edge == 1.0 && *skip_cell_skin == 1.0) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])

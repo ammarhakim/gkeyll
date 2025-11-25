@@ -80,9 +80,9 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       }
 
-      const bool *skipL = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, locL);
-      const bool *skipR = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
-      if (!*skipL && !*skipR) {
+      const double *skipL = (const double *) gkyl_array_cfetch(up->skip_cell->mask, locL);
+      const double *skipR = (const double *) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
+      if (*skipL == 0.0 && *skipR == 0.0) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -173,8 +173,8 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
     const double *vpL = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
     const double *vpR = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
 
-    const bool *skipL = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, locL);
-    const bool *skipR = (const bool *) gkyl_array_cfetch(up->skip_cell->booleans, loc_phase);
+    const double *skipL = (const double *) gkyl_array_cfetch(up->skip_cell->mask, locL);
+    const double *skipR = (const double *) gkyl_array_cfetch(up->skip_cell->mask, loc_phase);
 
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
@@ -184,7 +184,7 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
 
-    if (!*skipL && !*skipR) {
+    if (*skipL == 0.0 && *skipR == 0.0) {
       cflrate_d[0] += cfl_temp;
     }
   }
