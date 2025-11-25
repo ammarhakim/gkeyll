@@ -268,13 +268,14 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
 
-  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
-
   // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gkyl_skip_cell *skip_cell_ho = gkyl_skip_cell_acquire(skip_cell);
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_dg_geom *dg_geom_ho = gkyl_dg_geom_acquire(dg_geom);
   struct gkyl_gk_dg_geom *gk_dg_geom_ho = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  
+  up->skip_cell = skip_cell_ho->on_dev;
   up->gk_geom = geom_ho->on_dev;
   up->dg_geom = dg_geom_ho->on_dev;
   up->gk_dg_geom = gk_dg_geom_ho->on_dev;
@@ -298,6 +299,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
+  up->skip_cell = skip_cell_ho;
   up->gk_geom = geom_ho; 
   up->dg_geom = dg_geom_ho; 
   up->gk_dg_geom = gk_dg_geom_ho; 

@@ -123,10 +123,12 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
 
   gyrokinetic->eqn.num_equations = 1;
 
-  gyrokinetic->skip_cell = gkyl_skip_cell_acquire(skip_cell);
   // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gkyl_skip_cell *skip_cell_ho = gkyl_skip_cell_acquire(skip_cell);
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  
+  gyrokinetic->skip_cell = skip_cell_ho->on_dev;
   gyrokinetic->gk_geom = geom_ho->on_dev;
   gyrokinetic->vel_map = vel_map_ho->on_dev;
 
@@ -148,6 +150,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;
   
   // Updater should store host pointers.
+  gyrokinetic->skip_cell = skip_cell_ho;
   gyrokinetic->gk_geom = geom_ho; 
   gyrokinetic->vel_map = vel_map_ho;
 
