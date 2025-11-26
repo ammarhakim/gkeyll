@@ -95,18 +95,8 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
   }
 }
 
-bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long idx)
-{
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return false;
-  }
-  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, idx);
-  return *mask_c > 0; // True means we are within the mask.
-}
-
 void
-gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, struct gkyl_array *arr_to_multiply)
+gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
   gkyl_array_scale_by_cell(mask->mask, arr_to_multiply);
 }
