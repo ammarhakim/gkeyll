@@ -1318,5 +1318,5 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count* ref);
  */
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_skip_cell *skip_cell);
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *skip_cell);
 #endif

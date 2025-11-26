@@ -36,7 +36,7 @@ struct gkyl_boundary_flux {
 gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_skip_cell *skip_cell);
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *skip_cell);
 
 /**
  * Compute the boundary flux on the GPU.

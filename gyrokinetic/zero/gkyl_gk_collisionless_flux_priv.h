@@ -433,7 +433,7 @@ choose_gk_collisionless_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_o
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, struct gkyl_skip_cell *skip_cell,
+  double charge, double mass, struct gkyl_dg_array_mask *skip_cell,
   enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
