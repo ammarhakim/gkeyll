@@ -323,7 +323,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
     lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&gks->grid, 
       &app->basis, &gks->basis, &app->local, &drag_inp, &diff_inp, gks->info.mass, 
-      gks->skip_cell, app->gk_geom, gks->vel_map,  app->use_gpu);
+      gks->update_cell, app->gk_geom, gks->vel_map,  app->use_gpu);
 
     // Methods chosen at runtime.
     lbo->moms_func = gklbo_moms_enabled;

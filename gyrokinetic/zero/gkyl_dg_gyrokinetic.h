@@ -27,7 +27,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param phase_range Phase space range for use in indexing surface expansion of flx
  * @param charge Species charge
  * @param mass Species mass
- * @param skip_cell Struct to mask cells for skipping updates
+ * @param update_cell Struct to mask cells for skipping updates
  * @param collless_type Type of collisionless terms.
  * @param gk_geom Geometry struct
  * @param vel_map Velocity space mapping object.
@@ -36,7 +36,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell, 
+  const double charge, const double mass, struct gkyl_dg_array_mask *update_cell, 
   enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, bool use_gpu);
 

@@ -946,7 +946,7 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_dg_array_mask *skip_cell; // Object to skip cells in updates.
+  struct gkyl_dg_array_mask *update_cell; // Object to skip cells in updates.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
@@ -1141,7 +1141,7 @@ struct gk_neut_species {
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
 
-  struct gkyl_dg_array_mask *skip_cell; // Object to skip cells in updates.
+  struct gkyl_dg_array_mask *update_cell; // Object to skip cells in updates.
         
   union {
     // Kinetic neutrals ............................................ //

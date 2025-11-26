@@ -22,7 +22,7 @@ gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
   }
   
   struct dg_diffusion_gyrokinetic *diffusion = container_of(base, struct dg_diffusion_gyrokinetic, eqn);
-  gkyl_dg_array_mask_release(diffusion->skip_cell);
+  gkyl_dg_array_mask_release(diffusion->update_cell);
   gkyl_free(diffusion);
 }
 
@@ -44,11 +44,11 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *skip_cell, bool use_gpu)
+  int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *update_cell, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range, skip_cell);
+    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range, update_cell);
 #endif
   
   struct dg_diffusion_gyrokinetic *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
@@ -57,7 +57,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  diffusion->skip_cell = gkyl_dg_array_mask_acquire(skip_cell);
+  diffusion->update_cell = gkyl_dg_array_mask_acquire(update_cell);
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

@@ -80,8 +80,8 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       }
 
-      if (!gkyl_dg_array_mask_eval(up->skip_cell, locL) && 
-          !gkyl_dg_array_mask_eval(up->skip_cell, loc_phase)) {
+      if (gkyl_dg_array_mask_eval(up->update_cell, locL) && 
+          gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -110,8 +110,8 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
         cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
 
-        if (!gkyl_dg_array_mask_eval(up->skip_cell, locL) && 
-            !gkyl_dg_array_mask_eval(up->skip_cell, loc_phase)) {
+        if (gkyl_dg_array_mask_eval(up->update_cell, locL) && 
+            gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
           cflrate_ext_d[0] = cfl_temp;
         } 
       }  
@@ -182,8 +182,8 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
 
-    if (!gkyl_dg_array_mask_eval(up->skip_cell, locL) &&
-        !gkyl_dg_array_mask_eval(up->skip_cell, loc_phase)) {
+    if (gkyl_dg_array_mask_eval(up->update_cell, locL) &&
+        gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
       cflrate_d[0] += cfl_temp;
     }
   }
@@ -248,7 +248,7 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell,
+  const double charge, const double mass, struct gkyl_dg_array_mask *update_cell,
   enum gkyl_gk_collisionless_type type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
@@ -268,13 +268,13 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->mass = mass;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(skip_cell);
+  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_dg_geom *dg_geom_ho = gkyl_dg_geom_acquire(dg_geom);
   struct gkyl_gk_dg_geom *gk_dg_geom_ho = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   
-  up->skip_cell = skip_cell_ho->on_dev;
+  up->update_cell = skip_cell_ho->on_dev;
   up->gk_geom = geom_ho->on_dev;
   up->dg_geom = dg_geom_ho->on_dev;
   up->gk_dg_geom = gk_dg_geom_ho->on_dev;
@@ -298,7 +298,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->skip_cell = skip_cell_ho;
+  up->update_cell = skip_cell_ho;
   up->gk_geom = geom_ho; 
   up->dg_geom = dg_geom_ho; 
   up->gk_dg_geom = gk_dg_geom_ho; 

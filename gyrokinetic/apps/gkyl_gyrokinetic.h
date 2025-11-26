@@ -315,8 +315,13 @@ struct gkyl_gyrokinetic_positivity {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
+enum gkyl_gyrokinetic_skip_cell_type {
+  GKYL_GK_SKIP_CELL_NONE = 0, // No skipping of cells.
+  GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD, // Skip cells where |JBf| < threshold. JBf is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD, // Skip cells where |JBf| > threshold.
+};
 struct gkyl_gyrokinetic_skip_cell {
-  enum gkyl_dg_array_mask_types type; // Type of masking operation to put on the phase space cell updates.
+  enum gkyl_gyrokinetic_skip_cell_type type; // Type of masking operation to put on the phase space cell updates.
   double threshold; // Skips cells where |JBf| < threshold. JBf is the distribution function output from simulations.
 };
 

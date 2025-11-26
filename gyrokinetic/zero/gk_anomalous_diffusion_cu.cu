@@ -129,7 +129,7 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
   const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  struct gkyl_dg_array_mask *skip_cell)
+  struct gkyl_dg_array_mask *update_cell)
 {
   struct gk_anomalous_diffusion* diffusion = (struct gk_anomalous_diffusion*) gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
@@ -138,8 +138,8 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
   int poly_order = cbasis->poly_order;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(skip_cell);
-  diffusion->skip_cell = skip_cell_ho->on_dev;
+  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
+  diffusion->update_cell = skip_cell_ho->on_dev;
 
   diffusion->conf_range = *conf_range;
 
@@ -154,7 +154,7 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
   gk_anomalous_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, bc_x_lower, bc_x_upper);
 
   // Updater should store host pointers.
-  diffusion->skip_cell = skip_cell_ho;
+  diffusion->update_cell = skip_cell_ho;
 
   // Set parent on_dev pointer.
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

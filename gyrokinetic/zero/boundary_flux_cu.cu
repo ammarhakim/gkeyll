@@ -12,7 +12,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *skip_cell)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *update_cell)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -24,8 +24,8 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = true;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(skip_cell);
-  up->skip_cell = skip_cell_ho->on_dev;
+  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
+  up->update_cell = skip_cell_ho->on_dev;
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -47,7 +47,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->skip_cell = skip_cell_ho;
+  up->update_cell = skip_cell_ho;
 
   gkyl_free(eqns_ho_dev);
 
@@ -79,8 +79,8 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
     double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (gkyl_dg_array_mask_eval(up->skip_cell, linidx_g) &&
-        gkyl_dg_array_mask_eval(up->skip_cell, linidx_s)) {
+    if (!gkyl_dg_array_mask_eval(up->update_cell, linidx_g) &&
+        !gkyl_dg_array_mask_eval(up->update_cell, linidx_s)) {
       for (int d=0; d<fluxOut->ncomp; ++d)
         fluxOut_g[d] = 0.0;
     }

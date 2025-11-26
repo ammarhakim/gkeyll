@@ -12,7 +12,7 @@ struct gkyl_boundary_flux {
   struct gkyl_dg_eqn **eqns; // Equation objects.
   struct gkyl_dg_eqn **eqns_ho; // Equation objects on the host.
   bool use_gpu; // Whether to run on GPU.
-  struct gkyl_dg_array_mask *skip_cell; // Skip cell object.
+  struct gkyl_dg_array_mask *update_cell; // Skip cell object.
 
   uint32_t flags;
   struct gkyl_boundary_flux *on_dev; // pointer to itself or device data
@@ -30,13 +30,13 @@ struct gkyl_boundary_flux {
  * @param ghost_r Ghost range.
  * @param num_eqns Number of equation objects.
  * @param eqns Equation objects.
- * @param skip_cell Skip cell object.
+ * @param update_cell Skip cell object.
  * @return New updater pointer.
  */
 gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *skip_cell);
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *update_cell);
 
 /**
  * Compute the boundary flux on the GPU.

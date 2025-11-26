@@ -48,7 +48,7 @@ struct dg_gyrokinetic {
   double charge, mass;
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  struct gkyl_dg_array_mask *skip_cell; // Skip cell object.
+  struct gkyl_dg_array_mask *update_cell; // Skip cell object.
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -66,7 +66,7 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -95,7 +95,7 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -124,7 +124,7 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -153,7 +153,7 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -199,7 +199,7 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -228,7 +228,7 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
     return 0.;
   }
 
@@ -384,9 +384,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long pidxL = gkyl_range_idx(&gyrokinetic->phase_range, idxL);
   long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
   long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidxL) && 
-      gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidxC) && 
-      gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidxR)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxL) && 
+      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxC) && 
+      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxR)) {
     return 0.;
   }
 
@@ -429,8 +429,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 
   long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
   long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
-  if (gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidxSkin) && 
-      gkyl_dg_array_mask_eval(gyrokinetic->skip_cell, pidxEdge)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxSkin) && 
+      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxEdge)) {
     return 0.;
   }
 
@@ -474,7 +474,7 @@ boundary_diag(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, struct gkyl_dg_array_mask *update_cell, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
