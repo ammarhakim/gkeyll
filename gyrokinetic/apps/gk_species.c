@@ -1499,33 +1499,78 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (gk_app_inp->geometry.has_LCFS) {
     // IWL simulation. Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
-    int len_core = idx_LCFS_lo;
-    int len_sol = gks->global.upper[0]-len_core;
-    gkyl_range_shorten_from_above(&gks->global_core, &gks->global, 0, len_core);
-    gkyl_range_shorten_from_below(&gks->global_sol , &gks->global, 0, len_sol);
-    // Same for local ranges.
-    gkyl_range_shorten_from_above(&gks->local_core , &gks->local , 0, len_core);
-    gkyl_range_shorten_from_below(&gks->local_sol  , &gks->local , 0, len_sol);
+    // Length of lower and upper x ranges (one is core, the other SOL).
+    int len_lo = idx_LCFS_lo;
+    int len_up = gks->global.upper[0]-len_lo;
+    // Lower and upper x ranges.
+    struct gkyl_range *global_lo_r, *local_lo_r, *global_ext_lo_r, *local_ext_lo_r;
+    struct gkyl_range *global_up_r, *local_up_r, *global_ext_up_r, *local_ext_up_r;
+    struct gkyl_range *lower_skin_par_lo_r, *upper_skin_par_lo_r, *lower_ghost_par_lo_r, *upper_ghost_par_lo_r;
+    struct gkyl_range *lower_skin_par_up_r, *upper_skin_par_up_r, *lower_ghost_par_up_r, *upper_ghost_par_up_r;
+    if (app->gk_geom->geqdsk_sign_convention == 0) {
+      // x increases towards SOL.
+      global_lo_r          = &gks->global_core;
+      local_lo_r           = &gks->local_core;
+      global_ext_lo_r      = &gks->global_ext_core;
+      local_ext_lo_r       = &gks->local_ext_core;
+      lower_skin_par_lo_r  = &gks->lower_skin_par_core;
+      upper_skin_par_lo_r  = &gks->upper_skin_par_core;
+      lower_ghost_par_lo_r = &gks->lower_ghost_par_core;
+      upper_ghost_par_lo_r = &gks->upper_ghost_par_core;
+      global_up_r          = &gks->global_sol;
+      local_up_r           = &gks->local_sol;
+      global_ext_up_r      = &gks->global_ext_sol;
+      local_ext_up_r       = &gks->local_ext_sol;
+      lower_skin_par_up_r  = &gks->lower_skin_par_sol;
+      upper_skin_par_up_r  = &gks->upper_skin_par_sol;
+      lower_ghost_par_up_r = &gks->lower_ghost_par_sol;
+      upper_ghost_par_up_r = &gks->upper_ghost_par_sol;
+    }
+    else {
+      // x increases towards core.
+      global_lo_r          = &gks->global_sol;
+      local_lo_r           = &gks->local_sol;
+      global_ext_lo_r      = &gks->global_ext_sol;
+      local_ext_lo_r       = &gks->local_ext_sol;
+      lower_skin_par_lo_r  = &gks->lower_skin_par_sol;
+      upper_skin_par_lo_r  = &gks->upper_skin_par_sol;
+      lower_ghost_par_lo_r = &gks->lower_ghost_par_sol;
+      upper_ghost_par_lo_r = &gks->upper_ghost_par_sol;
+      global_up_r          = &gks->global_core;
+      local_up_r           = &gks->local_core;
+      global_ext_up_r      = &gks->global_ext_core;
+      local_ext_up_r       = &gks->local_ext_core;
+      lower_skin_par_up_r  = &gks->lower_skin_par_core;
+      upper_skin_par_up_r  = &gks->upper_skin_par_core;
+      lower_ghost_par_up_r = &gks->lower_ghost_par_core;
+      upper_ghost_par_up_r = &gks->upper_ghost_par_core;
+    }
 
-    int len_core_ext = idx_LCFS_lo+1;
-    int len_sol_ext = gks->global_ext.upper[0]-len_core;
-    gkyl_range_shorten_from_above(&gks->global_ext_core, &gks->global_ext, 0, len_core_ext);
-    gkyl_range_shorten_from_below(&gks->global_ext_sol , &gks->global_ext, 0, len_sol_ext);
-    // Same for local ranges.
-    gkyl_range_shorten_from_above(&gks->local_ext_core , &gks->local_ext , 0, len_core_ext);
-    gkyl_range_shorten_from_below(&gks->local_ext_sol  , &gks->local_ext , 0, len_sol_ext);
+    // Global and local lower and upper x ranges.
+    gkyl_range_shorten_from_above(global_lo_r, &gks->global, 0, len_lo);
+    gkyl_range_shorten_from_below(global_up_r, &gks->global, 0, len_up);
+    gkyl_range_shorten_from_above(local_lo_r, &gks->local, 0, len_lo);
+    gkyl_range_shorten_from_below(local_up_r, &gks->local, 0, len_up);
+
+    // Extended global and local lower and upper x ranges.
+    int len_lo_ext = idx_LCFS_lo+1;
+    int len_up_ext = gks->global_ext.upper[0]-len_lo;
+    gkyl_range_shorten_from_above(global_ext_lo_r, &gks->global_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(global_ext_up_r, &gks->global_ext, 0, len_up_ext);
+    gkyl_range_shorten_from_above(local_ext_lo_r, &gks->local_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(local_ext_up_r, &gks->local_ext, 0, len_up_ext);
 
     // Create core and SOL parallel skin and ghost ranges.
     int par_dir = app->cdim-1;
     for (int e=0; e<2; e++) {
-      gkyl_range_shorten_from_above(e==0? &gks->lower_skin_par_core  : &gks->upper_skin_par_core,
-                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_core);
-      gkyl_range_shorten_from_above(e==0? &gks->lower_ghost_par_core : &gks->upper_ghost_par_core,
-                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_core);
-      gkyl_range_shorten_from_below(e==0? &gks->lower_skin_par_sol   : &gks->upper_skin_par_sol,
-                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_sol);
-      gkyl_range_shorten_from_below(e==0? &gks->lower_ghost_par_sol  : &gks->upper_ghost_par_sol,
-                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_above(e==0? lower_skin_par_lo_r        : upper_skin_par_lo_r,
+                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(e==0? lower_ghost_par_lo_r       : upper_ghost_par_lo_r,
+                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_below(e==0? lower_skin_par_up_r        : upper_skin_par_up_r,
+                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_up);
+      gkyl_range_shorten_from_below(e==0? lower_ghost_par_up_r       : upper_ghost_par_up_r,
+                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_up);
     }
 
     // Create a core local range, extended in the BC dir (for TS BCs).
