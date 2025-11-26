@@ -1,6 +1,6 @@
 #pragma once
 
-// Private header for skip_cell object, not for direct use in user code.
+// Private header for dg_array_mask object, not for direct use in user code.
 
 #include <gkyl_dg_array_mask.h>
 #include <gkyl_ref_count.h>
