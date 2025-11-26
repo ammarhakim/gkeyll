@@ -79,8 +79,8 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
     double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (gkyl_skip_cell_eval(up->skip_cell, linidx_g) &&
-        gkyl_skip_cell_eval(up->skip_cell, linidx_s)) {
+    if (gkyl_dg_array_mask_eval(up->skip_cell, linidx_g) &&
+        gkyl_dg_array_mask_eval(up->skip_cell, linidx_s)) {
       for (int d=0; d<fluxOut->ncomp; ++d)
         fluxOut_g[d] = 0.0;
     }

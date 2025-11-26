@@ -109,7 +109,9 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
         cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
-        if (!skipL && !skipR) {
+
+        if (!gkyl_dg_array_mask_eval(up->skip_cell, locL) && 
+            !gkyl_dg_array_mask_eval(up->skip_cell, loc_phase)) {
           cflrate_ext_d[0] = cfl_temp;
         } 
       }  
