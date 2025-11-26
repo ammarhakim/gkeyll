@@ -32,7 +32,7 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm {
  */
 struct gkyl_dg_updater_gk_anomalous_diffusion* gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, struct gkyl_skip_cell *skip_cell,
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, struct gkyl_dg_array_mask *skip_cell,
   const struct gkyl_array *nu, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
 
 /**

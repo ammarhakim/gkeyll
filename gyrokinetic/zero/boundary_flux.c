@@ -8,13 +8,13 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_boundary_flux_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_skip_cell *skip_cell, bool use_gpu)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *skip_cell, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -31,7 +31,7 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->ghost_r = *ghost_r;
   up->use_gpu = use_gpu;
 
-  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+  up->skip_cell = gkyl_dg_array_mask_acquire(skip_cell);
 
   up->num_eqns = num_eqns;
   up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
@@ -79,9 +79,8 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
     const double *fIn_g = gkyl_array_cfetch(fIn, linidx_g);
     double *fluxOut_g = gkyl_array_fetch(fluxOut, linidx_g);
 
-    const double *skip_cell_s = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_s);
-    const double *skip_cell_g = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_g);
-    if (*skip_cell_s > 0.0 && *skip_cell_g > 0.0) {
+    if (gkyl_dg_array_mask_eval(up->skip_cell, linidx_g) &&
+        gkyl_dg_array_mask_eval(up->skip_cell, linidx_s)) {
       for (int d=0; d<fluxOut->ncomp; ++d) {
         fluxOut_g[d] = 0.0;
       }
@@ -107,7 +106,7 @@ gkyl_boundary_flux_release(gkyl_boundary_flux* up)
   for (int i=0; i<up->num_eqns; i++)
     gkyl_dg_eqn_release(up->eqns_ho[i]);
   gkyl_free(up->eqns_ho);
-  gkyl_skip_cell_release(up->skip_cell);
+  gkyl_dg_array_mask_release(up->skip_cell);
 
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

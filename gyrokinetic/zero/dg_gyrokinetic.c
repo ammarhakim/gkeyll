@@ -17,7 +17,7 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   struct dg_gyrokinetic *gyrokinetic = container_of(base, struct dg_gyrokinetic, eqn);
   gkyl_gk_geometry_release(gyrokinetic->gk_geom);
   gkyl_velocity_map_release(gyrokinetic->vel_map);
-  gkyl_skip_cell_release(gyrokinetic->skip_cell);
+  gkyl_dg_array_mask_release(gyrokinetic->skip_cell);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
@@ -48,7 +48,7 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, struct gkyl_skip_cell *skip_cell, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -68,7 +68,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->charge = charge;
   gyrokinetic->mass = mass;
 
-  gyrokinetic->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+  gyrokinetic->skip_cell = gkyl_dg_array_mask_acquire(skip_cell);
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;

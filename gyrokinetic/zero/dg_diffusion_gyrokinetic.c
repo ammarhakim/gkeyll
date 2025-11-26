@@ -7,7 +7,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_diffusion_gyrokinetic.h>
 #include <gkyl_dg_diffusion_gyrokinetic_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 void
@@ -22,7 +22,7 @@ gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
   }
   
   struct dg_diffusion_gyrokinetic *diffusion = container_of(base, struct dg_diffusion_gyrokinetic, eqn);
-  gkyl_skip_cell_release(diffusion->skip_cell);
+  gkyl_dg_array_mask_release(diffusion->skip_cell);
   gkyl_free(diffusion);
 }
 
@@ -44,7 +44,7 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, struct gkyl_skip_cell *skip_cell, bool use_gpu)
+  int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *skip_cell, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -57,7 +57,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  diffusion->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+  diffusion->skip_cell = gkyl_dg_array_mask_acquire(skip_cell);
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

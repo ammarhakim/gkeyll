@@ -47,7 +47,7 @@ struct gkyl_gk_collisionless_flux {
                                                         // at upper configuration space edge
   gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
   double charge, mass;
-  struct gkyl_skip_cell *skip_cell; // Object to skip cells based on criteria.
+  struct gkyl_dg_array_mask *skip_cell; // Object to skip cells based on criteria.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct.
   const struct gkyl_dg_geom *dg_geom; // Pointer to vol dg geometry struct.
   const struct gkyl_gk_dg_geom *gk_dg_geom; // Pointer to vol gk dg geometry struct.

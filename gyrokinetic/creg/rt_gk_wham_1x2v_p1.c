@@ -576,7 +576,7 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .skip_cell = {
-      .type = GKYL_GK_SKIP_CELL_F_THRESHOLD,
+      .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
       .threshold = 1e-16,
     },
 
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .skip_cell = {
-      .type = GKYL_GK_SKIP_CELL_F_THRESHOLD,
+      .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
       .threshold = 1e-16,
     },
 

@@ -4,7 +4,7 @@
 // Not for direct use in user code.
 
 #include <gkyl_gk_geometry.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_lbo_gyrokinetic_kernels.h>
 
 // Types for various kernels
@@ -45,7 +45,7 @@ struct dg_lbo_gyrokinetic_diff {
   lbo_gyrokinetic_diff_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
-  struct gkyl_skip_cell *skip_cell; // Object to skip cells based on criteria.
+  struct gkyl_dg_array_mask *skip_cell; // Object to skip cells based on criteria.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxfields; // Auxiliary fields.
@@ -66,8 +66,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidx)) {
     return 0.;
   }
 
@@ -103,8 +102,7 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidx)) {
     return 0.;
   }
 
@@ -140,8 +138,7 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidx)) {
     return 0.;
   }
   
@@ -177,8 +174,7 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
   long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidx)) {
     return 0.;
   }
   
@@ -323,10 +319,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long pidxL = gkyl_range_idx(&lbo->vel_map->local, idxL);
   long pidxC = gkyl_range_idx(&lbo->vel_map->local, idxC);
   long pidxR = gkyl_range_idx(&lbo->vel_map->local, idxR);
-  const double *skip_cell_L = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxL);
-  const double *skip_cell_C = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxC);
-  const double *skip_cell_R = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxR);
-  if (*skip_cell_L > 0.0 && *skip_cell_C > 0.0 && *skip_cell_R > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidxL) && 
+      gkyl_dg_array_mask_eval(lbo->skip_cell, pidxC) && 
+      gkyl_dg_array_mask_eval(lbo->skip_cell, pidxR)) {
     return 0.;
   }
 
@@ -378,9 +373,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 
   long pidxEdge = gkyl_range_idx(&lbo->vel_map->local, idxEdge);
   long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.0 && *skip_cell_skin > 0.0) {
+  if (gkyl_dg_array_mask_eval(lbo->skip_cell, pidxEdge) && 
+      gkyl_dg_array_mask_eval(lbo->skip_cell, pidxSkin)) {
     return 0.;
   }
 

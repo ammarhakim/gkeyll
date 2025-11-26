@@ -2,7 +2,7 @@
 
 #include <gkyl_dg_diffusion_gyrokinetic.h>
 #include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_ref_count.h>
 
 // private header for use in diffusion DG equation object creation
@@ -45,7 +45,7 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
-  struct gkyl_skip_cell *skip_cell;
+  struct gkyl_dg_array_mask *skip_cell;
   int num_basis;
 };
 
@@ -1239,10 +1239,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   long pidxL = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxL);
   long pidxC = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxC);
   long pidxR = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxR);
-  const double *skip_cell_L = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxL);
-  const double *skip_cell_C = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxC);
-  const double *skip_cell_R = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxR);
-  if (*skip_cell_L > 0.0 && *skip_cell_C > 0.0 && *skip_cell_R > 0.0) {
+  if (gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxL) &&
+      gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxC) && 
+      gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxR)) {
     return 0.;
   }
   
@@ -1261,9 +1260,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.0 && *skip_cell_skin > 0.0) {
+  if (gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxEdge) &&
+      gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxSkin)) {
     return 0.;
   }
 
@@ -1285,9 +1283,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   
   long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
   long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.0 && *skip_cell_skin > 0.0) {
+  if (gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxEdge) && 
+      gkyl_dg_array_mask_eval(diffusion->skip_cell, pidxSkin)) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])

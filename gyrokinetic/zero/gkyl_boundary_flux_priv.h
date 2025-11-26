@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gkyl_boundary_flux.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 
 struct gkyl_boundary_flux {
   int dir; // Direction perpendicular to the sheath boundary.
@@ -12,7 +12,7 @@ struct gkyl_boundary_flux {
   struct gkyl_dg_eqn **eqns; // Equation objects.
   struct gkyl_dg_eqn **eqns_ho; // Equation objects on the host.
   bool use_gpu; // Whether to run on GPU.
-  struct gkyl_skip_cell *skip_cell; // Skip cell object.
+  struct gkyl_dg_array_mask *skip_cell; // Skip cell object.
 
   uint32_t flags;
   struct gkyl_boundary_flux *on_dev; // pointer to itself or device data

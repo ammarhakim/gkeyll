@@ -8,7 +8,7 @@
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic_priv.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 struct gkyl_dg_eqn*
@@ -21,7 +21,7 @@ struct gkyl_dg_updater_diffusion_gyrokinetic*
 gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, 
   const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_bc, struct gkyl_skip_cell *skip_cell,
+  const bool *is_zero_flux_bc, struct gkyl_dg_array_mask *skip_cell,
   const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gyrokinetic));

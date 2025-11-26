@@ -202,7 +202,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gkyl_velocity_map_release(ns->vel_map);
 
-  gkyl_skip_cell_release(ns->skip_cell);
+  gkyl_dg_array_mask_release(ns->skip_cell);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &ns->m0);
@@ -678,7 +678,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
-  s->skip_cell = gkyl_skip_cell_new(s->info.skip_cell, s->local, app->use_gpu);
+  s->skip_cell = gkyl_dg_array_mask_new(s->info.skip_cell, s->local, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.

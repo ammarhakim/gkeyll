@@ -6,7 +6,7 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_gyrokinetic.h>    
 #include <gkyl_dg_gyrokinetic_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 }
 
 #include <cassert>
@@ -107,7 +107,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, struct gkyl_skip_cell *skip_cell, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell, enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
@@ -124,7 +124,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gyrokinetic->eqn.num_equations = 1;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_skip_cell *skip_cell_ho = gkyl_skip_cell_acquire(skip_cell);
+  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(skip_cell);
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   

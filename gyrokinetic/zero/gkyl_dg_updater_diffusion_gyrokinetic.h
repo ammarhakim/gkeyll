@@ -5,7 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 
 // Object type
 typedef struct gkyl_dg_updater_diffusion_gyrokinetic gkyl_dg_updater_diffusion_gyrokinetic;
@@ -34,7 +34,7 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  */
 struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, struct gkyl_skip_cell *skip_cell,
+  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, struct gkyl_dg_array_mask *skip_cell,
   const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
 
 /**

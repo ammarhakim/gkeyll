@@ -1,13 +1,13 @@
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <float.h>
 
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, struct gkyl_skip_cell *skip_cell,
+  struct gkyl_rect_grid grid, double mass, struct gkyl_dg_array_mask *skip_cell,
   const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
@@ -24,7 +24,7 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
 
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-  up->skip_cell = gkyl_skip_cell_acquire(skip_cell);
+  up->skip_cell = gkyl_dg_array_mask_acquire(skip_cell);
   up->use_gpu = use_gpu;
   up->cellav_fac = 1./pow(sqrt(2.),pbasis.ndim);
 
@@ -120,8 +120,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 
       // Shift f if needed.
       bool shifted_node = false;
-      const double *skip_cell = (const double *) gkyl_array_cfetch(up->skip_cell->mask, plinidx);
-      if (*skip_cell < 0.0) {
+      if (!gkyl_dg_array_mask_eval(up->skip_cell, plinidx)) {
         // Divide by jacobtot and jacobvel so that we are shifting just f.
         up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
         for (int k=0; k<distf->ncomp; k++)
@@ -280,7 +279,7 @@ gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic* up)
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_velocity_map_release(up->vel_map);
-  gkyl_skip_cell_release(up->skip_cell);
+  gkyl_dg_array_mask_release(up->skip_cell);
   if (!up->use_gpu) {
     gkyl_free(up->ffloor);
     gkyl_free(up->kernels);

@@ -6,7 +6,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 
@@ -36,7 +36,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, struct gkyl_skip_cell *skip_cell, 
+  const double charge, const double mass, struct gkyl_dg_array_mask *skip_cell, 
   enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, bool use_gpu);
 

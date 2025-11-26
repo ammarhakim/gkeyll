@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_gk_bc_type.h>
@@ -315,6 +315,11 @@ struct gkyl_gyrokinetic_positivity {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
+struct gkyl_gyrokinetic_skip_cell {
+  enum gkyl_dg_array_mask_types type; // Type of skip cell operation.
+  double threshold; // Skips cells where |JBf| < threshold. JBf is the distribution function output from simulations.
+};
+
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
@@ -363,7 +368,7 @@ struct gkyl_gyrokinetic_species {
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
-  struct gkyl_skip_cell_inp skip_cell; // Object for skipping cells during various operations.
+  struct gkyl_gyrokinetic_skip_cell skip_cell; // Object for skipping cells during various operations.
 
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
@@ -436,7 +441,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  struct gkyl_skip_cell_inp skip_cell; // Object for skipping cells during various operations.
+  struct gkyl_gyrokinetic_skip_cell skip_cell; // Object for skipping cells during various operations.
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
