@@ -125,8 +125,7 @@ test_3x2v_p1(bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, phaseGrid, velGrid,
     phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_skip_cell_inp skip_cell_inp = {.threshold = -1.0};
-  struct gkyl_dg_array_mask *skip_cell = gkyl_dg_array_mask_new(skip_cell_inp, phaseRange, use_gpu);
+  struct gkyl_dg_array_mask *skip_cell = gkyl_dg_array_mask_new((struct gkyl_dg_array_mask_inp) { });
 
   struct gkyl_dg_updater_gyrokinetic* up;
   up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange, 

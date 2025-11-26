@@ -12,7 +12,6 @@ gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_array_mask *mask = container_of(ref, struct gkyl_dg_array_mask, ref_count);
   
-  // Release the mask array.
   if (mask->mask)
     gkyl_array_release(mask->mask);
   
@@ -28,27 +27,33 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   struct gkyl_dg_array_mask *mask = gkyl_malloc(sizeof(*mask));
 
   mask->type = mask_inp.type;
-
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
-    mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
-    mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
-  }
-
   mask->use_gpu = mask_inp.use_gpu;
-  mask->phase_rng = mask_inp.phase_rng;
-
-  // Initialize the mask array on host.
-  mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask_inp.phase_rng.volume);
-  gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.
-
+  mask->val_threshold = 0.0;
+  mask->mask = NULL;
   mask->flags = 0;
   GKYL_CLEAR_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
   mask->on_dev = mask; // CPU mask points to itself
 
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    return mask;
+  }
+
+  // For other types, we need valid threshold and range
+  mask->phase_rng = mask_inp.phase_rng;
+  
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+    mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
+  }
+
+  // Initialize the mask array on host.
+  mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask_inp.phase_rng.volume);
+  gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.
+
   struct gkyl_dg_array_mask *mask_out = mask;
 #ifdef GKYL_HAVE_CUDA
-  if (mask_inp.use_gpu) {
+  if (mask->use_gpu) {
     mask_out = gkyl_dg_array_mask_cu_dev_new(mask);
     gkyl_dg_array_mask_release(mask);
   }
@@ -56,13 +61,15 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
 
   return mask_out;
 }
-
 void
 gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
 {
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
     return;
   }
+
+  assert(arr_to_mask->type == GKYL_DOUBLE);
+  assert(mask->mask->size == arr_to_mask->size);
 
 #ifdef GKYL_HAVE_CUDA
   if (mask->use_gpu) {

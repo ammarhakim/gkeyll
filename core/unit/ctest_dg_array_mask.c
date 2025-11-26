@@ -53,36 +53,13 @@ void test_mask_new()
 // Test mask with NONE type
 void test_mask_none_type()
 {
-  int shape[] = {5, 10};
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 2, shape);
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(
+    (struct gkyl_dg_array_mask_inp){ });
   
-  struct gkyl_dg_array_mask_inp mask_inp = {
-    .type = GKYL_DG_ARRAY_MASK_NONE,
-    .val_threshold = 0.0,
-    .phase_rng = range,
-    .use_gpu = false
-  };
-  
-  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
-  
-  TEST_CHECK( mask != NULL );
   TEST_CHECK( mask->type == GKYL_DG_ARRAY_MASK_NONE );
-  
-  // Create a test array
-  struct gkyl_array *arr = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr, 10.0);
-  
-  // Advance should do nothing for NONE type
-  gkyl_dg_array_mask_advance(mask, arr);
-  
-  // Mask should still be at initial -1.0 values
-  double *mask_d = mask->mask->data;
-  for (unsigned i = 0; i < mask->mask->size; ++i) {
-    TEST_CHECK( gkyl_compare(mask_d[i], -1.0, 1e-14) );
-  }
-  
-  gkyl_array_release(arr);
+  TEST_CHECK( mask->use_gpu == false );
+  TEST_CHECK( mask->val_threshold == 0.0 );
+
   gkyl_dg_array_mask_release(mask);
 }
 
@@ -426,31 +403,21 @@ void test_mask_eval()
 // Test mask eval with NONE type
 void test_mask_eval_none_type()
 {
-  int shape[] = {4};
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 1, shape);
-  
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_NONE,
-    .val_threshold = 0.0,
-    .phase_rng = range,
     .use_gpu = false
   };
   
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
-  // Manually set mask values
-  double *mask_d = mask->mask->data;
-  mask_d[0] = 1.0;
-  mask_d[1] = -1.0;
-  mask_d[2] = 1.0;
-  mask_d[3] = -1.0;
+  TEST_CHECK( mask->mask == NULL ); // NONE type should not allocate mask array
   
-  // For NONE type, eval should always return false
+  // For NONE type, eval should always return false regardless of index
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 0) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 1) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 2) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 3) == false );
+  TEST_CHECK( gkyl_dg_array_mask_eval(mask, 100) == false ); // Even invalid indices should be safe
   
   gkyl_dg_array_mask_release(mask);
 }
