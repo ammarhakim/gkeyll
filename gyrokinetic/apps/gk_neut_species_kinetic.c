@@ -678,7 +678,12 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
-  s->skip_cell = gkyl_dg_array_mask_new(s->info.skip_cell, s->local, app->use_gpu);
+  s->skip_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
+      .type = s->info.skip_cell.type,
+      .val_threshold = s->info.skip_cell.threshold,
+      .phase_rng = s->local_ext,
+      .use_gpu = app->use_gpu
+    });
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
