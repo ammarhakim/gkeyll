@@ -321,24 +321,21 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
   gkyl_array_release(integrant);
   gkyl_array_integrate_release(int_op);
-
   // Scale the shape configuration function
   gkyl_array_scale(proj->gaussian_profile, 1.0/red_integral_ho[0]);
-  
   // We can now build the moments of the projection.
   proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
-
   // Density
   gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles + inp.f_floor, proj->gaussian_profile, 0*app->basis.num_basis);
-
   // Parallel velocity
   gkyl_array_set_offset(proj->prim_moms, 0.0, proj->gaussian_profile, 1*app->basis.num_basis);
-  
   // Temperature
   assert(inp.temp_max > 0);
   double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./3. * inp.total_kin_energy/inp.total_num_particles;
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
   gkyl_array_shiftc(proj->prim_moms, temp/s->info.mass, 2*app->basis.num_basis);
+  // Moment correction
+  proj->correct_all_moms = inp.correct_all_moms;
 }
 
 void 
