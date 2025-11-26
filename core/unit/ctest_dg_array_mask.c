@@ -403,15 +403,9 @@ void test_mask_eval()
 // Test mask eval with NONE type
 void test_mask_eval_none_type()
 {
-  struct gkyl_dg_array_mask_inp mask_inp = {
-    .type = GKYL_DG_ARRAY_MASK_NONE,
-    .use_gpu = false
-  };
-  
+  struct gkyl_dg_array_mask_inp mask_inp = { };
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
-  
-  TEST_CHECK( mask->mask == NULL ); // NONE type should not allocate mask array
-  
+    
   // For NONE type, eval should always return false regardless of index
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 0) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 1) == false );
@@ -587,6 +581,49 @@ void test_cu_mask_new()
   }
   
   gkyl_array_release(mask_ho);
+  gkyl_dg_array_mask_release(mask);
+}
+
+// Test NONE type mask on GPU
+void test_cu_mask_none_type()
+{
+  struct gkyl_dg_array_mask_inp mask_inp = {
+    .type = GKYL_DG_ARRAY_MASK_NONE,
+    .use_gpu = true
+  };
+  
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
+  
+  TEST_CHECK( mask != NULL );
+  TEST_CHECK( mask->type == GKYL_DG_ARRAY_MASK_NONE );
+  TEST_CHECK( mask->use_gpu == true );
+  TEST_CHECK( mask->mask == NULL ); // NONE type should not allocate mask array
+  
+  // Create a test array on device
+  int shape[] = {5, 10};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  gkyl_array_clear(arr_ho, 10.0);
+  struct gkyl_array *arr_dev = mkarr(true, 1, range.volume);
+  gkyl_array_copy(arr_dev, arr_ho);
+  
+  // Advance should do nothing for NONE type
+  gkyl_dg_array_mask_advance(mask, arr_dev);
+  
+  // Mask array should still be NULL
+  TEST_CHECK( mask->mask == NULL );
+  
+  // scale_by_cell should also do nothing and not crash
+  gkyl_dg_array_mask_scale_by_cell(mask, arr_dev);
+  TEST_CHECK( mask->mask == NULL );
+  
+  // eval should always return false
+  TEST_CHECK( gkyl_dg_array_mask_eval(mask, 0) == false );
+  TEST_CHECK( gkyl_dg_array_mask_eval(mask, 10) == false );
+  
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr_dev);
   gkyl_dg_array_mask_release(mask);
 }
 
@@ -1048,6 +1085,7 @@ TEST_LIST = {
   { "mask_threshold_scaling", test_mask_threshold_scaling },
 #ifdef GKYL_HAVE_CUDA
   { "cu_mask_new", test_cu_mask_new },
+  { "cu_mask_none_type", test_cu_mask_none_type },
   { "cu_mask_advance_threshold", test_cu_mask_advance_threshold },
   { "cu_mask_advance_all_below", test_cu_mask_advance_all_below },
   { "cu_mask_advance_all_above", test_cu_mask_advance_all_above },

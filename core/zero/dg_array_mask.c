@@ -38,18 +38,17 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
     return mask;
   }
-
-  // For other types, we need valid threshold and range
-  mask->phase_rng = mask_inp.phase_rng;
-  
+  else {
   if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
-    mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
+    mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+      mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
+    }
+    
+    // Initialize the mask array on host.
+    mask->phase_rng = mask_inp.phase_rng;    
+    mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask_inp.phase_rng.volume);
+    gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.
   }
-
-  // Initialize the mask array on host.
-  mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask_inp.phase_rng.volume);
-  gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.
 
   struct gkyl_dg_array_mask *mask_out = mask;
 #ifdef GKYL_HAVE_CUDA
@@ -105,6 +104,9 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 void
 gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    return;
+  }
   gkyl_array_scale_by_cell(mask->mask, arr_to_multiply);
 }
 

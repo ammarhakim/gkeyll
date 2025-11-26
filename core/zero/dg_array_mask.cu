@@ -20,24 +20,33 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->use_gpu = mask_ho->use_gpu;
   mask->phase_rng = mask_ho->phase_rng;
 
-  // Copy the host-side initialized array to the device.
-  struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask->ncomp, mask_ho->mask->size);
-  gkyl_array_copy(mask_array, mask_ho->mask);
-
-  mask->mask = mask_array->on_dev;
-
   mask->flags = 0;
   GKYL_SET_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
 
-  // Initialize the device object.
-  struct gkyl_dg_array_mask *mask_cu = (struct gkyl_dg_array_mask*) gkyl_cu_malloc(sizeof(*mask_cu));
-  gkyl_cu_memcpy(mask_cu, mask, sizeof(struct gkyl_dg_array_mask), GKYL_CU_MEMCPY_H2D);
-  mask->on_dev = mask_cu;
-
-  // The returned object should store host pointer to gkyl_array.
-  mask->mask = mask_array;
-
+  // For NONE type, don't allocate mask array
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    mask->mask = NULL;
+    
+    // Initialize the device object.
+    struct gkyl_dg_array_mask *mask_cu = (struct gkyl_dg_array_mask*) gkyl_cu_malloc(sizeof(*mask_cu));
+    gkyl_cu_memcpy(mask_cu, mask, sizeof(struct gkyl_dg_array_mask), GKYL_CU_MEMCPY_H2D);
+    mask->on_dev = mask_cu;
+  }
+  else {
+    struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask->ncomp, mask_ho->mask->size);
+    gkyl_array_copy(mask_array, mask_ho->mask);
+    mask->mask = mask_array->on_dev;
+    
+    // Initialize the device object.
+    struct gkyl_dg_array_mask *mask_cu = (struct gkyl_dg_array_mask*) gkyl_cu_malloc(sizeof(*mask_cu));
+    gkyl_cu_memcpy(mask_cu, mask, sizeof(struct gkyl_dg_array_mask), GKYL_CU_MEMCPY_H2D);
+    mask->on_dev = mask_cu;
+    
+    // The returned object should store host pointer to gkyl_array.
+    mask->mask = mask_array;
+  }
+  
   return mask;
 }
 
@@ -85,6 +94,11 @@ gkyl_dg_array_mask_advance_kernel(int mask_type,
 void
 gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
 {
+  // Do nothing for NONE type
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    return;
+  }
+  
   int nblocks = mask->mask->nblocks;
   int nthreads = mask->mask->nthreads;
   
