@@ -588,7 +588,6 @@ void test_cu_mask_new()
 void test_cu_mask_none_type()
 {
   struct gkyl_dg_array_mask_inp mask_inp = {
-    .type = GKYL_DG_ARRAY_MASK_NONE,
     .use_gpu = true
   };
   
@@ -603,10 +602,7 @@ void test_cu_mask_none_type()
   int shape[] = {5, 10};
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr_ho, 10.0);
   struct gkyl_array *arr_dev = mkarr(true, 1, range.volume);
-  gkyl_array_copy(arr_dev, arr_ho);
   
   // Advance should do nothing for NONE type
   gkyl_dg_array_mask_advance(mask, arr_dev);
@@ -622,7 +618,6 @@ void test_cu_mask_none_type()
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 0) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 10) == false );
   
-  gkyl_array_release(arr_ho);
   gkyl_array_release(arr_dev);
   gkyl_dg_array_mask_release(mask);
 }

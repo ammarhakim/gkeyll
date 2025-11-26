@@ -35,13 +35,10 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
   mask->on_dev = mask; // CPU mask points to itself
 
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return mask;
-  }
-  else {
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
-    mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
-      mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
+  if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+        mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
     }
     
     // Initialize the mask array on host.
