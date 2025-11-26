@@ -678,9 +678,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
-  if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD) {
+  enum gkyl_dg_array_mask_types skip_cell_mask_type;
+  if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
-  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD) {
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD;
   } else {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_NONE;

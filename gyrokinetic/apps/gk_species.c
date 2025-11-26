@@ -1344,7 +1344,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
   
-  enum dg_array_mask_type skip_cell_mask_type;
+  enum gkyl_dg_array_mask_types skip_cell_mask_type;
 
   if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
