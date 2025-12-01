@@ -78,7 +78,7 @@ gk_field_boltzmann_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 
 // FEM initialization functions for different field types and dimensions
 void
-gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   double polarization_weight = 1.0;
   f->rhs_phi_func = gk_field_boltzmann_rhs;
@@ -101,7 +101,7 @@ gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f
   }
 
   f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-    fem_parproj_bc, f->epsilon_global, 0, app->use_gpu);
+    fem_parproj_bc, 0, 0, app->use_gpu);
 
   if (app->cdim == 1) {
     f->es_energy_fac_1d = polarization_weight;
@@ -112,4 +112,15 @@ gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
+
+  // Create operator needed for FLR effects.
+  f->use_flr = false;
+  f->invert_flr = gk_field_invert_flr_none;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    if (s->info.flr.type)
+      f->use_flr = f->use_flr || s->info.flr.type;
+  }
+
+  f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
 }

@@ -21,7 +21,7 @@ gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field
 }
 
 void
-gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->rhs_phi_func = gk_field_1x_poisson_rhs;
 
@@ -60,8 +60,8 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
 
   // Gather epsilon for (global) smoothing in z.
-  f->epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, f->epsilon_global);
+  struct gkyl_array *epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, epsilon_global);
 
   // Potential smoothing (in z) updater
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
@@ -81,11 +81,23 @@ gk_field_fem_init_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
         fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
       }
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-      fem_parproj_bc, f->epsilon_global, 0, app->use_gpu);
+      fem_parproj_bc, epsilon_global, 0, app->use_gpu);
   }
 
   f->es_energy_fac_1d = polarization_weight*f->info.kperpSq + es_energy_fac_1d_adiabatic;
 
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
     1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
+
+  // Create operator needed for FLR effects.
+  f->use_flr = false;
+  f->invert_flr = gk_field_invert_flr_none;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    if (s->info.flr.type)
+      f->use_flr = f->use_flr || s->info.flr.type;
+  }
+
+  f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
+
 }
