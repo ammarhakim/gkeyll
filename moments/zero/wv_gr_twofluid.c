@@ -2079,6 +2079,8 @@ gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp* inp)
   gr_twofluid->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_twofluid_free);
   gr_twofluid->eqn.on_dev = &gr_twofluid->eqn; // On the CPU, the equation object points to itself.
 
+  gr_twofluid->eqn.embed_geo = NULL;
+
   return &gr_twofluid->eqn;
 }
 
