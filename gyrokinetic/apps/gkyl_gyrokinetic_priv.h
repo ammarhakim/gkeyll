@@ -1303,7 +1303,7 @@ struct gk_field {
   
   void (*accumulate_rhoc_func) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
 
-  void (*solver_release_func)(const gkyl_gyrokinetic_app* app, const struct gk_field *field);
+  void (*solver_release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

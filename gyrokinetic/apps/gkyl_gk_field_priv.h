@@ -323,7 +323,7 @@ static inline void gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, s
   }
 }
 
-static inline void gk_field_biassed_wall_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+static inline void gk_field_biassed_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->phi_wall_lo);
   if (f->has_phi_wall_lo)
@@ -398,7 +398,7 @@ static inline void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_
                                             app->local, app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL, app->use_gpu);
 }
 
-static inline void gk_field_flr_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+static inline void gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->flr_rhoSq_sum);
   gkyl_array_release(f->flr_kSq);
@@ -426,7 +426,7 @@ static inline void gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app
   f->is_first_energy_dot_write_call = true;
 }
 
-static inline void gk_field_time_rate_diags_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+static inline void gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   if (app->use_gpu)
@@ -443,7 +443,7 @@ static inline void gk_field_time_rate_diags_release(struct gkyl_gyrokinetic_app 
 }
 
 
-static inline void gk_field_calc_energy_enabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
+static inline void gk_field_calc_energy_enabled(struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
 {
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth,
                                1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
@@ -488,7 +488,7 @@ static inline void gk_field_calc_energy_enabled(gkyl_gyrokinetic_app *app, const
   }
 }
 
-static inline void gk_field_calc_energy_disabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
+static inline void gk_field_calc_energy_disabled(struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
 {
   // Do nothing.
 }
