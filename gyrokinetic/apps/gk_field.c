@@ -1153,11 +1153,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     if (app->cdim > 1) {
       gkyl_fem_poisson_perp_release(f->fem_apar_solver);
       gkyl_fem_poisson_perp_release(f->fem_apardot_solver);  
-      gkyl_dg_bin_op_mem_release(f->div_mem);
     }
     else {
       gkyl_array_release(f->currentDens_global);
       gkyl_array_release(f->dApartdtSlvr_lhs_factor);
+      gkyl_dg_bin_op_mem_release(f->div_mem);
     }
     gkyl_fem_parproj_release(f->fem_apar_parproj);
     if (app->use_gpu) {
