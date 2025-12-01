@@ -115,6 +115,33 @@ gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_
 void
 gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
+/**
+ * Release resources specific to Boltzmann field solver.
+ *
+ * @param app Application object
+ * @param f Field object
+ */
+void
+gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f);
+
+/**
+ * Release resources specific to 1x field solver.
+ *
+ * @param app Application object
+ * @param f Field object
+ */
+void
+gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
+
+/**
+ * Release resources specific to 2x3x field solver.
+ *
+ * @param app Application object
+ * @param f Field object
+ */
+void
+gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
+
 
 static void
 gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
@@ -208,6 +235,11 @@ static inline void gk_field_polarization_potential_new(struct gk_field *f, struc
   gkyl_array_release(phi_pol_ho);
 }
 
+static inline void gk_field_polarization_potential_release(struct gk_field *f)
+{
+  gkyl_array_release(f->phi_pol);
+}
+
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
@@ -243,7 +275,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 }
 
 
-static inline void gk_field_biassed_wall_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app)
+static inline void gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->phi_wall_lo = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_lo = false;
@@ -288,6 +320,25 @@ static inline void gk_field_biassed_wall_new(struct gk_field *f, struct gkyl_gyr
     gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
     if (app->use_gpu) // Note: phi_wall_up_host is same as phi_wall_up when not on GPUs.
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
+  }
+}
+
+static inline void gk_field_biassed_wall_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->phi_wall_lo);
+  if (f->has_phi_wall_lo)
+  {
+    gkyl_eval_on_nodes_release(f->phi_wall_lo_proj);
+    if (app->use_gpu)
+      gkyl_array_release(f->phi_wall_lo_host);
+  }
+
+  gkyl_array_release(f->phi_wall_up);
+  if (f->has_phi_wall_up)
+  {
+    gkyl_eval_on_nodes_release(f->phi_wall_up_proj);
+    if (app->use_gpu)
+      gkyl_array_release(f->phi_wall_up_host);
   }
 }
 
@@ -347,7 +398,14 @@ static inline void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_
                                             app->local, app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL, app->use_gpu);
 }
 
-static inline void gk_field_time_rate_diags_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app)
+static inline void gk_field_flr_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->flr_rhoSq_sum);
+  gkyl_array_release(f->flr_kSq);
+  gkyl_deflated_fem_poisson_release(f->flr_op);
+}
+
+static inline void gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
   if (app->use_gpu)
@@ -366,4 +424,71 @@ static inline void gk_field_time_rate_diags_new(struct gk_field *f, struct gkyl_
   }
   f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   f->is_first_energy_dot_write_call = true;
+}
+
+static inline void gk_field_time_rate_diags_release(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  if (app->use_gpu)
+  {
+    gkyl_cu_free(f->em_energy_red_new);
+    gkyl_cu_free(f->em_energy_red_old);
+  }
+  else
+  {
+    gkyl_free(f->em_energy_red_new);
+    gkyl_free(f->em_energy_red_old);
+  }
+  gkyl_dynvec_release(f->integ_energy_dot);
+}
+
+
+static inline void gk_field_calc_energy_enabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
+{
+  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth,
+                               1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
+
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
+
+  double energy_global[1] = {0.0};
+  if (app->use_gpu)
+    gkyl_cu_memcpy(energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  else
+    energy_global[0] = field->em_energy_red_global[0];
+
+  if (app->cdim == 1)
+    energy_global[0] *= field->es_energy_fac_1d;
+
+  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
+
+  if (field->info.time_rate_diagnostics)
+  {
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_old, field->em_energy_red_global);
+    double energy_dot_global_old[1] = {0.0};
+    if (app->use_gpu)
+      gkyl_cu_memcpy(energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    else
+      energy_dot_global_old[0] = field->em_energy_red_global[0];
+    if (app->cdim == 1)
+      energy_dot_global_old[0] *= field->es_energy_fac_1d;
+
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_new, field->em_energy_red_global);
+    double energy_dot_global_new[1] = {0.0};
+    if (app->use_gpu)
+      gkyl_cu_memcpy(energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    else
+      energy_dot_global_new[0] = field->em_energy_red_global[0];
+    if (app->cdim == 1)
+      energy_dot_global_new[0] *= field->es_energy_fac_1d;
+
+    double energy_dot_global[1] = {0.0};
+    energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
+
+    gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
+  }
+}
+
+static inline void gk_field_calc_energy_disabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
+{
+  // Do nothing.
 }

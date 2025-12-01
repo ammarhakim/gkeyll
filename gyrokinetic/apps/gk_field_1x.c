@@ -100,4 +100,22 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
 
+  gkyl_array_release(epsilon_global);
+
+  f->solver_release_func = gk_field_fem_release_1x;
+}
+
+void
+gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->epsilon);
+  
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_fem_parproj_release(f->fem_parproj_core);
+    gkyl_fem_parproj_release(f->fem_parproj_sol);
+  } else {
+    gkyl_fem_parproj_release(f->fem_parproj);
+  }
+
+  gkyl_array_integrate_release(f->calc_em_energy);
 }

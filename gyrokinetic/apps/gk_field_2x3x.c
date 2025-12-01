@@ -276,4 +276,40 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gk_field_2x3x_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_enabled;
   }
+
+  f->solver_release_func = gk_field_fem_release_2x3x;
+}
+
+
+void
+gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->epsilon);
+
+  gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
+  gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
+  if (f->is_dirichletvar) {
+    gkyl_array_release(f->phi_bc);
+  }
+  
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_fem_parproj_release(f->fem_parproj_core);
+    gkyl_fem_parproj_release(f->fem_parproj_sol);
+  } else {
+    gkyl_fem_parproj_release(f->fem_parproj);
+  }
+
+  gkyl_array_integrate_release(f->calc_em_energy);
+
+  // Release TS BC and SSFG updater
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    if (app->cdim == 3) {
+      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
+    }
+    gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
+  }
+  
+  if (f->use_flr) {
+    gk_field_flr_release(app, f);
+  }
 }

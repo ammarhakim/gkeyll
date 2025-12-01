@@ -24,13 +24,15 @@ gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double
 {
   if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
     gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
-    if (app->use_gpu) // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
+    if (app->use_gpu) { // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
       gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
+    }
   }
   if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
     gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
-    if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
+    if (app->use_gpu) { // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
       gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
+    }
   }
 }
 
@@ -136,13 +138,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   f->is_first_energy_write_call = true;
 
+  f->calc_energy_func = gk_field_calc_energy_enabled;
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_new(f, app);
+    gk_field_time_rate_diags_new(app, f);
   }
 
   // Set up biased lower wall (same size as electrostatic potential), by default is 0.0
-  gk_field_biassed_wall_new(f, app);
+  gk_field_biassed_wall_new(app, f);
+
   return f;
 }
 
@@ -166,8 +170,9 @@ gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokine
     rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, inp.file_name);
     gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
   }
-  else
+  else {
     assert(false);
+  }
 }
 
 void
@@ -185,46 +190,7 @@ void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-    1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
-
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
-
-  double energy_global[1] = { 0.0 };
-  if (app->use_gpu)
-    gkyl_cu_memcpy(energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-  else
-    energy_global[0] = field->em_energy_red_global[0];
-  
-  if (app->cdim == 1)
-    energy_global[0] *= field->es_energy_fac_1d; 
-
-  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
-
-  if (field->info.time_rate_diagnostics) {
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_old, field->em_energy_red_global);
-    double energy_dot_global_old[1] = { 0.0 };
-    if (app->use_gpu)
-      gkyl_cu_memcpy(energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-    else
-      energy_dot_global_old[0] = field->em_energy_red_global[0];
-    if (app->cdim == 1)
-      energy_dot_global_old[0] *= field->es_energy_fac_1d; 
-
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_new, field->em_energy_red_global);
-    double energy_dot_global_new[1] = { 0.0 };
-    if (app->use_gpu)
-      gkyl_cu_memcpy(energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-    else
-      energy_dot_global_new[0] = field->em_energy_red_global[0];
-    if (app->cdim == 1)
-      energy_dot_global_new[0] *= field->es_energy_fac_1d; 
-
-    double energy_dot_global[1] = { 0.0 };
-    energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
-
-    gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
-  }
+  field->calc_energy_func(app, field, tm);
   app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -244,44 +210,15 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   if (f->init_phi_pol) {
-    gkyl_array_release(f->phi_pol);
+    gk_field_polarization_potential_release(f);
   }
 
   gkyl_array_release(f->es_energy_fac);
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    gkyl_ambi_bolt_potential_release(f->ambi_pot);
-    for (int i = 0; i < 2*app->cdim; ++i) 
-      gkyl_array_release(f->sheath_vals[i]);
-  } 
-  else {
-    if (f->epsilon)
-      gkyl_array_release(f->epsilon);
-    if (app->cdim > 1) {
-      gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
-      gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
-      if (f->is_dirichletvar) {
-        gkyl_array_release(f->phi_bc);
-      }
-    }
-  }
 
-  if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gkyl_fem_parproj_release(f->fem_parproj_core);
-    gkyl_fem_parproj_release(f->fem_parproj_sol);
-  } else {
-    gkyl_fem_parproj_release(f->fem_parproj);
-  }
+  // Release field-solver-specific resources
+  f->solver_release_func(app, f);
 
-  // Release TS BS and SSFG updater
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    if (app->cdim == 3) {
-      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
-    }
-    gkyl_skin_surf_from_ghost_release(f->ssfg_z_lo);
-  }
-
-  gkyl_dynvec_release(f->integ_energy);
-  gkyl_array_integrate_release(f->calc_em_energy);
+  // Release common energy diagnostics
   if (app->use_gpu) {
     gkyl_array_release(f->phi_host);
     gkyl_cu_free(f->em_energy_red);
@@ -292,34 +229,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   if (f->info.time_rate_diagnostics) {
-    gkyl_dynvec_release(f->integ_energy_dot);
-    if (app->use_gpu) {
-      gkyl_cu_free(f->em_energy_red_new);
-      gkyl_cu_free(f->em_energy_red_old);
-    } else {
-      gkyl_free(f->em_energy_red_new);
-      gkyl_free(f->em_energy_red_old);
-    }
+    gk_field_time_rate_diags_release(app, f);
   }
 
-  gkyl_array_release(f->phi_wall_lo);
-  gkyl_array_release(f->phi_wall_up);
-  if (f->has_phi_wall_lo) {
-    gkyl_eval_on_nodes_release(f->phi_wall_lo_proj);
-    if (app->use_gpu) 
-      gkyl_array_release(f->phi_wall_lo_host);
-  }
-  if (f->has_phi_wall_up) {
-    gkyl_eval_on_nodes_release(f->phi_wall_up_proj);
-    if (app->use_gpu) 
-      gkyl_array_release(f->phi_wall_up_host);
-  }
-
-  if (f->use_flr) {
-    gkyl_array_release(f->flr_rhoSq_sum);
-    gkyl_array_release(f->flr_kSq);
-    gkyl_deflated_fem_poisson_release(f->flr_op);
-  }
+  gk_field_biassed_wall_release(app, f);
 
   gkyl_free(f);
 }

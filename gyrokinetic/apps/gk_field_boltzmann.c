@@ -123,4 +123,17 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
+
+  f->solver_release_func = gk_field_fem_release_boltzmann;
+}
+
+void
+gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_ambi_bolt_potential_release(f->ambi_pot);
+  for (int i = 0; i < 2*app->cdim; ++i) {
+    gkyl_array_release(f->sheath_vals[i]);
+  }
+  gkyl_fem_parproj_release(f->fem_parproj);
+  gkyl_array_integrate_release(f->calc_em_energy);
 }
