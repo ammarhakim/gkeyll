@@ -214,6 +214,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   gkyl_array_release(f->es_energy_fac);
+  gkyl_dynvec_release(f->integ_energy);
 
   // Release field-solver-specific resources
   f->solver_release_func(app, f);
