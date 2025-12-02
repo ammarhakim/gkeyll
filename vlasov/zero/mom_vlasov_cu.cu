@@ -224,7 +224,9 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
+  // Also set threshold for whether we accumulate moment over subset of the domain. 
   mom_vlasov->v_thresh = inp->v_thresh; 
+  mom_vlasov->f_thresh = inp->f_thresh; 
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 

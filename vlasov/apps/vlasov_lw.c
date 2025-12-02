@@ -456,6 +456,7 @@ struct vlasov_species_lw {
   int num_cross_source; // Number of species that we are sourcing with.
   char source_with[GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  double source_with_f_thresh[GKYL_MAX_SPECIES]; // Threshold f for accumulating partial moments for re-scaling density.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool write_source; // Are we writing out the source?
@@ -760,6 +761,7 @@ vlasov_species_lw_new(lua_State *L)
   int num_cross_source = 0;
   char source_with[GKYL_MAX_SPECIES][128];
   double source_with_v_thresh[GKYL_MAX_SPECIES];
+  double source_with_f_thresh[GKYL_MAX_SPECIES];
   bool source_with_upper_half[GKYL_MAX_SPECIES];
   int source_with_proj[GKYL_MAX_SPECIES];
   bool write_source = false; 
@@ -804,6 +806,11 @@ vlasov_species_lw_new(lua_State *L)
     with_lua_tbl_tbl(L, "sourceWithVThresh") {
       for (int i = 0; i < num_cross_source; i++) {
         source_with_v_thresh[i] = glua_tbl_iget_number(L, i + 1, 0.0);
+      }
+    }
+    with_lua_tbl_tbl(L, "sourceWithFThresh") {
+      for (int i = 0; i < num_cross_source; i++) {
+        source_with_f_thresh[i] = glua_tbl_iget_number(L, i + 1, 0.0);
       }
     }
     with_lua_tbl_tbl(L, "sourceWithUpperHalf") {
@@ -1028,6 +1035,7 @@ vlasov_species_lw_new(lua_State *L)
   for (int i = 0; i < num_cross_source; i++) {
     strcpy(vms_lw->source_with[i], source_with[i]);
     vms_lw->source_with_v_thresh[i] = source_with_v_thresh[i]; 
+    vms_lw->source_with_f_thresh[i] = source_with_f_thresh[i]; 
     vms_lw->source_with_upper_half[i] = source_with_upper_half[i]; 
     vms_lw->source_with_proj[i] = source_with_proj[i]; 
   }  
@@ -1595,6 +1603,7 @@ struct vlasov_app_lw {
   int num_cross_source[GKYL_MAX_SPECIES]; // Number of species that we are sourcing with.
   char source_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
   double source_with_v_thresh[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  double source_with_f_thresh[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Threshold f for accumulating partial moments for re-scaling density.
   bool source_with_upper_half[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool write_source[GKYL_MAX_SPECIES]; // Are we writing out the source?
@@ -2193,6 +2202,7 @@ vm_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_source[s]; i++) {
       strcpy(app_lw->source_with[s][i], species[s]->source_with[i]);
       app_lw->source_with_v_thresh[s][i] = species[s]->source_with_v_thresh[i]; 
+      app_lw->source_with_f_thresh[s][i] = species[s]->source_with_f_thresh[i]; 
       app_lw->source_with_upper_half[s][i] = species[s]->source_with_upper_half[i]; 
       app_lw->source_with_proj[s][i] = species[s]->source_with_proj[i]; 
     }
@@ -2232,6 +2242,7 @@ vm_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_source[s]; i++) {
       strcpy(vm.species[s].source.source_with[i], app_lw->source_with[s][i]);
       vm.species[s].source.source_with_v_thresh[i] = app_lw->source_with_v_thresh[s][i];
+      vm.species[s].source.source_with_f_thresh[i] = app_lw->source_with_f_thresh[s][i];
       vm.species[s].source.source_with_upper_half[i] = app_lw->source_with_upper_half[s][i];
       vm.species[s].source.source_with_proj[i] = app_lw->source_with_proj[s][i];
     }

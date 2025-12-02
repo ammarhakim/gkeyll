@@ -43,7 +43,10 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     for (int i=0; i<src->num_cross_source; i++) {
       src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
       src->adapt_source_species_idx[i] = vm_find_species_idx(app, vms->info.source.source_with[i]);
+      // Threshold velocity for integration of moments over a subset of the domain. 
+      // Also set threshold for whether we accumulate moment over subset of the domain. 
       inp_mom.v_thresh = vms->info.source.source_with_v_thresh[i];
+      inp_mom.f_thresh = vms->info.source.source_with_f_thresh[i];
       struct gkyl_mom_type *m0_reduced;
       if (vms->info.source.source_with_upper_half[i]) {
         inp_mom.mom_type = GKYL_F_MOMENT_M0_UPPER; 
