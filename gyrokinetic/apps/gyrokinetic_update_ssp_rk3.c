@@ -122,6 +122,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
         // Compute field energy divided by dt for energy balance diagnostics.
         gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_old);
+        gk_field_calc_apar_energy_dt(app, app->field, dt, app->field->apar_energy_red_old);
 
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
@@ -315,6 +316,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
           // Compute field energy divided by dt for energy balance diagnostics.
           gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_new);
+          gk_field_calc_apar_energy_dt(app, app->field, dt, app->field->apar_energy_red_new);
 
           state = RK_COMPLETE;
         }

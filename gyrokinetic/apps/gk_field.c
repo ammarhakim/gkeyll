@@ -39,6 +39,15 @@ gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field 
 }
 
 static void
+gk_field_calc_apar_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_integrate_advance(field->calc_em_energy, field->apar, 
+    1.0/dt, field->apar_energy_fac, &app->local, &app->local, energy_reduced);
+  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
 gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
 }
@@ -47,6 +56,12 @@ void
 gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
+}
+
+void
+gk_field_calc_apar_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
+  field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
 }
 
 static void
@@ -554,6 +569,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  f->calc_apar_energy_dt_func = gk_field_calc_energy_dt_none;
   if (f->info.time_rate_diagnostics) {
     f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
     if (app->use_gpu) {
@@ -569,6 +585,22 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
     f->is_first_energy_dot_write_call = true;
+    if (f->is_em){
+      f->calc_apar_energy_dt_func = gk_field_calc_apar_energy_dt_active;
+      if (app->use_gpu) {
+        f->apar_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
+        f->apar_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
+        gkyl_cu_memset(f->apar_energy_red_new, 0, sizeof(double[1]));
+        gkyl_cu_memset(f->apar_energy_red_old, 0, sizeof(double[1]));
+      } else {
+        f->apar_energy_red_new = gkyl_malloc(sizeof(double[1]));
+        f->apar_energy_red_old = gkyl_malloc(sizeof(double[1]));
+        memset(f->apar_energy_red_new, 0, sizeof(double[1]));
+        memset(f->apar_energy_red_old, 0, sizeof(double[1]));
+      }
+      f->integ_apar_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    }
+    f->is_first_apar_energy_dot_write_call = true;
   }
 
   // setup biased lower wall (same size as electrostatic potential), by default is 0.0
@@ -721,6 +753,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     // Diagnostic for integrated Aparallel energy.
     f->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    f->integ_apardot_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   }
 
   // Create operator needed for FLR effects.
@@ -1106,6 +1139,7 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
   }
 
   if (field->is_em) {
+    // Calculate Aparallel energy.
     gkyl_array_integrate_advance(field->calc_em_energy, field->apar, 
       1.0, field->apar_energy_fac, &app->local, &app->local, field->em_energy_red);
 
@@ -1121,6 +1155,48 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
       energy_global[0] *= field->apar_energy_fac_1d; 
 
     gkyl_dynvec_append(field->integ_apar_energy, tm, energy_global);
+    
+    // Calculate d(Aparallel)/dt energy.
+    gkyl_array_integrate_advance(field->calc_em_energy, field->apardot, 
+      1.0, field->apar_energy_fac, &app->local, &app->local, field->em_energy_red);
+
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
+
+    double energy_dot_global[1] = { 0.0 };
+    if (app->use_gpu)
+      gkyl_cu_memcpy(energy_dot_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    else
+      energy_dot_global[0] = field->em_energy_red_global[0];
+    
+    // if (app->cdim == 1)
+    //   energy_dot_global[0] *= field->apar_energy_fac_1d;
+
+    gkyl_dynvec_append(field->integ_apardot_energy, tm, energy_dot_global);
+
+    if (field->info.time_rate_diagnostics) {
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->apar_energy_red_old, field->em_energy_red_global);
+      double energy_dot_global_old[1] = { 0.0 };
+      if (app->use_gpu)
+        gkyl_cu_memcpy(energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+      else
+        energy_dot_global_old[0] = field->em_energy_red_global[0];
+      if (app->cdim == 1)
+        energy_dot_global_old[0] *= field->apar_energy_fac_1d; 
+      
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->apar_energy_red_new, field->em_energy_red_global);
+      double energy_dot_global_new[1] = { 0.0 };
+      if (app->use_gpu)
+        gkyl_cu_memcpy(energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+      else
+        energy_dot_global_new[0] = field->em_energy_red_global[0];
+      if (app->cdim == 1)
+        energy_dot_global_new[0] *= field->apar_energy_fac_1d; 
+
+      double energy_dot_global[1] = { 0.0 };
+      energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
+
+      gkyl_dynvec_append(field->integ_apar_energy_dot, tm, energy_dot_global);
+    }
   }
 
   app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -1165,6 +1241,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->apardot_host);
     }
     gkyl_dynvec_release(f->integ_apar_energy);
+    gkyl_dynvec_release(f->integ_apardot_energy);
   }
 
   if (f->init_phi_pol) {
@@ -1223,6 +1300,16 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     } else {
       gkyl_free(f->em_energy_red_new);
       gkyl_free(f->em_energy_red_old);
+    }
+    if (f->is_em) {
+      gkyl_dynvec_release(f->integ_apar_energy_dot);
+      if (app->use_gpu) {
+        gkyl_cu_free(f->apar_energy_red_new);
+        gkyl_cu_free(f->apar_energy_red_old);
+      } else {
+        gkyl_free(f->apar_energy_red_new);
+        gkyl_free(f->apar_energy_red_old);
+      }
     }
   }
 

@@ -1213,11 +1213,15 @@ struct gk_field {
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
   gkyl_dynvec integ_apar_energy; // integrated EM energy components (separate from electrostatic energy for debugging purposes)
+  gkyl_dynvec integ_apardot_energy; // time derivative of integrated EM energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
 
   double *em_energy_red_old, *em_energy_red_new; // memory for use in GPU reduction of old EM energy.
   gkyl_dynvec integ_energy_dot; // d/dt of integrated energy components.
   bool is_first_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
+  double *apar_energy_red_old, *apar_energy_red_new; // memory for use in GPU reduction of old Apar energy.
+  gkyl_dynvec integ_apar_energy_dot; // d/dt of integrated EM energy components (separate from electrostatic energy for debugging purposes)
+  bool is_first_apar_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
 
   bool has_phi_wall_lo; // flag to indicate there is biased wall potential on lower wall
   bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
@@ -1233,7 +1237,8 @@ struct gk_field {
 
   // Pointer to function that computes the time rate of change of the energy.
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
-
+  void (*calc_apar_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+  
   // Objects used in IWL simulations and TS BCs.
   struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
@@ -3787,6 +3792,17 @@ void gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_
  * @param energy_reduced Integrated field energy (single element double array).
  */
 void gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+
+/**
+ * Compute Apar energy divided by dt for energy balance diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param dt Time step.
+ * @param energy_reduced Integrated field energy (single element double array).
+ */
+void gk_field_calc_apar_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+
 
 /**
  * Release resources allocated by field.
