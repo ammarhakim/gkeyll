@@ -17,10 +17,13 @@ struct affine_ctx {
   double c1;
 };
 
+// allocate array (filled with zeros)
 static struct gkyl_array*
-mkarr(long nc, long size)
+mkarr(bool use_gpu, long nc, long size)
 {
-  return gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array* a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                 : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
 }
 
 static void
@@ -76,7 +79,7 @@ expected_affine_value(const struct gkyl_rect_grid *grid, int cell_idx,
 }
 
 static void
-run_affine_gaussian_filter_test(double c0, double c1, double tol)
+run_affine_gaussian_filter_test(double c0, double c1, double tol, bool use_gpu)
 {
   const int cdim = 1;
   const int poly_order = 3;
@@ -95,12 +98,23 @@ run_affine_gaussian_filter_test(double c0, double c1, double tol)
   struct gkyl_range conf_range, conf_range_ext;
   gkyl_create_grid_ranges(&grid, ghost, &conf_range_ext, &conf_range);
 
-  struct gkyl_array *conf_arr = mkarr(basis.num_basis, conf_range_ext.volume);
+  struct gkyl_array *conf_arr = mkarr(use_gpu, basis.num_basis, conf_range_ext.volume);
+  struct gkyl_array *conf_arr_ho; 
+  if (use_gpu) {
+    conf_arr_ho = mkarr(false, basis.num_basis, conf_range_ext.volume);
+  }
+  else {
+    conf_arr_ho = gkyl_array_acquire(conf_arr); 
+  }
 
   struct affine_ctx ctx = { c0, c1 };
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, affine_eval, &ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &conf_range_ext, conf_arr);
+  gkyl_proj_on_basis_advance(proj, 0.0, &conf_range_ext, conf_arr_ho);
+
+  if (use_gpu) {
+    gkyl_array_copy(conf_arr, conf_arr_ho); 
+  }
 
   struct gkyl_dg_gaussian_filter_inp inp = {
     .conf_grid = &grid,
@@ -108,11 +122,16 @@ run_affine_gaussian_filter_test(double c0, double c1, double tol)
     .conf_range = &conf_range,
     .conf_range_ext = &conf_range_ext,
     .extend_filter = false,
-    .use_gpu = false,
+    .use_gpu = use_gpu,
   };
   gkyl_dg_gaussian_filter *up = gkyl_dg_gaussian_filter_inew(&inp);
 
   gkyl_dg_gaussian_filter_advance(up, &conf_range, conf_arr);
+
+  // If we are using GPUs, copy the filtered array back to CPU in the conf_arr_ho array.
+  if (use_gpu) {
+    gkyl_array_copy(conf_arr_ho, conf_arr); 
+  }
 
   const int num_quad = poly_order+1;
   const double *ords = gkyl_gauss_ordinates[num_quad];
@@ -122,7 +141,7 @@ run_affine_gaussian_filter_test(double c0, double c1, double tol)
   gkyl_range_iter_init(&iter, &conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&conf_range, iter.idx);
-    const double *modal = gkyl_array_cfetch(conf_arr, loc);
+    const double *modal = gkyl_array_cfetch(conf_arr_ho, loc);
 
     double xc_target[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&grid, iter.idx, xc_target);
@@ -146,6 +165,7 @@ run_affine_gaussian_filter_test(double c0, double c1, double tol)
   }
 
   gkyl_array_release(conf_arr);
+  gkyl_array_release(conf_arr_ho);
   gkyl_proj_on_basis_release(proj);
   gkyl_dg_gaussian_filter_release(up);
 }
@@ -153,17 +173,35 @@ run_affine_gaussian_filter_test(double c0, double c1, double tol)
 static void
 test_gaussian_filter_constant()
 {
-  run_affine_gaussian_filter_test(1.25, 0.0, 1e-12);
+  run_affine_gaussian_filter_test(1.25, 0.0, 1e-12, false);
 }
 
 static void
 test_gaussian_filter_linear()
 {
-  run_affine_gaussian_filter_test(-0.4, 0.8, 1e-7);
+  run_affine_gaussian_filter_test(-0.4, 0.8, 1e-7, false);
 }
+
+#ifdef GKYL_HAVE_CUDA
+static void
+test_gaussian_filter_constant_gpu()
+{
+  run_affine_gaussian_filter_test(1.25, 0.0, 1e-12, true);
+}
+
+static void
+test_gaussian_filter_linear_gpu()
+{
+  run_affine_gaussian_filter_test(-0.4, 0.8, 1e-7, true);
+}
+#endif
 
 TEST_LIST = {
   { "gaussian_filter_constant", test_gaussian_filter_constant },
   { "gaussian_filter_linear", test_gaussian_filter_linear },
+#ifdef GKYL_HAVE_CUDA
+  { "gaussian_filter_constant_gpu", test_gaussian_filter_constant_gpu },
+  { "gaussian_filter_linear_gpu", test_gaussian_filter_linear_gpu },
+#endif
   { NULL, NULL },
 };

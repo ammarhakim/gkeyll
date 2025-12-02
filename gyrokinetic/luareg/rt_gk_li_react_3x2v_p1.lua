@@ -285,10 +285,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 2, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 2, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -409,10 +409,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 2, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 2, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -555,10 +555,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 2, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 2, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -701,10 +701,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 2, edge = 0, type = G0.SpeciesBc.bcGkSheath },
-      { dir = 2, edge = 1, type = G0.SpeciesBc.bcGkSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 2, edge = 0, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 2, edge = 1, type = G0.GyrokineticBc.speciesSheath },
     },
 
     evolve = true, -- Evolve species?
@@ -716,10 +716,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     femParBc = G0.ParProjBc.None,
 
     poissonBcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcDirichlet, value = {0.0} },
-      { dir = 1, edge = 0, type = G0.SpeciesBc.bcPeriodic, },
-      { dir = 1, edge = 1, type = G0.SpeciesBc.bcPeriodic, },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.fieldDirichlet, value = {0.0} },
+      { dir = 1, edge = 0, type = G0.GyrokineticBc.fieldPeriodic, },
+      { dir = 1, edge = 1, type = G0.GyrokineticBc.fieldPeriodic, },
     },
   }
 }

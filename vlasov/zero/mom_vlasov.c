@@ -66,7 +66,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
-  mom_vlasov->v_thresh = inp->v_thresh; 
+  // Also set threshold for whether we accumulate moment over subset of the domain. 
+  mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0; 
+  mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0; 
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,

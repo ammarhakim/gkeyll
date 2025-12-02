@@ -92,6 +92,7 @@ struct gkyl_vlasov_source {
   int num_cross_source; // Number of species that we are sourcing with.
   char source_with[GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
   double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  double source_with_f_thresh[GKYL_MAX_SPECIES]; // Threshold f for accumulating partial moments for re-scaling density.
   bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
   int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
   bool filter; // Are we filtering the rescaled density?

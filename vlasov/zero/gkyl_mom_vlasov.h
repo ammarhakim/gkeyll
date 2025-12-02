@@ -17,6 +17,7 @@ struct gkyl_mom_vlasov_inp {
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments (such as energy or dH/dv moment). 
   double v_thresh; // Threshold velocity for moments over a subset of the domain such as M0_UPPER and M0_LOWER. 
+  double f_thresh; // Threshold f for accumulating moments over a subset of the domain such as M0_UPPER and M0_LOWER. 
   enum gkyl_distribution_moments mom_type; // Name of moment to compute. See gkyl_mom_type.h. 
   bool use_gpu; // bool to determine if on GPU. 
 };

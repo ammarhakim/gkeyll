@@ -33,13 +33,13 @@ filter_norm(int cdim, int tot_quad,
   double sum = 0.0;
   for (int j=0; j<tot_quad; ++j) {  
     // Fetch the quadrature point locations for all other quadrature points. 
-    comp_to_phys(cdim, gkyl_array_cfetch(ordinates, j),
+    comp_to_phys(cdim, (const double*) gkyl_array_cfetch(ordinates, j),
       dx, xcl, xmul);
-    comp_to_phys(cdim, gkyl_array_cfetch(ordinates, j),
+    comp_to_phys(cdim, (const double*) gkyl_array_cfetch(ordinates, j),
       dx, xcc, xmuc);
-    comp_to_phys(cdim, gkyl_array_cfetch(ordinates, j),
+    comp_to_phys(cdim, (const double*) gkyl_array_cfetch(ordinates, j),
       dx, xcr, xmur);   
-    const double *wq = gkyl_array_cfetch(weights, j);
+    const double *wq = (const double*) gkyl_array_cfetch(weights, j);
     // Sum the contributions from each cell in the three-cell filter.   
     double expamp_l = -pow((xmu[0] - xmul[0])/(sqrt(2.0)*dx[0]), 2.0); 
     double expamp_c = -pow((xmu[0] - xmuc[0])/(sqrt(2.0)*dx[0]), 2.0); 

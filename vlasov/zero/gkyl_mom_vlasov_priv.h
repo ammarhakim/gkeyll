@@ -17,6 +17,7 @@ struct mom_type_vlasov {
   const struct gkyl_array *vmap; // Velocity-space mapping.  
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
   double v_thresh; // Threshold velocity for integration of moments over a subset of the domain. 
+  double f_thresh; // Threshold for whether we accumulate moment over subset of the domain. 
 };
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -4805,7 +4806,8 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_upper_1x1v_tensor_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4825,7 +4827,8 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p3(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_upper_1x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4845,7 +4848,8 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_upper_2x1v_tensor_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4865,7 +4869,8 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p3(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_upper_2x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4885,7 +4890,8 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_lower_1x1v_tensor_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4905,7 +4911,8 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p3(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_lower_1x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4925,7 +4932,8 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_lower_2x1v_tensor_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 GKYL_CU_DH
@@ -4945,7 +4953,8 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p3(const struct gkyl_mom_type *momt, cons
 
   return mom_vlasov_M0_lower_2x1v_tensor_p3(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx),
-    mom_vlasov->v_thresh, f, out);  
+    (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx),
+    mom_vlasov->v_thresh, mom_vlasov->f_thresh, f, out);  
 }
 
 // M0 upper half-plane kernel list

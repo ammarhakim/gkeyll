@@ -117,6 +117,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_twofluid_charge_ion = mom_sp->gr_twofluid_charge_ion;
     sp->gr_twofluid_gas_gamma_elc = mom_sp->gr_twofluid_gas_gamma_elc;
     sp->gr_twofluid_gas_gamma_ion = mom_sp->gr_twofluid_gas_gamma_ion;
+    sp->gr_twofluid_e_fact = mom_sp->gr_twofluid_e_fact;
   }
 
   sp->has_gr_mhd = false;
