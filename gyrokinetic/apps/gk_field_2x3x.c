@@ -12,6 +12,49 @@
 #include <float.h>
 #include <time.h>
 
+static void
+gk_field_2x3x_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  // Parallel direction index (handle 2x and 3x cases).
+  int par_dir = app->cdim - 1;
+  // Take the TS function from the parallel BC of the first species.
+  struct gk_species *gks = &app->species[0];
+  const struct gkyl_gyrokinetic_bc *par_lower_bc;
+  for (int i = 0; i < 2*app->cdim; i++) {
+    if (gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
+      par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
+      break;
+    }
+  }
+
+  // TSBC updaters
+  int ghost[] = {1, 1, 1};
+  if (app->cdim == 3) {
+    // TS BC updater for up to low TS for the lower edge
+    // this sets ghost_L = T_LU(ghost_L)
+    struct gkyl_bc_twistshift_inp T_LU_lo = {
+      .bc_dir = par_dir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_LOWER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = app->local_par_ext_core,
+      .num_ghost = ghost, // one ghost per config direction
+      .basis = app->basis,
+      .grid = app->grid,
+      .shift_func = par_lower_bc->aux_profile,
+      .shift_func_ctx = par_lower_bc->aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
+    // Add the forward TS updater to f
+    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+  }
+
+  // Add the SSFG updater for lower and upper application.
+  f->ssfg_z_lo = gkyl_skin_surf_from_ghost_new(par_dir,  GKYL_LOWER_EDGE,
+    app->basis, &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
+}
+
 void
 gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
@@ -257,49 +300,6 @@ void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_fi
   double q_s = field->info.electron_charge;
   double dg_norm = pow(sqrt(2), app->basis.ndim);
   gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
-}
-
-static void
-gk_field_2x3x_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  // Parallel direction index (handle 2x and 3x cases).
-  int par_dir = app->cdim - 1;
-  // Take the TS function from the parallel BC of the first species.
-  struct gk_species *gks = &app->species[0];
-  const struct gkyl_gyrokinetic_bc *par_lower_bc;
-  for (int i = 0; i < 2*app->cdim; i++) {
-    if (gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].edge == GKYL_LOWER_EDGE) {
-      par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
-      break;
-    }
-  }
-
-  // TSBC updaters
-  int ghost[] = {1, 1, 1};
-  if (app->cdim == 3) {
-    // TS BC updater for up to low TS for the lower edge
-    // this sets ghost_L = T_LU(ghost_L)
-    struct gkyl_bc_twistshift_inp T_LU_lo = {
-      .bc_dir = par_dir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_LOWER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = app->local_par_ext_core,
-      .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
-      .shift_func = par_lower_bc->aux_profile,
-      .shift_func_ctx = par_lower_bc->aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-    // Add the forward TS updater to f
-    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
-  }
-
-  // Add the SSFG updater for lower and upper application.
-  f->ssfg_z_lo = gkyl_skin_surf_from_ghost_new(par_dir,  GKYL_LOWER_EDGE,
-    app->basis, &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
 }
 
 void
