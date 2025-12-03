@@ -7,17 +7,6 @@
 #include <math.h>
 
 void
-gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
-{
-  gkyl_deflated_fem_poisson_advance(field->flr_op, phi, phi, phi);
-}
-
-void
-gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
-{
-}
-
-void
 gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   assert(app->cdim > 1);
@@ -72,6 +61,17 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
   f->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
                                             app->local, app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL, app->use_gpu);
+}
+
+void
+gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+{
+  gkyl_deflated_fem_poisson_advance(field->flr_op, phi, phi, phi);
+}
+
+void
+gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+{
 }
 
 void

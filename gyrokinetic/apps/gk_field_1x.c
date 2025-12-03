@@ -12,20 +12,12 @@
 #include <float.h>
 #include <time.h>
 
-
-void
-gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
-{
-  // Solve the Poisson equation in 1x with the parallel FEM projection.
-  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
-}
-
 void
 gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
   gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
-  
+
   // Allocate arrays for charge density.
   f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
@@ -127,6 +119,14 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   f->solver_release_func = gk_field_fem_release_1x;
 }
+
+void
+gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Solve the Poisson equation in 1x with the parallel FEM projection.
+  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
+}
+
 
 void
 gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)

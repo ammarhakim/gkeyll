@@ -4,23 +4,6 @@
 #include <gkyl_gk_field_priv.h>
 
 void
-gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
-{
-  if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
-    if (app->use_gpu) {
-      gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
-    }
-  }
-  if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
-    if (app->use_gpu) {
-      gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
-    }
-  }
-}
-
-void
 gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->phi_wall_lo = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -66,6 +49,23 @@ gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
     if (app->use_gpu) // Note: phi_wall_up_host is same as phi_wall_up when not on GPUs.
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
+  }
+}
+
+void
+gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
+{
+  if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
+    gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
+    if (app->use_gpu) {
+      gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
+    }
+  }
+  if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
+    gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
+    if (app->use_gpu) {
+      gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
+    }
   }
 }
 

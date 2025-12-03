@@ -35,40 +35,6 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 }
 
 void
-gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  gkyl_dynvec_release(f->integ_energy);
-
-  if (app->use_gpu) {
-    gkyl_cu_free(f->em_energy_red);
-    gkyl_cu_free(f->em_energy_red_global);
-  } else {
-    gkyl_free(f->em_energy_red);
-    gkyl_free(f->em_energy_red_global);
-  }
-
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_release(app, f);
-  }
-
-  gkyl_array_release(f->es_energy_fac);
-}
-
-void
-gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
-{
-  struct timespec wst = gkyl_wall_clock();
-  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-    1.0/dt, field->es_energy_fac, &app->local, &app->local, energy_reduced);
-  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
-}
-
-void
-gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
-{
-}
-
-void
 gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
@@ -91,20 +57,17 @@ gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *
 }
 
 void
-gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-  if (app->use_gpu)
-  {
-    gkyl_cu_free(f->em_energy_red_new);
-    gkyl_cu_free(f->em_energy_red_old);
-  }
-  else
-  {
-    gkyl_free(f->em_energy_red_new);
-    gkyl_free(f->em_energy_red_old);
-  }
-  gkyl_dynvec_release(f->integ_energy_dot);
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
+    1.0/dt, field->es_energy_fac, &app->local, &app->local, energy_reduced);
+  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
 }
 
 void
@@ -157,4 +120,41 @@ void
 gk_field_calc_energy_disabled(struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
 {
   // Do nothing.
+}
+
+void
+gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_dynvec_release(f->integ_energy);
+
+  if (app->use_gpu) {
+    gkyl_cu_free(f->em_energy_red);
+    gkyl_cu_free(f->em_energy_red_global);
+  } else {
+    gkyl_free(f->em_energy_red);
+    gkyl_free(f->em_energy_red_global);
+  }
+
+  if (f->info.time_rate_diagnostics) {
+    gk_field_time_rate_diags_release(app, f);
+  }
+
+  gkyl_array_release(f->es_energy_fac);
+}
+
+void
+gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  if (app->use_gpu)
+  {
+    gkyl_cu_free(f->em_energy_red_new);
+    gkyl_cu_free(f->em_energy_red_old);
+  }
+  else
+  {
+    gkyl_free(f->em_energy_red_new);
+    gkyl_free(f->em_energy_red_old);
+  }
+  gkyl_dynvec_release(f->integ_energy_dot);
 }

@@ -201,3 +201,9 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 void
 gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+
+static void
+gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+static void
+gk_field_2x3x_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
