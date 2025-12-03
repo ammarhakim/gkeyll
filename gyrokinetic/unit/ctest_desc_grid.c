@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string.h>
+#include <errno.h>
 
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
@@ -72,630 +73,607 @@ load_gkyl_file_to_nodal(const char *filename)
 
 void test_3xp1(){
     //Load in all corner files and calculate derived quantities
-    struct gkyl_array* tangents_corner = load_gkyl_file_to_nodal("drpz_draz_corner.gkyl");
-    struct gkyl_array* Bmag_corner = load_gkyl_file_to_nodal("Bmag_corner.gkyl");
-    struct gkyl_array* curlBhat_corner = load_gkyl_file_to_nodal("curl_B_hat_xyz_corner.gkyl");
-    struct gkyl_array* raz_corner = load_gkyl_file_to_nodal("raz_corner.gkyl");
-    struct gkyl_array* rpz_corner = load_gkyl_file_to_nodal("rpz_corner.gkyl");
-    
+    struct gkyl_array* bmag_corner_nodal = load_gkyl_file_to_nodal("Bmag_corner.gkyl");
+    struct gkyl_array* mc2nu_pos_corner_nodal = load_gkyl_file_to_nodal("rza_corner.gkyl");
+    struct gkyl_array* mc2p_corner_nodal = load_gkyl_file_to_nodal("rzp_corner.gkyl");
     // Check for NULL pointers (file loading failures)
-    TEST_CHECK(tangents_corner != NULL);
-    TEST_CHECK(Bmag_corner != NULL);
-    TEST_CHECK(curlBhat_corner != NULL);
-    TEST_CHECK(raz_corner != NULL);
-    TEST_CHECK(rpz_corner != NULL);
-    if (!tangents_corner || !Bmag_corner || !curlBhat_corner || !raz_corner || !rpz_corner) {
+    TEST_CHECK(bmag_corner_nodal != NULL);
+    TEST_CHECK(mc2nu_pos_corner_nodal != NULL);
+    TEST_CHECK(mc2p_corner_nodal != NULL);
+    if (!bmag_corner_nodal || !mc2p_corner_nodal || !mc2nu_pos_corner_nodal) {
         return; // Exit early if files failed to load
     }
-    // Calculate derived quantities for corner nodes
-    // Create a simple 1D range for 100000 nodes
-    int shape_corner[1] = {100000};
+    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
+    int shape_corner[1] = {(int)bmag_corner_nodal->size};
     struct gkyl_range nrange_corner;
     gkyl_range_init_from_shape1(&nrange_corner, 1, shape_corner);
-    struct gkyl_range_iter iter_corner;
-    gkyl_range_iter_init(&iter_corner, &nrange_corner);  
-    // initialize jacobian and other arrays which are to be calculated (mkarr(false, number of components, nrange_corner.volume))
-    struct gkyl_array* duals_corner = mkarr(false, 9, nrange_corner.volume);
-    struct gkyl_array* jacobgeo_corner = mkarr(false, 1, nrange_corner.volume);
-    struct gkyl_array* g_ij_corner = mkarr(false, 9, nrange_corner.volume);
-    struct gkyl_array* B3_corner = mkarr(false, 1, nrange_corner.volume);
-    struct gkyl_array* dualcurlBhat_corner = mkarr(false, 3, nrange_corner.volume);
-    struct gkyl_array* dualcurlBhatoverB_corner = mkarr(false, 3, nrange_corner.volume);
-    struct gkyl_array* rtg33inv_corner = mkarr(false, 1, nrange_corner.volume);
-    struct gkyl_array* bioverJB_corner = mkarr(false, 3, nrange_corner.volume);
-    struct gkyl_array* dualmags_corner = mkarr(false, 3, nrange_corner.volume);
-    struct gkyl_array* dualnormals_corner = mkarr(false, 9, nrange_corner.volume);
-    
-    while (gkyl_range_iter_next(&iter_corner)) {
-        // Get current node index
-        long idx = gkyl_range_idx(&nrange_corner, iter_corner.idx);
-        
-        double *tang_data = (double*)tangents_corner->data;
-        double *bmag_data = (double*)Bmag_corner->data;
-        double *curl_data = (double*)curlBhat_corner->data;
-        double *dual_data = (double*)duals_corner->data;
-        double *gij_data = (double*)g_ij_corner->data;
-        double *jacob_data = (double*)jacobgeo_corner->data;
-        double *b3_data = (double*)B3_corner->data;
-        double *dcb_data = (double*)dualcurlBhat_corner->data;
-        double *dcbob_data = (double*)dualcurlBhatoverB_corner->data;
-        double *rtg_data = (double*)rtg33inv_corner->data;
-        double *biojb_data = (double*)bioverJB_corner->data;
-        double *dmag_data = (double*)dualmags_corner->data;
-        double *dnorm_data = (double*)dualnormals_corner->data;
-        
-        double e_1[3] = {tang_data[idx*9+0], tang_data[idx*9+1], tang_data[idx*9+2]};
-        double e_2[3] = {tang_data[idx*9+3], tang_data[idx*9+4], tang_data[idx*9+5]};
-        double e_3[3] = {tang_data[idx*9+6], tang_data[idx*9+7], tang_data[idx*9+8]};
-        double curlB[3] = {curl_data[idx*3+0], curl_data[idx*3+1], curl_data[idx*3+2]};
-        double Bmag = bmag_data[idx];
-        
-        // Jacobian: J = e_1 · (e_2 × e_3)
-        double e2xe3[3] = {e_2[1]*e_3[2]-e_2[2]*e_3[1], e_2[2]*e_3[0]-e_2[0]*e_3[2], e_2[0]*e_3[1]-e_2[1]*e_3[0]};
-        double J = e_1[0]*e2xe3[0] + e_1[1]*e2xe3[1] + e_1[2]*e2xe3[2];
-        jacob_data[idx] = J;
-        if (fabs(J) < 1e-12) {
-            // Jacobian is too small, skip this node or set to a small value
-            J = 1e-12;
-            jacob_data[idx] = J;
-        }
-        double Jinv = 1.0/J;
-        
-        // Dual vectors: e^i = (1/J) * (e_j × e_k)
-        double e3xe1[3] = {e_3[1]*e_1[2]-e_3[2]*e_1[1], e_3[2]*e_1[0]-e_3[0]*e_1[2], e_3[0]*e_1[1]-e_3[1]*e_1[0]};
-        double e1xe2[3] = {e_1[1]*e_2[2]-e_1[2]*e_2[1], e_1[2]*e_2[0]-e_1[0]*e_2[2], e_1[0]*e_2[1]-e_1[1]*e_2[0]};
-        for (int i=0; i<3; i++) {
-            dual_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
-            dual_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
-            dual_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
-        }
-        
-        // Metric tensor: g_ij = e_i · e_j
-        for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
-            double *ei = (i==0)?e_1:(i==1)?e_2:e_3;
-            double *ej = (j==0)?e_1:(j==1)?e_2:e_3;
-            gij_data[idx*9+i*3+j] = ei[0]*ej[0] + ei[1]*ej[1] + ei[2]*ej[2];
-        }
-        
-        double g33 = gij_data[idx*9+2*3+2];
-        double sqrt_g33 = sqrt(g33);
-        double rtg33inv = 1.0/sqrt_g33;
-        rtg_data[idx] = rtg33inv;
-        
-        // B3 = Bmag / sqrt(g_33)
-        b3_data[idx] = Bmag * rtg33inv;
-        
-        // dualcurlbhat = e^i · curlBhat and dualcurlBhatoverB
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dcb_data[idx*3+i] = ei[0]*curlB[0] + ei[1]*curlB[1] + ei[2]*curlB[2];
-            dcbob_data[idx*3+i] = dcb_data[idx*3+i] / Bmag;
-        }
-        
-        // bioverJB = g_i3 / sqrt(g_33) / J / Bmag 
-        for (int i=0; i<3; i++) {
-            biojb_data[idx*3+i] = gij_data[idx*9+i*3+2] / sqrt_g33 / J / Bmag;
-        }
-        
-        // Dual vector magnitudes: |e^i|
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dmag_data[idx*3+i] = sqrt(ei[0]*ei[0] + ei[1]*ei[1] + ei[2]*ei[2]);
-        }
-        
-        // Normal vectors: e^i / |e^i|
-        for (int i=0; i<3; i++) {
-            double mag = dmag_data[idx*3+i];
-            double *ei = &dual_data[idx*9+i*3];
-            if (mag > 1e-12) {  // Avoid division by zero
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = ei[j] / mag;
-            } else {
-                // If magnitude is zero, set normal to zero vector
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = 0.0;
-            }
-        }
-    }
 
     // Do for interior
-    struct gkyl_array* tangents_interior = load_gkyl_file_to_nodal("drpz_draz_I.gkyl");
-    struct gkyl_array* Bmag_interior = load_gkyl_file_to_nodal("Bmag_I.gkyl");
-    struct gkyl_array* curlBhat_interior = load_gkyl_file_to_nodal("curl_B_hat_xyz_I.gkyl");
-    struct gkyl_array* raz_interior = load_gkyl_file_to_nodal("raz_I.gkyl");
-    struct gkyl_array* rpz_interior = load_gkyl_file_to_nodal("rpz_I.gkyl");
-    
-    TEST_CHECK(tangents_interior != NULL);
-    TEST_CHECK(Bmag_interior != NULL);
-    TEST_CHECK(curlBhat_interior != NULL);
-    TEST_CHECK(raz_interior != NULL);
-    TEST_CHECK(rpz_interior != NULL);
-    if (!tangents_interior || !Bmag_interior || !curlBhat_interior || !raz_interior || !rpz_interior) {
+    struct gkyl_array* dxdz_interior_nodal = load_gkyl_file_to_nodal("drzp_drza_I.gkyl");
+    struct gkyl_array* bmag_interior_nodal = load_gkyl_file_to_nodal("Bmag_I.gkyl");
+    struct gkyl_array* curlbhat_interior_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_I.gkyl");
+    struct gkyl_array* bcart_interior_nodal = load_gkyl_file_to_nodal("B_xyz_I.gkyl");
+    // LOAD IN bcart_interior_nodal from DESC data
+    TEST_CHECK(dxdz_interior_nodal != NULL);
+    TEST_CHECK(bmag_interior_nodal != NULL);
+    TEST_CHECK(curlbhat_interior_nodal != NULL);
+    TEST_CHECK(bcart_interior_nodal != NULL);
+    if (!dxdz_interior_nodal || !bmag_interior_nodal || !curlbhat_interior_nodal || !bcart_interior_nodal) {
         return;
     }
-    // Then calculate derived quantities
-    // Create a simple 1D range for 705672 nodes
-    int shape_interior[1] = {705672};
+    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
+    int shape_interior[1] = {(int)bmag_interior_nodal->size};
     struct gkyl_range nrange_interior;
     gkyl_range_init_from_shape1(&nrange_interior, 1, shape_interior);
+    
+    // Then calculate derived quantities
     struct gkyl_range_iter iter_interior;
     gkyl_range_iter_init(&iter_interior, &nrange_interior);  
     // initialize jacobian and other arrays which are to be calculated (mkarr(false, number of components, nrange_interior.volume))
-    struct gkyl_array* duals_interior = mkarr(false, 9, nrange_interior.volume);
-    struct gkyl_array* jacobgeo_interior = mkarr(false, 1, nrange_interior.volume);
-    struct gkyl_array* g_ij_interior = mkarr(false, 9, nrange_interior.volume);
-    struct gkyl_array* B3_interior = mkarr(false, 1, nrange_interior.volume);
-    struct gkyl_array* dualcurlBhat_interior = mkarr(false, 3, nrange_interior.volume);
-    struct gkyl_array* dualcurlBhatoverB_interior = mkarr(false, 3, nrange_interior.volume);
-    struct gkyl_array* rtg33inv_interior = mkarr(false, 1, nrange_interior.volume);
-    struct gkyl_array* bioverJB_interior = mkarr(false, 3, nrange_interior.volume);
-    struct gkyl_array* dualmags_interior = mkarr(false, 3, nrange_interior.volume);
-    struct gkyl_array* dualnormals_interior = mkarr(false, 9, nrange_interior.volume);
+    struct gkyl_array* B3_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* b_i_interior_nodal = mkarr(false, 3, nrange_interior.volume);
+    struct gkyl_array* bmag_inv_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* bmag_inv_sq_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* bioverJB_interior_nodal = mkarr(false, 3, nrange_interior.volume);
+    struct gkyl_array* cmag_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* dualcurlbhat_interior_nodal = mkarr(false, 3, nrange_interior.volume);
+    struct gkyl_array* dualcurlbhatoverB_interior_nodal = mkarr(false, 3, nrange_interior.volume);
+    struct gkyl_array* dzdx_interior_nodal = mkarr(false, 9, nrange_interior.volume);
+    struct gkyl_array* eps2_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* g_ij_interior_nodal = mkarr(false, 6, nrange_interior.volume);
+    struct gkyl_array* gij_interior_nodal = mkarr(false, 6, nrange_interior.volume);
+    struct gkyl_array* gxxj_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* gxyj_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* gxzj_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* gyyj_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* jacobgeo_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* jacobgeo_inv_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* jacobtot_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* jacobtot_inv_interior_nodal = mkarr(false, 1, nrange_interior.volume);
+    struct gkyl_array* normals_interior_nodal = mkarr(false, 9, nrange_interior.volume);
+    struct gkyl_array* rtg33inv_interior_nodal = mkarr(false, 1, nrange_interior.volume);
     
     while (gkyl_range_iter_next(&iter_interior)) {
         // Get current node index
         long idx = gkyl_range_idx(&nrange_interior, iter_interior.idx);
         
-        double *tang_data = (double*)tangents_interior->data;
-        double *bmag_data = (double*)Bmag_interior->data;
-        double *curl_data = (double*)curlBhat_interior->data;
-        double *dual_data = (double*)duals_interior->data;
-        double *gij_data = (double*)g_ij_interior->data;
-        double *jacob_data = (double*)jacobgeo_interior->data;
-        double *b3_data = (double*)B3_interior->data;
-        double *dcb_data = (double*)dualcurlBhat_interior->data;
-        double *dcbob_data = (double*)dualcurlBhatoverB_interior->data;
-        double *rtg_data = (double*)rtg33inv_interior->data;
-        double *biojb_data = (double*)bioverJB_interior->data;
-        double *dmag_data = (double*)dualmags_interior->data;
-        double *dnorm_data = (double*)dualnormals_interior->data;
+        double *dxdz_data = (double*)dxdz_interior_nodal->data;
+        double *bmag_data = (double*)bmag_interior_nodal->data;
+        double *curlbhat_data = (double*)curlbhat_interior_nodal->data;
+        double *B3_data = (double*)B3_interior_nodal->data;
+        double *b_i_data = (double*)b_i_interior_nodal->data;
+        double *bcart_data = (double*)bcart_interior_nodal->data;
+        double *bmag_inv_data = (double*)bmag_inv_interior_nodal->data;
+        double *bmag_inv_sq_data = (double*)bmag_inv_sq_interior_nodal->data;
+        double *bioverJB_data = (double*)bioverJB_interior_nodal->data;
+        double *cmag_data = (double*)cmag_interior_nodal->data;
+        double *dualcurlbhat_data = (double*)dualcurlbhat_interior_nodal->data;
+        double *dualcurlbhatoverB_data = (double*)dualcurlbhatoverB_interior_nodal->data;
+        double *dzdx_data = (double*)dzdx_interior_nodal->data;
+        double *eps2_data = (double*)eps2_interior_nodal->data;
+        double *g_ij_data = (double*)g_ij_interior_nodal->data;
+        double *gij_data = (double*)gij_interior_nodal->data;
+        double *gxxj_data = (double*)gxxj_interior_nodal->data;
+        double *gxyj_data = (double*)gxyj_interior_nodal->data;
+        double *gxzj_data = (double*)gxzj_interior_nodal->data;
+        double *gyyj_data = (double*)gyyj_interior_nodal->data;
+        double *jacobgeo_data = (double*)jacobgeo_interior_nodal->data;
+        double *jacobgeo_inv_data = (double*)jacobgeo_inv_interior_nodal->data;
+        double *jacobtot_data = (double*)jacobtot_interior_nodal->data;
+        double *jacobtot_inv_data = (double*)jacobtot_inv_interior_nodal->data;
+        double *normals_data = (double*)normals_interior_nodal->data;
+        double *rtg33inv_data = (double*)rtg33inv_interior_nodal->data;
         
-        double e_1[3] = {tang_data[idx*9+0], tang_data[idx*9+1], tang_data[idx*9+2]};
-        double e_2[3] = {tang_data[idx*9+3], tang_data[idx*9+4], tang_data[idx*9+5]};
-        double e_3[3] = {tang_data[idx*9+6], tang_data[idx*9+7], tang_data[idx*9+8]};
-        double curlB[3] = {curl_data[idx*3+0], curl_data[idx*3+1], curl_data[idx*3+2]};
-        double Bmag = bmag_data[idx];
+        double e_1[3] = {dxdz_data[idx*9+0], dxdz_data[idx*9+1], dxdz_data[idx*9+2]};
+        double e_2[3] = {dxdz_data[idx*9+3], dxdz_data[idx*9+4], dxdz_data[idx*9+5]};
+        double e_3[3] = {dxdz_data[idx*9+6], dxdz_data[idx*9+7], dxdz_data[idx*9+8]};
+        double curlb[3] = {curlbhat_data[idx*3+0], curlbhat_data[idx*3+1], curlbhat_data[idx*3+2]};
+        double bmag = bmag_data[idx];
         
         // Jacobian: J = e_1 · (e_2 × e_3)
         double e2xe3[3] = {e_2[1]*e_3[2]-e_2[2]*e_3[1], e_2[2]*e_3[0]-e_2[0]*e_3[2], e_2[0]*e_3[1]-e_2[1]*e_3[0]};
         double J = e_1[0]*e2xe3[0] + e_1[1]*e2xe3[1] + e_1[2]*e2xe3[2];
-        jacob_data[idx] = J;
+        jacobgeo_data[idx] = J;
         if (fabs(J) < 1e-12) {
             // Jacobian is too small, skip this node or set to a small value
             J = 1e-12;
-            jacob_data[idx] = J;
+            jacobgeo_data[idx] = J;
         }
         double Jinv = 1.0/J;
+        jacobgeo_inv_data[idx] = Jinv;
         
         // Dual vectors: e^i = (1/J) * (e_j × e_k)
         double e3xe1[3] = {e_3[1]*e_1[2]-e_3[2]*e_1[1], e_3[2]*e_1[0]-e_3[0]*e_1[2], e_3[0]*e_1[1]-e_3[1]*e_1[0]};
         double e1xe2[3] = {e_1[1]*e_2[2]-e_1[2]*e_2[1], e_1[2]*e_2[0]-e_1[0]*e_2[2], e_1[0]*e_2[1]-e_1[1]*e_2[0]};
         for (int i=0; i<3; i++) {
-            dual_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
-            dual_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
-            dual_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
+            dzdx_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
+            dzdx_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
+            dzdx_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
         }
+        // Extract dual vectors for convenience
+        double e1[3] = {dzdx_data[idx*9+0], dzdx_data[idx*9+1], dzdx_data[idx*9+2]}; // e^1
+        double e2[3] = {dzdx_data[idx*9+3], dzdx_data[idx*9+4], dzdx_data[idx*9+5]}; // e^2
+        double e3[3] = {dzdx_data[idx*9+6], dzdx_data[idx*9+7], dzdx_data[idx*9+8]}; // e^3
         
-        // Metric tensor: g_ij = e_i · e_j
-        for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
-            double *ei = (i==0)?e_1:(i==1)?e_2:e_3;
-            double *ej = (j==0)?e_1:(j==1)?e_2:e_3;
-            gij_data[idx*9+i*3+j] = ei[0]*ej[0] + ei[1]*ej[1] + ei[2]*ej[2];
+        // Metric tensor: g_ij = e_i · e_j (Compute only the 6 upper triangle components)
+        // g_ij has 6 components per node (upper triangle): [g_11, g_12, g_13, g_22, g_23, g_33]
+        double g_11 = e_1[0]*e_1[0] + e_1[1]*e_1[1] + e_1[2]*e_1[2]; // g_11
+        double g_12 = e_1[0]*e_2[0] + e_1[1]*e_2[1] + e_1[2]*e_2[2]; // g_12
+        double g_13 = e_1[0]*e_3[0] + e_1[1]*e_3[1] + e_1[2]*e_3[2]; // g_13
+        double g_22 = e_2[0]*e_2[0] + e_2[1]*e_2[1] + e_2[2]*e_2[2]; // g_22
+        double g_23 = e_2[0]*e_3[0] + e_2[1]*e_3[1] + e_2[2]*e_3[2]; // g_23
+        double g_33 = e_3[0]*e_3[0] + e_3[1]*e_3[1] + e_3[2]*e_3[2]; // g_33
+        
+        g_ij_data[idx*6 + 0] = g_11;
+        g_ij_data[idx*6 + 1] = g_12;
+        g_ij_data[idx*6 + 2] = g_13;
+        g_ij_data[idx*6 + 3] = g_22;
+        g_ij_data[idx*6 + 4] = g_23;
+        g_ij_data[idx*6 + 5] = g_33;
+        
+        
+        // Normal vectors: n^i = e^i / |e^i|
+        double mage1 = sqrt(e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2]);
+        double mage2 = sqrt(e2[0]*e2[0] + e2[1]*e2[1] + e2[2]*e2[2]);
+        double mage3 = sqrt(e3[0]*e3[0] + e3[1]*e3[1] + e3[2]*e3[2]);
+        
+        if (mage1 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data[idx*9+0*3+i] = e1[i] / mage1;
+        } else {
+            for (int i=0; i<3; i++) normals_data[idx*9+0*3+i] = 0.0;
         }
-        
-        double g33 = gij_data[idx*9+2*3+2];
-        double sqrt_g33 = sqrt(g33);
-        double rtg33inv = 1.0/sqrt_g33;
-        rtg_data[idx] = rtg33inv;
-        
-        // B3 = Bmag / sqrt(g_33)
-        b3_data[idx] = Bmag * rtg33inv;
-        
-        // dualcurlbhat = e^i · curlBhat and dualcurlBhatoverB
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dcb_data[idx*3+i] = ei[0]*curlB[0] + ei[1]*curlB[1] + ei[2]*curlB[2];
-            dcbob_data[idx*3+i] = dcb_data[idx*3+i] / Bmag;
+        if (mage2 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data[idx*9+1*3+i] = e2[i] / mage2;
+        } else {
+            for (int i=0; i<3; i++) normals_data[idx*9+1*3+i] = 0.0;
         }
-        
-        // bioverJB = g_i3 / sqrt(g_33) / J / Bmag 
-        for (int i=0; i<3; i++) {
-            biojb_data[idx*3+i] = gij_data[idx*9+i*3+2] / sqrt_g33 / J / Bmag;
-        }
-        
-        // Dual vector magnitudes: |e^i|
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dmag_data[idx*3+i] = sqrt(ei[0]*ei[0] + ei[1]*ei[1] + ei[2]*ei[2]);
-        }
-        
-        // Normal vectors: e^i / |e^i|
-        for (int i=0; i<3; i++) {
-            double mag = dmag_data[idx*3+i];
-            double *ei = &dual_data[idx*9+i*3];
-            if (mag > 1e-12) {  // Avoid division by zero
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = ei[j] / mag;
+        if (mage3 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data[idx*9+2*3+i] = e3[i] / mage3;
             } else {
-                // If magnitude is zero, set normal to zero vector
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = 0.0;
-            }
+            for (int i=0; i<3; i++) normals_data[idx*9+2*3+i] = 0.0;
         }
+        
+        // Contravariant metric tensor: g^ij = (g_ij)^(-1)
+        // Compute cofactors first (without 1/det factor)
+        double gr11 = g_22*g_33 - g_23*g_23;  // Note: g_23 = g_32 for symmetric matrix
+        double gr12 = g_13*g_23 - g_12*g_33;
+        double gr13 = g_12*g_23 - g_13*g_22;
+        double gr22 = g_11*g_33 - g_13*g_13;
+        double gr23 = g_12*g_13 - g_11*g_23;
+        double gr33 = g_11*g_22 - g_12*g_12;
+        
+        // Determinant of metric tensor: det(g) = J^2
+        double det_g = g_11*gr11 + g_12*gr12 + g_13*gr13;
+        if (fabs(det_g) < 1e-12) det_g = 1e-12;
+        
+        // Divide by determinant to get contravariant metric
+        double g11 = gr11 / det_g;
+        double g12 = gr12 / det_g;
+        double g13 = gr13 / det_g;
+        double g22 = gr22 / det_g;
+        double g23 = gr23 / det_g;
+        double g33 = gr33 / det_g;
+        
+        gij_data[idx*6 + 0] = g11;
+        gij_data[idx*6 + 1] = g12;
+        gij_data[idx*6 + 2] = g13;
+        gij_data[idx*6 + 3] = g22;
+        gij_data[idx*6 + 4] = g23;
+        gij_data[idx*6 + 5] = g33;
+        
+        // rtg33inv = 1/sqrt(g_33)
+        double sqrt_g33 = sqrt(g_33);
+        if (sqrt_g33 < 1e-12) sqrt_g33 = 1e-12;
+        rtg33inv_data[idx] = 1.0 / sqrt_g33;
+        
+        // b_i = g_{i3} / sqrt(g_33) (covariant components of magnetic unit vector)
+        b_i_data[idx*3 + 0] = g_13 / sqrt_g33;  // b_1
+        b_i_data[idx*3 + 1] = g_23 / sqrt_g33;  // b_2
+        b_i_data[idx*3 + 2] = sqrt_g33;         // b_3 = sqrt(g_33)
+        
+        // B3 = B / sqrt(g_33)
+        B3_data[idx] = bmag / sqrt_g33;
+        
+        // dualcurlbhat = e^i · curl(b̂)
+        dualcurlbhat_data[idx*3 + 0] = e1[0]*curlb[0] + e1[1]*curlb[1] + e1[2]*curlb[2];  // e^1 · curl(b̂)
+        dualcurlbhat_data[idx*3 + 1] = e2[0]*curlb[0] + e2[1]*curlb[1] + e2[2]*curlb[2];  // e^2 · curl(b̂)
+        dualcurlbhat_data[idx*3 + 2] = e3[0]*curlb[0] + e3[1]*curlb[1] + e3[2]*curlb[2];  // e^3 · curl(b̂)
+        
+        // dualcurlbhatoverB = (e^i · curl(b̂)) / B
+        if (bmag > 1e-12) {
+            dualcurlbhatoverB_data[idx*3 + 0] = dualcurlbhat_data[idx*3 + 0] / bmag;
+            dualcurlbhatoverB_data[idx*3 + 1] = dualcurlbhat_data[idx*3 + 1] / bmag;
+            dualcurlbhatoverB_data[idx*3 + 2] = dualcurlbhat_data[idx*3 + 2] / bmag;
+        } else {
+            dualcurlbhatoverB_data[idx*3 + 0] = 0.0;
+            dualcurlbhatoverB_data[idx*3 + 1] = 0.0;
+            dualcurlbhatoverB_data[idx*3 + 2] = 0.0;
+        }
+        
+        // bioverJB = b_i / (J * B)
+        double JB = J * bmag;
+        if (JB > 1e-12) {
+            bioverJB_data[idx*3 + 0] = b_i_data[idx*3 + 0] / JB;
+            bioverJB_data[idx*3 + 1] = b_i_data[idx*3 + 1] / JB;
+            bioverJB_data[idx*3 + 2] = b_i_data[idx*3 + 2] / JB;
+        } else {
+            bioverJB_data[idx*3 + 0] = 0.0;
+            bioverJB_data[idx*3 + 1] = 0.0;
+            bioverJB_data[idx*3 + 2] = 0.0;
+        }
+        
+        // cmag = J * B / sqrt(g_33)
+        cmag_data[idx] = JB / sqrt_g33;
+        
+        // jacobtot = J * B
+        jacobtot_data[idx] = JB;
+        
+        // jacobtot_inv = 1/(J * B)
+        if (JB > 1e-12) {
+            jacobtot_inv_data[idx] = 1.0 / JB;
+        } else {
+            jacobtot_inv_data[idx] = 1.0 / 1e-12;
+        }
+        
+        // bmag_inv = 1/B
+        if (bmag > 1e-12) {
+            bmag_inv_data[idx] = 1.0 / bmag;
+            } else {
+            bmag_inv_data[idx] = 1.0 / 1e-12;
+        }
+        
+        // bmag_inv_sq = (1/B)^2
+        double bmag_inv_val = bmag_inv_data[idx];
+        bmag_inv_sq_data[idx] = bmag_inv_val * bmag_inv_val;
+        
+        // Poisson solver quantities: g^ij * J
+        gxxj_data[idx] = g11 * J;  // g^11 * J
+        gxyj_data[idx] = g12 * J;  // g^12 * J
+        gyyj_data[idx] = g22 * J;  // g^22 * J
+        gxzj_data[idx] = g13 * J;  // g^13 * J
+        
+        // eps2 = J*g^33 - J/g_33
+        eps2_data[idx] = J * g33 - J / g_33;
+
     }
 
 
     // Do again for surfaces
-    struct gkyl_array* tangents_surface1 = load_gkyl_file_to_nodal("drpz_draz_S1.gkyl");
-    struct gkyl_array* Bmag_surface1 = load_gkyl_file_to_nodal("Bmag_S1.gkyl");
-    struct gkyl_array* curlBhat_surface1 = load_gkyl_file_to_nodal("curl_B_hat_xyz_S1.gkyl");
-    struct gkyl_array* raz_surface1 = load_gkyl_file_to_nodal("raz_S1.gkyl");
-    struct gkyl_array* rpz_surface1 = load_gkyl_file_to_nodal("rpz_S1.gkyl");
-    struct gkyl_array* tangents_surface2 = load_gkyl_file_to_nodal("drpz_draz_S2.gkyl");
-    struct gkyl_array* Bmag_surface2 = load_gkyl_file_to_nodal("Bmag_S2.gkyl");
-    struct gkyl_array* curlBhat_surface2 = load_gkyl_file_to_nodal("curl_B_hat_xyz_S2.gkyl");
-    struct gkyl_array* raz_surface2 = load_gkyl_file_to_nodal("raz_S2.gkyl");
-    struct gkyl_array* rpz_surface2 = load_gkyl_file_to_nodal("rpz_S2.gkyl");
-    struct gkyl_array* tangents_surface3 = load_gkyl_file_to_nodal("drpz_draz_S3.gkyl");
-    struct gkyl_array* Bmag_surface3 = load_gkyl_file_to_nodal("Bmag_S3.gkyl");
-    struct gkyl_array* curlBhat_surface3 = load_gkyl_file_to_nodal("curl_B_hat_xyz_S3.gkyl");
-    struct gkyl_array* raz_surface3 = load_gkyl_file_to_nodal("raz_S3.gkyl");
-    struct gkyl_array* rpz_surface3 = load_gkyl_file_to_nodal("rpz_S3.gkyl");
+    struct gkyl_array* dxdz_surface1_nodal = load_gkyl_file_to_nodal("drzp_drza_S1.gkyl");
+    struct gkyl_array* bmag_surface1_nodal = load_gkyl_file_to_nodal("Bmag_S1.gkyl");
+    struct gkyl_array* curlbhat_surface1_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S1.gkyl");
+    struct gkyl_array* dxdz_surface2_nodal = load_gkyl_file_to_nodal("drzp_drza_S2.gkyl");
+    struct gkyl_array* bmag_surface2_nodal = load_gkyl_file_to_nodal("Bmag_S2.gkyl");
+    struct gkyl_array* curlbhat_surface2_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S2.gkyl");
+    struct gkyl_array* dxdz_surface3_nodal = load_gkyl_file_to_nodal("drzp_drza_S3.gkyl");
+    struct gkyl_array* bmag_surface3_nodal = load_gkyl_file_to_nodal("Bmag_S3.gkyl");
+    struct gkyl_array* curlbhat_surface3_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S3.gkyl");
     
     // Check all surface arrays loaded successfully
-    TEST_CHECK(tangents_surface1 != NULL && Bmag_surface1 != NULL && curlBhat_surface1 != NULL && 
-               raz_surface1 != NULL && rpz_surface1 != NULL);
-    TEST_CHECK(tangents_surface2 != NULL && Bmag_surface2 != NULL && curlBhat_surface2 != NULL && 
-               raz_surface2 != NULL && rpz_surface2 != NULL);
-    TEST_CHECK(tangents_surface3 != NULL && Bmag_surface3 != NULL && curlBhat_surface3 != NULL && 
-               raz_surface3 != NULL && rpz_surface3 != NULL);
-    if (!tangents_surface1 || !Bmag_surface1 || !curlBhat_surface1 || !raz_surface1 || !rpz_surface1 ||
-        !tangents_surface2 || !Bmag_surface2 || !curlBhat_surface2 || !raz_surface2 || !rpz_surface2 ||
-        !tangents_surface3 || !Bmag_surface3 || !curlBhat_surface3 || !raz_surface3 || !rpz_surface3) {
+    TEST_CHECK(dxdz_surface1_nodal != NULL && bmag_surface1_nodal != NULL && curlbhat_surface1_nodal != NULL);
+    TEST_CHECK(dxdz_surface2_nodal != NULL && bmag_surface2_nodal != NULL && curlbhat_surface2_nodal != NULL);
+    TEST_CHECK(dxdz_surface3_nodal != NULL && bmag_surface3_nodal != NULL && curlbhat_surface3_nodal != NULL);
+    if (!dxdz_surface1_nodal || !bmag_surface1_nodal || !curlbhat_surface1_nodal ||
+        !dxdz_surface2_nodal || !bmag_surface2_nodal || !curlbhat_surface2_nodal ||
+        !dxdz_surface3_nodal || !bmag_surface3_nodal || !curlbhat_surface3_nodal) {
         return;
     }
     // Derived quantities
-    // Create a simple 1D range for 356400 nodes
-    int shape_surface[1] = {356400};
+    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
+    // All surfaces have the same number of nodes, so use surface1
+    int shape_surface[1] = {(int)bmag_surface1_nodal->size};
     struct gkyl_range nrange_surface;
     gkyl_range_init_from_shape1(&nrange_surface, 1, shape_surface);
     struct gkyl_range_iter iter_surface;
     gkyl_range_iter_init(&iter_surface, &nrange_surface);  
 
-    // calculate quantities for surface 1
-    struct gkyl_array* duals_surface1 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* jacobgeo_surface1 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* g_ij_surface1 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* B3_surface1 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhat_surface1 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhatoverB_surface1 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* rtg33inv_surface1 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* bioverJB_surface1 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualmags_surface1 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualnormals_surface1 = mkarr(false, 9, nrange_surface.volume);
+    // calculate quantities for surfaces
+    struct gkyl_array* B3_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* b_i_surface1_nodal = mkarr(false, 3, nrange_surface.volume);
+    struct gkyl_array* cmag_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normcurlbhat_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobgeo_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobtot_inv_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normals_surface1_nodal = mkarr(false, 9, nrange_surface.volume);
+    struct gkyl_array* lenr_surface1_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* B3_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* b_i_surface2_nodal = mkarr(false, 3, nrange_surface.volume);
+    struct gkyl_array* cmag_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normcurlbhat_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobgeo_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobtot_inv_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normals_surface2_nodal = mkarr(false, 9, nrange_surface.volume);
+    struct gkyl_array* lenr_surface2_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* B3_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* b_i_surface3_nodal = mkarr(false, 3, nrange_surface.volume);
+    struct gkyl_array* cmag_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normcurlbhat_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobgeo_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* jacobtot_inv_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
+    struct gkyl_array* normals_surface3_nodal = mkarr(false, 9, nrange_surface.volume);
+    struct gkyl_array* lenr_surface3_nodal = mkarr(false, 1, nrange_surface.volume);
     
     while (gkyl_range_iter_next(&iter_surface)) {
         // Get current node index
         long idx = gkyl_range_idx(&nrange_surface, iter_surface.idx);
         
-        double *tang_data = (double*)tangents_surface1->data;
-        double *bmag_data = (double*)Bmag_surface1->data;
-        double *curl_data = (double*)curlBhat_surface1->data;
-        double *dual_data = (double*)duals_surface1->data;
-        double *gij_data = (double*)g_ij_surface1->data;
-        double *jacob_data = (double*)jacobgeo_surface1->data;
-        double *b3_data = (double*)B3_surface1->data;
-        double *dcb_data = (double*)dualcurlBhat_surface1->data;
-        double *dcbob_data = (double*)dualcurlBhatoverB_surface1->data;
-        double *rtg_data = (double*)rtg33inv_surface1->data;
-        double *biojb_data = (double*)bioverJB_surface1->data;
-        double *dmag_data = (double*)dualmags_surface1->data;
-        double *dnorm_data = (double*)dualnormals_surface1->data;
+        double *dxdz_data1 = (double*)dxdz_surface1_nodal->data;
+        double *bmag_data1 = (double*)bmag_surface1_nodal->data;
+        double *curlbhat_data1 = (double*)curlbhat_surface1_nodal->data;
+        double *B3_data1 = (double*)B3_surface1_nodal->data;
+        double *b_i_data1 = (double*)b_i_surface1_nodal->data;
+        double *cmag_data1 = (double*)cmag_surface1_nodal->data;
+        double *normcurlbhat_data1 = (double*)normcurlbhat_surface1_nodal->data;
+        double *jacobgeo_data1 = (double*)jacobgeo_surface1_nodal->data;
+        double *jacobtot_inv_data1 = (double*)jacobtot_inv_surface1_nodal->data;
+        double *normals_data1 = (double*)normals_surface1_nodal->data;
+        double *lenr_data1 = (double*)lenr_surface1_nodal->data;
+
+        double *dxdz_data2 = (double*)dxdz_surface2_nodal->data;
+        double *bmag_data2 = (double*)bmag_surface2_nodal->data;
+        double *curlbhat_data2 = (double*)curlbhat_surface2_nodal->data;
+        double *B3_data2 = (double*)B3_surface2_nodal->data;
+        double *b_i_data2 = (double*)b_i_surface2_nodal->data;
+        double *cmag_data2 = (double*)cmag_surface2_nodal->data;
+        double *normcurlbhat_data2 = (double*)normcurlbhat_surface2_nodal->data;
+        double *jacobgeo_data2 = (double*)jacobgeo_surface2_nodal->data;
+        double *jacobtot_inv_data2 = (double*)jacobtot_inv_surface2_nodal->data;
+        double *normals_data2 = (double*)normals_surface2_nodal->data;
+        double *lenr_data2 = (double*)lenr_surface2_nodal->data;
+
+        double *dxdz_data3 = (double*)dxdz_surface3_nodal->data;
+        double *bmag_data3 = (double*)bmag_surface3_nodal->data;
+        double *curlbhat_data3 = (double*)curlbhat_surface3_nodal->data;
+        double *B3_data3 = (double*)B3_surface3_nodal->data;
+        double *b_i_data3 = (double*)b_i_surface3_nodal->data;
+        double *cmag_data3 = (double*)cmag_surface3_nodal->data;
+        double *normcurlbhat_data3 = (double*)normcurlbhat_surface3_nodal->data;
+        double *jacobgeo_data3 = (double*)jacobgeo_surface3_nodal->data;
+        double *jacobtot_inv_data3 = (double*)jacobtot_inv_surface3_nodal->data;
+        double *normals_data3 = (double*)normals_surface3_nodal->data;
+        double *lenr_data3 = (double*)lenr_surface3_nodal->data;
         
-        double e_1[3] = {tang_data[idx*9+0], tang_data[idx*9+1], tang_data[idx*9+2]};
-        double e_2[3] = {tang_data[idx*9+3], tang_data[idx*9+4], tang_data[idx*9+5]};
-        double e_3[3] = {tang_data[idx*9+6], tang_data[idx*9+7], tang_data[idx*9+8]};
-        double curlB[3] = {curl_data[idx*3+0], curl_data[idx*3+1], curl_data[idx*3+2]};
-        double Bmag = bmag_data[idx];
+        // ========== SURFACE 1 (dir=1, normal to rho direction) ==========
+        double e_1_s1[3] = {dxdz_data1[idx*9+0], dxdz_data1[idx*9+1], dxdz_data1[idx*9+2]};
+        double e_2_s1[3] = {dxdz_data1[idx*9+3], dxdz_data1[idx*9+4], dxdz_data1[idx*9+5]};
+        double e_3_s1[3] = {dxdz_data1[idx*9+6], dxdz_data1[idx*9+7], dxdz_data1[idx*9+8]};
+        double curlb_s1[3] = {curlbhat_data1[idx*3+0], curlbhat_data1[idx*3+1], curlbhat_data1[idx*3+2]};
+        double bmag_s1 = bmag_data1[idx];
         
         // Jacobian: J = e_1 · (e_2 × e_3)
-        double e2xe3[3] = {e_2[1]*e_3[2]-e_2[2]*e_3[1], e_2[2]*e_3[0]-e_2[0]*e_3[2], e_2[0]*e_3[1]-e_2[1]*e_3[0]};
-        double J = e_1[0]*e2xe3[0] + e_1[1]*e2xe3[1] + e_1[2]*e2xe3[2];
-        jacob_data[idx] = J;
-        if (fabs(J) < 1e-12) {
-            // Jacobian is too small, skip this node or set to a small value
-            J = 1e-12;
-            jacob_data[idx] = J;
-        }
-        double Jinv = 1.0/J;
+        double e2xe3_s1[3] = {e_2_s1[1]*e_3_s1[2]-e_2_s1[2]*e_3_s1[1], e_2_s1[2]*e_3_s1[0]-e_2_s1[0]*e_3_s1[2], e_2_s1[0]*e_3_s1[1]-e_2_s1[1]*e_3_s1[0]};
+        double J_s1 = e_1_s1[0]*e2xe3_s1[0] + e_1_s1[1]*e2xe3_s1[1] + e_1_s1[2]*e2xe3_s1[2];
+        if (fabs(J_s1) < 1e-12) J_s1 = 1e-12;
+        jacobgeo_data1[idx] = J_s1;
+        double Jinv_s1 = 1.0/J_s1;
         
         // Dual vectors: e^i = (1/J) * (e_j × e_k)
-        double e3xe1[3] = {e_3[1]*e_1[2]-e_3[2]*e_1[1], e_3[2]*e_1[0]-e_3[0]*e_1[2], e_3[0]*e_1[1]-e_3[1]*e_1[0]};
-        double e1xe2[3] = {e_1[1]*e_2[2]-e_1[2]*e_2[1], e_1[2]*e_2[0]-e_1[0]*e_2[2], e_1[0]*e_2[1]-e_1[1]*e_2[0]};
-        for (int i=0; i<3; i++) {
-            dual_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
-            dual_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
-            dual_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
+        double e3xe1_s1[3] = {e_3_s1[1]*e_1_s1[2]-e_3_s1[2]*e_1_s1[1], e_3_s1[2]*e_1_s1[0]-e_3_s1[0]*e_1_s1[2], e_3_s1[0]*e_1_s1[1]-e_3_s1[1]*e_1_s1[0]};
+        double e1xe2_s1[3] = {e_1_s1[1]*e_2_s1[2]-e_1_s1[2]*e_2_s1[1], e_1_s1[2]*e_2_s1[0]-e_1_s1[0]*e_2_s1[2], e_1_s1[0]*e_2_s1[1]-e_1_s1[1]*e_2_s1[0]};
+        double e1_s1[3] = {Jinv_s1 * e2xe3_s1[0], Jinv_s1 * e2xe3_s1[1], Jinv_s1 * e2xe3_s1[2]};  // e^1
+        double e2_s1[3] = {Jinv_s1 * e3xe1_s1[0], Jinv_s1 * e3xe1_s1[1], Jinv_s1 * e3xe1_s1[2]};  // e^2
+        double e3_s1[3] = {Jinv_s1 * e1xe2_s1[0], Jinv_s1 * e1xe2_s1[1], Jinv_s1 * e1xe2_s1[2]};  // e^3
+        
+        // Metric tensor components (only need g_33 for some calculations)
+        double g_33_s1 = e_3_s1[0]*e_3_s1[0] + e_3_s1[1]*e_3_s1[1] + e_3_s1[2]*e_3_s1[2];
+        double g_13_s1 = e_1_s1[0]*e_3_s1[0] + e_1_s1[1]*e_3_s1[1] + e_1_s1[2]*e_3_s1[2];
+        double g_23_s1 = e_2_s1[0]*e_3_s1[0] + e_2_s1[1]*e_3_s1[1] + e_2_s1[2]*e_3_s1[2];
+        
+        double sqrt_g33_s1 = sqrt(g_33_s1);
+        if (sqrt_g33_s1 < 1e-12) sqrt_g33_s1 = 1e-12;
+        
+        // Normal vectors: n^i = e^i / |e^i|
+        double mage1_s1 = sqrt(e1_s1[0]*e1_s1[0] + e1_s1[1]*e1_s1[1] + e1_s1[2]*e1_s1[2]);
+        double mage2_s1 = sqrt(e2_s1[0]*e2_s1[0] + e2_s1[1]*e2_s1[1] + e2_s1[2]*e2_s1[2]);
+        double mage3_s1 = sqrt(e3_s1[0]*e3_s1[0] + e3_s1[1]*e3_s1[1] + e3_s1[2]*e3_s1[2]);
+        
+        if (mage1_s1 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data1[idx*9+0*3+i] = e1_s1[i] / mage1_s1;
+        } else {
+            for (int i=0; i<3; i++) normals_data1[idx*9+0*3+i] = 0.0;
+        }
+        if (mage2_s1 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data1[idx*9+1*3+i] = e2_s1[i] / mage2_s1;
+        } else {
+            for (int i=0; i<3; i++) normals_data1[idx*9+1*3+i] = 0.0;
+        }
+        if (mage3_s1 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data1[idx*9+2*3+i] = e3_s1[i] / mage3_s1;
+        } else {
+            for (int i=0; i<3; i++) normals_data1[idx*9+2*3+i] = 0.0;
         }
         
-        // Metric tensor: g_ij = e_i · e_j
-        for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
-            double *ei = (i==0)?e_1:(i==1)?e_2:e_3;
-            double *ej = (j==0)?e_1:(j==1)?e_2:e_3;
-            gij_data[idx*9+i*3+j] = ei[0]*ej[0] + ei[1]*ej[1] + ei[2]*ej[2];
-        }
+        // b_i = g_{i3} / sqrt(g_33)
+        b_i_data1[idx*3 + 0] = g_13_s1 / sqrt_g33_s1;  // b_1
+        b_i_data1[idx*3 + 1] = g_23_s1 / sqrt_g33_s1;  // b_2
+        b_i_data1[idx*3 + 2] = sqrt_g33_s1;            // b_3
         
-        double g33 = gij_data[idx*9+2*3+2];
-        double sqrt_g33 = sqrt(g33);
-        double rtg33inv = 1.0/sqrt_g33;
-        rtg_data[idx] = rtg33inv;
+        // B3 = bmag / (sqrt(g_33) * |e^3|)
+        B3_data1[idx] = bmag_s1 / (sqrt_g33_s1 * mage3_s1);
         
-        // B3 = Bmag / sqrt(g_33)
-        b3_data[idx] = Bmag * rtg33inv;
+        // cmag = J * B / sqrt(g_33)
+        double JB_s1 = J_s1 * bmag_s1;
+        cmag_data1[idx] = JB_s1 / sqrt_g33_s1;
         
-        // dualcurlbhat = e^i · curlBhat and dualcurlBhatoverB
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dcb_data[idx*3+i] = ei[0]*curlB[0] + ei[1]*curlB[1] + ei[2]*curlB[2];
-            dcbob_data[idx*3+i] = dcb_data[idx*3+i] / Bmag;
-        }
-        
-        // bioverJB = g_i3 / sqrt(g_33) / J / Bmag 
-        for (int i=0; i<3; i++) {
-            biojb_data[idx*3+i] = gij_data[idx*9+i*3+2] / sqrt_g33 / J / Bmag;
-        }
-        
-        // Dual vector magnitudes: |e^i|
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dmag_data[idx*3+i] = sqrt(ei[0]*ei[0] + ei[1]*ei[1] + ei[2]*ei[2]);
-        }
-        
-        // Normal vectors: e^i / |e^i|
-        for (int i=0; i<3; i++) {
-            double mag = dmag_data[idx*3+i];
-            double *ei = &dual_data[idx*9+i*3];
-            if (mag > 1e-12) {  // Avoid division by zero
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = ei[j] / mag;
+        // jacobtot_inv = 1/(J * B)
+        if (JB_s1 > 1e-12) {
+            jacobtot_inv_data1[idx] = 1.0 / JB_s1;
             } else {
-                // If magnitude is zero, set normal to zero vector
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = 0.0;
-            }
+            jacobtot_inv_data1[idx] = 1.0 / 1e-12;
         }
-    }
-
-     // calculate quantities for surface 2
-    struct gkyl_array* duals_surface2 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* jacobgeo_surface2 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* g_ij_surface2 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* B3_surface2 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhat_surface2 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhatoverB_surface2 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* rtg33inv_surface2 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* bioverJB_surface2 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualmags_surface2 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualnormals_surface2 = mkarr(false, 9, nrange_surface.volume);
-
-    while (gkyl_range_iter_next(&iter_surface)) {
-        // Get current node index
-        long idx = gkyl_range_idx(&nrange_surface, iter_surface.idx);
         
-        double *tang_data = (double*)tangents_surface2->data;
-        double *bmag_data = (double*)Bmag_surface2->data;
-        double *curl_data = (double*)curlBhat_surface2->data;
-        double *dual_data = (double*)duals_surface2->data;
-        double *gij_data = (double*)g_ij_surface2->data;
-        double *jacob_data = (double*)jacobgeo_surface2->data;
-        double *b3_data = (double*)B3_surface2->data;
-        double *dcb_data = (double*)dualcurlBhat_surface2->data;
-        double *dcbob_data = (double*)dualcurlBhatoverB_surface2->data;
-        double *rtg_data = (double*)rtg33inv_surface2->data;
-        double *biojb_data = (double*)bioverJB_surface2->data;
-        double *dmag_data = (double*)dualmags_surface2->data;
-        double *dnorm_data = (double*)dualnormals_surface2->data;
+        // normcurlbhat = n^dir · curl(b̂) where dir=0 for surface 1
+        normcurlbhat_data1[idx] = normals_data1[idx*9+0*3+0]*curlb_s1[0] + 
+                                   normals_data1[idx*9+0*3+1]*curlb_s1[1] + 
+                                   normals_data1[idx*9+0*3+2]*curlb_s1[2];
         
-        double e_1[3] = {tang_data[idx*9+0], tang_data[idx*9+1], tang_data[idx*9+2]};
-        double e_2[3] = {tang_data[idx*9+3], tang_data[idx*9+4], tang_data[idx*9+5]};
-        double e_3[3] = {tang_data[idx*9+6], tang_data[idx*9+7], tang_data[idx*9+8]};
-        double curlB[3] = {curl_data[idx*3+0], curl_data[idx*3+1], curl_data[idx*3+2]};
-        double Bmag = bmag_data[idx];
+        // lenr = J * |e^dir| where dir=1 for surface 1
+        lenr_data1[idx] = J_s1 * mage1_s1;
+        
+        // ========== SURFACE 2 (dir=2, normal to zeta direction) ==========
+        double e_1_s2[3] = {dxdz_data2[idx*9+0], dxdz_data2[idx*9+1], dxdz_data2[idx*9+2]};
+        double e_2_s2[3] = {dxdz_data2[idx*9+3], dxdz_data2[idx*9+4], dxdz_data2[idx*9+5]};
+        double e_3_s2[3] = {dxdz_data2[idx*9+6], dxdz_data2[idx*9+7], dxdz_data2[idx*9+8]};
+        double curlb_s2[3] = {curlbhat_data2[idx*3+0], curlbhat_data2[idx*3+1], curlbhat_data2[idx*3+2]};
+        double bmag_s2 = bmag_data2[idx];
         
         // Jacobian: J = e_1 · (e_2 × e_3)
-        double e2xe3[3] = {e_2[1]*e_3[2]-e_2[2]*e_3[1], e_2[2]*e_3[0]-e_2[0]*e_3[2], e_2[0]*e_3[1]-e_2[1]*e_3[0]};
-        double J = e_1[0]*e2xe3[0] + e_1[1]*e2xe3[1] + e_1[2]*e2xe3[2];
-        jacob_data[idx] = J;
-        if (fabs(J) < 1e-12) {
-            // Jacobian is too small, skip this node or set to a small value
-            J = 1e-12;
-            jacob_data[idx] = J;
-        }
-        double Jinv = 1.0/J;
+        double e2xe3_s2[3] = {e_2_s2[1]*e_3_s2[2]-e_2_s2[2]*e_3_s2[1], e_2_s2[2]*e_3_s2[0]-e_2_s2[0]*e_3_s2[2], e_2_s2[0]*e_3_s2[1]-e_2_s2[1]*e_3_s2[0]};
+        double J_s2 = e_1_s2[0]*e2xe3_s2[0] + e_1_s2[1]*e2xe3_s2[1] + e_1_s2[2]*e2xe3_s2[2];
+        if (fabs(J_s2) < 1e-12) J_s2 = 1e-12;
+        jacobgeo_data2[idx] = J_s2;
+        double Jinv_s2 = 1.0/J_s2;
         
         // Dual vectors: e^i = (1/J) * (e_j × e_k)
-        double e3xe1[3] = {e_3[1]*e_1[2]-e_3[2]*e_1[1], e_3[2]*e_1[0]-e_3[0]*e_1[2], e_3[0]*e_1[1]-e_3[1]*e_1[0]};
-        double e1xe2[3] = {e_1[1]*e_2[2]-e_1[2]*e_2[1], e_1[2]*e_2[0]-e_1[0]*e_2[2], e_1[0]*e_2[1]-e_1[1]*e_2[0]};
-        for (int i=0; i<3; i++) {
-            dual_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
-            dual_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
-            dual_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
+        double e3xe1_s2[3] = {e_3_s2[1]*e_1_s2[2]-e_3_s2[2]*e_1_s2[1], e_3_s2[2]*e_1_s2[0]-e_3_s2[0]*e_1_s2[2], e_3_s2[0]*e_1_s2[1]-e_3_s2[1]*e_1_s2[0]};
+        double e1xe2_s2[3] = {e_1_s2[1]*e_2_s2[2]-e_1_s2[2]*e_2_s2[1], e_1_s2[2]*e_2_s2[0]-e_1_s2[0]*e_2_s2[2], e_1_s2[0]*e_2_s2[1]-e_1_s2[1]*e_2_s2[0]};
+        double e1_s2[3] = {Jinv_s2 * e2xe3_s2[0], Jinv_s2 * e2xe3_s2[1], Jinv_s2 * e2xe3_s2[2]};  // e^1
+        double e2_s2[3] = {Jinv_s2 * e3xe1_s2[0], Jinv_s2 * e3xe1_s2[1], Jinv_s2 * e3xe1_s2[2]};  // e^2
+        double e3_s2[3] = {Jinv_s2 * e1xe2_s2[0], Jinv_s2 * e1xe2_s2[1], Jinv_s2 * e1xe2_s2[2]};  // e^3
+        
+        // Metric tensor components
+        double g_33_s2 = e_3_s2[0]*e_3_s2[0] + e_3_s2[1]*e_3_s2[1] + e_3_s2[2]*e_3_s2[2];
+        double g_13_s2 = e_1_s2[0]*e_3_s2[0] + e_1_s2[1]*e_3_s2[1] + e_1_s2[2]*e_3_s2[2];
+        double g_23_s2 = e_2_s2[0]*e_3_s2[0] + e_2_s2[1]*e_3_s2[1] + e_2_s2[2]*e_3_s2[2];
+        
+        double sqrt_g33_s2 = sqrt(g_33_s2);
+        if (sqrt_g33_s2 < 1e-12) sqrt_g33_s2 = 1e-12;
+        
+        // Normal vectors: n^i = e^i / |e^i|
+        double mage1_s2 = sqrt(e1_s2[0]*e1_s2[0] + e1_s2[1]*e1_s2[1] + e1_s2[2]*e1_s2[2]);
+        double mage2_s2 = sqrt(e2_s2[0]*e2_s2[0] + e2_s2[1]*e2_s2[1] + e2_s2[2]*e2_s2[2]);
+        double mage3_s2 = sqrt(e3_s2[0]*e3_s2[0] + e3_s2[1]*e3_s2[1] + e3_s2[2]*e3_s2[2]);
+        
+        if (mage1_s2 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data2[idx*9+0*3+i] = e1_s2[i] / mage1_s2;
+        } else {
+            for (int i=0; i<3; i++) normals_data2[idx*9+0*3+i] = 0.0;
+        }
+        if (mage2_s2 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data2[idx*9+1*3+i] = e2_s2[i] / mage2_s2;
+        } else {
+            for (int i=0; i<3; i++) normals_data2[idx*9+1*3+i] = 0.0;
+        }
+        if (mage3_s2 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data2[idx*9+2*3+i] = e3_s2[i] / mage3_s2;
+        } else {
+            for (int i=0; i<3; i++) normals_data2[idx*9+2*3+i] = 0.0;
         }
         
-        // Metric tensor: g_ij = e_i · e_j
-        for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
-            double *ei = (i==0)?e_1:(i==1)?e_2:e_3;
-            double *ej = (j==0)?e_1:(j==1)?e_2:e_3;
-            gij_data[idx*9+i*3+j] = ei[0]*ej[0] + ei[1]*ej[1] + ei[2]*ej[2];
-        }
+        // b_i = g_{i3} / sqrt(g_33)
+        b_i_data2[idx*3 + 0] = g_13_s2 / sqrt_g33_s2;  // b_1
+        b_i_data2[idx*3 + 1] = g_23_s2 / sqrt_g33_s2;  // b_2
+        b_i_data2[idx*3 + 2] = sqrt_g33_s2;            // b_3
         
-        double g33 = gij_data[idx*9+2*3+2];
-        double sqrt_g33 = sqrt(g33);
-        double rtg33inv = 1.0/sqrt_g33;
-        rtg_data[idx] = rtg33inv;
+        // B3 = bmag / (sqrt(g_33) * |e^3|)
+        B3_data2[idx] = bmag_s2 / (sqrt_g33_s2 * mage3_s2);
         
-        // B3 = Bmag / sqrt(g_33)
-        b3_data[idx] = Bmag * rtg33inv;
+        // cmag = J * B / sqrt(g_33)
+        double JB_s2 = J_s2 * bmag_s2;
+        cmag_data2[idx] = JB_s2 / sqrt_g33_s2;
         
-        // dualcurlbhat = e^i · curlBhat and dualcurlBhatoverB
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dcb_data[idx*3+i] = ei[0]*curlB[0] + ei[1]*curlB[1] + ei[2]*curlB[2];
-            dcbob_data[idx*3+i] = dcb_data[idx*3+i] / Bmag;
-        }
-        
-        // bioverJB = g_i3 / sqrt(g_33) / J / Bmag 
-        for (int i=0; i<3; i++) {
-            biojb_data[idx*3+i] = gij_data[idx*9+i*3+2] / sqrt_g33 / J / Bmag;
-        }
-        
-        // Dual vector magnitudes: |e^i|
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dmag_data[idx*3+i] = sqrt(ei[0]*ei[0] + ei[1]*ei[1] + ei[2]*ei[2]);
-        }
-        
-        // Normal vectors: e^i / |e^i|
-        for (int i=0; i<3; i++) {
-            double mag = dmag_data[idx*3+i];
-            double *ei = &dual_data[idx*9+i*3];
-            if (mag > 1e-12) {  // Avoid division by zero
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = ei[j] / mag;
+        // jacobtot_inv = 1/(J * B)
+        if (JB_s2 > 1e-12) {
+            jacobtot_inv_data2[idx] = 1.0 / JB_s2;
             } else {
-                // If magnitude is zero, set normal to zero vector
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = 0.0;
-            }
+            jacobtot_inv_data2[idx] = 1.0 / 1e-12;
         }
-    }
-
-     // calculate quantities for surface 3
-    struct gkyl_array* duals_surface3 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* jacobgeo_surface3 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* g_ij_surface3 = mkarr(false, 9, nrange_surface.volume);
-    struct gkyl_array* B3_surface3 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhat_surface3 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualcurlBhatoverB_surface3 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* rtg33inv_surface3 = mkarr(false, 1, nrange_surface.volume);
-    struct gkyl_array* bioverJB_surface3 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualmags_surface3 = mkarr(false, 3, nrange_surface.volume);
-    struct gkyl_array* dualnormals_surface3 = mkarr(false, 9, nrange_surface.volume);
-
-    while (gkyl_range_iter_next(&iter_surface)) {
-        // Get current node index
-        long idx = gkyl_range_idx(&nrange_surface, iter_surface.idx);
         
-        double *tang_data = (double*)tangents_surface3->data;
-        double *bmag_data = (double*)Bmag_surface3->data;
-        double *curl_data = (double*)curlBhat_surface3->data;
-        double *dual_data = (double*)duals_surface3->data;
-        double *gij_data = (double*)g_ij_surface3->data;
-        double *jacob_data = (double*)jacobgeo_surface3->data;
-        double *b3_data = (double*)B3_surface3->data;
-        double *dcb_data = (double*)dualcurlBhat_surface3->data;
-        double *dcbob_data = (double*)dualcurlBhatoverB_surface3->data;
-        double *rtg_data = (double*)rtg33inv_surface3->data;
-        double *biojb_data = (double*)bioverJB_surface3->data;
-        double *dmag_data = (double*)dualmags_surface3->data;
-        double *dnorm_data = (double*)dualnormals_surface3->data;
+        // normcurlbhat = n^dir · curl(b̂) where dir=1 for surface 2
+        normcurlbhat_data2[idx] = normals_data2[idx*9+1*3+0]*curlb_s2[0] + 
+                                   normals_data2[idx*9+1*3+1]*curlb_s2[1] + 
+                                   normals_data2[idx*9+1*3+2]*curlb_s2[2];
         
-        double e_1[3] = {tang_data[idx*9+0], tang_data[idx*9+1], tang_data[idx*9+2]};
-        double e_2[3] = {tang_data[idx*9+3], tang_data[idx*9+4], tang_data[idx*9+5]};
-        double e_3[3] = {tang_data[idx*9+6], tang_data[idx*9+7], tang_data[idx*9+8]};
-        double curlB[3] = {curl_data[idx*3+0], curl_data[idx*3+1], curl_data[idx*3+2]};
-        double Bmag = bmag_data[idx];
+        // lenr = J * |e^dir| where dir=2 for surface 2
+        lenr_data2[idx] = J_s2 * mage2_s2;
+        
+        // ========== SURFACE 3 (dir=3, normal to alpha direction) ==========
+        double e_1_s3[3] = {dxdz_data3[idx*9+0], dxdz_data3[idx*9+1], dxdz_data3[idx*9+2]};
+        double e_2_s3[3] = {dxdz_data3[idx*9+3], dxdz_data3[idx*9+4], dxdz_data3[idx*9+5]};
+        double e_3_s3[3] = {dxdz_data3[idx*9+6], dxdz_data3[idx*9+7], dxdz_data3[idx*9+8]};
+        double curlb_s3[3] = {curlbhat_data3[idx*3+0], curlbhat_data3[idx*3+1], curlbhat_data3[idx*3+2]};
+        double bmag_s3 = bmag_data3[idx];
         
         // Jacobian: J = e_1 · (e_2 × e_3)
-        double e2xe3[3] = {e_2[1]*e_3[2]-e_2[2]*e_3[1], e_2[2]*e_3[0]-e_2[0]*e_3[2], e_2[0]*e_3[1]-e_2[1]*e_3[0]};
-        double J = e_1[0]*e2xe3[0] + e_1[1]*e2xe3[1] + e_1[2]*e2xe3[2];
-        jacob_data[idx] = J;
-        if (fabs(J) < 1e-12) {
-            // Jacobian is too small, skip this node or set to a small value
-            J = 1e-12;
-            jacob_data[idx] = J;
-        }
-        double Jinv = 1.0/J;
+        double e2xe3_s3[3] = {e_2_s3[1]*e_3_s3[2]-e_2_s3[2]*e_3_s3[1], e_2_s3[2]*e_3_s3[0]-e_2_s3[0]*e_3_s3[2], e_2_s3[0]*e_3_s3[1]-e_2_s3[1]*e_3_s3[0]};
+        double J_s3 = e_1_s3[0]*e2xe3_s3[0] + e_1_s3[1]*e2xe3_s3[1] + e_1_s3[2]*e2xe3_s3[2];
+        if (fabs(J_s3) < 1e-12) J_s3 = 1e-12;
+        jacobgeo_data3[idx] = J_s3;
+        double Jinv_s3 = 1.0/J_s3;
         
         // Dual vectors: e^i = (1/J) * (e_j × e_k)
-        double e3xe1[3] = {e_3[1]*e_1[2]-e_3[2]*e_1[1], e_3[2]*e_1[0]-e_3[0]*e_1[2], e_3[0]*e_1[1]-e_3[1]*e_1[0]};
-        double e1xe2[3] = {e_1[1]*e_2[2]-e_1[2]*e_2[1], e_1[2]*e_2[0]-e_1[0]*e_2[2], e_1[0]*e_2[1]-e_1[1]*e_2[0]};
-        for (int i=0; i<3; i++) {
-            dual_data[idx*9+0*3+i] = Jinv * e2xe3[i];  // e^1
-            dual_data[idx*9+1*3+i] = Jinv * e3xe1[i];  // e^2
-            dual_data[idx*9+2*3+i] = Jinv * e1xe2[i];  // e^3
+        double e3xe1_s3[3] = {e_3_s3[1]*e_1_s3[2]-e_3_s3[2]*e_1_s3[1], e_3_s3[2]*e_1_s3[0]-e_3_s3[0]*e_1_s3[2], e_3_s3[0]*e_1_s3[1]-e_3_s3[1]*e_1_s3[0]};
+        double e1xe2_s3[3] = {e_1_s3[1]*e_2_s3[2]-e_1_s3[2]*e_2_s3[1], e_1_s3[2]*e_2_s3[0]-e_1_s3[0]*e_2_s3[2], e_1_s3[0]*e_2_s3[1]-e_1_s3[1]*e_2_s3[0]};
+        double e1_s3[3] = {Jinv_s3 * e2xe3_s3[0], Jinv_s3 * e2xe3_s3[1], Jinv_s3 * e2xe3_s3[2]};  // e^1
+        double e2_s3[3] = {Jinv_s3 * e3xe1_s3[0], Jinv_s3 * e3xe1_s3[1], Jinv_s3 * e3xe1_s3[2]};  // e^2
+        double e3_s3[3] = {Jinv_s3 * e1xe2_s3[0], Jinv_s3 * e1xe2_s3[1], Jinv_s3 * e1xe2_s3[2]};  // e^3
+        
+        // Metric tensor components
+        double g_33_s3 = e_3_s3[0]*e_3_s3[0] + e_3_s3[1]*e_3_s3[1] + e_3_s3[2]*e_3_s3[2];
+        double g_13_s3 = e_1_s3[0]*e_3_s3[0] + e_1_s3[1]*e_3_s3[1] + e_1_s3[2]*e_3_s3[2];
+        double g_23_s3 = e_2_s3[0]*e_3_s3[0] + e_2_s3[1]*e_3_s3[1] + e_2_s3[2]*e_3_s3[2];
+        
+        double sqrt_g33_s3 = sqrt(g_33_s3);
+        if (sqrt_g33_s3 < 1e-12) sqrt_g33_s3 = 1e-12;
+        
+        // Normal vectors: n^i = e^i / |e^i|
+        double mage1_s3 = sqrt(e1_s3[0]*e1_s3[0] + e1_s3[1]*e1_s3[1] + e1_s3[2]*e1_s3[2]);
+        double mage2_s3 = sqrt(e2_s3[0]*e2_s3[0] + e2_s3[1]*e2_s3[1] + e2_s3[2]*e2_s3[2]);
+        double mage3_s3 = sqrt(e3_s3[0]*e3_s3[0] + e3_s3[1]*e3_s3[1] + e3_s3[2]*e3_s3[2]);
+        
+        if (mage1_s3 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data3[idx*9+0*3+i] = e1_s3[i] / mage1_s3;
+        } else {
+            for (int i=0; i<3; i++) normals_data3[idx*9+0*3+i] = 0.0;
+        }
+        if (mage2_s3 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data3[idx*9+1*3+i] = e2_s3[i] / mage2_s3;
+        } else {
+            for (int i=0; i<3; i++) normals_data3[idx*9+1*3+i] = 0.0;
+        }
+        if (mage3_s3 > 1e-12) {
+            for (int i=0; i<3; i++) normals_data3[idx*9+2*3+i] = e3_s3[i] / mage3_s3;
+        } else {
+            for (int i=0; i<3; i++) normals_data3[idx*9+2*3+i] = 0.0;
         }
         
-        // Metric tensor: g_ij = e_i · e_j
-        for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
-            double *ei = (i==0)?e_1:(i==1)?e_2:e_3;
-            double *ej = (j==0)?e_1:(j==1)?e_2:e_3;
-            gij_data[idx*9+i*3+j] = ei[0]*ej[0] + ei[1]*ej[1] + ei[2]*ej[2];
-        }
+        // b_i = g_{i3} / sqrt(g_33)
+        b_i_data3[idx*3 + 0] = g_13_s3 / sqrt_g33_s3;  // b_1
+        b_i_data3[idx*3 + 1] = g_23_s3 / sqrt_g33_s3;  // b_2
+        b_i_data3[idx*3 + 2] = sqrt_g33_s3;            // b_3
         
-        double g33 = gij_data[idx*9+2*3+2];
-        double sqrt_g33 = sqrt(g33);
-        double rtg33inv = 1.0/sqrt_g33;
-        rtg_data[idx] = rtg33inv;
+        // B3 = bmag / (sqrt(g_33) * |e^3|)
+        B3_data3[idx] = bmag_s3 / (sqrt_g33_s3 * mage3_s3);
         
-        // B3 = Bmag / sqrt(g_33)
-        b3_data[idx] = Bmag * rtg33inv;
+        // cmag = J * B / sqrt(g_33)
+        double JB_s3 = J_s3 * bmag_s3;
+        cmag_data3[idx] = JB_s3 / sqrt_g33_s3;
         
-        // dualcurlbhat = e^i · curlBhat and dualcurlBhatoverB
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dcb_data[idx*3+i] = ei[0]*curlB[0] + ei[1]*curlB[1] + ei[2]*curlB[2];
-            dcbob_data[idx*3+i] = dcb_data[idx*3+i] / Bmag;
-        }
-        
-        // bioverJB = g_i3 / sqrt(g_33) / J / Bmag 
-        for (int i=0; i<3; i++) {
-            biojb_data[idx*3+i] = gij_data[idx*9+i*3+2] / sqrt_g33 / J / Bmag;
-        }
-        
-        // Dual vector magnitudes: |e^i|
-        for (int i=0; i<3; i++) {
-            double *ei = &dual_data[idx*9+i*3];
-            dmag_data[idx*3+i] = sqrt(ei[0]*ei[0] + ei[1]*ei[1] + ei[2]*ei[2]);
-        }
-        
-        // Normal vectors: e^i / |e^i|
-        for (int i=0; i<3; i++) {
-            double mag = dmag_data[idx*3+i];
-            double *ei = &dual_data[idx*9+i*3];
-            if (mag > 1e-12) {  // Avoid division by zero
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = ei[j] / mag;
+        // jacobtot_inv = 1/(J * B)
+        if (JB_s3 > 1e-12) {
+            jacobtot_inv_data3[idx] = 1.0 / JB_s3;
             } else {
-                // If magnitude is zero, set normal to zero vector
-                for (int j=0; j<3; j++) dnorm_data[idx*9+i*3+j] = 0.0;
-            }
+            jacobtot_inv_data3[idx] = 1.0 / 1e-12;
         }
+        
+        // normcurlbhat = n^dir · curl(b̂) where dir=2 for surface 3
+        normcurlbhat_data3[idx] = normals_data3[idx*9+2*3+0]*curlb_s3[0] + 
+                                   normals_data3[idx*9+2*3+1]*curlb_s3[1] + 
+                                   normals_data3[idx*9+2*3+2]*curlb_s3[2];
+        
+        // lenr = J * |e^dir| where dir=3 for surface 3
+        lenr_data3[idx] = J_s3 * mage3_s3;
+        
     }
 
-    // Now we have all of the following quantities as nodal arrays (75 arrays total) 
-    //for corner, interior and three surfaces:
-    // raz
-    // rpz
-    // tangents
-    // duals
-    // Bmag
-    // curlBhat
-    // jacobgeo
-    // g_ij
-    // B3
-    // dualcurlBhat
-    // dualcurlBhatoverB
-    // rtg33inv
-    // bioverJB
-    // dualmags
-    // dualnormals
-    
-    // Do a n2m (use appropriate for interior,corner, and surface) on all neede quantities
-    // write out expansions on the modal grid
-    
-    // Get cell counts from grid header (we already know array sizes, but need 3D cell structure)
-    // Read grid from one file to get cells[] - bounds don't matter, only cell counts
-    // NOTE: All files must have the same cells[] and ndim (spatial dimensions) for n2m conversion.
-    // The computational range (based on cells[]) must be the same for corner, interior, and surface.
-    // Physical bounds (lower/upper) may differ between quantities (e.g., rpz vs raz coordinates).
-    // The number of components per node (ncomp) can differ (e.g., 1 for Bmag, 9 for g_ij) and is
-    // handled separately as a parameter to the n2m functions - it does not affect the grid structure.
+
     struct gkyl_rect_grid grid_orig;  // Original grid with proper bounds for writing
     struct gkyl_rect_grid grid;       // Grid with dummy bounds for n2m conversion
     struct gkyl_array_header_info hdr;
-    gkyl_grid_sub_array_header_read(&grid_orig, &hdr, "W7-X_field-aligned_coords_gkyl/drpz_draz_corner.gkyl");
+    // Use one of the files we already successfully loaded (e.g., bmag_corner_nodal)
+    // All files should have the same grid structure
+    enum gkyl_array_rio_status status = gkyl_grid_sub_array_header_read(&grid_orig, &hdr, "W7-X_field-aligned_coords_gkyl/Bmag_corner.gkyl");
+
     
     // Copy original grid and set dummy bounds for n2m conversion
     grid = grid_orig;
@@ -709,6 +687,9 @@ void test_3xp1(){
     // Create basis (3D, poly_order=1)
     struct gkyl_basis basis;
     gkyl_cart_modal_serendip(&basis, 3, 1);
+    // Create surface basis: for 3D grid, surface basis is 2D with same poly_order
+    struct gkyl_basis surf_basis;
+    gkyl_cart_modal_serendip(&surf_basis, 2, 1);
     
     // Create computational ranges (all use same grid cells)
     struct gkyl_range comp_range;
@@ -727,145 +708,149 @@ void test_3xp1(){
         gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, true);
     
     #define N2M_CONVERT_SURFACE(nrange, comp_range, ncomp, nodal, modal, dir) \
-        modal = mkarr(false, ncomp, comp_range.volume * basis.num_basis); \
-        gkyl_nodal_ops_n2m_surface(n2m, &basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, dir);
+        modal = mkarr(false, ncomp, comp_range.volume * surf_basis.num_basis); \
+        gkyl_nodal_ops_n2m_surface(n2m, &surf_basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, dir);
     
-    // Convert corner arrays (15 total) - use_quad=false for corners
-    struct gkyl_array *raz_corner_modal, *rpz_corner_modal, *tangents_corner_modal, *duals_corner_modal;
-    struct gkyl_array *Bmag_corner_modal, *curlBhat_corner_modal, *jacobgeo_corner_modal, *g_ij_corner_modal;
-    struct gkyl_array *B3_corner_modal, *dualcurlBhat_corner_modal, *dualcurlBhatoverB_corner_modal;
-    struct gkyl_array *rtg33inv_corner_modal, *bioverJB_corner_modal, *dualmags_corner_modal, *dualnormals_corner_modal;
-    N2M_CONVERT(nrange_corner, comp_range, 3, raz_corner, raz_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, rpz_corner, rpz_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 9, tangents_corner, tangents_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 9, duals_corner, duals_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 1, Bmag_corner, Bmag_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, curlBhat_corner, curlBhat_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 1, jacobgeo_corner, jacobgeo_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 9, g_ij_corner, g_ij_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 1, B3_corner, B3_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, dualcurlBhat_corner, dualcurlBhat_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, dualcurlBhatoverB_corner, dualcurlBhatoverB_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 1, rtg33inv_corner, rtg33inv_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, bioverJB_corner, bioverJB_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, dualmags_corner, dualmags_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 9, dualnormals_corner, dualnormals_corner_modal);
+    // Convert corner arrays - use_quad=false for corners
+    struct gkyl_array *mc2nu_pos_corner_modal, *mc2p_corner_modal, *bmag_corner_modal;
+    N2M_CONVERT(nrange_corner, comp_range, 3, mc2nu_pos_corner_nodal, mc2nu_pos_corner_modal);
+    N2M_CONVERT(nrange_corner, comp_range, 3, mc2p_corner_nodal, mc2p_corner_modal);
+    N2M_CONVERT(nrange_corner, comp_range, 1, bmag_corner_nodal, bmag_corner_modal);
     
-    // Convert interior arrays (15 total) - use_quad=true for interior
-    struct gkyl_array *raz_interior_modal, *rpz_interior_modal, *tangents_interior_modal, *duals_interior_modal;
-    struct gkyl_array *Bmag_interior_modal, *curlBhat_interior_modal, *jacobgeo_interior_modal, *g_ij_interior_modal;
-    struct gkyl_array *B3_interior_modal, *dualcurlBhat_interior_modal, *dualcurlBhatoverB_interior_modal;
-    struct gkyl_array *rtg33inv_interior_modal, *bioverJB_interior_modal, *dualmags_interior_modal, *dualnormals_interior_modal;
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, raz_interior, raz_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, rpz_interior, rpz_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, tangents_interior, tangents_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, duals_interior, duals_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, Bmag_interior, Bmag_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, curlBhat_interior, curlBhat_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobgeo_interior, jacobgeo_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, g_ij_interior, g_ij_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, B3_interior, B3_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlBhat_interior, dualcurlBhat_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlBhatoverB_interior, dualcurlBhatoverB_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, rtg33inv_interior, rtg33inv_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, bioverJB_interior, bioverJB_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualmags_interior, dualmags_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, dualnormals_interior, dualnormals_interior_modal);
+    // Convert interior arrays - use_quad=true for interior
+    struct gkyl_array *dxdz_interior_modal, *bmag_interior_modal, *curlbhat_interior_modal, *bcart_interior_modal;
+    struct gkyl_array *B3_interior_modal, *b_i_interior_modal, *bmag_inv_interior_modal, *bmag_inv_sq_interior_modal;
+    struct gkyl_array *bioverJB_interior_modal, *cmag_interior_modal, *dualcurlbhat_interior_modal, *dualcurlbhatoverB_interior_modal;
+    struct gkyl_array *dzdx_interior_modal, *eps2_interior_modal, *g_ij_interior_modal, *gij_interior_modal;
+    struct gkyl_array *gxxj_interior_modal, *gxyj_interior_modal, *gxzj_interior_modal, *gyyj_interior_modal;
+    struct gkyl_array *jacobgeo_interior_modal, *jacobgeo_inv_interior_modal, *jacobtot_interior_modal, *jacobtot_inv_interior_modal;
+    struct gkyl_array *normals_interior_modal, *rtg33inv_interior_modal;
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, dxdz_interior_nodal, dxdz_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_interior_nodal, bmag_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, curlbhat_interior_nodal, curlbhat_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, bcart_interior_nodal, bcart_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, B3_interior_nodal, B3_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, b_i_interior_nodal, b_i_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_inv_interior_nodal, bmag_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_inv_sq_interior_nodal, bmag_inv_sq_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, bioverJB_interior_nodal, bioverJB_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, cmag_interior_nodal, cmag_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlbhat_interior_nodal, dualcurlbhat_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlbhatoverB_interior_nodal, dualcurlbhatoverB_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, dzdx_interior_nodal, dzdx_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, eps2_interior_nodal, eps2_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 6, g_ij_interior_nodal, g_ij_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 6, gij_interior_nodal, gij_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxxj_interior_nodal, gxxj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxyj_interior_nodal, gxyj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxzj_interior_nodal, gxzj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gyyj_interior_nodal, gyyj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobgeo_interior_nodal, jacobgeo_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobgeo_inv_interior_nodal, jacobgeo_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobtot_interior_nodal, jacobtot_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobtot_inv_interior_nodal, jacobtot_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, normals_interior_nodal, normals_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, rtg33inv_interior_nodal, rtg33inv_interior_modal);
     
-    // Convert surface arrays (45 total = 15 per surface × 3 surfaces) - use_quad=false for surfaces
-    // Surface 1 arrays (15 total) - use surface n2m with direction 0
-    struct gkyl_array *raz_s1_modal, *rpz_s1_modal, *tangents_s1_modal, *duals_s1_modal;
-    struct gkyl_array *Bmag_s1_modal, *curlBhat_s1_modal, *jacobgeo_s1_modal, *g_ij_s1_modal;
-    struct gkyl_array *B3_s1_modal, *dualcurlBhat_s1_modal, *dualcurlBhatoverB_s1_modal;
-    struct gkyl_array *rtg33inv_s1_modal, *bioverJB_s1_modal, *dualmags_s1_modal, *dualnormals_s1_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, raz_surface1, raz_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, rpz_surface1, rpz_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, tangents_surface1, tangents_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, duals_surface1, duals_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, Bmag_surface1, Bmag_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlBhat_surface1, curlBhat_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface1, jacobgeo_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, g_ij_surface1, g_ij_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface1, B3_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhat_surface1, dualcurlBhat_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhatoverB_surface1, dualcurlBhatoverB_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, rtg33inv_surface1, rtg33inv_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, bioverJB_surface1, bioverJB_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualmags_surface1, dualmags_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dualnormals_surface1, dualnormals_s1_modal, 0);
+    // Convert surface arrays - use_quad=false for surfaces
+    // Surface 1 arrays - use surface n2m with direction 0
+    struct gkyl_array *dxdz_s1_modal, *bmag_s1_modal, *curlbhat_s1_modal;
+    struct gkyl_array *B3_s1_modal, *b_i_s1_modal, *cmag_s1_modal, *normcurlbhat_s1_modal;
+    struct gkyl_array *jacobgeo_s1_modal, *jacobtot_inv_s1_modal, *normals_s1_modal, *lenr_s1_modal;
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface1_nodal, dxdz_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface1_nodal, bmag_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface1_nodal, curlbhat_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface1_nodal, B3_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface1_nodal, b_i_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface1_nodal, cmag_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface1_nodal, normcurlbhat_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface1_nodal, jacobgeo_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface1_nodal, jacobtot_inv_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface1_nodal, normals_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface1_nodal, lenr_s1_modal, 0);
     
-    // Surface 2 arrays (15 total) - use surface n2m with direction 1
-    struct gkyl_array *raz_s2_modal, *rpz_s2_modal, *tangents_s2_modal, *duals_s2_modal;
-    struct gkyl_array *Bmag_s2_modal, *curlBhat_s2_modal, *jacobgeo_s2_modal, *g_ij_s2_modal;
-    struct gkyl_array *B3_s2_modal, *dualcurlBhat_s2_modal, *dualcurlBhatoverB_s2_modal;
-    struct gkyl_array *rtg33inv_s2_modal, *bioverJB_s2_modal, *dualmags_s2_modal, *dualnormals_s2_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, raz_surface2, raz_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, rpz_surface2, rpz_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, tangents_surface2, tangents_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, duals_surface2, duals_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, Bmag_surface2, Bmag_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlBhat_surface2, curlBhat_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface2, jacobgeo_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, g_ij_surface2, g_ij_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface2, B3_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhat_surface2, dualcurlBhat_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhatoverB_surface2, dualcurlBhatoverB_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, rtg33inv_surface2, rtg33inv_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, bioverJB_surface2, bioverJB_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualmags_surface2, dualmags_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dualnormals_surface2, dualnormals_s2_modal, 1);
+    // Surface 2 arrays - use surface n2m with direction 1
+    struct gkyl_array *dxdz_s2_modal, *bmag_s2_modal, *curlbhat_s2_modal;
+    struct gkyl_array *B3_s2_modal, *b_i_s2_modal, *cmag_s2_modal, *normcurlbhat_s2_modal;
+    struct gkyl_array *jacobgeo_s2_modal, *jacobtot_inv_s2_modal, *normals_s2_modal, *lenr_s2_modal;
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface2_nodal, dxdz_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface2_nodal, bmag_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface2_nodal, curlbhat_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface2_nodal, B3_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface2_nodal, b_i_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface2_nodal, cmag_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface2_nodal, normcurlbhat_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface2_nodal, jacobgeo_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface2_nodal, jacobtot_inv_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface2_nodal, normals_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface2_nodal, lenr_s2_modal, 1);
     
-    // Surface 3 arrays (15 total) - use surface n2m with direction 2
-    struct gkyl_array *raz_s3_modal, *rpz_s3_modal, *tangents_s3_modal, *duals_s3_modal;
-    struct gkyl_array *Bmag_s3_modal, *curlBhat_s3_modal, *jacobgeo_s3_modal, *g_ij_s3_modal;
-    struct gkyl_array *B3_s3_modal, *dualcurlBhat_s3_modal, *dualcurlBhatoverB_s3_modal;
-    struct gkyl_array *rtg33inv_s3_modal, *bioverJB_s3_modal, *dualmags_s3_modal, *dualnormals_s3_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, raz_surface3, raz_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, rpz_surface3, rpz_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, tangents_surface3, tangents_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, duals_surface3, duals_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, Bmag_surface3, Bmag_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlBhat_surface3, curlBhat_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface3, jacobgeo_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, g_ij_surface3, g_ij_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface3, B3_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhat_surface3, dualcurlBhat_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualcurlBhatoverB_surface3, dualcurlBhatoverB_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, rtg33inv_surface3, rtg33inv_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, bioverJB_surface3, bioverJB_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, dualmags_surface3, dualmags_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dualnormals_surface3, dualnormals_s3_modal, 2);
+    // Surface 3 arrays - use surface n2m with direction 2
+    struct gkyl_array *dxdz_s3_modal, *bmag_s3_modal, *curlbhat_s3_modal;
+    struct gkyl_array *B3_s3_modal, *b_i_s3_modal, *cmag_s3_modal, *normcurlbhat_s3_modal;
+    struct gkyl_array *jacobgeo_s3_modal, *jacobtot_inv_s3_modal, *normals_s3_modal, *lenr_s3_modal;
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface3_nodal, dxdz_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface3_nodal, bmag_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface3_nodal, curlbhat_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface3_nodal, B3_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface3_nodal, b_i_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface3_nodal, cmag_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface3_nodal, normcurlbhat_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface3_nodal, jacobgeo_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface3_nodal, jacobtot_inv_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface3_nodal, normals_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface3_nodal, lenr_s3_modal, 2);
     
+    // Debug: Print to both stdout and stderr to ensure we see output
 
     // Write out all nodal and modal arrays 
     // Create output directories
+    // Note: Test is run from gkeyll/ directory, so create directories there
     const char *output_dir = "W7X-nodal_modal_arrays";
     const char *nodal_dir = "W7X-nodal_modal_arrays/nodal";
     const char *modal_dir = "W7X-nodal_modal_arrays/modal";
+    
+    // Create directories (must create parent first)
     #ifdef _WIN32
-        _mkdir(output_dir);
-        _mkdir(nodal_dir);
-        _mkdir(modal_dir);
+        if (_mkdir(output_dir) != 0 && errno != EEXIST) {
+            return; // Exit if we can't create the main directory
+        }
+        if (_mkdir(nodal_dir) != 0 && errno != EEXIST) {
+            return;
+        }
+        if (_mkdir(modal_dir) != 0 && errno != EEXIST) {
+            return;
+        }
     #else
-        mkdir(output_dir, 0755);
-        mkdir(nodal_dir, 0755);
-        mkdir(modal_dir, 0755);
+        if (mkdir(output_dir, 0755) != 0 && errno != EEXIST) {
+            return; // Exit if we can't create the main directory
+        }
+        if (mkdir(nodal_dir, 0755) != 0 && errno != EEXIST) {
+            return;
+        }
+        if (mkdir(modal_dir, 0755) != 0 && errno != EEXIST) {
+            return;
+        }
     #endif
     
     // Helper macro to write nodal array
     #define WRITE_NODAL(ngrid, nrange, arr, name) \
         do { \
-            char fname[512]; \
-            snprintf(fname, sizeof(fname), "%s/%s.gkyl", nodal_dir, name); \
-            gkyl_grid_sub_array_write(ngrid, nrange, 0, arr, fname); \
+            if (arr != NULL) { \
+                char fname[512]; \
+                snprintf(fname, sizeof(fname), "%s/%s.gkyl", nodal_dir, name); \
+                gkyl_grid_sub_array_write(ngrid, nrange, 0, arr, fname); \
+            } \
         } while(0)
     
     // Helper macro to write modal array
     #define WRITE_MODAL(grid, comp_range, arr, name) \
         do { \
-            char fname[512]; \
-            snprintf(fname, sizeof(fname), "%s/%s.gkyl", modal_dir, name); \
-            gkyl_grid_sub_array_write(grid, comp_range, 0, arr, fname); \
+            if (arr != NULL) { \
+                char fname[512]; \
+                snprintf(fname, sizeof(fname), "%s/%s.gkyl", modal_dir, name); \
+                gkyl_grid_sub_array_write(grid, comp_range, 0, arr, fname); \
+            } \
         } while(0)
     
     // Create nodal grids for writing nodal arrays
@@ -874,356 +859,303 @@ void test_3xp1(){
     gkyl_gk_geometry_init_nodal_grid(&ngrid_interior, &grid_orig, &nrange_interior);
     gkyl_gk_geometry_init_nodal_grid(&ngrid_surface, &grid_orig, &nrange_surface);
     
-    // Write corner nodal arrays (15 total)
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, raz_corner, "raz_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, rpz_corner, "rpz_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, tangents_corner, "tangents_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, duals_corner, "duals_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, Bmag_corner, "Bmag_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, curlBhat_corner, "curlBhat_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, jacobgeo_corner, "jacobgeo_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, g_ij_corner, "g_ij_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, B3_corner, "B3_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, dualcurlBhat_corner, "dualcurlBhat_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, dualcurlBhatoverB_corner, "dualcurlBhatoverB_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, rtg33inv_corner, "rtg33inv_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, bioverJB_corner, "bioverJB_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, dualmags_corner, "dualmags_corner");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, dualnormals_corner, "dualnormals_corner");
+    // Write corner nodal arrays 
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "mc2nu_pos_corner_nodal");
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "mc2p_corner_nodal");
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, bmag_corner_nodal, "bmag_corner_nodal");
     
-    // Write interior nodal arrays (15 total)
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, raz_interior, "raz_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, rpz_interior, "rpz_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, tangents_interior, "tangents_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, duals_interior, "duals_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, Bmag_interior, "Bmag_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, curlBhat_interior, "curlBhat_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobgeo_interior, "jacobgeo_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, g_ij_interior, "g_ij_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, B3_interior, "B3_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlBhat_interior, "dualcurlBhat_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlBhatoverB_interior, "dualcurlBhatoverB_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, rtg33inv_interior, "rtg33inv_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bioverJB_interior, "bioverJB_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualmags_interior, "dualmags_interior");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualnormals_interior, "dualnormals_interior");
+    // Write interior nodal arrays
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, dxdz_interior_nodal, "dxdz_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_interior_nodal, "bmag_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, curlbhat_interior_nodal, "curlbhat_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, bcart_interior_nodal, "bcart_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, B3_interior_nodal, "B3_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, b_i_interior_nodal, "b_i_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_inv_interior_nodal, "bmag_inv_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_inv_sq_interior_nodal, "bmag_inv_sq_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, bioverJB_interior_nodal, "bioverJB_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, cmag_interior_nodal, "cmag_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlbhat_interior_nodal, "dualcurlbhat_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlbhatoverB_interior_nodal, "dualcurlbhatoverB_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, dzdx_interior_nodal, "dzdx_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, eps2_interior_nodal, "eps2_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, g_ij_interior_nodal, "g_ij_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, gij_interior_nodal, "gij_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxxj_interior_nodal, "gxxj_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxyj_interior_nodal, "gxyj_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxzj_interior_nodal, "gxzj_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, gyyj_interior_nodal, "gyyj_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobgeo_interior_nodal, "jacobgeo_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobgeo_inv_interior_nodal, "jacobgeo_inv_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobtot_interior_nodal, "jacobtot_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobtot_inv_interior_nodal, "jacobtot_inv_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, normals_interior_nodal, "normals_interior_nodal");
+    WRITE_NODAL(&ngrid_interior, &nrange_interior, rtg33inv_interior_nodal, "rtg33inv_interior_nodal");
     
-    // Write surface 1 nodal arrays (15 total)
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, raz_surface1, "raz_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rpz_surface1, "rpz_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, tangents_surface1, "tangents_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, duals_surface1, "duals_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, Bmag_surface1, "Bmag_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlBhat_surface1, "curlBhat_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface1, "jacobgeo_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, g_ij_surface1, "g_ij_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface1, "B3_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhat_surface1, "dualcurlBhat_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhatoverB_surface1, "dualcurlBhatoverB_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rtg33inv_surface1, "rtg33inv_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, bioverJB_surface1, "bioverJB_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualmags_surface1, "dualmags_surface1");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualnormals_surface1, "dualnormals_surface1");
+    // Write surface 1 nodal arrays 
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface1_nodal, "dxdz_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface1_nodal, "bmag_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface1_nodal, "curlbhat_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface1_nodal, "B3_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, b_i_surface1_nodal, "b_i_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, cmag_surface1_nodal, "cmag_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normcurlbhat_surface1_nodal, "normcurlbhat_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface1_nodal, "jacobgeo_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobtot_inv_surface1_nodal, "jacobtot_inv_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface1_nodal, "normals_surface1_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface1_nodal, "lenr_surface1_nodal");
     
-    // Write surface 2 nodal arrays (15 total)
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, raz_surface2, "raz_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rpz_surface2, "rpz_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, tangents_surface2, "tangents_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, duals_surface2, "duals_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, Bmag_surface2, "Bmag_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlBhat_surface2, "curlBhat_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface2, "jacobgeo_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, g_ij_surface2, "g_ij_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface2, "B3_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhat_surface2, "dualcurlBhat_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhatoverB_surface2, "dualcurlBhatoverB_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rtg33inv_surface2, "rtg33inv_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, bioverJB_surface2, "bioverJB_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualmags_surface2, "dualmags_surface2");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualnormals_surface2, "dualnormals_surface2");
+    // Write surface 2 nodal arrays 
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface2_nodal, "dxdz_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface2_nodal, "bmag_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface2_nodal, "curlbhat_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface2_nodal, "B3_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, b_i_surface2_nodal, "b_i_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, cmag_surface2_nodal, "cmag_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normcurlbhat_surface2_nodal, "normcurlbhat_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface2_nodal, "jacobgeo_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobtot_inv_surface2_nodal, "jacobtot_inv_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface2_nodal, "normals_surface2_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface2_nodal, "lenr_surface2_nodal");
     
-    // Write surface 3 nodal arrays (15 total)
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, raz_surface3, "raz_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rpz_surface3, "rpz_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, tangents_surface3, "tangents_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, duals_surface3, "duals_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, Bmag_surface3, "Bmag_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlBhat_surface3, "curlBhat_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface3, "jacobgeo_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, g_ij_surface3, "g_ij_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface3, "B3_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhat_surface3, "dualcurlBhat_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualcurlBhatoverB_surface3, "dualcurlBhatoverB_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, rtg33inv_surface3, "rtg33inv_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, bioverJB_surface3, "bioverJB_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualmags_surface3, "dualmags_surface3");
-    WRITE_NODAL(&ngrid_surface, &nrange_surface, dualnormals_surface3, "dualnormals_surface3");
+    // Write surface 3 nodal arrays 
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface3_nodal, "dxdz_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface3_nodal, "bmag_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface3_nodal, "curlbhat_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, B3_surface3_nodal, "B3_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, b_i_surface3_nodal, "b_i_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, cmag_surface3_nodal, "cmag_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normcurlbhat_surface3_nodal, "normcurlbhat_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobgeo_surface3_nodal, "jacobgeo_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, jacobtot_inv_surface3_nodal, "jacobtot_inv_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface3_nodal, "normals_surface3_nodal");
+    WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface3_nodal, "lenr_surface3_nodal");
     
-    // Write corner modal arrays (15 total)
-    WRITE_MODAL(&grid_orig, &comp_range, raz_corner_modal, "raz_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rpz_corner_modal, "rpz_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, tangents_corner_modal, "tangents_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, duals_corner_modal, "duals_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, Bmag_corner_modal, "Bmag_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlBhat_corner_modal, "curlBhat_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_corner_modal, "jacobgeo_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_corner_modal, "g_ij_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, B3_corner_modal, "B3_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhat_corner_modal, "dualcurlBhat_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhatoverB_corner_modal, "dualcurlBhatoverB_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_corner_modal, "rtg33inv_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bioverJB_corner_modal, "bioverJB_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualmags_corner_modal, "dualmags_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualnormals_corner_modal, "dualnormals_corner_modal");
+    // Write corner modal arrays 
+    WRITE_MODAL(&grid_orig, &comp_range, mc2nu_pos_corner_modal, "mc2nu_pos_corner_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, mc2p_corner_modal, "mc2p_corner_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_corner_modal, "bmag_corner_modal");
     
-    // Write interior modal arrays (15 total)
-    WRITE_MODAL(&grid_orig, &comp_range, raz_interior_modal, "raz_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rpz_interior_modal, "rpz_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, tangents_interior_modal, "tangents_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, duals_interior_modal, "duals_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, Bmag_interior_modal, "Bmag_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlBhat_interior_modal, "curlBhat_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_interior_modal, "jacobgeo_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_interior_modal, "g_ij_interior_modal");
+    // Write interior modal arrays 
+    WRITE_MODAL(&grid_orig, &comp_range, dxdz_interior_modal, "dxdz_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_interior_modal, "bmag_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_interior_modal, "curlbhat_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bcart_interior_modal, "bcart_interior_modal");
     WRITE_MODAL(&grid_orig, &comp_range, B3_interior_modal, "B3_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhat_interior_modal, "dualcurlBhat_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhatoverB_interior_modal, "dualcurlBhatoverB_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_interior_modal, "rtg33inv_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, b_i_interior_modal, "b_i_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_inv_interior_modal, "bmag_inv_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_inv_sq_interior_modal, "bmag_inv_sq_interior_modal");
     WRITE_MODAL(&grid_orig, &comp_range, bioverJB_interior_modal, "bioverJB_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualmags_interior_modal, "dualmags_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualnormals_interior_modal, "dualnormals_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, cmag_interior_modal, "cmag_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, dualcurlbhat_interior_modal, "dualcurlbhat_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, dualcurlbhatoverB_interior_modal, "dualcurlbhatoverB_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, dzdx_interior_modal, "dzdx_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, eps2_interior_modal, "eps2_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, g_ij_interior_modal, "g_ij_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, gij_interior_modal, "gij_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, gxxj_interior_modal, "gxxj_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, gxyj_interior_modal, "gxyj_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, gxzj_interior_modal, "gxzj_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, gyyj_interior_modal, "gyyj_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_interior_modal, "jacobgeo_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_inv_interior_modal, "jacobgeo_inv_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_interior_modal, "jacobtot_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_interior_modal, "jacobtot_inv_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normals_interior_modal, "normals_interior_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_interior_modal, "rtg33inv_interior_modal");
     
-    // Write surface 1 modal arrays (15 total)
-    WRITE_MODAL(&grid_orig, &comp_range, raz_s1_modal, "raz_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rpz_s1_modal, "rpz_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, tangents_s1_modal, "tangents_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, duals_s1_modal, "duals_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, Bmag_s1_modal, "Bmag_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlBhat_s1_modal, "curlBhat_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s1_modal, "jacobgeo_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_s1_modal, "g_ij_s1_modal");
+    // Write surface 1 modal arrays 
+    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s1_modal, "dxdz_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_s1_modal, "bmag_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s1_modal, "curlbhat_s1_modal");
     WRITE_MODAL(&grid_orig, &comp_range, B3_s1_modal, "B3_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhat_s1_modal, "dualcurlBhat_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhatoverB_s1_modal, "dualcurlBhatoverB_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_s1_modal, "rtg33inv_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bioverJB_s1_modal, "bioverJB_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualmags_s1_modal, "dualmags_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualnormals_s1_modal, "dualnormals_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, b_i_s1_modal, "b_i_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, cmag_s1_modal, "cmag_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s1_modal, "normcurlbhat_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s1_modal, "jacobgeo_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s1_modal, "jacobtot_inv_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normals_s1_modal, "normals_s1_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, lenr_s1_modal, "lenr_s1_modal");
     
-    // Write surface 2 modal arrays (15 total)
-    WRITE_MODAL(&grid_orig, &comp_range, raz_s2_modal, "raz_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rpz_s2_modal, "rpz_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, tangents_s2_modal, "tangents_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, duals_s2_modal, "duals_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, Bmag_s2_modal, "Bmag_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlBhat_s2_modal, "curlBhat_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s2_modal, "jacobgeo_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_s2_modal, "g_ij_s2_modal");
+    // Write surface 2 modal arrays 
+    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s2_modal, "dxdz_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_s2_modal, "bmag_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s2_modal, "curlbhat_s2_modal");
     WRITE_MODAL(&grid_orig, &comp_range, B3_s2_modal, "B3_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhat_s2_modal, "dualcurlBhat_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhatoverB_s2_modal, "dualcurlBhatoverB_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_s2_modal, "rtg33inv_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bioverJB_s2_modal, "bioverJB_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualmags_s2_modal, "dualmags_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualnormals_s2_modal, "dualnormals_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, b_i_s2_modal, "b_i_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, cmag_s2_modal, "cmag_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s2_modal, "normcurlbhat_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s2_modal, "jacobgeo_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s2_modal, "jacobtot_inv_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normals_s2_modal, "normals_s2_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, lenr_s2_modal, "lenr_s2_modal");
     
-    // Write surface 3 modal arrays (15 total)
-    WRITE_MODAL(&grid_orig, &comp_range, raz_s3_modal, "raz_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rpz_s3_modal, "rpz_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, tangents_s3_modal, "tangents_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, duals_s3_modal, "duals_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, Bmag_s3_modal, "Bmag_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlBhat_s3_modal, "curlBhat_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s3_modal, "jacobgeo_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_s3_modal, "g_ij_s3_modal");
+    // Write surface 3 modal arrays 
+    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s3_modal, "dxdz_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, bmag_s3_modal, "bmag_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s3_modal, "curlbhat_s3_modal");
     WRITE_MODAL(&grid_orig, &comp_range, B3_s3_modal, "B3_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhat_s3_modal, "dualcurlBhat_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlBhatoverB_s3_modal, "dualcurlBhatoverB_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_s3_modal, "rtg33inv_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bioverJB_s3_modal, "bioverJB_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualmags_s3_modal, "dualmags_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualnormals_s3_modal, "dualnormals_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, b_i_s3_modal, "b_i_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, cmag_s3_modal, "cmag_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s3_modal, "normcurlbhat_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s3_modal, "jacobgeo_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s3_modal, "jacobtot_inv_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, normals_s3_modal, "normals_s3_modal");
+    WRITE_MODAL(&grid_orig, &comp_range, lenr_s3_modal, "lenr_s3_modal");
 
     // Clean up everything
-    // Release corner loaded arrays (5)
-    gkyl_array_release(tangents_corner);
-    gkyl_array_release(Bmag_corner);
-    gkyl_array_release(curlBhat_corner);
-    gkyl_array_release(raz_corner);
-    gkyl_array_release(rpz_corner);
+    // Release corner loaded arrays
+    gkyl_array_release(mc2nu_pos_corner_nodal);
+    gkyl_array_release(mc2p_corner_nodal);
+    gkyl_array_release(bmag_corner_nodal);
     
-    // Release corner derived arrays (10)
-    gkyl_array_release(duals_corner);
-    gkyl_array_release(jacobgeo_corner);
-    gkyl_array_release(g_ij_corner);
-    gkyl_array_release(B3_corner);
-    gkyl_array_release(dualcurlBhat_corner);
-    gkyl_array_release(dualcurlBhatoverB_corner);
-    gkyl_array_release(rtg33inv_corner);
-    gkyl_array_release(bioverJB_corner);
-    gkyl_array_release(dualmags_corner);
-    gkyl_array_release(dualnormals_corner);
+    // Release corner modal arrays
+    gkyl_array_release(mc2nu_pos_corner_modal);
+    gkyl_array_release(mc2p_corner_modal);
+    gkyl_array_release(bmag_corner_modal);
     
-    // Release corner modal arrays (15)
-    gkyl_array_release(raz_corner_modal);
-    gkyl_array_release(rpz_corner_modal);
-    gkyl_array_release(tangents_corner_modal);
-    gkyl_array_release(duals_corner_modal);
-    gkyl_array_release(Bmag_corner_modal);
-    gkyl_array_release(curlBhat_corner_modal);
-    gkyl_array_release(jacobgeo_corner_modal);
-    gkyl_array_release(g_ij_corner_modal);
-    gkyl_array_release(B3_corner_modal);
-    gkyl_array_release(dualcurlBhat_corner_modal);
-    gkyl_array_release(dualcurlBhatoverB_corner_modal);
-    gkyl_array_release(rtg33inv_corner_modal);
-    gkyl_array_release(bioverJB_corner_modal);
-    gkyl_array_release(dualmags_corner_modal);
-    gkyl_array_release(dualnormals_corner_modal);
+    // Release interior loaded arrays
+    gkyl_array_release(dxdz_interior_nodal);
+    gkyl_array_release(bmag_interior_nodal);
+    gkyl_array_release(curlbhat_interior_nodal);
+    gkyl_array_release(bcart_interior_nodal);
     
-    // Release interior loaded arrays (5)
-    gkyl_array_release(tangents_interior);
-    gkyl_array_release(Bmag_interior);
-    gkyl_array_release(curlBhat_interior);
-    gkyl_array_release(raz_interior);
-    gkyl_array_release(rpz_interior);
+    // Release interior calculated arrays
+    gkyl_array_release(B3_interior_nodal);
+    gkyl_array_release(b_i_interior_nodal);
+    gkyl_array_release(bcart_interior_nodal);
+    gkyl_array_release(bmag_inv_interior_nodal);
+    gkyl_array_release(bmag_inv_sq_interior_nodal);
+    gkyl_array_release(bioverJB_interior_nodal);
+    gkyl_array_release(cmag_interior_nodal);
+    gkyl_array_release(dualcurlbhat_interior_nodal);
+    gkyl_array_release(dualcurlbhatoverB_interior_nodal);
+    gkyl_array_release(dzdx_interior_nodal);
+    gkyl_array_release(eps2_interior_nodal);
+    gkyl_array_release(g_ij_interior_nodal);
+    gkyl_array_release(gij_interior_nodal);
+    gkyl_array_release(gxxj_interior_nodal);
+    gkyl_array_release(gxyj_interior_nodal);
+    gkyl_array_release(gxzj_interior_nodal);
+    gkyl_array_release(gyyj_interior_nodal);
+    gkyl_array_release(jacobgeo_interior_nodal);
+    gkyl_array_release(jacobgeo_inv_interior_nodal);
+    gkyl_array_release(jacobtot_interior_nodal);
+    gkyl_array_release(jacobtot_inv_interior_nodal);
+    gkyl_array_release(normals_interior_nodal);
+    gkyl_array_release(rtg33inv_interior_nodal);
     
-    // Release interior derived arrays (10)
-    gkyl_array_release(duals_interior);
-    gkyl_array_release(jacobgeo_interior);
-    gkyl_array_release(g_ij_interior);
-    gkyl_array_release(B3_interior);
-    gkyl_array_release(dualcurlBhat_interior);
-    gkyl_array_release(dualcurlBhatoverB_interior);
-    gkyl_array_release(rtg33inv_interior);
-    gkyl_array_release(bioverJB_interior);
-    gkyl_array_release(dualmags_interior);
-    gkyl_array_release(dualnormals_interior);
-    
-    // Release interior modal arrays (15)
-    gkyl_array_release(raz_interior_modal);
-    gkyl_array_release(rpz_interior_modal);
-    gkyl_array_release(tangents_interior_modal);
-    gkyl_array_release(duals_interior_modal);
-    gkyl_array_release(Bmag_interior_modal);
-    gkyl_array_release(curlBhat_interior_modal);
-    gkyl_array_release(jacobgeo_interior_modal);
-    gkyl_array_release(g_ij_interior_modal);
+    // Release interior modal arrays
+    gkyl_array_release(dxdz_interior_modal);
+    gkyl_array_release(bmag_interior_modal);
+    gkyl_array_release(curlbhat_interior_modal);
+    gkyl_array_release(bcart_interior_modal);
     gkyl_array_release(B3_interior_modal);
-    gkyl_array_release(dualcurlBhat_interior_modal);
-    gkyl_array_release(dualcurlBhatoverB_interior_modal);
-    gkyl_array_release(rtg33inv_interior_modal);
+    gkyl_array_release(b_i_interior_modal);
+    gkyl_array_release(bmag_inv_interior_modal);
+    gkyl_array_release(bmag_inv_sq_interior_modal);
     gkyl_array_release(bioverJB_interior_modal);
-    gkyl_array_release(dualmags_interior_modal);
-    gkyl_array_release(dualnormals_interior_modal);
+    gkyl_array_release(cmag_interior_modal);
+    gkyl_array_release(dualcurlbhat_interior_modal);
+    gkyl_array_release(dualcurlbhatoverB_interior_modal);
+    gkyl_array_release(dzdx_interior_modal);
+    gkyl_array_release(eps2_interior_modal);
+    gkyl_array_release(g_ij_interior_modal);
+    gkyl_array_release(gij_interior_modal);
+    gkyl_array_release(gxxj_interior_modal);
+    gkyl_array_release(gxyj_interior_modal);
+    gkyl_array_release(gxzj_interior_modal);
+    gkyl_array_release(gyyj_interior_modal);
+    gkyl_array_release(jacobgeo_interior_modal);
+    gkyl_array_release(jacobgeo_inv_interior_modal);
+    gkyl_array_release(jacobtot_interior_modal);
+    gkyl_array_release(jacobtot_inv_interior_modal);
+    gkyl_array_release(normals_interior_modal);
+    gkyl_array_release(rtg33inv_interior_modal);
     
-    // Release surface 1 loaded arrays (5)
-    gkyl_array_release(tangents_surface1);
-    gkyl_array_release(Bmag_surface1);
-    gkyl_array_release(curlBhat_surface1);
-    gkyl_array_release(raz_surface1);
-    gkyl_array_release(rpz_surface1);
+    // Release surface 1 loaded arrays
+    gkyl_array_release(dxdz_surface1_nodal);
+    gkyl_array_release(bmag_surface1_nodal);
+    gkyl_array_release(curlbhat_surface1_nodal);
     
-    // Release surface 1 derived arrays (10)
-    gkyl_array_release(duals_surface1);
-    gkyl_array_release(jacobgeo_surface1);
-    gkyl_array_release(g_ij_surface1);
-    gkyl_array_release(B3_surface1);
-    gkyl_array_release(dualcurlBhat_surface1);
-    gkyl_array_release(dualcurlBhatoverB_surface1);
-    gkyl_array_release(rtg33inv_surface1);
-    gkyl_array_release(bioverJB_surface1);
-    gkyl_array_release(dualmags_surface1);
-    gkyl_array_release(dualnormals_surface1);
+    // Release surface 1 calculated arrays
+    gkyl_array_release(B3_surface1_nodal);
+    gkyl_array_release(b_i_surface1_nodal);
+    gkyl_array_release(cmag_surface1_nodal);
+    gkyl_array_release(normcurlbhat_surface1_nodal);
+    gkyl_array_release(jacobgeo_surface1_nodal);
+    gkyl_array_release(jacobtot_inv_surface1_nodal);
+    gkyl_array_release(normals_surface1_nodal);
+    gkyl_array_release(lenr_surface1_nodal);
     
-    // Release surface 1 modal arrays (15)
-    gkyl_array_release(raz_s1_modal);
-    gkyl_array_release(rpz_s1_modal);
-    gkyl_array_release(tangents_s1_modal);
-    gkyl_array_release(duals_s1_modal);
-    gkyl_array_release(Bmag_s1_modal);
-    gkyl_array_release(curlBhat_s1_modal);
-    gkyl_array_release(jacobgeo_s1_modal);
-    gkyl_array_release(g_ij_s1_modal);
+    // Release surface 1 modal arrays
+    gkyl_array_release(dxdz_s1_modal);
+    gkyl_array_release(bmag_s1_modal);
+    gkyl_array_release(curlbhat_s1_modal);
     gkyl_array_release(B3_s1_modal);
-    gkyl_array_release(dualcurlBhat_s1_modal);
-    gkyl_array_release(dualcurlBhatoverB_s1_modal);
-    gkyl_array_release(rtg33inv_s1_modal);
-    gkyl_array_release(bioverJB_s1_modal);
-    gkyl_array_release(dualmags_s1_modal);
-    gkyl_array_release(dualnormals_s1_modal);
+    gkyl_array_release(b_i_s1_modal);
+    gkyl_array_release(cmag_s1_modal);
+    gkyl_array_release(normcurlbhat_s1_modal);
+    gkyl_array_release(jacobgeo_s1_modal);
+    gkyl_array_release(jacobtot_inv_s1_modal);
+    gkyl_array_release(normals_s1_modal);
+    gkyl_array_release(lenr_s1_modal);
     
-    // Release surface 2 loaded arrays (5)
-    gkyl_array_release(tangents_surface2);
-    gkyl_array_release(Bmag_surface2);
-    gkyl_array_release(curlBhat_surface2);
-    gkyl_array_release(raz_surface2);
-    gkyl_array_release(rpz_surface2);
+    // Release surface 2 loaded arrays
+    gkyl_array_release(dxdz_surface2_nodal);
+    gkyl_array_release(bmag_surface2_nodal);
+    gkyl_array_release(curlbhat_surface2_nodal);
     
-    // Release surface 2 derived arrays (10)
-    gkyl_array_release(duals_surface2);
-    gkyl_array_release(jacobgeo_surface2);
-    gkyl_array_release(g_ij_surface2);
-    gkyl_array_release(B3_surface2);
-    gkyl_array_release(dualcurlBhat_surface2);
-    gkyl_array_release(dualcurlBhatoverB_surface2);
-    gkyl_array_release(rtg33inv_surface2);
-    gkyl_array_release(bioverJB_surface2);
-    gkyl_array_release(dualmags_surface2);
-    gkyl_array_release(dualnormals_surface2);
+    // Release surface 2 calculated arrays
+    gkyl_array_release(B3_surface2_nodal);
+    gkyl_array_release(b_i_surface2_nodal);
+    gkyl_array_release(cmag_surface2_nodal);
+    gkyl_array_release(normcurlbhat_surface2_nodal);
+    gkyl_array_release(jacobgeo_surface2_nodal);
+    gkyl_array_release(jacobtot_inv_surface2_nodal);
+    gkyl_array_release(normals_surface2_nodal);
+    gkyl_array_release(lenr_surface2_nodal);
     
-    // Release surface 2 modal arrays (15)
-    gkyl_array_release(raz_s2_modal);
-    gkyl_array_release(rpz_s2_modal);
-    gkyl_array_release(tangents_s2_modal);
-    gkyl_array_release(duals_s2_modal);
-    gkyl_array_release(Bmag_s2_modal);
-    gkyl_array_release(curlBhat_s2_modal);
-    gkyl_array_release(jacobgeo_s2_modal);
-    gkyl_array_release(g_ij_s2_modal);
+    // Release surface 2 modal arrays
+    gkyl_array_release(dxdz_s2_modal);
+    gkyl_array_release(bmag_s2_modal);
+    gkyl_array_release(curlbhat_s2_modal);
     gkyl_array_release(B3_s2_modal);
-    gkyl_array_release(dualcurlBhat_s2_modal);
-    gkyl_array_release(dualcurlBhatoverB_s2_modal);
-    gkyl_array_release(rtg33inv_s2_modal);
-    gkyl_array_release(bioverJB_s2_modal);
-    gkyl_array_release(dualmags_s2_modal);
-    gkyl_array_release(dualnormals_s2_modal);
+    gkyl_array_release(b_i_s2_modal);
+    gkyl_array_release(cmag_s2_modal);
+    gkyl_array_release(normcurlbhat_s2_modal);
+    gkyl_array_release(jacobgeo_s2_modal);
+    gkyl_array_release(jacobtot_inv_s2_modal);
+    gkyl_array_release(normals_s2_modal);
+    gkyl_array_release(lenr_s2_modal);
     
-    // Release surface 3 loaded arrays (5)
-    gkyl_array_release(tangents_surface3);
-    gkyl_array_release(Bmag_surface3);
-    gkyl_array_release(curlBhat_surface3);
-    gkyl_array_release(raz_surface3);
-    gkyl_array_release(rpz_surface3);
+    // Release surface 3 loaded arrays
+    gkyl_array_release(dxdz_surface3_nodal);
+    gkyl_array_release(bmag_surface3_nodal);
+    gkyl_array_release(curlbhat_surface3_nodal);
     
-    // Release surface 3 derived arrays (10)
-    gkyl_array_release(duals_surface3);
-    gkyl_array_release(jacobgeo_surface3);
-    gkyl_array_release(g_ij_surface3);
-    gkyl_array_release(B3_surface3);
-    gkyl_array_release(dualcurlBhat_surface3);
-    gkyl_array_release(dualcurlBhatoverB_surface3);
-    gkyl_array_release(rtg33inv_surface3);
-    gkyl_array_release(bioverJB_surface3);
-    gkyl_array_release(dualmags_surface3);
-    gkyl_array_release(dualnormals_surface3);
+    // Release surface 3 calculated arrays
+    gkyl_array_release(B3_surface3_nodal);
+    gkyl_array_release(b_i_surface3_nodal);
+    gkyl_array_release(cmag_surface3_nodal);
+    gkyl_array_release(normcurlbhat_surface3_nodal);
+    gkyl_array_release(jacobgeo_surface3_nodal);
+    gkyl_array_release(jacobtot_inv_surface3_nodal);
+    gkyl_array_release(normals_surface3_nodal);
+    gkyl_array_release(lenr_surface3_nodal);
     
-    // Release surface 3 modal arrays (15)
-    gkyl_array_release(raz_s3_modal);
-    gkyl_array_release(rpz_s3_modal);
-    gkyl_array_release(tangents_s3_modal);
-    gkyl_array_release(duals_s3_modal);
-    gkyl_array_release(Bmag_s3_modal);
-    gkyl_array_release(curlBhat_s3_modal);
-    gkyl_array_release(jacobgeo_s3_modal);
-    gkyl_array_release(g_ij_s3_modal);
+    // Release surface 3 modal arrays
+    gkyl_array_release(dxdz_s3_modal);
+    gkyl_array_release(bmag_s3_modal);
+    gkyl_array_release(curlbhat_s3_modal);
     gkyl_array_release(B3_s3_modal);
-    gkyl_array_release(dualcurlBhat_s3_modal);
-    gkyl_array_release(dualcurlBhatoverB_s3_modal);
-    gkyl_array_release(rtg33inv_s3_modal);
-    gkyl_array_release(bioverJB_s3_modal);
-    gkyl_array_release(dualmags_s3_modal);
-    gkyl_array_release(dualnormals_s3_modal);
+    gkyl_array_release(b_i_s3_modal);
+    gkyl_array_release(cmag_s3_modal);
+    gkyl_array_release(normcurlbhat_s3_modal);
+    gkyl_array_release(jacobgeo_s3_modal);
+    gkyl_array_release(jacobtot_inv_s3_modal);
+    gkyl_array_release(normals_s3_modal);
+    gkyl_array_release(lenr_s3_modal);
     
     // Release other resources
     gkyl_array_header_info_release(&hdr);
