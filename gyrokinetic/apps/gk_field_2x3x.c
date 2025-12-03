@@ -123,6 +123,27 @@ gk_field_2x3x_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struc
 void
 gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
+  // Allocate arrays for charge density.
+  f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  f->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
+  // Allocate arrays for electrostatic potential.
+  f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+  // Allocate electromagnetic arrays if needed.
+  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
+    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apardot_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  }
+
+  // Allocate phi_host for I/O.
+  f->phi_host = f->phi_smooth;
+  if (app->use_gpu) {
+    f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  }
+
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
   } else {
@@ -284,6 +305,21 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
+  gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->rho_c_global_smooth);
+  gkyl_array_release(f->phi_fem);
+  gkyl_array_release(f->phi_smooth);
+
+  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
+    gkyl_array_release(f->apar_fem);
+    gkyl_array_release(f->apardot_fem);
+  }
+  
+  if (app->use_gpu) {
+    gkyl_array_release(f->phi_host);
+  }
+
   gkyl_array_release(f->epsilon);
 
   gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);

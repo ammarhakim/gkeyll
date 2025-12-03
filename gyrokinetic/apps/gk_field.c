@@ -12,28 +12,68 @@
 #include <float.h>
 #include <time.h>
 
+// Initialize field object.
+struct gk_field* 
+gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
+{
+  struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
+
+  f->info = gk->field;
+
+  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+
+  f->calc_init_field = !f->info.zero_init_field;
+  f->update_field = !f->info.is_static;
+  // The combination update_field=true, calc_init_field=false is not allowed.
+  assert(!(f->update_field && (!f->calc_init_field)));
+
+  // Initialize polarization potential if needed.
+  f->init_phi_pol = false;
+  if (f->info.polarization_potential) {
+    gk_field_polarization_potential_new(f, app);
+  }
+  
+  // Initialize energy diagnostics.
+  gk_field_energy_new(app, f);
+
+  // Initialize the field solver
+  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    gk_field_fem_new_boltzmann(app, f);
+  } else {
+    if (app->cdim == 1) {
+      gk_field_fem_new_1x(app, f);
+    } else if (app->cdim > 1) {
+      gk_field_fem_new_2x3x(app, f);
+    }
+  }
+
+  // Initialize biased walls.
+  gk_field_biassed_wall_new(app, f);
+
+  return f;
+}
+
+void
+gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Compute the electrostatic potential.
+  struct timespec wst = gkyl_wall_clock();
+  field->rhs_phi_func(app, field); // set inside the initialization function
+  app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
+{
+  struct timespec wst = gkyl_wall_clock();
+  field->calc_energy_func(app, field, tm);
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+}
 
 void
 gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
-}
-
-void
-gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
-{
-  if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
-    if (app->use_gpu) { // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
-      gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
-    }
-  }
-  if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
-    if (app->use_gpu) { // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
-      gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
-    }
-  }
 }
 
 void
@@ -67,96 +107,38 @@ gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field, s
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-
-// Initialize field object.
-struct gk_field* 
-gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
+static struct gkyl_app_restart_status
+header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
+  struct gkyl_app_restart_status rstat = { .io_status = 2 };
+  
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
 
-  f->info = gk->field;
-
-  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
-
-  f->calc_init_field = !f->info.zero_init_field;
-  f->update_field = !f->info.is_static;
-  // The combination update_field=true, calc_init_field=false is not allowed.
-  assert(!(f->update_field && (!f->calc_init_field)));
-
-  // allocate arrays for charge density
-  f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  f->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-
-  // allocate arrays for electrostatic potential
-  // global phi (only used in 1x simulations)
-  f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  // local phi (assuming domain decomposition is *only* in z right now)
-  f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
-    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apardot_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  }
-
-  f->init_phi_pol = false;
-  if (f->info.polarization_potential) {
-    gk_field_polarization_potential_new(f, app);
-  }
-
-  // Create global subrange we'll copy the field solver solution from (into local).
-  int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
-
-  f->epsilon = 0;
-  f->kSq = 0;  // not currently used by fem_perp_poisson
-
-  // Factors for ES energy. 
-  f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
-  f->es_energy_fac_1d = 0.0;
-
-  // Initialize the individual field solvers.
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    gk_field_fem_new_boltzmann(app, f);
-  } else {
-    if (app->cdim == 1) {
-      gk_field_fem_new_1x(app, f);
-    } else if (app->cdim > 1) {
-      gk_field_fem_new_2x3x(app, f);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
+
+    struct gyrokinetic_output_meta meta =
+      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }, 
+        GKYL_GK_META_NONE,
+        0
+      );
+
+    rstat.frame = meta.frame;
+    rstat.stime = meta.stime;
+
+    gkyl_grid_sub_array_header_release(&hdr);
   }
-
-  f->phi_host = f->phi_smooth;  
-  if (app->use_gpu) {
-    f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
-  } else {
-    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
-  }
-
-  f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  f->is_first_energy_write_call = true;
-
-  f->calc_energy_func = gk_field_calc_energy_enabled;
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_new(app, f);
-  }
-
-  // Set up biased lower wall (same size as electrostatic potential), by default is 0.0
-  gk_field_biassed_wall_new(app, f);
-
-  return f;
-}
-
-void
-gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
-{
-  // Compute the electrostatic potential.
-  struct timespec wst = gkyl_wall_clock();
-  field->rhs_phi_func(app, field); // set inside the initialization function
-  app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
+  
+  return rstat;
 }
 
 void
@@ -186,53 +168,24 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
   gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
 }
 
-void
-gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
-{
-  struct timespec wst = gkyl_wall_clock();
-  field->calc_energy_func(app, field, tm);
-  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
-}
 
-// release resources for field
+// Release resources for field.
 void
 gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 {
-  gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_global_dg);
-  gkyl_array_release(f->rho_c_global_smooth);
-  gkyl_array_release(f->phi_fem);
-  gkyl_array_release(f->phi_smooth);
 
-  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
-    gkyl_array_release(f->apar_fem);
-    gkyl_array_release(f->apardot_fem);
-  }
-
+  // Release polarization potential if used.
   if (f->init_phi_pol) {
     gk_field_polarization_potential_release(f);
   }
 
-  gkyl_array_release(f->es_energy_fac);
-  gkyl_dynvec_release(f->integ_energy);
-
-  // Release field-solver-specific resources
+  // Release solver-specific resources.
   f->solver_release_func(app, f);
 
-  // Release common energy diagnostics
-  if (app->use_gpu) {
-    gkyl_array_release(f->phi_host);
-    gkyl_cu_free(f->em_energy_red);
-    gkyl_cu_free(f->em_energy_red_global);
-  } else {
-    gkyl_free(f->em_energy_red);
-    gkyl_free(f->em_energy_red_global);
-  }
+  // Release energy diagnostics.
+  gk_field_energy_release(app, f);
 
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_release(app, f);
-  }
-
+  // Release biased walls.
   gk_field_biassed_wall_release(app, f);
 
   gkyl_free(f);

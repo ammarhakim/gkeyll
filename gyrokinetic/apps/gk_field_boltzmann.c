@@ -80,6 +80,21 @@ gk_field_boltzmann_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 void
 gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
+  // Allocate arrays for charge density.
+  f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
+
+  // Allocate arrays for electrostatic potential.
+  f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+  // Allocate phi_host for I/O.
+  f->phi_host = f->phi_smooth;
+  if (app->use_gpu) {
+    f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  }
+
   double polarization_weight = 1.0;
   f->rhs_phi_func = gk_field_boltzmann_rhs;
   f->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
@@ -130,6 +145,15 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 void
 gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
+  gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->phi_fem);
+  gkyl_array_release(f->phi_smooth);
+
+  if (app->use_gpu) {
+    gkyl_array_release(f->phi_host);
+  }
+
   gkyl_ambi_bolt_potential_release(f->ambi_pot);
   for (int i = 0; i < 2*app->cdim; ++i) {
     gkyl_array_release(f->sheath_vals[i]);
