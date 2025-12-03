@@ -32,9 +32,6 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Factors for ES energy.
   f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
   f->es_energy_fac_1d = 0.0;
-
-  // Create global subrange we'll copy the field solver solution from (into local).
-  gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 }
 
 void
