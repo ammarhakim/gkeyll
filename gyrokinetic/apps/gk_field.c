@@ -407,7 +407,6 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 void
 gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 {
-
   // Release polarization potential if used.
   if (f->init_phi_pol) {
     gk_field_polarization_potential_release(f);
