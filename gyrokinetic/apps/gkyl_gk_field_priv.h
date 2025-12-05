@@ -13,9 +13,7 @@
  * FLR corrections, polarization potentials, and biased wall configurations.
  */
 
-// ============================================================================
-// FEM Initialization Functions
-// ============================================================================
+/** FEM Initialization Functions **/
 
 /**
  * Initialize the FEM object for the Boltzmann field solver.
@@ -47,9 +45,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 void
 gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
-// ============================================================================
-// FEM Projection Functions
-// ============================================================================
+/** FEM Projection Functions **/
 
 /**
  * Project a DG field onto the parallel FEM basis to enforce continuity
@@ -65,9 +61,7 @@ void
 gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 
-// ============================================================================
-// Charge Density Accumulation Functions
-// ============================================================================
+/** Charge Density Accumulation Functions **/
 
 /**
  * Accumulate charge density for a Boltzmann electron response.
@@ -111,9 +105,7 @@ void
 gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gk_species *s, struct gkyl_array **bflux);
 
-// ============================================================================
-// Field Solve (RHS) Functions
-// ============================================================================
+/** Field Solve (RHS) Functions **/
 
 /**
  * Compute the right-hand side and solve for the electrostatic potential
@@ -156,9 +148,7 @@ gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_
 void
 gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
-// ============================================================================
-// FEM Release Functions
-// ============================================================================
+/** FEM Release Functions **/
 
 /**
  * Release resources allocated for the Boltzmann field solver FEM objects.
@@ -187,9 +177,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
 void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
 
-// ============================================================================
-// Boundary Condition Functions
-// ============================================================================
+/** Boundary Condition Functions **/
 
 /**
  * Enforce parallel boundary conditions on the field (enabled variant).
@@ -215,9 +203,7 @@ void
 gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app,
   struct gk_field *field, struct gkyl_array *finout);
 
-// ============================================================================
-// Energy Diagnostics Functions
-// ============================================================================
+/** Energy Diagnostics Functions **/
 
 /**
  * Initialize field energy diagnostic objects.
@@ -307,9 +293,7 @@ void
 gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app,
   const struct gk_field *field, double dt, double *energy_reduced);
 
-// ============================================================================
-// Finite Larmor Radius (FLR) Correction Functions
-// ============================================================================
+/** Finite Larmor Radius (FLR) Correction Functions **/
 
 /**
  * Initialize FLR correction objects for the field solver.
@@ -354,9 +338,7 @@ void
 gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *phi);
 
-// ============================================================================
-// Polarization Potential Functions
-// ============================================================================
+/** Polarization Potential Functions **/
 
 /**
  * Initialize polarization potential objects.
@@ -376,9 +358,7 @@ gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_
 void
 gk_field_polarization_potential_release(struct gk_field *f);
 
-// ============================================================================
-// Biased Wall Functions
-// ============================================================================
+/** Biased Wall Functions **/
 
 /**
  * Initialize biased wall boundary condition objects.
