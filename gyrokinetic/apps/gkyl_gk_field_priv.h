@@ -203,96 +203,6 @@ void
 gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app,
   struct gk_field *field, struct gkyl_array *finout);
 
-/** Energy Diagnostics Functions **/
-
-/**
- * Initialize field energy diagnostic objects.
- * Sets up arrays and reducers needed for computing field energy.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object to initialize diagnostics for.
- */
-void
-gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Release field energy diagnostic resources.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose energy diagnostics are to be released.
- */
-void
-gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Initialize time-rate diagnostic objects for the field.
- * Sets up machinery for computing time derivatives of field energy.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object to initialize time-rate diagnostics for.
- */
-void
-gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Release time-rate diagnostic resources.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose time-rate diagnostics are to be released.
- */
-void
-gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Compute field energy and write diagnostics (enabled variant).
- * Calculates the electrostatic field energy and outputs to file.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the potential.
- * @param tm Current simulation time.
- */
-void
-gk_field_calc_energy_enabled(struct gkyl_gyrokinetic_app *app,
-  const struct gk_field *field, double tm);
-
-/**
- * No-op function for field energy calculation (disabled variant).
- * Used when energy diagnostics are turned off.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object.
- * @param tm Current simulation time.
- */
-void
-gk_field_calc_energy_disabled(struct gkyl_gyrokinetic_app *app,
-  const struct gk_field *field, double tm);
-
-/**
- * Compute time derivative of field energy (active variant).
- * Calculates dE/dt for the electrostatic field energy.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the potential.
- * @param dt Time step size.
- * @param energy_reduced Output array for the reduced energy value.
- */
-void
-gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app,
-  const struct gk_field *field, double dt, double *energy_reduced);
-
-/**
- * No-op function for time derivative of field energy (inactive variant).
- * Used when time-rate diagnostics are disabled.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object.
- * @param dt Time step size.
- * @param energy_reduced Output array (unchanged).
- */
-void
-gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app,
-  const struct gk_field *field, double dt, double *energy_reduced);
-
 /** Finite Larmor Radius (FLR) Correction Functions **/
 
 /**
@@ -337,26 +247,6 @@ gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field,
 void
 gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *phi);
-
-/** Polarization Potential Functions **/
-
-/**
- * Initialize polarization potential objects.
- * Sets up arrays and solvers for the polarization contribution to the potential.
- *
- * @param f Field object to initialize polarization potential for.
- * @param app Gyrokinetic application object.
- */
-void
-gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app);
-
-/**
- * Release polarization potential resources.
- *
- * @param f Field object whose polarization resources are to be released.
- */
-void
-gk_field_polarization_potential_release(struct gk_field *f);
 
 /** Biased Wall Functions **/
 

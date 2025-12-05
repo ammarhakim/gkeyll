@@ -109,26 +109,28 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
   for (int d=0; d<app->cdim; ++d) bc_is_np[d] = true;
-  for (int d=0; d<app->num_periodic_dir; ++d)
+  for (int d=0; d<app->num_periodic_dir; ++d) {
     bc_is_np[app->periodic_dirs[d]] = false;
+  }
 
   for (int d=0; d<app->cdim-1; d++) {
     if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
         poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
-        for (int i=0; i<3; i++)
+        for (int i=0; i<3; i++) {
           poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+        }
       }
 
       struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
         poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
-        for (int i=0; i<3; i++)
+        for (int i=0; i<3; i++) {
           poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+        }
       }
-    } 
-    else {
+    } else {
       poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
       poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }
@@ -198,8 +200,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc_core, 0, 0, app->use_gpu);
     f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
-  } 
-  else {
+  } else {
     f->rhs_phi_func = gk_field_2x3x_poisson_perp_rhs;
     enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
     for (int d=0; d<app->num_periodic_dir; ++d) {
@@ -222,8 +223,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->invert_flr = gk_field_invert_flr_none;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    if (s->info.flr.type)
+    if (s->info.flr.type) {
       f->use_flr = f->use_flr || s->info.flr.type;
+    }
   }
   if (f->use_flr) {
     gk_field_flr_new(app, f);

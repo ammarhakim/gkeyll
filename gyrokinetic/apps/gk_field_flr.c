@@ -13,8 +13,7 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->invert_flr = gk_field_invert_flr;
 
   double flr_weight = 0.0;
-  for (int i = 0; i < app->num_species; ++i)
-  {
+  for (int i = 0; i < app->num_species; ++i){
     struct gk_species *s = &app->species[i];
     double gyroradius_bmag = s->info.flr.bmag ? s->info.flr.bmag : app->bmag_ref;
     flr_weight += s->info.flr.Tperp * s->info.mass / (pow(s->info.charge * gyroradius_bmag, 2.0));
@@ -22,8 +21,7 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Initialize the weight in the Laplacian operator.
   f->flr_rhoSq_sum = mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis);
-  if (app->cdim > 2)
-  {
+  if (app->cdim > 2) {
     gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis);
     gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis);
   }
@@ -35,25 +33,25 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   struct gkyl_poisson_bc flr_bc = {};
 
   bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
-  for (int d = 0; d < app->cdim; ++d)
+  for (int d = 0; d < app->cdim; ++d) {
     bc_is_np[d] = true;
-  for (int d = 0; d < app->num_periodic_dir; ++d)
+  }
+  for (int d = 0; d < app->num_periodic_dir; ++d) {
     bc_is_np[app->periodic_dirs[d]] = false;
+  }
 
-  for (int d = 0; d < app->cdim - 1; d++)
-  {
-    if (bc_is_np[d])
-    {
+  for (int d = 0; d < app->cdim - 1; d++) {
+    if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
-      if (bc_lo != 0)
+      if (bc_lo != 0) {
         flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      }
 
       struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
-      if (bc_up != 0)
+      if (bc_up != 0) {
         flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
-    }
-    else
-    {
+      }
+    } else {
       flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
       flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }

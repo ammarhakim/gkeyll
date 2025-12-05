@@ -70,9 +70,9 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_scale(epsilon_adiab, quasineut_contr);
     gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
     gkyl_array_release(epsilon_adiab);
-  }
-  else
+  } else {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
+  }
 
   // Gather epsilon for (global) smoothing in z.
   struct gkyl_array *epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
