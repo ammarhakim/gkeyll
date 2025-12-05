@@ -12,9 +12,41 @@
 #include <float.h>
 #include <time.h>
 
-// Forward definitions of static functions.
-static void gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-static void gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
+static void
+gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Solve the Poisson equation in 1x with the parallel FEM projection.
+  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
+}
+
+static void
+gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->phi_smooth);
+  gkyl_array_release(f->phi_fem);
+
+  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
+    gkyl_array_release(f->apar_fem);
+    gkyl_array_release(f->apardot_fem);
+  }
+
+  if (app->use_gpu) {
+    gkyl_array_release(f->phi_host);
+  }
+
+  gkyl_array_release(f->epsilon);
+  
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_fem_parproj_release(f->fem_parproj_core);
+    gkyl_fem_parproj_release(f->fem_parproj_sol);
+  } else {
+    gkyl_fem_parproj_release(f->fem_parproj);
+  }
+
+  gkyl_array_integrate_release(f->calc_em_energy);
+}
 
 void
 gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
@@ -122,40 +154,4 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(epsilon_global);
 
   f->solver_release_func = gk_field_fem_release_1x;
-}
-
-static void
-gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
-{
-  // Solve the Poisson equation in 1x with the parallel FEM projection.
-  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
-}
-
-static void
-gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_global_dg);
-  gkyl_array_release(f->phi_smooth);
-  gkyl_array_release(f->phi_fem);
-
-  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
-    gkyl_array_release(f->apar_fem);
-    gkyl_array_release(f->apardot_fem);
-  }
-
-  if (app->use_gpu) {
-    gkyl_array_release(f->phi_host);
-  }
-
-  gkyl_array_release(f->epsilon);
-  
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gkyl_fem_parproj_release(f->fem_parproj_core);
-    gkyl_fem_parproj_release(f->fem_parproj_sol);
-  } else {
-    gkyl_fem_parproj_release(f->fem_parproj);
-  }
-
-  gkyl_array_integrate_release(f->calc_em_energy);
 }
