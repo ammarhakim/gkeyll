@@ -580,6 +580,7 @@ struct gkyl_gyrokinetic_stat {
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
   double species_heat_tm; // Time to compute heating term RHS.
+  double species_reflux_tm; // Time to compute return flux.
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.

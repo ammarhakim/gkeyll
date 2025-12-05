@@ -21,7 +21,7 @@ gk_species_return_flux_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species 
     gkyl_bc_return_flux_gyrokinetic_advance(reflux->reflux_op[b], bflux, rhs);
   }
 
-  app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_reflux_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void 
@@ -76,7 +76,7 @@ gk_species_return_flux_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species
 }
 
 void
-gk_species_return_flux_release(const struct gkyl_gyrokinetic_app *app, struct gk_return_flux *reflux)
+gk_species_return_flux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_return_flux *reflux)
 {
   if (reflux->num_boundaries > 0) {
     for (int b=0; b<reflux->num_boundaries; ++b) {

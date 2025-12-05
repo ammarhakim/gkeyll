@@ -1237,6 +1237,22 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 }
 
 static bool
+gk_species_do_I_return_flux(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether this species has a return flux BC.
+  bool return_flux_bcs = false;
+  int neuts = app->num_neut_species;
+  for (int k=0; k<2*app->cdim; k++) {
+    const struct gkyl_gyrokinetic_bc *bc = &gks->info.bcs[k];
+    if (bc->type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE) {
+      return_flux_bcs = true;
+      break;
+    }
+  }
+  return return_flux_bcs;
+}
+
+static bool
 gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the neutral species has a recycle_react_scale
@@ -1608,6 +1624,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   bool recycle_react_scale = gk_species_do_I_recycle_react_scale(app, gks);
   // Check if other species have recycling BCs.
   bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+  // Check if we have a return flux BC.
+  bool return_flux_bcs = gk_species_do_I_return_flux(app, gks);
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
     bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
@@ -1618,7 +1636,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
     
-    if (recycling_bcs) {
+    if (recycling_bcs || return_flux_bcs) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
     if (boltz_elc_field || adaptive_sources || recycle_react_scale) {

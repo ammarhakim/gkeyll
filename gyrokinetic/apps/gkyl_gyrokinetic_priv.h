@@ -3035,7 +3035,7 @@ void gk_species_return_flux_rhs(gkyl_gyrokinetic_app *app, struct gk_species *sp
  * @param app Gyrokinetic app object.
  * @param reflux Return flux object.
  */
-void gk_species_return_flux_release(const struct gkyl_gyrokinetic_app *app, struct gk_return_flux *reflux);
+void gk_species_return_flux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_return_flux *reflux);
 
 /** gk_species API */
 
