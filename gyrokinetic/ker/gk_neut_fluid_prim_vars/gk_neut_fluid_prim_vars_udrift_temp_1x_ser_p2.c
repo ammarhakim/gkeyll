@@ -31,6 +31,12 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p2(int count
   const double *rhouz = &moms[9]; 
   const double *totE  = &moms[12]; 
 
+  double rhoSq[3] = {0.0}; 
+  binop_mul_1d_ser_p2(rho, rho, rhoSq); 
+ 
+  double rho_totE[3] = {0.0}; 
+  binop_mul_1d_ser_p2(rho, totE, rho_totE); 
+ 
   double rhouxSq[3] = {0.0}; 
   binop_mul_1d_ser_p2(rhoux, rhoux, rhouxSq); 
  
@@ -40,78 +46,78 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p2(int count
   double rhouzSq[3] = {0.0}; 
   binop_mul_1d_ser_p2(rhouz, rhouz, rhouzSq); 
  
-  double rho_temp[3]; 
-  rho_temp[0] = (gas_gamma - 1.0)*(mass * totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
-  rho_temp[1] = (gas_gamma - 1.0)*(mass * totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
-  rho_temp[2] = (gas_gamma - 1.0)*(mass * totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
+  double rhoSq_temp[3]; 
+  rhoSq_temp[0] = mass*(gas_gamma-1.0)*(rho_totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
+  rhoSq_temp[1] = mass*(gas_gamma-1.0)*(rho_totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
+  rhoSq_temp[2] = mass*(gas_gamma-1.0)*(rho_totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
 
   gkyl_mat_set(&rhs_ux,0,0,rhoux[0]); 
   gkyl_mat_set(&rhs_uy,0,0,rhouy[0]); 
   gkyl_mat_set(&rhs_uz,0,0,rhouz[0]); 
-  gkyl_mat_set(&rhs_temp,0,0,rho_temp[0]); 
+  gkyl_mat_set(&rhs_temp,0,0,rhoSq_temp[0]); 
   gkyl_mat_set(&rhs_ux,1,0,rhoux[1]); 
   gkyl_mat_set(&rhs_uy,1,0,rhouy[1]); 
   gkyl_mat_set(&rhs_uz,1,0,rhouz[1]); 
-  gkyl_mat_set(&rhs_temp,1,0,rho_temp[1]); 
+  gkyl_mat_set(&rhs_temp,1,0,rhoSq_temp[1]); 
   gkyl_mat_set(&rhs_ux,2,0,rhoux[2]); 
   gkyl_mat_set(&rhs_uy,2,0,rhouy[2]); 
   gkyl_mat_set(&rhs_uz,2,0,rhouz[2]); 
-  gkyl_mat_set(&rhs_temp,2,0,rho_temp[2]); 
+  gkyl_mat_set(&rhs_temp,2,0,rhoSq_temp[2]); 
  
   double tmp_rho = 0.0; 
   tmp_rho = 0.7071067811865475*rho[0]; 
   gkyl_mat_set(&A_ux,0,0,tmp_rho); 
   gkyl_mat_set(&A_uy,0,0,tmp_rho); 
   gkyl_mat_set(&A_uz,0,0,tmp_rho); 
-  gkyl_mat_set(&A_temp,0,0,tmp_rho); 
+  gkyl_mat_set(&A_temp,0,0,0.0); 
  
   tmp_rho = 0.7071067811865475*rho[1]; 
   gkyl_mat_set(&A_ux,0,1,tmp_rho); 
   gkyl_mat_set(&A_uy,0,1,tmp_rho); 
   gkyl_mat_set(&A_uz,0,1,tmp_rho); 
-  gkyl_mat_set(&A_temp,0,1,tmp_rho); 
+  gkyl_mat_set(&A_temp,0,1,0.0); 
  
   tmp_rho = 0.7071067811865475*rho[2]; 
   gkyl_mat_set(&A_ux,0,2,tmp_rho); 
   gkyl_mat_set(&A_uy,0,2,tmp_rho); 
   gkyl_mat_set(&A_uz,0,2,tmp_rho); 
-  gkyl_mat_set(&A_temp,0,2,tmp_rho); 
+  gkyl_mat_set(&A_temp,0,2,0.0); 
  
   tmp_rho = 0.7071067811865475*rho[1]; 
   gkyl_mat_set(&A_ux,1,0,tmp_rho); 
   gkyl_mat_set(&A_uy,1,0,tmp_rho); 
   gkyl_mat_set(&A_uz,1,0,tmp_rho); 
-  gkyl_mat_set(&A_temp,1,0,tmp_rho); 
+  gkyl_mat_set(&A_temp,1,0,0.0); 
  
   tmp_rho = 0.6324555320336759*rho[2]+0.7071067811865475*rho[0]; 
   gkyl_mat_set(&A_ux,1,1,tmp_rho); 
   gkyl_mat_set(&A_uy,1,1,tmp_rho); 
   gkyl_mat_set(&A_uz,1,1,tmp_rho); 
-  gkyl_mat_set(&A_temp,1,1,tmp_rho); 
+  gkyl_mat_set(&A_temp,1,1,0.0); 
  
   tmp_rho = 0.6324555320336759*rho[1]; 
   gkyl_mat_set(&A_ux,1,2,tmp_rho); 
   gkyl_mat_set(&A_uy,1,2,tmp_rho); 
   gkyl_mat_set(&A_uz,1,2,tmp_rho); 
-  gkyl_mat_set(&A_temp,1,2,tmp_rho); 
+  gkyl_mat_set(&A_temp,1,2,0.0); 
  
   tmp_rho = 0.7071067811865475*rho[2]; 
   gkyl_mat_set(&A_ux,2,0,tmp_rho); 
   gkyl_mat_set(&A_uy,2,0,tmp_rho); 
   gkyl_mat_set(&A_uz,2,0,tmp_rho); 
-  gkyl_mat_set(&A_temp,2,0,tmp_rho); 
+  gkyl_mat_set(&A_temp,2,0,0.0); 
  
   tmp_rho = 0.6324555320336759*rho[1]; 
   gkyl_mat_set(&A_ux,2,1,tmp_rho); 
   gkyl_mat_set(&A_uy,2,1,tmp_rho); 
   gkyl_mat_set(&A_uz,2,1,tmp_rho); 
-  gkyl_mat_set(&A_temp,2,1,tmp_rho); 
+  gkyl_mat_set(&A_temp,2,1,0.0); 
  
   tmp_rho = 0.45175395145262565*rho[2]+0.7071067811865475*rho[0]; 
   gkyl_mat_set(&A_ux,2,2,tmp_rho); 
   gkyl_mat_set(&A_uy,2,2,tmp_rho); 
   gkyl_mat_set(&A_uz,2,2,tmp_rho); 
-  gkyl_mat_set(&A_temp,2,2,tmp_rho); 
+  gkyl_mat_set(&A_temp,2,2,0.0); 
  
 } 
 GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p2(int count, struct gkyl_nmat *xsol, 
