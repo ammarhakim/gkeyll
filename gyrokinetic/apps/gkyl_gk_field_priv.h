@@ -91,67 +91,6 @@ void
 gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gk_species *s, struct gkyl_array **bflux);
 
-/** Field Solve (RHS) Functions **/
-
-/**
- * Solve the 1D Poisson equation using parallel FEM projection.
- * Used for 1x simulations where the field equation reduces to a 1D solve.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the solve state and result.
- */
-void
-gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-
-/**
- * Solve the electrostatic Poisson equation for IWL (Inner Wall Limited)
- * simulations using a deflated approach.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the solve state and result.
- */
-void
-gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-
-/**
- * Solve the Poisson equation in 2D or 3D with perpendicular FEM projection.
- * Handles the gyrokinetic Poisson equation for multi-dimensional simulations.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the solve state and result.
- */
-void
-gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-
-/** FEM Release Functions **/
-
-/**
- * Release resources allocated for the Boltzmann field solver FEM objects.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose FEM resources are to be released.
- */
-void
-gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Release resources allocated for the 1x field solver FEM objects.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose FEM resources are to be released.
- */
-void
-gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Release resources allocated for the 2x/3x field solver FEM objects.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose FEM resources are to be released.
- */
-void
-gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
-
 /**
  * No-op function for parallel boundary conditions (disabled variant).
  * Used when parallel BCs are not needed or handled elsewhere.

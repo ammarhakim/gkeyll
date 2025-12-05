@@ -77,6 +77,27 @@ static void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struc
   gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux, s->m0.marr, &app->upper_ghost[app->cdim-1]);
 }
 
+static void
+gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->phi_fem);
+  gkyl_array_release(f->phi_smooth);
+
+  if (app->use_gpu) {
+    gkyl_array_release(f->phi_host);
+  }
+
+  gkyl_ambi_bolt_potential_release(f->ambi_pot);
+  for (int i = 0; i < 2*app->cdim; ++i) {
+    gkyl_array_release(f->sheath_vals[i]);
+  }
+  gkyl_fem_parproj_release(f->fem_parproj);
+  gkyl_array_integrate_release(f->calc_em_energy);
+}
+
+
 // FEM initialization functions for different field types and dimensions
 void
 gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
@@ -143,24 +164,4 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
 
   f->solver_release_func = gk_field_fem_release_boltzmann;
-}
-
-void
-gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_global_dg);
-  gkyl_array_release(f->phi_fem);
-  gkyl_array_release(f->phi_smooth);
-
-  if (app->use_gpu) {
-    gkyl_array_release(f->phi_host);
-  }
-
-  gkyl_ambi_bolt_potential_release(f->ambi_pot);
-  for (int i = 0; i < 2*app->cdim; ++i) {
-    gkyl_array_release(f->sheath_vals[i]);
-  }
-  gkyl_fem_parproj_release(f->fem_parproj);
-  gkyl_array_integrate_release(f->calc_em_energy);
 }
