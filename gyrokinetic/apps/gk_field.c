@@ -541,9 +541,9 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 
       // We also need the M0 flux of the boundary flux through the z
       // boundaries. Put it in the ghost cells of s->m0.marr.
-      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+      gk_species_bflux_copy_flux_mom(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
         s->m0.marr, &app->lower_ghost[app->cdim-1]);
-      gk_species_bflux_get_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
+      gk_species_bflux_copy_flux_mom(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0, bflux[i],
         s->m0.marr, &app->upper_ghost[app->cdim-1]);
     } else {
       // Gyroaverage the density if needed.

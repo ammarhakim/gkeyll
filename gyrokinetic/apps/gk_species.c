@@ -90,7 +90,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
     species->lte.f_lte, rhs, species->cflrate);
 
-  // LBO Collisions.
+  // LBO collisions.
   gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
 
   // BGK collisions.
@@ -113,6 +113,9 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
+
+  // Return flux due to collisionless and diffusion terms. Call after bflux_rhs.
+  gk_species_return_flux_rhs(app, species, &species->return_flux, rhs);
 
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
@@ -215,6 +218,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE:
           gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
         case GKYL_BC_GK_SPECIES_FIXED_FUNC:
@@ -241,6 +245,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE:
           gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
         case GKYL_BC_GK_SPECIES_FIXED_FUNC:
@@ -644,6 +649,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     else if ( (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE) ||
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_gyrokinetic_release(s->bc_lo[d]);
     }
@@ -660,6 +666,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     else if ( (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_gyrokinetic_release(s->bc_up[d]);
     }
@@ -855,6 +862,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         gk_species_projection_release(app, &gk_proj_bc_lo);
       }
     }
+    else if ( gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE ) {
+      // Set f=0 in ghost so collisionless terms don't bring anything into the domain.
+      gks->bc_lo[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_LOWER_EDGE, GKYL_BC_GK_SPECIES_ABSORB, gks->basis_on_dev,
+        &gks->lower_skin[d], &gks->lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
+    }
 
     // Upper BC.
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
@@ -907,6 +919,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_up);
       }
+    }
+    else if ( gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE ) {
+      // Set f=0 in ghost so collisionless terms don't bring anything into the domain.
+      gks->bc_up[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_UPPER_EDGE, GKYL_BC_GK_SPECIES_ABSORB, gks->basis_on_dev,
+        &gks->upper_skin[d], &gks->upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
     }
   }
 
@@ -1664,6 +1681,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->positivity = (struct gk_positivity) { };
   gk_species_positivity_init(app, gks, &gks->positivity);
 
+  // Initialize the return flux operator.
+  gks->return_flux = (struct gk_return_flux) { };
+  gk_species_return_flux_init(app, gks, &gks->return_flux);
+
   if (gks->info.is_static) {
     gk_species_init_static(gk_app_inp, app, gks);
   }
@@ -1862,6 +1883,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_heating_release(app, &s->heat_src);
 
   gk_species_positivity_release(app, &s->positivity);
+
+  gk_species_return_flux_release(app, &s->return_flux);
 
   gk_species_radiation_release(app, &s->rad);
 

@@ -24,6 +24,7 @@
 #include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
+#include <gkyl_bc_return_flux_gyrokinetic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bgk_collisions.h>
@@ -522,9 +523,10 @@ struct gk_boundary_fluxes {
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*bflux_calc_moms_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
-  void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_array* (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
+  void (*bflux_copy_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     struct gkyl_array *out, const struct gkyl_range *out_rng);
-  void (*bflux_get_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+  void (*bflux_copy_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
@@ -922,6 +924,17 @@ struct gk_positivity {
     struct gk_positivity *pos);
 };
 
+struct gk_return_flux {
+  int num_boundaries; // Number of boundaries to return fluxes from.
+  int boundaries_dir[2*GKYL_MAX_CDIM]; // Direction perpendicular to boundaries.
+  enum gkyl_edge_loc boundaries_edge[2*GKYL_MAX_CDIM]; // Edge of boundaries.
+  int boundaries_displace_dir[2*GKYL_MAX_CDIM]; // Direction in which to displace flux.
+  struct gkyl_bc_return_flux_gyrokinetic *reflux_op[2*GKYL_MAX_CDIM];
+  // Function pointers chosen at runtime.
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_return_flux *reflux, struct gkyl_array *rhs);
+};
+
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
@@ -1020,6 +1033,8 @@ struct gk_species {
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
+
+  struct gk_return_flux return_flux; // Return flux boundary condition.
 
   struct gk_lte lte; // Object constructing LTE distributions.
 
@@ -2220,6 +2235,16 @@ void gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Get the phase-space boundary flux array for a specific boundary.
+ *
+ * @param bflux Species boundary flux object.
+ * @param dir Direction of the boundary.
+ * @param edge Edge of the boundary.
+ */
+const struct gkyl_array*
+gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
+
+/**
  * Copy the boundary fluxes into a given range of a given phase-space array.
  *
  * @param bflux Species boundary flux object.
@@ -2229,7 +2254,7 @@ void gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
  * @param out_rng Range to copy the boundary flux into.
  */
 void
-gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
+gk_species_bflux_copy_flux(struct gk_boundary_fluxes *bflux, int dir,
   enum gkyl_edge_loc edge, struct gkyl_array *out, const struct gkyl_range *out_rng);
 
 /**
@@ -2244,7 +2269,7 @@ gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  * @param out_rng Range to copy the boundary flux moment into.
  */
 void
-gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+gk_species_bflux_copy_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
   enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out,
   const struct gkyl_range *out_rng);
 
@@ -2457,6 +2482,16 @@ void gk_neut_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundar
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Get the phase-space boundary flux array for a specific boundary.
+ *
+ * @param bflux Species boundary flux object.
+ * @param dir Direction of the boundary.
+ * @param edge Edge of the boundary.
+ */
+const struct gkyl_array*
+gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
+
+/**
  * Copy the boundary fluxes into a given range of a given phase-space array.
  *
  * @param bflux Species boundary flux object.
@@ -2466,7 +2501,7 @@ void gk_neut_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundar
  * @param out_rng Range to copy the boundary flux into.
  */
 void
-gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
+gk_neut_species_bflux_copy_flux(struct gk_boundary_fluxes *bflux, int dir,
   enum gkyl_edge_loc edge, struct gkyl_array *out, const struct gkyl_range *out_rng);
 
 /**
@@ -2481,7 +2516,7 @@ gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  * @param out_rng Range to copy the boundary flux moment into.
  */
 void
-gk_neut_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
+gk_neut_species_bflux_copy_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
   enum gkyl_distribution_moments mom_type, struct gkyl_array **bflux_moms, struct gkyl_array *out,
   const struct gkyl_range *out_rng);
 
@@ -2970,6 +3005,37 @@ void gk_species_heating_write_diags(gkyl_gyrokinetic_app* app, struct gk_species
  * @param src Species heating object to release.
  */
 void gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct gk_heating *src);
+
+/** gk_return_flux API */
+
+/**
+ * Initialize species return flux BC object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param reflux Return flux object.
+ */
+void gk_species_return_flux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
+  struct gk_return_flux *reflux);
+
+/**
+ * Compute RHS contribution from return flux.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param reflux Return flux object.
+ * @param rhs return_flux contribution to df/dt.
+ */
+void gk_species_return_flux_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_return_flux *reflux, struct gkyl_array *rhs);
+
+/**
+ * Release species return flux object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param reflux Return flux object.
+ */
+void gk_species_return_flux_release(const struct gkyl_gyrokinetic_app *app, struct gk_return_flux *reflux);
 
 /** gk_species API */
 

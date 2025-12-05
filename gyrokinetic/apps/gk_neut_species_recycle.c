@@ -28,7 +28,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
     // Write out the particle flux of the impacting species.
     struct gk_species *gks = recyc->impact_species[i];
 
-    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
+    gk_species_bflux_copy_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
       &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -312,7 +312,7 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
     struct gk_species *gks = recyc->impact_species[i];
 
     // Calculate M0 moment of ion flux.
-    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
+    gk_species_bflux_copy_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
       &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
 

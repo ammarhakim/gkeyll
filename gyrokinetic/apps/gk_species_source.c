@@ -285,9 +285,9 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
       double integ_m0_local_j, integ_m2_local_j; // Integrated boundary flux moments summed over boundaries.
 
-      gk_species_bflux_get_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
+      gk_species_bflux_copy_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
         GKYL_F_MOMENT_M0, s_adapt_bflux_moms, adapt_src->bflux_m0, &adapt_src->boundaries_conf_ghost[j]);
-      gk_species_bflux_get_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
+      gk_species_bflux_copy_flux_mom(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j],
         GKYL_F_MOMENT_M2, s_adapt_bflux_moms, adapt_src->bflux_m2, &adapt_src->boundaries_conf_ghost[j]);
 
       // Integrate the boundary flux moments to get the total loss through the j-th boundary.

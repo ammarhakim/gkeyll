@@ -172,6 +172,7 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_edge_loc edge; // Which edge this BC is for.
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
+  int index[3]; // Meaning depends on type.
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).

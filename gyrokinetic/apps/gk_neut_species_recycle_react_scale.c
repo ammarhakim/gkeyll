@@ -78,7 +78,7 @@ gk_neut_species_rrs_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_spec
     double bflux_intm0_local_ho = 0.0;
     for (int j=0; j<rrs->num_boundaries; ++j) {
       // Add integrated M0 moments of boundary fluxes.
-      gk_species_bflux_get_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
+      gk_species_bflux_copy_flux_mom(&gks_ion->bflux, rrs->boundaries_dir[j], rrs->boundaries_edge[j],
         GKYL_F_MOMENT_M0, bflux_ion, rrs->dndt_react, &rrs->boundaries_conf_ghost[j]);
       gkyl_array_integrate_advance(rrs->integrate_op, rrs->dndt_react, 1.0, 0,
         &rrs->boundaries_conf_ghost[j], 0, rrs->bflux_m0_vol_integ_local);
