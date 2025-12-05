@@ -4,7 +4,7 @@
 #include <gkyl_gk_field_priv.h>
 
 void
-gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->phi_wall_lo = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->has_phi_wall_lo = false;
@@ -76,7 +76,7 @@ gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double
 }
 
 void
-gk_field_biassed_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->phi_wall_lo);
   if (f->has_phi_wall_lo) {
