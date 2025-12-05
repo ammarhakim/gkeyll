@@ -61,7 +61,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 }
 
 static void
-gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Smooth the charge density along z.
   gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
@@ -81,7 +81,7 @@ gk_field_2x3x_poisson_perp_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field
 }
 
 static void
-gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_deflate_poisson_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Gather charge density into global array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
@@ -300,7 +300,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    f->rhs_phi_func = gk_field_deflate_poisson_es_iwl_rhs;
+    f->rhs_phi_func = gk_field_rhs_deflate_poisson_es_iwl;
     enum gkyl_fem_parproj_bc_type fem_parproj_bc_core, fem_parproj_bc_sol;
     if (app->cdim == 2) {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
@@ -315,7 +315,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } else {
-    f->rhs_phi_func = gk_field_2x3x_poisson_perp_rhs;
+    f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
     enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
     for (int d=0; d<app->num_periodic_dir; ++d) {
       if (app->periodic_dirs[d] == app->cdim-1) {

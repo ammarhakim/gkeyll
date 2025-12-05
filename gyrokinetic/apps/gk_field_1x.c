@@ -13,7 +13,7 @@
 #include <time.h>
 
 static void
-gk_field_1x_poisson_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
   gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
@@ -74,7 +74,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   }
 
-  f->rhs_phi_func = gk_field_1x_poisson_rhs;
+  f->rhs_phi_func = gk_field_rhs_phi_1x;
 
   // Allocate array for the polarization weight times geometric coefficients.
   f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
