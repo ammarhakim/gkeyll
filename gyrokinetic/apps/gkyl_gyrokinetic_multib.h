@@ -85,6 +85,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if neutral species does not change in time.
+  double gas_gamma; // Adiabatic index (fluid neutrals).
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
@@ -311,6 +312,15 @@ void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FI
  * @param app App object.
  */
 void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Write newest frame number output
+ * 
+ * @param app App object.
+ * @param frame frame number.
+ */
+int gkyl_gyrokinetic_multib_app_write_flag(const gkyl_gyrokinetic_multib_app* app, int frame);
+
 
 /**
  * Write geometry file.

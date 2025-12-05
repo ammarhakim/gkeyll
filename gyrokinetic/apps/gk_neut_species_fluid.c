@@ -188,10 +188,10 @@ gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_ap
   s->step_f_func = gk_neut_species_step_f_static;
   s->combine_func = gk_neut_species_combine_static;
   s->copy_func = gk_neut_species_copy_range_static;
-  s->write_func = gk_neut_species_write_init_only;
-  s->write_mom_func = gk_neut_species_write_mom_init_only;
-  s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
-  s->write_integrated_mom_func = gk_neut_species_write_integrated_mom_static;
+  s->write_func = gk_neut_species_write_dynamic;
+  s->write_mom_func = gk_neut_species_write_mom_dynamic;
+  s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_dynamic;
+  s->write_integrated_mom_func = gk_neut_species_write_integrated_mom_dynamic;
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 

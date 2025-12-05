@@ -1,6 +1,131 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+static void read_neut_ics(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  // See if we are in upper half
+  bool reverse = false;
+  char *p; 
+  p = strstr(fileNm.str, "b3");
+  if (p!= NULL) {
+    p[1] = '1';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b4");
+  if (p!= NULL) {
+    p[1] = '0';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b5");
+  if (p!= NULL) {
+    p[1] = '9';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b8");
+  if (p!= NULL) {
+    p[1] = '6';
+    reverse=true;
+  }
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+  if (reverse) {
+    for(int ir = 0; ir < nr; ir++){
+      idx[0] = ir;
+      for(int iz = nz-1; iz >= 0; iz--){
+        idx[1] = iz;
+        // set psi
+        double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+        status = fscanf(ptr,"%lf", nnodal_n);
+      }
+    }
+  }
+  else {
+    for(int ir = 0; ir < nr; ir++){
+      idx[0] = ir;
+      for(int iz = 0; iz < nz; iz++){
+        idx[1] = iz;
+        // set psi
+        double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+        status = fscanf(ptr,"%lf", nnodal_n);
+      }
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+
+
+  // Reflect for symmetric blocks
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  bool reflect = false;
+  if (strstr(fileNm.str, "b7") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b2") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b10") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b11") != NULL)
+    reflect = true;
+  if (reflect) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[1] < gkyl_range_shape(&app->local,1)/2 +1 ) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&app->local, 1) - iter.idx[1]+1};
+        const double *coeffs_ref = gkyl_array_cfetch(out, gkyl_range_idx(&app->local, iter.idx));
+        double *coeffs  = gkyl_array_fetch(out, gkyl_range_idx(&app->local, idx_change));
+        app->basis.flip_odd_sign( 1, coeffs_ref, coeffs);
+      }
+    }
+  }
+ 
+}
+
+static void half_read_neut_ics(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+
+  for(int ir = 0; ir < nr; ir++){
+    idx[0] = ir;
+    for(int iz = 0; iz < nz; iz++){
+      idx[1] = iz;
+      // set psi
+      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+      status = fscanf(ptr,"%lf", nnodal_n);
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+
+}
+
 static void
 gk_neut_species_projection_kinetic_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
@@ -171,9 +296,22 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
-    gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local, proj->udrift);
-    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
+    cstr fileNm = cstr_from_fmt("gkeyll_text_input/%s-D0_M0.txt", app->name);
+    half_read_neut_ics(app, proj->dens, fileNm);
+    
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-D0_ux.txt", app->name);
+    half_read_neut_ics(app, proj->vtsq, fileNm);
+    gkyl_array_set_offset(proj->udrift, 1.0, proj->vtsq, 0*app->basis.num_basis);
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-D0_uy.txt", app->name);
+    half_read_neut_ics(app, proj->vtsq, fileNm);
+    gkyl_array_set_offset(proj->udrift, 1.0, proj->vtsq, 1*app->basis.num_basis);
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-D0_uz.txt", app->name);
+    half_read_neut_ics(app, proj->vtsq, fileNm);
+    gkyl_array_set_offset(proj->udrift, 1.0, proj->vtsq, 2*app->basis.num_basis);
+
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-D0_Temp.txt", app->name);
+    half_read_neut_ics(app, proj->vtsq, fileNm);
+
 
     // f[0] = mass*dens
     gkyl_array_set_offset_range(s->f_host, s->info.mass, proj->dens, 0, &app->local);
