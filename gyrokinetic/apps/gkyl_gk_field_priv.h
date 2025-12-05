@@ -64,20 +64,6 @@ gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field,
 /** Charge Density Accumulation Functions **/
 
 /**
- * Accumulate charge density for a Boltzmann electron response.
- * Computes the charge density contribution from a species assuming
- * electrons follow a Boltzmann distribution.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object for storing charge density.
- * @param s Species object providing density moments.
- * @param bflux Boundary flux array (for boundary contributions).
- */
-void
-gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gk_species *s, struct gkyl_array **bflux);
-
-/**
  * Accumulate charge density for an adiabatic species response.
  * Computes the charge density contribution assuming an adiabatic
  * (flux-surface averaged) response for the species.
@@ -106,17 +92,6 @@ gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *fi
   struct gk_species *s, struct gkyl_array **bflux);
 
 /** Field Solve (RHS) Functions **/
-
-/**
- * Compute the right-hand side and solve for the electrostatic potential
- * using a Boltzmann electron response. This assumes electrons are in
- * thermal equilibrium with phi.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the solve state and result.
- */
-void
-gk_field_boltzmann_rhs(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Solve the 1D Poisson equation using parallel FEM projection.
@@ -176,20 +151,6 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
  */
 void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/** Boundary Condition Functions **/
-
-/**
- * Enforce parallel boundary conditions on the field (enabled variant).
- * Applies the appropriate boundary conditions along the parallel direction.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing BC configuration.
- * @param finout Array to apply boundary conditions to (modified in-place).
- */
-void
-gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app,
-  struct gk_field *field, struct gkyl_array *finout);
 
 /**
  * No-op function for parallel boundary conditions (disabled variant).
@@ -258,7 +219,7 @@ gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
  * @param f Field object to initialize biased wall for.
  */
 void
-gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Release biased wall resources.
@@ -267,7 +228,7 @@ gk_field_biassed_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
  * @param f Field object whose biased wall resources are to be released.
  */
 void
-gk_field_biassed_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Calculate and apply the wall potential at the current simulation time.

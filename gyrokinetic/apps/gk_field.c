@@ -59,52 +59,6 @@ gk_field_polarization_potential_release(struct gk_field *f)
 // Functions related to the field energy allocations, diagnostics, and release
 
 void
-gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  // Allocate energy reduction arrays.
-  if (app->use_gpu) {
-    f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
-  } else {
-    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
-    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
-  }
-
-  f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  f->is_first_energy_write_call = true;
-
-  f->calc_energy_func = gk_field_calc_energy_enabled;
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-  
-  if (f->info.time_rate_diagnostics) {
-    gk_field_time_rate_diags_new(app, f);
-  }
-
-  // Factors for ES energy.
-  f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
-  f->es_energy_fac_1d = 0.0;
-}
-
-void
-gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
-  if (app->use_gpu) {
-    f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
-    f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
-    gkyl_cu_memset(f->em_energy_red_new, 0, sizeof(double[1]));
-    gkyl_cu_memset(f->em_energy_red_old, 0, sizeof(double[1]));
-  } else {
-    f->em_energy_red_new = gkyl_malloc(sizeof(double[1]));
-    f->em_energy_red_old = gkyl_malloc(sizeof(double[1]));
-    memset(f->em_energy_red_new, 0, sizeof(double[1]));
-    memset(f->em_energy_red_old, 0, sizeof(double[1]));
-  }
-  f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  f->is_first_energy_dot_write_call = true;
-}
-
-void
 gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -176,6 +130,66 @@ gk_field_calc_energy_disabled(struct gkyl_gyrokinetic_app *app, const struct gk_
 }
 
 void
+gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
+  if (app->use_gpu) {
+    f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
+    f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
+    gkyl_cu_memset(f->em_energy_red_new, 0, sizeof(double[1]));
+    gkyl_cu_memset(f->em_energy_red_old, 0, sizeof(double[1]));
+  } else {
+    f->em_energy_red_new = gkyl_malloc(sizeof(double[1]));
+    f->em_energy_red_old = gkyl_malloc(sizeof(double[1]));
+    memset(f->em_energy_red_new, 0, sizeof(double[1]));
+    memset(f->em_energy_red_old, 0, sizeof(double[1]));
+  }
+  f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  f->is_first_energy_dot_write_call = true;
+}
+
+void
+gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  // Allocate energy reduction arrays.
+  if (app->use_gpu) {
+    f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
+  } else {
+    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
+  }
+
+  f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  f->is_first_energy_write_call = true;
+
+  f->calc_energy_func = gk_field_calc_energy_enabled;
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  
+  if (f->info.time_rate_diagnostics) {
+    gk_field_time_rate_diags_new(app, f);
+  }
+
+  // Factors for ES energy.
+  f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+  f->es_energy_fac_1d = 0.0;
+}
+
+void
+gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  if (app->use_gpu) {
+    gkyl_cu_free(f->em_energy_red_new);
+    gkyl_cu_free(f->em_energy_red_old);
+  } else {
+    gkyl_free(f->em_energy_red_new);
+    gkyl_free(f->em_energy_red_old);
+  }
+  gkyl_dynvec_release(f->integ_energy_dot);
+}
+
+void
 gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_dynvec_release(f->integ_energy);
@@ -196,17 +210,9 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
 }
 
 void
-gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
-  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
-  if (app->use_gpu) {
-    gkyl_cu_free(f->em_energy_red_new);
-    gkyl_cu_free(f->em_energy_red_old);
-  } else {
-    gkyl_free(f->em_energy_red_new);
-    gkyl_free(f->em_energy_red_old);
-  }
-  gkyl_dynvec_release(f->integ_energy_dot);
+  // Do nothing.
 }
 
 // Initialize field object.
