@@ -285,25 +285,6 @@ gk_field_deflate_poisson_es_iwl_rhs(struct gkyl_gyrokinetic_app *app, struct gk_
   field->enforce_parallel_bc_func(app, field, field->phi_smooth);
 }
 
-void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
-{
-  // Gyroaverage the density if needed.
-  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
-}
-
-void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
-{
-  // Gyroaverage the density if needed.
-  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
-  // Add the background (electron) charge density.
-  double n_s0 = field->info.electron_density;
-  double q_s = field->info.electron_charge;
-  double dg_norm = pow(sqrt(2), app->basis.ndim);
-  gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
-}
-
 void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
