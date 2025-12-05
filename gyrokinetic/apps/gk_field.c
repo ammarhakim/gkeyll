@@ -13,8 +13,12 @@
 #include <time.h>
 
 // Forward delcarations so that new can be at the top of the file
-void gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app);
-void gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+static void gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app);
+static void gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+static void gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+static void gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+static void gk_field_calc_energy_enabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
+static void gk_field_calc_energy_disabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
 
 // Initialize field object.
 struct gk_field* 
@@ -66,7 +70,7 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_position_map_eval_mc2nu(gpm, xcomp, xphys);
 }
 
-void
+static void
 gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app)
 {
   // Project the initial potential onto a p+1 tensor basis and compute the polarization
@@ -96,7 +100,7 @@ gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_
   gkyl_array_release(phi_pol_ho);
 }
 
-void
+static void
 gk_field_polarization_potential_release(struct gk_field *f)
 {
   gkyl_array_release(f->phi_pol);
@@ -104,13 +108,7 @@ gk_field_polarization_potential_release(struct gk_field *f)
 
 // Functions related to the field energy allocations, diagnostics, and release
 
-// Forward declarations so that new can be at the top of the file
-void gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
-void gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
-void gk_field_calc_energy_enabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
-void gk_field_calc_energy_disabled(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
-
-void
+static void
 gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
@@ -129,7 +127,7 @@ gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *
   f->is_first_energy_dot_write_call = true;
 }
 
-void
+static void
 gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // Allocate energy reduction arrays.
@@ -156,7 +154,7 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->es_energy_fac_1d = 0.0;
 }
 
-void
+static void
 gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -165,12 +163,12 @@ gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field 
   app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void
+static void
 gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
 }
 
-void
+static void
 gk_field_calc_energy_enabled(struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
 {
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth,
@@ -221,13 +219,13 @@ gk_field_calc_energy_enabled(struct gkyl_gyrokinetic_app *app, const struct gk_f
   }
 }
 
-void
+static void
 gk_field_calc_energy_disabled(struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm)
 {
   // Do nothing.
 }
 
-void
+static void
 gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
@@ -241,7 +239,7 @@ gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct 
   gkyl_dynvec_release(f->integ_energy_dot);
 }
 
-void
+static void
 gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_dynvec_release(f->integ_energy);
