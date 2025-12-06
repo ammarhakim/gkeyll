@@ -301,6 +301,25 @@ gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir, enum g
   return bflux->bflux_get_flux_func(bflux, dir, edge);
 }
 
+static const struct gkyl_range* 
+gk_neut_species_bflux_get_flux_range_enabled(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge)
+{
+  int b = gk_neut_species_bflux_idx(bflux, dir, edge);
+  return (const struct gkyl_range*) bflux->flux[b];
+}
+
+static const struct gkyl_range*
+gk_neut_species_bflux_get_flux_range_disabled(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge)
+{
+  return 0;
+}
+
+const struct gkyl_range*
+gk_neut_species_bflux_get_flux_range(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge)
+{
+  return bflux->bflux_get_flux_range_func(bflux, dir, edge);
+}
+
 void
 gk_neut_species_bflux_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app,
   void *spec_in, struct gk_boundary_fluxes *bflux, double tm)
@@ -622,6 +641,7 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
   bflux->bflux_rhs_func = gk_neut_species_bflux_rhs_disabled;
   bflux->bflux_calc_moms_func = gk_neut_species_bflux_calc_moms_disabled;
   bflux->bflux_get_flux_func = gk_neut_species_bflux_get_flux_disabled;
+  bflux->bflux_get_flux_range_func = gk_neut_species_bflux_get_flux_range_disabled;
   bflux->bflux_copy_flux_func = gk_neut_species_bflux_copy_flux_disabled;
   bflux->bflux_copy_flux_mom_func = gk_neut_species_bflux_copy_flux_mom_disabled;
   bflux->bflux_clear_func = gk_neut_species_bflux_clear_disabled;
@@ -642,6 +662,7 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     // Set function pointer to compute bfluxes.
     bflux->bflux_rhs_func = gk_neut_species_bflux_rhs_calc; 
     bflux->bflux_get_flux_func = gk_neut_species_bflux_get_flux_enabled;
+    bflux->bflux_get_flux_range_func = gk_neut_species_bflux_get_flux_range_enabled;
     bflux->bflux_copy_flux_func = gk_neut_species_bflux_copy_flux_enabled;
 
     // Identify the non-periodic, non-zero-flux boundaries to compute boundary fluxes at.

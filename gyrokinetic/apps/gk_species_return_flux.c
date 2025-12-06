@@ -59,8 +59,10 @@ gk_species_return_flux_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       // Allocate return flux updater.
       int dir = reflux->boundaries_dir[b];
       enum gkyl_edge_loc edge = reflux->boundaries_edge[b];
+      const struct gkyl_range *bflux_ghost_r = gk_species_bflux_get_flux_range(&gks->bflux, dir, edge);
+
       reflux->reflux_op[b] = gkyl_bc_return_flux_gyrokinetic_new(dir, edge,
-        reflux->boundaries_displace_dir[b], &gks->grid, &gks->bflux.boundaries_phase_ghost_nosub[b],
+        reflux->boundaries_displace_dir[b], &gks->grid, bflux_ghost_r,
         edge == GKYL_LOWER_EDGE? &gks->lower_skin[dir] : &gks->upper_skin[dir], app->use_gpu);
     }
 

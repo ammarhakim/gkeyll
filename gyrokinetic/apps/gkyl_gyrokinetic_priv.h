@@ -524,6 +524,7 @@ struct gk_boundary_fluxes {
   void (*bflux_calc_moms_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   const struct gkyl_array* (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
+  const struct gkyl_range* (*bflux_get_flux_range_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
   void (*bflux_copy_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_copy_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
@@ -2249,9 +2250,21 @@ void gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
  * @param bflux Species boundary flux object.
  * @param dir Direction of the boundary.
  * @param edge Edge of the boundary.
+ * @return Array with boundary flux.
  */
 const struct gkyl_array*
 gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
+
+/**
+ * Get the range to index the phase-space boundary flux array on a specific boundary.
+ *
+ * @param bflux Species boundary flux object.
+ * @param dir Direction of the boundary.
+ * @param edge Edge of the boundary.
+ * @return Range to index boundary flux.
+ */
+const struct gkyl_range*
+gk_species_bflux_get_flux_range(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge);
 
 /**
  * Copy the boundary fluxes into a given range of a given phase-space array.
