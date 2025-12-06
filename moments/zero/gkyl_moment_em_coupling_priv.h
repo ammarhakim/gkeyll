@@ -68,6 +68,7 @@ struct gkyl_moment_em_coupling {
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
   double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+  double gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
 
   bool has_vacuum_einstein_sources; // Run with vacuum Einstein sources using the Bona-Masso formalism.
   double vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.

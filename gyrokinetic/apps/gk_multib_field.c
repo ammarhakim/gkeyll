@@ -444,19 +444,22 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 
 // Compute the electrostatic potential.
 void
-gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[])
+gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   // Every local block calculates its charge density.
   for (int bI=0; bI<mbf->num_local_blocks; bI++) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     // Construct fin for the local block.
     const struct gkyl_array *fin_local_block[mbapp->num_species];
+    struct gkyl_array **bflux_local_block[mbapp->num_species];
     int lin_idx = bI * mbapp->num_species;
     for (int i=0; i<mbapp->num_species; ++i) {
       fin_local_block[i] = fin[lin_idx+i];
+      bflux_local_block[i] = bflux[lin_idx+i];
     }
     // Accumulate rho_c in local block.
-    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
+    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block, bflux_local_block);
   }
 
   struct timespec wst = gkyl_wall_clock();

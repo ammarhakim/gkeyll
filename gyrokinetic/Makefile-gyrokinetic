@@ -185,6 +185,10 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/twistshift/%.c.o : $(KERNELS_DIR)/twistshift/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_neut_fluid_prim_vars/%.c.o : $(KERNELS_DIR)/gk_neut_fluid_prim_vars/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
 
 # build lib
