@@ -38,12 +38,12 @@ gk_species_return_flux_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     if ( gks->bc_is_np[d] ) {
       for (int e=0; e<2; ++e) {
         if ( ((e == 0 && gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE) ||
-              (e == 1 && gks->upper_bc[d].type != GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE)) ) {
+              (e == 1 && gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_RETURN_FLUX_OPPOSITE)) ) {
           reflux->boundaries_dir[num_bound] = d;
           reflux->boundaries_edge[num_bound] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-          reflux->boundaries_displace_dir[num_bound] = gks->lower_bc[d].index[0];
+          reflux->boundaries_displace_dir[num_bound] = e==0? gks->lower_bc[d].index[0] : gks->upper_bc[d].index[0];
 
-          // MF 2025/12/05: Restricted to displacing radial flux at constant z.
+          // MF 2025/12/05: Restricted to displacing x flux at constant z (i.e. along y).
           assert(reflux->boundaries_dir[num_bound] == 0);
           assert(reflux->boundaries_displace_dir[num_bound] == 1);
 
