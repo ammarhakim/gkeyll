@@ -46,5 +46,5 @@ gkyl_bc_return_flux_gyrokinetic_advance_cu(const struct gkyl_bc_return_flux_gyro
   int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
   gkyl_bc_return_flux_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->dir, up->edge,
-    up->disp_dir, up->disp_dir_num_cellsD2, up->bflux_ghost_r, up->skin_r, bflux->on_dev, rhs->on_dev);
+    up->disp_dir, up->disp_dir_num_cellsD2, *up->bflux_ghost_r, *up->skin_r, bflux->on_dev, rhs->on_dev);
 }
