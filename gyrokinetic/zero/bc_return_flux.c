@@ -55,7 +55,7 @@ gkyl_bc_return_flux_gyrokinetic_advance(const struct gkyl_bc_return_flux_gyrokin
     double *rhs_d = (double*) gkyl_array_fetch(rhs, linidx_skin);
 
     for (int i=0; i<rhs->ncomp; i++)
-      rhs_d[i] = bflux_d[i];
+      rhs_d[i] += bflux_d[i];
   }
 }
 

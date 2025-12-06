@@ -21,7 +21,9 @@ gkyl_bc_return_flux_gyrokinetic_advance_cu_ker(int dir, enum gkyl_edge_loc edge,
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&skin_r, linc, idx);
 
-    gkyl_copy_int_arr(skin_r.ndim, idx, sidx);
+    // Fill ghost index.
+    gkyl_copy_int_arr(skin_r.ndim, idx, gidx);
+    gidx[dir] = edge == GKYL_LOWER_EDGE? gidx[dir]-1 : gidx[dir]+1;
     // Shift the index in the displacement direction.
     int disp_idx = idx[disp_dir];
     gidx[disp_dir] = disp_idx < disp_cellsD2 ? disp_idx+disp_cellsD2 : disp_idx-disp_cellsD2;
@@ -33,7 +35,7 @@ gkyl_bc_return_flux_gyrokinetic_advance_cu_ker(int dir, enum gkyl_edge_loc edge,
     double *rhs_d = (double*) gkyl_array_fetch(rhs, linidx_skin);
 
     for (int i=0; i<rhs->ncomp; i++)
-      rhs_d[i] = bflux_d[i];
+      rhs_d[i] += bflux_d[i];
   }
 }
 
