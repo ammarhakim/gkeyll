@@ -145,7 +145,6 @@ gkyl_emission_spectrum_gaussian_dist(double t, const double *xn, double *fout, v
   double tau = model->tau;
 
   double E = 0.0;
-  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
   for (int d=0; d<vdim; d++) {
     E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);
   }
@@ -341,6 +340,18 @@ gkyl_emission_spectrum_chung_everhart_cu_dev_new(struct gkyl_emission_spectrum_c
   double charge, double phi);
 
 /**
+ * Create the 2V emission spectrum model using the Chung-Everhart distribution on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param phi Work function of the emitting material
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_spectrum_model*
+gkyl_emission_spectrum_chung_everhart_2V_cu_dev_new(struct gkyl_emission_spectrum_chung_everhart *model,
+  double charge, double phi);
+
+/**
  * Create the emission spectrum model using the logarithmic Gaussian distribution on NV-GPU
  *
  * @param charge Elementary charge, used for eV units
@@ -351,6 +362,19 @@ gkyl_emission_spectrum_chung_everhart_cu_dev_new(struct gkyl_emission_spectrum_c
  */
 struct gkyl_emission_spectrum_model*
 gkyl_emission_spectrum_gaussian_cu_dev_new(struct gkyl_emission_spectrum_gaussian *model,
+  double charge, double E_0, double tau);
+
+/**
+ * Create the 2V emission spectrum model using the logarithmic Gaussian distribution on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param E_0 Fitting parameter, energy location of distribution peak
+ * @param tau Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_spectrum_model*
+gkyl_emission_spectrum_gaussian_2V_cu_dev_new(struct gkyl_emission_spectrum_gaussian *model,
   double charge, double E_0, double tau);
 
 /**

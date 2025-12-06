@@ -45,7 +45,7 @@ gkyl_emission_spectrum_chung_everhart_2V_new(double charge, double phi, bool use
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
   {
-    model->spectrum.on_dev = gkyl_emission_spectrum_chung_everhart_cu_dev_new(model, charge, phi);
+    model->spectrum.on_dev = gkyl_emission_spectrum_chung_everhart_2V_cu_dev_new(model, charge, phi);
   }
 #endif
 
@@ -96,7 +96,7 @@ gkyl_emission_spectrum_gaussian_2V_new(double charge, double E_0, double tau, bo
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
   {
-    model->spectrum.on_dev = gkyl_emission_spectrum_gaussian_cu_dev_new(model, charge, E_0, tau);
+    model->spectrum.on_dev = gkyl_emission_spectrum_gaussian_2V_cu_dev_new(model, charge, E_0, tau);
   }
 #endif
 
