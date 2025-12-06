@@ -52,11 +52,6 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           dt_suggested = fmin(dt_suggested, s.dt_suggested);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
-        if (app->update_mhd_source) {
-          struct timespec src1_tm = gkyl_wall_clock();
-          mhd_src_update(app, &app->mhd_source, 0, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
-        }
 
         break;
 
@@ -105,11 +100,6 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         if (app->update_sources) {
           struct timespec src2_tm = gkyl_wall_clock();
           moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
-        }
-        if (app->update_mhd_source) {
-          struct timespec src2_tm = gkyl_wall_clock();
-          mhd_src_update(app, &app->mhd_source, 1, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
         }
 

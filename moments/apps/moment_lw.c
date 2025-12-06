@@ -15,7 +15,6 @@
 #include <gkyl_wv_euler_rgfm.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_mixture.h>
-#include <gkyl_wv_mhd.h>
 #include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
@@ -83,22 +82,6 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
-// MHD Riemann problem -> enum map.
-static const struct gkyl_str_int_pair mhd_rp_type[] = {
-  { "Roe", WV_MHD_RP_ROE },
-  { "HLLD", WV_MHD_RP_HLLD },
-  { "Lax", WV_MHD_RP_LAX },
-  { 0, 0 }
-};
-
-// MHD divergence correction -> enum map.
-static const struct gkyl_str_int_pair mhd_divb_type[] = {
-  { "None", GKYL_MHD_DIVB_NONE },
-  { "GLM", GKYL_MHD_DIVB_GLM },
-  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
-  { 0, 0 }
-};
-
 // Braginskii type -> enum map.
 static const struct gkyl_str_int_pair braginskii_type[] = {
   { "Mag", GKYL_BRAG_MAG },
@@ -142,18 +125,6 @@ void
 gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
-}
-
-void
-gkyl_register_mhd_rp_types(lua_State *L)
-{
-  register_types(L, mhd_rp_type, "MHDRP");
-}
-
-void
-gkyl_register_mhd_divb_types(lua_State *L)
-{
-  register_types(L, mhd_divb_type, "DivB");
 }
 
 void
@@ -548,57 +519,6 @@ eqn_tenmoment_lw_new(lua_State *L)
 // Equation constructor.
 static struct luaL_Reg eqn_tenmoment_ctor[] = {
   { "new", eqn_tenmoment_lw_new },
-  { 0, 0 }
-};
-
-/* ************* */
-/* MHD Equations */
-/* ************* */
-
-// Mhd.new { gasgamma = 1.4, rpType = "roe", divB = "glm", glmCh = 0.0, glmAlpha = 0.0 }
-// rpType is one of "roe", "hlld", "lax"
-// divB is "none", "glm", "eight_waves"
-static int
-eqn_mhd_lw_new(lua_State *L)
-{
-  struct wv_eqn_lw *mhd_lw = gkyl_malloc(sizeof(*mhd_lw));
-
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
-  
-  enum gkyl_wv_mhd_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_MHD_RP_ROE);
-  enum gkyl_wv_mhd_div_constraint divb = glua_tbl_get_integer(L, "divergenceConstraint", GKYL_MHD_DIVB_NONE);
-
-  double glm_ch = glua_tbl_get_number(L, "glmCh", 1.0);
-  double glm_alpha = glua_tbl_get_number(L, "glmAlpha", 0.4);
-
-  mhd_lw->magic = MOMENT_EQN_DEFAULT;
-  mhd_lw->eqn = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
-      .gas_gamma = gas_gamma,
-      .rp_type = rp_type,
-      .divergence_constraint = divb,
-      .glm_alpha = glm_alpha,
-      .glm_ch = glm_ch
-    }
-  );
-  mhd_lw->has_nn = false;
-  mhd_lw->ann = 0;
-  mhd_lw->has_spacetime = false;
-  mhd_lw->spacetime = 0;
-
-  // Create Lua userdata.
-  struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_mhd_lw = mhd_lw; // Point userdata to the equation object.
-  
-  // Set metatable.
-  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
-  lua_setmetatable(L, -2);
-  
-  return 1;
-}
-
-// Equation constructor.
-static struct luaL_Reg eqn_mhd_ctor[] = {
-  { "new", eqn_mhd_lw_new },
   { 0, 0 }
 };
 
@@ -1735,7 +1655,6 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
-  luaL_register(L, "G0.Moments.Eq.MHD", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerRGFM", eqn_euler_rgfm_ctor);
@@ -4771,8 +4690,6 @@ gkyl_moment_lw_openlibs(lua_State *L)
 
   // Register types for Riemann solvers and Braginskii types.
   gkyl_register_euler_rp_types(L);
-  gkyl_register_mhd_rp_types(L);
-  gkyl_register_mhd_divb_types(L);
   gkyl_register_braginskii_types(L);
   gkyl_register_spacetime_gauge_types(L);
   gkyl_register_embed_geo_types(L);

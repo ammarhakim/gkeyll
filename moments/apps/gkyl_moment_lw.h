@@ -36,22 +36,6 @@ void
 gkyl_register_euler_rp_types(lua_State *L);
 
 /**
-* Add Riemann problem type flags for MHD equations into Lua interpreter.
-*
-* @param L Lua state to use.
- */
-void
-gkyl_register_mhd_rp_types(lua_State *L);
-
-/**
-* Add divergence correction type flags for MHD equations into Lua interpreter.
-*
-* @param L Lua state to use.
- */
-void
-gkyl_register_mhd_divb_types(lua_State *L);
-
-/**
 * Add Braginskii type flags for moment equations into Lua interpreter.
 *
 * @param L Lua state to use.

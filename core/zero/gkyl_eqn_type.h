@@ -9,7 +9,6 @@ enum gkyl_eqn_type {
   GKYL_EQN_COLDFLUID_SR, // Relativistic Cold fluid equations
   GKYL_EQN_TEN_MOMENT, // Ten-moment (with pressure tensor)
   GKYL_EQN_MAXWELL, // Maxwell equations
-  GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations with ideal gas equation of state.
