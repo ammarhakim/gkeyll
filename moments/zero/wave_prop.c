@@ -529,6 +529,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         if (wv->equation->type == GKYL_EQN_EULER_RGFM) {
           euler_rgfm_reinit_level_set(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }
+        if (wv->equation->type == GKYL_EQN_MHD_RGFM) {
+          mhd_rgfm_reinit_level_set(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
         if (wv->equation->type == GKYL_EQN_GR_MAXWELL) {
           gr_maxwell_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }

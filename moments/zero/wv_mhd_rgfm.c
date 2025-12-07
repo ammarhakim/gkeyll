@@ -94,6 +94,14 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
   double By_total = v[6];
   double Bz_total = v[7];
 
+  double *level_set_s = gkyl_malloc(sizeof(double[num_species]));
+  double level_set_total = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    level_set_s[i] = v[8 + i];
+    level_set_total += level_set_s[i];
+  }
+  level_set_s[num_species - 1] = 1.0 - level_set_total;
+
   double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
     rho_s[i] = v[7 + num_species + i];
@@ -104,22 +112,24 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
 
   double max_abs_speed = 0.0;
   for (int i = 0; i < num_species; i++) {
-    double alfven_eig = Bx_total / sqrt(rho_s[i]);
-    double slow_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) -
-      sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
-    double fast_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) +
-      sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
+    if (level_set_s[i] >= 0.5) {
+      double alfven_eig = Bx_total / sqrt(rho_s[i]);
+      double slow_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) -
+        sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
+      double fast_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) +
+        sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
 
-    if (fabs(v_mag) + fabs(alfven_eig) > max_abs_speed) {
-      max_abs_speed = fabs(v_mag) + fabs(alfven_eig);
-    }
-    if (fabs(v_mag) + fabs(slow_magnetosonic_eig) > max_abs_speed) {
-      max_abs_speed = fabs(v_mag) + fabs(slow_magnetosonic_eig);
-    }
-    if (fabs(v_mag) + fabs(fast_magnetosonic_eig) > max_abs_speed) {
-      max_abs_speed = fabs(v_mag) + fabs(fast_magnetosonic_eig);
+      if (fabs(v_mag) + fabs(alfven_eig) > max_abs_speed) {
+        max_abs_speed = fabs(v_mag) + fabs(alfven_eig);
+      }
+      if (fabs(v_mag) + fabs(slow_magnetosonic_eig) > max_abs_speed) {
+        max_abs_speed = fabs(v_mag) + fabs(slow_magnetosonic_eig);
+      }
+      if (fabs(v_mag) + fabs(fast_magnetosonic_eig) > max_abs_speed) {
+        max_abs_speed = fabs(v_mag) + fabs(fast_magnetosonic_eig);
+      }
     }
   }
 

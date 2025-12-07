@@ -55,7 +55,7 @@ struct brio_wu_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double gas_gamma1 = 2.0; // First species adiabatic index.
+  double gas_gamma1 = 1.67; // First species adiabatic index.
   double gas_gamma2 = 2.0; // Second species adiabatic index.
 
   double rhol = 1.0; // Left fluid mass density.
