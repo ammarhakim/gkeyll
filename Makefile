@@ -154,6 +154,26 @@ endif
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
+# SUNDIALS paths and flags
+USING_SUNDIALS =
+SUNDIALS_RPATH = 
+SUNDIALS_INC_DIR = core # dummy
+SUNDIALS_LIB_DIR = .
+ifeq (${USE_SUNDIALS}, 1)
+	USING_SUNDIALS = yes
+	SUNDIALS_INC_DIR = ${CONF_SUNDIALS_INC_DIR}
+	SUNDIALS_LIB_DIR = ${CONF_SUNDIALS_LIB_DIR}
+
+ifdef USING_NVCC
+	SUNDIALS_RPATH = -Xlinker "-rpath,${CONF_SUNDIALS_LIB_DIR}"
+else
+	SUNDIALS_RPATH = -Wl,-rpath,${CONF_SUNDIALS_LIB_DIR}
+endif
+
+	SUNDIALS_LIBS = -lsundials_arkode -lsundials_core -lsundials_sundomeigestpower -lsundials_sundomeigestarnoldi
+	CFLAGS += -DGKYL_HAVE_SUNDIALS
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR = cuda-build

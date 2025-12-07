@@ -23,6 +23,7 @@ CUDA_ARCH=70
 USE_MPI=
 USE_LUA=
 CONF_LUA_LIB=luajit-5.1
+USE_SUNDIALS=
 
 # Location of CUDA math libraries
 CUDAMATH_LIBS=
@@ -57,6 +58,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
+--use-sundials             [no] Build SUNDIALS dependent code
 --app                      [all] What app to build? One of
 			   core, moments, vlasov, gyrokinetic, pkpm, all
 
@@ -74,11 +76,14 @@ Library Includes and Locations
 --nccl-inc                 Location of NCCL headers
 --nccl-lib                 Location to NCCL library
 
---cudss-inc                 Location of cuDSS headers
---cudss-lib                 Location to cuDSS library
+--cudss-inc                Location of cuDSS headers
+--cudss-lib                Location to cuDSS library
 
 --lua-inc                  Location of Lua headers
 --lua-lib                  Location to Lua library
+
+--sundials-inc             Location of SUNDIALS headers
+--sundials-lib             Location to SUNDIALS library
 
 --cudamath-libdir          Full path to CUDA math libraries
 
@@ -213,6 +218,18 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_LUA_LIB_DIR="$value"
       ;;   
+   --use-sundials)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_SUNDIALS="$value"
+      ;;       
+   --sundials-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_SUNDIALS_INC_DIR="$value"
+      ;;
+   --sundials-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_SUNDIALS_LIB_DIR="$value"
+      ;;   
    --cudamath-libdir)
       [ -n "$value" ] || die "Missing value in flag $key."
       CUDAMATH_LIBDIR="$value"
@@ -250,6 +267,13 @@ then
     USE_LUA=1
 else
     USE_LUA=
+fi
+
+if [ "$USE_SUNDIALS" = "yes" ]
+then
+    USE_SUNDIALS=1
+else
+    USE_SUNDIALS=
 fi
 
 echo "Building APP " $APP
@@ -316,6 +340,10 @@ else
     : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a}"
 fi
 
+# SUNDIALS specific paths and flags
+: "${CONF_SUNDIALS_INC_DIR=$PREFIX/sundials/include/}"
+: "${CONF_SUNDIALS_LIB_DIR=$PREFIX/sundials/lib/}"
+
 # Write out config.mak
 cat <<EOF1 > config.mak
 # Generated automatically! Do not edit
@@ -353,6 +381,10 @@ USE_LUA=$USE_LUA
 CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
 CONF_LUA_LIB_DIR=$CONF_LUA_LIB_DIR
 CONF_LUA_LIB=$CONF_LUA_LIB
+
+USE_SUNDIALS=$USE_SUNDIALS
+CONF_SUNDIALS_INC_DIR=$CONF_SUNDIALS_INC_DIR
+CONF_SUNDIALS_LIB_DIR=$CONF_SUNDIALS_LIB_DIR
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
