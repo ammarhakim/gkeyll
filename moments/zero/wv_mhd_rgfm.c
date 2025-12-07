@@ -104,13 +104,13 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
 
   double max_abs_speed = 0.0;
   for (int i = 0; i < num_species; i++) {
-    double alfven_eig = B_mag / sqrt(rho_s[i]);
+    double alfven_eig = Bx_total / sqrt(rho_s[i]);
     double slow_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) -
       sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((B_mag * B_mag) / rho_s[i])));
+      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
     double fast_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) +
       sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((B_mag * B_mag) / rho_s[i])));
+      (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
 
     if (fabs(v_mag) + fabs(alfven_eig) > max_abs_speed) {
       max_abs_speed = fabs(v_mag) + fabs(alfven_eig);
