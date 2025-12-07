@@ -401,8 +401,8 @@ void test_array_scale()
 
 void test_array_scale_by_cell()
 {
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
-  struct gkyl_array *s = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *a1 = mkarr(false, 3, 10);
+  struct gkyl_array *s = mkarr(false, 1, 10);
 
   double *a1_d  = a1->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -418,6 +418,31 @@ void test_array_scale_by_cell()
   for (unsigned i=0; i<a1->size; ++i) {
     int fact = (i/a1->ncomp);
     TEST_CHECK( gkyl_compare(a1_d[i], i*1.0*fact, 1e-14) );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(s);
+}
+
+void test_array_divide_by_cell()
+{
+  struct gkyl_array *a1 = mkarr(false, 3, 10);
+  struct gkyl_array *s = mkarr(false, 1, 10);
+
+  double *a1_d  = a1->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+  }
+  double *s_d  = s->data;
+  for (unsigned i=0; i<s->size; ++i) {
+    s_d[i] = i*1.0;
+  }
+
+  gkyl_array_divide_by_cell(a1, s);
+
+  for (unsigned i=0; i<a1->size; ++i) {
+    int fact = (i/a1->ncomp);
+    TEST_CHECK( gkyl_compare(a1_d[i], i*1.0/fact, 1e-14) );
   }
 
   gkyl_array_release(a1);
@@ -1806,41 +1831,76 @@ void test_cu_array_scale()
 
 void test_cu_array_scale_by_cell()
 {
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
-  // make device copies
-  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 10);
-
-  struct gkyl_array *s = gkyl_array_new(GKYL_DOUBLE, 1, 10);
-  // make device copies
-  struct gkyl_array *s_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *a1 = mkarr(true, 3, 10);
+  struct gkyl_array *s = mkarr(true, 1, 10);
+  // Make host copies.
+  struct gkyl_array *a1_ho = mkarr(false, a1->ncomp, a1->size);
+  struct gkyl_array *s_ho = mkarr(false, s->ncomp, s->size);
 
   // initialize data
-  double *a1_d  = a1->data;
-  for (unsigned i=0; i<a1->size; ++i) {
+  double *a1_d  = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i) {
     a1_d[i] = i*1.0;
   }
-  double *s_d  = s->data;
-  for (unsigned i=0; i<s->size; ++i) {
+  double *s_d  = s_ho->data;
+  for (unsigned i=0; i<s_ho->size; ++i) {
     s_d[i] = i*1.0;
   }
 
-  // copy host arrays to device
-  gkyl_array_copy(a1_cu, a1);
-  gkyl_array_copy(s_cu, s);
+  // Copy host arrays to device.
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(s, s_ho);
 
-  gkyl_array_scale_by_cell(a1_cu, s_cu);
+  gkyl_array_scale_by_cell(a1, s);
 
- // copy from device and check if things are ok
-  gkyl_array_copy(a1, a1_cu);
-  for (unsigned i=0; i<a1->size; ++i) {
-    int fact = (i/a1->ncomp);    
+  // Copy from device and check if things are ok.
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1_ho->size; ++i) {
+    int fact = (i/a1_ho->ncomp);    
     TEST_CHECK( gkyl_compare(a1_d[i], i*1.0*fact, 1e-14) );
   }
 
   gkyl_array_release(a1);
-  gkyl_array_release(a1_cu);
   gkyl_array_release(s);
-  gkyl_array_release(s_cu);
+  gkyl_array_release(a1_ho);
+  gkyl_array_release(s_ho);
+}
+
+void test_cu_array_divide_by_cell()
+{
+  struct gkyl_array *a1 = mkarr(true, 3, 10);
+  struct gkyl_array *s = mkarr(true, 1, 10);
+  // Make host copies.
+  struct gkyl_array *a1_ho = mkarr(false, a1->ncomp, a1->size);
+  struct gkyl_array *s_ho = mkarr(false, s->ncomp, s->size);
+
+  // initialize data
+  double *a1_d  = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i) {
+    a1_d[i] = i*1.0;
+  }
+  double *s_d  = s_ho->data;
+  for (unsigned i=0; i<s_ho->size; ++i) {
+    s_d[i] = i*1.0;
+  }
+
+  // Copy host arrays to device.
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(s, s_ho);
+
+  gkyl_array_divide_by_cell(a1, s);
+
+  // Copy from device and check if things are ok.
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1_ho->size; ++i) {
+    int fact = (i/a1_ho->ncomp);    
+    TEST_CHECK( gkyl_compare(a1_d[i], i*1.0/fact, 1e-14) );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(s);
+  gkyl_array_release(a1_ho);
+  gkyl_array_release(s_ho);
 }
 
 void test_cu_array_shiftc()

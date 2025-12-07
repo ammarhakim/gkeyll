@@ -617,6 +617,7 @@ int main(int argc, char **argv)
       .name = "elc",
       .charge = ctx.qe,
       .mass = ctx.me,
+      .vdim = ctx.vdim,
       .lower = {-1.0, 0.0},
       .upper = { 1.0, 1.0},
       .cells = { cells_v[0], cells_v[1] },
@@ -685,6 +686,7 @@ int main(int argc, char **argv)
       .name = "ion",
       .charge = ctx.qi,
       .mass = ctx.mi,
+      .vdim = ctx.vdim,
       .lower = {-1.0, 0.0},
       .upper = { 1.0, 1.0},
       .cells = { cells_v[0], cells_v[1] },
@@ -755,7 +757,7 @@ int main(int argc, char **argv)
     // GK app
     struct gkyl_gk app_inp = {
       .name = "gk_wham_1x2v_p1",
-      .cdim = ctx.cdim-1, .vdim = ctx.vdim,
+      .cdim = ctx.cdim-1,
       .lower = {ctx.z_min},
       .upper = {ctx.z_max},
       .cells = { cells_x[1] },
@@ -785,7 +787,7 @@ int main(int argc, char **argv)
 
     struct gkyl_gyrokinetic_run_inp run_inp = {
       .app_inp = app_inp,
-      .timing = {
+      .time_stepping = {
         .t_end = ctx.t_end,
         .num_frames = ctx.num_frames,
         .write_phase_freq = ctx.write_phase_freq,
@@ -807,6 +809,7 @@ int main(int argc, char **argv)
       .name = "elc",
       .charge = ctx.qe,
       .mass = ctx.me,
+      .vdim = ctx.vdim,
       .lower = {-1.0, 0.0},
       .upper = { 1.0, 1.0},
       .cells = { cells_v[0], cells_v[1] },
@@ -869,6 +872,7 @@ int main(int argc, char **argv)
       .name = "ion",
       .charge = ctx.qi,
       .mass = ctx.mi,
+      .vdim = ctx.vdim,
       .lower = {-1.0, 0.0},
       .upper = { 1.0, 1.0},
       .cells = { cells_v[0], cells_v[1] },
@@ -950,7 +954,7 @@ int main(int argc, char **argv)
     // GK app
     struct gkyl_gk app_inp = {
       .name = "gk_wham_1xIC_2x2v_p1",
-      .cdim = ctx.cdim, .vdim = ctx.vdim,
+      .cdim = ctx.cdim,
       .lower = {ctx.psi_min, ctx.z_min},
       .upper = {ctx.psi_max, ctx.z_max},
       .cells = { cells_x[0], cells_x[1] },
@@ -980,7 +984,7 @@ int main(int argc, char **argv)
 
     struct gkyl_gyrokinetic_run_inp run_inp = {
       .app_inp = app_inp,
-      .timing = {
+      .time_stepping = {
         .t_end = ctx.t_end,
         .num_frames = ctx.num_frames,
         .write_phase_freq = ctx.write_phase_freq,

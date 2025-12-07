@@ -119,7 +119,7 @@ gk_neut_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     bgk->num_cross_collisions = gkns->info.collisions.num_cross_collisions;
     assert(bgk->num_cross_collisions == 0); // NYI.
     
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gkns->info.vdim;
   
     // Allocate self-species collision frequency and sum of collision frequencies.
     bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
