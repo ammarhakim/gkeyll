@@ -14,7 +14,7 @@ gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q,
   double momy_total = q[2];
   double momz_total = q[3];
   double E_total = q[4];
-  double reinit_param = q[5 + (2 * num_species)];
+  double reinit_param = q[4 + (2 * num_species)];
 
   double *level_set_cons_s = gkyl_malloc(sizeof(double[num_species - 1]));
   for (int i = 0; i < num_species - 1; i++) {
@@ -285,14 +285,15 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 }
 
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr,
+  const double phil, const double phir, double* waves, double* s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr,
+  const double phil, const double phir, const double* waves, const double* s, double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }

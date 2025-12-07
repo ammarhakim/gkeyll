@@ -9,7 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-struct wv_euler_rgfm {
+struct wv_mhd_rgfm {
   struct gkyl_wv_eqn eqn; // Base equation object.
   int num_species; // Number of distinct species in the domain.
   double* gas_gamma_s; // Adiabatic indices for each species in the domain.
@@ -26,7 +26,7 @@ struct wv_euler_rgfm {
 */
 GKYL_CU_D
 void
-gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, double* v);
+gkyl_mhd_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, double* v);
 
 /**
 * Compute maximum absolute wave speed.
@@ -38,7 +38,7 @@ gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q,
 */
 GKYL_CU_D
 static inline double
-gkyl_euler_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* q);
+gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* q);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -50,7 +50,7 @@ gkyl_euler_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double
 */
 GKYL_CU_D
 void
-gkyl_euler_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double* flux);
+gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double* flux);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -77,7 +77,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
-* Boundary condition function for applying wall boundary conditions for the Euler Riemann ghost fluid equations.
+* Boundary condition function for applying wall boundary conditions for the ideal MHD Riemann ghost fluid equations.
 *
 * @param eqn Base equation object.
 * @param t Current simulation time.
@@ -88,10 +88,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-euler_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+mhd_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying no-slip boundary conditions for the Euler Riemann ghost fluid equations.
+* Boundary condition function for applying no-slip boundary conditions for the ideal MHD Riemann ghost fluid equations.
 *
 * @param eqn Base equation object.
 * @param t Current simulation time.
@@ -102,7 +102,7 @@ euler_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* s
 */
 GKYL_CU_D
 static void
-euler_rgfm_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+mhd_rgfm_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -212,7 +212,7 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
-* Determine whether invariant domain of the Euler Riemann ghost fluid equations is satisfied.
+* Determine whether invariant domain of the ideal MHD Riemann ghost fluid equations is satisfied.
 *
 * @param eqn Base equation object.
 * @param q Conserved variable vector.
@@ -242,7 +242,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 */
 GKYL_CU_D
 static inline void
-euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
+mhd_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
 * Compute forcing/source term vector from conserved variable vector.
@@ -253,12 +253,12 @@ euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double
 */
 GKYL_CU_DH
 static inline void
-euler_rgfm_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+mhd_rgfm_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
-* Free Euler Riemann ghost fluid equations object.
+* Free ideal MHD Riemann ghost fluid equations object.
 *
-* @param ref Reference counter for Euler Riemann ghost fluid equations.
+* @param ref Reference counter for ideal MHD Riemann ghost fluid equations.
 */
 void
-gkyl_euler_rgfm_free(const struct gkyl_ref_count* ref);
+gkyl_mhd_rgfm_free(const struct gkyl_ref_count* ref);
