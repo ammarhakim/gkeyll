@@ -879,8 +879,6 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   struct timespec wst = gkyl_wall_clock();
-  // if (field->is_em)
-  //   gkyl_array_clear(field->dApartdtSlvr_kSq, 0.0);
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -912,11 +910,6 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         double dg_norm = pow(sqrt(2),app->basis.ndim);
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*dg_norm, 0, &app->local);
       }
-      // if (field->is_em) {
-      //   // Use m0 to update also update the kSq matrix for the Ohm's law solver.
-      //   double fac = s->info.charge*s->info.charge/s->info.mass;
-      //   gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
-      // }
     }
   } 
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
