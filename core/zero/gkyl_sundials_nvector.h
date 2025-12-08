@@ -11,19 +11,27 @@
 #include <gkyl_range.h>
 #include <gkyl_comm.h>
 
-typedef struct gkyl_sundials_nvec gkyl_sundials_nvec;
+typedef struct gkyl_sundials gkyl_sundials; // Sundials object.
+typedef struct gkyl_sundials_nvec gkyl_sundials_nvec; // Sundials nvector.
 
 /**
- * Create a new NVECTOR wrapping the provided gkyl_array.
+ * Create a new SUNDIALS object (e.g. a SUNDIALS context).
  *
+ * @return A new SUNDIALS object.
+ */
+struct gkyl_sundials* gkyl_sundials_new();
+
+/**
+ * Create a new NVECTOR wrapping for a given gkyl_array.
+ *
+ * @param gksun SUNDIALS object.
  * @param arr Gkeyll array to wrap.
- * @param use_gpu Whether array data lives on the GPU.
- * @param comm Gkeyll communicatr object.
+ * @param comm Gkeyll communicator object.
  * @param local_range Local range to loop over arr.
  * @return A new NVECTOR.
  */
-struct gkyl_sundials_nvec* gkyl_sundials_nvec_new(struct gkyl_array* arr, bool use_gpu,
-  struct gkyl_comm* comm, struct gkyl_range* local_range);
+struct gkyl_sundials_nvec* gkyl_sundials_nvec_new(struct gkyl_sundials *gksun,
+ struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range);
 
 /**
  * Fetch the Gkeyll array wrapped by an NVECTOR.
@@ -39,5 +47,12 @@ struct gkyl_array* gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *nvin)
  * @param nvin NVECTOR to be destroyed.
  */
 void gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *nvin);
+
+/**
+ * Free resources associates with a SUNDIALS object.
+ *
+ * @param gksun SUNDIALS object to be freed.
+ */
+void gkyl_sundials_release(struct gkyl_sundials *gksun);
 
 #endif

@@ -15,18 +15,21 @@
 // Gkeyll implementation of N_Vector.
 struct _N_VectorContent_Gkeyll
 {
-  sunbooleantype own_vector; // Ownership Gkeyll vector.
-  sunbooleantype use_gpu;    // Whether data is on GPU.
-  // Gkeyll pointers.
-  struct gkyl_comm *comm;         // Communicator.
+  struct gkyl_array *arr; // Array wrapped by this vector.
+  sunbooleantype own_vector; // Ownership of the gkyl_array.
+  sunbooleantype use_gpu; // Whether data is on GPU.
+  struct gkyl_comm *comm; // Communicator.
   struct gkyl_range *local_range; // Local range.
-  struct gkyl_array *arr;         // Array of this vector.
 };
 
 typedef struct _N_VectorContent_Gkeyll* N_VectorContent_Gkeyll;
 
 struct gkyl_sundials_nvec
 {
-  SUNContext sunctx;
   N_Vector nvec;
+};
+
+struct gkyl_sundials
+{
+  SUNContext sunctx;
 };
