@@ -17,32 +17,40 @@
 
 #include <rt_arg_parse.h>
 
-struct brio_wu_ctx
+struct shock_bubble_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma1; // First species adiabatic index.
   double gas_gamma2; // Second species adiabatic index.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
-  double pl; // Left fluid pressure.
-  double Bx_l; // Left magnetic field (x-direction).
-  double By_l; // Left magnetic field (y-direction).
-  double phi1_l; // Left fluid level set value (first species).
+  double Bx_total; // Magnetic field (x-direction).
+  double By_total; // Magnetic field (y-direction).
 
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
-  double pr; // Right fluid pressure.
-  double Bx_r; // Right magnetic field (x-direction).
-  double By_r; // Right magnetic field (y-direction).
-  double phi1_r; // Right fluid level set value (first species).
+  double rho_pre; // Pre-shock fluid mass density.
+  double u_pre; // Pre-shock fluid velocity (x-direction).
+  double phi1_pre; // Pre-shock fluid set value (first species).
+
+  double rho_post; // Post-shock fluid mass density.
+  double u_post; // Post-shock fluid velocity (x-direction).
+  double phi1_post; // Post-shock level set value (first species).
+
+  double rho_bub; // Bubble fluid mass density.
+  double u_bub; // Bubble fluid velocity (x-direction).
+  double phi1_bub; // Bubble level set value (first species).
 
   double light_speed; // Speed of light.
   double b_fact; // Factor of speed of light for magnetic field correction.
 
+  // Derived physical quantities (using normalized code units).
+  double p_pre; // Pre-shock fluid pressure.
+  double p_post; // Post-shock fluid pressure.
+  double p_bub; // Bubble fluid pressure.
+
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   int reinit_freq; // Reinitialization frequency (for level set).
 
@@ -52,64 +60,86 @@ struct brio_wu_ctx
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double x_loc; // Shock location (x-direction).
+  double bub_loc_x; // Bubble location (x-direction).
+  double bub_loc_y; // Bubble location (y-direction).
+  double bub_rad; // Bubble radius.
 };
 
-struct brio_wu_ctx
+struct shock_bubble_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double gas_gamma1 = 1.67; // First species adiabatic index.
-  double gas_gamma2 = 2.0; // Second species adiabatic index.
+  double gas_gamma1 = 1.4; // First species adiabatic index.
+  double gas_gamma2 = 1.648; // Second species adiabatic index.
 
-  double rhol = 1.0; // Left fluid mass density.
-  double ul = 0.0; // Left fluid velocity.
-  double pl = 1.0; // Left fluid pressure.
-  double Bx_l = 0.75; // Left magnetic field (x-direction).
-  double By_l = 1.0; // Left magnetic field (y-direction).
-  double phi1_l = 0.99999; // Left fluid level set value (first species).
+  double Bx_total = 0.0; // Magnetic field (x-direction).
+  double By_total = 0.1; // Magnetic field (y-direction).
 
-  double rhor = 0.125; // Right fluid mass density.
-  double ur = 0.0; // Right fluid velocity.
-  double pr = 0.1; // Right fluid pressure.
-  double Bx_r = 0.75; // Right magnetic field (x-direction).
-  double By_r = -1.0; // Right magnetic field (y-direction).
-  double phi1_r = 0.00001; // Right fluid level set value (first species).
+  double rho_pre = 1.0; // Pre-shock fluid mass density.
+  double u_pre = 0.0; // Pre-shock fluid velocity (x-direction).
+  double phi1_pre = 0.99999; // Pre-shock level set value (first species).
+
+  double rho_post = 1.3764; // Post-shock fluid mass density.
+  double u_post = -0.3336; // Post-shock fluid velocity (x-direction).
+  double phi1_post = 0.99999; // Post-shock level set value (first species).
+
+  double rho_bub = 0.1818; // Bubble fluid mass density.
+  double u_bub = 0.0; // Bubble fluid velocity (x-direction).
+  double phi1_bub = 0.00001; // Bubble level set value (first species).
 
   double light_speed = 1.0; // Speed of light.
   double b_fact = 1.0; // Factor of speed of light for magnetic field correction.
 
+  // Derived physical quantities (using normalized code units).
+  double p_pre = 1.0 / gas_gamma1; // Pre-shock fluid pressure.
+  double p_post = 1.5698 / gas_gamma1; // Post-shock fluid pressure.
+  double p_bub = 1.0 / gas_gamma1; // Bubble fluid pressure.
+
   // Simulation parameters.
-  int Nx = 2048; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
+  int Nx = 325; // Cell count (x-direction).
+  int Ny = 89; // Cell count (y-direction).
+  double Lx = 0.325; // Domain size (x-direction).
+  double Ly = 0.089; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   int reinit_freq = 3; // Reinitialization frequency (for level set).
 
-  double t_end = 0.1; // Final simulation time.
+  double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct brio_wu_ctx ctx = {
+  double x_loc = 0.225; // Shock location (x-direction).
+  double bub_loc_x = 0.175; // Bubble location (x-direction).
+  double bub_loc_y = 0.5 * Ly; // Bubble location (y-direction).
+  double bub_rad = 0.025; // Bubble radius.
+
+  struct shock_bubble_ctx ctx = {
     .gas_gamma1 = gas_gamma1,
     .gas_gamma2 = gas_gamma2,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .Bx_l = Bx_l,
-    .By_l = By_l,
-    .phi1_l = phi1_l,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .Bx_r = Bx_r,
-    .By_r = By_r,
-    .phi1_r = phi1_r,
+    .Bx_total = Bx_total,
+    .By_total = By_total,
+    .rho_pre = rho_pre,
+    .u_pre = u_pre,
+    .phi1_pre = phi1_pre,
+    .rho_post = rho_post,
+    .u_post = u_post,
+    .phi1_post = phi1_post,
+    .rho_bub = rho_bub,
+    .u_bub = u_bub,
+    .phi1_bub = phi1_bub,
     .light_speed = light_speed,
     .b_fact = b_fact,
+    .p_pre = p_pre,
+    .p_post = p_post,
+    .p_bub = p_bub,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .reinit_freq = reinit_freq,
     .t_end = t_end,
@@ -118,6 +148,10 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .x_loc = x_loc,
+    .bub_loc_x = bub_loc_x,
+    .bub_loc_y = bub_loc_y,
+    .bub_rad = bub_rad,
   };
 
   return ctx;
@@ -126,25 +160,35 @@ create_ctx(void)
 void
 evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct brio_wu_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct shock_bubble_ctx *app = ctx;
 
   double gas_gamma1 = app->gas_gamma1;
   double gas_gamma2 = app->gas_gamma2;
 
-  double rhol = app->rhol;
-  double ul = app->ul;
-  double pl = app->pl;
-  double Bx_l = app->Bx_l;
-  double By_l = app->By_l;
-  double phi1_l = app->phi1_l;
+  double Bx_total = app->Bx_total;
+  double By_total = app->By_total;
 
-  double rhor = app->rhor;
-  double ur = app->ur;
-  double pr = app->pr;
-  double Bx_r = app->Bx_r;
-  double By_r = app->By_r;
-  double phi1_r = app->phi1_r;
+  double rho_pre = app->rho_pre;
+  double u_pre = app->u_pre;
+  double phi1_pre = app->phi1_pre;
+
+  double rho_post = app->rho_post;
+  double u_post = app->u_post;
+  double phi1_post = app->phi1_post;
+
+  double rho_bub = app->rho_bub;
+  double u_bub = app->u_bub;
+  double phi1_bub = app->phi1_bub;
+
+  double p_pre = app->p_pre;
+  double p_post = app->p_post;
+  double p_bub = app->p_bub;
+
+  double x_loc = app->x_loc;
+  double bub_loc_x = app->bub_loc_x;
+  double bub_loc_y = app->bub_loc_y;
+  double bub_rad = app->bub_rad;
 
   double rho1 = 0.0;
   double rho2 = 0.0;
@@ -154,33 +198,36 @@ evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double vy_total = 0.0;
   double vz_total = 0.0;
   double p_total = 0.0;
-  double Bx_total = 0.0;
-  double By_total = 0.0;
   double Bz_total = 0.0;
 
-  if (x < 0.5) {
-    rho1 = rhol; // First species fluid mass density (left).
-    rho2 = rhor; // Second species fluid mass density (right).
-    phi1 = phi1_l; // First species level set value (left).
+  double r = sqrt(((x - bub_loc_x) * (x - bub_loc_x)) + ((y - bub_loc_y) * (y - bub_loc_y)));
 
-    vx_total = ul; // Total fluid velocity (left).
-    p_total = pl; // Total fluid pressure (left).
+  if (x > x_loc) {
+    rho1 = rho_post; // First species fluid mass density (post-shock).
+    rho2 = rho_bub; // Second species fluid mass density (bubble).
+    phi1 = phi1_post; // First species level set value (post-shock).
 
-    Bx_total = Bx_l; // Magnetic field (x-direction, left).
-    By_total = By_l; // Magnetic field (y-direction, left).
+    vx_total = u_post; // Total fluid velocity (post-shock).
+    p_total = p_post; // Total fluid pressure (post-shock).
   }
   else {
-    rho1 = rhol; // First species fluid mass density (left).
-    rho2 = rhor; // Second species fluid mass density (right).
-    phi1 = phi1_r; // First species level set value (right).
+    rho1 = rho_pre; // First species fluid mass density (pre-shock).
+    rho2 = rho_bub; // Second species fluid mass density (bubble).
+    phi1 = phi1_pre; // First species level set value (pre-shock).
 
-    vx_total = ur; // Total fluid velocity (right).
-    p_total = pr; // Total fluid pressure (right).
-
-    Bx_total = Bx_r; // Magnetic field (x-direction, right).
-    By_total = By_r; // Magnetic field (y-direction, right).
+    vx_total = u_pre; // Total fluid velocity (pre-shock).
+    p_total = p_pre; // Total fluid pressure (pre-shock).
   }
-  
+
+  if (r < bub_rad) {
+    rho1 = rho_pre; // First species fluid mass density (pre-shock).
+    rho2 = rho_bub; // Second species fluid mass density (bubble).
+    phi1 = phi1_bub; // First species level set value (bubble).
+
+    vx_total = u_bub; // Total fluid velocity (bubble).
+    p_total = p_bub; // Total fluid pressure (bubble).
+  }
+
   double rho_total = (phi1 * rho1) + ((1.0 - phi1) * rho2); // Total fluid density.
 
   double momx_total = rho_total * vx_total; // Total fluid momentum density (x-direction).
@@ -260,9 +307,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct brio_wu_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
   double *gas_gamma_s = gkyl_malloc(sizeof(double[2]));
@@ -280,6 +328,7 @@ main(int argc, char **argv)
     .force_low_order_flux = false,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -289,7 +338,8 @@ main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = { NX };
+  // Create global range.
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -349,12 +399,12 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "mhd_rgfm_brio_wu",
+    .name = "mhd_rgfm_shock_bubble_vertical",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly }, 
+    .cells = { NX, NY },
 
     .cfl_frac = ctx.cfl_frac,
 
@@ -363,7 +413,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };
@@ -483,7 +533,9 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(mhd_rgfm);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
+  gkyl_moment_app_release(app);
+
+  gkyl_free(gas_gamma_s);
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

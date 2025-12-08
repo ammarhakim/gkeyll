@@ -106,7 +106,7 @@ create_ctx(void)
   int reinit_freq = 3; // Reinitialization frequency (for level set).
 
   double t_end = 0.4; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -325,6 +325,8 @@ main(int argc, char **argv)
     .init = evalMHDRGFMInit,
     .ctx = &ctx,
 
+    .force_low_order_flux = false,
+
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
@@ -397,7 +399,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "mhd_rgfm_shock_bubble",
+    .name = "mhd_rgfm_shock_bubble_horizontal",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },

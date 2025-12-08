@@ -137,6 +137,7 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
 
   gkyl_free(v);
   gkyl_free(rho_s);
+  gkyl_free(level_set_s);
 
   return max_abs_speed;
 }
@@ -359,6 +360,194 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
+  int num_species = mhd_rgfm->num_species;
+  double *gas_gamma_s = mhd_rgfm->gas_gamma_s;
+
+  double light_speed = mhd_rgfm->light_speed;
+  double b_fact = mhd_rgfm->b_fact;
+
+  double *vl = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  double *vr = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  gkyl_mhd_rgfm_prim_vars(num_species, gas_gamma_s, ql, vl);
+  gkyl_mhd_rgfm_prim_vars(num_species, gas_gamma_s, qr, vr);
+
+  double vx_total_l = vl[1];
+  double vy_total_l = vl[2];
+  double vz_total_l = vl[3];
+  double p_total_l = vl[4];
+  double Bx_total_l = vl[5];
+  double By_total_l = vl[6];
+  double Bz_total_l = vl[7];
+
+  double *level_set_s_l = gkyl_malloc(sizeof(double[num_species]));
+  double level_set_total_l = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    level_set_s_l[i] = vl[9 + i];
+    level_set_total_l += level_set_s_l[i];
+  }
+  level_set_s_l[num_species - 1] = 1.0 - level_set_total_l;
+
+  double *rho_s_l = gkyl_malloc(sizeof(double[num_species]));
+  for (int i = 0; i < num_species; i++) {
+    rho_s_l[i] = vl[8 + num_species + i];
+  }
+
+  double B_mag_l = sqrt((Bx_total_l * Bx_total_l) + (By_total_l * By_total_l) + (Bz_total_l * Bz_total_l));
+
+  double max_eig_l = 0.0;
+  for (int i = 0; i < num_species; i++) {
+    if (level_set_s_l[i] >= 0.5) {
+      double alfven_eig_l = Bx_total_l / sqrt(rho_s_l[i]);
+      double slow_magnetosonic_eig_l = 0.5 * ((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) -
+        sqrt(((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) * (((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total_l) / rho_s_l[i]) * ((Bx_total_l * Bx_total_l) / rho_s_l[i])));
+      double fast_magnetosonic_eig_l = 0.5 * ((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) +
+        sqrt(((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) * (((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total_l) / rho_s_l[i]) * ((Bx_total_l * Bx_total_l) / rho_s_l[i])));
+
+      if (fabs(alfven_eig_l) > max_eig_l) {
+        max_eig_l = fabs(alfven_eig_l);
+      }
+      if (fabs(slow_magnetosonic_eig_l) > max_eig_l) {
+        max_eig_l = fabs(slow_magnetosonic_eig_l);
+      }
+      if (fabs(fast_magnetosonic_eig_l) > max_eig_l) {
+        max_eig_l = fabs(fast_magnetosonic_eig_l);
+      }
+    }
+  }
+
+  gkyl_free(vl);
+  gkyl_free(rho_s_l);
+  gkyl_free(level_set_s_l);
+
+  double vx_total_r = vr[1];
+  double vy_total_r = vr[2];
+  double vz_total_r = vr[3];
+  double p_total_r = vr[4];
+  double Bx_total_r = vr[5];
+  double By_total_r = vr[6];
+  double Bz_total_r = vr[7];
+
+  double *level_set_s_r = gkyl_malloc(sizeof(double[num_species]));
+  double level_set_total_r = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    level_set_s_r[i] = vr[9 + i];
+    level_set_total_r += level_set_s_r[i];
+  }
+  level_set_s_r[num_species - 1] = 1.0 - level_set_total_r;
+
+  double *rho_s_r = gkyl_malloc(sizeof(double[num_species]));
+  for (int i = 0; i < num_species; i++) {
+    rho_s_r[i] = vr[8 + num_species + i];
+  }
+
+  double B_mag_r = sqrt((Bx_total_r * Bx_total_r) + (By_total_r * By_total_r) + (Bz_total_r * Bz_total_r));
+
+  double max_eig_r = 0.0;
+  for (int i = 0; i < num_species; i++) {
+    if (level_set_s_r[i] >= 0.5) {
+      double alfven_eig_r = Bx_total_r / sqrt(rho_s_r[i]);
+      double slow_magnetosonic_eig_r = 0.5 * ((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) -
+        sqrt(((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) * (((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total_r) / rho_s_r[i]) * ((Bx_total_r * Bx_total_r) / rho_s_r[i])));
+      double fast_magnetosonic_eig_r = 0.5 * ((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) +
+        sqrt(((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) * (((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]))) -
+        (4.0 * ((gas_gamma_s[i] * p_total_r) / rho_s_r[i]) * ((Bx_total_r * Bx_total_r) / rho_s_r[i])));
+
+      if (fabs(alfven_eig_r) > max_eig_r) {
+        max_eig_r = fabs(alfven_eig_r);
+      }
+      if (fabs(slow_magnetosonic_eig_r) > max_eig_r) {
+        max_eig_r = fabs(slow_magnetosonic_eig_r);
+      }
+      if (fabs(fast_magnetosonic_eig_r) > max_eig_r) {
+        max_eig_r = fabs(fast_magnetosonic_eig_r);
+      }
+    }
+  }
+
+  gkyl_free(vr);
+  gkyl_free(rho_s_r);
+  gkyl_free(level_set_s_r);
+
+  double vx_avg = 0.5 * (vx_total_l + vx_total_r);
+  double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
+
+  double sl = fmin(vx_total_l - max_eig_l, vx_total_r - max_eig_r);
+  double sr = fmax(vx_total_l + max_eig_l, vx_total_r + max_eig_r);
+  //double sl = vx_total_l - (0.5 * (max_eig_l + max_eig_r)) + (0.25 * (vx_total_r - vx_total_l));
+  //double sr = vx_total_r + (0.5 * (max_eig_l + max_eig_r)) - (0.25 * (vx_total_r - vx_total_l));
+
+  double *fl = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  double *fr = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, ql, fl);
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, qr, fr);
+
+  double *qm = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  double *w0 = &waves[0], *w1 = &waves[9 + (2 * num_species)];
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+
+    w0[i] = qm[i] - ql[i];
+    w1[i] = qr[i] - qm[i];
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  gkyl_free(fl);
+  gkyl_free(fr);
+  gkyl_free(qm);
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
+  int num_species = mhd_rgfm->num_species;
+
+  const double *w0 = &waves[0], *w1 = &waves[9 + (2 * num_species)];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
@@ -480,7 +669,7 @@ gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, d
       .light_speed = light_speed,
       .b_fact = b_fact,
       .reinit_freq = reinit_freq,
-      .rp_type = WV_MHD_RGFM_RP_LAX,
+      .rp_type = WV_MHD_RGFM_RP_HLL,
       .use_gpu = use_gpu,
     }
   );
@@ -500,13 +689,18 @@ gkyl_wv_mhd_rgfm_inew(const struct gkyl_wv_mhd_rgfm_inp* inp)
 
   mhd_rgfm->light_speed = inp->light_speed;
   mhd_rgfm->b_fact = inp->b_fact;
-  
+
   mhd_rgfm->reinit_freq = inp->reinit_freq;
 
   if (inp->rp_type == WV_MHD_RGFM_RP_LAX) {
     mhd_rgfm->eqn.num_waves = 2;
     mhd_rgfm->eqn.waves_func = wave_lax_l;
     mhd_rgfm->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_MHD_RGFM_RP_HLL) {
+    mhd_rgfm->eqn.num_waves = 2;
+    mhd_rgfm->eqn.waves_func = wave_hll_l;
+    mhd_rgfm->eqn.qfluct_func = qfluct_hll_l;
   }
 
   mhd_rgfm->eqn.flux_jump = flux_jump;
