@@ -12,6 +12,13 @@
 // Give access to the Gkeyll vector from within the NVECTOR.
 #define NV_CONTENT_GKZ(v) ((N_VectorContent_Gkeyll)(v->content))
 
+struct gkyl_sundials_reduction_mem
+{
+  // Memory needed for reductions.
+  double *red_local, *red_global; // Result of local and global reductions.
+  double *red_global_ho; // Result of global reduction on the host.
+};
+
 // Gkeyll implementation of N_Vector.
 struct _N_VectorContent_Gkeyll
 {
@@ -20,16 +27,19 @@ struct _N_VectorContent_Gkeyll
   sunbooleantype use_gpu; // Whether data is on GPU.
   struct gkyl_comm *comm; // Communicator.
   struct gkyl_range *local_range; // Local range.
+  struct gkyl_sundials_reduction_mem *red_mem; // Memory for reductions.
 };
 
 typedef struct _N_VectorContent_Gkeyll* N_VectorContent_Gkeyll;
 
 struct gkyl_sundials_nvec
 {
-  N_Vector nvec;
+  N_Vector nvec; // SUNDIALS NVector.
 };
 
 struct gkyl_sundials
 {
-  SUNContext sunctx;
+  SUNContext sunctx; // Sundials context.
+  struct gkyl_sundials_reduction_mem red_mem; // Memory for reductions.
+  bool use_gpu;
 };

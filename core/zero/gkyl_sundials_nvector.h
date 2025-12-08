@@ -17,9 +17,12 @@ typedef struct gkyl_sundials_nvec gkyl_sundials_nvec; // Sundials nvector.
 /**
  * Create a new SUNDIALS object (e.g. a SUNDIALS context).
  *
+ * @param ncomp Number of components per cell in the state vector to be wrapped
+ *              by SUNDIALS NVECTORS. Used to allocate memory for reductions.
+ * @param use_gpu Whether data wrapped by SUNDIALS NVECTORS lives on the GPU.
  * @return A new SUNDIALS object.
  */
-struct gkyl_sundials* gkyl_sundials_new();
+struct gkyl_sundials* gkyl_sundials_new(int ncomp, bool use_gpu);
 
 /**
  * Create a new NVECTOR wrapping for a given gkyl_array.

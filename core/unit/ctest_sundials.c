@@ -13,23 +13,25 @@ mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-void sundials_init()
+void sundials_init(bool use_gpu)
 {
-  struct gkyl_sundials *gk_sundials = gkyl_sundials_new();
+  // Test creation and destruction of SUNDIALS.
+  int ncomp = 3;
+  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, use_gpu);
 
   gkyl_sundials_release(gk_sundials);
 }
 
 void sundials_nvector_init(bool use_gpu)
 {
-  // Test creation and destruction.
+  // Test creation and destruction of SUNDIALS NVECTOR.
   int num_cells = 10;
   int ncomp = 3;
 
   struct gkyl_comm *comm = 0;
   struct gkyl_range local;
 
-  struct gkyl_sundials *gk_sundials = gkyl_sundials_new();
+  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, use_gpu);
 
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, ncomp, num_cells);
 
@@ -40,12 +42,22 @@ void sundials_nvector_init(bool use_gpu)
   gkyl_sundials_release(gk_sundials);
 }
 
+void sundials_init_ho()
+{
+  sundials_init(false);
+}
+
 void sundials_nvector_init_ho()
 {
   sundials_nvector_init(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
+
+void sundials_init_dev()
+{
+  sundials_init(true);
+}
 
 void sundials_nvector_init_dev()
 {
@@ -55,9 +67,10 @@ void sundials_nvector_init_dev()
 #endif
 
 TEST_LIST = {
-  { "sundials_init", sundials_init },
+  { "sundials_init_ho", sundials_init_ho },
   { "sundials_nvector_init_ho", sundials_nvector_init_ho },
 #ifdef GKYL_HAVE_CUDA
+  { "sundials_init_dev", sundials_init_dev },
   { "sundials_nvector_init_dev", sundials_nvector_init_dev},
 #endif
   { NULL, NULL },
