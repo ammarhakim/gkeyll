@@ -14,9 +14,6 @@
 //// Vector operations.
 //sunrealtype N_VDotProd_Gkeyll(N_Vector x, N_Vector y);
 //void N_VSpace_Gkeyll(N_Vector v, sunindextype* x, sunindextype* y);
-//void N_VDiv_Gkeyll(N_Vector u, N_Vector v, N_Vector w);
-//void N_VAbs_Gkeyll(N_Vector u, N_Vector v);
-//void N_VInv_Gkeyll(N_Vector u, N_Vector v);
 //sunrealtype N_VMaxnorm_Gkeyll(N_Vector u);
 //void N_VAddconst_Gkeyll(N_Vector u, sunrealtype x, N_Vector v);
 
@@ -155,6 +152,21 @@ snvec_destroy(N_Vector nvin)
 }
 
 /**
+ * Set some entries 0. Needed by SUNDIALS but may be removed in
+ * future SUNDIALS releases.
+ *
+ * @param v Input Nvector.
+ * @param x Input index.
+ * @param y Input index.
+ */
+static void
+snvec_space(N_Vector v, sunindextype* x, sunindextype* y)
+{
+  *x = 0;
+  *y = 0;
+}
+
+/**
  * Perform the linear sum z = a*x + b*y where z, x and y are SUNDIALS NVECTORS,
  * and a and b are scalars.
  *
@@ -164,7 +176,7 @@ snvec_destroy(N_Vector nvin)
  * @param y Nvector to multiply by `b` and add to `z`.
  * @param z Output Nvector.
  */
-void
+static void
 snvec_linear_sum(sunrealtype a, N_Vector x, sunrealtype b, N_Vector y, N_Vector z)
 {
   struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
@@ -181,7 +193,7 @@ snvec_linear_sum(sunrealtype a, N_Vector x, sunrealtype b, N_Vector y, N_Vector 
  * @param c Scalar value.
  * @param z Nvector to assign `c` value to.
  */
-void
+static void
 snvec_const(sunrealtype c, N_Vector z)
 {
   struct gkyl_array *zarr = NV_CONTENT_GKZ(z)->arr;
@@ -198,7 +210,7 @@ snvec_const(sunrealtype c, N_Vector z)
  * @param x Nvector to multiply by c.
  * @param z Output Nvector.
  */
-void
+static void
 snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
 {
   struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
@@ -206,6 +218,85 @@ snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
   struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
 
   gkyl_array_set_range(zarr, c, xarr, local_range);
+}
+
+/**
+ * Component-wise division of two SUNDIALS NVECTORS.
+ *   w = u / v.
+ *
+ * @param u Numerator Nvector.
+ * @param v Denominator Nvector.
+ * @param w Output Nvector.
+ */
+static void
+snvec_div(N_Vector u, N_Vector v, N_Vector w)
+{
+  struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
+  struct gkyl_array *v_arr = NV_CONTENT_GKZ(v)->arr;
+  struct gkyl_array *w_arr = NV_CONTENT_GKZ(w)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
+
+  gkyl_array_comp_op_range(w_arr, GKYL_DIV, SUN_RCONST(1.0), u_arr,
+    SUN_RCONST(0.0), v_arr, local_range);
+}
+
+/**
+ * Component-wise absolute value.
+ *   v_k = |u_k|.
+ *
+ * @param u Input Nvector.
+ * @param v Output Nvector.
+ */
+static void
+snvec_abs(N_Vector u, N_Vector v)
+{
+  struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
+  struct gkyl_array *v_arr = NV_CONTENT_GKZ(v)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
+
+  gkyl_array_comp_op_range(v_arr, GKYL_ABS, SUN_RCONST(1.0), u_arr,
+    SUN_RCONST(1.0), v_arr, local_range);
+}
+
+/**
+ * Component-wise reciprocal:
+ *   v_k = 1/u_k.
+ *
+ * @param u Input Nvector.
+ * @param v Output Nvector.
+ */
+static void
+snvec_inv(N_Vector u, N_Vector v)
+{
+  struct gkyl_array *u_arr       = NV_CONTENT_GKZ(u)->arr;
+  struct gkyl_array *v_arr       = NV_CONTENT_GKZ(v)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
+
+  gkyl_array_comp_op_range(v_arr, GKYL_INV, SUN_RCONST(1.0), u_arr,
+    SUN_RCONST(1.0), v_arr, local_range);
+}
+
+/**
+ * Add a constant component-wise:
+ *   v_k = u_k + x.
+ *
+ * @param u Input Nvector.
+ * @param x Scala value to add.
+ * @param v Output Nvector.
+ */
+static void
+snvec_add_const(N_Vector u, sunrealtype x, N_Vector v)
+{
+  struct gkyl_array *u_arr       = NV_CONTENT_GKZ(u)->arr;
+  struct gkyl_array *v_arr       = NV_CONTENT_GKZ(v)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
+
+  gkyl_array_copy_range(v_arr, u_arr, local_range);
+
+  sunindextype ncomp = u_arr->ncomp;
+
+  for (sunindextype i = 0; i < ncomp; ++i)
+    gkyl_array_shiftc_range(v_arr, x, i, local_range);
 }
 
 /**
@@ -226,7 +317,7 @@ snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
  * @param x Nvector to multiply by c.
  * @param z Output Nvector.
  */
-sunrealtype
+static sunrealtype
 snvec_wrms_norm(N_Vector nvx, N_Vector nvwgt)
 {
   struct gkyl_array *nvx_arr = NV_CONTENT_GKZ(nvx)->arr;
@@ -283,17 +374,17 @@ snvec_new_empty(SUNContext sunctx)
   nvec->ops->nvdestroy    = snvec_destroy;
 
   // Data operations.
+  nvec->ops->nvspace     = snvec_space;
   nvec->ops->nvlinearsum = snvec_linear_sum;
   nvec->ops->nvconst     = snvec_const;
   nvec->ops->nvscale     = snvec_scale;
+  nvec->ops->nvdiv       = snvec_div;
+  nvec->ops->nvabs       = snvec_abs;
+  nvec->ops->nvinv       = snvec_inv;
+  nvec->ops->nvaddconst  = snvec_add_const;
   nvec->ops->nvwrmsnorm  = snvec_wrms_norm;
 //  nvec->ops->nvdotprod   = N_VDotProd_Gkeyll;
-//  nvec->ops->nvspace     = N_VSpace_Gkeyll;
-//  nvec->ops->nvdiv       = N_VDiv_Gkeyll;
-//  nvec->ops->nvabs       = N_VAbs_Gkeyll;
-//  nvec->ops->nvinv       = N_VInv_Gkeyll;
 //  nvec->ops->nvmaxnorm   = N_VMaxnorm_Gkeyll;
-//  nvec->ops->nvaddconst  = N_VAddconst_Gkeyll;
 
   // Create content.
   content = 0;
