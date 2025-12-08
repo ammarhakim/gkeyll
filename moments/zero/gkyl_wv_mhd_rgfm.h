@@ -13,6 +13,9 @@ struct gkyl_wv_mhd_rgfm_inp {
   double* gas_gamma_s; // Adiabatic indices for each species in the domain.
   int reinit_freq; // Reinitialization frequency for the level set.
 
+  double light_speed; // Speed of light.
+  double b_fact; // Factor of speed of light for magnetic field correction.
+
   enum gkyl_wv_mhd_rgfm_rp rp_type; // Type of Riemann-solver to use.
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
 };
@@ -27,7 +30,7 @@ struct gkyl_wv_mhd_rgfm_inp {
 * @return Pointer to the ideal MHD Riemann ghost fluid equations object.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, int reinit_freq, bool use_gpu);
+gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, bool use_gpu);
 
 /**
 * Create a new ideal MHD Riemann ghost fluid equations object, from an input context struct.
@@ -55,6 +58,24 @@ gkyl_wv_mhd_rgfm_num_species(const struct gkyl_wv_eqn* wv);
 */
 double*
 gkyl_wv_mhd_rgfm_gas_gamma_s(const struct gkyl_wv_eqn* wv);
+
+/**
+* Get speed of light.
+*
+* @param eqn Ideal MHD Riemann ghost fluid equations object.
+* @return Speed of light.
+*/
+double
+gkyl_wv_mhd_rgfm_light_speed(const struct gkyl_wv_eqn* eqn);
+
+/**
+* Get factor of speed of light for magnetic field correction.
+*
+* @param eqn Ideal MHD Riemann ghost fluid equations object.
+* @return Factor of speed of light for magnetic field correction.
+*/
+double
+gkyl_wv_mhd_rgfm_b_fact(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get reinitialization frequency for the level set.

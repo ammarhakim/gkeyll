@@ -13,6 +13,10 @@ struct wv_mhd_rgfm {
   struct gkyl_wv_eqn eqn; // Base equation object.
   int num_species; // Number of distinct species in the domain.
   double* gas_gamma_s; // Adiabatic indices for each species in the domain.
+
+  double light_speed; // Speed of light.
+  double b_fact; // Factor of speed of light for magnetic field correction.
+
   int reinit_freq; // Reinitialization frequency for the level set.
 };
 
@@ -50,7 +54,7 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
 */
 GKYL_CU_D
 void
-gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double* flux);
+gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, double light_speed, double b_fact, const double* q, double* flux);
 
 /**
 * Compute Riemann variables given the conserved variables.

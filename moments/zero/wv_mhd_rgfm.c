@@ -17,16 +17,17 @@ gkyl_mhd_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, d
   double Bx_total = q[5];
   double By_total = q[6];
   double Bz_total = q[7];
-  double reinit_param = q[7 + (2 * num_species)];
+  double psi_total = q[8];
+  double reinit_param = q[8 + (2 * num_species)];
 
   double *level_set_cons_s = gkyl_malloc(sizeof(double[num_species - 1]));
   for (int i = 0; i < num_species - 1; i++) {
-    level_set_cons_s[i] = q[8 + i];
+    level_set_cons_s[i] = q[9 + i];
   }
 
   double *rho_cons_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_cons_s[i] = q[7 + num_species + i];
+    rho_cons_s[i] = q[8 + num_species + i];
   }
 
   double vx_total = momx_total / rho_total;
@@ -65,13 +66,14 @@ gkyl_mhd_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, d
   v[5] = Bx_total;
   v[6] = By_total;
   v[7] = Bz_total;
+  v[8] = psi_total;
   for (int i = 0; i < num_species - 1; i++) {
-    v[8 + i] = level_set_s[i];
+    v[9 + i] = level_set_s[i];
   }
   for (int i = 0; i < num_species; i++) {
-    v[7 + num_species + i] = rho_s[i];
+    v[8 + num_species + i] = rho_s[i];
   }
-  v[7 + (2 * num_species)] = reinit_param;
+  v[8 + (2 * num_species)] = reinit_param;
 
   gkyl_free(level_set_cons_s);
   gkyl_free(rho_cons_s);
@@ -83,7 +85,7 @@ gkyl_mhd_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, d
 static inline double
 gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* q)
 {
-  double *v = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
+  double *v = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
   gkyl_mhd_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
 
   double vx_total = v[1];
@@ -97,14 +99,14 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
   double *level_set_s = gkyl_malloc(sizeof(double[num_species]));
   double level_set_total = 0.0;
   for (int i = 0; i < num_species - 1; i++) {
-    level_set_s[i] = v[8 + i];
+    level_set_s[i] = v[9 + i];
     level_set_total += level_set_s[i];
   }
   level_set_s[num_species - 1] = 1.0 - level_set_total;
 
   double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_s[i] = v[7 + num_species + i];
+    rho_s[i] = v[8 + num_species + i];
   }
 
   double v_mag = sqrt((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total));
@@ -140,9 +142,9 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
 }
 
 void
-gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double* flux)
+gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, double light_speed, double b_fact, const double* q, double* flux)
 {
-  double *v = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
+  double *v = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
   gkyl_mhd_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
 
   double rho_total = v[0];
@@ -154,19 +156,20 @@ gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double
   double Bx_total = v[5];
   double By_total = v[6];
   double Bz_total = v[7];
-  double reinit_param = v[7 + (2 * num_species)];
+  double psi_total = v[8];
+  double reinit_param = v[8 + (2 * num_species)];
 
   double *level_set_s = gkyl_malloc(sizeof(double[num_species]));
   double level_set_total = 0.0;
   for (int i = 0; i < num_species - 1; i++) {
-    level_set_s[i] = v[8 + i];
+    level_set_s[i] = v[9 + i];
     level_set_total += level_set_s[i];
   }
   level_set_s[num_species - 1] = 1.0 - level_set_total;
 
   double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_s[i] = v[7 + num_species + i];
+    rho_s[i] = v[8 + num_species + i];
   }
 
   flux[0] = rho_total * vx_total;
@@ -176,18 +179,19 @@ gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double
   flux[4] = (E_total * vx_total) + (vx_total * (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))))) -
     (Bx_total * ((vx_total * Bx_total) + (vy_total * By_total) + (Bz_total * Bz_total)));
 
-  flux[5] = 0.0;
+  flux[5] = b_fact * psi_total;
   flux[6] = (By_total * vx_total) - (Bx_total * vy_total);
   flux[7] = (Bz_total * vx_total) - (Bx_total * vz_total);
+  flux[8] = b_fact * (light_speed * light_speed) * Bx_total;
   
   for (int i = 0; i < num_species - 1; i++) {
-    flux[8 + i] = rho_total * (vx_total * level_set_s[i]);
+    flux[9 + i] = rho_total * (vx_total * level_set_s[i]);
   }
   for (int i = 0; i < num_species; i++) {
-    flux[7 + num_species + i] = level_set_s[i] * (vx_total * rho_s[i]);
+    flux[8 + num_species + i] = level_set_s[i] * (vx_total * rho_s[i]);
   }
 
-  flux[7 + (2 * num_species)] = 0.0;
+  flux[8 + (2 * num_species)] = 0.0;
 
   gkyl_free(v);
   gkyl_free(level_set_s);
@@ -201,7 +205,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   int num_species = mhd_rgfm->num_species;
 
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     wout[i] = qin[i];
   }
 }
@@ -213,7 +217,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   int num_species = mhd_rgfm->num_species;
 
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     qout[i] = win[i];
   }
 }
@@ -224,7 +228,7 @@ mhd_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* ski
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     ghost[i] = skin[i];
   }
 
@@ -238,7 +242,7 @@ mhd_rgfm_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* 
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     if ((i > 0 && i < 4) || (i > 4 && i < 8)) {
       ghost[i] = -skin[i];
     }
@@ -255,7 +259,7 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     qlocal[i] = qglobal[i];
   }
 
@@ -275,7 +279,7 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     qglobal[i] = qlocal[i];
   }
 
@@ -294,19 +298,23 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
   double* gas_gamma_s = mhd_rgfm->gas_gamma_s;
+
+  double light_speed = mhd_rgfm->light_speed;
+  double b_fact = mhd_rgfm->b_fact;
+
   int reinit_freq = mhd_rgfm->reinit_freq;
 
   double sl = gkyl_mhd_rgfm_max_abs_speed(num_species, gas_gamma_s, ql);
   double sr = gkyl_mhd_rgfm_max_abs_speed(num_species, gas_gamma_s, qr);
   double amax = fmax(sl, sr);
 
-  double *fl = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
-  double *fr = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
-  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, ql, fl);
-  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, qr, fr);
+  double *fl = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  double *fr = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, ql, fl);
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, qr, fr);
 
-  double *w0 = &waves[0], *w1 = &waves[8 + (2 * num_species)];
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  double *w0 = &waves[0], *w1 = &waves[9 + (2 * num_species)];
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
     w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
   }
@@ -326,11 +334,11 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  const double *w0 = &waves[0], *w1 = &waves[8 + (2 * num_species)];
+  const double *w0 = &waves[0], *w1 = &waves[9 + (2 * num_species)];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -356,14 +364,18 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
   double *gas_gamma_s = mhd_rgfm->gas_gamma_s;
+
+  double light_speed = mhd_rgfm->light_speed;
+  double b_fact = mhd_rgfm->b_fact;
+
   int reinit_freq = mhd_rgfm->reinit_freq;
 
-  double *fr = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
-  double *fl = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
-  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, ql, fl);
-  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, qr, fr);
+  double *fr = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  double *fl = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, ql, fl);
+  gkyl_mhd_rgfm_flux(num_species, gas_gamma_s, light_speed, b_fact, qr, fr);
 
-  for (int m = 0; m < 8 + (2 * num_species); m++) {
+  for (int m = 0; m < 9 + (2 * num_species); m++) {
     flux_jump[m] = fr[m] - fl[m];
   }
 
@@ -383,11 +395,11 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   int num_species = mhd_rgfm->num_species;
   double *gas_gamma_s = mhd_rgfm->gas_gamma_s;
 
-  double *v = gkyl_malloc(sizeof(double[8 + (2 * num_species)]));
+  double *v = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
   gkyl_mhd_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
 
   for (int i = 0; i < num_species; i++) {
-    if (v[8 + num_species + i] < 0.0) {
+    if (v[9 + num_species + i] < 0.0) {
       gkyl_free(v);
       return false;
     }
@@ -395,7 +407,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   
   double level_set_total = 0.0;
   for (int i = 0; i < num_species - 1; i++) {
-    level_set_total += v[8 + i];
+    level_set_total += v[9 + i];
   }
   if (level_set_total > 1.0) {
     gkyl_free(v);
@@ -428,7 +440,7 @@ mhd_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     diag[i] = qin[i];
   }
 }
@@ -439,7 +451,7 @@ mhd_rgfm_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
   int num_species = mhd_rgfm->num_species;
 
-  for (int i = 0; i < 8 + (2 * num_species); i++) {
+  for (int i = 0; i < 9 + (2 * num_species); i++) {
     sout[i] = 0.0;
   }
 }
@@ -460,11 +472,13 @@ gkyl_mhd_rgfm_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, int reinit_freq, bool use_gpu)
+gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, bool use_gpu)
 {
   return gkyl_wv_mhd_rgfm_inew(&(struct gkyl_wv_mhd_rgfm_inp) {
       .num_species = num_species,
       .gas_gamma_s = gas_gamma_s,
+      .light_speed = light_speed,
+      .b_fact = b_fact,
       .reinit_freq = reinit_freq,
       .rp_type = WV_MHD_RGFM_RP_LAX,
       .use_gpu = use_gpu,
@@ -478,11 +492,15 @@ gkyl_wv_mhd_rgfm_inew(const struct gkyl_wv_mhd_rgfm_inp* inp)
   struct wv_mhd_rgfm *mhd_rgfm = gkyl_malloc(sizeof(struct wv_mhd_rgfm));
 
   mhd_rgfm->eqn.type = GKYL_EQN_MHD_RGFM;
-  mhd_rgfm->eqn.num_equations = 8 + (2 * inp->num_species);
-  mhd_rgfm->eqn.num_diag = 8 + (2 * inp->num_species);
+  mhd_rgfm->eqn.num_equations = 9 + (2 * inp->num_species);
+  mhd_rgfm->eqn.num_diag = 9 + (2 * inp->num_species);
 
   mhd_rgfm->num_species = inp->num_species;
   mhd_rgfm->gas_gamma_s = inp->gas_gamma_s;
+
+  mhd_rgfm->light_speed = inp->light_speed;
+  mhd_rgfm->b_fact = inp->b_fact;
+  
   mhd_rgfm->reinit_freq = inp->reinit_freq;
 
   if (inp->rp_type == WV_MHD_RGFM_RP_LAX) {
@@ -533,6 +551,24 @@ gkyl_wv_mhd_rgfm_gas_gamma_s(const struct gkyl_wv_eqn* eqn)
   double *gas_gamma_s = mhd_rgfm->gas_gamma_s;
 
   return gas_gamma_s;
+}
+
+double
+gkyl_wv_mhd_rgfm_light_speed(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
+  double light_speed = mhd_rgfm->light_speed;
+
+  return light_speed;
+}
+
+double
+gkyl_wv_mhd_rgfm_b_fact(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
+  double b_fact = mhd_rgfm->b_fact;
+
+  return b_fact;
 }
 
 int

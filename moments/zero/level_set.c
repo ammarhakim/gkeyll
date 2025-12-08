@@ -157,7 +157,7 @@ mhd_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_ra
 
     double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
 
-    double reinit_param = qnew[7 + (2 * num_species)];
+    double reinit_param = qnew[8 + (2 * num_species)];
 
     if (reinit_param > reinit_freq) {
       double rho_total = qnew[0];
@@ -165,7 +165,7 @@ mhd_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_ra
       bool update_up = false;
       bool update_down = false;
       for (int j = 0; j < num_species - 1; j++) {
-        if (qnew[8 + j] / rho_total >= 0.5) {
+        if (qnew[9 + j] / rho_total >= 0.5) {
           idxl[dir] = i - 1;
           double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
           idxl[dir] = i - 2;
@@ -188,15 +188,15 @@ mhd_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_ra
           double rho_total_rr = qrr[0];
           double rho_total_rrr = qrrr[0];
         
-          if (ql[8 + j] / rho_total_l < 0.5 || qll[8 + j] / rho_total_ll < 0.5 || qlll[8 + j] / rho_total_lll < 0.5 || qr[8 + j] / rho_total_r < 0.5 ||
-            qrr[8 + j] / rho_total_rr < 0.5 || qrrr[8 + j] / rho_total_rrr < 0.5)  {
-            qnew[8 + j] = 0.99999 * rho_total;
-            qnew[7 + num_species + j] = 0.99999 * rho_total;
+          if (ql[9 + j] / rho_total_l < 0.5 || qll[9 + j] / rho_total_ll < 0.5 || qlll[9 + j] / rho_total_lll < 0.5 || qr[9 + j] / rho_total_r < 0.5 ||
+            qrr[9 + j] / rho_total_rr < 0.5 || qrrr[9 + j] / rho_total_rrr < 0.5)  {
+            qnew[9 + j] = 0.99999 * rho_total;
+            qnew[8 + num_species + j] = 0.99999 * rho_total;
             update_up = true;
           }
         }
         
-        if (qnew[8 + j] / rho_total < 0.5) {
+        if (qnew[9 + j] / rho_total < 0.5) {
           idxl[dir] = i - 1;
           double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
           idxl[dir] = i - 2;
@@ -219,26 +219,26 @@ mhd_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_ra
           double rho_total_rr = qrr[0];
           double rho_total_rrr = qrrr[0];
 
-          if (qr[8 + j] / rho_total_r >= 0.5 || qrr[8 + j] / rho_total_rr >= 0.5 || qrrr[8 + j] / rho_total_rrr >= 0.5 || ql[8 + j] / rho_total_l >= 0.5 ||
-            qll[8 + j] / rho_total_ll >= 0.5 || qlll[8 + j] / rho_total_lll >= 0.5) {
-            qnew[8 + j] = 0.00001 * rho_total;
-            qnew[7 + num_species + j] = 0.00001 * rho_total;
+          if (qr[9 + j] / rho_total_r >= 0.5 || qrr[9 + j] / rho_total_rr >= 0.5 || qrrr[9 + j] / rho_total_rrr >= 0.5 || ql[9 + j] / rho_total_l >= 0.5 ||
+            qll[9 + j] / rho_total_ll >= 0.5 || qlll[9 + j] / rho_total_lll >= 0.5) {
+            qnew[9 + j] = 0.00001 * rho_total;
+            qnew[8 + num_species + j] = 0.00001 * rho_total;
             update_down = true;
           }
         }
       }
 
       if (update_up) {
-        qnew[6 + (2 * num_species)] = 0.00001 * rho_total;
+        qnew[7 + (2 * num_species)] = 0.00001 * rho_total;
       }
       if (update_down) {
-        qnew[6 + (2 * num_species)] = 0.99999 * rho_total;
+        qnew[7 + (2 * num_species)] = 0.99999 * rho_total;
       }
 
-      qnew[7 + (2 * num_species)] = 0.0;
+      qnew[8 + (2 * num_species)] = 0.0;
     }
     else {
-      qnew[7 + (2 * num_species)] += 1.0;
+      qnew[8 + (2 * num_species)] += 1.0;
     }
   }
 }
