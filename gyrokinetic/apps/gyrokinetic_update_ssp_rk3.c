@@ -79,7 +79,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar;
         aparout = app->field->apar1;
-        gkyl_array_copy_range(app->field->apar_curr, app->field->apar, &app->local); // Update apar_curr to latest A_parallel.
+        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar, &app->local_ext); // Update apar_curr to latest A_parallel.
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
@@ -149,7 +149,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar1;
         aparout = app->field->aparnew;
-        gkyl_array_copy_range(app->field->apar_curr, app->field->apar1, &app->local); // Update apar_curr to latest A_parallel.
+        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
@@ -225,7 +225,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar1;
         aparout = app->field->aparnew;
-        gkyl_array_copy_range(app->field->apar_curr, app->field->apar1, &app->local); // Update apar_curr to latest A_parallel.
+        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
