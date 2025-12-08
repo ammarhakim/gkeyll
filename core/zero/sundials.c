@@ -316,15 +316,9 @@ snvec_dot_product(N_Vector x, N_Vector y)
   struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(x)->op_mem;
   bool use_gpu = NV_CONTENT_GKZ(y)->use_gpu;
 
-  // z_i^{(k)} = x_i^{(k)} * y_i^{(k)}
-  assert(op_mem->arr_buff->ncomp == x_arr->ncomp);
-  assert(op_mem->arr_buff->size == x_arr->size);
-  gkyl_array_comp_op_range(op_mem->arr_buff, GKYL_PROD, SUN_RCONST(1.0), y_arr,
-                           SUN_RCONST(0.0), x_arr, local_range);
-
-  // Sum reduce z (component-wise).
+  // Sum reduce (component-wise) x_i^{(k)} * y_i^{(k)}.
   int ncomp = x_arr->ncomp;
-  gkyl_array_reduce_range(op_mem->red_local, op_mem->arr_buff, GKYL_SUM, local_range);
+  gkyl_array_reduce_weighted_range(op_mem->red_local, x_arr, y_arr, GKYL_SUM, local_range);
   gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, op_mem->red_local, op_mem->red_global);
 
   if (use_gpu)
@@ -483,7 +477,7 @@ snvec_new_empty(SUNContext sunctx)
 }
 
 struct gkyl_sundials *
-gkyl_sundials_new(int ncomp, long local_ext_vol, bool use_gpu)
+gkyl_sundials_new(int ncomp, bool use_gpu)
 {
   struct gkyl_sundials *gksun = gkyl_malloc(sizeof(*gksun));
 
@@ -504,9 +498,6 @@ gkyl_sundials_new(int ncomp, long local_ext_vol, bool use_gpu)
     gksun->op_mem.red_global = gkyl_malloc(ncomp * sizeof(double));
   }
   gksun->op_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
-
-  // Allocate memory needed for dot product.
-  gksun->op_mem.arr_buff = mkarr(use_gpu, ncomp, local_ext_vol);
 
   return gksun;
 }
@@ -560,8 +551,6 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
     gkyl_free(gksun->op_mem.red_global);
   }
   gkyl_free(gksun->op_mem.red_global_ho);
-
-  gkyl_array_release(gksun->op_mem.arr_buff);
 
   gkyl_free(gksun);
 }

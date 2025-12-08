@@ -18,7 +18,6 @@ struct gkyl_sundials_op_mem
   int ncomp; // Number of components per cell of vectors wrapped.
   double *red_local, *red_global; // Result of local and global reductions.
   double *red_global_ho; // Result of global reduction on the host.
-  struct gkyl_array *arr_buff; // Auxiliary array buffer.
 };
 
 // Gkeyll implementation of N_Vector.

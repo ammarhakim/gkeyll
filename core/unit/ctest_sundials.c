@@ -17,8 +17,7 @@ void sundials_init(bool use_gpu)
 {
   // Test creation and destruction of SUNDIALS.
   int ncomp = 3;
-  long local_ext_vol = 10;
-  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, local_ext_vol, use_gpu);
+  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, use_gpu);
 
   gkyl_sundials_release(gk_sundials);
 }
@@ -32,7 +31,7 @@ void sundials_nvector_init(bool use_gpu)
   struct gkyl_comm *comm = 0;
   struct gkyl_range local;
 
-  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, num_cells, use_gpu);
+  struct gkyl_sundials *gk_sundials = gkyl_sundials_new(ncomp, use_gpu);
 
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, ncomp, num_cells);
 
