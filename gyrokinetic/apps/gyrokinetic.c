@@ -1817,7 +1817,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   }
 
   // Compute Apardot (solves Ohm's law using the previously built RHS).
-  gk_field_em_rhs(app, app->field, fout);
+  gk_field_em_rhs(app, app->field, fin, fout);
   // Update aparout.
   gk_field_copy_range(app->field, aparout, app->field->apardot, &app->local_ext);
 
