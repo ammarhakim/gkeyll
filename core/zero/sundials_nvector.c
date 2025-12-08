@@ -84,7 +84,7 @@ snvec_clone_empty(N_Vector nvin)
   content->arr         = NULL;
   content->comm        = NULL;
   content->local_range = NULL;
-  content->red_mem     = NULL;
+  content->op_mem     = NULL;
 
   return nvout;
 }
@@ -114,7 +114,7 @@ snvec_clone(N_Vector nvin)
   NV_CONTENT_GKZ(nvout)->use_gpu     = NV_CONTENT_GKZ(nvin)->use_gpu;
   NV_CONTENT_GKZ(nvout)->comm        = NV_CONTENT_GKZ(nvin)->comm;
   NV_CONTENT_GKZ(nvout)->local_range = NV_CONTENT_GKZ(nvin)->local_range;
-  NV_CONTENT_GKZ(nvout)->red_mem     = NV_CONTENT_GKZ(nvin)->red_mem;
+  NV_CONTENT_GKZ(nvout)->op_mem     = NV_CONTENT_GKZ(nvin)->op_mem;
   NV_CONTENT_GKZ(nvout)->own_vector  = SUNTRUE;
 
   return nvout;
@@ -300,6 +300,79 @@ snvec_add_const(N_Vector u, sunrealtype x, N_Vector v)
 }
 
 /**
+ * Compute the component-wise dot product between two SUNDIALS NVECTORS.
+ *
+ * @param x Input Nvector.
+ * @param y Input Nvector.
+ * @return Dot product of x and y.
+ */
+static sunrealtype
+snvec_dot_product(N_Vector x, N_Vector y)
+{
+  struct gkyl_array *x_arr = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_array *y_arr = NV_CONTENT_GKZ(y)->arr;
+  struct gkyl_comm *comm = NV_CONTENT_GKZ(y)->comm;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
+  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(x)->op_mem;
+  bool use_gpu = NV_CONTENT_GKZ(y)->use_gpu;
+
+  // z_i^{(k)} = x_i^{(k)} * y_i^{(k)}
+  assert(op_mem->arr_buff->ncomp == x_arr->ncomp);
+  assert(op_mem->arr_buff->size == x_arr->size);
+  gkyl_array_comp_op_range(op_mem->arr_buff, GKYL_PROD, SUN_RCONST(1.0), y_arr,
+                           SUN_RCONST(0.0), x_arr, local_range);
+
+  // Sum reduce z (component-wise).
+  int ncomp = x_arr->ncomp;
+  gkyl_array_reduce_range(op_mem->red_local, op_mem->arr_buff, GKYL_SUM, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, op_mem->red_local, op_mem->red_global);
+
+  if (use_gpu)
+    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp*sizeof(double));
+
+  sunrealtype dot_prod = 0.0;
+  for (sunindextype i = 0; i < ncomp; ++i)
+    dot_prod += op_mem->red_global_ho[i];
+
+  return dot_prod;
+}
+
+/**
+ * Compute the absolute max norm of a SUNDIALS NVECTOR (component-wise).
+ *
+ * @param u Input Nvector.
+ * @return Absolute max norm.
+ */
+static sunrealtype
+snvec_abs_max_norm(N_Vector u)
+{
+  struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
+  struct gkyl_comm *comm = NV_CONTENT_GKZ(u)->comm;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
+  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(u)->op_mem;
+  bool use_gpu = NV_CONTENT_GKZ(u)->use_gpu;
+
+  int ncomp = u_arr->ncomp;
+  assert(op_mem->ncomp == ncomp);
+
+  gkyl_array_reduce_range(op_mem->red_local, u_arr, GKYL_ABS_MAX, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MAX, ncomp, op_mem->red_local, op_mem->red_global);
+
+  if (use_gpu)
+    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double));
+
+  sunrealtype u_abs_max = -1.0;
+  for (sunindextype i = 0; i < ncomp; ++i)
+    u_abs_max = fmax(u_abs_max, op_mem->red_global_ho[i]);
+
+  return u_abs_max;
+}
+
+/**
  * Compute the WRMS norm of a Nvector x (typically the error in the solution
  * vector) given the weight w. The norm is
  *   out = sqrt( (1/N) * sum_i^N w_i |x_i|_C^2 ),
@@ -324,25 +397,26 @@ snvec_wrms_norm(N_Vector nvx, N_Vector nvwgt)
   struct gkyl_array *nvwgt_arr = NV_CONTENT_GKZ(nvwgt)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(nvwgt)->comm;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(nvx)->local_range;
-  struct gkyl_sundials_reduction_mem *red_mem = NV_CONTENT_GKZ(nvx)->red_mem;
+  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(nvx)->op_mem;
   bool use_gpu = NV_CONTENT_GKZ(nvx)->use_gpu;
 
   int ncomp = nvx_arr->ncomp;
+  assert(op_mem->ncomp == ncomp);
 
   // Reduce over cells.
-  gkyl_array_reduce_weighted_range(red_mem->red_local, nvx_arr, nvwgt_arr, GKYL_RMS, local_range);
-  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, red_mem->red_local, red_mem->red_global);
+  gkyl_array_reduce_weighted_range(op_mem->red_local, nvx_arr, nvwgt_arr, GKYL_RMS, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, op_mem->red_local, op_mem->red_global);
 
   if (use_gpu)
-    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double));
+    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double));
 
   // Reduce over components.
   //  sunrealtype red_out = 0.0;
   //  for (sunindextype i = 0; i < ncomp; ++i) red_out += red_ho[i];
   // Use the 0th component because each component should have the same result.
-  sunrealtype red_out = red_mem->red_global_ho[0];
+  sunrealtype red_out = op_mem->red_global_ho[0];
 
   red_out = SUNRsqrt(red_out / local_range->volume);
 
@@ -382,9 +456,9 @@ snvec_new_empty(SUNContext sunctx)
   nvec->ops->nvabs       = snvec_abs;
   nvec->ops->nvinv       = snvec_inv;
   nvec->ops->nvaddconst  = snvec_add_const;
+  nvec->ops->nvdotprod   = snvec_dot_product;
+  nvec->ops->nvmaxnorm   = snvec_abs_max_norm;
   nvec->ops->nvwrmsnorm  = snvec_wrms_norm;
-//  nvec->ops->nvdotprod   = N_VDotProd_Gkeyll;
-//  nvec->ops->nvmaxnorm   = N_VMaxnorm_Gkeyll;
 
   // Create content.
   content = 0;
@@ -403,13 +477,13 @@ snvec_new_empty(SUNContext sunctx)
   content->arr         = 0;
   content->comm        = 0;
   content->local_range = 0;
-  content->red_mem     = 0;
+  content->op_mem      = 0;
 
   return nvec;
 }
 
 struct gkyl_sundials *
-gkyl_sundials_new(int ncomp, bool use_gpu)
+gkyl_sundials_new(int ncomp, long local_ext_vol, bool use_gpu)
 {
   struct gkyl_sundials *gksun = gkyl_malloc(sizeof(*gksun));
 
@@ -418,16 +492,21 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
   // Create the SUNDIALS context object.
   SUNContext_Create(SUN_COMM_NULL, &gksun->sunctx);
 
+  gksun->op_mem.ncomp = ncomp;
+
   // Allocate memory needed for reductions
   if (use_gpu) {
-    gksun->red_mem.red_local  = gkyl_cu_malloc(ncomp * sizeof(double));
-    gksun->red_mem.red_global = gkyl_cu_malloc(ncomp * sizeof(double));
+    gksun->op_mem.red_local  = gkyl_cu_malloc(ncomp * sizeof(double));
+    gksun->op_mem.red_global = gkyl_cu_malloc(ncomp * sizeof(double));
   }
   else {
-    gksun->red_mem.red_local  = gkyl_malloc(ncomp * sizeof(double));
-    gksun->red_mem.red_global = gkyl_malloc(ncomp * sizeof(double));
+    gksun->op_mem.red_local  = gkyl_malloc(ncomp * sizeof(double));
+    gksun->op_mem.red_global = gkyl_malloc(ncomp * sizeof(double));
   }
-  gksun->red_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
+  gksun->op_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
+
+  // Allocate memory needed for dot product.
+  gksun->op_mem.arr_buff = mkarr(use_gpu, ncomp, local_ext_vol);
 
   return gksun;
 }
@@ -444,12 +523,12 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   if (nvout == 0)
     return 0;
 
-  NV_CONTENT_GKZ(nvout)->own_vector  = SUNFALSE;
-  NV_CONTENT_GKZ(nvout)->use_gpu     = gkyl_array_is_cu_dev(arr);
-  NV_CONTENT_GKZ(nvout)->comm        = comm;
+  NV_CONTENT_GKZ(nvout)->own_vector = SUNFALSE;
+  NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
+  NV_CONTENT_GKZ(nvout)->comm = comm;
   NV_CONTENT_GKZ(nvout)->local_range = local_range;
-  NV_CONTENT_GKZ(nvout)->arr         = arr;
-  NV_CONTENT_GKZ(nvout)->red_mem     = &gksun->red_mem;
+  NV_CONTENT_GKZ(nvout)->arr = arr;
+  NV_CONTENT_GKZ(nvout)->op_mem = &gksun->op_mem;
 
   return gsnv;
 }
@@ -473,14 +552,16 @@ void
 gkyl_sundials_release(struct gkyl_sundials *gksun)
 {
   if (gksun->use_gpu) {
-    gkyl_cu_free(gksun->red_mem.red_local);
-    gkyl_cu_free(gksun->red_mem.red_global);
+    gkyl_cu_free(gksun->op_mem.red_local);
+    gkyl_cu_free(gksun->op_mem.red_global);
   }
   else {
-    gkyl_free(gksun->red_mem.red_local);
-    gkyl_free(gksun->red_mem.red_global);
+    gkyl_free(gksun->op_mem.red_local);
+    gkyl_free(gksun->op_mem.red_global);
   }
-  gkyl_free(gksun->red_mem.red_global_ho);
+  gkyl_free(gksun->op_mem.red_global_ho);
+
+  gkyl_array_release(gksun->op_mem.arr_buff);
 
   gkyl_free(gksun);
 }

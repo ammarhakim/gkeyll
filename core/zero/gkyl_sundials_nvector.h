@@ -19,10 +19,13 @@ typedef struct gkyl_sundials_nvec gkyl_sundials_nvec; // Sundials nvector.
  *
  * @param ncomp Number of components per cell in the state vector to be wrapped
  *              by SUNDIALS NVECTORS. Used to allocate memory for reductions.
+ * @param local_ext_vol Volume of local extended range Gkeyll arrays are
+ *                      allocated in. Used to allocate gkyl_array for dot
+ *                      product (should be rewritten so this isn't needed).
  * @param use_gpu Whether data wrapped by SUNDIALS NVECTORS lives on the GPU.
  * @return A new SUNDIALS object.
  */
-struct gkyl_sundials* gkyl_sundials_new(int ncomp, bool use_gpu);
+struct gkyl_sundials* gkyl_sundials_new(int ncomp, long local_ext_vol, bool use_gpu);
 
 /**
  * Create a new NVECTOR wrapping for a given gkyl_array.
@@ -34,7 +37,7 @@ struct gkyl_sundials* gkyl_sundials_new(int ncomp, bool use_gpu);
  * @return A new NVECTOR.
  */
 struct gkyl_sundials_nvec* gkyl_sundials_nvec_new(struct gkyl_sundials *gksun,
- struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range);
+  struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range);
 
 /**
  * Fetch the Gkeyll array wrapped by an NVECTOR.
