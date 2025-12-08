@@ -697,7 +697,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->copy_func = gk_field_copy_range_static;
   f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->apar_curr = gkyl_array_acquire(f->apar);
+  f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->div_mem = NULL;
   if (f->is_em) {
     f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
