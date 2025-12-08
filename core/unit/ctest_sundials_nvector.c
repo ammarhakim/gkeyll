@@ -1,7 +1,7 @@
 #include <acutest.h>
 #include <mpack.h>
 
-#include <gkyl_sundials_nvector_dg.h>
+#include <gkyl_sundials_nvector.h>
 #include <gkyl_util.h>
 
 static struct gkyl_array*
@@ -18,18 +18,14 @@ void sundials_nvector_dg_init(bool use_gpu)
   int num_cells = 10;
   int ncomp = 3;
 
-  // Create the SUNDIALS context object.
-  SUNContext sunctx;
-  SUNContext_Create(SUN_COMM_NULL, &sunctx);
-
   struct gkyl_comm *comm = 0;
   struct gkyl_range local;
 
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, ncomp, num_cells);
 
-  N_Vector a1_snv = gkyl_sundials_nvec_make(a1, use_gpu, comm, &local, sunctx);
+  struct gkyl_sundials_nvec *a1_snv = gkyl_sundials_nvec_new(a1, use_gpu, comm, &local);
 
-  gkyl_sundials_nvec_destroy(a1_snv);
+  gkyl_sundials_nvec_release(a1_snv);
   gkyl_array_release(a1);
 }
 
