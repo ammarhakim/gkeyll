@@ -31,6 +31,7 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       case GKYL_PROD:
       case GKYL_DIV:
       case GKYL_AXPBY:
+      case GKYL_RMS:
         assert(false);
         break;
     }
@@ -39,7 +40,6 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
 #endif
 
   long nc = arr->ncomp;
-  double *arr_d = arr->data;
 
   switch (op) {
     case GKYL_MIN:
@@ -92,6 +92,7 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
     case GKYL_PROD:
     case GKYL_DIV:
     case GKYL_AXPBY:
+    case GKYL_RMS:
       assert(false);
       break;
   }
@@ -126,6 +127,7 @@ gkyl_array_reduce_range(double *res,
       case GKYL_PROD:
       case GKYL_DIV:
       case GKYL_AXPBY:
+      case GKYL_RMS:
         assert(false);
         break;
     }
@@ -193,6 +195,7 @@ gkyl_array_reduce_range(double *res,
     case GKYL_PROD:
     case GKYL_DIV:
     case GKYL_AXPBY:
+    case GKYL_RMS:
       assert(false);
       break;
   }
@@ -238,7 +241,6 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
 #endif
 
   long nc = arr->ncomp;
-  double *arr_d = arr->data;
 
   switch (op) {
     case GKYL_MIN:

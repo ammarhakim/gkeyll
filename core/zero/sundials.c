@@ -4,8 +4,8 @@
  *
  */
 
-#include <gkyl_sundials_nvector.h>
-#include <gkyl_sundials_nvector_priv.h>
+#include <gkyl_sundials.h>
+#include <gkyl_sundials_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>

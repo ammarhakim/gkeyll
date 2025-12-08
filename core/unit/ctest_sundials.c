@@ -1,7 +1,7 @@
 #include <acutest.h>
 #include <mpack.h>
 
-#include <gkyl_sundials_nvector.h>
+#include <gkyl_sundials.h>
 #include <gkyl_util.h>
 
 static struct gkyl_array*
