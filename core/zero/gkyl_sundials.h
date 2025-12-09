@@ -25,7 +25,7 @@ enum gkyl_sundials_lsrk_method {
 struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
   // Function that computes df/dt.
-  double (*dfdt_func)(void *app, double t_curr,
+  int (*dfdt_func)(void *app, double t_curr,
     const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
     const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
   // Function that computes weight for the error norm.

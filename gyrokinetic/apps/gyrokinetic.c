@@ -711,12 +711,19 @@ gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app* app)
 struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
+  app->stat.nup += 1;
+  struct timespec wst = gkyl_wall_clock();
   struct gkyl_update_status st = { .success = true };
+
+  double t_curr = app->tcurr;
 
   gkyl_sundials_evolve(app->gk_sundials, t_new, app->sundials_nvec, t_curr);
 
-  // Check for any CUDA errors during time step
-  if (app->use_gpu) checkCuda(cudaGetLastError());
+  app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
+
+  // Check for any CUDA errors during time step.
+  if (app->use_gpu)
+    checkCuda(cudaGetLastError());
 
   return st;
 }
@@ -1977,13 +1984,14 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
   return dtmin;
 }
 
-double
+int
 gyrokinetic_dfdt_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
 {
   struct gkyl_gyrokinetic_app *app = ctx;
-  gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  return 0;
 }
 
 void

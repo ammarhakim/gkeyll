@@ -3998,7 +3998,21 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
 
-double
+/**
+ * Like gyrokinetic_dfdt (compute the RHS of the gyrokinetic equation)
+ * but pass the app as a void * and return 0 if successful.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fin Input array of charged-species distribution functions.
+ * @param fout Output array of charged-species distribution functions.
+ * @param bflux_out Output array of charged-species boundary fluxes.
+ * @param fin_neut Input array of neutral-species distribution functions.
+ * @param fout_neut Output array of neutral-species distribution functions.
+ * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @return If successful, return 0.
+ */
+int
 gyrokinetic_dfdt_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);

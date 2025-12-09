@@ -560,9 +560,7 @@ dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
   fout[0] = fout_s;
 
   // Call the Gkeyll function that computes df/dt.
-  app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
-
-  return 0; // Return with success.
+  return app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
 }
 
 /**
