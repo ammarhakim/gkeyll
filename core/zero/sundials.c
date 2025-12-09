@@ -484,22 +484,23 @@ snvec_get_array(N_Vector nvin)
 }
 
 /**
- * Error weight function for cellwise norm of y_{n-1}.
+ * Error weight function for error norm of y_{n-1}.
  *
  * @param x Nvector y_{n-1} whose norm appears in the weight.
  * @param w Weight to be computed.
- * @param user_data Data needed by Gkeyll operators.
+ * @param ctx Context with app-specific pointers.
  */
 static int
-snvec_efun_cell_norm(N_Vector x, N_Vector w, void* user_data)
+snvec_efun_cell_norm(N_Vector x, N_Vector w, void *ctx)
 {
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
   struct gkyl_array *x_arr       = NV_CONTENT_GKZ(x)->arr;
   struct gkyl_array *w_arr       = NV_CONTENT_GKZ(w)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
 
-  gkyl_array_error_denom_fac_range(w_arr, reltol, abstol, x_arr, local_range);
-
-  return 0;
+  // Call the Gkeyll function that computes the error weight.
+  return app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
 }
 
 struct gkyl_sundials *
@@ -531,15 +532,15 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
 /**
  * Compute the RHS function df/dt.
  *
- * @param tcurr Current simulation time.
+ * @param t_curr Current simulation time.
  * @param nvec_y State vector f.
  * @param nvec_ydot Time rate of change df/dt.
- * @param user_data Data required by Gkeyll solvers.
+ * @param ctx Context with app-specific pointers.
  */
 static int
-dfdt(sunrealtype tcurr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
+dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
 {
-  struct gkyl_sundials_dfdt_ctx *stt_ctx = ctx;
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
   struct gkyl_array *fin_s  = snvec_get_array(nvec_y);
   struct gkyl_array *fout_s = snvec_get_array(nvec_ydot);
@@ -559,7 +560,7 @@ dfdt(sunrealtype tcurr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
   fout[0] = fout_s;
 
   // Call the Gkeyll function that computes df/dt.
-  stt_ctx->dfdt_func(stt_ctx->app_ptr, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
 
   return 0; // Return with success.
 }
@@ -610,15 +611,15 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
 
   // Call LSRKStepCreateSSP to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
-  // tcurr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->tcurr, nvin, nvin->sunctx);
+  // t_curr, and the initial dependent variable vector nvin.
+  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->t_curr, nvin, nvin->sunctx);
   if (check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0)) {
     fprintf(stderr, "\nError: initializing SSP.\n");
     assert(false);
   }
 
   // Set user data (app pointer).
-  flag = ARKodeSetUserData(gksun->arkode_mem, inp->dfdt_ctx);
+  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
   if (check_flag(&flag, "ARKodeSetUserData", 1)) {
     fprintf(stderr, "\nError: setting user data.\n");
     assert(false);

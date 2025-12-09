@@ -1387,9 +1387,11 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
   // Objects and pointers for SUNDIALS stepper.
+  bool use_sundials;
   struct gkyl_sundials *gk_sundials;
-  struct gkyl_sundials_nvector *sundials_nvec;
-  struct gkyl_sundials_dfdt_ctx sundials_fdot_ctx;
+  struct gkyl_sundials_nvec *sundials_nvec;
+  struct gkyl_sundials_app_ctx sundials_app_ctx;
+  struct gkyl_sundials_stepper_inp sundials_stepper_inp;
 
   struct gkyl_gyrokinetic_stat stat; // statistics
 

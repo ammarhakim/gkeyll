@@ -3,14 +3,15 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_bc_type.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_range.h>
-#include <gkyl_util.h>
-#include <gkyl_velocity_map.h>
-#include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
-#include <gkyl_gk_bc_type.h>
+#include <gkyl_position_map.h>
+#include <gkyl_range.h>
+#include <gkyl_sundials.h>
+#include <gkyl_util.h>
+#include <gkyl_velocity_map.h>
 
 #include <stdbool.h>
 

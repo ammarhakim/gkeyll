@@ -711,15 +711,30 @@ gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app* app)
 struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
-    struct gkyl_update_status st = { .success = true };
+  struct gkyl_update_status st = { .success = true };
 
-  gkyl_sundials_evolve(app->gk_sundials, t_new, app->gk_sundials_nvec, t_curr);
+  gkyl_sundials_evolve(app->gk_sundials, t_new, app->sundials_nvec, t_curr);
 
   // Check for any CUDA errors during time step
   if (app->use_gpu) checkCuda(cudaGetLastError());
+
+  return st;
+}
+
+static int
+gyrokinetic_sundials_error_weight_range(void *ctx, const struct gkyl_array *xarr,
+  struct gkyl_array *wgt, struct gkyl_range *local_range)
+{
+  struct gkyl_gyrokinetic_app *app = ctx;
+  double rel_tol = app->sundials_stepper_inp.rel_tol;
+  double abs_tol = app->sundials_stepper_inp.abs_tol;
+
+  gkyl_array_error_denom_fac_range(wgt, rel_tol, abs_tol, xarr, local_range);
+
   return 0;
 }
 
+void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
   int ns = app->num_species = gk->num_species;
@@ -846,23 +861,23 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Create a sundials Nvector for the Gkeyll state vector.
     assert(ns == 1);
     assert(neuts == 0);
-    app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[i].f, app->comm, &app->species[i].local);
+    app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[0].f, app->comm, &app->species[0].local);
 
     // Initialize SSP RK stepper.
-    app->sundials_fdot_ctx.app_ptr = app;
-    app->sundials_fdot_ctx.dfdt_func = gyrokinetic_dfdt_generic;
+    app->sundials_app_ctx.app_ptr = app;
+    app->sundials_app_ctx.dfdt_func = gyrokinetic_dfdt_generic;
+    app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
 
-    struct gkyl_sundials_stepper_inp stinp = {
-      .rel_tol = gk->sundials_stepper.relative_tolerance,
-      .abs_tol = gk->sundials_stepper.absolute_tolerance,
-      .max_steps = gk->sundials_stepper.max_steps,
-      .num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
-      .gsnv = app->sundials_nvec,
-      .tcurr = 0.0,
-      .method = gk->sundials_stepper.method,
-      .dfdt_ctx = &app->sundials_fdot_ctx,
-    };
-    gkyl_sundials_stepper_init_ssp_rk(&gk->sundials_stepper, &stinp);
+    app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
+    app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
+    app->sundials_stepper_inp.max_steps = gk->sundials_stepper.max_steps,
+    app->sundials_stepper_inp.num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
+    app->sundials_stepper_inp.gsnv = app->sundials_nvec,
+    app->sundials_stepper_inp.t_curr = 0.0,
+    app->sundials_stepper_inp.method = gk->sundials_stepper.method,
+    app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
+
+    gkyl_sundials_stepper_init_ssp_rk(app->gk_sundials, &app->sundials_stepper_inp);
 
     app->update_func = gyrokinetic_update_sundials;
   }
@@ -1967,7 +1982,7 @@ gyrokinetic_dfdt_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
 {
-  struct gkyl_gyrokinetic *app = ctx;
+  struct gkyl_gyrokinetic_app *app = ctx;
   gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
 }
 

@@ -20,13 +20,17 @@ enum gkyl_sundials_lsrk_method {
   GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4, // Optimal 4th order 10-stage SSP RK method.
 };
 
-// Context for function that computes df/dt.
-struct gkyl_sundials_dfdt_ctx {
-  void *app_ptr; // Gkeyll app, as void so it works with multiple apps.
+// Context for functions that are app-specific and/or
+// need to handle the app pointer as a void *.
+struct gkyl_sundials_app_ctx {
+  void *app_ptr; // Gkeyll app.
   // Function that computes df/dt.
-  double (*dfdt_func)(void *app, double tcurr,
+  double (*dfdt_func)(void *app, double t_curr,
     const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
     const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+  // Function that computes weight for the error norm.
+  int (*error_wgt_func)(void *app, const struct gkyl_array *xarr,
+    struct gkyl_array *wgt, struct gkyl_range *local_range);
 };
 
 // Sundials inputs specified in input file.
@@ -36,9 +40,9 @@ struct gkyl_sundials_stepper_inp {
   long max_steps; // Maximum number of steps.
   int num_SSP_stages; // Number of stages in SSP RK method.
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
-  double tcurr; // Current simulation time.
+  double t_curr; // Current simulation time.
   enum gkyl_sundials_lsrk_method method; // Time stepping method.
-  struct gkyl_sundials_dfdt_ctx *dfdt_ctx; // Context to compute df/dt.
+  struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
 };
 
 //
