@@ -873,6 +873,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Create a sundials Nvector for the Gkeyll state vector.
     assert(ns == 1);
     assert(neuts == 0);
+    printf("app->species[0].f = %p\n",app->species[0].f);
     app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[0].f, app->comm, &app->species[0].local);
 
     // Initialize SSP RK stepper.
@@ -1062,6 +1063,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
+
+  if (app->use_sundials)
+    gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_nvec);
 }
 
 void
@@ -3078,6 +3082,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
+
+  if (app->use_sundials)
+    gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_nvec);
+
   return rstat;
 }
 

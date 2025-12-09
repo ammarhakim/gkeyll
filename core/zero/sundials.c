@@ -428,8 +428,10 @@ snvec_new_empty(SUNContext sunctx)
   // Create an empty vector object.
   nvec = 0;
   nvec = N_VNewEmpty(sunctx);
-  if (nvec == 0)
-    return 0;
+  if (nvec == 0) {
+    fprintf(stderr, "Error: Creating empty nvector.\n");
+    assert(false);
+  }
 
   // Attach operations.
   // Constructors, destructors, and utility operations.
@@ -454,8 +456,8 @@ snvec_new_empty(SUNContext sunctx)
   content = 0;
   content = (N_VectorContent_Gkeyll) gkyl_malloc(sizeof *content);
   if (content == 0) {
-    N_VDestroy(nvec);
-    return 0;
+    fprintf(stderr, "Error: Allocating content for nvector.\n");
+    assert(false);
   }
 
   // Attach content.
@@ -527,6 +529,19 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
   gksun->op_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
 
   return gksun;
+}
+
+void
+gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time, struct gkyl_sundials_nvec *gsnv)
+{
+  N_Vector nvin = gsnv->nvec;
+
+  int flag = ARKodeReset(gksun->arkode_mem, time, nvin);
+
+  if (check_flag(&flag, "ARKodeReset", 1)) {
+    fprintf(stderr, "\nError: Resetting ARKode .\n");
+    assert(false);
+  }
 }
 
 /**
@@ -698,11 +713,13 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
 {
   struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
 
-  N_Vector nvout = gsnv->nvec;
+  N_Vector nvout;
   nvout = 0;
   nvout = snvec_new_empty(gksun->sunctx);
-  if (nvout == 0)
-    return 0;
+  if (nvout == 0) {
+    fprintf(stderr, "Error: Creating new empty nvector.\n");
+    assert(false);
+  }
 
   NV_CONTENT_GKZ(nvout)->own_vector = SUNFALSE;
   NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
@@ -711,6 +728,7 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   NV_CONTENT_GKZ(nvout)->arr = arr;
   NV_CONTENT_GKZ(nvout)->op_mem = &gksun->op_mem;
 
+  gsnv->nvec = nvout;
   return gsnv;
 }
 

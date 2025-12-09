@@ -282,7 +282,7 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_relax_1x2v_p1",
+    .name = "gk_lbo_relax_sundials_1x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { 0.0 },
@@ -298,7 +298,7 @@ main(int argc, char **argv)
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,
       .max_steps = 100000,
-      .num_SSP_stages = 3,
+      .num_SSP_stages = 4,
       .method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
     },
 
@@ -340,7 +340,11 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 1.0,
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

@@ -71,6 +71,16 @@ void gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp);
 
 /**
+ * Reset the ARKODE time stepper given a new time and state vector.
+ *
+ * @param gksun SUNDIALS object.
+ * @param time New simulation time.
+ * @param gsnv New state vector.
+ */
+void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
+  struct gkyl_sundials_nvec *gsnv);
+
+/**
  * Evolve the solution contained in a given Nvector from
  * the current to the new time.
  *
