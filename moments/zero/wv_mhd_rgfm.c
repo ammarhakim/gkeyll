@@ -116,12 +116,10 @@ gkyl_mhd_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* 
   for (int i = 0; i < num_species; i++) {
     if (level_set_s[i] >= 0.5) {
       double alfven_eig = Bx_total / sqrt(rho_s[i]);
-      double slow_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) -
-        sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
-      double fast_magnetosonic_eig = 0.5 * ((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) +
-        sqrt(((((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]) * (((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) / rho_s[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total) / rho_s[i]) * ((Bx_total * Bx_total) / rho_s[i])));
+      double slow_magnetosonic_eig = sqrt(((gas_gamma_s[i] * p_total) + (B_mag * B_mag) - sqrt(((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) * ((gas_gamma_s[i] * p_total) + (B_mag * B_mag))
+        - (4.0 * gas_gamma_s[i] * p_total * (Bx_total * Bx_total)))) / (2.0 * rho_s[i]));
+      double fast_magnetosonic_eig = sqrt(((gas_gamma_s[i] * p_total) + (B_mag * B_mag) + sqrt(((gas_gamma_s[i] * p_total) + (B_mag * B_mag)) * ((gas_gamma_s[i] * p_total) + (B_mag * B_mag))
+        - (4.0 * gas_gamma_s[i] * p_total * (Bx_total * Bx_total)))) / (2.0 * rho_s[i]));
 
       if (fabs(v_mag) + fabs(alfven_eig) > max_abs_speed) {
         max_abs_speed = fabs(v_mag) + fabs(alfven_eig);
@@ -174,7 +172,7 @@ gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, double light_speed, dou
   }
 
   flux[0] = rho_total * vx_total;
-  flux[1] = (rho_total * (vx_total * vx_total)) + (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total)))) + (Bx_total * Bx_total);
+  flux[1] = (rho_total * (vx_total * vx_total)) + (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) - (Bz_total * Bz_total)))) + (Bx_total * Bx_total);
   flux[2] = (rho_total * (vx_total * vy_total)) - (Bx_total * By_total);
   flux[3] = (rho_total * (vx_total * vz_total)) - (Bx_total * Bz_total);
   flux[4] = (E_total * vx_total) + (vx_total * (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))))) -
@@ -401,12 +399,10 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   for (int i = 0; i < num_species; i++) {
     if (level_set_s_l[i] >= 0.5) {
       double alfven_eig_l = Bx_total_l / sqrt(rho_s_l[i]);
-      double slow_magnetosonic_eig_l = 0.5 * ((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) -
-        sqrt(((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) * (((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total_l) / rho_s_l[i]) * ((Bx_total_l * Bx_total_l) / rho_s_l[i])));
-      double fast_magnetosonic_eig_l = 0.5 * ((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) +
-        sqrt(((((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]) * (((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) / rho_s_l[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total_l) / rho_s_l[i]) * ((Bx_total_l * Bx_total_l) / rho_s_l[i])));
+      double slow_magnetosonic_eig_l = sqrt(((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l) - sqrt(((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) * ((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l))
+        - (4.0 * gas_gamma_s[i] * p_total_l * (Bx_total_l * Bx_total_l)))) / (2.0 * rho_s_l[i]));
+      double fast_magnetosonic_eig_l = sqrt(((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l) + sqrt(((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l)) * ((gas_gamma_s[i] * p_total_l) + (B_mag_l * B_mag_l))
+        - (4.0 * gas_gamma_s[i] * p_total_l * (Bx_total_l * Bx_total_l)))) / (2.0 * rho_s_l[i]));
 
       if (fabs(alfven_eig_l) > max_eig_l) {
         max_eig_l = fabs(alfven_eig_l);
@@ -451,12 +447,10 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   for (int i = 0; i < num_species; i++) {
     if (level_set_s_r[i] >= 0.5) {
       double alfven_eig_r = Bx_total_r / sqrt(rho_s_r[i]);
-      double slow_magnetosonic_eig_r = 0.5 * ((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) -
-        sqrt(((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) * (((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total_r) / rho_s_r[i]) * ((Bx_total_r * Bx_total_r) / rho_s_r[i])));
-      double fast_magnetosonic_eig_r = 0.5 * ((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) +
-        sqrt(((((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]) * (((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) / rho_s_r[i]))) -
-        (4.0 * ((gas_gamma_s[i] * p_total_r) / rho_s_r[i]) * ((Bx_total_r * Bx_total_r) / rho_s_r[i])));
+      double slow_magnetosonic_eig_r = sqrt(((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r) - sqrt(((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) * ((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r))
+        - (4.0 * gas_gamma_s[i] * p_total_r * (Bx_total_r * Bx_total_r)))) / (2.0 * rho_s_r[i]));
+      double fast_magnetosonic_eig_r = sqrt(((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r) + sqrt(((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r)) * ((gas_gamma_s[i] * p_total_r) + (B_mag_r * B_mag_r))
+        - (4.0 * gas_gamma_s[i] * p_total_r * (Bx_total_r * Bx_total_r)))) / (2.0 * rho_s_r[i]));
 
       if (fabs(alfven_eig_r) > max_eig_r) {
         max_eig_r = fabs(alfven_eig_r);
@@ -479,8 +473,6 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 
   double sl = fmin(vx_total_l - max_eig_l, vx_total_r - max_eig_r);
   double sr = fmax(vx_total_l + max_eig_l, vx_total_r + max_eig_r);
-  //double sl = vx_total_l - (0.5 * (max_eig_l + max_eig_r)) + (0.25 * (vx_total_r - vx_total_l));
-  //double sr = vx_total_r + (0.5 * (max_eig_l + max_eig_r)) - (0.25 * (vx_total_r - vx_total_l));
 
   double *fl = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));
   double *fr = gkyl_malloc(sizeof(double[9 + (2 * num_species)]));

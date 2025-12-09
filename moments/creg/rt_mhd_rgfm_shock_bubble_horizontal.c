@@ -90,7 +90,7 @@ create_ctx(void)
   double phi1_bub = 0.00001; // Bubble level set value (first species).
 
   double light_speed = 1.0; // Speed of light.
-  double b_fact = 1.0; // Factor of speed of light for magnetic field correction.
+  double b_fact = 0.8; // Factor of speed of light for magnetic field correction.
 
   // Derived physical quantities (using normalized code units).
   double p_pre = 1.0 / gas_gamma1; // Pre-shock fluid pressure.
