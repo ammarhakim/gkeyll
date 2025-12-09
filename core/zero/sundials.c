@@ -4,18 +4,14 @@
  *
  */
 
+#ifdef GKYL_HAVE_SUNDIALS
+
 #include <gkyl_sundials.h>
 #include <gkyl_sundials_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <string.h> // for memcpy.
-
-//// Vector operations.
-//sunrealtype N_VDotProd_Gkeyll(N_Vector x, N_Vector y);
-//void N_VSpace_Gkeyll(N_Vector v, sunindextype* x, sunindextype* y);
-//sunrealtype N_VMaxnorm_Gkeyll(N_Vector u);
-//void N_VAddconst_Gkeyll(N_Vector u, sunrealtype x, N_Vector v);
 
 /**
  * Create a new Gkeyll array.
@@ -524,15 +520,194 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   return gsnv;
 }
 
+/**
+ * Return the gkyl_array wrapped by an Nvector.
+ *
+ * @param nvin Input Nvector.
+ */
 struct gkyl_array*
-gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec* gsnv)
+snvec_get_array(N_Vector nvin)
 {
-  N_Vector nvin = gsnv->nvec;
   return NV_CONTENT_GKZ(nvin)->arr;
 }
 
+struct gkyl_array*
+gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
+{
+  N_Vector nvin = gsnv->nvec;
+  return snvec_get_array(nvin);
+}
+
+/**
+ * Compute the RHS function df/dt.
+ *
+ * @param tcurr Current simulation time.
+ * @param nvec_y State vector f.
+ * @param nvec_ydot Time rate of change df/dt.
+ * @param user_data Data required by Gkeyll solvers.
+ */
+static int
+dfdt(sunrealtype tcurr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
+{
+  struct gkyl_sundials_dfdt_ctx *stt_ctx = ctx;
+
+  struct gkyl_array *fin_s  = gkyl_sundials_nvec_get_array(nvec_y);
+  struct gkyl_array *fout_s = gkyl_sundials_nvec_get_array(nvec_ydot);
+
+  // Distribute state vector as Gkeyll expects.
+  int num_species = 1;
+  int num_neut_species = 1;
+  const struct gkyl_array *fin[num_species];
+  struct gkyl_array *fout[num_species];
+  struct gkyl_array **bflux_out[num_species];
+
+  const struct gkyl_array *fin_neut[num_neut_species];
+  struct gkyl_array *fout_neut[num_neut_species];
+  struct gkyl_array **bflux_out_neut[num_neut_species];
+
+  fin[0] = fin_s;
+  fout[0] = fout_s;
+
+  // Call the Gkeyll function that computes df/dt.
+  stt_ctx->dfdt_func(stt_ctx->app_ptr, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+
+  return 0; // Return with success.
+}
+
+/**
+ * Translate the enum used to indicate LSRK method in Gkeyll,
+ * to the LSRK method types in SUNDIALS.
+ *
+ * @param gk_lsrk_method LSRK method Gkeyll enum.
+ * @return SUNDIALS LSRK method flag.
+ */
+static ARKODE_LSRKMethodType
+translate_gk_to_sundials_lsrk_method(enum gkyl_sundials_lsrk_method gk_lsrk_method)
+{
+  switch (gk_lsrk_method) {
+    case GKYL_SUNDIALS_LSRK_METHOD_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
+      return ARKODE_LSRK_RKC_2;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
+      return ARKODE_LSRK_RKL_2;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2: // Optimal 2nd order s-stage SSP RK method.
+      return ARKODE_LSRK_SSP_S_2;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3: // Optimal 3rd order s-stage SSP RK method.
+      return ARKODE_LSRK_SSP_S_3;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4: // Optimal 4th order 10-stage SSP RK method.
+      return ARKODE_LSRK_SSP_10_4;
+      break;
+    default:
+      assert(false);
+      break;
+  }
+  return 0;
+}
+
+/**
+ * Error weight function for cellwise norm of y_{n-1}.
+ *
+ * @param x Nvector y_{n-1} whose norm appears in the weight.
+ * @param w Weight to be computed.
+ * @param user_data Data needed by Gkeyll operators.
+ */
+static int
+snvec_efun_cell_norm(N_Vector x, N_Vector w, void* user_data)
+{
+  struct gkyl_array *x_arr       = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_array *w_arr       = NV_CONTENT_GKZ(w)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+  gkyl_array_error_denom_fac_range(w_arr, reltol, abstol, x_arr, local_range);
+
+  return 0;
+}
+
 void
-gkyl_sundials_nvec_release(struct gkyl_sundials_nvec* gsnv)
+gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  int flag;
+  N_Vector nvin = inp->gsnv->nvec;
+  if (*nvin == 0) {
+    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    assert(false);
+  }
+
+  // Call LSRKStepCreateSSP to initialize the ARK timestepper module and
+  // specify the right-hand side function in dfdt, the initial time
+  // tcurr, and the initial dependent variable vector nvin.
+  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->tcurr, *nvin, (*nvin)->sunctx);
+  if (check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0)) {
+    fprintf(stderr, "\nError: initializing SSP.\n");
+    assert(false);
+  }
+
+  // Set user data (app pointer).
+  flag = ARKodeSetUserData(*arkode_mem, inp->dfdt_ctx);
+  if (check_flag(&flag, "ARKodeSetUserData", 1)) {
+    fprintf(stderr, "\nError: setting user data.\n");
+    assert(false);
+  }
+
+  // Specify tolerances.
+  flag = ARKodeSStolerances(*arkode_mem, inp->rel_tol, inp->abs_tol);
+  if (check_flag(&flag, "ARKStepSStolerances", 1)) {
+    fprintf(stderr, "\nError: setting tolerances.\n");
+    assert(false);
+  }
+
+  // Specify max number of steps allowed.
+  flag = ARKodeSetMaxNumSteps(*arkode_mem, inp->max_steps);
+  if (check_flag(&flag, "ARKodeSetMaxNumSteps", 1)) {
+    fprintf(stderr, "\nError: setting max number of steps.\n");
+    assert(false);
+  }
+
+  // Specify the SSP method.
+  flag = LSRKStepSetSSPMethod(gksun->arkode_mem, translate_gk_to_sundials_lsrk_method(inp->method));
+  if (check_flag(&flag, "LSRKStepSetSSPMethod", 1)) {
+    fprintf(stderr, "\nError: initializing SSP.\n");
+    assert(false);
+  }
+
+  // Specify the number of SSP stages.
+  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem, inp->num_SSP_stages);
+  if (check_flag(&flag, "LSRKStepSetNumSSPStages", 1)) {
+    fprintf(stderr, "\nError: setting number of SSP stages.\n");
+    assert(false);
+  }
+
+  // Attach the error function.
+  flag = ARKodeWFtolerances(arkode_mem, snvec_efun_cell_norm);
+  if (check_flag(&flag, "ARKodeWFtolerances", 1)) {
+    fprintf(stderr, "\nError: attaching error function.\n");
+    assert(false);
+  }
+}
+
+int
+gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
+  struct gkyl_sundials_nvec *gsnv, double t_curr)
+{
+  N_Vector nvin = gsnv->nvec;
+
+  // Call integrator to evolve the solution to time t_new.
+  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, t_curr, ARK_NORMAL);
+
+  if (check_flag(&flag, "ARKodeEvolve", 1)) {
+    fprintf(stderr, "\nError: evolving the state vector.\n");
+    assert(false);
+  }
+
+  return flag;
+}
+
+void
+gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
 {
   N_Vector nvin = gsnv->nvec;
   snvec_destroy(nvin);
@@ -554,3 +729,52 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
 
   gkyl_free(gksun);
 }
+
+#else
+
+struct gkyl_sundials*
+gkyl_sundials_new(int ncomp, bool use_gpu)
+{
+  fprintf(stderr, "\nGkeyll was not built with SUNDIALS. Use Gkeyll-native steppers or build Gkeyll with SUNDIALS.\n");
+}
+
+void
+gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  // Do nothing.
+}
+
+int
+gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
+  struct gkyl_sundials_nvec *gsnv, double t_curr)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_release(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+}
+
+struct gkyl_sundials_nvec*
+gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
+  struct gkyl_comm *comm, struct gkyl_range *local_range)
+{
+  // Do nothing.
+}
+
+struct gkyl_array*
+gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
+{
+  // Do nothing.
+}
+
+#endif

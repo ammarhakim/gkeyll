@@ -708,7 +708,18 @@ gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app* app)
   app->post_pos_quasineut_func = gyrokinetic_post_positivity_quasineut_disabled;
 }
 
-void
+struct gkyl_update_status
+gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
+{
+    struct gkyl_update_status st = { .success = true };
+
+  gkyl_sundials_evolve(app->gk_sundials, t_new, app->gk_sundials_nvec, t_curr);
+
+  // Check for any CUDA errors during time step
+  if (app->use_gpu) checkCuda(cudaGetLastError());
+  return 0;
+}
+
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
   int ns = app->num_species = gk->num_species;
@@ -793,28 +804,67 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
-  // Use implicit BGK collisions if specified
-  bool has_implicit_coll_scheme = false;
-  for (int i=0; i<ns; ++i){
-    if (gk->species[i].collisions.is_implicit){
-      has_implicit_coll_scheme = true;
+  app->use_sundials = false;
+  if (!gk->sundials_stepper.enable) {
+    // Use implicit BGK collisions if specified
+    bool has_implicit_coll_scheme = false;
+    for (int i=0; i<ns; ++i){
+      if (gk->species[i].collisions.is_implicit){
+        has_implicit_coll_scheme = true;
+      }
     }
-  }
-  for (int i=0; i<neuts; ++i){
-    if (gk->neut_species[i].collisions.is_implicit){
-      has_implicit_coll_scheme = true;
+    for (int i=0; i<neuts; ++i){
+      if (gk->neut_species[i].collisions.is_implicit){
+        has_implicit_coll_scheme = true;
+      }
     }
-  }
 
-  // Set the appropriate update function for taking a single time step
-  // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
-  // we perform a first-order operator split and treat those terms implicitly.
-  // Otherwise, we default to an SSP-RK3 method. 
-  if (has_implicit_coll_scheme) {
-    app->update_func = gyrokinetic_update_op_split;
+    // Set the appropriate update function for taking a single time step
+    // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
+    // we perform a first-order operator split and treat those terms implicitly.
+    // Otherwise, we default to an SSP-RK3 method. 
+    if (has_implicit_coll_scheme) {
+      app->update_func = gyrokinetic_update_op_split;
+    }
+    else {
+      app->update_func = gyrokinetic_update_ssp_rk3;
+    }
   }
   else {
-    app->update_func = gyrokinetic_update_ssp_rk3;
+    // Step the solution forward with SUNDIALS.
+    app->use_sundials = true;
+
+    int ncomp_max = 0; // Max components per cell among all species.
+    for (int i=0; i<ns; ++i)
+      ncomp_max = ncomp_max < app->species[i].f->ncomp? app->species[i].f->ncomp : ncomp_max;
+
+    for (int i=0; i<neuts; ++i)
+      ncomp_max = ncomp_max < app->neut_species[i].f->ncomp? app->neut_species[i].f->ncomp : ncomp_max;
+
+    app->gk_sundials = gkyl_sundials_new(ncomp_max, app->use_gpu);
+
+    // Create a sundials Nvector for the Gkeyll state vector.
+    assert(ns == 1);
+    assert(neuts == 0);
+    app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[i].f, app->comm, &app->species[i].local);
+
+    // Initialize SSP RK stepper.
+    app->sundials_fdot_ctx.app_ptr = app;
+    app->sundials_fdot_ctx.dfdt_func = gyrokinetic_dfdt_generic;
+
+    struct gkyl_sundials_stepper_inp stinp = {
+      .rel_tol = gk->sundials_stepper.relative_tolerance,
+      .abs_tol = gk->sundials_stepper.absolute_tolerance,
+      .max_steps = gk->sundials_stepper.max_steps,
+      .num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
+      .gsnv = app->sundials_nvec,
+      .tcurr = 0.0,
+      .method = gk->sundials_stepper.method,
+      .dfdt_ctx = &app->sundials_fdot_ctx,
+    };
+    gkyl_sundials_stepper_init_ssp_rk(&gk->sundials_stepper, &stinp);
+
+    app->update_func = gyrokinetic_update_sundials;
   }
 
   // Pre-compute time-independent factors in omega_H.
@@ -1838,11 +1888,10 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 // ............. End of write functions ............... //
 // 
 
-void
-gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+double
+gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
 {
   double dtmin = DBL_MAX;
 
@@ -1909,6 +1958,27 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     struct gk_species *gks = &app->species[i];
     gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fout[i]);
   }
+
+  return dtmin;
+}
+
+double
+gyrokinetic_dfdt_generic(void* ctx, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+{
+  struct gkyl_gyrokinetic *app = ctx;
+  gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+}
+
+void
+gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
+  struct gkyl_update_status *st)
+{
+  // Compute df/dt
+  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
 
   struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;
@@ -3057,6 +3127,11 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   }
 
   gkyl_dynvec_release(app->dts);
+
+  if (app->use_sundials) {
+    gkyl_sundials_nvec_release(app->sundials_nvec);
+    gkyl_sundials_release(app->gk_sundials);
+  }
 
   gkyl_free(app);
 }

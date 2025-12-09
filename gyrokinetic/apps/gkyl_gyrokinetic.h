@@ -513,6 +513,16 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
 };
 
+// Sundials inputs specified in input file.
+struct gkyl_sundials_inp {
+  bool enable; // Whether to step the solution forward with  SUNDIALS.
+  double relative_tolerance; // Relative tolerance.
+  double absolute_tolerance; // Absolute tolerance.
+  long max_steps; // Maximum number of steps.
+  int num_SSP_stages; // Number of stages in SSP RK method.
+  enum gkyl_sundials_lsrk_method method; // Time stepping method.
+};
+
 // Top-level app parameters
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix.
@@ -522,6 +532,8 @@ struct gkyl_gk {
   int cells[3]; // Config-space cells.
   int poly_order; // Polynomial order.
   enum gkyl_basis_type basis_type; // Type of basis functions to use.
+
+  struct gkyl_sundials_inp sundials_stepper; // SUNDIALS time stepper inputs.
 
   struct gkyl_gyrokinetic_geometry geometry; // Geometry input struct.
 

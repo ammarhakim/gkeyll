@@ -1383,8 +1383,13 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_array *ps_delta_m0_elcs; // Number density of the total elc positivity shift.
   void (*post_pos_quasineut_func)(gkyl_gyrokinetic_app *app, struct gkyl_array *fout[]);
   
-  // pointer to function that takes a single-step of simulation
+  // Pointer to function that takes a single-step of simulation.
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
+
+  // Objects and pointers for SUNDIALS stepper.
+  struct gkyl_sundials *gk_sundials;
+  struct gkyl_sundials_nvector *sundials_nvec;
+  struct gkyl_sundials_dfdt_ctx sundials_fdot_ctx;
 
   struct gkyl_gyrokinetic_stat stat; // statistics
 
@@ -3974,6 +3979,29 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
   struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
 
 /**
+ * Compute the RHS of the gyrokinetic equation (df/dt).
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fin Input array of charged-species distribution functions.
+ * @param fout Output array of charged-species distribution functions.
+ * @param bflux_out Output array of charged-species boundary fluxes.
+ * @param fin_neut Input array of neutral-species distribution functions.
+ * @param fout_neut Output array of neutral-species distribution functions.
+ * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @return Minimum stable time step.
+ */
+double
+gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+
+double
+gyrokinetic_dfdt_generic(void* ctx, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+
+/**
  * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
  * step it requires for stability based on the CFL constraint.
  *
@@ -3987,6 +4015,7 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param fout_neut Output array of neutral-species distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
  * @param st Time stepping status object.
+ * @return Minimum stable time step.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
