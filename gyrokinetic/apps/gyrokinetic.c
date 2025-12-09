@@ -712,14 +712,19 @@ struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
   app->stat.nup += 1;
-  struct timespec wst = gkyl_wall_clock();
   struct gkyl_update_status st = { .success = true };
 
   double t_curr = app->tcurr;
+  double t_new = t_curr + dt0;
+
+  struct timespec wst = gkyl_wall_clock();
 
   gkyl_sundials_evolve(app->gk_sundials, t_new, app->sundials_nvec, t_curr);
 
   app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
+
+  st.dt_actual = dt0;
+  st.dt_suggested = dt0;
 
   // Check for any CUDA errors during time step.
   if (app->use_gpu)
