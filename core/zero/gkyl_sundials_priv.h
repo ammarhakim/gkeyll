@@ -9,6 +9,7 @@
 #include <sundials/sundials_math.h>
 #include <sundials/sundials_nvector.h>
 #include <sundials/sundials_types.h> // Definition of type sunrealtype.
+#include <arkode/arkode_lsrkstep.h> // Access to LSRKStep.
 
 // Give access to the Gkeyll vector from within the NVECTOR.
 #define NV_CONTENT_GKZ(v) ((N_VectorContent_Gkeyll)(v->content))

@@ -472,6 +472,36 @@ snvec_new_empty(SUNContext sunctx)
   return nvec;
 }
 
+/**
+ * Return the gkyl_array wrapped by an Nvector.
+ *
+ * @param nvin Input Nvector.
+ */
+struct gkyl_array*
+snvec_get_array(N_Vector nvin)
+{
+  return NV_CONTENT_GKZ(nvin)->arr;
+}
+
+/**
+ * Error weight function for cellwise norm of y_{n-1}.
+ *
+ * @param x Nvector y_{n-1} whose norm appears in the weight.
+ * @param w Weight to be computed.
+ * @param user_data Data needed by Gkeyll operators.
+ */
+static int
+snvec_efun_cell_norm(N_Vector x, N_Vector w, void* user_data)
+{
+  struct gkyl_array *x_arr       = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_array *w_arr       = NV_CONTENT_GKZ(w)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+  gkyl_array_error_denom_fac_range(w_arr, reltol, abstol, x_arr, local_range);
+
+  return 0;
+}
+
 struct gkyl_sundials *
 gkyl_sundials_new(int ncomp, bool use_gpu)
 {
@@ -498,46 +528,6 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
   return gksun;
 }
 
-struct gkyl_sundials_nvec*
-gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
-  struct gkyl_comm *comm, struct gkyl_range *local_range)
-{
-  struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
-
-  N_Vector nvout = gsnv->nvec;
-  nvout = 0;
-  nvout = snvec_new_empty(gksun->sunctx);
-  if (nvout == 0)
-    return 0;
-
-  NV_CONTENT_GKZ(nvout)->own_vector = SUNFALSE;
-  NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
-  NV_CONTENT_GKZ(nvout)->comm = comm;
-  NV_CONTENT_GKZ(nvout)->local_range = local_range;
-  NV_CONTENT_GKZ(nvout)->arr = arr;
-  NV_CONTENT_GKZ(nvout)->op_mem = &gksun->op_mem;
-
-  return gsnv;
-}
-
-/**
- * Return the gkyl_array wrapped by an Nvector.
- *
- * @param nvin Input Nvector.
- */
-struct gkyl_array*
-snvec_get_array(N_Vector nvin)
-{
-  return NV_CONTENT_GKZ(nvin)->arr;
-}
-
-struct gkyl_array*
-gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
-{
-  N_Vector nvin = gsnv->nvec;
-  return snvec_get_array(nvin);
-}
-
 /**
  * Compute the RHS function df/dt.
  *
@@ -551,8 +541,8 @@ dfdt(sunrealtype tcurr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
 {
   struct gkyl_sundials_dfdt_ctx *stt_ctx = ctx;
 
-  struct gkyl_array *fin_s  = gkyl_sundials_nvec_get_array(nvec_y);
-  struct gkyl_array *fout_s = gkyl_sundials_nvec_get_array(nvec_ydot);
+  struct gkyl_array *fin_s  = snvec_get_array(nvec_y);
+  struct gkyl_array *fout_s = snvec_get_array(nvec_ydot);
 
   // Distribute state vector as Gkeyll expects.
   int num_species = 1;
@@ -607,32 +597,13 @@ translate_gk_to_sundials_lsrk_method(enum gkyl_sundials_lsrk_method gk_lsrk_meth
   return 0;
 }
 
-/**
- * Error weight function for cellwise norm of y_{n-1}.
- *
- * @param x Nvector y_{n-1} whose norm appears in the weight.
- * @param w Weight to be computed.
- * @param user_data Data needed by Gkeyll operators.
- */
-static int
-snvec_efun_cell_norm(N_Vector x, N_Vector w, void* user_data)
-{
-  struct gkyl_array *x_arr       = NV_CONTENT_GKZ(x)->arr;
-  struct gkyl_array *w_arr       = NV_CONTENT_GKZ(w)->arr;
-  struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
-
-  gkyl_array_error_denom_fac_range(w_arr, reltol, abstol, x_arr, local_range);
-
-  return 0;
-}
-
 void
 gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
 {
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
-  if (*nvin == 0) {
+  if (nvin == 0) {
     fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
     assert(false);
   }
@@ -640,28 +611,28 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   // Call LSRKStepCreateSSP to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // tcurr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->tcurr, *nvin, (*nvin)->sunctx);
+  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->tcurr, nvin, nvin->sunctx);
   if (check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0)) {
     fprintf(stderr, "\nError: initializing SSP.\n");
     assert(false);
   }
 
   // Set user data (app pointer).
-  flag = ARKodeSetUserData(*arkode_mem, inp->dfdt_ctx);
+  flag = ARKodeSetUserData(gksun->arkode_mem, inp->dfdt_ctx);
   if (check_flag(&flag, "ARKodeSetUserData", 1)) {
     fprintf(stderr, "\nError: setting user data.\n");
     assert(false);
   }
 
   // Specify tolerances.
-  flag = ARKodeSStolerances(*arkode_mem, inp->rel_tol, inp->abs_tol);
+  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
   if (check_flag(&flag, "ARKStepSStolerances", 1)) {
     fprintf(stderr, "\nError: setting tolerances.\n");
     assert(false);
   }
 
   // Specify max number of steps allowed.
-  flag = ARKodeSetMaxNumSteps(*arkode_mem, inp->max_steps);
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
   if (check_flag(&flag, "ARKodeSetMaxNumSteps", 1)) {
     fprintf(stderr, "\nError: setting max number of steps.\n");
     assert(false);
@@ -682,7 +653,7 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   }
 
   // Attach the error function.
-  flag = ARKodeWFtolerances(arkode_mem, snvec_efun_cell_norm);
+  flag = ARKodeWFtolerances(gksun->arkode_mem, snvec_efun_cell_norm);
   if (check_flag(&flag, "ARKodeWFtolerances", 1)) {
     fprintf(stderr, "\nError: attaching error function.\n");
     assert(false);
@@ -696,7 +667,7 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   N_Vector nvin = gsnv->nvec;
 
   // Call integrator to evolve the solution to time t_new.
-  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, t_curr, ARK_NORMAL);
+  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, &t_curr, ARK_NORMAL);
 
   if (check_flag(&flag, "ARKodeEvolve", 1)) {
     fprintf(stderr, "\nError: evolving the state vector.\n");
@@ -704,14 +675,6 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   }
 
   return flag;
-}
-
-void
-gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
-{
-  N_Vector nvin = gsnv->nvec;
-  snvec_destroy(nvin);
-  gkyl_free(gsnv);
 }
 
 void
@@ -728,6 +691,43 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
   gkyl_free(gksun->op_mem.red_global_ho);
 
   gkyl_free(gksun);
+}
+
+struct gkyl_sundials_nvec*
+gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
+  struct gkyl_comm *comm, struct gkyl_range *local_range)
+{
+  struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
+
+  N_Vector nvout = gsnv->nvec;
+  nvout = 0;
+  nvout = snvec_new_empty(gksun->sunctx);
+  if (nvout == 0)
+    return 0;
+
+  NV_CONTENT_GKZ(nvout)->own_vector = SUNFALSE;
+  NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
+  NV_CONTENT_GKZ(nvout)->comm = comm;
+  NV_CONTENT_GKZ(nvout)->local_range = local_range;
+  NV_CONTENT_GKZ(nvout)->arr = arr;
+  NV_CONTENT_GKZ(nvout)->op_mem = &gksun->op_mem;
+
+  return gsnv;
+}
+
+struct gkyl_array*
+gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
+{
+  N_Vector nvin = gsnv->nvec;
+  return snvec_get_array(nvin);
+}
+
+void
+gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
+{
+  N_Vector nvin = gsnv->nvec;
+  snvec_destroy(nvin);
+  gkyl_free(gsnv);
 }
 
 #else
