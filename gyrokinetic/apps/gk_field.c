@@ -489,11 +489,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
             for (int i=0; i<3; i++)
               poisson_bcs.up_value[d].v[i] = bc_up->value[i];
           }
-        }
-	else {
+        } else {
           poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
           poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-	}
+	      }
       }
       // Detect if this process contains an edge in the z dimension.
       // for applying bias at the extremal z planes only.
