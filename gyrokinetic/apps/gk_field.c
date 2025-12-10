@@ -717,7 +717,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
     f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->lapWeightAmpere = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->lapWeightAmpere = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
     f->dApartdtSlvr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     if (app->cdim == 1) {
