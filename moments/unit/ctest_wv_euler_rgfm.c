@@ -141,7 +141,7 @@ test_euler_rgfm_threespecies_basic()
   TEST_CHECK( gkyl_compare(prims[2], vy_total, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[3], vz_total, 1e-16) );
 
-  // For now, we check only that the reconstructed rgfm pressure is of the correct order of magnitude.
+  // For now, we check only that the reconstructed interface pressure is of the correct order of magnitude.
   // This error tolerance can be reduced once we have introduced more physical rgfm rules into the system.
   TEST_CHECK( gkyl_compare(prims[4], p_total, 1e-1) ); 
 
@@ -151,7 +151,7 @@ test_euler_rgfm_threespecies_basic()
   TEST_CHECK( gkyl_compare(prims[8], rho2, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[9], rho3, 1e-16) );
   
-  p_total = prims[4]; // Use the reconstructed rgfm pressure.
+  p_total = prims[4]; // Use the reconstructed interface pressure.
 
   double fluxes[3][11] = {
    { rho_total * vx_total, (rho_total * (vx_total * vx_total)) + p_total, rho_total * (vx_total * vy_total), rho_total * (vx_total * vz_total),
@@ -281,7 +281,7 @@ test_euler_rgfm_twospecies_waves()
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8], &waves[i * 8]);
+      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
     }
 
     double apdq[9], amdq[9];
@@ -370,7 +370,7 @@ test_euler_rgfm_twospecies_waves_2()
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8], &waves[i * 8]);
+      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
     }
 
     double apdq[9], amdq[9];
@@ -463,7 +463,7 @@ test_euler_rgfm_threespecies_waves()
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10], &waves[i * 10]);
+      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 11], &waves[i * 11]);
     }
 
     double apdq[11], amdq[11];
@@ -556,7 +556,7 @@ test_euler_rgfm_threespecies_waves_2()
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10], &waves[i * 10]);
+      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 11], &waves[i * 11]);
     }
 
     double apdq[11], amdq[11];

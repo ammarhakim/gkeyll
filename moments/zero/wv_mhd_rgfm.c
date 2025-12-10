@@ -176,7 +176,7 @@ gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, double light_speed, dou
   flux[2] = (rho_total * (vx_total * vy_total)) - (Bx_total * By_total);
   flux[3] = (rho_total * (vx_total * vz_total)) - (Bx_total * Bz_total);
   flux[4] = (E_total * vx_total) + (vx_total * (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))))) -
-    (Bx_total * ((vx_total * Bx_total) + (vy_total * By_total) + (Bz_total * Bz_total)));
+    (Bx_total * ((vx_total * Bx_total) + (vy_total * By_total) + (vz_total * Bz_total)));
 
   flux[5] = b_fact * psi_total;
   flux[6] = (By_total * vx_total) - (Bx_total * vy_total);
