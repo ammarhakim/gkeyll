@@ -145,6 +145,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
 
   gkyl_mirror_grid_gen_release(geom);
   gkyl_array_release(psi);
+  gkyl_position_map_release(gpm);
 
   cleanup:
 
@@ -346,6 +347,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 
   gkyl_mirror_grid_gen_release(geom);
   gkyl_array_release(psi);
+  gkyl_position_map_release(gpm);
 
   cleanup:
 
