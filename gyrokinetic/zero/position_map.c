@@ -34,6 +34,7 @@ gkyl_position_map_null_new()
   gpm->id = GKYL_PMAP_USER_INPUT;
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
     gpm->ctxs[i] = 0;
   }
   gpm->to_optimize = false;

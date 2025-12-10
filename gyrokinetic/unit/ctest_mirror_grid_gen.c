@@ -9,6 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_position_map.h>
 
 static inline double SQ(double x) { return x*x; };
 
@@ -20,7 +21,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   int cells[] = { 10, 16, 32 };
   int cdim = 3;
 
-  const char *fname = "core/data/unit/wham_hires.geqdsk_psi.gkyl";
+  const char *fname = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl";
   
   // computational grid
   struct gkyl_rect_grid comp_grid;
@@ -42,6 +43,8 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   int nghost[3] = {1,1,1};
   gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *gpm = gkyl_position_map_null_new();
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -61,6 +64,8 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         .fl_coord = fl_coord,
         .include_axis = include_axis,
         .write_psi_cubic = false,
+
+        .position_map = gpm,
       }
     );
 
@@ -214,6 +219,8 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *gpm = gkyl_position_map_null_new();
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -233,7 +240,9 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
         .fl_coord = fl_coord,
         .include_axis = include_axis,
         .write_psi_cubic = false,
-        .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl"
+        .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
+
+        .position_map = gpm,
       }
     );
 
