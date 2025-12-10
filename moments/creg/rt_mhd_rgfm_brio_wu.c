@@ -45,6 +45,7 @@ struct brio_wu_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
   int reinit_freq; // Reinitialization frequency (for level set).
+  double surface_tension; // Surface tension (for level set).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -83,6 +84,7 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   int reinit_freq = 3; // Reinitialization frequency (for level set).
+  double surface_tension = 0.0; // Surface tension (for level set).
 
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -112,6 +114,7 @@ create_ctx(void)
     .Lx = Lx,
     .cfl_frac = cfl_frac,
     .reinit_freq = reinit_freq,
+    .surface_tension = surface_tension,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -268,7 +271,7 @@ main(int argc, char **argv)
   double *gas_gamma_s = gkyl_malloc(sizeof(double[2]));
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
-  struct gkyl_wv_eqn *mhd_rgfm = gkyl_wv_mhd_rgfm_new(2, gas_gamma_s, ctx.light_speed, ctx.b_fact, ctx.reinit_freq, app_args.use_gpu);
+  struct gkyl_wv_eqn *mhd_rgfm = gkyl_wv_mhd_rgfm_new(2, gas_gamma_s, ctx.light_speed, ctx.b_fact, ctx.reinit_freq, ctx.surface_tension, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "mhd_rgfm",

@@ -13,6 +13,7 @@ struct gkyl_wv_mhd_rgfm_inp {
   int num_species; // Number of distinct species in the domain.
   double* gas_gamma_s; // Adiabatic indices for each species in the domain.
   int reinit_freq; // Reinitialization frequency for the level set.
+  double surface_tension; // Surface tension force for the level set.
 
   double light_speed; // Speed of light.
   double b_fact; // Factor of speed of light for magnetic field correction.
@@ -26,12 +27,15 @@ struct gkyl_wv_mhd_rgfm_inp {
 *
 * @param num_species Number of distinct species in the domain.
 * @param gas_gamma_s Adiabatic indices for each species in the domain.
+* @param light_speed Speed of light.
+* @param b_fact Factor of speed of light for magnetic field correction.
 * @param reinit_freq Reinitialization frequency for the level set.
+* @param surface_tension Surface tension force for the level set.
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the ideal MHD Riemann ghost fluid equations object.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, bool use_gpu);
+gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, double surface_tension, bool use_gpu);
 
 /**
 * Create a new ideal MHD Riemann ghost fluid equations object, from an input context struct.
@@ -86,3 +90,12 @@ gkyl_wv_mhd_rgfm_b_fact(const struct gkyl_wv_eqn* eqn);
 */
 int
 gkyl_wv_mhd_rgfm_reinit_freq(const struct gkyl_wv_eqn* wv);
+
+/**
+* Get surface tension force for the level set.
+*
+* @param wv Ideal MHD Riemann ghost fluid equations object.
+* @return Surface tension force for the level set.
+*/
+double
+gkyl_wv_mhd_rgfm_surface_tension(const struct gkyl_wv_eqn* wv);

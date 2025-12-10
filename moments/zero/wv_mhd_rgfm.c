@@ -172,7 +172,7 @@ gkyl_mhd_rgfm_flux(int num_species, double* gas_gamma_s, double light_speed, dou
   }
 
   flux[0] = rho_total * vx_total;
-  flux[1] = (rho_total * (vx_total * vx_total)) + (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) - (Bz_total * Bz_total)))) + (Bx_total * Bx_total);
+  flux[1] = (rho_total * (vx_total * vx_total)) + (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total)))) - (Bx_total * Bx_total);
   flux[2] = (rho_total * (vx_total * vy_total)) - (Bx_total * By_total);
   flux[3] = (rho_total * (vx_total * vz_total)) - (Bx_total * Bz_total);
   flux[4] = (E_total * vx_total) + (vx_total * (p_total + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))))) -
@@ -653,7 +653,7 @@ gkyl_mhd_rgfm_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, bool use_gpu)
+gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, double b_fact, int reinit_freq, double surface_tension, bool use_gpu)
 {
   return gkyl_wv_mhd_rgfm_inew(&(struct gkyl_wv_mhd_rgfm_inp) {
       .num_species = num_species,
@@ -661,6 +661,7 @@ gkyl_wv_mhd_rgfm_new(int num_species, double* gas_gamma_s, double light_speed, d
       .light_speed = light_speed,
       .b_fact = b_fact,
       .reinit_freq = reinit_freq,
+      .surface_tension = surface_tension,
       .rp_type = WV_MHD_RGFM_RP_HLL,
       .use_gpu = use_gpu,
     }
@@ -683,6 +684,7 @@ gkyl_wv_mhd_rgfm_inew(const struct gkyl_wv_mhd_rgfm_inp* inp)
   mhd_rgfm->b_fact = inp->b_fact;
 
   mhd_rgfm->reinit_freq = inp->reinit_freq;
+  mhd_rgfm->surface_tension = inp->surface_tension;
 
   if (inp->rp_type == WV_MHD_RGFM_RP_LAX) {
     mhd_rgfm->eqn.num_waves = 2;
@@ -764,4 +766,13 @@ gkyl_wv_mhd_rgfm_reinit_freq(const struct gkyl_wv_eqn* eqn)
   int reinit_freq = mhd_rgfm->reinit_freq;
 
   return reinit_freq;
+}
+
+double
+gkyl_wv_mhd_rgfm_surface_tension(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd_rgfm *mhd_rgfm = container_of(eqn, struct wv_mhd_rgfm, eqn);
+  double surface_tension = mhd_rgfm->surface_tension;
+
+  return surface_tension;
 }

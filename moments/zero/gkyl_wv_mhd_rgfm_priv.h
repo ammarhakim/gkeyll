@@ -18,6 +18,7 @@ struct wv_mhd_rgfm {
   double b_fact; // Factor of speed of light for magnetic field correction.
 
   int reinit_freq; // Reinitialization frequency for the level set.
+  double surface_tension; // Surface tension force for the level set.
 };
 
 /**
