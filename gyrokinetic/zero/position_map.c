@@ -37,9 +37,11 @@ gkyl_position_map_null_new()
     gpm->map_derivs[i] = gkyl_position_map_identity_slope;
     gpm->ctxs[i] = 0;
   }
+  gpm->use_map_derivs = true;
   gpm->to_optimize = false;
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
   gpm->flags = 0;
