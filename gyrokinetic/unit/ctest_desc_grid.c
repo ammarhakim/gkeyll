@@ -19,6 +19,7 @@
 #include <gkyl_elem_type_priv.h>
 
 // Static function to load a .gkyl file and return the data array as nodal grid
+// Assumes the file is already nodal (grid.cells represents nodes, not computational cells)
 // (static means it doesn't need a header file - only visible in this file)
 static struct gkyl_array*
 load_gkyl_file_to_nodal(const char *filename)
@@ -26,7 +27,7 @@ load_gkyl_file_to_nodal(const char *filename)
     // Prepend relative path to data directory
     // Test is run from gkeyll/ directory, so path is relative to there
     char fullpath[512];
-    snprintf(fullpath, sizeof(fullpath), "W7-X_field-aligned_coords_gkyl/%s", filename);
+    snprintf(fullpath, sizeof(fullpath), "W7X_DESC_GEOMETRY/%s", filename);
 
     // Step 1: Read header to get grid info and number of components
     struct gkyl_rect_grid grid;
@@ -41,24 +42,17 @@ load_gkyl_file_to_nodal(const char *filename)
     // Step 2: Extract number of components from header
     size_t ncomp = hdr.esznc / gkyl_elem_type_size[hdr.etype];
 
-    // Step 3: Create computational range from grid's cell counts
-    // The grid.cells[] array contains cell counts per dimension
-    struct gkyl_range comp_range;
-    gkyl_range_init_from_shape1(&comp_range, grid.ndim, grid.cells);
-    // This uses grid.cells which was read from the file header
-
-    // Step 4: Create nodal range from computational range
+    // Step 3: Treat grid.cells as nodal shape directly (file is already nodal)
+    // For nodal files, grid.cells represents the number of nodes per dimension
     struct gkyl_range nrange;
-    int poly_order = 1;
-    gkyl_gk_geometry_init_nodal_range(&nrange, &comp_range, poly_order);
+    gkyl_range_init_from_shape1(&nrange, grid.ndim, grid.cells);
 
-    // Step 5: Allocate array with correct number of components
+    // Step 4: Allocate array with correct number of components
     struct gkyl_array *data_array = mkarr(false, ncomp, nrange.volume);
 
-    // Step 6: Read the actual data
-    struct gkyl_rect_grid ngrid;
-    gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
-    status = gkyl_grid_sub_array_read(&ngrid, &nrange, data_array, fullpath);
+    // Step 5: Read the actual data using the grid as-is (it's already nodal)
+    // The grid from the file header already represents the nodal structure
+    status = gkyl_grid_sub_array_read(&grid, &nrange, data_array, fullpath);
 
     // Clean up header if needed
     gkyl_array_header_info_release(&hdr);
@@ -74,7 +68,7 @@ load_gkyl_file_to_nodal(const char *filename)
 void test_3xp1(){
     //Load in all corner files and calculate derived quantities
     struct gkyl_array* bmag_corner_nodal = load_gkyl_file_to_nodal("Bmag_corner.gkyl");
-    struct gkyl_array* mc2nu_pos_corner_nodal = load_gkyl_file_to_nodal("rza_corner.gkyl");
+    struct gkyl_array* mc2nu_pos_corner_nodal = load_gkyl_file_to_nodal("raz_corner.gkyl"); // change back to raz
     struct gkyl_array* mc2p_corner_nodal = load_gkyl_file_to_nodal("rzp_corner.gkyl");
     // Check for NULL pointers (file loading failures)
     TEST_CHECK(bmag_corner_nodal != NULL);
@@ -83,13 +77,37 @@ void test_3xp1(){
     if (!bmag_corner_nodal || !mc2p_corner_nodal || !mc2nu_pos_corner_nodal) {
         return; // Exit early if files failed to load
     }
-    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
-    int shape_corner[1] = {(int)bmag_corner_nodal->size};
+    
+    // Load grid structure from one of the corner files to get proper dimensions
+    // Files are already nodal, so grid.cells represents nodes per dimension
+    struct gkyl_rect_grid grid_corner;
+    struct gkyl_array_header_info hdr_corner;
+    char fullpath_corner[512];
+    snprintf(fullpath_corner, sizeof(fullpath_corner), "W7X_DESC_GEOMETRY/Bmag_corner.gkyl");
+    enum gkyl_array_rio_status status_corner = gkyl_grid_sub_array_header_read(&grid_corner, &hdr_corner, fullpath_corner);
+    if (status_corner != GKYL_ARRAY_RIO_SUCCESS) {
+        fprintf(stderr, "Failed to load grid from: %s\n", fullpath_corner);
+        return;
+    }
+    
+    // Files are already nodal, so grid.cells is the nodal shape
+    // Create nodal range directly from grid.cells (which represents nodes)
     struct gkyl_range nrange_corner;
-    gkyl_range_init_from_shape1(&nrange_corner, 1, shape_corner);
+    gkyl_range_init_from_shape1(&nrange_corner, grid_corner.ndim, grid_corner.cells);
+    
+    // Create computational range from nodal range (for poly_order=1, cells = nodes - 1)
+    int poly_order = 1;
+    int comp_cells_corner[GKYL_MAX_DIM];
+    for (int d=0; d<grid_corner.ndim; ++d) {
+        comp_cells_corner[d] = grid_corner.cells[d] - 1;  // nodes - 1 = cells
+    }
+    struct gkyl_range comp_range_corner;
+    gkyl_range_init_from_shape1(&comp_range_corner, grid_corner.ndim, comp_cells_corner);
+    
+    gkyl_array_header_info_release(&hdr_corner);
 
     // Do for interior
-    struct gkyl_array* dxdz_interior_nodal = load_gkyl_file_to_nodal("drzp_drza_I.gkyl");
+    struct gkyl_array* dxdz_interior_nodal = load_gkyl_file_to_nodal("tangents_I.gkyl"); // Fix ordering of this and make it dxyz_draz
     struct gkyl_array* bmag_interior_nodal = load_gkyl_file_to_nodal("Bmag_I.gkyl");
     struct gkyl_array* curlbhat_interior_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_I.gkyl");
     struct gkyl_array* bcart_interior_nodal = load_gkyl_file_to_nodal("B_xyz_I.gkyl");
@@ -101,10 +119,34 @@ void test_3xp1(){
     if (!dxdz_interior_nodal || !bmag_interior_nodal || !curlbhat_interior_nodal || !bcart_interior_nodal) {
         return;
     }
-    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
-    int shape_interior[1] = {(int)bmag_interior_nodal->size};
+    
+    // Load grid structure from one of the interior files to get proper dimensions
+    // Files are already nodal, so grid.cells represents nodes per dimension
+    struct gkyl_rect_grid grid_interior;
+    struct gkyl_array_header_info hdr_interior;
+    char fullpath_interior[512];
+    snprintf(fullpath_interior, sizeof(fullpath_interior), "W7X_DESC_GEOMETRY/Bmag_I.gkyl");
+    enum gkyl_array_rio_status status_interior = gkyl_grid_sub_array_header_read(&grid_interior, &hdr_interior, fullpath_interior);
+    if (status_interior != GKYL_ARRAY_RIO_SUCCESS) {
+        fprintf(stderr, "Failed to load grid from: %s\n", fullpath_interior);
+        return;
+    }
+    
+    // Files are already nodal, so grid.cells is the nodal shape
+    // Create nodal range directly from grid.cells (which represents nodes)
     struct gkyl_range nrange_interior;
-    gkyl_range_init_from_shape1(&nrange_interior, 1, shape_interior);
+    gkyl_range_init_from_shape1(&nrange_interior, grid_interior.ndim, grid_interior.cells);
+    
+    // Create computational range from nodal range (for interior with quad points, cells = nodes / 2)
+    int num_quad_points = poly_order + 1;  // = 2 for poly_order=1
+    int comp_cells_interior[GKYL_MAX_DIM];
+    for (int d=0; d<grid_interior.ndim; ++d) {
+        comp_cells_interior[d] = grid_interior.cells[d] / num_quad_points;  // nodes / 2 = cells
+    }
+    struct gkyl_range comp_range_interior;
+    gkyl_range_init_from_shape1(&comp_range_interior, grid_interior.ndim, comp_cells_interior);
+    
+    gkyl_array_header_info_release(&hdr_interior);
     
     // Then calculate derived quantities
     struct gkyl_range_iter iter_interior;
@@ -339,13 +381,13 @@ void test_3xp1(){
 
 
     // Do again for surfaces
-    struct gkyl_array* dxdz_surface1_nodal = load_gkyl_file_to_nodal("drzp_drza_S1.gkyl");
+    struct gkyl_array* dxdz_surface1_nodal = load_gkyl_file_to_nodal("tangents_S1.gkyl");
     struct gkyl_array* bmag_surface1_nodal = load_gkyl_file_to_nodal("Bmag_S1.gkyl");
     struct gkyl_array* curlbhat_surface1_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S1.gkyl");
-    struct gkyl_array* dxdz_surface2_nodal = load_gkyl_file_to_nodal("drzp_drza_S2.gkyl");
+    struct gkyl_array* dxdz_surface2_nodal = load_gkyl_file_to_nodal("tangents_S2.gkyl");
     struct gkyl_array* bmag_surface2_nodal = load_gkyl_file_to_nodal("Bmag_S2.gkyl");
     struct gkyl_array* curlbhat_surface2_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S2.gkyl");
-    struct gkyl_array* dxdz_surface3_nodal = load_gkyl_file_to_nodal("drzp_drza_S3.gkyl");
+    struct gkyl_array* dxdz_surface3_nodal = load_gkyl_file_to_nodal("tangents_S3.gkyl");
     struct gkyl_array* bmag_surface3_nodal = load_gkyl_file_to_nodal("Bmag_S3.gkyl");
     struct gkyl_array* curlbhat_surface3_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S3.gkyl");
     
@@ -358,12 +400,33 @@ void test_3xp1(){
         !dxdz_surface3_nodal || !bmag_surface3_nodal || !curlbhat_surface3_nodal) {
         return;
     }
-    // Derived quantities
-    // Determine number of nodes from loaded array size (bmag has 1 component, so size = number of nodes)
-    // All surfaces have the same number of nodes, so use surface1
-    int shape_surface[1] = {(int)bmag_surface1_nodal->size};
+    // Load grid structure from one of the surface files to get proper dimensions
+    // Files are already nodal, so grid.cells represents nodes per dimension
+    struct gkyl_rect_grid grid_surface;
+    struct gkyl_array_header_info hdr_surface;
+    char fullpath_surface[512];
+    snprintf(fullpath_surface, sizeof(fullpath_surface), "W7X_DESC_GEOMETRY/Bmag_S1.gkyl");
+    enum gkyl_array_rio_status status_surface = gkyl_grid_sub_array_header_read(&grid_surface, &hdr_surface, fullpath_surface);
+    if (status_surface != GKYL_ARRAY_RIO_SUCCESS) {
+        fprintf(stderr, "Failed to load grid from: %s\n", fullpath_surface);
+        return;
+    }
+    
+    // Files are already nodal, so grid.cells is the nodal shape
+    // Create nodal range directly from grid.cells (which represents nodes)
     struct gkyl_range nrange_surface;
-    gkyl_range_init_from_shape1(&nrange_surface, 1, shape_surface);
+    gkyl_range_init_from_shape1(&nrange_surface, grid_surface.ndim, grid_surface.cells);
+    
+    // Create computational range from nodal range (for surfaces with quad points, cells = nodes / 2)
+    int num_quad_points_surf = poly_order + 1;  // = 2 for poly_order=1
+    int comp_cells_surface[GKYL_MAX_DIM];
+    for (int d=0; d<grid_surface.ndim; ++d) {
+        comp_cells_surface[d] = grid_surface.cells[d] / num_quad_points_surf;  // nodes / 2 = cells
+    }
+    struct gkyl_range comp_range_surface;
+    gkyl_range_init_from_shape1(&comp_range_surface, grid_surface.ndim, comp_cells_surface);
+    
+    gkyl_array_header_info_release(&hdr_surface);
     struct gkyl_range_iter iter_surface;
     gkyl_range_iter_init(&iter_surface, &nrange_surface);  
 
@@ -670,9 +733,16 @@ void test_3xp1(){
     struct gkyl_rect_grid grid_orig;  // Original grid with proper bounds for writing
     struct gkyl_rect_grid grid;       // Grid with dummy bounds for n2m conversion
     struct gkyl_array_header_info hdr;
-    // Use one of the files we already successfully loaded (e.g., bmag_corner_nodal)
-    // All files should have the same grid structure
-    enum gkyl_array_rio_status status = gkyl_grid_sub_array_header_read(&grid_orig, &hdr, "W7-X_field-aligned_coords_gkyl/Bmag_corner.gkyl");
+    // Use the corner grid we already loaded (grid_corner) as the base
+    grid_orig = grid_corner;
+    // Read header to get bounds (we already have the grid structure)
+    char fullpath_orig[512];
+    snprintf(fullpath_orig, sizeof(fullpath_orig), "W7X_DESC_GEOMETRY/Bmag_corner.gkyl");
+    enum gkyl_array_rio_status status = gkyl_grid_sub_array_header_read(&grid_orig, &hdr, fullpath_orig);
+    if (status != GKYL_ARRAY_RIO_SUCCESS) {
+        fprintf(stderr, "Failed to load grid from: %s\n", fullpath_orig);
+        return;
+    }
 
     
     // Copy original grid and set dummy bounds for n2m conversion
@@ -699,25 +769,34 @@ void test_3xp1(){
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
     
     // Helper macro to convert nodal to modal
-    #define N2M_CONVERT(nrange, comp_range, ncomp, nodal, modal) \
-        modal = mkarr(false, ncomp, comp_range.volume * basis.num_basis); \
-        gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, false);
+    // Use nodal range for conversion so modal arrays have same size as nodal arrays
+    #define N2M_CONVERT(nrange, modal_range, ncomp, nodal, modal) \
+        modal = mkarr(false, ncomp, modal_range.volume * basis.num_basis); \
+        gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &modal_range, ncomp, nodal, modal, false);
     
-    #define N2M_CONVERT_INTERIOR(nrange, comp_range, ncomp, nodal, modal) \
-        modal = mkarr(false, ncomp, comp_range.volume * basis.num_basis); \
-        gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, true);
+    #define N2M_CONVERT_INTERIOR(nrange, modal_range, ncomp, nodal, modal) \
+        modal = mkarr(false, ncomp, modal_range.volume * basis.num_basis); \
+        gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &modal_range, ncomp, nodal, modal, true);
     
-    #define N2M_CONVERT_SURFACE(nrange, comp_range, ncomp, nodal, modal, dir) \
-        modal = mkarr(false, ncomp, comp_range.volume * surf_basis.num_basis); \
-        gkyl_nodal_ops_n2m_surface(n2m, &surf_basis, &grid, &nrange, &comp_range, ncomp, nodal, modal, dir);
+    #define N2M_CONVERT_SURFACE(nrange, modal_range, ncomp, nodal, modal, dir) \
+        modal = mkarr(false, ncomp, modal_range.volume * surf_basis.num_basis); \
+        gkyl_nodal_ops_n2m_surface(n2m, &surf_basis, &grid, &nrange, &modal_range, ncomp, nodal, modal, dir);
+    
+    // Create modal ranges that match the grid structure (same as nodal)
+    struct gkyl_range modal_range_corner_conv, modal_range_interior_conv, modal_range_surface_conv;
+    gkyl_range_init_from_shape1(&modal_range_corner_conv, grid_corner.ndim, grid_corner.cells);
+    gkyl_range_init_from_shape1(&modal_range_interior_conv, grid_interior.ndim, grid_interior.cells);
+    gkyl_range_init_from_shape1(&modal_range_surface_conv, grid_surface.ndim, grid_surface.cells);
     
     // Convert corner arrays - use_quad=false for corners
+    // Use modal_range_corner_conv so modal arrays have same size as nodal arrays
     struct gkyl_array *mc2nu_pos_corner_modal, *mc2p_corner_modal, *bmag_corner_modal;
-    N2M_CONVERT(nrange_corner, comp_range, 3, mc2nu_pos_corner_nodal, mc2nu_pos_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 3, mc2p_corner_nodal, mc2p_corner_modal);
-    N2M_CONVERT(nrange_corner, comp_range, 1, bmag_corner_nodal, bmag_corner_modal);
+    N2M_CONVERT(nrange_corner, modal_range_corner_conv, 3, mc2nu_pos_corner_nodal, mc2nu_pos_corner_modal);
+    N2M_CONVERT(nrange_corner, modal_range_corner_conv, 3, mc2p_corner_nodal, mc2p_corner_modal);
+    N2M_CONVERT(nrange_corner, modal_range_corner_conv, 1, bmag_corner_nodal, bmag_corner_modal);
     
     // Convert interior arrays - use_quad=true for interior
+    // Use modal_range_interior_conv so modal arrays have same size as nodal arrays
     struct gkyl_array *dxdz_interior_modal, *bmag_interior_modal, *curlbhat_interior_modal, *bcart_interior_modal;
     struct gkyl_array *B3_interior_modal, *b_i_interior_modal, *bmag_inv_interior_modal, *bmag_inv_sq_interior_modal;
     struct gkyl_array *bioverJB_interior_modal, *cmag_interior_modal, *dualcurlbhat_interior_modal, *dualcurlbhatoverB_interior_modal;
@@ -725,81 +804,82 @@ void test_3xp1(){
     struct gkyl_array *gxxj_interior_modal, *gxyj_interior_modal, *gxzj_interior_modal, *gyyj_interior_modal;
     struct gkyl_array *jacobgeo_interior_modal, *jacobgeo_inv_interior_modal, *jacobtot_interior_modal, *jacobtot_inv_interior_modal;
     struct gkyl_array *normals_interior_modal, *rtg33inv_interior_modal;
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, dxdz_interior_nodal, dxdz_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_interior_nodal, bmag_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, curlbhat_interior_nodal, curlbhat_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, bcart_interior_nodal, bcart_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, B3_interior_nodal, B3_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, b_i_interior_nodal, b_i_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_inv_interior_nodal, bmag_inv_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, bmag_inv_sq_interior_nodal, bmag_inv_sq_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, bioverJB_interior_nodal, bioverJB_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, cmag_interior_nodal, cmag_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlbhat_interior_nodal, dualcurlbhat_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 3, dualcurlbhatoverB_interior_nodal, dualcurlbhatoverB_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, dzdx_interior_nodal, dzdx_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, eps2_interior_nodal, eps2_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 6, g_ij_interior_nodal, g_ij_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 6, gij_interior_nodal, gij_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxxj_interior_nodal, gxxj_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxyj_interior_nodal, gxyj_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gxzj_interior_nodal, gxzj_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, gyyj_interior_nodal, gyyj_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobgeo_interior_nodal, jacobgeo_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobgeo_inv_interior_nodal, jacobgeo_inv_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobtot_interior_nodal, jacobtot_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, jacobtot_inv_interior_nodal, jacobtot_inv_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 9, normals_interior_nodal, normals_interior_modal);
-    N2M_CONVERT_INTERIOR(nrange_interior, comp_range, 1, rtg33inv_interior_nodal, rtg33inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 9, dxdz_interior_nodal, dxdz_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, bmag_interior_nodal, bmag_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, curlbhat_interior_nodal, curlbhat_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, bcart_interior_nodal, bcart_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, B3_interior_nodal, B3_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, b_i_interior_nodal, b_i_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, bmag_inv_interior_nodal, bmag_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, bmag_inv_sq_interior_nodal, bmag_inv_sq_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, bioverJB_interior_nodal, bioverJB_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, cmag_interior_nodal, cmag_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, dualcurlbhat_interior_nodal, dualcurlbhat_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 3, dualcurlbhatoverB_interior_nodal, dualcurlbhatoverB_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 9, dzdx_interior_nodal, dzdx_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, eps2_interior_nodal, eps2_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 6, g_ij_interior_nodal, g_ij_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 6, gij_interior_nodal, gij_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, gxxj_interior_nodal, gxxj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, gxyj_interior_nodal, gxyj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, gxzj_interior_nodal, gxzj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, gyyj_interior_nodal, gyyj_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, jacobgeo_interior_nodal, jacobgeo_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, jacobgeo_inv_interior_nodal, jacobgeo_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, jacobtot_interior_nodal, jacobtot_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, jacobtot_inv_interior_nodal, jacobtot_inv_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 9, normals_interior_nodal, normals_interior_modal);
+    N2M_CONVERT_INTERIOR(nrange_interior, modal_range_interior_conv, 1, rtg33inv_interior_nodal, rtg33inv_interior_modal);
     
     // Convert surface arrays - use_quad=false for surfaces
+    // Use modal_range_surface_conv so modal arrays have same size as nodal arrays
     // Surface 1 arrays - use surface n2m with direction 0
     struct gkyl_array *dxdz_s1_modal, *bmag_s1_modal, *curlbhat_s1_modal;
     struct gkyl_array *B3_s1_modal, *b_i_s1_modal, *cmag_s1_modal, *normcurlbhat_s1_modal;
     struct gkyl_array *jacobgeo_s1_modal, *jacobtot_inv_s1_modal, *normals_s1_modal, *lenr_s1_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface1_nodal, dxdz_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface1_nodal, bmag_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface1_nodal, curlbhat_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface1_nodal, B3_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface1_nodal, b_i_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface1_nodal, cmag_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface1_nodal, normcurlbhat_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface1_nodal, jacobgeo_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface1_nodal, jacobtot_inv_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface1_nodal, normals_s1_modal, 0);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface1_nodal, lenr_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, dxdz_surface1_nodal, dxdz_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, bmag_surface1_nodal, bmag_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, curlbhat_surface1_nodal, curlbhat_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, B3_surface1_nodal, B3_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, b_i_surface1_nodal, b_i_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, cmag_surface1_nodal, cmag_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, normcurlbhat_surface1_nodal, normcurlbhat_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobgeo_surface1_nodal, jacobgeo_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobtot_inv_surface1_nodal, jacobtot_inv_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, normals_surface1_nodal, normals_s1_modal, 0);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, lenr_surface1_nodal, lenr_s1_modal, 0);
     
     // Surface 2 arrays - use surface n2m with direction 1
     struct gkyl_array *dxdz_s2_modal, *bmag_s2_modal, *curlbhat_s2_modal;
     struct gkyl_array *B3_s2_modal, *b_i_s2_modal, *cmag_s2_modal, *normcurlbhat_s2_modal;
     struct gkyl_array *jacobgeo_s2_modal, *jacobtot_inv_s2_modal, *normals_s2_modal, *lenr_s2_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface2_nodal, dxdz_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface2_nodal, bmag_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface2_nodal, curlbhat_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface2_nodal, B3_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface2_nodal, b_i_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface2_nodal, cmag_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface2_nodal, normcurlbhat_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface2_nodal, jacobgeo_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface2_nodal, jacobtot_inv_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface2_nodal, normals_s2_modal, 1);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface2_nodal, lenr_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, dxdz_surface2_nodal, dxdz_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, bmag_surface2_nodal, bmag_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, curlbhat_surface2_nodal, curlbhat_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, B3_surface2_nodal, B3_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, b_i_surface2_nodal, b_i_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, cmag_surface2_nodal, cmag_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, normcurlbhat_surface2_nodal, normcurlbhat_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobgeo_surface2_nodal, jacobgeo_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobtot_inv_surface2_nodal, jacobtot_inv_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, normals_surface2_nodal, normals_s2_modal, 1);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, lenr_surface2_nodal, lenr_s2_modal, 1);
     
     // Surface 3 arrays - use surface n2m with direction 2
     struct gkyl_array *dxdz_s3_modal, *bmag_s3_modal, *curlbhat_s3_modal;
     struct gkyl_array *B3_s3_modal, *b_i_s3_modal, *cmag_s3_modal, *normcurlbhat_s3_modal;
     struct gkyl_array *jacobgeo_s3_modal, *jacobtot_inv_s3_modal, *normals_s3_modal, *lenr_s3_modal;
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, dxdz_surface3_nodal, dxdz_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, bmag_surface3_nodal, bmag_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, curlbhat_surface3_nodal, curlbhat_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, B3_surface3_nodal, B3_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 3, b_i_surface3_nodal, b_i_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, cmag_surface3_nodal, cmag_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, normcurlbhat_surface3_nodal, normcurlbhat_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobgeo_surface3_nodal, jacobgeo_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, jacobtot_inv_surface3_nodal, jacobtot_inv_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 9, normals_surface3_nodal, normals_s3_modal, 2);
-    N2M_CONVERT_SURFACE(nrange_surface, comp_range, 1, lenr_surface3_nodal, lenr_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, dxdz_surface3_nodal, dxdz_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, bmag_surface3_nodal, bmag_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, curlbhat_surface3_nodal, curlbhat_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, B3_surface3_nodal, B3_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 3, b_i_surface3_nodal, b_i_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, cmag_surface3_nodal, cmag_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, normcurlbhat_surface3_nodal, normcurlbhat_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobgeo_surface3_nodal, jacobgeo_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, jacobtot_inv_surface3_nodal, jacobtot_inv_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 9, normals_surface3_nodal, normals_s3_modal, 2);
+    N2M_CONVERT_SURFACE(nrange_surface, modal_range_surface_conv, 1, lenr_surface3_nodal, lenr_s3_modal, 2);
     
     // Debug: Print to both stdout and stderr to ensure we see output
 
@@ -833,17 +913,7 @@ void test_3xp1(){
         }
     #endif
     
-    // Helper macro to write nodal array
-    #define WRITE_NODAL(ngrid, nrange, arr, name) \
-        do { \
-            if (arr != NULL) { \
-                char fname[512]; \
-                snprintf(fname, sizeof(fname), "%s/%s.gkyl", nodal_dir, name); \
-                gkyl_grid_sub_array_write(ngrid, nrange, 0, arr, fname); \
-            } \
-        } while(0)
-    
-    // Helper macro to write modal array
+    // Helper macro to write modal array (cell-centered)
     #define WRITE_MODAL(grid, comp_range, arr, name) \
         do { \
             if (arr != NULL) { \
@@ -853,18 +923,35 @@ void test_3xp1(){
             } \
         } while(0)
     
+    // Helper macro to write nodal arrays (actual nodal data, not converted modal)
+    #define WRITE_NODAL(ngrid, nrange, nodal_arr, name) \
+        do { \
+            if (nodal_arr != NULL) { \
+                char fname[512]; \
+                snprintf(fname, sizeof(fname), "%s/%s.gkyl", nodal_dir, name); \
+                gkyl_grid_sub_array_write(ngrid, nrange, 0, nodal_arr, fname); \
+            } \
+        } while(0)
+    
     // Create nodal grids for writing nodal arrays
     struct gkyl_rect_grid ngrid_corner, ngrid_interior, ngrid_surface;
-    gkyl_gk_geometry_init_nodal_grid(&ngrid_corner, &grid_orig, &nrange_corner);
-    gkyl_gk_geometry_init_nodal_grid(&ngrid_interior, &grid_orig, &nrange_interior);
-    gkyl_gk_geometry_init_nodal_grid(&ngrid_surface, &grid_orig, &nrange_surface);
+    gkyl_gk_geometry_init_nodal_grid(&ngrid_corner, &grid_corner, &nrange_corner);
+    gkyl_gk_geometry_init_nodal_grid(&ngrid_interior, &grid_interior, &nrange_interior);
+    gkyl_gk_geometry_init_nodal_grid(&ngrid_surface, &grid_surface, &nrange_surface);
     
-    // Write corner nodal arrays 
+    // Create ranges for modal arrays that match the grid structure (same as nodal)
+    // Modal arrays should have the same cell counts as nodal arrays in the file header
+    struct gkyl_range modal_range_corner, modal_range_interior, modal_range_surface;
+    gkyl_range_init_from_shape1(&modal_range_corner, grid_corner.ndim, grid_corner.cells);
+    gkyl_range_init_from_shape1(&modal_range_interior, grid_interior.ndim, grid_interior.cells);
+    gkyl_range_init_from_shape1(&modal_range_surface, grid_surface.ndim, grid_surface.cells);
+    
+    // Write corner nodal arrays - use actual nodal arrays
     WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "mc2nu_pos_corner_nodal");
     WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "mc2p_corner_nodal");
     WRITE_NODAL(&ngrid_corner, &nrange_corner, bmag_corner_nodal, "bmag_corner_nodal");
     
-    // Write interior nodal arrays
+    // Write interior nodal arrays - use actual nodal arrays
     WRITE_NODAL(&ngrid_interior, &nrange_interior, dxdz_interior_nodal, "dxdz_interior_nodal");
     WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_interior_nodal, "bmag_interior_nodal");
     WRITE_NODAL(&ngrid_interior, &nrange_interior, curlbhat_interior_nodal, "curlbhat_interior_nodal");
@@ -892,7 +979,7 @@ void test_3xp1(){
     WRITE_NODAL(&ngrid_interior, &nrange_interior, normals_interior_nodal, "normals_interior_nodal");
     WRITE_NODAL(&ngrid_interior, &nrange_interior, rtg33inv_interior_nodal, "rtg33inv_interior_nodal");
     
-    // Write surface 1 nodal arrays 
+    // Write surface 1 nodal arrays - use actual nodal arrays
     WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface1_nodal, "dxdz_surface1_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface1_nodal, "bmag_surface1_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface1_nodal, "curlbhat_surface1_nodal");
@@ -905,7 +992,7 @@ void test_3xp1(){
     WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface1_nodal, "normals_surface1_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface1_nodal, "lenr_surface1_nodal");
     
-    // Write surface 2 nodal arrays 
+    // Write surface 2 nodal arrays
     WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface2_nodal, "dxdz_surface2_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface2_nodal, "bmag_surface2_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface2_nodal, "curlbhat_surface2_nodal");
@@ -918,7 +1005,7 @@ void test_3xp1(){
     WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface2_nodal, "normals_surface2_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface2_nodal, "lenr_surface2_nodal");
     
-    // Write surface 3 nodal arrays 
+    // Write surface 3 nodal arrays
     WRITE_NODAL(&ngrid_surface, &nrange_surface, dxdz_surface3_nodal, "dxdz_surface3_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, bmag_surface3_nodal, "bmag_surface3_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, curlbhat_surface3_nodal, "curlbhat_surface3_nodal");
@@ -931,77 +1018,77 @@ void test_3xp1(){
     WRITE_NODAL(&ngrid_surface, &nrange_surface, normals_surface3_nodal, "normals_surface3_nodal");
     WRITE_NODAL(&ngrid_surface, &nrange_surface, lenr_surface3_nodal, "lenr_surface3_nodal");
     
-    // Write corner modal arrays 
-    WRITE_MODAL(&grid_orig, &comp_range, mc2nu_pos_corner_modal, "mc2nu_pos_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, mc2p_corner_modal, "mc2p_corner_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_corner_modal, "bmag_corner_modal");
+    // Write corner modal arrays - use same grid structure as nodal (10x10x10)
+    WRITE_MODAL(&grid_corner, &modal_range_corner, mc2nu_pos_corner_modal, "mc2nu_pos_corner_modal");
+    WRITE_MODAL(&grid_corner, &modal_range_corner, mc2p_corner_modal, "mc2p_corner_modal");
+    WRITE_MODAL(&grid_corner, &modal_range_corner, bmag_corner_modal, "bmag_corner_modal");
     
-    // Write interior modal arrays 
-    WRITE_MODAL(&grid_orig, &comp_range, dxdz_interior_modal, "dxdz_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_interior_modal, "bmag_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_interior_modal, "curlbhat_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bcart_interior_modal, "bcart_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, B3_interior_modal, "B3_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, b_i_interior_modal, "b_i_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_inv_interior_modal, "bmag_inv_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_inv_sq_interior_modal, "bmag_inv_sq_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bioverJB_interior_modal, "bioverJB_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, cmag_interior_modal, "cmag_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlbhat_interior_modal, "dualcurlbhat_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dualcurlbhatoverB_interior_modal, "dualcurlbhatoverB_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, dzdx_interior_modal, "dzdx_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, eps2_interior_modal, "eps2_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, g_ij_interior_modal, "g_ij_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, gij_interior_modal, "gij_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, gxxj_interior_modal, "gxxj_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, gxyj_interior_modal, "gxyj_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, gxzj_interior_modal, "gxzj_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, gyyj_interior_modal, "gyyj_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_interior_modal, "jacobgeo_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_inv_interior_modal, "jacobgeo_inv_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_interior_modal, "jacobtot_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_interior_modal, "jacobtot_inv_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normals_interior_modal, "normals_interior_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, rtg33inv_interior_modal, "rtg33inv_interior_modal");
+    // Write interior modal arrays - use same grid structure as nodal
+    WRITE_MODAL(&grid_interior, &modal_range_interior, dxdz_interior_modal, "dxdz_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, bmag_interior_modal, "bmag_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, curlbhat_interior_modal, "curlbhat_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, bcart_interior_modal, "bcart_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, B3_interior_modal, "B3_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, b_i_interior_modal, "b_i_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, bmag_inv_interior_modal, "bmag_inv_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, bmag_inv_sq_interior_modal, "bmag_inv_sq_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, bioverJB_interior_modal, "bioverJB_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, cmag_interior_modal, "cmag_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, dualcurlbhat_interior_modal, "dualcurlbhat_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, dualcurlbhatoverB_interior_modal, "dualcurlbhatoverB_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, dzdx_interior_modal, "dzdx_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, eps2_interior_modal, "eps2_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, g_ij_interior_modal, "g_ij_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, gij_interior_modal, "gij_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, gxxj_interior_modal, "gxxj_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, gxyj_interior_modal, "gxyj_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, gxzj_interior_modal, "gxzj_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, gyyj_interior_modal, "gyyj_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, jacobgeo_interior_modal, "jacobgeo_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, jacobgeo_inv_interior_modal, "jacobgeo_inv_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, jacobtot_interior_modal, "jacobtot_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, jacobtot_inv_interior_modal, "jacobtot_inv_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, normals_interior_modal, "normals_interior_modal");
+    WRITE_MODAL(&grid_interior, &modal_range_interior, rtg33inv_interior_modal, "rtg33inv_interior_modal");
     
-    // Write surface 1 modal arrays 
-    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s1_modal, "dxdz_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_s1_modal, "bmag_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s1_modal, "curlbhat_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, B3_s1_modal, "B3_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, b_i_s1_modal, "b_i_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, cmag_s1_modal, "cmag_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s1_modal, "normcurlbhat_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s1_modal, "jacobgeo_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s1_modal, "jacobtot_inv_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normals_s1_modal, "normals_s1_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, lenr_s1_modal, "lenr_s1_modal");
+    // Write surface 1 modal arrays - use same grid structure as nodal
+    WRITE_MODAL(&grid_surface, &modal_range_surface, dxdz_s1_modal, "dxdz_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, bmag_s1_modal, "bmag_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, curlbhat_s1_modal, "curlbhat_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, B3_s1_modal, "B3_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, b_i_s1_modal, "b_i_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, cmag_s1_modal, "cmag_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normcurlbhat_s1_modal, "normcurlbhat_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobgeo_s1_modal, "jacobgeo_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobtot_inv_s1_modal, "jacobtot_inv_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normals_s1_modal, "normals_s1_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, lenr_s1_modal, "lenr_s1_modal");
     
-    // Write surface 2 modal arrays 
-    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s2_modal, "dxdz_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_s2_modal, "bmag_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s2_modal, "curlbhat_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, B3_s2_modal, "B3_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, b_i_s2_modal, "b_i_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, cmag_s2_modal, "cmag_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s2_modal, "normcurlbhat_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s2_modal, "jacobgeo_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s2_modal, "jacobtot_inv_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normals_s2_modal, "normals_s2_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, lenr_s2_modal, "lenr_s2_modal");
+    // Write surface 2 modal arrays - use same grid structure as nodal
+    WRITE_MODAL(&grid_surface, &modal_range_surface, dxdz_s2_modal, "dxdz_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, bmag_s2_modal, "bmag_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, curlbhat_s2_modal, "curlbhat_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, B3_s2_modal, "B3_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, b_i_s2_modal, "b_i_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, cmag_s2_modal, "cmag_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normcurlbhat_s2_modal, "normcurlbhat_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobgeo_s2_modal, "jacobgeo_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobtot_inv_s2_modal, "jacobtot_inv_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normals_s2_modal, "normals_s2_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, lenr_s2_modal, "lenr_s2_modal");
     
-    // Write surface 3 modal arrays 
-    WRITE_MODAL(&grid_orig, &comp_range, dxdz_s3_modal, "dxdz_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, bmag_s3_modal, "bmag_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, curlbhat_s3_modal, "curlbhat_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, B3_s3_modal, "B3_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, b_i_s3_modal, "b_i_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, cmag_s3_modal, "cmag_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normcurlbhat_s3_modal, "normcurlbhat_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobgeo_s3_modal, "jacobgeo_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, jacobtot_inv_s3_modal, "jacobtot_inv_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, normals_s3_modal, "normals_s3_modal");
-    WRITE_MODAL(&grid_orig, &comp_range, lenr_s3_modal, "lenr_s3_modal");
+    // Write surface 3 modal arrays - use same grid structure as nodal
+    WRITE_MODAL(&grid_surface, &modal_range_surface, dxdz_s3_modal, "dxdz_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, bmag_s3_modal, "bmag_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, curlbhat_s3_modal, "curlbhat_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, B3_s3_modal, "B3_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, b_i_s3_modal, "b_i_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, cmag_s3_modal, "cmag_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normcurlbhat_s3_modal, "normcurlbhat_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobgeo_s3_modal, "jacobgeo_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, jacobtot_inv_s3_modal, "jacobtot_inv_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, normals_s3_modal, "normals_s3_modal");
+    WRITE_MODAL(&grid_surface, &modal_range_surface, lenr_s3_modal, "lenr_s3_modal");
 
     // Clean up everything
     // Release corner loaded arrays

@@ -40,67 +40,123 @@ def create_grid_from_shape(shape, lower=None, upper=None):
     return grid
 
 
-def convert_np_to_gkyl(np_file_path, output_dir=None, lower=None, upper=None, verbose=False, verify=False):
+def convert_np_to_gkyl(inp_dir, filename, N, dims, lower, upper, output_dir=None, verbose=False, verify=False):
     """Convert a single .np file to .gkyl format.
     
     Args:
-        np_file_path: Path to input .np file
+        inp_dir: Input directory path (e.g., "PATH/TO/FOLDER/")
+        filename: Name of the .npy file (e.g., "file.npy")
+        N: Total number of nodes (should equal dims[0] * dims[1] * dims[2])
+        dims: List of dimensions [nx, ny, nz] where:
+              nx: Number of nodes in x dimension (varies slowest)
+              ny: Number of nodes in y dimension (varies middle)
+              nz: Number of nodes in z dimension (varies fastest)
+        lower: Lower bounds for grid [nx_lower, ny_lower, nz_lower]
+        upper: Upper bounds for grid [nx_upper, ny_upper, nz_upper]
         output_dir: Directory to write output .gkyl file (default: same directory as input)
-        lower: Lower bounds for grid (default: zeros)
-        upper: Upper bounds for grid (default: ones)
         verbose: Print detailed shape information
         verify: Read back the written file to verify correctness
     
     Returns:
         Path to output file
     """
+    # Combine input directory and filename to get full path
+    np_file_path = os.path.join(inp_dir, filename)
+    
+    # Validate inputs
+    if len(dims) != 3:
+        raise ValueError(f"dims must have 3 elements (got {len(dims)})")
+    if len(lower) != 3:
+        raise ValueError(f"lower must have 3 elements (got {len(lower)})")
+    if len(upper) != 3:
+        raise ValueError(f"upper must have 3 elements (got {len(upper)})")
+    
+    nx, ny, nz = dims[0], dims[1], dims[2]
+    expected_N = nx * ny * nz
+    if N != expected_N:
+        raise ValueError(
+            f"N ({N}) doesn't match dims[0] * dims[1] * dims[2] ({nx} * {ny} * {nz} = {expected_N})"
+        )
+    
     # Load numpy array
     arr = np.load(np_file_path)
     original_shape = arr.shape
     original_dtype = arr.dtype
     
     # Always print numpy array shape
-    print(f"\n  File: {os.path.basename(np_file_path)}")
+    print(f"\n  File: {filename}")
     print(f"  NumPy array shape: {original_shape}, dtype: {original_dtype}")
     
     if verbose:
         print(f"  Full path: {np_file_path}")
+        print(f"  Expected: N={N}, nx={nx}, ny={ny}, nz={nz}")
     
-    # Handle different array formats
+    # Handle structured arrays
     if arr.dtype.names is not None:
         # Structured array - take first field
         arr = arr[arr.dtype.names[0]]
         if verbose:
             print(f"  Structured array, using field: {arr.dtype.names[0]}")
     
-    # Determine shape: last dimension is components, rest are spatial
-    # If array is 1D, treat entire array as single component
+    # Handle both 1D (N,) and 2D (N, Z) arrays
+    # If 1D, interpret as (N, 1) with 1 component
     if arr.ndim == 1:
-        # 1D array: treat as single component
-        values = arr.reshape(-1, 1)
-        spatial_shape = (arr.shape[0],)
+        # 1D array: interpret as (N, 1) with 1 component
+        arr_N = arr.shape[0]
         num_comps = 1
+        if arr_N != N:
+            raise ValueError(
+                f"Array size ({arr_N}) doesn't match expected N ({N})"
+            )
+        # Reshape to (N, 1) for consistent handling
+        arr = arr.reshape(N, 1)
+        if verbose:
+            print(f"  Interpreted 1D array as (N, 1) with 1 component")
+    elif arr.ndim == 2:
+        # 2D array: shape should be (N, Z)
+        arr_N, num_comps = arr.shape
+        
+        if arr_N != N:
+            raise ValueError(
+                f"Array first dimension ({arr_N}) doesn't match expected N ({N})"
+            )
+        
+        if num_comps not in [1, 3, 9]:
+            if verbose:
+                print(f"  Warning: num_comps={num_comps} is not 1, 3, or 9 (but continuing anyway)")
     else:
-        # Multi-dimensional: last dimension is components
-        spatial_shape = arr.shape[:-1]
-        values = arr
-        num_comps = arr.shape[-1]
+        raise ValueError(
+            f"Expected 1D array (N,) or 2D array (N, Z), got shape {arr.shape} "
+            f"(ndim={arr.ndim})"
+        )
     
     if verbose:
-        print(f"  Interpreted as: spatial_shape={spatial_shape}, num_components={num_comps}")
-        print(f"  Values shape: {values.shape}")
+        print(f"  Array has {num_comps} components per node")
     
-    # Validate that we have at least one spatial dimension
-    if len(spatial_shape) == 0:
-        raise ValueError(f"Cannot convert array with shape {arr.shape}: no spatial dimensions")
+    # Reshape from (N, Z) to (nx, ny, nz, Z)
+    # The flattening order is: nz varies fastest, then ny, then nx varies slowest
+    # This corresponds to C-order (row-major) where last dimension varies fastest
+    # So reshaping (N, Z) -> (nx, ny, nz, Z) is correct
+    try:
+        values = arr.reshape(nx, ny, nz, num_comps)
+    except ValueError as e:
+        raise ValueError(
+            f"Cannot reshape array from shape {arr.shape} to ({nx}, {ny}, {nz}, {num_comps}). "
+            f"Expected total size: {nx * ny * nz * num_comps}, got: {arr.size}. "
+            f"Original array shape: {original_shape}"
+        ) from e
     
-    # Validate bounds if provided
-    if lower is not None and len(lower) != len(spatial_shape):
-        raise ValueError(f"Lower bounds length ({len(lower)}) doesn't match spatial dimensions ({len(spatial_shape)})")
-    if upper is not None and len(upper) != len(spatial_shape):
-        raise ValueError(f"Upper bounds length ({len(upper)}) doesn't match spatial dimensions ({len(spatial_shape)})")
+    spatial_shape = (nx, ny, nz)
     
-    # Create grid from spatial shape
+    # Always print shape information for debugging
+    print(f"  Reshaped from {arr.shape} to {values.shape}")
+    print(f"  Spatial shape: {spatial_shape}, components: {num_comps}")
+    print(f"  Total values: {values.size} elements")
+    
+    if verbose:
+        print(f"  Original array shape: {original_shape}")
+    
+    # Create grid from spatial shape with provided bounds
     grid = create_grid_from_shape(spatial_shape, lower, upper)
     
     # Validate grid dimensions match values dimensions
@@ -114,6 +170,11 @@ def convert_np_to_gkyl(np_file_path, output_dir=None, lower=None, upper=None, ve
     # Create GData object
     gdata = pg.GData(load=False)
     gdata.push(grid, values)
+    
+    # Explicitly set cells to match values shape (gkeyll uses cells, not nodes)
+    # The values shape spatial dimensions represent the number of cells
+    gdata.ctx["cells"] = np.array(spatial_shape, dtype=np.int32)
+    gdata.ctx["num_comps"] = num_comps
     
     # Verify GData shape matches expectations
     gdata_values = gdata.get_values()
@@ -142,12 +203,46 @@ def convert_np_to_gkyl(np_file_path, output_dir=None, lower=None, upper=None, ve
         output_path = base_name + '.gkyl'
     else:
         # Use specified output directory
-        file_name = os.path.basename(np_file_path)
-        base_name = os.path.splitext(file_name)[0]
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        base_name = os.path.splitext(filename)[0]
         output_path = os.path.join(output_dir, base_name + '.gkyl')
     
-    # Write to .gkyl file
-    gdata.write(output_path, extension='gkyl')
+    # Write to .gkyl file manually (postgkyl's write has a bug with len(values) for multi-dim arrays)
+    # We'll write it correctly ourselves
+    dti = np.dtype("i8")
+    dtf = np.dtype("f8")
+    
+    fh = open(output_path, "wb")  # Use binary mode
+    
+    # Write header according to gkyl format version 1
+    # Magic bytes "gkyl0"
+    np.array([103, 107, 121, 108, 48], dtype=np.dtype("b")).tofile(fh)
+    # version 1
+    np.array([1], dtype=dti).tofile(fh)
+    # file_type 1 (field)
+    np.array([1], dtype=dti).tofile(fh)
+    # meta_size (0 for no metadata)
+    np.array([0], dtype=dti).tofile(fh)
+    # real_type (2 = double)
+    np.array([2], dtype=dti).tofile(fh)
+    # num_dims
+    np.array([len(spatial_shape)], dtype=dti).tofile(fh)
+    # num_cells (per dimension)
+    np.array(spatial_shape, dtype=dti).tofile(fh)
+    # lower bounds
+    np.array(lower, dtype=dtf).tofile(fh)
+    # upper bounds
+    np.array(upper, dtype=dtf).tofile(fh)
+    # elem_sz (element size * num components, 8 bytes per double)
+    np.array([num_comps * 8], dtype=dti).tofile(fh)
+    # asize (total number of cells = product of spatial dimensions)
+    asize = np.prod(spatial_shape)
+    np.array([asize], dtype=dti).tofile(fh)
+    # data (flattened array)
+    np.array(values, dtype=dtf).tofile(fh)
+    
+    fh.close()
     
     # Verify by reading back if requested
     if verify:
@@ -179,103 +274,51 @@ def convert_np_to_gkyl(np_file_path, output_dir=None, lower=None, upper=None, ve
             print(f"  ✗ Verification failed: {e}")
             raise
     
-    print(f"  Converted: {os.path.basename(np_file_path)} -> {os.path.basename(output_path)}")
+    print(f"  Converted: {filename} -> {os.path.basename(output_path)}")
     return output_path
 
 
-def convert_folder(folder_path, lower=None, upper=None, verbose=False, verify=False):
-    """Convert all .npy files in a folder to .gkyl files.
-    
-    Args:
-        folder_path: Path to folder containing .npy files
-        lower: Lower bounds for grid (default: zeros)
-        upper: Upper bounds for grid (default: ones)
-        verbose: Print detailed shape information for each file
-        verify: Read back each written file to verify correctness
-    """
-    if not os.path.isdir(folder_path):
-        print(f"Error: {folder_path} is not a valid directory")
-        return
-    
-    # Create output folder with _gkyl suffix in current working directory
-    folder_abs_path = os.path.abspath(folder_path)
-    folder_name = os.path.basename(folder_abs_path)
-    # Use current working directory instead of parent directory
-    current_dir = os.getcwd()
-    output_folder = os.path.join(current_dir, folder_name + '_gkyl')
-    
-    # Create output folder if it doesn't exist
-    os.makedirs(output_folder, exist_ok=True)
-    print(f"Output folder: {output_folder}")
-    
-    # Find all .npy files
-    pattern = os.path.join(folder_path, '*.npy')
-    np_files = glob.glob(pattern)
-    
-    if not np_files:
-        print(f"No .npy files found in {folder_path}")
-        return
-    
-    print(f"Found {len(np_files)} .npy file(s) in {folder_path}")
-    if verify:
-        print("Verification enabled: will read back each file to check correctness")
-    
-    # Convert each file
-    success_count = 0
-    error_count = 0
-    
-    for np_file in np_files:
-        try:
-            convert_np_to_gkyl(np_file, output_dir=output_folder, 
-                              lower=lower, upper=upper, verbose=verbose, verify=verify)
-            success_count += 1
-        except Exception as e:
-            error_count += 1
-            print(f"  ✗ Error converting {os.path.basename(np_file)}: {e}")
-            if verbose:
-                import traceback
-                traceback.print_exc()
-    
-    print(f"\nConversion complete!")
-    print(f"  Successfully converted: {success_count}/{len(np_files)} files")
-    if error_count > 0:
-        print(f"  Errors: {error_count} files")
-    print(f"  Output written to: {output_folder}")
-
-
 if __name__ == '__main__':
-    import argparse
-    
-    parser = argparse.ArgumentParser(
-        description='Convert all .npy (NumPy array) files in a folder to .gkyl files',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python numpy-to-gkyl.py ./data
-  python numpy-to-gkyl.py ./data --lower 0,0,0 --upper 1,1,1
-  python numpy-to-gkyl.py ./data --verbose --verify
-        """
-    )
-    parser.add_argument('folder_path', help='Path to folder containing .npy files')
-    parser.add_argument('--lower', type=str, help='Lower bounds for grid (comma-separated, e.g., "0,0,0")')
-    parser.add_argument('--upper', type=str, help='Upper bounds for grid (comma-separated, e.g., "1,1,1")')
-    parser.add_argument('--verbose', '-v', action='store_true', 
-                       help='Print detailed shape information for each file')
-    parser.add_argument('--verify', action='store_true',
-                       help='Read back each written file to verify correctness')
-    
-    args = parser.parse_args()
-    
-    # Parse bounds
-    lower = None
-    upper = None
-    
-    if args.lower:
-        lower = np.array([float(x) for x in args.lower.split(',')])
-    
-    if args.upper:
-        upper = np.array([float(x) for x in args.upper.split(',')])
-    
-    convert_folder(args.folder_path, lower=lower, upper=upper, 
-                  verbose=args.verbose, verify=args.verify)
+      lower = [0, 0, 0]
+      upper = [1, 2*np.pi, (2*np.pi)/5]
+      
+      num_rho = 10
+      num_alpha = 10
+      num_zeta = 10
+      
+      dims_corner = [num_rho, num_alpha, num_zeta]
+      dims_S1 = [num_rho, 2*(num_alpha-1), 2*(num_zeta-1)]
+      dims_S2 = [2*(num_rho-1), num_alpha, 2*(num_zeta-1)]
+      dims_S3 = [2*(num_rho-1), 2*(num_alpha-1), num_zeta]
+      dims_I =  [2*(num_rho-1), 2*(num_alpha-1), 2*(num_zeta-1)]
+      N_corner = num_rho*num_alpha*num_zeta
+      N_s1 = num_rho * 2*(num_alpha-1) *  2*(num_zeta-1)
+      N_s2 = 2*(num_rho-1) * num_alpha * 2*(num_zeta-1)
+      N_s3 = 2*(num_rho-1) * 2*(num_alpha-1) * num_zeta
+      N_i = 2*(num_rho-1) * 2*(num_alpha-1) * 2*(num_zeta-1)
+      
+      out_dir = "./W7X_DESC_GEOMETRY"
+      inp_dir = "../../../DESC/W7-X_field-aligned_coords/"
+      
+      convert_np_to_gkyl(inp_dir, "raz_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "rzp_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "Bmag_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
+      
+      convert_np_to_gkyl(inp_dir, "tangents_I.npy", N_i, dims_I, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "Bmag_I.npy", N_i, dims_I, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "B_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
 
+      convert_np_to_gkyl(inp_dir, "tangents_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "Bmag_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S1.npy", N_s1, dims_S1, lower, upper, out_dir)      
+
+      convert_np_to_gkyl(inp_dir, "tangents_S2.npy", N_s2, dims_S2, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "Bmag_S2.npy", N_s2, dims_S2, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S2.npy", N_s2, dims_S2, lower, upper, out_dir) 
+      
+      convert_np_to_gkyl(inp_dir, "tangents_S3.npy", N_s3, dims_S3, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "Bmag_S3.npy", N_s3, dims_S3, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S3.npy", N_s3, dims_S3, lower, upper, out_dir)            
+      
+      
