@@ -49,6 +49,7 @@ test_mhd_rgfm_twospecies_basic()
   TEST_CHECK( gkyl_compare(prims[5], Bx_total, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[6], By_total, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[7], Bz_total, 1e-16) );
+  TEST_CHECK( gkyl_compare(prims[8], psi_total, 1e-16) );
 
   TEST_CHECK( gkyl_compare(prims[9], phi1, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[10], rho1, 1e-16) );
@@ -201,6 +202,7 @@ test_mhd_rgfm_threespecies_basic()
   TEST_CHECK( gkyl_compare(prims[5], Bx_total, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[6], By_total, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[7], Bz_total, 1e-16) );
+  TEST_CHECK( gkyl_compare(prims[8], psi_total, 1e-16) );
 
   TEST_CHECK( gkyl_compare(prims[9], phi1, 1e-16) );
   TEST_CHECK( gkyl_compare(prims[10], phi2, 1e-16) );
