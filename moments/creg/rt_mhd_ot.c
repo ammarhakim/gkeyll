@@ -17,29 +17,26 @@
 
 #include <rt_arg_parse.h>
 
-struct brio_wu_ctx
+struct ot_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
-  double pl; // Left fluid pressure.
-  double Bx_l; // Left magnetic field (x-direction).
-  double By_l; // Left magnetic field (y-direction).
-
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
-  double pr; // Right fluid pressure.
-  double Bx_r; // Right magnetic field (x-direction).
-  double By_r; // Right magnetic field (y-direction).
+  double rho; // Fluid mass density.
+  double p; // Fluid pressure.
+  double B0; // Reference magnetic field strength.
 
   double light_speed; // Speed of light.
   double b_fact; // Factor of speed of light for magnetic field correction.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -50,55 +47,48 @@ struct brio_wu_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct brio_wu_ctx
+struct ot_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
-  double gas_gamma = 2.0; // Adiabatic index.
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rhol = 1.0; // Left fluid mass density.
-  double ul = 0.0; // Left fluid velocity.
-  double pl = 1.0; // Left fluid pressure.
-  double Bx_l = 0.75; // Left magnetic field (x-direction).
-  double By_l = 1.0; // Left magnetic field (y-direction).
-
-  double rhor = 0.125; // Right fluid mass density.
-  double ur = 0.0; // Right fluid velocity.
-  double pr = 0.1; // Right fluid pressure.
-  double Bx_r = 0.75; // Right magnetic field (x-direction).
-  double By_r = -1.0; // Right magnetic field (y-direction).
+  double rho = 25.0 / (36.0 * pi); // Fluid mass density.
+  double p = 5.0 / (12.0 * pi); // Fluid pressure.
+  double B0 = 1.0 / sqrt(4.0 * pi); // Reference magnetic field strength.
 
   double light_speed = 1.0; // Speed of light.
   double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
 
   // Simulation parameters.
-  int Nx = 2048; // Cell count (x-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 0.1; // Final simulation time.
+  double t_end = 0.5; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct brio_wu_ctx ctx = {
+  struct ot_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .Bx_l = Bx_l,
-    .By_l = By_l,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .Bx_r = Bx_r,
-    .By_r = By_r,
+    .rho = rho,
+    .p = p,
+    .B0 = B0,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -114,52 +104,28 @@ create_ctx(void)
 void
 evalMHDInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct brio_wu_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct ot_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
+  double pi = app->pi;
 
-  double rhol = app->rhol;
-  double ul = app->ul;
-  double pl = app->pl;
-  double Bx_l = app->Bx_l;
-  double By_l = app->By_l;
+  double rho = app->rho; // Fluid mass density.
+  double p = app->p; // Fluid pressure.
+  double B0 = app->B0; // Reference magnetic field strength.
 
-  double rhor = app->rhor;
-  double ur = app->ur;
-  double pr = app->pr;
-  double Bx_r = app->Bx_r;
-  double By_r = app->By_r;
-
-  double rho = 0.0;
-  double u = 0.0;
-  double p = 0.0;
-
-  double Bx = 0.0;
-  double By = 0.0;
-  double Bz = 0.0; // Magnetic field (x-direction).
-
-  if (x < 0.5) {
-    rho = rhol; // Fluid mass density (left).
-    u = ul; // Fluid velocity (left).
-    p = pl; // Fluid pressure (left).
-
-    Bx = Bx_l; // Magnetic field (x-direction, left).
-    By = By_l; // Magnetic field (y-direction, left).
-  }
-  else {
-    rho = rhor; // Fluid mass density (right).
-    u = ur; // Fluid velocity (right).
-    p = pr; // Fluid pressure (right).
-
-    Bx = Bx_r; // Magnetic field (x-direction, right).
-    By = By_r; // Magnetic field (y-direction, right).
-  }
+  double u = sin(2.0 * pi * y); // Fluid velocity (x-direction).
+  double v = -sin(2.0 * pi * x); // Fluid velocity (y-direction).
+  double w = 0.0; // Fluid velocity (z-direction).
+  
+  double Bx = B0 * sin(2.0 * pi * y); // Magnetic field (x-direction).
+  double By = B0 * sin(4.0 * pi * x); // Magnetic field (y-direction).
+  double Bz = 0.0; // Magnetic field (z-direction).
 
   double mom_x = rho * u; // Fluid momentum density (x-direction).
-  double mom_y = 0.0; // Fluid momentum density (y-direction).
-  double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u) + (0.5 * ((Bx * Bx) + (By * By) + (Bz * Bz))); // Fluid total energy density.
+  double mom_y = rho * v; // Fluid momentum density (y-direction).
+  double mom_z = rho * w; // Fluid momentum density (z-direction).
+  double Etot = (p / (gas_gamma - 1.0)) + (0.5 * rho * ((u * u) + (v * v) + (w * w))) + (0.5 * ((Bx * Bx) + (By * By) + (Bz * Bz))); // Fluid total energy density.
 
   // Set fluid mass density.
   fout[0] = rho;
@@ -169,8 +135,6 @@ evalMHDInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[4] = Etot;
   // Set magnetic field.
   fout[5] = Bx; fout[6] = By; fout[7] = Bz;
-  // Set correction potential.
-  fout[8] = 0.0;
 }
 
 void
@@ -220,9 +184,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct brio_wu_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct ot_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, ctx.light_speed, ctx.b_fact, app_args.use_gpu);
@@ -235,8 +200,6 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .force_low_order_flux = false,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -246,7 +209,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -306,13 +269,15 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "mhd_ot",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
+    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly }, 
+    .cells = { NX, NY },
 
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
@@ -320,7 +285,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };

@@ -233,10 +233,144 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+
+  double gas_gamma = mhd->gas_gamma;
+  double light_speed = mhd->light_speed;
+  double b_fact = mhd->b_fact;
+
+  double vl[9] = { 0.0 };
+  double vr[9] = { 0.0 };
+  gkyl_mhd_prim_vars(gas_gamma, ql, vl);
+  gkyl_mhd_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double vy_l = vl[2];
+  double vz_l = vl[3];
+  double p_l = vl[4];
+  double Bx_l = vl[5];
+  double By_l = vl[6];
+  double Bz_l = vl[7];
+
+  double B_mag_l = sqrt((Bx_l * Bx_l) + (By_l * By_l) + (Bz_l * Bz_l));
+
+  double max_eig_l = 0.0;
+  double alfven_eig_l = Bx_l / sqrt(rho_l);
+  double slow_magnetosonic_eig_l = sqrt(((gas_gamma * p_l) + (B_mag_l * B_mag_l) - sqrt(((gas_gamma * p_l) + (B_mag_l * B_mag_l)) * ((gas_gamma * p_l) + (B_mag_l * B_mag_l))
+    - (4.0 * gas_gamma * p_l * (Bx_l * Bx_l)))) / (2.0 * rho_l));
+  double fast_magnetosonic_eig_l = sqrt(((gas_gamma * p_l) + (B_mag_l * B_mag_l) + sqrt(((gas_gamma * p_l) + (B_mag_l * B_mag_l)) * ((gas_gamma * p_l) + (B_mag_l * B_mag_l))
+    - (4.0 * gas_gamma * p_l * (Bx_l * Bx_l)))) / (2.0 * rho_l));
+
+  if (fabs(alfven_eig_l) > max_eig_l) {
+    max_eig_l = fabs(alfven_eig_l);
+  }
+  if (fabs(slow_magnetosonic_eig_l) > max_eig_l) {
+    max_eig_l = fabs(slow_magnetosonic_eig_l);
+  }
+  if (fabs(fast_magnetosonic_eig_l) > max_eig_l) {
+    max_eig_l = fabs(fast_magnetosonic_eig_l);
+  }
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double vy_r = vr[2];
+  double vz_r = vr[3];
+  double p_r = vr[4];
+  double Bx_r = vr[5];
+  double By_r = vr[6];
+  double Bz_r = vr[7];
+
+  double B_mag_r = sqrt((Bx_r * Bx_r) + (By_r * By_r) + (Bz_r * Bz_r));
+
+  double max_eig_r = 0.0;
+  double alfven_eig_r = Bx_r / sqrt(rho_r);
+  double slow_magnetosonic_eig_r = sqrt(((gas_gamma * p_r) + (B_mag_r * B_mag_r) - sqrt(((gas_gamma * p_r) + (B_mag_r * B_mag_r)) * ((gas_gamma * p_r) + (B_mag_r * B_mag_r))
+    - (4.0 * gas_gamma * p_r * (Bx_r * Bx_r)))) / (2.0 * rho_r));
+  double fast_magnetosonic_eig_r = sqrt(((gas_gamma * p_r) + (B_mag_r * B_mag_r) + sqrt(((gas_gamma * p_r) + (B_mag_r * B_mag_r)) * ((gas_gamma * p_r) + (B_mag_r * B_mag_r))
+    - (4.0 * gas_gamma * p_r * (Bx_r * Bx_r)))) / (2.0 * rho_r));
+
+  if (fabs(alfven_eig_r) > max_eig_r) {
+    max_eig_r = fabs(alfven_eig_r);
+  }
+  if (fabs(slow_magnetosonic_eig_r) > max_eig_r) {
+    max_eig_r = fabs(slow_magnetosonic_eig_r);
+  }
+  if (fabs(fast_magnetosonic_eig_r) > max_eig_r) {
+    max_eig_r = fabs(fast_magnetosonic_eig_r);
+  }
+
+  double vx_avg = 0.5 * (vx_l + vx_r);
+  double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
+
+  double sl = fmin(vx_l - max_eig_l, vx_r - max_eig_r);
+  double sr = fmax(vx_l + max_eig_l, vx_r + max_eig_r);
+
+  double fl[9] = { 0.0 };
+  double fr[9] = { 0.0 };
+  gkyl_mhd_flux(gas_gamma, light_speed, b_fact, ql, fl);
+  gkyl_mhd_flux(gas_gamma, light_speed, b_fact, qr, fr);
+
+  double qm[9] = { 0.0 };
+  double *w0 = &waves[0], *w1 = &waves[9];
+  for (int i = 0; i < 9; i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+
+    w0[i] = qm[i] - ql[i];
+    w1[i] = qr[i] - qm[i];
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[9];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 9; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
-
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+
   double gas_gamma = mhd->gas_gamma;
   double light_speed = mhd->light_speed;
   double b_fact = mhd->b_fact;
@@ -319,7 +453,7 @@ gkyl_wv_mhd_new(double gas_gamma, double light_speed, double b_fact, bool use_gp
       .gas_gamma = gas_gamma,
       .light_speed = light_speed,
       .b_fact = b_fact,
-      .rp_type = WV_MHD_RP_LAX,
+      .rp_type = WV_MHD_RP_HLL,
       .use_gpu = use_gpu,
     }
   );
@@ -342,6 +476,11 @@ gkyl_wv_mhd_inew(const struct gkyl_wv_mhd_inp* inp)
     mhd->eqn.num_waves = 2;
     mhd->eqn.waves_func = wave_lax_l;
     mhd->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_MHD_RP_HLL) {
+    mhd->eqn.num_waves = 2;
+    mhd->eqn.waves_func = wave_hll_l;
+    mhd->eqn.qfluct_func = qfluct_hll_l;
   }
 
   mhd->eqn.flux_jump = flux_jump;
