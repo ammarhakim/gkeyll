@@ -1,7 +1,10 @@
 #include <math.h>
-
+#include <assert.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_coldfluid.h>
+#include <gkyl_wv_coldfluid_priv.h>
+
 
 #define RHOU 1
 #define RHOV 2
@@ -9,9 +12,9 @@
 
 #define SQ(x) ((x)*(x))
 
-struct wv_coldfluid {
-  struct gkyl_wv_eqn eqn; // base object
-};
+//struct wv_coldfluid {
+//  struct gkyl_wv_eqn eqn; // base object
+//};
 
 static void
 coldfluid_flux(const double q[4], double flux[4])
@@ -216,8 +219,9 @@ coldfluid_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   }
 }
 
+
 struct gkyl_wv_eqn*
-gkyl_wv_coldfluid_new(void)
+gkyl_wv_coldfluid_inew(const struct gkyl_wv_coldfluid_inp *inp)
 {
   struct wv_coldfluid *coldfluid = gkyl_malloc(sizeof(struct wv_coldfluid));
 
@@ -245,7 +249,33 @@ gkyl_wv_coldfluid_new(void)
 
   coldfluid->eqn.ref_count = gkyl_ref_count_init(coldfluid_free);
 
-  coldfluid->eqn.embed_geo = NULL;
+  coldfluid->eqn.embed_geo = inp->embed_geo;
+  if (coldfluid->eqn.embed_geo) {
+    switch (coldfluid->eqn.embed_geo->type) {
+      case GKYL_EMBED_ABSORB:
+        coldfluid->eqn.embed_geo->embed_func = wave_embed_absorb;
+        break;
+
+      case GKYL_EMBED_REFLECT:
+        coldfluid->eqn.embed_geo->embed_func = wave_embed_reflect;
+        break;
+
+    case GKYL_EMBED_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+  } 
 
   return &coldfluid->eqn;
+}
+
+struct gkyl_wv_eqn*
+gkyl_wv_coldfluid_new(void)
+{
+  return gkyl_wv_coldfluid_inew( &(struct gkyl_wv_coldfluid_inp) {
+    }
+  );
 }
