@@ -27,9 +27,11 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations).
   const struct gkyl_range *vel_range; // Velocity space range.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  const struct gkyl_array *bmag; // Magnetic field magnitude.
-  const double *bmag_max; // Maximum bmag (on GPU if use_gpu=true).
-  const double *bmag_max_loc; // Location of maximum bmag (on GPU if use_gpu=true)..
+  const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
+  const struct gkyl_array *bmag_max; // Maximum bmag per field line (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   double mass; // Species mass.
   double charge; // Species charge.
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.

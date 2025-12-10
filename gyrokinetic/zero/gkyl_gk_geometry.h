@@ -188,6 +188,20 @@ struct gk_geometry {
                  // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
+  // Per-field-line bmag_max for loss cone calculations.
+  // In 1x: single value. In 2x: array indexed by psi (x-direction).
+  // These are computed by finding max(bmag) along z for each field line,
+  // assuming symmetric bmag with a single peak for positive z.
+  struct gkyl_array *bmag_max;         // Maximum bmag on each field line (modal DG expansion).
+  struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max on each field line (modal DG expansion).
+  struct gkyl_array *bmag_max_nodal;         // Nodal values of bmag_max.
+  struct gkyl_array *bmag_max_z_coord_nodal; // Nodal values of z-coordinate of bmag_max.
+  struct gkyl_range bmag_max_range;          // Range for bmag_max arrays (1D in psi for 2x, 0D for 1x).
+  struct gkyl_range bmag_max_range_ext;      // Extended range for bmag_max arrays.
+  struct gkyl_range bmag_max_nrange;         // Nodal range for bmag_max arrays.
+  struct gkyl_rect_grid bmag_max_grid;       // Grid for bmag_max arrays (1D in psi for 2x).
+  struct gkyl_basis bmag_max_basis;          // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // Pointer to itself or device object.
@@ -314,6 +328,26 @@ double gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op o
  *  @param op Coordinate where extrema occurs.
  */
 double gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry* up, enum gkyl_array_op op, double *coord);
+
+/**
+ * Compute bmag_max per field line. For each psi value (field line), finds the
+ * maximum bmag along z (assuming symmetry with a single peak for positive z).
+ * Stores the result in gk_geom->bmag_max (modal expansion) and the z-coordinate
+ * of the maximum in gk_geom->bmag_max_z_coord.
+ * 
+ * For 1x simulations, this is a single value. For 2x simulations, this is a
+ * 1D array varying with psi.
+ *
+ * @param gk_geom gk_geometry object (modified in place).
+ */
+void gkyl_gk_geometry_bmag_max_init(struct gk_geometry *gk_geom);
+
+/**
+ * Release bmag_max arrays in gk_geometry.
+ *
+ * @param gk_geom gk_geometry object.
+ */
+void gkyl_gk_geometry_bmag_max_release(struct gk_geometry *gk_geom);
 
 /**
  * Init nodal range from modal range

@@ -44,8 +44,17 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   double mass; // Species mass.
   double charge; // Species charge.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_loc; // Location of bmag_max.
+  
+  // Per-field-line bmag_max arrays (1D for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  
+  // GPU helper: scalar bmag_max_z value for simple 1x cases.
+  // TODO: For 2x GPU support, need to pass full arrays and do per-cell lookup.
+  double *bmag_max_z_scalar_gpu; // Single z-coordinate for GPU (1x case only).
+  
   bool use_gpu; // Boolean if we are performing projection on device.
 
   loss_cone_mask_gyrokinetic_c2p_t c2p_pos; // Function transforming position comp to phys coords.

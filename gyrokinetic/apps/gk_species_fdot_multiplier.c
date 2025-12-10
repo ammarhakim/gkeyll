@@ -58,7 +58,7 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, con
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
   // Find the potential at the mirror throat.
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, fdmul->bmag_max_coord,
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, fdmul->bmag_max_coord_ref,
     app->basis_on_dev, &app->grid, &app->local, fdmul->phi_m);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_m, fdmul->phi_m_global);
 
@@ -159,44 +159,47 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
                                               // at leat p+1 for Gauss-Lobatto.
 
-      // Maximum bmag and its location.
-      // NOTE: if the same max bmag occurs at multiple locations,
-      // bmag_max_coord may have different values on different MPI processes.
-      double bmag_max_coord_ho[GKYL_MAX_CDIM];
-      double bmag_max_ho = gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX, bmag_max_coord_ho);
-      double bmag_max_local = bmag_max_ho;
-      double bmag_max_global;
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
-      double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
-      if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
-        for (int d=0; d<app->cdim; d++)
-          bmag_max_coord_local[d] = bmag_max_coord_ho[d];
-      }
-      else {
-        for (int d=0; d<app->cdim; d++)
-          bmag_max_coord_local[d] = -DBL_MAX;
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
+      // Store pointers to per-field-line bmag_max arrays from gk_geometry.
+      fdmul->bmag_max = app->gk_geom->bmag_max;
+      fdmul->bmag_max_z_coord = app->gk_geom->bmag_max_z_coord;
+      fdmul->bmag_max_basis = &app->gk_geom->bmag_max_basis;
+      fdmul->bmag_max_range = &app->gk_geom->bmag_max_range;
 
-      if (app->use_gpu) {
-        fdmul->bmag_max = gkyl_cu_malloc(sizeof(double));
-        fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-	gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-	gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
-      }
-      else {
-        fdmul->bmag_max = gkyl_malloc(sizeof(double));
-        fdmul->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-	memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
-	memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+      // Compute reference coordinate for phi evaluation at mirror throat.
+      // For 1x: use the single bmag_max_z value.
+      // For 2x: use the bmag_max_z at the center of the psi domain (mid field line).
+      double bmag_max_coord_ref_ho[GKYL_MAX_CDIM];
+      if (app->cdim == 1) {
+        // 1x case: single value.
+        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, 0);
+        bmag_max_coord_ref_ho[0] = bmag_max_z_d[0];
+      } else {
+        // 2x case: use the center psi cell's bmag_max_z.
+        // Get the mid psi index.
+        int mid_psi_idx = (app->gk_geom->bmag_max_range.lower[0] + app->gk_geom->bmag_max_range.upper[0]) / 2;
+        int psi_idx[1] = {mid_psi_idx};
+        long bmag_max_z_linidx = gkyl_range_idx(&app->gk_geom->bmag_max_range, psi_idx);
+        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, bmag_max_z_linidx);
+        // Evaluate at cell center (logical coord 0).
+        double xc[1] = {0.0};
+        double z_val = app->gk_geom->bmag_max_basis.eval_expand(xc, bmag_max_z_d);
+        // Compute the psi coordinate at the mid cell.
+        double psi_lo = app->gk_geom->bmag_max_grid.lower[0];
+        double psi_dx = app->gk_geom->bmag_max_grid.dx[0];
+        double psi_val = psi_lo + (mid_psi_idx - 0.5) * psi_dx;
+        bmag_max_coord_ref_ho[0] = psi_val;
+        bmag_max_coord_ref_ho[1] = z_val;
       }
 
-      // Electrostatic potential at bmag_max_coord.
+      // Allocate and copy reference coordinate.
       if (app->use_gpu) {
+        fdmul->bmag_max_coord_ref = gkyl_cu_malloc(app->cdim*sizeof(double));
+        gkyl_cu_memcpy(fdmul->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
         fdmul->phi_m = gkyl_cu_malloc(sizeof(double));
         fdmul->phi_m_global = gkyl_cu_malloc(sizeof(double));
-      }
-      else {
+      } else {
+        fdmul->bmag_max_coord_ref = gkyl_malloc(app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double));
         fdmul->phi_m = gkyl_malloc(sizeof(double));
         fdmul->phi_m_global = gkyl_malloc(sizeof(double));
       }
@@ -212,7 +215,9 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = fdmul->bmag_max,
-        .bmag_max_loc = fdmul->bmag_max_coord,
+        .bmag_max_z_coord = fdmul->bmag_max_z_coord,
+        .bmag_max_basis = fdmul->bmag_max_basis,
+        .bmag_max_range = fdmul->bmag_max_range,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .qtype = qtype,
@@ -226,10 +231,11 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
-      if (fdmul->write_diagnostics)
+      if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
-      else
+      } else {
         gkyl_array_release(fdmul->multiplier_host);
+      }
     }
   }
 }
@@ -268,22 +274,21 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
 {
   if (fdmul->type) {
     gkyl_array_release(fdmul->multiplier);
-    if (fdmul->write_diagnostics)
+    if (fdmul->write_diagnostics) {
       gkyl_array_release(fdmul->multiplier_host);
+    }
 
     if (fdmul->type == GKYL_GK_DAMPING_USER_INPUT) {
       // Nothing to release.
     }
     else if (fdmul->type == GKYL_GK_DAMPING_LOSS_CONE) {
+      // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
       if (app->use_gpu) {
-        gkyl_cu_free(fdmul->bmag_max);
-        gkyl_cu_free(fdmul->bmag_max_coord);
+        gkyl_cu_free(fdmul->bmag_max_coord_ref);
         gkyl_cu_free(fdmul->phi_m);
         gkyl_cu_free(fdmul->phi_m_global);
-      }
-      else {
-        gkyl_free(fdmul->bmag_max);
-        gkyl_free(fdmul->bmag_max_coord);
+      } else {
+        gkyl_free(fdmul->bmag_max_coord_ref);
         gkyl_free(fdmul->phi_m);
         gkyl_free(fdmul->phi_m_global);
       }

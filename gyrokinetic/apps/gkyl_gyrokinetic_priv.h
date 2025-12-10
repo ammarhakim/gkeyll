@@ -816,8 +816,12 @@ struct gk_damping {
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
+  // Per-field-line bmag_max arrays (pointers to gk_geometry's arrays).
+  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  double *bmag_max_coord_ref; // Reference coordinate for phi evaluation at mirror throat.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
   struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
   // Functions chosen at runtime.
@@ -832,8 +836,12 @@ struct gk_fdot_multiplier {
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
+  // Per-field-line bmag_max arrays (pointers to gk_geometry's arrays).
+  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  double *bmag_max_coord_ref; // Reference coordinate for phi evaluation at mirror throat.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);

@@ -156,12 +156,13 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
 
 static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag)
 {
   // Get bmag_max-bmag at quadrature nodes.
+  // bmag_max is now a per-field-line array (1D for 2x, scalar for 1x).
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag, bmag_max);
+    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -177,13 +178,33 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
     const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
     double *Dbmag_quad = gkyl_array_fetch(up->Dbmag_quad, linidx);
 
+    // Get bmag_max for this field line (psi value).
+    // For 1x: bmag_max is a single value (index 0).
+    // For 2x: bmag_max varies with psi (x-direction), so use conf_iter.idx[0].
+    double bmag_max_val;
+    if (cdim == 1) {
+      // 1x case: single value.
+      const double *bmag_max_d = gkyl_array_cfetch(up->bmag_max, 0);
+      bmag_max_val = bmag_max_d[0]; // Just the constant coefficient.
+    }
+    else {
+      // 2x case: evaluate bmag_max at this psi cell.
+      // The bmag_max array is 1D in psi, so we need the psi index.
+      int psi_idx[1] = {conf_iter.idx[0]};
+      long bmag_max_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
+      const double *bmag_max_d = gkyl_array_cfetch(up->bmag_max, bmag_max_linidx);
+      // For simplicity, evaluate at cell center (logical coord 0).
+      double xc[1] = {0.0};
+      bmag_max_val = up->bmag_max_basis->eval_expand(xc, bmag_max_d);
+    }
+
     // Sum over basis 
     for (int n=0; n<tot_quad_conf; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
       for (int k=0; k<num_basis_conf; ++k)
         Dbmag_quad[n] += bmag_d[k]*b_ord[k];
 
-      Dbmag_quad[n] = bmag_max[0] - Dbmag_quad[n];
+      Dbmag_quad[n] = bmag_max_val - Dbmag_quad[n];
     }
   }
 }
@@ -216,6 +237,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->num_basis_phase = inp->phase_basis->num_basis;
   }
   up->use_gpu = inp->use_gpu;
+  up->bmag_max_z_scalar_gpu = NULL; // Will be set for GPU case.
 
   if (inp->c2p_pos_func == 0) {
     up->c2p_pos = c2p_pos_identity;
@@ -299,8 +321,33 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
       p2c_qidx_ho[n] = cqidx;
     }
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+    
+    // Allocate and set scalar bmag_max_z for GPU kernels.
+    // TODO: For 2x GPU support, need to pass full arrays and do per-cell lookup.
+    double bmag_max_z_val;
+    if (up->cdim == 1) {
+      // 1x case: single value.
+      const double *bmag_max_z_d = gkyl_array_cfetch(inp->bmag_max_z_coord, 0);
+      bmag_max_z_val = bmag_max_z_d[0];
+    } else {
+      // 2x case: use the first field line's value (simplified approach).
+      int psi_idx[1] = {inp->bmag_max_range->lower[0]};
+      long bmag_max_z_linidx = gkyl_range_idx(inp->bmag_max_range, psi_idx);
+      const double *bmag_max_z_d = gkyl_array_cfetch(inp->bmag_max_z_coord, bmag_max_z_linidx);
+      double xc[1] = {0.0};
+      bmag_max_z_val = inp->bmag_max_basis->eval_expand(xc, bmag_max_z_d);
+    }
+    up->bmag_max_z_scalar_gpu = gkyl_cu_malloc(sizeof(double));
+    gkyl_cu_memcpy(up->bmag_max_z_scalar_gpu, &bmag_max_z_val, sizeof(double), GKYL_CU_MEMCPY_H2D);
   }
 #endif
+
+  // Store references to bmag_max arrays (no copy, just store pointers).
+  // Must be done before calling gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad.
+  up->bmag_max = inp->bmag_max;
+  up->bmag_max_z_coord = inp->bmag_max_z_coord;
+  up->bmag_max_basis = inp->bmag_max_basis;
+  up->bmag_max_range = inp->bmag_max_range;
 
   // Allocate and obtain bmag_max-bmag at quadrature points.
   if (up->use_gpu) 
@@ -309,17 +356,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->Dbmag_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
 
   gkyl_array_clear(up->Dbmag_quad, 0.0); 
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, inp->bmag_max);
-
-  // Save the location of bmag_max in this updater.
-  if (up->use_gpu) {
-    up->bmag_max_loc = gkyl_cu_malloc(sizeof(double)*up->cdim);
-    gkyl_cu_memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim, GKYL_CU_MEMCPY_D2D);
-  }
-  else {
-    up->bmag_max_loc = gkyl_malloc(sizeof(double)*up->cdim);
-    memcpy(up->bmag_max_loc, inp->bmag_max_loc, sizeof(double)*up->cdim);
-  }
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag);
     
   return up;
 }
@@ -451,18 +488,39 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
         // KEparDbmag = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]).
         double KEparDbmag = 0.0;
-        if (Dbmag_quad[cqidx] > 0.0)
+        if (Dbmag_quad[cqidx] > 0.0) {
           KEparDbmag = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad[cqidx];
-        else
+        } else {
           KEparDbmag = 0.0;
+        }
 
-	double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
+        double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
+
+        // Get the z-coordinate of bmag_max for this field line.
+        // For 1x: single value (index 0).
+        // For 2x: varies with psi, so use conf_iter.idx[0].
+        double bmag_max_z_val;
+        if (cdim == 1) {
+          // 1x case: single value.
+          const double *bmag_max_z_d = gkyl_array_cfetch(up->bmag_max_z_coord, 0);
+          bmag_max_z_val = bmag_max_z_d[0];
+        } else {
+          // 2x case: evaluate bmag_max_z at this psi cell.
+          int psi_idx[1] = {conf_iter.idx[0]};
+          long bmag_max_z_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
+          const double *bmag_max_z_d = gkyl_array_cfetch(up->bmag_max_z_coord, bmag_max_z_linidx);
+          // For simplicity, evaluate at cell center (logical coord 0).
+          double xc[1] = {0.0};
+          bmag_max_z_val = up->bmag_max_basis->eval_expand(xc, bmag_max_z_d);
+        }
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-	if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(up->bmag_max_loc[cdim-1])) 
+        // xmu[cdim-1] is the z-coordinate (last config space coordinate).
+        if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_z_val)) {
           fq[0] = 1.0 * up->norm_fac;
-        else
+        } else {
           fq[0] = 0.0;
+        }
       }
       // Compute DG expansion coefficients of the mask.
       if (up->cellwise_trap_loss)
@@ -494,11 +552,10 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
     gkyl_array_release(up->mask_out_quad);
     gkyl_array_release(up->qDphiDbmag_quad);
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
-    gkyl_cu_free(up->bmag_max_loc);
+    gkyl_cu_free(up->bmag_max_z_scalar_gpu);
+    // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
   }
-  else {
-    gkyl_free(up->bmag_max_loc);
-  }
+  // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
 
   gkyl_free(up);
 }

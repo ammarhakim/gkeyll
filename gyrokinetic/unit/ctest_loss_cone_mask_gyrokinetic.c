@@ -228,6 +228,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   // Deflate geometry if necessary.
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+  
+  // Initialize per-field-line bmag_max arrays.
+  gkyl_gk_geometry_bmag_max_init(gk_geom);
+  
   // If we are on the gpu, copy from host
   if (use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
@@ -251,34 +255,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_eval_on_nodes_release(evphi);
   gkyl_array_copy(phi, phi_ho);
 
-  // Location of the mirror throat.
-  double bmag_max_loc_ho[] = {ctx.z_m};
-  double *bmag_max_loc;
-  if (use_gpu) {
-    bmag_max_loc = gkyl_cu_malloc(sizeof(double));
-    gkyl_cu_memcpy(bmag_max_loc, bmag_max_loc_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
-  }
-  else {
-    bmag_max_loc = gkyl_malloc(sizeof(double));
-    memcpy(bmag_max_loc, bmag_max_loc_ho, sizeof(double));
-  }
-
-  // Get the magnetic field at the mirror throat.
-  double bfield_max_ho[3], bmag_max_ho[1];
-  double xc_infl[] = {0.0,0.0,ctx.z_m};
-  bfield_func_3x(0.0, xc_infl, bfield_max_ho, &ctx);
-  bmag_max_ho[0] = bfield_max_ho[2];
-  double *bmag_max;
-  if (use_gpu) {
-    bmag_max = gkyl_cu_malloc(sizeof(double));
-    gkyl_cu_memcpy(bmag_max, bmag_max_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
-  }
-  else {
-    bmag_max = gkyl_malloc(sizeof(double));
-    memcpy(bmag_max, bmag_max_ho, sizeof(double));
-  }
-
-  // Get the potential at the mirror throat (z=pi/2).
+  // Get the potential at the mirror throat (z=z_m).
   double phi_m_ho[1];
   double xc[] = {ctx.z_m};
   phi_func_1x(0.0, xc, phi_m_ho, &ctx);
@@ -286,21 +263,21 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   if (use_gpu) {
     phi_m = gkyl_cu_malloc(sizeof(double));
     gkyl_cu_memcpy(phi_m, phi_m_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
-  }
-  else {
+  } else {
     phi_m = gkyl_malloc(sizeof(double));
     memcpy(phi_m, phi_m_ho, sizeof(double));
   }
 
   // Basis used to project the mask.
   struct gkyl_basis basis_mask;
-  if (ctx.num_quad == 1 || ctx.cellwise_trap_loss)
+  if (ctx.num_quad == 1 || ctx.cellwise_trap_loss) {
     gkyl_cart_modal_serendip(&basis_mask, ndim, 0);
-  else {
-    if (poly_order == 1) 
+  } else {
+    if (poly_order == 1) {
       gkyl_cart_modal_gkhybrid(&basis_mask, cdim, vdim);
-    else
+    } else {
       gkyl_cart_modal_serendip(&basis_mask, ndim, poly_order);
+    }
   }
 
   // Create mask array.
@@ -309,6 +286,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 	                              : gkyl_array_acquire(mask);
 
   // Project the loss cone mask.
+  // Use bmag_max and bmag_max_z_coord arrays from gk_geometry.
   struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
     .phase_grid = &grid,
     .conf_basis = &basis_conf,
@@ -318,8 +296,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_range = &local_vel, 
     .vel_map = gvm,
     .bmag = gk_geom->geo_int.bmag,
-    .bmag_max = bmag_max,
-    .bmag_max_loc = bmag_max_loc,
+    .bmag_max = gk_geom->bmag_max,
+    .bmag_max_z_coord = gk_geom->bmag_max_z_coord,
+    .bmag_max_basis = &gk_geom->bmag_max_basis,
+    .bmag_max_range = &gk_geom->bmag_max_range,
     .mass = ctx.mass,
     .charge = ctx.charge,
     .qtype = ctx.quad_type,
@@ -368,21 +348,20 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Write mask to file.
   char fname[1024];
-  if (use_gpu)
+  if (use_gpu) {
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_dev.gkyl", poly_order);
-  else
+  } else {
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ho.gkyl", poly_order);
+  }
   gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
 
   sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ref.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
 
+  // Free phi_m (bmag_max arrays are owned by gk_geom).
   if (use_gpu) {
-    gkyl_cu_free(bmag_max);
     gkyl_cu_free(phi_m);
-  }
-  else {
-    gkyl_free(bmag_max);
+  } else {
     gkyl_free(phi_m);
   }
   gkyl_array_release(phi); 

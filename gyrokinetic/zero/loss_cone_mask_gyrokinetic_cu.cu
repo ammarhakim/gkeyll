@@ -107,7 +107,7 @@ __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_ker(struct gkyl_rect_grid grid_phase,
   struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
   double mass, const struct gkyl_array* phase_ordinates, 
-  const double *bmag_max_loc, const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad,
+  const double *bmag_max_z_scalar, const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad,
   const int *p2c_qidx, struct gkyl_array* vmap, struct gkyl_basis* vmap_basis, struct gkyl_array* mask_out)
 {
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
@@ -164,7 +164,7 @@ gkyl_loss_cone_mask_gyrokinetic_ker(struct gkyl_rect_grid grid_phase,
   
       double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad_d[cqidx]);
   
-      if ( !(mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_loc[cdim-1])) ) {
+      if ( !(mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_z_scalar[0])) ) {
         mask_d[0] = 0.0;
         break;
       }
@@ -176,7 +176,7 @@ __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
   struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
   double mass, double norm_fac, const struct gkyl_array* phase_ordinates, 
-  const double *bmag_max_loc, const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad,
+  const double *bmag_max_z_scalar, const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad,
   const int *p2c_qidx, struct gkyl_array* vmap, struct gkyl_basis* vmap_basis, struct gkyl_array* mask_out_quad)
 {
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
@@ -232,7 +232,7 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
     double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad_d[cqidx]);
 
     double *fq = (double*) gkyl_array_fetch(mask_out_quad, linidx_phase);
-    if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_loc[cdim-1])) 
+    if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_z_scalar[0])) 
       fq[linc2] = norm_fac;
     else
       fq[linc2] = 0.0;
@@ -259,7 +259,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
     int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
     gkyl_loss_cone_mask_gyrokinetic_ker<<<nblocks, nthreads>>>(*up->grid_phase, *phase_range, *conf_range,
       gvm->local_ext_vel, up->mass, up->ordinates_phase->on_dev,
-      up->bmag_max_loc, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
+      up->bmag_max_z_scalar_gpu, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
       gvm->vmap_basis, mask_out->on_dev);
   }
   else {
@@ -270,7 +270,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
 
     gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock>>>(*up->grid_phase, *phase_range, *conf_range,
       gvm->local_ext_vel, up->mass, up->norm_fac, up->ordinates_phase->on_dev,
-      up->bmag_max_loc, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
+      up->bmag_max_z_scalar_gpu, up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
       gvm->vmap_basis, up->mask_out_quad->on_dev);
 
     // Call cublas to do the matrix multiplication nodal to modal conversion
