@@ -215,6 +215,40 @@ void gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *
   const struct gkyl_array *in_array, struct gkyl_array **out_vals);
 
 /**
+ * Project (evaluate) an arbitrary array onto a single peak location previously
+ * found by gkyl_array_dg_find_peaks_advance.
+ * 
+ * This is a more efficient version of gkyl_array_dg_find_peaks_project_on_peaks
+ * when you only need the evaluation at one specific peak (e.g., only at the
+ * mirror throat LOCAL_MAX peak).
+ * 
+ * Example usage:
+ * @code
+ * // 1. Find peaks in bmag along z direction
+ * struct gkyl_array_dg_find_peaks *peak_finder = gkyl_array_dg_find_peaks_new(&inp, bmag);
+ * gkyl_array_dg_find_peaks_advance(peak_finder, bmag);
+ * 
+ * // 2. Find the LOCAL_MAX peak index
+ * int num_peaks = gkyl_array_dg_find_peaks_num_peaks(peak_finder);
+ * int bmag_max_idx = num_peaks - 2; // Assuming standard ordering
+ * 
+ * // 3. Evaluate phi only at the mirror throat (bmag_max location)
+ * struct gkyl_array *phi_m = gkyl_array_new(GKYL_DOUBLE, out_basis.num_basis, out_range_ext.volume);
+ * gkyl_array_dg_find_peaks_project_on_peak_idx(peak_finder, phi, bmag_max_idx, phi_m);
+ * 
+ * // 4. Now phi_m contains phi evaluated at the mirror throat
+ * @endcode
+ * 
+ * @param up Updater object (must have run advance first)
+ * @param in_array Array to evaluate at peak location (same grid/basis as original field)
+ * @param peak_idx Index of the peak to evaluate at (0 to num_peaks-1)
+ * @param out_val Output: evaluated values at the specified peak
+ *                (must be pre-allocated to match out_range_ext)
+ */
+void gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in_array, int peak_idx, struct gkyl_array *out_val);
+
+/**
  * Release the updater and all internal arrays.
  * 
  * @param up Updater to delete

@@ -59,15 +59,14 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, con
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
   // Find the potential at all peak locations (including the mirror throat).
-  gkyl_array_dg_find_peaks_project_on_peaks(fdmul->bmag_peak_finder, phi, fdmul->phi_at_peaks);
-
-  // Get phi at the mirror throat (bmag_max peak location).
-  // phi_at_peaks[bmag_max_peak_idx] is a DG array on the reduced grid.
-  const struct gkyl_array *phi_m_arr = fdmul->phi_at_peaks[fdmul->bmag_max_peak_idx];
+  gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi,
+    fdmul->bmag_max_peak_idx, fdmul->phi_at_bmag_max);
+  // Allgather on phi_at_bmag_max. It's not an allgather.
+  // One process has the correct one, but the others do not. Is it a bcast or a sync?
 
   // Project the loss cone mask using the phi_m array.
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, phi_m_arr, fdmul->multiplier);
+    phi, fdmul->phi_at_bmag_max, fdmul->multiplier);
 
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -173,8 +172,13 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .search_dir = search_dir,
         .use_gpu = app->use_gpu,
       };
-      fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, app->gk_geom->geo_int.bmag);
+      // Pass a global bmag_int into the peak finder
+      struct gkyl_array *bmag_int_global = mkarr(false, 
+        app->gk_geom->geo_int.bmag->ncomp, app->gk_geom->geo_int.bmag->size);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
+      fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
       gkyl_array_dg_find_peaks_advance(fdmul->bmag_peak_finder, app->gk_geom->geo_int.bmag);
+      gkyl_array_release(bmag_int_global);
       
       // Get the LOCAL_MAX peak (bmag maximum along z direction).
       int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
@@ -185,12 +189,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       fdmul->bmag_max_range = gkyl_array_dg_find_peaks_get_range(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(fdmul->bmag_peak_finder);
 
-      // Allocate arrays for phi evaluated at all peak locations.
-      fdmul->phi_at_peaks = gkyl_malloc(num_peaks * sizeof(struct gkyl_array*));
-      for (int p = 0; p < num_peaks; p++) {
-        fdmul->phi_at_peaks[p] = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
-          fdmul->bmag_max_range_ext->volume);
-      }
+      fdmul->phi_at_bmag_max = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
+        fdmul->bmag_max_range_ext->volume);
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
@@ -270,12 +270,8 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
       // Nothing to release.
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
-      // Release phi_at_peaks arrays.
       int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
-      for (int p = 0; p < num_peaks; p++) {
-        gkyl_array_release(fdmul->phi_at_peaks[p]);
-      }
-      gkyl_free(fdmul->phi_at_peaks);
+      gkyl_array_release(fdmul->phi_at_bmag_max);
       gkyl_array_dg_find_peaks_release(fdmul->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
     }

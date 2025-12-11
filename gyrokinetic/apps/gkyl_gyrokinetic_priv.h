@@ -845,7 +845,7 @@ struct gk_fdot_multiplier {
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   const struct gkyl_range *bmag_max_range_ext; // Extended range for bmag_max arrays.
   int bmag_max_peak_idx; // Index of the LOCAL_MAX peak in the peak finder.
-  struct gkyl_array **phi_at_peaks; // Phi evaluated at all peak locations.
+  struct gkyl_array *phi_at_bmag_max; // Phi evaluated at all peak locations.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,

@@ -345,125 +345,122 @@ find_peaks_for_preserved_node(struct gkyl_array_dg_find_peaks *up, const struct 
  */
 static void
 eval_array_at_peaks_for_preserved_node(struct gkyl_array_dg_find_peaks *up,
-  const struct gkyl_array *in_ho, int preserved_node_idx, struct gkyl_array **out_vals_nodal)
+  const struct gkyl_array *in_ho, int preserved_node_idx, struct gkyl_array **out_vals_nodal, int peak_idx)
 {
   int ndim = up->grid.ndim;
   int search_dir = up->search_dir;
   int poly_order = up->basis.poly_order;
   int preserved_dir = (ndim == 1) ? -1 : ((search_dir == 0) ? 1 : 0);
 
-  // For each peak, evaluate the input array at the peak coordinate.
-  for (int p = 0; p < up->num_peaks; p++) {
-    // Get the peak coordinate that was found during find_peaks.
-    const double *peak_coord_n = gkyl_array_cfetch(up->out_coords_nodal[p], preserved_node_idx);
-    double peak_coord_search = peak_coord_n[0];
+  // Get the peak coordinate that was found during find_peaks.
+  const double *peak_coord_n = gkyl_array_cfetch(up->out_coords_nodal[peak_idx], preserved_node_idx);
+  double peak_coord_search = peak_coord_n[0];
 
-    // Find the cell containing this coordinate in the search direction.
-    // We need to build a point coordinate to pass to find_cell.
-    double point[GKYL_MAX_DIM];
-    int known_idx[GKYL_MAX_DIM];
-    int cell_idx[GKYL_MAX_DIM];
-    
-    for (int d = 0; d < ndim; d++) {
-      if (d == search_dir) {
-        point[d] = peak_coord_search;
-        known_idx[d] = -1; // Not known
-      }
-      else {
-        // Use dummy value - we'll specify known_idx.
-        point[d] = 0.0;
-        known_idx[d] = -1;
-      }
+  // Find the cell containing this coordinate in the search direction.
+  // We need to build a point coordinate to pass to find_cell.
+  double point[GKYL_MAX_DIM];
+  int known_idx[GKYL_MAX_DIM];
+  int cell_idx[GKYL_MAX_DIM];
+  
+  for (int d = 0; d < ndim; d++) {
+    if (d == search_dir) {
+      point[d] = peak_coord_search;
+      known_idx[d] = -1; // Not known
     }
-    
-    // If 2D, we need to determine preserved direction cell from preserved_node_idx.
-    // For p=1 with N cells (1-based indexing), nodal points map as:
-    //   Node 0 -> cell 1, logical coord -1 (left edge of first cell)
-    //   Node k (1 <= k <= N) -> cell k, logical coord +1 (right edge of cell k)
-    // This ensures proper continuity at shared cell boundaries.
-    if (ndim > 1) {
-      int pres_cell;
-      if (poly_order == 1) {
-        if (preserved_node_idx == 0) {
-          // First node: evaluate at left edge of first cell.
-          pres_cell = up->range.lower[preserved_dir];
-        }
-        else {
-          // All other nodes (1 to N): evaluate at right edge of cell with index = node_idx.
-          // Clamp to upper bound for safety.
-          pres_cell = up->range.lower[preserved_dir] + preserved_node_idx - 1;
-          if (pres_cell > up->range.upper[preserved_dir]) {
-            pres_cell = up->range.upper[preserved_dir];
-          }
-        }
-      }
-      else {
-        pres_cell = up->range.lower[preserved_dir] + preserved_node_idx / 2;
-      }
-      known_idx[preserved_dir] = pres_cell;
-      
-      // Set the coordinate in preserved direction to the cell center.
-      int pres_cell_idx[GKYL_MAX_DIM];
-      for (int d = 0; d < ndim; d++) {
-        pres_cell_idx[d] = (d == preserved_dir) ? pres_cell : 1;
-      }
-      double xc_pres[GKYL_MAX_DIM];
-      gkyl_rect_grid_cell_center(&up->grid, pres_cell_idx, xc_pres);
-      point[preserved_dir] = xc_pres[preserved_dir];
+    else {
+      // Use dummy value - we'll specify known_idx.
+      point[d] = 0.0;
+      known_idx[d] = -1;
     }
-    
-    gkyl_rect_grid_find_cell(&up->grid, point, true, known_idx, cell_idx);
-
-    // Clamp cell_idx to interior range (avoid ghost cells).
-    for (int d = 0; d < up->grid.ndim; d++) {
-      if (cell_idx[d] < up->range.lower[d]) {
-        cell_idx[d] = up->range.lower[d];
-      }
-      if (cell_idx[d] > up->range.upper[d]) {
-        cell_idx[d] = up->range.upper[d];
-      }
-    }
-
-    // Get the DG coefficients at this cell.
-    long linidx = gkyl_range_idx(&up->range_ext, cell_idx);
-    const double *f_d = gkyl_array_cfetch(in_ho, linidx);
-
-    // Get cell center.
-    double xc[GKYL_MAX_DIM];
-    gkyl_rect_grid_cell_center(&up->grid, cell_idx, xc);
-
-    // Convert peak coordinate to logical space.
-    double nod_log[GKYL_MAX_DIM];
-    for (int d = 0; d < ndim; d++) {
-      if (d == search_dir) {
-        // Convert physical coordinate to logical [-1, 1].
-        nod_log[d] = 2.0 * (peak_coord_search - xc[d]) / up->grid.dx[d];
-      }
-      else if (ndim > 1) {
-        // In preserved direction, use the node position in the cell.
-        // For p=1: node 0 is at left edge (-1), all others at right edge (+1).
-        if (poly_order == 1) {
-          nod_log[d] = (preserved_node_idx == 0) ? -1.0 : 1.0;
-        }
-        else {
-          int pres_node_offset = preserved_node_idx % 3;
-          if (pres_node_offset == 0)
-            nod_log[d] = -1.0;
-          else if (pres_node_offset == 1)
-            nod_log[d] = 0.0;
-          else
-            nod_log[d] = 1.0;
-        }
-      }
-    }
-
-    // Evaluate the DG expansion at this logical coordinate.
-    double val = up->basis.eval_expand(nod_log, f_d);
-
-    // Store the result.
-    double *val_n = gkyl_array_fetch(out_vals_nodal[p], preserved_node_idx);
-    val_n[0] = val;
   }
+  
+  // If 2D, we need to determine preserved direction cell from preserved_node_idx.
+  // For p=1 with N cells (1-based indexing), nodal points map as:
+  //   Node 0 -> cell 1, logical coord -1 (left edge of first cell)
+  //   Node k (1 <= k <= N) -> cell k, logical coord +1 (right edge of cell k)
+  // This ensures proper continuity at shared cell boundaries.
+  if (ndim > 1) {
+    int pres_cell;
+    if (poly_order == 1) {
+      if (preserved_node_idx == 0) {
+        // First node: evaluate at left edge of first cell.
+        pres_cell = up->range.lower[preserved_dir];
+      }
+      else {
+        // All other nodes (1 to N): evaluate at right edge of cell with index = node_idx.
+        // Clamp to upper bound for safety.
+        pres_cell = up->range.lower[preserved_dir] + preserved_node_idx - 1;
+        if (pres_cell > up->range.upper[preserved_dir]) {
+          pres_cell = up->range.upper[preserved_dir];
+        }
+      }
+    }
+    else {
+      pres_cell = up->range.lower[preserved_dir] + preserved_node_idx / 2;
+    }
+    known_idx[preserved_dir] = pres_cell;
+    
+    // Set the coordinate in preserved direction to the cell center.
+    int pres_cell_idx[GKYL_MAX_DIM];
+    for (int d = 0; d < ndim; d++) {
+      pres_cell_idx[d] = (d == preserved_dir) ? pres_cell : 1;
+    }
+    double xc_pres[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&up->grid, pres_cell_idx, xc_pres);
+    point[preserved_dir] = xc_pres[preserved_dir];
+  }
+  
+  gkyl_rect_grid_find_cell(&up->grid, point, true, known_idx, cell_idx);
+
+  // Clamp cell_idx to interior range (avoid ghost cells).
+  for (int d = 0; d < up->grid.ndim; d++) {
+    if (cell_idx[d] < up->range.lower[d]) {
+      cell_idx[d] = up->range.lower[d];
+    }
+    if (cell_idx[d] > up->range.upper[d]) {
+      cell_idx[d] = up->range.upper[d];
+    }
+  }
+
+  // Get the DG coefficients at this cell.
+  long linidx = gkyl_range_idx(&up->range_ext, cell_idx);
+  const double *f_d = gkyl_array_cfetch(in_ho, linidx);
+
+  // Get cell center.
+  double xc[GKYL_MAX_DIM];
+  gkyl_rect_grid_cell_center(&up->grid, cell_idx, xc);
+
+  // Convert peak coordinate to logical space.
+  double nod_log[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; d++) {
+    if (d == search_dir) {
+      // Convert physical coordinate to logical [-1, 1].
+      nod_log[d] = 2.0 * (peak_coord_search - xc[d]) / up->grid.dx[d];
+    }
+    else if (ndim > 1) {
+      // In preserved direction, use the node position in the cell.
+      // For p=1: node 0 is at left edge (-1), all others at right edge (+1).
+      if (poly_order == 1) {
+        nod_log[d] = (preserved_node_idx == 0) ? -1.0 : 1.0;
+      }
+      else {
+        int pres_node_offset = preserved_node_idx % 3;
+        if (pres_node_offset == 0)
+          nod_log[d] = -1.0;
+        else if (pres_node_offset == 1)
+          nod_log[d] = 0.0;
+        else
+          nod_log[d] = 1.0;
+      }
+    }
+  }
+
+  // Evaluate the DG expansion at this logical coordinate.
+  double val = up->basis.eval_expand(nod_log, f_d);
+
+  // Store the result.
+  double *val_n = gkyl_array_fetch(out_vals_nodal[peak_idx], preserved_node_idx);
+  val_n[0] = val;
 }
 
 struct gkyl_array_dg_find_peaks*
@@ -695,7 +692,9 @@ gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
   // Evaluate the input array at peak locations for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
   for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-    eval_array_at_peaks_for_preserved_node(up, in_ho, pres_node, out_vals_nodal);
+    for (int p = 0; p < up->num_peaks; p++) {
+      eval_array_at_peaks_for_preserved_node(up, in_ho, pres_node, out_vals_nodal, p);
+    }
   }
 
   // Transform nodal to modal for each peak.
@@ -719,6 +718,45 @@ gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
   for (int p = 0; p < up->num_peaks; p++) {
     gkyl_array_release(out_vals_nodal[p]);
   }
+  gkyl_array_release(in_ho);
+}
+
+void
+gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in_array, int peak_idx, struct gkyl_array *out_val)
+{
+  int ndim = up->grid.ndim;
+  int out_dim = ndim - 1;
+
+  // Copy input to host if on GPU.
+  struct gkyl_array *in_ho = gkyl_array_new(GKYL_DOUBLE, in_array->ncomp, in_array->size);
+  gkyl_array_copy(in_ho, in_array);
+
+  // Allocate temporary nodal arrays for each peak.
+  struct gkyl_array *out_vals_nodal[GKYL_DG_FIND_PEAKS_MAX];
+  out_vals_nodal[peak_idx] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
+
+  // Evaluate the input array at peak locations for each preserved-direction node.
+  int num_nodes_out = up->out_nrange.volume;
+  for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
+    eval_array_at_peaks_for_preserved_node(up, in_ho, pres_node, out_vals_nodal, peak_idx);
+  }
+
+  // Transform nodal to modal for each peak.
+  if (out_dim == 0) {
+    // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
+    double *val_m = gkyl_array_fetch(out_val, 0);
+    const double *val_n = gkyl_array_cfetch(out_vals_nodal[peak_idx], 0);
+    val_m[0] = val_n[0];
+  }
+  else {
+    // 2D -> 1D case: use nodal-to-modal transform.
+    gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
+      &up->out_nrange, &up->out_range, 1, out_vals_nodal[peak_idx], out_val, false);
+  }
+
+  // Clean up temporary arrays.
+  gkyl_array_release(out_vals_nodal[peak_idx]);
   gkyl_array_release(in_ho);
 }
 

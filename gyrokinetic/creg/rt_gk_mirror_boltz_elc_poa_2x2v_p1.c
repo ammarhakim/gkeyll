@@ -521,9 +521,9 @@ create_ctx(void)
 
   // Grid DOF:
   int Nx = 8;  // Number of cells in x (psi) direction.
-  int Nz = 192; // Number of cells in z direction.
-  int Nvpar = 48; // Number of cells in parallel velocity direction.
-  int Nmu = 16;  // Number of cells in mu direction.
+  int Nz = 96; // Number of cells in z direction.
+  int Nvpar = 16; // Number of cells in parallel velocity direction.
+  int Nmu = 8;  // Number of cells in mu direction.
   int poly_order = 1;
 
   // Initial conditions parameter.s
