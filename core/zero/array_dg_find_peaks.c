@@ -11,12 +11,6 @@
 /**
  * Scan along the search direction at a fixed preserved-direction coordinate
  * to count the number of peaks and determine their types.
- * 
- * @param up Updater (partially initialized - just grid/basis/range/search_dir)
- * @param in Input field
- * @param preserved_idx Index in the preserved direction (ignored for 1D)
- * @param num_peaks_out Output: number of peaks found
- * @param peak_types_out Output: array of peak types (must be size GKYL_DG_FIND_PEAKS_MAX)
  */
 static void
 count_peaks_along_dir(const struct gkyl_array_dg_find_peaks *up, const struct gkyl_array *in,
@@ -547,6 +541,7 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *inp, con
     up->out_coords[p] = gkyl_array_new(GKYL_DOUBLE, up->out_basis.num_basis, up->out_range_ext.volume);
     up->out_vals_nodal[p] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
     up->out_coords_nodal[p] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
+    up->out_eval_at_peaks_vals_nodal[p] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
   }
 
   // Initialize unused peak arrays to NULL.
@@ -555,6 +550,7 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *inp, con
     up->out_coords[p] = NULL;
     up->out_vals_nodal[p] = NULL;
     up->out_coords_nodal[p] = NULL;
+    up->out_eval_at_peaks_vals_nodal[p] = NULL;
   }
 
   return up;
@@ -563,17 +559,15 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *inp, con
 void
 gkyl_array_dg_find_peaks_advance(struct gkyl_array_dg_find_peaks *up, const struct gkyl_array *in)
 {
+  // Needs a gpu implementation
+
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
-
-  // Copy input to host if on GPU.
-  struct gkyl_array *in_ho = gkyl_array_new(GKYL_DOUBLE, in->ncomp, in->size);
-  gkyl_array_copy(in_ho, in);
 
   // Find peaks for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
   for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-    find_peaks_for_preserved_node(up, in_ho, pres_node);
+    find_peaks_for_preserved_node(up, in, pres_node);
   }
 
   // Transform nodal to modal for each peak.
@@ -597,8 +591,6 @@ gkyl_array_dg_find_peaks_advance(struct gkyl_array_dg_find_peaks *up, const stru
         &up->out_nrange, &up->out_range, 1, up->out_coords_nodal[p], up->out_coords[p], false);
     }
   }
-
-  gkyl_array_release(in_ho);
 }
 
 int
@@ -676,24 +668,16 @@ void
 gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
   const struct gkyl_array *in_array, struct gkyl_array **out_vals)
 {
+  // Needs a GPU implementation
+
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
-
-  // Copy input to host if on GPU.
-  struct gkyl_array *in_ho = gkyl_array_new(GKYL_DOUBLE, in_array->ncomp, in_array->size);
-  gkyl_array_copy(in_ho, in_array);
-
-  // Allocate temporary nodal arrays for each peak.
-  struct gkyl_array *out_vals_nodal[GKYL_DG_FIND_PEAKS_MAX];
-  for (int p = 0; p < up->num_peaks; p++) {
-    out_vals_nodal[p] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
-  }
 
   // Evaluate the input array at peak locations for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
   for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
     for (int p = 0; p < up->num_peaks; p++) {
-      eval_array_at_peaks_for_preserved_node(up, in_ho, pres_node, out_vals_nodal, p);
+      eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, p);
     }
   }
 
@@ -702,7 +686,7 @@ gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
     // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
     for (int p = 0; p < up->num_peaks; p++) {
       double *val_m = gkyl_array_fetch(out_vals[p], 0);
-      const double *val_n = gkyl_array_cfetch(out_vals_nodal[p], 0);
+      const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[p], 0);
       val_m[0] = val_n[0];
     }
   }
@@ -710,54 +694,38 @@ gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
     // 2D -> 1D case: use nodal-to-modal transform.
     for (int p = 0; p < up->num_peaks; p++) {
       gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-        &up->out_nrange, &up->out_range, 1, out_vals_nodal[p], out_vals[p], false);
+        &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[p], out_vals[p], false);
     }
   }
-
-  // Clean up temporary arrays.
-  for (int p = 0; p < up->num_peaks; p++) {
-    gkyl_array_release(out_vals_nodal[p]);
-  }
-  gkyl_array_release(in_ho);
 }
 
 void
 gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peaks *up,
   const struct gkyl_array *in_array, int peak_idx, struct gkyl_array *out_val)
 {
+  // Needs a GPU implementation
+
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
-
-  // Copy input to host if on GPU.
-  struct gkyl_array *in_ho = gkyl_array_new(GKYL_DOUBLE, in_array->ncomp, in_array->size);
-  gkyl_array_copy(in_ho, in_array);
-
-  // Allocate temporary nodal arrays for each peak.
-  struct gkyl_array *out_vals_nodal[GKYL_DG_FIND_PEAKS_MAX];
-  out_vals_nodal[peak_idx] = gkyl_array_new(GKYL_DOUBLE, 1, up->out_nrange.volume);
 
   // Evaluate the input array at peak locations for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
   for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-    eval_array_at_peaks_for_preserved_node(up, in_ho, pres_node, out_vals_nodal, peak_idx);
+    eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, peak_idx);
   }
 
   // Transform nodal to modal for each peak.
   if (out_dim == 0) {
     // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
     double *val_m = gkyl_array_fetch(out_val, 0);
-    const double *val_n = gkyl_array_cfetch(out_vals_nodal[peak_idx], 0);
+    const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[peak_idx], 0);
     val_m[0] = val_n[0];
   }
   else {
     // 2D -> 1D case: use nodal-to-modal transform.
     gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-      &up->out_nrange, &up->out_range, 1, out_vals_nodal[peak_idx], out_val, false);
+      &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[peak_idx], out_val, false);
   }
-
-  // Clean up temporary arrays.
-  gkyl_array_release(out_vals_nodal[peak_idx]);
-  gkyl_array_release(in_ho);
 }
 
 void
@@ -768,6 +736,7 @@ gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up)
     gkyl_array_release(up->out_coords[p]);
     gkyl_array_release(up->out_vals_nodal[p]);
     gkyl_array_release(up->out_coords_nodal[p]);
+    gkyl_array_release(up->out_eval_at_peaks_vals_nodal[p]);
   }
   gkyl_array_release(up->nodes);
   gkyl_nodal_ops_release(up->n2m);

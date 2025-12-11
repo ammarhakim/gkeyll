@@ -48,6 +48,7 @@ struct gkyl_array_dg_find_peaks {
   struct gkyl_array *out_coords[GKYL_DG_FIND_PEAKS_MAX];      // Peak coordinates (modal DG)
   struct gkyl_array *out_vals_nodal[GKYL_DG_FIND_PEAKS_MAX];  // Nodal peak values
   struct gkyl_array *out_coords_nodal[GKYL_DG_FIND_PEAKS_MAX]; // Nodal peak coordinates
+  struct gkyl_array *out_eval_at_peaks_vals_nodal[GKYL_DG_FIND_PEAKS_MAX]; // Values evaluated at peaks (nodal)
 
   // Internal working arrays.
   struct gkyl_array *nodes;         // Node locations in logical coords
