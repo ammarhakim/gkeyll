@@ -399,14 +399,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // Release temporary 3d geometry.
 
-  // Initialize per-field-line bmag_max arrays.
-  gkyl_gk_geometry_bmag_max_init(app->gk_geom);
-
-  gkyl_comm_array_write(app->comm, &app->gk_geom->bmag_max_grid, &app->gk_geom->bmag_max_range, NULL, app->gk_geom->bmag_max, "bmag_max.gkyl");
-  gkyl_comm_array_write(app->comm, &app->gk_geom->bmag_max_grid, &app->gk_geom->bmag_max_range, NULL, app->gk_geom->bmag_max_z_coord, "bmag_max_z_coord.gkyl");
-  gkyl_comm_array_write(app->comm, &app->gk_geom->bmag_max_grid, &app->gk_geom->bmag_max_nrange, NULL, app->gk_geom->bmag_max_nodal, "bmag_max_nodal.gkyl");
-  gkyl_comm_array_write(app->comm, &app->gk_geom->bmag_max_grid, &app->gk_geom->bmag_max_nrange, NULL, app->gk_geom->bmag_max_z_coord_nodal, "bmag_max_z_coord_nodal.gkyl");
-
   double bmag_min_local, bmag_min_global;
   bmag_min_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MIN);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
