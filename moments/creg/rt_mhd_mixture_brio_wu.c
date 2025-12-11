@@ -188,7 +188,7 @@ evalMHDMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * (vx_total * vx_total)) + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))); // Second species total energy.
   double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
-  double level_set1 = rho_total * alpha1; // Mixture weighted volume fraction (first species).
+  double vol_frac1 = rho_total * alpha1; // Mixture weighted volume fraction (first species).
   double mass_frac1 = alpha1 * rho1; // Mixture volume-weighted mass density (first species).
   double mass_frac2 = (1.0 - alpha1) * rho2; // Mixture volume-weighted mass density (second species).
 
@@ -203,8 +203,8 @@ evalMHDMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   // Set correction potential.
   fout[8] = 0.0;
   // Set fluid mixture weighted volume fraction (first species).
-  fout[9] = level_set1;
-  // Set fluiid mixture volume-weighted mass densities (first and second species).
+  fout[9] = vol_frac1;
+  // Set fluid mixture volume-weighted mass densities (first and second species).
   fout[10] = mass_frac1; fout[11] = mass_frac2;
 }
 

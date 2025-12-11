@@ -25,7 +25,7 @@ struct shock_bubble_ctx
 
   double rho_pre; // Pre-shock fluid mass density.
   double u_pre; // Pre-shock fluid velocity (x-direction).
-  double phi1_pre; // Pre-shock fluid set value (first species).
+  double phi1_pre; // Pre-shock level set value (first species).
 
   double rho_post; // Post-shock fluid mass density.
   double u_post; // Post-shock fluid velocity (x-direction).

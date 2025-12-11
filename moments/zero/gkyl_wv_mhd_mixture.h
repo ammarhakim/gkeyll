@@ -4,7 +4,8 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_mhd_mixture_rp {
-  WV_MHD_MIXTURE_RP_LAX, // Default (Lax fluxes).
+  WV_MHD_MIXTURE_RP_HLL, // Default (HLL fluxes).
+  WV_MHD_MIXTURE_RP_LAX
 };
 
 // Input context, packaged as a struct.

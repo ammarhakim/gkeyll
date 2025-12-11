@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd_rgfm.h>
+#include <gkyl_wv_mhd_mixture.h>
 
 #include <gkyl_null_comm.h>
 
@@ -28,15 +28,15 @@ struct shock_bubble_ctx
 
   double rho_pre; // Pre-shock fluid mass density.
   double u_pre; // Pre-shock fluid velocity (x-direction).
-  double phi1_pre; // Pre-shock level set value (first species).
+  double alpha1_pre; // Pre-shock fluid volume fraction (first species).
 
   double rho_post; // Post-shock fluid mass density.
   double u_post; // Post-shock fluid velocity (x-direction).
-  double phi1_post; // Post-shock level set value (first species).
+  double alpha1_post; // Post-shock volume fraction (first species).
 
   double rho_bub; // Bubble fluid mass density.
   double u_bub; // Bubble fluid velocity (x-direction).
-  double phi1_bub; // Bubble level set value (first species).
+  double alpha1_bub; // Bubble volume fraction (first species).
 
   double light_speed; // Speed of light.
   double b_fact; // Factor of speed of light for magnetic field correction.
@@ -52,8 +52,6 @@ struct shock_bubble_ctx
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
-  int reinit_freq; // Reinitialization frequency (for level set).
-  double surface_tension; // Surface tension (for level set).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -80,15 +78,15 @@ create_ctx(void)
 
   double rho_pre = 1.0; // Pre-shock fluid mass density.
   double u_pre = 0.0; // Pre-shock fluid velocity (x-direction).
-  double phi1_pre = 0.99999; // Pre-shock level set value (first species).
+  double alpha1_pre = 0.99999; // Pre-shock volume fraction (first species).
 
   double rho_post = 1.3764; // Post-shock fluid mass density.
   double u_post = -0.3336; // Post-shock fluid velocity (x-direction).
-  double phi1_post = 0.99999; // Post-shock level set value (first species).
+  double alpha1_post = 0.99999; // Post-shock volume fraction (first species).
 
   double rho_bub = 0.1818; // Bubble fluid mass density.
   double u_bub = 0.0; // Bubble fluid velocity (x-direction).
-  double phi1_bub = 0.00001; // Bubble level set value (first species).
+  double alpha1_bub = 0.00001; // Bubble volume fraction (first species).
 
   double light_speed = 1.0; // Speed of light.
   double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
@@ -104,8 +102,6 @@ create_ctx(void)
   double Lx = 0.325; // Domain size (x-direction).
   double Ly = 0.089; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
-  int reinit_freq = 3; // Reinitialization frequency (for level set).
-  double surface_tension = 0.02; // Surface tension (for level set).
 
   double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -126,13 +122,13 @@ create_ctx(void)
     .By_total = By_total,
     .rho_pre = rho_pre,
     .u_pre = u_pre,
-    .phi1_pre = phi1_pre,
+    .alpha1_pre = alpha1_pre,
     .rho_post = rho_post,
     .u_post = u_post,
-    .phi1_post = phi1_post,
+    .alpha1_post = alpha1_post,
     .rho_bub = rho_bub,
     .u_bub = u_bub,
-    .phi1_bub = phi1_bub,
+    .alpha1_bub = alpha1_bub,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .p_pre = p_pre,
@@ -143,8 +139,6 @@ create_ctx(void)
     .Lx = Lx,
     .Ly = Ly,
     .cfl_frac = cfl_frac,
-    .reinit_freq = reinit_freq,
-    .surface_tension = surface_tension,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -161,7 +155,7 @@ create_ctx(void)
 }
 
 void
-evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalMHDMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
   struct shock_bubble_ctx *app = ctx;
@@ -174,15 +168,15 @@ evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double rho_pre = app->rho_pre;
   double u_pre = app->u_pre;
-  double phi1_pre = app->phi1_pre;
+  double alpha1_pre = app->alpha1_pre;
 
   double rho_post = app->rho_post;
   double u_post = app->u_post;
-  double phi1_post = app->phi1_post;
+  double alpha1_post = app->alpha1_post;
 
   double rho_bub = app->rho_bub;
   double u_bub = app->u_bub;
-  double phi1_bub = app->phi1_bub;
+  double alpha1_bub = app->alpha1_bub;
 
   double p_pre = app->p_pre;
   double p_post = app->p_post;
@@ -195,7 +189,7 @@ evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double rho1 = 0.0;
   double rho2 = 0.0;
-  double phi1 = 0.0;
+  double alpha1 = 0.0;
 
   double vx_total = 0.0;
   double vy_total = 0.0;
@@ -208,42 +202,42 @@ evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   if (x > x_loc) {
     rho1 = rho_post; // First species fluid mass density (post-shock).
     rho2 = rho_bub; // Second species fluid mass density (bubble).
-    phi1 = phi1_post; // First species level set value (post-shock).
+    alpha1 = alpha1_post; // First species volume fraction (post-shock).
 
-    vx_total = u_post; // Total fluid velocity (post-shock).
-    p_total = p_post; // Total fluid pressure (post-shock).
+    vx_total = u_post; // Total mixture velocity (post-shock).
+    p_total = p_post; // Total mixture pressure (post-shock).
   }
   else {
     rho1 = rho_pre; // First species fluid mass density (pre-shock).
     rho2 = rho_bub; // Second species fluid mass density (bubble).
-    phi1 = phi1_pre; // First species level set value (pre-shock).
+    alpha1 = alpha1_pre; // First species volume fraction (pre-shock).
 
-    vx_total = u_pre; // Total fluid velocity (pre-shock).
-    p_total = p_pre; // Total fluid pressure (pre-shock).
+    vx_total = u_pre; // Total mixture velocity (pre-shock).
+    p_total = p_pre; // Total mixture pressure (pre-shock).
   }
 
   if (r < bub_rad) {
     rho1 = rho_pre; // First species fluid mass density (pre-shock).
     rho2 = rho_bub; // Second species fluid mass density (bubble).
-    phi1 = phi1_bub; // First species level set value (bubble).
+    alpha1 = alpha1_bub; // First species volume fraction (bubble).
 
-    vx_total = u_bub; // Total fluid velocity (bubble).
-    p_total = p_bub; // Total fluid pressure (bubble).
+    vx_total = u_bub; // Total mixture velocity (bubble).
+    p_total = p_bub; // Total mixture pressure (bubble).
   }
 
-  double rho_total = (phi1 * rho1) + ((1.0 - phi1) * rho2); // Total fluid density.
+  double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
 
-  double momx_total = rho_total * vx_total; // Total fluid momentum density (x-direction).
-  double momy_total = rho_total * vy_total; // Total fluid momentum density (y-direction).
-  double momz_total = rho_total * vz_total; // Total fluid momentum density (z-direction).
+  double momx_total = rho_total * vx_total; // Total mixture momentum density (x-direction).
+  double momy_total = rho_total * vy_total; // Total mixture momentum density (y-direction).
+  double momz_total = rho_total * vz_total; // Total mixture momentum density (z-direction).
 
   double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * (vx_total * vx_total)) + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))); // First species total energy.
   double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * (vx_total * vx_total)) + (0.5 * ((Bx_total * Bx_total) + (By_total * By_total) + (Bz_total * Bz_total))); // Second species total energy.
-  double E_total = (phi1 * E1) + ((1.0 - phi1) * E2); // Total fluid energy.
+  double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
-  double level_set1 = rho_total * phi1; // Conserved level set value (first species).
-  double mass_frac1 = phi1 * rho1; // Conserved mass density (first species).
-  double mass_frac2 = (1.0 - phi1) * rho2; // Conserved mass density (second species).
+  double vol_frac1 = rho_total * alpha1; // Mixture weighted value (first species).
+  double mass_frac1 = alpha1 * rho1; // Mixture volume-weighted mass density (first species).
+  double mass_frac2 = (1.0 - alpha1) * rho2; // Mixture volume-weighted mass density (second species).
 
   // Set total fluid mass density.
   fout[0] = rho_total;
@@ -255,12 +249,10 @@ evalMHDRGFMInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[5] = Bx_total; fout[6] = By_total; fout[7] = Bz_total;
   // Set correction potential.
   fout[8] = 0.0;
-  // Set conserved level set value (first species).
-  fout[9] = level_set1;
-  // Set conserved mass densities (first and second species).
+  // Set fluid mixture weighted volume fraction (first species).
+  fout[9] = vol_frac1;
+  // Set fluid mixture volume-weighted mass densities (first and second species).
   fout[10] = mass_frac1; fout[11] = mass_frac2;
-  // Set reinitialization parameter (for level set).
-  fout[12] = 0.0;
 }
 
 void
@@ -319,13 +311,13 @@ main(int argc, char **argv)
   double *gas_gamma_s = gkyl_malloc(sizeof(double[2]));
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
-  struct gkyl_wv_eqn *mhd_rgfm = gkyl_wv_mhd_rgfm_new(2, gas_gamma_s, ctx.light_speed, ctx.b_fact, ctx.reinit_freq, ctx.surface_tension, app_args.use_gpu);
+  struct gkyl_wv_eqn *mhd_mixture = gkyl_wv_mhd_mixture_new(2, gas_gamma_s, ctx.light_speed, ctx.b_fact, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd_rgfm",
-    .equation = mhd_rgfm,
+    .name = "mhd_mixture",
+    .equation = mhd_mixture,
     
-    .init = evalMHDRGFMInit,
+    .init = evalMHDMixtureInit,
     .ctx = &ctx,
 
     .force_low_order_flux = false,
@@ -402,7 +394,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "mhd_rgfm_shock_bubble_vertical",
+    .name = "mhd_mixture_shock_bubble_vertical",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
@@ -534,7 +526,7 @@ main(int argc, char **argv)
 
 freeresources:
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(mhd_rgfm);
+  gkyl_wv_eqn_release(mhd_mixture);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);
 
