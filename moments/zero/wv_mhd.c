@@ -129,7 +129,6 @@ mhd_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, do
   }
 
   ghost[1] = -ghost[1];
-  ghost[5] = -ghost[5];
 }
 
 static void

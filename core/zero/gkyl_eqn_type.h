@@ -27,6 +27,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
   GKYL_EQN_EULER_RGFM, // Euler Riemann ghost fluid equations.
   GKYL_EQN_MHD, // Ideal MHD equations.
+  GKYL_EQN_MHD_MIXTURE, // Ideal MHD mixture equations.
   GKYL_EQN_MHD_RGFM, // Ideal MHD Riemann ghost fluid equations.
   GKYL_EQN_CAN_PB_INCOMPRESS_EULER, // Canonical Poisson Bracket form of incompressible Euler.
   GKYL_EQN_CAN_PB_HASEGAWA_MIMA, // Canonical Poisson Bracket form of Hasegawa-Mima.
