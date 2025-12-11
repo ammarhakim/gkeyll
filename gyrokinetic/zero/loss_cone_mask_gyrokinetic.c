@@ -404,7 +404,7 @@ nod_to_mod_reduce(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_a
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, struct gkyl_array *mask_out)
 {
 
 #ifdef GKYL_HAVE_CUDA
@@ -438,6 +438,24 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
     const double *phi_d = gkyl_array_cfetch(phi, linidx_conf);
     const double *Dbmag_quad = gkyl_array_cfetch(up->Dbmag_quad, linidx_conf);
 
+    // Get phi_m value for this field line.
+    // For 1x: single value (phi_m is a scalar stored as p=0 DG expansion).
+    // For 2x: varies with psi, evaluate at this psi cell.
+    double phi_m_val;
+    if (cdim == 1) {
+      // 1x case: single scalar value stored as p=0 DG expansion.
+      const double *phi_m_d = gkyl_array_cfetch(phi_m, 0);
+      phi_m_val = phi_m_d[0];
+    } else {
+      // 2x case: evaluate phi_m at this psi cell center.
+      int psi_idx[1] = {conf_iter.idx[0]};
+      long phi_m_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
+      const double *phi_m_d = gkyl_array_cfetch(phi_m, phi_m_linidx);
+      // Evaluate at cell center (logical coord 0).
+      double xc_log[1] = {0.0};
+      phi_m_val = up->bmag_max_basis->eval_expand(xc_log, phi_m_d);
+    }
+
     // Sum over basis for given potential phi.
     for (int n=0; n<tot_quad_conf; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
@@ -448,7 +466,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         phi_quad[n] += phi_d[k]*b_ord[k];
 
       if (Dbmag_quad[n] > 0.0)
-        qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m[0])/Dbmag_quad[n];
+        qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m_val)/Dbmag_quad[n];
       else
         qDphiDbmag_quad[n] = 0.0;
     }

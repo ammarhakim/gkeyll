@@ -242,14 +242,22 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
 void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, struct gkyl_array *mask_out)
 {
+  // TODO: Full GPU support for phi_m as DG array needs kernel updates.
+  // For now, this works for 1x case where phi_m is a scalar (p=0 DG expansion).
+  // For 2x case, need to update kernels to do per-cell lookup.
+  
   dim3 dimGrid_conf, dimBlock_conf;
   int tot_quad_conf = up->basis_at_ords_conf->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid_conf, &dimBlock_conf, *conf_range, tot_quad_conf);
 
+  // For GPU, phi_m->on_dev is the device pointer to the DG array.
+  // The kernel expects a double*, so pass the underlying data for now (1x case).
+  const double *phi_m_data = (const double*) phi_m->on_dev;
+  
   gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker<<<dimGrid_conf, dimBlock_conf>>>(*conf_range, 
-    up->basis_at_ords_conf->on_dev, up->charge, phi->on_dev, phi_m, up->Dbmag_quad->on_dev,
+    up->basis_at_ords_conf->on_dev, up->charge, phi->on_dev, phi_m_data, up->Dbmag_quad->on_dev,
     up->qDphiDbmag_quad->on_dev);
 
   const struct gkyl_velocity_map *gvm = up->vel_map;

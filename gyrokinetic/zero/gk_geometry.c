@@ -77,12 +77,6 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     gk_geometry_surf_alloc_nodal(up, dir);
   }
 
-  // Initialize bmag_max pointers to NULL (will be populated later if needed).
-  up->bmag_max = NULL;
-  up->bmag_max_z_coord = NULL;
-  up->bmag_max_nodal = NULL;
-  up->bmag_max_z_coord_nodal = NULL;
-
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

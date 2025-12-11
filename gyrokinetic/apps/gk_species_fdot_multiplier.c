@@ -3,6 +3,7 @@
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 #include <gkyl_alloc.h>
 #include <gkyl_dg_basis_ops.h>
+#include <gkyl_array_dg_find_peaks.h>
 
 void
 gk_species_fdot_multiplier_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
@@ -57,14 +58,16 @@ void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
-  // Find the potential at the mirror throat.
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, fdmul->bmag_max_coord_ref,
-    app->basis_on_dev, &app->grid, &app->local, fdmul->phi_m);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_m, fdmul->phi_m_global);
+  // Find the potential at all peak locations (including the mirror throat).
+  gkyl_array_dg_find_peaks_project_on_peaks(fdmul->bmag_peak_finder, phi, fdmul->phi_at_peaks);
 
-  // Project the loss cone mask.
+  // Get phi at the mirror throat (bmag_max peak location).
+  // phi_at_peaks[bmag_max_peak_idx] is a DG array on the reduced grid.
+  const struct gkyl_array *phi_m_arr = fdmul->phi_at_peaks[fdmul->bmag_max_peak_idx];
+
+  // Project the loss cone mask using the phi_m array.
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_m_global, fdmul->multiplier);
+    phi, phi_m_arr, fdmul->multiplier);
 
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -157,51 +160,36 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       //   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_const=true. Output: ncomp=1 array.
       enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
       int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
-                                              // at leat p+1 for Gauss-Lobatto.
+                                              // at least p+1 for Gauss-Lobatto.
 
-      // Store pointers to per-field-line bmag_max arrays from gk_geometry.
-      fdmul->bmag_max = app->gk_geom->bmag_max;
-      fdmul->bmag_max_z_coord = app->gk_geom->bmag_max_z_coord;
-      fdmul->bmag_max_basis = &app->gk_geom->bmag_max_basis;
-      fdmul->bmag_max_range = &app->gk_geom->bmag_max_range;
+      // Create peak finder for bmag to find the mirror throat.
+      // Search along the parallel (z) direction, which is the last configuration space dimension.
+      int search_dir = app->cdim - 1;
+      struct gkyl_array_dg_find_peaks_inp peak_inp = {
+        .basis = &app->basis,
+        .grid = &app->grid,
+        .range = &app->local,
+        .range_ext = &app->local_ext,
+        .search_dir = search_dir,
+        .use_gpu = app->use_gpu,
+      };
+      fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, app->gk_geom->geo_int.bmag);
+      gkyl_array_dg_find_peaks_advance(fdmul->bmag_peak_finder, app->gk_geom->geo_int.bmag);
+      
+      // Get the LOCAL_MAX peak (bmag maximum along z direction).
+      int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
+      fdmul->bmag_max_peak_idx = num_peaks-2; // Edge is num_peaks-1, so maximum is one less
+      fdmul->bmag_max = gkyl_array_dg_find_peaks_get_vals(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
+      fdmul->bmag_max_z_coord = gkyl_array_dg_find_peaks_get_coords(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
+      fdmul->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(fdmul->bmag_peak_finder);
+      fdmul->bmag_max_range = gkyl_array_dg_find_peaks_get_range(fdmul->bmag_peak_finder);
+      fdmul->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(fdmul->bmag_peak_finder);
 
-      // Compute reference coordinate for phi evaluation at mirror throat.
-      // For 1x: use the single bmag_max_z value.
-      // For 2x: use the bmag_max_z at the center of the psi domain (mid field line).
-      double bmag_max_coord_ref_ho[GKYL_MAX_CDIM];
-      if (app->cdim == 1) {
-        // 1x case: single value.
-        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, 0);
-        bmag_max_coord_ref_ho[0] = bmag_max_z_d[0];
-      } else {
-        // 2x case: use the center psi cell's bmag_max_z.
-        // Get the mid psi index.
-        int mid_psi_idx = (app->gk_geom->bmag_max_range.lower[0] + app->gk_geom->bmag_max_range.upper[0]) / 2;
-        int psi_idx[1] = {mid_psi_idx};
-        long bmag_max_z_linidx = gkyl_range_idx(&app->gk_geom->bmag_max_range, psi_idx);
-        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, bmag_max_z_linidx);
-        // Evaluate at cell center (logical coord 0).
-        double xc[1] = {0.0};
-        double z_val = app->gk_geom->bmag_max_basis.eval_expand(xc, bmag_max_z_d);
-        // Compute the psi coordinate at the mid cell.
-        double psi_lo = app->gk_geom->bmag_max_grid.lower[0];
-        double psi_dx = app->gk_geom->bmag_max_grid.dx[0];
-        double psi_val = psi_lo + (mid_psi_idx - 0.5) * psi_dx;
-        bmag_max_coord_ref_ho[0] = psi_val;
-        bmag_max_coord_ref_ho[1] = z_val;
-      }
-
-      // Allocate and copy reference coordinate.
-      if (app->use_gpu) {
-        fdmul->bmag_max_coord_ref = gkyl_cu_malloc(app->cdim*sizeof(double));
-        gkyl_cu_memcpy(fdmul->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
-        fdmul->phi_m = gkyl_cu_malloc(sizeof(double));
-        fdmul->phi_m_global = gkyl_cu_malloc(sizeof(double));
-      } else {
-        fdmul->bmag_max_coord_ref = gkyl_malloc(app->cdim*sizeof(double));
-        memcpy(fdmul->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double));
-        fdmul->phi_m = gkyl_malloc(sizeof(double));
-        fdmul->phi_m_global = gkyl_malloc(sizeof(double));
+      // Allocate arrays for phi evaluated at all peak locations.
+      fdmul->phi_at_peaks = gkyl_malloc(num_peaks * sizeof(struct gkyl_array*));
+      for (int p = 0; p < num_peaks; p++) {
+        fdmul->phi_at_peaks[p] = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
+          fdmul->bmag_max_range_ext->volume);
       }
 
       // Operator that projects the loss cone mask.
@@ -278,20 +266,17 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
       gkyl_array_release(fdmul->multiplier_host);
     }
 
-    if (fdmul->type == GKYL_GK_DAMPING_USER_INPUT) {
+    if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
       // Nothing to release.
     }
-    else if (fdmul->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
-      if (app->use_gpu) {
-        gkyl_cu_free(fdmul->bmag_max_coord_ref);
-        gkyl_cu_free(fdmul->phi_m);
-        gkyl_cu_free(fdmul->phi_m_global);
-      } else {
-        gkyl_free(fdmul->bmag_max_coord_ref);
-        gkyl_free(fdmul->phi_m);
-        gkyl_free(fdmul->phi_m_global);
+    else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
+      // Release phi_at_peaks arrays.
+      int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
+      for (int p = 0; p < num_peaks; p++) {
+        gkyl_array_release(fdmul->phi_at_peaks[p]);
       }
+      gkyl_free(fdmul->phi_at_peaks);
+      gkyl_array_dg_find_peaks_release(fdmul->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
     }
   }

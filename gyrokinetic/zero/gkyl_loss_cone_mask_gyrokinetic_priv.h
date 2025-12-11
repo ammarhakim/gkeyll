@@ -111,11 +111,11 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *u
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat (on GPU).
+ * @param phi_m Electrostatic potential at the mirror throat (DG array on reduced grid).
  * @param mask_out Output masking function.
  */
 void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, struct gkyl_array *mask_out);
 #endif

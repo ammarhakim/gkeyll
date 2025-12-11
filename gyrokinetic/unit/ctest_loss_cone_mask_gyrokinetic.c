@@ -13,6 +13,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
+#include <gkyl_array_dg_find_peaks.h>
 #include <gkyl_const.h>
 
 struct loss_cone_mask_test_ctx {
@@ -229,8 +230,35 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
   
-  // Initialize per-field-line bmag_max arrays.
-  gkyl_gk_geometry_bmag_max_init(gk_geom);
+  // Use array_dg_find_peaks to find bmag_max along the z direction.
+  // Search along the parallel (z) direction, which is the last configuration space dimension.
+  int search_dir = cdim - 1;
+  struct gkyl_array_dg_find_peaks_inp peak_inp = {
+    .basis = &basis_conf,
+    .grid = &grid_conf,
+    .range = &local_conf,
+    .range_ext = &local_ext_conf,
+    .search_dir = search_dir,
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_array_dg_find_peaks *bmag_peak_finder = 
+    gkyl_array_dg_find_peaks_new(&peak_inp, gk_geom->geo_int.bmag);
+  gkyl_array_dg_find_peaks_advance(bmag_peak_finder, gk_geom->geo_int.bmag);
+  
+  // Get the LOCAL_MAX peak (bmag maximum along z direction).
+  int num_peaks = gkyl_array_dg_find_peaks_num_peaks(bmag_peak_finder);
+  int bmag_max_peak_idx = num_peaks - 2; // Edge is num_peaks-1, so maximum is one less
+  const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_get_vals(bmag_peak_finder, bmag_max_peak_idx);
+  const struct gkyl_array *bmag_max_z_coord = gkyl_array_dg_find_peaks_get_coords(bmag_peak_finder, bmag_max_peak_idx);
+  const struct gkyl_basis *bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(bmag_peak_finder);
+  const struct gkyl_range *bmag_max_range = gkyl_array_dg_find_peaks_get_range(bmag_peak_finder);
+  const struct gkyl_range *bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(bmag_peak_finder);
+  
+  // Allocate arrays for phi evaluated at all peak locations.
+  struct gkyl_array **phi_at_peaks = gkyl_malloc(num_peaks * sizeof(struct gkyl_array*));
+  for (int p = 0; p < num_peaks; p++) {
+    phi_at_peaks[p] = mkarr(use_gpu, bmag_max_basis->num_basis, bmag_max_range_ext->volume);
+  }
   
   // If we are on the gpu, copy from host
   if (use_gpu) {
@@ -255,18 +283,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_eval_on_nodes_release(evphi);
   gkyl_array_copy(phi, phi_ho);
 
-  // Get the potential at the mirror throat (z=z_m).
-  double phi_m_ho[1];
-  double xc[] = {ctx.z_m};
-  phi_func_1x(0.0, xc, phi_m_ho, &ctx);
-  double *phi_m;
-  if (use_gpu) {
-    phi_m = gkyl_cu_malloc(sizeof(double));
-    gkyl_cu_memcpy(phi_m, phi_m_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
-  } else {
-    phi_m = gkyl_malloc(sizeof(double));
-    memcpy(phi_m, phi_m_ho, sizeof(double));
-  }
+  // Project phi onto peak locations to get phi_m at the mirror throat.
+  gkyl_array_dg_find_peaks_project_on_peaks(bmag_peak_finder, phi, phi_at_peaks);
+  
+  // Get phi at the mirror throat (bmag_max peak location).
+  const struct gkyl_array *phi_m = phi_at_peaks[bmag_max_peak_idx];
 
   // Basis used to project the mask.
   struct gkyl_basis basis_mask;
@@ -286,7 +307,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 	                              : gkyl_array_acquire(mask);
 
   // Project the loss cone mask.
-  // Use bmag_max and bmag_max_z_coord arrays from gk_geometry.
+  // Use bmag_max and bmag_max_z_coord arrays from find_peaks.
   struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
     .phase_grid = &grid,
     .conf_basis = &basis_conf,
@@ -296,10 +317,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_range = &local_vel, 
     .vel_map = gvm,
     .bmag = gk_geom->geo_int.bmag,
-    .bmag_max = gk_geom->bmag_max,
-    .bmag_max_z_coord = gk_geom->bmag_max_z_coord,
-    .bmag_max_basis = &gk_geom->bmag_max_basis,
-    .bmag_max_range = &gk_geom->bmag_max_range,
+    .bmag_max = bmag_max,
+    .bmag_max_z_coord = bmag_max_z_coord,
+    .bmag_max_basis = bmag_max_basis,
+    .bmag_max_range = bmag_max_range,
     .mass = ctx.mass,
     .charge = ctx.charge,
     .qtype = ctx.quad_type,
@@ -358,12 +379,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ref.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
 
-  // Free phi_m (bmag_max arrays are owned by gk_geom).
-  if (use_gpu) {
-    gkyl_cu_free(phi_m);
-  } else {
-    gkyl_free(phi_m);
+  // Free phi_m and phi_at_peaks arrays.
+  for (int p = 0; p < num_peaks; p++) {
+    gkyl_array_release(phi_at_peaks[p]);
   }
+  gkyl_free(phi_at_peaks);
   gkyl_array_release(phi); 
   gkyl_array_release(phi_ho); 
   gkyl_array_release(mask); 
@@ -371,6 +391,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_array_release(mask_ref_ho);
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
   gkyl_velocity_map_release(gvm);
+  gkyl_array_dg_find_peaks_release(bmag_peak_finder);
   gkyl_gk_geometry_release(gk_geom);
 
 #ifdef GKYL_HAVE_CUDA
