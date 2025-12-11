@@ -142,7 +142,7 @@ test_euler_rgfm_threespecies_basic()
   TEST_CHECK( gkyl_compare(prims[3], vz_total, 1e-16) );
 
   // For now, we check only that the reconstructed interface pressure is of the correct order of magnitude.
-  // This error tolerance can be reduced once we have introduced more physical rgfm rules into the system.
+  // This error tolerance can be reduced once we have introduced more physical boundary conditions into the system.
   TEST_CHECK( gkyl_compare(prims[4], p_total, 1e-1) ); 
 
   TEST_CHECK( gkyl_compare(prims[5], phi1, 1e-16) );
