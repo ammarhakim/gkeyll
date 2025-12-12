@@ -111,7 +111,6 @@ void test_mask_advance_threshold(bool use_gpu)
   for (unsigned i = 0; i < range.volume; ++i) {
     const double *mask_d = gkyl_array_cfetch(mask_ho, i);
     const double *arr_d = gkyl_array_cfetch(arr_ho, i);
-    printf("arr[%d] = %g, threshold = %g, mask = %g\n", i, arr_d[0], expected_threshold, mask_d[0]);
     if (fabs(arr_d[0]) < expected_threshold) {
       TEST_CHECK( gkyl_compare(mask_d[0], 1.0, 1e-14) ); // True (masked)
     } else {
@@ -488,6 +487,8 @@ void test_mask_eval(bool use_gpu)
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Test eval function
+  // This part does not work on the GPU because the boolean is evaluated and
+  // returned on the GPU, but needs a host evaluation for the TEST_CHECK
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 0) == true );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 1) == false );
   TEST_CHECK( gkyl_dg_array_mask_eval(mask, 2) == true );
@@ -772,10 +773,6 @@ void test_mask_advance_greater_than_negative_values_dev() {
   test_mask_advance_greater_than_negative_values(true);
 }
 
-void test_mask_eval_dev() {
-  test_mask_eval(true);
-}
-
 void test_mask_eval_none_type_dev() {
   test_mask_eval_none_type(true);
 }
@@ -814,18 +811,17 @@ TEST_LIST = {
   { "cu_mask_new", test_mask_new_dev },
   { "cu_mask_none_type", test_mask_none_type_dev },
   { "cu_mask_advance_threshold", test_mask_advance_threshold_dev },
-  // { "cu_mask_advance_all_below", test_mask_advance_all_below_dev },
-  // { "cu_mask_advance_all_above", test_mask_advance_all_above_dev },
-  // { "cu_mask_advance_negative_values", test_mask_advance_negative_values_dev },
-  // { "cu_mask_advance_greater_than_threshold", test_mask_advance_greater_than_threshold_dev },
-  // { "cu_mask_advance_greater_than_all_above", test_mask_advance_greater_than_all_above_dev },
-  // { "cu_mask_advance_greater_than_all_below", test_mask_advance_greater_than_all_below_dev },
-  // { "cu_mask_advance_greater_than_neg_vals", test_mask_advance_greater_than_negative_values_dev },
-  // { "cu_mask_eval", test_mask_eval_dev },
-  // { "cu_mask_eval_none_type", test_mask_eval_none_type_dev },
-  // { "cu_mask_scale_by_cell", test_mask_scale_by_cell_dev },
-  // { "cu_mask_acquire_release", test_mask_acquire_release_dev },
-  // { "cu_mask_threshold_scaling", test_mask_threshold_scaling_dev },
+  { "cu_mask_advance_all_below", test_mask_advance_all_below_dev },
+  { "cu_mask_advance_all_above", test_mask_advance_all_above_dev },
+  { "cu_mask_advance_negative_values", test_mask_advance_negative_values_dev },
+  { "cu_mask_advance_greater_than_threshold", test_mask_advance_greater_than_threshold_dev },
+  { "cu_mask_advance_greater_than_all_above", test_mask_advance_greater_than_all_above_dev },
+  { "cu_mask_advance_greater_than_all_below", test_mask_advance_greater_than_all_below_dev },
+  { "cu_mask_advance_greater_than_neg_vals", test_mask_advance_greater_than_negative_values_dev },
+  { "cu_mask_eval_none_type", test_mask_eval_none_type_dev },
+  { "cu_mask_scale_by_cell", test_mask_scale_by_cell_dev },
+  { "cu_mask_acquire_release", test_mask_acquire_release_dev },
+  { "cu_mask_threshold_scaling", test_mask_threshold_scaling_dev },
 #endif
   { NULL, NULL },
 };
