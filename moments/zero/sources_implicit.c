@@ -97,7 +97,7 @@ pressure_tensor_rotate(double q_over_m, double dt, const double* em, const doubl
 void
 implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
-  const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em, const double* sigma)
+  const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mom_em->nfluids;
   double epsilon0 = mom_em->epsilon0;
@@ -196,17 +196,15 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
     (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
     (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
 
-  double sigma_exp = exp(sigma[0] * dt / epsilon0);
-
   if (mom_em->static_field) {
     em[0] = Fx_old / epsilon0;
     em[1] = Fy_old / epsilon0;
     em[2] = Fz_old / epsilon0;
   }  
   else {
-    em[0] = (((2.0 * Fx_bar) - Fx_old) / epsilon0) / sigma_exp;
-    em[1] = (((2.0 * Fy_bar) - Fy_old) / epsilon0) / sigma_exp;
-    em[2] = (((2.0 * Fz_bar) - Fz_old) / epsilon0) / sigma_exp;
+    em[0] = ((2.0 * Fx_bar) - Fx_old) / epsilon0;
+    em[1] = ((2.0 * Fy_bar) - Fy_old) / epsilon0;
+    em[2] = ((2.0 * Fz_bar) - Fz_old) / epsilon0;
   }
 
   for (int i = 0; i < nfluids; i++) {
@@ -657,7 +655,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->is_charged_species) {
-    implicit_em_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current, ext_em, sigma);
+    implicit_em_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
     implicit_neut_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s);
@@ -710,6 +708,9 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
   if (mom_em->has_volume_sources) {
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
+  }
+  if (mom_em->has_resistivity_sources) {
+    explicit_resistivity_source_update(mom_em, t_curr, dt, em, ext_em);
   }
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);

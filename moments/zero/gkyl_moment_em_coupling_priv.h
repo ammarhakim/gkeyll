@@ -43,6 +43,8 @@ struct gkyl_moment_em_coupling {
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
   double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
+  bool has_resistivity_sources; // Run with resistive layer sources.
+
   bool has_reactive_sources; // Run with reactive sources.
   double reactivity_gas_gamma; // Adiabatic index for reactive sources.
   double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.

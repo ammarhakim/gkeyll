@@ -158,6 +158,18 @@ void
 explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
+* Integrate the resistive source terms in the multi-fluid equation system.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param em Array of field variables.
+* @param sigma Array of resistivity values.
+*/
+void
+explicit_resistivity_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* em, const double* sigma);
+
+/**
 * Integrate the coupled fluid-Einstein source terms in plane-symmetric spacetimes in the multi-fluid equation system within a single cell, using an
 * explicit forcing solver (specifically a simple first-order forward-Euler method).
 *

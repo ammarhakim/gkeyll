@@ -80,6 +80,8 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->volume_R0 = inp.volume_R0;
   }
 
+  mom_em->has_resistivity_sources = inp.has_resistivity_sources;
+
   mom_em->has_reactive_sources = inp.has_reactive_sources;
   if (mom_em->has_reactive_sources) {
     mom_em->reactivity_gas_gamma = inp.reactivity_gas_gamma;

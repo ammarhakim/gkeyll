@@ -81,6 +81,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_resistivity_sources = false;
+  if (app->field.has_app_resistivity)
+    src_inp.has_resistivity_sources = true;
+
   src_inp.has_reactive_sources = false;
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_reactivity) {

@@ -207,6 +207,7 @@ struct moment_field {
   struct gkyl_array *embed_mask;
 
   struct gkyl_array *resistivity;
+  bool has_app_resistivity; // flag to indicate there is an applied current 
 
  // scheme to update equations solvers and data to update fluid
  // equations
