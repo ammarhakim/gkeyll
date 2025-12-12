@@ -20,7 +20,7 @@ By_r = -1.0 -- Right magnetic field (y-direction).
 alpha1_r = 0.00001 -- Right fluid volume fraction (first species).
 
 light_speed = 1.0 -- Speed of light.
-b_fact = 1.0 -- Factor of speed of light for magnetic field correction.
+b_fact = 0.0 -- Factor of speed of light for magnetic field correction.
 
 -- Simulation parameters.
 Nx = 2048 -- Cell count (x-direction).
