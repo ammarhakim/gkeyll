@@ -77,7 +77,7 @@ struct gkyl_phase_diagnostics_inp {
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
-  double scale_factor; // Factor multiplying collisionless terms. NOTE: Trying to disable collisionless terms entirely by setting to 0 will NOT work; set to negligible nonzero value or set type to GKYL_GK_COLLISIONLESS_NONE instead.
+  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
 };
 
 // Parameters for species collisions
