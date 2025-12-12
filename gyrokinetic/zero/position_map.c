@@ -134,7 +134,8 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
-      gpm->constB_ctx->moving_average_width = pmap_info.moving_average_width;
+      gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
+      gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
 
     case GKYL_PMAP_XPT_COMPRESSION:
 

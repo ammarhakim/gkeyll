@@ -812,7 +812,8 @@ int main(int argc, char **argv)
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
         .map_strength = 0.5,
         .maximum_slope_at_min_B = 2,
-        .moving_average_width = 0.5,
+        .gaussian_std = 0.2,
+        .gaussian_max_integration_width = 1.0,
       },
     },
 
