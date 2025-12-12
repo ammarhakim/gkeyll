@@ -239,9 +239,9 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   }
 
   if ((((xp[0]-xc1)*(xp[0]-xc1) + (xp[1]-yc1)*(xp[1]-yc1)) < r*r) || (((xp[0]-xc2)*(xp[0]-xc2) + (xp[1]-yc2)*(xp[1]-yc2)) < r*r)) {
-    rho = 0.01;
+    rho = 0.0;
     u = 0.0;
-    p = 0.01;
+    p = 0.0;
   }
 
   double mom_x = rho*u; // Fluid momentum density (x-direction).
@@ -399,7 +399,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_embedded2_c2p",
+    .name = "euler_embedded_c2p",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
