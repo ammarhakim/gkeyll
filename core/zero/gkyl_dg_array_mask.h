@@ -48,8 +48,8 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  * @return True if the mask is true at the cell, false otherwise.
  */
 GKYL_CU_DH
-bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
+bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
+
 
 /** 
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
@@ -59,8 +59,7 @@ gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
  * @return True if the mask is true at the index, false otherwise.
  */
 GKYL_CU_DH
-bool
-gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
+bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
 
 /**
  * mask = mask * arr_to_multiply

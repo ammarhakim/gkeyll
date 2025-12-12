@@ -30,6 +30,29 @@ struct gkyl_dg_array_mask {
 void
 gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref);
 
+GKYL_CU_DH
+static inline bool
+gkyl_dg_array_mask_eval_ker(struct gkyl_dg_array_mask *mask, long lidx)
+{
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    return false;
+  }
+  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, lidx);
+  return *mask_c > 0; // Returns true if the mask is true.
+}
+
+GKYL_CU_DH
+static inline bool
+gkyl_dg_array_mask_eval_idx_ker(struct gkyl_dg_array_mask *mask, const int* idx)
+{
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
+    return false;
+  }
+  long linidx = gkyl_range_idx(&mask->phase_rng, idx);
+  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, linidx);
+  return *mask_c > 0; // Returns true if the mask is true.
+}
+
 #ifdef GKYL_HAVE_CUDA
 
 /**
