@@ -34,13 +34,19 @@ gkyl_position_map_null_new()
   gpm->id = GKYL_PMAP_USER_INPUT;
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
     gpm->ctxs[i] = 0;
   }
+  gpm->use_map_derivs = true;
   gpm->to_optimize = false;
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(gpm->flags);
+  gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
   return gpm;
 }
 
@@ -128,7 +134,8 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
-      gpm->constB_ctx->moving_average_width = pmap_info.moving_average_width;
+      gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
+      gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
 
     case GKYL_PMAP_XPT_COMPRESSION:
 
