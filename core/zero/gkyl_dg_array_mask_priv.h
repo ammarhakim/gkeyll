@@ -6,6 +6,22 @@
 #include <gkyl_ref_count.h>
 
 /**
+ * Skip cell object definition.
+ */
+struct gkyl_dg_array_mask {
+  enum gkyl_dg_array_mask_types type; // Type of mask operation.
+  struct gkyl_array *mask; // Mask array (1.0 is true, -1.0 is false).
+  double val_threshold; // Threshold for marking cells as masked.
+  struct gkyl_range phase_rng; // Phase-space range.
+  bool use_gpu; // Flag indicating GPU usage.
+  
+  uint32_t flags;
+  struct gkyl_dg_array_mask *on_dev; // Pointer to device object.
+  
+  struct gkyl_ref_count ref_count; // Reference counter.
+};
+
+/**
  * Function that actually frees memory associated with this
  * object when the number of references has decreased to zero.
  *

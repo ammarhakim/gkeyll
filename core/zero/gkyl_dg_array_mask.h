@@ -5,34 +5,21 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+// Object definition
+typedef struct gkyl_dg_array_mask gkyl_dg_array_mask;
+
 enum gkyl_dg_array_mask_types {
   GKYL_DG_ARRAY_MASK_NONE = 0, // No mask applied.
   GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
   GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
 };
 
-
+// Input structure for creating a mask object.
 struct gkyl_dg_array_mask_inp {
   enum gkyl_dg_array_mask_types type; // Type of mask.
   double val_threshold; // Threshold for marking cells as masked.
   struct gkyl_range phase_rng; // Phase-space range.
   bool use_gpu; // Flag indicating GPU usage.
-};
-
-/**
- * Skip cell object definition.
- */
-struct gkyl_dg_array_mask {
-  enum gkyl_dg_array_mask_types type; // Type of mask operation.
-  struct gkyl_array *mask; // Mask array (1.0 is true, -1.0 is false).
-  double val_threshold; // Threshold for marking cells as masked.
-  struct gkyl_range phase_rng; // Phase-space range.
-  bool use_gpu; // Flag indicating GPU usage.
-  
-  uint32_t flags;
-  struct gkyl_dg_array_mask *on_dev; // Pointer to device object.
-  
-  struct gkyl_ref_count ref_count; // Reference counter.
 };
 
 /**
@@ -61,20 +48,24 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  * @return True if the mask is true at the cell, false otherwise.
  */
 GKYL_CU_DH
-static inline bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long idx)
-{
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return false;
-  }
-  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, idx);
-  return *mask_c > 0; // Returns true if the mask is true.
-}
+bool
+gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long idx);
+
+/** 
+ * Evaluate if the conditional mask is true at a given multi-dimensional index.
+ *
+ * @param mask Mask object.
+ * @param idx Multi-dimensional index array.
+ * @return True if the mask is true at the index, false otherwise.
+ */
+GKYL_CU_DH
+bool
+gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
 
 /**
  * mask = mask * arr_to_multiply
  * Scale the dg_array_mask by an array, modifying the mask.
- *
+ *`
  * @param mask Mask object.
  * @param arr_to_multiply Array to be multiplied by the mask.
  */
@@ -90,6 +81,16 @@ gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct g
 
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask);
+
+
+/**
+ * Get the underlying mask array.
+ *
+ * @param mask Mask object.
+ * @return Pointer to the mask array.
+ */
+const struct gkyl_array*
+gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask);
 
 /**
  * Release memory associated with mask object.

@@ -65,8 +65,7 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -94,8 +93,7 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -123,8 +121,7 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -152,8 +149,7 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -197,9 +193,8 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -227,8 +222,7 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidx)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
     return 0.;
   }
 
@@ -381,12 +375,9 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidxL = gkyl_range_idx(&gyrokinetic->phase_range, idxL);
-  long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
-  long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxL) && 
-      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxC) && 
-      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxR)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxL) && 
+      !gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxC) && 
+      !gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxR)) {
     return 0.;
   }
 
@@ -427,10 +418,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
-  long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
-  if (!gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxSkin) && 
-      !gkyl_dg_array_mask_eval(gyrokinetic->update_cell, pidxEdge)) {
+  if (!gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxSkin) && 
+      !gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxEdge)) {
     return 0.;
   }
 

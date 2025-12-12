@@ -1236,12 +1236,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
 
-  long pidxL = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxL);
-  long pidxC = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxC);
-  long pidxR = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxR);
-  if (!gkyl_dg_array_mask_eval(diffusion->update_cell, pidxL) &&
-      !gkyl_dg_array_mask_eval(diffusion->update_cell, pidxC) && 
-      !gkyl_dg_array_mask_eval(diffusion->update_cell, pidxR)) {
+  if (!gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxL) &&
+      !gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxC) && 
+      !gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxR)) {
     return 0.;
   }
   
@@ -1258,10 +1255,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  long pidxEdge = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxSkin);
-  if (!gkyl_dg_array_mask_eval(diffusion->update_cell, pidxEdge) &&
-      !gkyl_dg_array_mask_eval(diffusion->update_cell, pidxSkin)) {
+  if (!gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -1281,10 +1276,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  long pidxEdge = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&diffusion->update_cell->phase_rng, idxSkin);
-  if (!gkyl_dg_array_mask_eval(diffusion->update_cell, pidxEdge) && 
-      !gkyl_dg_array_mask_eval(diffusion->update_cell, pidxSkin)) {
+  if (!gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx(diffusion->update_cell, idxSkin)) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])

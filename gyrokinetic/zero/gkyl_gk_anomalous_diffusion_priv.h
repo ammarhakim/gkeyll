@@ -134,12 +134,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  long pidxL = gkyl_range_idx(&gkad->update_cell->phase_rng, idxL);
-  long pidxC = gkyl_range_idx(&gkad->update_cell->phase_rng, idxC);
-  long pidxR = gkyl_range_idx(&gkad->update_cell->phase_rng, idxR);
-  if (!gkyl_dg_array_mask_eval(gkad->update_cell, pidxL) &&
-      !gkyl_dg_array_mask_eval(gkad->update_cell, pidxC) &&
-      !gkyl_dg_array_mask_eval(gkad->update_cell, pidxR)) {
+  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxL) &&
+      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxC) &&
+      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxR)) {
     return 0.;
   }
   
@@ -156,10 +153,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
   
-  long pidxEdge = gkyl_range_idx(&gkad->update_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&gkad->update_cell->phase_rng, idxSkin);
-  if (!gkyl_dg_array_mask_eval(gkad->update_cell, pidxEdge) &&
-      !gkyl_dg_array_mask_eval(gkad->update_cell, pidxSkin)) {
+  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -183,10 +178,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  long pidxSkin = gkyl_range_idx(&gkad->update_cell->phase_rng, idxSkin);
-  long pidxGhost = gkyl_range_idx(&gkad->update_cell->phase_rng, idxGhost);
-  if (!gkyl_dg_array_mask_eval(gkad->update_cell, pidxSkin) &&
-      !gkyl_dg_array_mask_eval(gkad->update_cell, pidxGhost)) {
+  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin) &&
+      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxGhost)) {
     return 0.;
   }
 
