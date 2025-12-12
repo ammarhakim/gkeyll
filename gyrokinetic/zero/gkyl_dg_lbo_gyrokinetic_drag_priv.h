@@ -316,9 +316,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
-  
-  if (!gkyl_dg_array_mask_eval(lbo->update_cell, pidxEdge) && 
-      !gkyl_dg_array_mask_eval(lbo->update_cell, pidxSkin)) {
+
+  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxEdge) && 
+      !gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxSkin)) {
     return 0.;
   }
 

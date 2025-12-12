@@ -338,6 +338,10 @@ surf(const struct gkyl_dg_eqn *eqn,
     long vidxC = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxC);
     long vidxR = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxR);
 
+    long pidxL = gkyl_range_idx(&lbo->vel_map->local, idxL);
+    long pidxC = gkyl_range_idx(&lbo->vel_map->local, idxC);
+    long pidxR = gkyl_range_idx(&lbo->vel_map->local, idxR);
+
     return lbo->surf[dir-lbo->cdim](dxC,
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxL),
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxC),
@@ -387,6 +391,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
     long vidxEdge = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxEdge);
     long vidxSkin = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxSkin);
 
+    long pidxEdge = gkyl_range_idx(&lbo->vel_map->local, idxEdge);
+    long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
 
     return lbo->boundary_surf[dir-lbo->cdim](dxSkin, 
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxEdge),

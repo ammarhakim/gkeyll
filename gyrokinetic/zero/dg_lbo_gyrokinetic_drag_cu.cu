@@ -101,7 +101,7 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   
   lbo->gk_geom = geom_ho->on_dev;
   lbo->vel_map = vel_map_ho->on_dev;
-  lbo->update_cell = skip_cell_ho->on_dev;
+  lbo->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
 
   lbo->vparMax = GKYL_MAX2(fabs(vel_map->vbounds[0]),vel_map->vbounds[vdim]);
   lbo->vparMaxSq = pow(lbo->vparMax,2);

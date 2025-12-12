@@ -49,7 +49,7 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  */
 GKYL_CU_DH
 bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long idx);
+gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
 
 /** 
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
@@ -91,6 +91,15 @@ gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask);
  */
 const struct gkyl_array*
 gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask);
+
+/**
+ * Get device pointer to mask object.
+ *
+ * @param mask Mask object.
+ */
+struct gkyl_dg_array_mask*
+gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask);
+
 
 /**
  * Release memory associated with mask object.

@@ -143,7 +143,7 @@ gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const str
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
-  diffusion->update_cell = skip_cell_ho->on_dev;
+  diffusion->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
 
   diffusion->conf_range = *conf_range;
 

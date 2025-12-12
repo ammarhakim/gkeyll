@@ -117,12 +117,12 @@ gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
 
 GKYL_CU_DH
 bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long idx)
+gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx)
 {
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
     return false;
   }
-  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, idx);
+  const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, lidx);
   return *mask_c > 0; // Returns true if the mask is true.
 }
 
@@ -137,6 +137,12 @@ gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx)
   const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, linidx);
   return *mask_c > 0; // Returns true if the mask is true.
 }
+
+struct gkyl_dg_array_mask*
+gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask)
+{
+  return mask->on_dev;
+} 
 
 const struct gkyl_array*
 gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask)

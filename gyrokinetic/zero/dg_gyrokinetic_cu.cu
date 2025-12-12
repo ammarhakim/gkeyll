@@ -128,7 +128,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   
-  gyrokinetic->update_cell = skip_cell_ho->on_dev;
+  gyrokinetic->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
   gyrokinetic->gk_geom = geom_ho->on_dev;
   gyrokinetic->vel_map = vel_map_ho->on_dev;
 

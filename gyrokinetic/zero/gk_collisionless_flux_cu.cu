@@ -274,7 +274,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_gk_dg_geom *gk_dg_geom_ho = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   
-  up->update_cell = skip_cell_ho->on_dev;
+  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
   up->gk_geom = geom_ho->on_dev;
   up->dg_geom = dg_geom_ho->on_dev;
   up->gk_dg_geom = gk_dg_geom_ho->on_dev;
