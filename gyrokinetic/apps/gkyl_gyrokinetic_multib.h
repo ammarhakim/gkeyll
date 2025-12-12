@@ -164,6 +164,8 @@ struct gkyl_gyrokinetic_multib {
   // Species inputs.
   struct gkyl_gyrokinetic_multib_species species[GKYL_MAX_SPECIES];
 
+  struct gkyl_gyrokinetic_heating heating;
+
   int num_neut_species; // Number of neutral species.
   // Neutral species inputs.
   struct gkyl_gyrokinetic_multib_neut_species neut_species[GKYL_MAX_SPECIES];

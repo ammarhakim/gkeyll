@@ -1,6 +1,132 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+static void read_neut_ics(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  // See if we are in upper half
+  bool reverse = false;
+  char *p; 
+  p = strstr(fileNm.str, "b3");
+  if (p!= NULL) {
+    p[1] = '1';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b4");
+  if (p!= NULL) {
+    p[1] = '0';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b5");
+  if (p!= NULL) {
+    p[1] = '9';
+    reverse=true;
+  }
+  p = strstr(fileNm.str, "b8");
+  if (p!= NULL) {
+    p[1] = '6';
+    reverse=true;
+  }
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+  if (reverse) {
+    for(int ir = 0; ir < nr; ir++){
+      idx[0] = ir;
+      for(int iz = nz-1; iz >= 0; iz--){
+        idx[1] = iz;
+        // set psi
+        double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+        status = fscanf(ptr,"%lf", nnodal_n);
+      }
+    }
+  }
+  else {
+    for(int ir = 0; ir < nr; ir++){
+      idx[0] = ir;
+      for(int iz = 0; iz < nz; iz++){
+        idx[1] = iz;
+        // set psi
+        double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+        status = fscanf(ptr,"%lf", nnodal_n);
+      }
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+
+
+  // Reflect for symmetric blocks
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  bool reflect = false;
+  if (strstr(fileNm.str, "b7") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b2") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b10") != NULL)
+    reflect = true;
+  if (strstr(fileNm.str, "b11") != NULL)
+    reflect = true;
+  if (reflect) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[1] < gkyl_range_shape(&app->local,1)/2 +1 ) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&app->local, 1) - iter.idx[1]+1};
+        const double *coeffs_ref = gkyl_array_cfetch(out, gkyl_range_idx(&app->local, iter.idx));
+        double *coeffs  = gkyl_array_fetch(out, gkyl_range_idx(&app->local, idx_change));
+        app->basis.flip_odd_sign( 1, coeffs_ref, coeffs);
+      }
+    }
+  }
+ 
+}
+
+static void half_read_neut_ics(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+
+  for(int ir = 0; ir < nr; ir++){
+    idx[0] = ir;
+    for(int iz = 0; iz < nz; iz++){
+      idx[1] = iz;
+      // set psi
+      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+      status = fscanf(ptr,"%lf", nnodal_n);
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+
+}
+
+
 static double
 gk_heating_volume_integrate(gkyl_gyrokinetic_app *app, struct gk_heating *src, const struct gkyl_array *arrin)
 {
@@ -58,6 +184,154 @@ gk_species_heating_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *spe
     src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
 
   app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
+}
+
+
+
+static void
+gk_species_heating_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // Compute Maxwellian moments (n, u_par, T/m).
+  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
+    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+
+  // Read Edot and multiply it by the rate, divide by  density, add T, then dividy by mass to get T_Q. Finally divide by m to get vtsq
+  cstr fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_M0source.txt", app->name, species->info.name);
+  half_read_neut_ics(app, src->Jrate_mom, fileNm);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, src->rate, &app->local);  
+  gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 0*app->basis.num_basis);
+  // Set the LTE moments for projection and project
+  gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 0*app->basis.num_basis);
+  gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
+  // Multiply the Maxwellian by Jrate.
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
+    src->Jrate, species->lte.f_lte, &app->local, &species->local);
+  // Assemble the BGK-like term and add it to rhs.
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
+    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
+
+  // Temporaty hack, write out  the M0 moment
+  gkyl_array_accumulate(src->Jrate_fmax, -1.0e5, fin); // Testing a factor of 2
+  for (int m=0; m<species->info.num_diag_moments; ++m) {
+    gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
+    gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+    if (app->use_gpu)
+      gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
+    const char *fmt = "%s-%s_%s_nsource.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
+  }
+}
+
+static void
+gk_species_heating_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // Compute Maxwellian moments (n, u_par, T/m).
+  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
+    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+
+  // Read Edot and multiply it by the rate, divide by  density, add T, then dividy by mass to get T_Q. Finally divide by m to get vtsq
+  cstr fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_M2source.txt", app->name, species->info.name);
+  half_read_neut_ics(app, src->Jrate_mom, fileNm);
+
+  gkyl_array_scale(src->Jrate_mom, 2.0/3.0);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
+  gkyl_array_accumulate_offset(src->Jrate_mom, species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
+  gkyl_array_scale(src->Jrate_mom, 1/species->info.mass);
+  // Set the LTE moments for projection and project
+  gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 2*app->basis.num_basis);
+  gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
+  // Multiply the Maxwellian by Jrate.
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
+    src->Jrate, species->lte.f_lte, &app->local, &species->local);
+  // Assemble the BGK-like term and add it to rhs.
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
+    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
+
+  // Temporaty hack, write out  the M2 moment
+  gkyl_array_accumulate(src->Jrate_fmax, -1.0e5, fin); // Testing a factor of 2
+  for (int m=0; m<species->info.num_diag_moments; ++m) {
+    gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
+    gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+    if (app->use_gpu)
+      gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
+    const char *fmt = "%s-%s_%s_hsource.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
+  }
+}
+
+static void
+gk_species_heating_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // Compute Maxwellian moments (n, u_par, T/m).
+  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
+    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+
+  // Read Edot and multiply it by the rate, divide by  density, add T, then dividy by mass to get T_Q. Finally divide by m to get vtsq
+  cstr fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_M1source.txt", app->name, species->info.name);
+  half_read_neut_ics(app, src->Jrate_mom, fileNm);
+
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
+  gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 1*app->basis.num_basis);
+  // Set the LTE moments for projection and project
+  gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 1*app->basis.num_basis);
+  gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
+  // Multiply the Maxwellian by Jrate.
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
+    src->Jrate, species->lte.f_lte, &app->local, &species->local);
+  // Assemble the BGK-like term and add it to rhs.
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
+    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
+
+  // Temporaty hack, write out  the M2 moment
+  gkyl_array_accumulate(src->Jrate_fmax, -1.0e5, fin); // Testing a factor of 2
+  for (int m=0; m<species->info.num_diag_moments; ++m) {
+    gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
+    gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+    if (app->use_gpu)
+      gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
+    const char *fmt = "%s-%s_%s_msource.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
+  }
+}
+
+
+
+static void
+gk_species_heating_rhs_external(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gk_species_heating_rhs_density(app, species, src, fin, rhs);
+  gk_species_heating_rhs_momentum(app, species, src, fin, rhs);
+  gk_species_heating_rhs_energy(app, species, src, fin, rhs);
 }
 
 static void
@@ -147,7 +421,7 @@ gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   src->write_diags_func = gk_species_heating_write_diags_disabled;
   src->rhs_func = gk_species_heating_rhs_disabled;
 
-  if (src->heating_id) {
+  if (src->heating_id == GKYL_HEATING_DEFAULT) {
     int vdim_phys = gks->info.vdim == 1? 1 : 3;
     src->norm_power = 2.0*gks->info.heating.power/(vdim_phys*gks->info.mass);
 
@@ -214,6 +488,48 @@ gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       src->write_diags_func = gk_species_heating_write_diags_enabled;
     }
   }
+
+  if (src->heating_id==GKYL_HEATING_EXTERNAL) {
+    int vdim_phys = gks->info.vdim == 1? 1 : 3;
+
+    // Heating rate.
+    src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *rate_host = app->use_gpu? mkarr(false, src->rate->ncomp, src->rate->size)
+                                               : gkyl_array_acquire(src->rate);
+    gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+      app->poly_order+1, 1, gks->info.heating.rate_profile, gks->info.heating.rate_profile_ctx);
+    gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
+    gkyl_array_copy(src->rate, rate_host);
+    gkyl_proj_on_basis_release(proj_rate);
+    gkyl_array_release(rate_host);
+    // Multiply the rate by the conf-space Jacobian.
+    src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+
+    // Rate times the Maxwellian.
+    src->Jrate_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    // Rate times a velocity moment.
+    src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    // BGK operator.
+    src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+    src->implicit_step = false;
+    src->dt_implicit = 1e9;
+
+    if (src->write_diagnostics) {
+      src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+      // Write out the heating rate and vtsq shape.
+      gk_heating_write_conf_array(app, gks, src, 0, 0.0, "heating_rate", src->rate, 0);
+      gk_heating_write_conf_array(app, gks, src, 0, 0.0, "heating_temp_shape", src->vtsq_shape, 0);
+    }
+
+    // Methods chosen at runtime.
+    src->rhs_func = gk_species_heating_rhs_external;
+    if (src->write_diagnostics) {
+      src->write_diags_func = gk_species_heating_write_diags_enabled;
+    }
+  }
+
 }
 
 void
@@ -233,7 +549,7 @@ gk_species_heating_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks
 void
 gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct gk_heating *src)
 {
-  if (src->heating_id) {
+  if (src->heating_id==GKYL_HEATING_DEFAULT) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
     gkyl_array_release(src->vtsq_shape);
@@ -250,6 +566,18 @@ gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct 
       gkyl_free(src->volint_local);
       gkyl_free(src->volint_global);
     }
+
+    gkyl_bgk_collisions_release(src->bgk_op);
+
+    if (src->write_diagnostics) {
+      gkyl_dynvec_release(src->vtsq_amp_diag);
+    }
+  }
+  if (src->heating_id==GKYL_HEATING_EXTERNAL) {
+    gkyl_array_release(src->rate);
+    gkyl_array_release(src->Jrate);
+    gkyl_array_release(src->Jrate_fmax);
+    gkyl_array_release(src->Jrate_mom);
 
     gkyl_bgk_collisions_release(src->bgk_op);
 

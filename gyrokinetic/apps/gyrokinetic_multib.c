@@ -253,6 +253,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     }
     species_inp.projection = sp_pb->projection;
     species_inp.source = sp_pb->source;
+    species_inp.heating = mbinp->heating;
     species_inp.polarization_density = sp_pb->polarization_density;  
 
     // By default, skip BCs altogether.

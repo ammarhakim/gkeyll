@@ -79,6 +79,7 @@ enum gkyl_source_id {
 enum gkyl_heating_id {
   GKYL_NO_HEATING = 0, // No source. This is default.
   GKYL_HEATING_DEFAULT, // Default heating source.
+  GKYL_HEATING_EXTERNAL, // External heating source.
 };
 
 // Identifiers for specific projection object types
