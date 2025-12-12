@@ -168,7 +168,7 @@ GKYL_CU_DH
 static void
 wave_embed_absorb(const double *q, double *qphi, double *delta, void *ctx)
 {
-  qphi[0] = 0.0;
+  qphi[0] = DBL_EPSILON;
   qphi[1] = 0.0;
   qphi[2] = 0.0;
   qphi[3] = 0.0;
