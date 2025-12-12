@@ -362,7 +362,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   if (mom_sp->equation->embed_geo) {
     gkyl_wv_embed_geo_new_mask(mom_sp->equation->embed_geo, &app->grid,
-      &app->local, sp->embed_mask);
+      &app->local_ext, sp->embed_mask);
   }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);

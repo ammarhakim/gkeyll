@@ -26,6 +26,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       .b_fact = mom_fld->mag_error_speed_fact,
       .rp_type = WV_MAXWELL_RP_ROE,
       .embed_geo = mom_fld->embed_geo,
+      .resistive_layer = mom_fld->resistive_layer,
       .use_gpu = false,
     }
   );
@@ -207,13 +208,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   if (maxwell->embed_geo) {
     gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
-      &app->local, fld->embed_mask);
+      &app->local_ext, fld->embed_mask);
   }
 
   fld->resistivity = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(fld->resistivity, 0.0);
 
   if (maxwell->resistive_layer) {
+    fld->has_app_resistivity = true;
     gkyl_wv_resistive_layer_new_profile(maxwell->resistive_layer, &app->grid,
       &app->local, fld->resistivity);
   }
