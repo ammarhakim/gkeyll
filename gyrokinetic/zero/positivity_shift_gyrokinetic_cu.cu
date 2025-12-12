@@ -5,6 +5,7 @@ extern "C" {
 #include <gkyl_positivity_shift_gyrokinetic_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <float.h>
 }
 
@@ -124,7 +125,7 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
       
     // Shift f if needed.
     bool shifted_node = false;
-    if (gkyl_dg_array_mask_eval(update_cell, plinidx)) {
+    if (gkyl_dg_array_mask_eval_ker(update_cell, plinidx)) {
       // Divide by jacobtot and jacobvel so that we are shifting just f.
       kers->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
       for (int k=0; k<distf->ncomp; k++)

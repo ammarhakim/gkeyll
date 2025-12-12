@@ -47,7 +47,6 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  * @param idx Linear index of the cell to evaluate.
  * @return True if the mask is true at the cell, false otherwise.
  */
-GKYL_CU_DH
 bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
 
 
@@ -58,7 +57,6 @@ bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
  * @param idx Multi-dimensional index array.
  * @return True if the mask is true at the index, false otherwise.
  */
-GKYL_CU_DH
 bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
 
 /**

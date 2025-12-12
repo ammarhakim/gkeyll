@@ -3,6 +3,7 @@
 #include <gkyl_gk_anomalous_diffusion.h>
 #include <gkyl_gk_anomalous_diffusion_kernels.h>
 #include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_ref_count.h>
 
 // Types for various kernels
@@ -134,9 +135,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxL) &&
-      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxC) &&
-      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxR)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxL) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxC) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxR)) {
     return 0.;
   }
   
@@ -153,8 +154,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
   
-  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxEdge) &&
-      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -178,8 +179,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin) &&
-      !gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxGhost)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxGhost)) {
     return 0.;
   }
 

@@ -5,6 +5,8 @@
 
 #include <gkyl_gk_geometry.h>
 #include <gkyl_lbo_gyrokinetic_kernels.h>
+#include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 
 // Types for various kernels
 typedef double (*lbo_gyrokinetic_drag_surf_t)(const double *dxv, const double *vmap,
@@ -62,7 +64,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
 
@@ -97,7 +99,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
 
@@ -132,7 +134,7 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
   
@@ -167,7 +169,7 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
   
@@ -268,9 +270,9 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxL) && 
-      !gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxC) && 
-      !gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxR)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxL) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxC) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxR)) {
     return 0.;
   }
 
@@ -317,8 +319,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxEdge) && 
-      !gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxSkin)) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxEdge) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxSkin)) {
     return 0.;
   }
 
