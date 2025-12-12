@@ -53,6 +53,14 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
       assert(false);
     }
   }
+
+  if (app->grid.cells[cdim - 1] % cuts_used[cdim - 1] != 0) {
+    if (comm_rank == 0)
+      fprintf(iostream,
+        "\n*** Number of cells in z, %d, not divisible by number of cuts, %d!\n\n",
+        app->grid.cells[cdim - 1], cuts_used[cdim - 1]);
+    assert(false);
+  }
 }
 
 // returned gkyl_array_meta must be freed using gk_array_meta_release

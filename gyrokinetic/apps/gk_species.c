@@ -792,15 +792,40 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   }
   
   // Allocate buffer needed for BCs.
-  long buff_sz = 0;
+  bool need_bc_buffer = false;
+  bool need_bc_buffer_lo_fixed = false;
+  bool need_bc_buffer_up_fixed = false;
+  for (int d=0; d<cdim; ++d) {
+    if (gks->bc_is_np[d]) {
+      if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY   ) ||
+           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB ) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY   ) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB ) ) {
+        need_bc_buffer = true;
+      }
+      if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
+        need_bc_buffer_lo_fixed = true;
+      }
+      if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
+        need_bc_buffer_up_fixed = true;
+      }
+    }
+  }
+
+  long buff_sz = 1;
   for (int dir=0; dir<cdim; ++dir) {
     long vol = GKYL_MAX2(gks->lower_skin[dir].volume, gks->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  gks->bc_buffer = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
-  // buffer arrays for fixed function boundary conditions on distribution function
-  gks->bc_buffer_lo_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
-  gks->bc_buffer_up_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
+  gks->bc_buffer = need_bc_buffer? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                 : mkarr(app->use_gpu, 1, 1);
+  // Buffer arrays for fixed function BCs on distribution function.
+  gks->bc_buffer_lo_fixed = need_bc_buffer_lo_fixed? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                                   : mkarr(app->use_gpu, 1, 1);
+  gks->bc_buffer_up_fixed = need_bc_buffer_up_fixed? mkarr(app->use_gpu, gks->basis.num_basis, buff_sz)
+                                                   : mkarr(app->use_gpu, 1, 1);
 
   for (int d=0; d<cdim; ++d) {
     // Lower BC.
@@ -846,10 +871,17 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         &gks->lower_skin[d], &gks->lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
       if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
-        // Fill the buffer used for BCs.
+        // Project distribution desired in the ghost cell.
         struct gk_proj gk_proj_bc_lo;
         gk_species_projection_init(app, gks, gks->lower_bc[d].projection, &gk_proj_bc_lo);
         gk_species_projection_calc(app, gks, &gk_proj_bc_lo, gks->f1, 0.0); // Temporarily use f1.
+        // Fill ghost cell with the boundary value.
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d, GKYL_LOWER_EDGE,
+          GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev, &gks->lower_skin[d], &gks->lower_ghost[d],
+	  gks->f->ncomp, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_lo_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+	// Copy ghost range into buffer.
         gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_lo[d], gks->bc_buffer_lo_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_lo);
@@ -899,10 +931,17 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         &gks->upper_skin[d], &gks->upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
       if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
-        // Fill the buffer used for BCs.
+        // Project distribution desired in the ghost cell.
         struct gk_proj gk_proj_bc_up;
         gk_species_projection_init(app, gks, gks->upper_bc[d].projection, &gk_proj_bc_up);
         gk_species_projection_calc(app, gks, &gk_proj_bc_up, gks->f1, 0.0); // Temporarily use f1.
+        // Fill ghost cell with the boundary value.
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d, GKYL_UPPER_EDGE,
+          GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev, &gks->upper_skin[d], &gks->upper_ghost[d],
+	  gks->f->ncomp, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_up_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+	// Copy ghost range into buffer.
         gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_up[d], gks->bc_buffer_up_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_up);
