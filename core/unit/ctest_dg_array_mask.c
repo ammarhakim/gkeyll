@@ -52,9 +52,7 @@ void test_mask_new(bool use_gpu)
     TEST_CHECK( gkyl_compare(mask_d[0], -1.0, 1e-14) );
   }
   
-  if (use_gpu) {
-    gkyl_array_release(mask_ho);
-  }
+  gkyl_array_release(mask_ho);
   gkyl_dg_array_mask_release(mask);
 }
 
