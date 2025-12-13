@@ -3,6 +3,7 @@
 // Private header, not for direct use in user code
 
 #include <math.h>
+#include <float.h>
 #include <gkyl_array.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_embed_geo.h>

@@ -673,7 +673,7 @@ five_moment_update_patch_job_func_source(void* ctx)
   nT_source[0] = pdata->nT_source_elc;
   nT_source[1] = pdata->nT_source_ion;
   
-  gkyl_moment_em_coupling_implicit_advance(pdata->src_slvr, t_curr, dt, &pdata->range, fluids, app_accel, rhs_source, NULL,
+  gkyl_moment_em_coupling_implicit_advance(pdata->src_slvr, t_curr, dt, &pdata->range, fluids, app_accel, rhs_source, NULL, NULL,
     pdata->f_maxwell[nstrang], pdata->app_current, pdata->ext_em, nT_source);
 
   five_moment_patch_bc_updaters_apply(pdata, t_curr, pdata->f_elc[nstrang], pdata->f_ion[nstrang], pdata->f_maxwell[nstrang]);
