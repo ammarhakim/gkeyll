@@ -4,7 +4,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -26,7 +26,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -53,7 +53,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -75,7 +75,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -102,15 +102,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1];
+  bsrc[nodeOff+globalIdxs[0]] = 1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
@@ -124,15 +124,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.9428090415820636*rho[0]-0.42163702135578407*rho[2]);
@@ -151,7 +151,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -173,7 +173,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -200,7 +200,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -211,9 +211,9 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichletx(const 
   bsrc[nodeOff+globalIdxs[0]] += 0.7071067811865476*rho[0]-0.408248290463863*rho[1];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1];
   #endif
 
 }
@@ -222,7 +222,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -238,9 +238,9 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichletx(const 
   bsrc[nodeOff+globalIdxs[1]] += 0.9428090415820636*rho[0]-0.42163702135578407*rho[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
   #endif
 
 }
@@ -249,7 +249,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -281,7 +281,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -333,7 +333,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -365,7 +365,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -417,20 +417,20 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = -(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = -(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[2]],-(0.16666666666666669*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -449,25 +449,25 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = -(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = -(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = -(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.17213259316477406*rho[7]-0.2981423969999719*rho[5]-0.38490017945975047*rho[1]+0.6666666666666665*rho[0]);
@@ -501,7 +501,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -533,7 +533,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -585,7 +585,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -601,14 +601,14 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlety(const 
   bsrc[nodeOff+globalIdxs[1]] += -(0.16666666666666666*rho[3])-0.28867513459481287*rho[2]+0.28867513459481287*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = -(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = 1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = -(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
 
 }
@@ -617,7 +617,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -648,19 +648,19 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlety(const 
   bsrc[nodeOff+globalIdxs[4]] += -(0.17213259316477406*rho[7])-0.2981423969999719*rho[5]+0.38490017945975047*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = -(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = -(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = 0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = 1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
 
 }
@@ -669,7 +669,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -721,7 +721,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -833,7 +833,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -885,7 +885,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -997,30 +997,30 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[4]],0.06804138174397718*rho[7]-0.11785113019775795*rho[6]-0.11785113019775795*rho[5]+0.11785113019775795*rho[4]+0.20412414523193156*rho[3]-0.20412414523193156*rho[2]-0.20412414523193156*rho[1]+0.35355339059327384*rho[0]);
@@ -1049,50 +1049,50 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = -(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = -(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = 1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(-(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[4]] = 1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[4]] = -(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = 1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = -(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[8]],-(0.07027283689263064*rho[19])+0.12171612389003691*rho[16]+0.12171612389003691*rho[15]-0.21081851067789192*rho[9]+0.15713484026367722*rho[4]-0.2721655269759087*rho[2]-0.2721655269759087*rho[1]+0.4714045207910317*rho[0]);
@@ -1161,7 +1161,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1213,7 +1213,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1325,7 +1325,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1351,24 +1351,24 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichletz(const 
   bsrc[nodeOff+globalIdxs[3]] += -(0.06804138174397718*rho[7])-0.11785113019775795*rho[6]-0.11785113019775795*rho[5]+0.11785113019775795*rho[4]-0.20412414523193156*rho[3]+0.20412414523193156*rho[2]+0.20412414523193156*rho[1]+0.35355339059327384*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[4]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[4]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
 
 }
@@ -1377,7 +1377,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1443,44 +1443,44 @@ GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichletz(const 
   bsrc[nodeOff+globalIdxs[11]] += -(0.07027283689263064*rho[19])-0.12171612389003691*rho[16]-0.12171612389003691*rho[15]-0.21081851067789192*rho[9]+0.15713484026367722*rho[4]+0.2721655269759087*rho[2]+0.2721655269759087*rho[1]+0.4714045207910317*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[12]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[12]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[12]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[12]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[13]],__double_as_longlong(1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[13]],__double_as_longlong(-(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[13]] = 1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[13]] = -(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[14]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[14]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[14]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[14]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[15]],__double_as_longlong(1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[15]],__double_as_longlong(-(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[15]] = 1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[15]] = -(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[16]],__double_as_longlong(-(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[16]],__double_as_longlong(1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[16]] = -(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[16]] = 1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[17]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[17]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[17]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[17]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[18]],__double_as_longlong(-(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[18]],__double_as_longlong(1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[18]] = -(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[18]] = 1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[19]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[19]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[19]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[19]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
 
 }
@@ -1489,7 +1489,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1511,7 +1511,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1538,7 +1538,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1560,7 +1560,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1587,15 +1587,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1];
+  bsrc[nodeOff+globalIdxs[0]] = 1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.5*rho[1]*weight[1]+0.28867513459481287*rho[0]*weight[1]+0.28867513459481287*weight[0]*rho[1]+0.5*rho[0]*weight[0]);
@@ -1609,15 +1609,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.4761904761904762*rho[2]*weight[2]-0.298142396999972*rho[0]*weight[2]-0.298142396999972*weight[0]*rho[2]+0.4*rho[1]*weight[1]+0.6666666666666667*rho[0]*weight[0]);
@@ -1636,7 +1636,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1658,7 +1658,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_nondirichletx(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1685,7 +1685,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1696,9 +1696,9 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichletx(const 
   bsrc[nodeOff+globalIdxs[0]] += 0.5*rho[1]*weight[1]-0.28867513459481287*rho[0]*weight[1]-0.28867513459481287*weight[0]*rho[1]+0.5*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 1.2247448713915892*phiBC[1]+0.7071067811865476*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 0.7071067811865476*phiBC[0]-1.2247448713915892*phiBC[1];
   #endif
 
 }
@@ -1707,7 +1707,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichletx(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1723,9 +1723,9 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichletx(const 
   bsrc[nodeOff+globalIdxs[1]] += 0.4761904761904762*rho[2]*weight[2]-0.298142396999972*rho[0]*weight[2]-0.298142396999972*weight[0]*rho[2]+0.4*rho[1]*weight[1]+0.6666666666666667*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.5811388300841895*phiBC[2]+1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.5811388300841895*phiBC[2]-1.224744871391589*phiBC[1]+0.7071067811865475*phiBC[0];
   #endif
 
 }
@@ -1734,7 +1734,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1766,7 +1766,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1818,7 +1818,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1850,7 +1850,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -1902,20 +1902,20 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = -(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = -(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[2]],0.25*rho[3]*weight[3]-0.14433756729740643*rho[2]*weight[3]+0.14433756729740643*rho[1]*weight[3]-0.08333333333333333*rho[0]*weight[3]-0.14433756729740643*weight[2]*rho[3]+0.14433756729740643*weight[1]*rho[3]-0.08333333333333333*weight[0]*rho[3]+0.25*rho[2]*weight[2]-0.08333333333333333*rho[1]*weight[2]+0.14433756729740643*rho[0]*weight[2]-0.08333333333333333*weight[1]*rho[2]+0.14433756729740643*weight[0]*rho[2]+0.25*rho[1]*weight[1]-0.14433756729740643*rho[0]*weight[1]-0.14433756729740643*weight[0]*rho[1]+0.25*rho[0]*weight[0]);
@@ -1934,25 +1934,25 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = -(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = -(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = -(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.23809523809523808*rho[7]*weight[7]-0.1374643498070538*rho[5]*weight[7]+0.07698003589195011*rho[4]*weight[7]-0.14907119849998599*rho[1]*weight[7]+0.08606629658238704*rho[0]*weight[7]-0.1374643498070538*weight[5]*rho[7]+0.07698003589195011*weight[4]*rho[7]-0.14907119849998599*weight[1]*rho[7]+0.08606629658238704*weight[0]*rho[7]+0.2*rho[6]*weight[6]-0.10327955589886445*rho[3]*weight[6]-0.10327955589886445*weight[3]*rho[6]+0.23809523809523808*rho[5]*weight[5]+0.08606629658238706*rho[1]*weight[5]-0.149071198499986*rho[0]*weight[5]+0.08606629658238706*weight[1]*rho[5]-0.149071198499986*weight[0]*rho[5]+0.3333333333333333*rho[4]*weight[4]-0.1721325931647741*rho[1]*weight[4]-0.1721325931647741*weight[1]*rho[4]+0.2*rho[3]*weight[3]-0.11547005383792514*rho[2]*weight[3]-0.11547005383792514*weight[2]*rho[3]+0.2*rho[2]*weight[2]+0.3333333333333333*rho[1]*weight[1]-0.19245008972987523*rho[0]*weight[1]-0.19245008972987523*weight[0]*rho[1]+0.3333333333333333*rho[0]*weight[0]);
@@ -1986,7 +1986,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2018,7 +2018,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_nondirichlety(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2070,7 +2070,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2086,14 +2086,14 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlety(const 
   bsrc[nodeOff+globalIdxs[1]] += 0.25*rho[3]*weight[3]+0.14433756729740643*rho[2]*weight[3]-0.14433756729740643*rho[1]*weight[3]-0.08333333333333333*rho[0]*weight[3]+0.14433756729740643*weight[2]*rho[3]-0.14433756729740643*weight[1]*rho[3]-0.08333333333333333*weight[0]*rho[3]+0.25*rho[2]*weight[2]-0.08333333333333333*rho[1]*weight[2]-0.14433756729740643*rho[0]*weight[2]-0.08333333333333333*weight[1]*rho[2]-0.14433756729740643*weight[0]*rho[2]+0.25*rho[1]*weight[1]+0.14433756729740643*rho[0]*weight[1]+0.14433756729740643*weight[0]*rho[1]+0.25*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = -(1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = 1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = 1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = -(1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
 
 }
@@ -2102,7 +2102,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlety(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2133,19 +2133,19 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlety(const 
   bsrc[nodeOff+globalIdxs[4]] += 0.23809523809523808*rho[7]*weight[7]+0.1374643498070538*rho[5]*weight[7]-0.07698003589195011*rho[4]*weight[7]-0.14907119849998599*rho[1]*weight[7]-0.08606629658238704*rho[0]*weight[7]+0.1374643498070538*weight[5]*rho[7]-0.07698003589195011*weight[4]*rho[7]-0.14907119849998599*weight[1]*rho[7]-0.08606629658238704*weight[0]*rho[7]+0.2*rho[6]*weight[6]+0.10327955589886445*rho[3]*weight[6]+0.10327955589886445*weight[3]*rho[6]+0.23809523809523808*rho[5]*weight[5]-0.08606629658238706*rho[1]*weight[5]-0.149071198499986*rho[0]*weight[5]-0.08606629658238706*weight[1]*rho[5]-0.149071198499986*weight[0]*rho[5]+0.3333333333333333*rho[4]*weight[4]+0.1721325931647741*rho[1]*weight[4]+0.1721325931647741*weight[1]*rho[4]+0.2*rho[3]*weight[3]+0.11547005383792514*rho[2]*weight[3]+0.11547005383792514*weight[2]*rho[3]+0.2*rho[2]*weight[2]+0.3333333333333333*rho[1]*weight[1]+0.19245008972987523*rho[0]*weight[1]+0.19245008972987523*weight[0]*rho[1]+0.3333333333333333*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(1.9364916731037085*phiBC[7])+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = -(1.9364916731037085*phiBC[7])-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = -(0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = 0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 1.9364916731037085*phiBC[7]+1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = 1.9364916731037085*phiBC[7]-1.9364916731037085*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
   #endif
 
 }
@@ -2154,7 +2154,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2206,7 +2206,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2318,7 +2318,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2370,7 +2370,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2482,30 +2482,30 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[4]],0.125*rho[7]*weight[7]-0.07216878364870322*rho[6]*weight[7]-0.07216878364870322*rho[5]*weight[7]+0.07216878364870322*rho[4]*weight[7]+0.041666666666666664*rho[3]*weight[7]-0.041666666666666664*rho[2]*weight[7]-0.041666666666666664*rho[1]*weight[7]+0.024056261216234404*rho[0]*weight[7]-0.07216878364870322*weight[6]*rho[7]-0.07216878364870322*weight[5]*rho[7]+0.07216878364870322*weight[4]*rho[7]+0.041666666666666664*weight[3]*rho[7]-0.041666666666666664*weight[2]*rho[7]-0.041666666666666664*weight[1]*rho[7]+0.024056261216234404*weight[0]*rho[7]+0.125*rho[6]*weight[6]+0.041666666666666664*rho[5]*weight[6]-0.041666666666666664*rho[4]*weight[6]-0.07216878364870322*rho[3]*weight[6]+0.07216878364870322*rho[2]*weight[6]+0.024056261216234404*rho[1]*weight[6]-0.041666666666666664*rho[0]*weight[6]+0.041666666666666664*weight[5]*rho[6]-0.041666666666666664*weight[4]*rho[6]-0.07216878364870322*weight[3]*rho[6]+0.07216878364870322*weight[2]*rho[6]+0.024056261216234404*weight[1]*rho[6]-0.041666666666666664*weight[0]*rho[6]+0.125*rho[5]*weight[5]-0.041666666666666664*rho[4]*weight[5]-0.07216878364870322*rho[3]*weight[5]+0.024056261216234404*rho[2]*weight[5]+0.07216878364870322*rho[1]*weight[5]-0.041666666666666664*rho[0]*weight[5]-0.041666666666666664*weight[4]*rho[5]-0.07216878364870322*weight[3]*rho[5]+0.024056261216234404*weight[2]*rho[5]+0.07216878364870322*weight[1]*rho[5]-0.041666666666666664*weight[0]*rho[5]+0.125*rho[4]*weight[4]+0.024056261216234404*rho[3]*weight[4]-0.07216878364870322*rho[2]*weight[4]-0.07216878364870322*rho[1]*weight[4]+0.041666666666666664*rho[0]*weight[4]+0.024056261216234404*weight[3]*rho[4]-0.07216878364870322*weight[2]*rho[4]-0.07216878364870322*weight[1]*rho[4]+0.041666666666666664*weight[0]*rho[4]+0.125*rho[3]*weight[3]-0.041666666666666664*rho[2]*weight[3]-0.041666666666666664*rho[1]*weight[3]+0.07216878364870322*rho[0]*weight[3]-0.041666666666666664*weight[2]*rho[3]-0.041666666666666664*weight[1]*rho[3]+0.07216878364870322*weight[0]*rho[3]+0.125*rho[2]*weight[2]+0.041666666666666664*rho[1]*weight[2]-0.07216878364870322*rho[0]*weight[2]+0.041666666666666664*weight[1]*rho[2]-0.07216878364870322*weight[0]*rho[2]+0.125*rho[1]*weight[1]-0.07216878364870322*rho[0]*weight[1]-0.07216878364870322*weight[0]*rho[1]+0.125*rho[0]*weight[0]);
@@ -2534,50 +2534,50 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[0]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[0]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(-(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[1]] = -(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[1]] = 1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[2]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[2]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(-(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong(1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[3]] = -(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[3]] = 1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(-(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[4]] = 1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[4]] = -(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = 1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = -(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[nodeOff+globalIdxs[8]],0.11904761904761905*rho[19]*weight[19]-0.06873217490352689*rho[16]*weight[19]-0.06873217490352689*rho[15]*weight[19]+0.03849001794597506*rho[12]*weight[19]+0.03849001794597506*rho[11]*weight[19]+0.03968253968253969*rho[9]*weight[19]-0.022222222222222223*rho[8]*weight[19]-0.022222222222222223*rho[7]*weight[19]-0.074535599249993*rho[4]*weight[19]+0.04303314829119352*rho[2]*weight[19]+0.04303314829119352*rho[1]*weight[19]-0.024845199749997667*rho[0]*weight[19]-0.06873217490352689*weight[16]*rho[19]-0.06873217490352689*weight[15]*rho[19]+0.03849001794597506*weight[12]*rho[19]+0.03849001794597506*weight[11]*rho[19]+0.03968253968253969*weight[9]*rho[19]-0.022222222222222223*weight[8]*rho[19]-0.022222222222222223*weight[7]*rho[19]-0.074535599249993*weight[4]*rho[19]+0.04303314829119352*weight[2]*rho[19]+0.04303314829119352*weight[1]*rho[19]-0.024845199749997667*weight[0]*rho[19]+0.1*rho[18]*weight[18]+0.02666666666666667*rho[17]*weight[18]-0.05773502691896258*rho[14]*weight[18]-0.051639777949432225*rho[10]*weight[18]+0.029814239699997195*rho[6]*weight[18]+0.02666666666666667*weight[17]*rho[18]-0.05773502691896258*weight[14]*rho[18]-0.051639777949432225*weight[10]*rho[18]+0.029814239699997195*weight[6]*rho[18]+0.1*rho[17]*weight[17]-0.05773502691896258*rho[13]*weight[17]-0.051639777949432225*rho[10]*weight[17]+0.029814239699997195*rho[5]*weight[17]-0.05773502691896258*weight[13]*rho[17]-0.051639777949432225*weight[10]*rho[17]+0.029814239699997195*weight[5]*rho[17]+0.11904761904761905*rho[16]*weight[16]+0.03968253968253969*rho[15]*weight[16]-0.022222222222222223*rho[12]*weight[16]-0.06873217490352689*rho[9]*weight[16]+0.03849001794597506*rho[8]*weight[16]+0.04303314829119353*rho[4]*weight[16]-0.07453559924999299*rho[2]*weight[16]-0.024845199749997663*rho[1]*weight[16]+0.04303314829119353*rho[0]*weight[16]+0.03968253968253969*weight[15]*rho[16]-0.022222222222222223*weight[12]*rho[16]-0.06873217490352689*weight[9]*rho[16]+0.03849001794597506*weight[8]*rho[16]+0.04303314829119353*weight[4]*rho[16]-0.07453559924999299*weight[2]*rho[16]-0.024845199749997663*weight[1]*rho[16]+0.04303314829119353*weight[0]*rho[16]+0.11904761904761905*rho[15]*weight[15]-0.022222222222222223*rho[11]*weight[15]-0.06873217490352689*rho[9]*weight[15]+0.03849001794597506*rho[7]*weight[15]+0.04303314829119353*rho[4]*weight[15]-0.024845199749997663*rho[2]*weight[15]-0.07453559924999299*rho[1]*weight[15]+0.04303314829119353*rho[0]*weight[15]-0.022222222222222223*weight[11]*rho[15]-0.06873217490352689*weight[9]*rho[15]+0.03849001794597506*weight[7]*rho[15]+0.04303314829119353*weight[4]*rho[15]-0.024845199749997663*weight[2]*rho[15]-0.07453559924999299*weight[1]*rho[15]+0.04303314829119353*weight[0]*rho[15]+0.1*rho[14]*weight[14]+0.029814239699997195*rho[10]*weight[14]-0.05163977794943223*rho[6]*weight[14]+0.029814239699997195*weight[10]*rho[14]-0.05163977794943223*weight[6]*rho[14]+0.1*rho[13]*weight[13]+0.029814239699997195*rho[10]*weight[13]-0.05163977794943223*rho[5]*weight[13]+0.029814239699997195*weight[10]*rho[13]-0.05163977794943223*weight[5]*rho[13]+0.16666666666666669*rho[12]*weight[12]+0.044444444444444446*rho[11]*weight[12]-0.09622504486493764*rho[8]*weight[12]-0.08606629658238706*rho[4]*weight[12]+0.049690399499995326*rho[2]*weight[12]+0.044444444444444446*weight[11]*rho[12]-0.09622504486493764*weight[8]*rho[12]-0.08606629658238706*weight[4]*rho[12]+0.049690399499995326*weight[2]*rho[12]+0.16666666666666669*rho[11]*weight[11]-0.09622504486493764*rho[7]*weight[11]-0.08606629658238706*rho[4]*weight[11]+0.049690399499995326*rho[1]*weight[11]-0.09622504486493764*weight[7]*rho[11]-0.08606629658238706*weight[4]*rho[11]+0.049690399499995326*weight[1]*rho[11]+0.1*rho[10]*weight[10]-0.05773502691896258*rho[6]*weight[10]-0.05773502691896258*rho[5]*weight[10]+0.03333333333333333*rho[3]*weight[10]-0.05773502691896258*weight[6]*rho[10]-0.05773502691896258*weight[5]*rho[10]+0.03333333333333333*weight[3]*rho[10]+0.11904761904761905*rho[9]*weight[9]-0.024845199749997667*rho[4]*weight[9]+0.04303314829119352*rho[2]*weight[9]+0.04303314829119352*rho[1]*weight[9]-0.074535599249993*rho[0]*weight[9]-0.024845199749997667*weight[4]*rho[9]+0.04303314829119352*weight[2]*rho[9]+0.04303314829119352*weight[1]*rho[9]-0.074535599249993*weight[0]*rho[9]+0.16666666666666669*rho[8]*weight[8]+0.04969039949999533*rho[4]*weight[8]-0.08606629658238704*rho[2]*weight[8]+0.04969039949999533*weight[4]*rho[8]-0.08606629658238704*weight[2]*rho[8]+0.16666666666666669*rho[7]*weight[7]+0.04969039949999533*rho[4]*weight[7]-0.08606629658238704*rho[1]*weight[7]+0.04969039949999533*weight[4]*rho[7]-0.08606629658238704*weight[1]*rho[7]+0.1*rho[6]*weight[6]+0.03333333333333333*rho[5]*weight[6]-0.05773502691896258*rho[3]*weight[6]+0.03333333333333333*weight[5]*rho[6]-0.05773502691896258*weight[3]*rho[6]+0.1*rho[5]*weight[5]-0.05773502691896258*rho[3]*weight[5]-0.05773502691896258*weight[3]*rho[5]+0.16666666666666669*rho[4]*weight[4]-0.09622504486493762*rho[2]*weight[4]-0.09622504486493762*rho[1]*weight[4]+0.05555555555555556*rho[0]*weight[4]-0.09622504486493762*weight[2]*rho[4]-0.09622504486493762*weight[1]*rho[4]+0.05555555555555556*weight[0]*rho[4]+0.1*rho[3]*weight[3]+0.16666666666666669*rho[2]*weight[2]+0.05555555555555556*rho[1]*weight[2]-0.09622504486493762*rho[0]*weight[2]+0.05555555555555556*weight[1]*rho[2]-0.09622504486493762*weight[0]*rho[2]+0.16666666666666669*rho[1]*weight[1]-0.09622504486493762*rho[0]*weight[1]-0.09622504486493762*weight[0]*rho[1]+0.16666666666666669*rho[0]*weight[0]);
@@ -2646,7 +2646,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2698,7 +2698,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_nondirichletz(con
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2810,7 +2810,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2836,24 +2836,24 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichletz(const 
   bsrc[nodeOff+globalIdxs[3]] += 0.125*rho[7]*weight[7]+0.07216878364870322*rho[6]*weight[7]+0.07216878364870322*rho[5]*weight[7]-0.07216878364870322*rho[4]*weight[7]+0.041666666666666664*rho[3]*weight[7]-0.041666666666666664*rho[2]*weight[7]-0.041666666666666664*rho[1]*weight[7]-0.024056261216234404*rho[0]*weight[7]+0.07216878364870322*weight[6]*rho[7]+0.07216878364870322*weight[5]*rho[7]-0.07216878364870322*weight[4]*rho[7]+0.041666666666666664*weight[3]*rho[7]-0.041666666666666664*weight[2]*rho[7]-0.041666666666666664*weight[1]*rho[7]-0.024056261216234404*weight[0]*rho[7]+0.125*rho[6]*weight[6]+0.041666666666666664*rho[5]*weight[6]-0.041666666666666664*rho[4]*weight[6]+0.07216878364870322*rho[3]*weight[6]-0.07216878364870322*rho[2]*weight[6]-0.024056261216234404*rho[1]*weight[6]-0.041666666666666664*rho[0]*weight[6]+0.041666666666666664*weight[5]*rho[6]-0.041666666666666664*weight[4]*rho[6]+0.07216878364870322*weight[3]*rho[6]-0.07216878364870322*weight[2]*rho[6]-0.024056261216234404*weight[1]*rho[6]-0.041666666666666664*weight[0]*rho[6]+0.125*rho[5]*weight[5]-0.041666666666666664*rho[4]*weight[5]+0.07216878364870322*rho[3]*weight[5]-0.024056261216234404*rho[2]*weight[5]-0.07216878364870322*rho[1]*weight[5]-0.041666666666666664*rho[0]*weight[5]-0.041666666666666664*weight[4]*rho[5]+0.07216878364870322*weight[3]*rho[5]-0.024056261216234404*weight[2]*rho[5]-0.07216878364870322*weight[1]*rho[5]-0.041666666666666664*weight[0]*rho[5]+0.125*rho[4]*weight[4]-0.024056261216234404*rho[3]*weight[4]+0.07216878364870322*rho[2]*weight[4]+0.07216878364870322*rho[1]*weight[4]+0.041666666666666664*rho[0]*weight[4]-0.024056261216234404*weight[3]*rho[4]+0.07216878364870322*weight[2]*rho[4]+0.07216878364870322*weight[1]*rho[4]+0.041666666666666664*weight[0]*rho[4]+0.125*rho[3]*weight[3]-0.041666666666666664*rho[2]*weight[3]-0.041666666666666664*rho[1]*weight[3]-0.07216878364870322*rho[0]*weight[3]-0.041666666666666664*weight[2]*rho[3]-0.041666666666666664*weight[1]*rho[3]-0.07216878364870322*weight[0]*rho[3]+0.125*rho[2]*weight[2]+0.041666666666666664*rho[1]*weight[2]+0.07216878364870322*rho[0]*weight[2]+0.041666666666666664*weight[1]*rho[2]+0.07216878364870322*weight[0]*rho[2]+0.125*rho[1]*weight[1]+0.07216878364870322*rho[0]*weight[1]+0.07216878364870322*weight[0]*rho[1]+0.125*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[4]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[4]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[4]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[5]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[5]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(-(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[6]] = -(1.8371173070873836*phiBC[7])+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[6]] = 1.8371173070873836*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(-(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[7]] = 1.8371173070873836*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[7]] = -(1.8371173070873836*phiBC[7])-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
 
 }
@@ -2862,7 +2862,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichletz(const 
 { 
   // rho: right side source.
   // weight: Weight in the projection operation.
-  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // phiBC: Dirichlet boundary potential, given as a DG (volume) expansion in the skin cell.
   // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
@@ -2928,44 +2928,44 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichletz(const 
   bsrc[nodeOff+globalIdxs[11]] += 0.11904761904761905*rho[19]*weight[19]+0.06873217490352689*rho[16]*weight[19]+0.06873217490352689*rho[15]*weight[19]-0.03849001794597506*rho[12]*weight[19]-0.03849001794597506*rho[11]*weight[19]+0.03968253968253969*rho[9]*weight[19]-0.022222222222222223*rho[8]*weight[19]-0.022222222222222223*rho[7]*weight[19]-0.074535599249993*rho[4]*weight[19]-0.04303314829119352*rho[2]*weight[19]-0.04303314829119352*rho[1]*weight[19]-0.024845199749997667*rho[0]*weight[19]+0.06873217490352689*weight[16]*rho[19]+0.06873217490352689*weight[15]*rho[19]-0.03849001794597506*weight[12]*rho[19]-0.03849001794597506*weight[11]*rho[19]+0.03968253968253969*weight[9]*rho[19]-0.022222222222222223*weight[8]*rho[19]-0.022222222222222223*weight[7]*rho[19]-0.074535599249993*weight[4]*rho[19]-0.04303314829119352*weight[2]*rho[19]-0.04303314829119352*weight[1]*rho[19]-0.024845199749997667*weight[0]*rho[19]+0.1*rho[18]*weight[18]+0.02666666666666667*rho[17]*weight[18]+0.05773502691896258*rho[14]*weight[18]+0.051639777949432225*rho[10]*weight[18]+0.029814239699997195*rho[6]*weight[18]+0.02666666666666667*weight[17]*rho[18]+0.05773502691896258*weight[14]*rho[18]+0.051639777949432225*weight[10]*rho[18]+0.029814239699997195*weight[6]*rho[18]+0.1*rho[17]*weight[17]+0.05773502691896258*rho[13]*weight[17]+0.051639777949432225*rho[10]*weight[17]+0.029814239699997195*rho[5]*weight[17]+0.05773502691896258*weight[13]*rho[17]+0.051639777949432225*weight[10]*rho[17]+0.029814239699997195*weight[5]*rho[17]+0.11904761904761905*rho[16]*weight[16]+0.03968253968253969*rho[15]*weight[16]-0.022222222222222223*rho[12]*weight[16]+0.06873217490352689*rho[9]*weight[16]-0.03849001794597506*rho[8]*weight[16]-0.04303314829119353*rho[4]*weight[16]-0.07453559924999299*rho[2]*weight[16]-0.024845199749997663*rho[1]*weight[16]-0.04303314829119353*rho[0]*weight[16]+0.03968253968253969*weight[15]*rho[16]-0.022222222222222223*weight[12]*rho[16]+0.06873217490352689*weight[9]*rho[16]-0.03849001794597506*weight[8]*rho[16]-0.04303314829119353*weight[4]*rho[16]-0.07453559924999299*weight[2]*rho[16]-0.024845199749997663*weight[1]*rho[16]-0.04303314829119353*weight[0]*rho[16]+0.11904761904761905*rho[15]*weight[15]-0.022222222222222223*rho[11]*weight[15]+0.06873217490352689*rho[9]*weight[15]-0.03849001794597506*rho[7]*weight[15]-0.04303314829119353*rho[4]*weight[15]-0.024845199749997663*rho[2]*weight[15]-0.07453559924999299*rho[1]*weight[15]-0.04303314829119353*rho[0]*weight[15]-0.022222222222222223*weight[11]*rho[15]+0.06873217490352689*weight[9]*rho[15]-0.03849001794597506*weight[7]*rho[15]-0.04303314829119353*weight[4]*rho[15]-0.024845199749997663*weight[2]*rho[15]-0.07453559924999299*weight[1]*rho[15]-0.04303314829119353*weight[0]*rho[15]+0.1*rho[14]*weight[14]+0.029814239699997195*rho[10]*weight[14]+0.05163977794943223*rho[6]*weight[14]+0.029814239699997195*weight[10]*rho[14]+0.05163977794943223*weight[6]*rho[14]+0.1*rho[13]*weight[13]+0.029814239699997195*rho[10]*weight[13]+0.05163977794943223*rho[5]*weight[13]+0.029814239699997195*weight[10]*rho[13]+0.05163977794943223*weight[5]*rho[13]+0.16666666666666669*rho[12]*weight[12]+0.044444444444444446*rho[11]*weight[12]+0.09622504486493764*rho[8]*weight[12]+0.08606629658238706*rho[4]*weight[12]+0.049690399499995326*rho[2]*weight[12]+0.044444444444444446*weight[11]*rho[12]+0.09622504486493764*weight[8]*rho[12]+0.08606629658238706*weight[4]*rho[12]+0.049690399499995326*weight[2]*rho[12]+0.16666666666666669*rho[11]*weight[11]+0.09622504486493764*rho[7]*weight[11]+0.08606629658238706*rho[4]*weight[11]+0.049690399499995326*rho[1]*weight[11]+0.09622504486493764*weight[7]*rho[11]+0.08606629658238706*weight[4]*rho[11]+0.049690399499995326*weight[1]*rho[11]+0.1*rho[10]*weight[10]+0.05773502691896258*rho[6]*weight[10]+0.05773502691896258*rho[5]*weight[10]+0.03333333333333333*rho[3]*weight[10]+0.05773502691896258*weight[6]*rho[10]+0.05773502691896258*weight[5]*rho[10]+0.03333333333333333*weight[3]*rho[10]+0.11904761904761905*rho[9]*weight[9]-0.024845199749997667*rho[4]*weight[9]-0.04303314829119352*rho[2]*weight[9]-0.04303314829119352*rho[1]*weight[9]-0.074535599249993*rho[0]*weight[9]-0.024845199749997667*weight[4]*rho[9]-0.04303314829119352*weight[2]*rho[9]-0.04303314829119352*weight[1]*rho[9]-0.074535599249993*weight[0]*rho[9]+0.16666666666666669*rho[8]*weight[8]+0.04969039949999533*rho[4]*weight[8]+0.08606629658238704*rho[2]*weight[8]+0.04969039949999533*weight[4]*rho[8]+0.08606629658238704*weight[2]*rho[8]+0.16666666666666669*rho[7]*weight[7]+0.04969039949999533*rho[4]*weight[7]+0.08606629658238704*rho[1]*weight[7]+0.04969039949999533*weight[4]*rho[7]+0.08606629658238704*weight[1]*rho[7]+0.1*rho[6]*weight[6]+0.03333333333333333*rho[5]*weight[6]+0.05773502691896258*rho[3]*weight[6]+0.03333333333333333*weight[5]*rho[6]+0.05773502691896258*weight[3]*rho[6]+0.1*rho[5]*weight[5]+0.05773502691896258*rho[3]*weight[5]+0.05773502691896258*weight[3]*rho[5]+0.16666666666666669*rho[4]*weight[4]+0.09622504486493762*rho[2]*weight[4]+0.09622504486493762*rho[1]*weight[4]+0.05555555555555556*rho[0]*weight[4]+0.09622504486493762*weight[2]*rho[4]+0.09622504486493762*weight[1]*rho[4]+0.05555555555555556*weight[0]*rho[4]+0.1*rho[3]*weight[3]+0.16666666666666669*rho[2]*weight[2]+0.05555555555555556*rho[1]*weight[2]+0.09622504486493762*rho[0]*weight[2]+0.05555555555555556*weight[1]*rho[2]+0.09622504486493762*weight[0]*rho[2]+0.16666666666666669*rho[1]*weight[1]+0.09622504486493762*rho[0]*weight[1]+0.09622504486493762*weight[0]*rho[1]+0.16666666666666669*rho[0]*weight[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[12]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[12]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[12]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[12]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[13]],__double_as_longlong(1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[13]],__double_as_longlong(-(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[13]] = 1.1858541225631423*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[13]] = -(1.1858541225631423*phiBC[17])-1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]+0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[14]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[14]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[14]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[14]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]-1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]-1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[15]],__double_as_longlong(1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[15]],__double_as_longlong(-(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[15]] = 1.1858541225631423*phiBC[18]-1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[15]] = -(1.1858541225631423*phiBC[18])-1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]+0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[16]],__double_as_longlong(-(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[16]],__double_as_longlong(1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[16]] = -(1.1858541225631423*phiBC[18])+1.3693063937629155*phiBC[15]-0.6846531968814578*phiBC[14]+1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[5]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[16]] = 1.1858541225631423*phiBC[18]+1.3693063937629155*phiBC[15]+0.6846531968814578*phiBC[14]-1.3693063937629155*phiBC[13]-0.6846531968814578*phiBC[12]+0.7905694150420949*phiBC[9]-0.39528470752104744*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[5]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[17]],__double_as_longlong(-(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[17]],__double_as_longlong(-(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[17]] = -(2.3717082451262845*phiBC[19])-2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[17]] = -(2.3717082451262845*phiBC[19])+2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]-1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]-1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]-0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[18]],__double_as_longlong(-(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[18]],__double_as_longlong(1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[18]] = -(1.1858541225631423*phiBC[17])+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[14]-0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]+1.0606601717798214*phiBC[6]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[18]] = 1.1858541225631423*phiBC[17]+1.3693063937629155*phiBC[16]-1.3693063937629155*phiBC[14]+0.6846531968814578*phiBC[13]-0.6846531968814578*phiBC[11]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]-0.39528470752104744*phiBC[7]-1.0606601717798214*phiBC[6]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.3535533905932738*phiBC[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[19]],__double_as_longlong(2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[19]],__double_as_longlong(2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0]));
   #else
-  bsrc[nodeOff+globalIdxs[19]] = 2.3717082451262845*phiBC[19]+2.3717082451262845*phiBC[18]+2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]+1.3693063937629155*phiBC[14]+1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]+1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]+1.0606601717798214*phiBC[6]+1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]+0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
+  bsrc[nodeOff+globalIdxs[19]] = 2.3717082451262845*phiBC[19]-2.3717082451262845*phiBC[18]-2.3717082451262845*phiBC[17]+1.3693063937629155*phiBC[16]+1.3693063937629155*phiBC[15]-1.3693063937629155*phiBC[14]-1.3693063937629155*phiBC[13]+1.3693063937629155*phiBC[12]+1.3693063937629155*phiBC[11]-1.8371173070873836*phiBC[10]+0.7905694150420949*phiBC[9]+0.7905694150420949*phiBC[8]+0.7905694150420949*phiBC[7]-1.0606601717798214*phiBC[6]-1.0606601717798214*phiBC[5]+1.0606601717798214*phiBC[4]-0.6123724356957946*phiBC[3]+0.6123724356957946*phiBC[2]+0.6123724356957946*phiBC[1]+0.3535533905932738*phiBC[0];
   #endif
 
 }

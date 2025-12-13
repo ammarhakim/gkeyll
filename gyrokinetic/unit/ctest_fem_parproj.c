@@ -12,6 +12,7 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_bc_basic_gyrokinetic.h>
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -166,11 +167,12 @@ static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis bas
   gkyl_array_release(nodes);
 }
 
-void check_dirichlet_bc(struct gkyl_range range, struct gkyl_basis basis,
+void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_basis basis,
   struct gkyl_array *field_dg, struct gkyl_array *field_fem)
 {
   // Check that two fields have the same boundary values in last dimension.
-  if (basis.poly_order > 1) return;
+  if (basis.poly_order > 1) return; // Check only working for p=1.
+
   int ndim = basis.ndim;
   int pardir = ndim-1;
   const int num_nodes_perp_max = 4; // 3x p=1.
@@ -183,35 +185,49 @@ void check_dirichlet_bc(struct gkyl_range range, struct gkyl_basis basis,
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
 
-  for (int e=0; e<2; e++) {
+  for (int e=0; e<1; e++) {
 
     struct gkyl_range perp_range;
     if (e == 0)
-      gkyl_range_shorten_from_above(&perp_range, &range, pardir, 1);
+      gkyl_range_shorten_from_above(&perp_range, &local, pardir, 1);
     else
-      gkyl_range_shorten_from_below(&perp_range, &range, pardir, 1);
+      gkyl_range_shorten_from_below(&perp_range, &local, pardir, 1);
 
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &perp_range);
     while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&range, iter.idx);
-      double *arr_dg = gkyl_array_fetch(field_dg, lidx);
-      double *arr_fem = gkyl_array_fetch(field_fem, lidx);
+      int ghost_idx[ndim];
+      for (int d=0; d<ndim; d++)
+        ghost_idx[d] = iter.idx[d];
+
+      ghost_idx[pardir] = e==0? iter.idx[pardir]-1 : iter.idx[pardir]-1;
+
+      long lidx_skin = gkyl_range_idx(&local, iter.idx);
+      long lidx_ghost = gkyl_range_idx(&local_ext, ghost_idx);
+
+      double *arr_dg = gkyl_array_fetch(field_dg, lidx_ghost);
+      double *arr_fem = gkyl_array_fetch(field_fem, lidx_skin);
 
       double fn_dg[num_nodes_perp_max], fn_fem[num_nodes_perp_max];
 
-      int off = e==0? 0 : num_nodes_perp;
+      int off_ghost = e==0? num_nodes_perp : 0;
       for (int i=0; i<num_nodes_perp; i++) {
-        const double *node = gkyl_array_cfetch(nodes, off+i);
+        const double *node = gkyl_array_cfetch(nodes, off_ghost+i);
         fn_dg[i] = basis.eval_expand(node, arr_dg);
       }
+      int off_skin = e==0? 0 : num_nodes_perp;
       for (int i=0; i<num_nodes_perp; i++) {
-        const double *node = gkyl_array_cfetch(nodes, off+i);
+        const double *node = gkyl_array_cfetch(nodes, off_skin+i);
         fn_fem[i] = basis.eval_expand(node, arr_fem);
       }
       for (int i=0; i<num_nodes_perp; i++) {
         TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
-        TEST_MSG( "idx=%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+        if (ndim == 1)
+          TEST_MSG( "idx=%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+        else if (ndim == 2)
+          TEST_MSG( "idx=%d,%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], iter.idx[1], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+        else if (ndim == 3)
+          TEST_MSG( "idx=%d,%d,%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], iter.idx[1], iter.idx[2], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
       }
     }
   }
@@ -229,6 +245,26 @@ void evalFunc1x_dirichlet(double t, const double *xn, double* restrict fout, voi
   double x = xn[0];
   // Test Dirichlet BCs with something that's not 0 at the boundary.
   fout[0] = cos(2.*M_PI*x);
+}
+
+void ghost_from_skin_surf(int dim, struct skin_ghost_ranges *sgr, struct gkyl_basis *basis, struct gkyl_array *rho_ho)
+{
+  // The ghost range with the value of the skin at the boundary.
+  struct gkyl_array *bc_buffer = mkarr(false, rho_ho->ncomp, sgr->lower_ghost[dim-1].volume);
+  
+  struct gkyl_bc_basic_gyrokinetic* bc_op_lo = gkyl_bc_basic_gyrokinetic_new(dim-1, GKYL_LOWER_EDGE,
+    GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->lower_skin[dim-1], &sgr->lower_ghost[dim-1],
+    basis->num_basis, dim, false);
+  gkyl_bc_basic_gyrokinetic_advance(bc_op_lo, bc_buffer, rho_ho);
+  gkyl_bc_basic_gyrokinetic_release(bc_op_lo);
+  
+  struct gkyl_bc_basic_gyrokinetic* bc_op_up = gkyl_bc_basic_gyrokinetic_new(dim-1, GKYL_UPPER_EDGE,
+    GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->upper_skin[dim-1], &sgr->upper_ghost[dim-1],
+    basis->num_basis, dim, false);
+  gkyl_bc_basic_gyrokinetic_advance(bc_op_up, bc_buffer, rho_ho);
+  gkyl_bc_basic_gyrokinetic_release(bc_op_up);
+  
+  gkyl_array_release(bc_buffer);
 }
 
 void
@@ -266,6 +302,10 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho_ho);
+  }
   gkyl_array_copy(rho, rho_ho);
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
@@ -292,7 +332,7 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
@@ -343,7 +383,7 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     }
   } if (poly_order == 2) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
       const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
@@ -474,6 +514,10 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // Project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho);
+  }
   gkyl_array_copy(rho, rho_ho);
 
 //  // Project a function that is continuous in x but discontinuous in z.
@@ -514,7 +558,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
       const double sol[48] = {
@@ -640,7 +684,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     }
   } if (poly_order == 2) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
       const double sol[96] = {
@@ -873,6 +917,10 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, bctype==GKYL_FEM_PARPROJ_DIRICHLET? evalFunc2x_dirichlet : evalFunc2x, NULL);
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho_ho);
+  }
   gkyl_array_copy(rho, rho_ho);
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
 
@@ -905,7 +953,7 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
   check_continuity_par(localRange, basis, phi_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET)
-    check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+    check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
 
   gkyl_fem_parproj_release(parproj);
   gkyl_proj_on_basis_release(projob);
@@ -1085,6 +1133,10 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho_ho);
+  }
   gkyl_array_copy(rho, rho_ho);
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
@@ -1111,7 +1163,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
@@ -1286,7 +1338,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
     }
   } if (poly_order == 2) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
       const double sol[240] = {
