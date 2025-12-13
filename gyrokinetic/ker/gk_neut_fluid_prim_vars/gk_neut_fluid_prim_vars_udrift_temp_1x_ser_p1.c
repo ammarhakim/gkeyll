@@ -28,6 +28,12 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p1(int count
   const double *rhouz = &moms[6]; 
   const double *totE  = &moms[8]; 
 
+  double rhoSq[2] = {0.0}; 
+  binop_mul_1d_ser_p1(rho, rho, rhoSq); 
+ 
+  double rho_totE[2] = {0.0}; 
+  binop_mul_1d_ser_p1(rho, totE, rho_totE); 
+ 
   double rhouxSq[2] = {0.0}; 
   binop_mul_1d_ser_p1(rhoux, rhoux, rhouxSq); 
  
@@ -48,14 +54,16 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p1(int count
   binop_mul_1d_ser_p1(rho_inv, rhouy, uy); 
   binop_mul_1d_ser_p1(rho_inv, rhouz, uz); 
  
-  double rho_temp[2]; 
-  rho_temp[0] = (gas_gamma - 1.0)*(mass * totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
-  rho_temp[1] = (gas_gamma - 1.0)*(mass * totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
+  double rhoSq_temp[2]; 
+  rhoSq_temp[0] = mass*(gas_gamma-1.0)*(rho_totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
+  rhoSq_temp[1] = mass*(gas_gamma-1.0)*(rho_totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
 
+  double rhoSq_inv[2] = {0.0}; 
+  ser_1x_p1_inv(rhoSq, rhoSq_inv); 
   // Calculate expansions of temperature. 
   double temp[2] = {0.0}; 
  
-  binop_mul_1d_ser_p1(rho_inv, rho_temp, temp); 
+  binop_mul_1d_ser_p1(rhoSq_inv, rhoSq_temp, temp); 
   gkyl_mat_set(&rhs_ux,0,0,ux[0]); 
   gkyl_mat_set(&rhs_uy,0,0,uy[0]); 
   gkyl_mat_set(&rhs_uz,0,0,uz[0]); 

@@ -297,9 +297,9 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = B_r * cos(phi) - Bt * sin(phi);
-  fout[1] = B_r * sin(phi) + Bt * cos(phi);
-  fout[2] = B_z;
+  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
+  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
+  fout[2] = -B_z;
 }
 
 void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -849,7 +849,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

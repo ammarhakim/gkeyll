@@ -70,7 +70,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     weights1_v[1] = -4.0;
     weights1_v[2] = 3.0;
   }
-  else {
+  else if (quad_type == GKYL_GAUSS_QUAD) {
     if (num_quad <= gkyl_gauss_max) {
       // use pre-computed values if possible (these are more accurate
     // than computing them on the fly)

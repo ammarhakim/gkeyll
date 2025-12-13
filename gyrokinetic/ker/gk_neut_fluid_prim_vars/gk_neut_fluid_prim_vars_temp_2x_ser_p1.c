@@ -22,6 +22,12 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_temp_set_prob_2x_ser_p1(int count, struc
   const double *rhouz = &moms[12]; 
   const double *totE  = &moms[16]; 
 
+  double rhoSq[4] = {0.0}; 
+  binop_mul_2d_ser_p1(rho, rho, rhoSq); 
+ 
+  double rho_totE[4] = {0.0}; 
+  binop_mul_2d_ser_p1(rho, totE, rho_totE); 
+ 
   double rhouxSq[4] = {0.0}; 
   binop_mul_2d_ser_p1(rhoux, rhoux, rhouxSq); 
  
@@ -31,18 +37,18 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_temp_set_prob_2x_ser_p1(int count, struc
   double rhouzSq[4] = {0.0}; 
   binop_mul_2d_ser_p1(rhouz, rhouz, rhouzSq); 
  
-  double rho_temp[4]; 
-  rho_temp[0] = (gas_gamma - 1.0)*(mass * totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
-  rho_temp[1] = (gas_gamma - 1.0)*(mass * totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
-  rho_temp[2] = (gas_gamma - 1.0)*(mass * totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
-  rho_temp[3] = (gas_gamma - 1.0)*(mass * totE[3] - 0.5*(rhouxSq[3] + rhouySq[3] + rhouzSq[3])); 
+  double rhoSq_temp[4]; 
+  rhoSq_temp[0] = mass*(gas_gamma-1.0)*(rho_totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
+  rhoSq_temp[1] = mass*(gas_gamma-1.0)*(rho_totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
+  rhoSq_temp[2] = mass*(gas_gamma-1.0)*(rho_totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
+  rhoSq_temp[3] = mass*(gas_gamma-1.0)*(rho_totE[3] - 0.5*(rhouxSq[3] + rhouySq[3] + rhouzSq[3])); 
 
-  double rho_inv[4] = {0.0}; 
-  ser_2x_p1_inv(rho, rho_inv); 
+  double rhoSq_inv[4] = {0.0}; 
+  ser_2x_p1_inv(rhoSq, rhoSq_inv); 
   // Calculate expansions of temperature. 
   double temp[4] = {0.0}; 
  
-  binop_mul_2d_ser_p1(rho_inv, rho_temp, temp); 
+  binop_mul_2d_ser_p1(rhoSq_inv, rhoSq_temp, temp); 
  
   gkyl_mat_set(&rhs_temp,0,0,temp[0]); 
   gkyl_mat_set(&rhs_temp,1,0,temp[1]); 

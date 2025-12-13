@@ -315,45 +315,19 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
-//          if (app->enforce_positivity) {
-//            // Apply positivity shift if requested.
-//            int elc_idx = -1;
-//            gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
-//            for (int i=0; i<ns_charged; ++i) {
-//              struct gk_species *gks = &app->species[i];
-//
-//              // Copy f so we can calculate the moments of the change later. 
-//              gkyl_array_set(gks->fnew, -1.0, gks->f);
-//
-//              // Shift each species.
-//              gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
-//                gks->f, gks->m0.marr, gks->ps_delta_m0);
-//
-//              // Accumulate the shift density of all ions:
-//              if (gks->info.charge > 0.0)
-//                gkyl_array_accumulate(app->ps_delta_m0_ions, 1.0, gks->ps_delta_m0);
-//              else if (gks->info.charge < 0.0) 
-//                elc_idx = i;
-//            }
-//
-//            // Rescale each species to enforce quasineutrality.
-//            for (int i=0; i<ns_charged; ++i) {
-//              struct gk_species *gks = &app->species[i];
-//              if (gks->info.charge > 0.0) {
-//                struct gk_species *gkelc = &app->species[elc_idx];
-//                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-//                  gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
-//              }
-//              else {
-//                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-//                  gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
-//              }
-//
-//              gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
-//            }
-//          }
+          // Apply positivity shift if requested.
+          for (int b=0; b<nblocks_local; ++b) {
+            struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+            for (int i=0; i<ns_charged; ++i) {
+              struct gk_species *gks = &sbapp->species[i];
+              gk_species_positivity_apply(sbapp, gks, &gks->positivity, gks->fnew, gks->f);
+            }
+            for (int i=0; i<ns_neut; ++i) {
+              struct gk_neut_species *gkns = &sbapp->neut_species[i];
+              gk_neut_species_positivity_apply(sbapp, gkns, &gkns->positivity, gkns->fnew, gkns->f);
+            }
+          }
 
-          // Compute the fields and apply BCs
           for (int b=0; b<nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
@@ -367,6 +341,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               fout_neut[li_neut+i] = sbapp->neut_species[i].f;
             }
           }
+
+//          // Enforce quasineutrality of the positivity shifts.
+//          gyrokinetic_multib_post_positivity_quasineut(app, fout);
+
+          // Compute the fields and apply BCs
           gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
 
           for (int b=0; b<nblocks_local; ++b) {

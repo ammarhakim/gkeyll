@@ -137,7 +137,7 @@ arc_length_func(double Z, void *ctx)
   else if(actx->ftype==GKYL_IWL){
     if(actx->q3) {
       double *arc_memo = actx->arc_memo;
-      ival = integrate_psi_contour_memo(actx->geo, psi, Z, actx->geo->zmaxis, rclose, false, false, arc_memo) - arcL;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo) - arcL;
     }
     else if (actx->q4) {
       double *arc_memo = actx->arc_memo;
@@ -257,11 +257,11 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
     else{
       if (Z<actx->zmaxis) {
-        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) ;
         phi_ref  = -actx->phi_right;
       }
       else {
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo) ;
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo) ;
         phi_ref  = actx->phi_right;
       }
     }

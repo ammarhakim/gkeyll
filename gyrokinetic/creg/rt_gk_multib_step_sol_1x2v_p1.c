@@ -581,8 +581,6 @@ main(int argc, char **argv)
     .gk_block_geom = bgeom,
     .cfl_frac = 0.9,
     
-    .enforce_positivity = false,
-
     .num_species = 2,
     .species = { elc, ion},
 
@@ -605,7 +603,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

@@ -14,6 +14,7 @@ struct arc_length_ctx {
   double zmin_left, zmin_right; // for single null full SOL only
   double zmax_left, zmax_right; // for PF UP region (or upper SN, not yet implemented)
   double zmin_iwl, zmax_iwl; // for IWL
+  double zmin_iwl_plate, zmax_iwl_plate; // for IWL
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
