@@ -516,7 +516,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
     // Fill the ghost cell so we can apply Dirichlet BCs.
-    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho);
+    ghost_from_skin_surf(dim, &skin_ghost, &basis, rho_ho);
   }
   gkyl_array_copy(rho, rho_ho);
 
