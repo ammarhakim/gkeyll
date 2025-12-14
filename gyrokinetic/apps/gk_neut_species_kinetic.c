@@ -683,12 +683,22 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
   } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD;
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL;
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD;
   } else {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_NONE;
   }
+
   s->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
     .type = skip_cell_mask_type,
     .val_threshold = s->info.skip_cell.threshold,
+    .frac_threshold = s->info.skip_cell.frac_threshold,
     .phase_rng = s->local_ext,
     .config_rng = app->local_ext,
     .vel_rng = s->local_ext_vel,
