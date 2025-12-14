@@ -807,7 +807,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   }
 
   // Initialize EIRENE
-  app->eirene = gk_eirene_init(app);
+  app->eirene = gk_eirene_init(app, gk);
 
   // Set the appropriate update function for taking a single time step
   // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
@@ -1896,6 +1896,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     double dt1 = gk_neut_species_rhs(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
+
+  gk_eirene_rhs(app, fin, fout);
 
   // Sources. Done after df/dt in case boundary fluxes are needed.
   for (int i=0; i<app->num_species; ++i) {
@@ -3035,6 +3037,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
 
   gk_field_release(app, app->field);
+  gk_eirene_release(app, app->eirene);
 
   gkyl_position_map_release(app->position_map);
 

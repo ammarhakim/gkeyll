@@ -189,7 +189,7 @@ gk_species_heating_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *spec
 }
 
 static void
-gk_species_heating_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   gk_species_heating_rhs_density(app, species, src, fin, rhs);
@@ -204,7 +204,37 @@ gk_species_source_bgk_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_
 }
 
 static void
-gk_species_source_bgk_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+gk_species_source_bgk_write_diags_default_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_source_bgk *src, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+  // Write the Maxwellian square thermal speed amplitude.
+  gkyl_dynvec_append(src->vtsq_amp_diag, tm, &src->vtsq_amplitude);
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    const char *fmt = "%s-%s_source_bgk_vtsq_amplitude.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
+    
+    if (src->is_first_diag_dynvec_write_call) {
+      gkyl_dynvec_write(src->vtsq_amp_diag, fileNm);
+      src->is_first_diag_dynvec_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(src->vtsq_amp_diag, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(src->vtsq_amp_diag);
+  app->stat.n_diag_io += 1;
+  
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -348,7 +378,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     // Methods chosen at runtime.
     src->rhs_func = gk_species_source_bgk_rhs_default_enabled;
     if (src->write_diagnostics) {
-      src->write_diags_func = gk_species_source_bgk_write_diags_enabled;
+      src->write_diags_func = gk_species_source_bgk_write_diags_default_enabled;
     }
   }
 

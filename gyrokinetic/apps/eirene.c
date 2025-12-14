@@ -26,35 +26,82 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
 
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
-    gks->bgk_src = (struct gk_source_bgk) { };
-    gk_species_source_bgk_init(app, gks, &gks->bgk_src);
+    eirene->bgk_src[i] = (struct gk_source_bgk) { };
+    eirene->bgk_src[i].coupling_time = eirene->info.coupling_time;
+    gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);
   }
-
-
 
   return eirene;
 }
 
-//gkyl_gyrokinetic_eirene_advance()
-//{
-//}
-//
-//gkyl_gyrokinetic_eirene_release()
-//{
-//}
-//
-//gkyl_gyrokinetic_eirene_read()
-//{
-//}
-//
-//gkyl_gyrokinetic_eirene_write()
-//{
-//  // Write Gkeyll data.
-//
-//
-//  // Read new EIRENE data.
-//  gkyl_gyrokinetic_eirene_read()
-//
-//  // Reset the BGK source.
-//  gkyl_gk_species_source_bgk_reset(&gk_eirene.gk_src, ...)
-//}
+void
+gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+{
+  struct gk_eirene *eirene = app->eirene;
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
+    struct gk_species *gks = eirene->coupling_species[i];
+    struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
+    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[i], rhs[i]);
+  }
+}
+
+void
+gk_eirene_read(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+
+  for(int ir = 0; ir < nr; ir++){
+    idx[0] = ir;
+    for(int iz = 0; iz < nz; iz++){
+      idx[1] = iz;
+      // set psi
+      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+      status = fscanf(ptr,"%lf", nnodal_n);
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+}
+
+void
+gk_eirene_write(struct gkyl_gyrokinetic_app *app)
+{
+  struct gk_eirene *eirene = app->eirene;
+  // Write Gkeyll data.
+
+
+  // Read new EIRENE data.
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
+    struct gk_species *gks = eirene->coupling_species[i];
+    struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
+    cstr fileNm = cstr_from_fmt("%s%s-%s_M0source.txt", eirene->info.data_path, app->name, gks->info.name);
+    gk_eirene_read(app, bgk_src->M0dot, fileNm);
+    fileNm = cstr_from_fmt("%s%s-%s_M1source.txt", eirene->info.data_path, app->name, gks->info.name);
+    gk_eirene_read(app, bgk_src->M1dot, fileNm);
+    fileNm = cstr_from_fmt("%s%s-%s_M2source.txt", eirene->info.data_path, app->name, gks->info.name);
+    gk_eirene_read(app, bgk_src->M2dot, fileNm);
+  }
+
+}
+
+
+static void
+gkyl_gyrokinetic_eirene_release(struct gkyl_gyrokinetic_app *app, struct gk_eirene *eirene)
+{
+  for (int i=0; i<eirene->info.num_coupling_species; ++i)
+    gk_species_source_bgk_release(app, &eirene->bgk_src[i]);
+  gkyl_free(eirene);
+}

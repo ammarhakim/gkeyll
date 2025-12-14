@@ -1311,6 +1311,7 @@ struct gk_field {
 struct gk_eirene {
   struct gkyl_gyrokinetic_eirene info; // data for coupling
   struct gk_species *coupling_species[GKYL_MAX_SPECIES]; // pointers to species to couple
+  struct gk_source_bgk bgk_src[GKYL_MAX_SPECIES];
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -3956,6 +3957,12 @@ void gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *f
  * @param f Field object to release.
  */
 void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
+
+/** gk_eirene API */
+struct gk_eirene* gk_eirene_init(gkyl_gyrokinetic_app *app, struct gkyl_gk *gk);
+void gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+void gk_eirene_write(gkyl_gyrokinetic_app *app);
+void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 
 /** Time stepping API */
 
