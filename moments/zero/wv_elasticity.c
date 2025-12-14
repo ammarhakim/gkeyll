@@ -570,6 +570,94 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_elasticity *elasticity = container_of(eqn, struct wv_elasticity, eqn);
+  double T_ref = elasticity->T_ref;
+  double sound_speed = elasticity->sound_speed;
+  double shear_speed = elasticity->shear_speed;
+  double heat_capacity = elasticity->heat_capacity;
+
+  double alpha_param = elasticity->alpha_param;
+  double beta_param = elasticity->beta_param;
+  double gamma_param = elasticity->gamma_param;
+
+  double vl[14] = { 0.0 };
+  double vr[14] = { 0.0 };
+  gkyl_elasticity_prim_vars(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, ql, vl);
+  gkyl_elasticity_prim_vars(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, qr, vr);
+
+  double vx_l = vl[1];
+  double vx_r = vr[1];
+
+  double max_eig_l = fmax(fabs(sound_speed), fabs(shear_speed));
+  double max_eig_r = fmax(fabs(sound_speed), fabs(shear_speed));
+
+  double vx_avg = 0.5 * (vx_l + vx_r);
+  double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
+
+  double sl = fmin(vx_l - max_eig_l, vx_r - max_eig_r);
+  double sr = fmax(vx_l + max_eig_l, vx_r + max_eig_r);
+
+  double fl[14] = { 0.0 };
+  double fr[14] = { 0.0 };
+  gkyl_elasticity_flux(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, ql, fl);
+  gkyl_elasticity_flux(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, qr, fr);
+
+  double qm[14] = { 0.0 };
+  double *w0 = &waves[0], *w1 = &waves[14];
+  for (int i = 0; i < 14; i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+
+    w0[i] = qm[i] - ql[i];
+    w1[i] = qr[i] - qm[i];
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[14];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 14; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_elasticity *elasticity = container_of(eqn, struct wv_elasticity, eqn);
@@ -670,7 +758,7 @@ gkyl_wv_elasticity_new(double T_ref, double sound_speed, double shear_speed, dou
       .alpha_param = alpha_param,
       .beta_param = beta_param,
       .gamma_param = gamma_param,
-      .rp_type = WV_ELASTICITY_RP_LAX,
+      .rp_type = WV_ELASTICITY_RP_HLL,
       .use_gpu = use_gpu,
     }
   );
@@ -698,6 +786,11 @@ gkyl_wv_elasticity_inew(const struct gkyl_wv_elasticity_inp* inp)
     elasticity->eqn.num_waves = 2;
     elasticity->eqn.waves_func = wave_lax_l;
     elasticity->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_ELASTICITY_RP_HLL) {
+    elasticity->eqn.num_waves = 2;
+    elasticity->eqn.waves_func = wave_hll_l;
+    elasticity->eqn.qfluct_func = qfluct_hll_l;
   }
 
   elasticity->eqn.flux_jump = flux_jump;

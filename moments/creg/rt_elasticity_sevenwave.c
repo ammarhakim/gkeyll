@@ -17,7 +17,7 @@
 
 #include <rt_arg_parse.h>
 
-struct elasticity_fivewave_ctx
+struct elasticity_sevenwave_ctx
 {
   // Physical constants (using normalized code units).
   double rho_ref; // Reference density (unstressed configuration).
@@ -30,12 +30,16 @@ struct elasticity_fivewave_ctx
   double beta_param; // Beta parameter (nonlinear elasticity).
   double gamma_param; // Gamma parameter (nonlinear elasticity).
 
+  double Fzy; // Solid deformation gradient tensor (zy-component).
+
   double vel_y_l; // Left solid y-velocity.
+  double vel_z_l; // Left solid z-velocity.
   double Fxx_l; // Left solid deformation gradient tensor (xx-component).
   double Fxy_l; // Left solid deformation gradient tensor (xy-component).
   double entropy_l; // Left solid entropy.
 
   double vel_y_r; // Right solid y-velocity.
+  double vel_z_r; // Right solid z-velocity.
   double Fxx_r; // Right solid deformation gradient tensor (xx-component).
   double Fxy_r; // Right solid deformation gradient tensor (xy-component).
   double entropy_r; // Right solid entropy.
@@ -53,7 +57,7 @@ struct elasticity_fivewave_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct elasticity_fivewave_ctx
+struct elasticity_sevenwave_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
@@ -67,12 +71,16 @@ create_ctx(void)
   double beta_param = 3.0; // Beta parameter (nonlinear elasticity).
   double gamma_param = 2.0; // Gamma parameter (nonlinear elasticity).
 
-  double vel_y_l = 1.0; // Left solid y-velocity.
-  double Fxx_l = 0.95; // Left solid deformation gradient tensor (xx-component).
-  double Fxy_l = 0.05; // Left solid deformation gradient tensor (xy-component).
+  double Fzy = 0.1; // Solid deformation gradient tensor (zy-component).
+
+  double vel_y_l = 0.5; // Left solid y-velocity.
+  double vel_z_l = 1.0; // Left solid z-velocity.
+  double Fxx_l = 0.98; // Left solid deformation gradient tensor (xx-component).
+  double Fxy_l = 0.02; // Left solid deformation gradient tensor (xy-component).
   double entropy_l = pow(10.0, -3.0); // Left solid entropy.
 
   double vel_y_r = 0.0; // Right solid y-velocity.
+  double vel_z_r = 0.0; // Right solid z-velocity.
   double Fxx_r = 1.0; // Right solid deformation gradient tensor (xx-component).
   double Fxy_r = 0.0; // Right solid deformation gradient tensor (xy-component).
   double entropy_r = 0.0; // Right solid entropy.
@@ -89,7 +97,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct elasticity_fivewave_ctx ctx = {
+  struct elasticity_sevenwave_ctx ctx = {
     .rho_ref = rho_ref,
     .T_ref = T_ref,
     .sound_speed = sound_speed,
@@ -98,11 +106,14 @@ create_ctx(void)
     .alpha_param = alpha_param,
     .beta_param = beta_param,
     .gamma_param = gamma_param,
+    .Fzy = Fzy,
     .vel_y_l = vel_y_l,
+    .vel_z_l = vel_z_l,
     .Fxx_l = Fxx_l,
     .Fxy_l = Fxy_l,
     .entropy_l = entropy_l,
     .vel_y_r = vel_y_r,
+    .vel_z_r = vel_z_r,
     .Fxx_r = Fxx_r,
     .Fxy_r = Fxy_r,
     .entropy_r = entropy_r,
@@ -124,7 +135,7 @@ void
 evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct elasticity_fivewave_ctx *app = ctx;
+  struct elasticity_sevenwave_ctx *app = ctx;
 
   double rho_ref = app->rho_ref;
   double T_ref = app->T_ref;
@@ -136,29 +147,36 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double beta_param = app->beta_param;
   double gamma_param = app->gamma_param;
 
+  double Fzy = app->Fzy;
+
   double vel_y_l = app->vel_y_l;
+  double vel_z_l = app->vel_z_l;
   double Fxx_l = app->Fxx_l;
   double Fxy_l = app->Fxy_l;
   double entropy_l = app->entropy_l;
 
   double vel_y_r = app->vel_y_r;
+  double vel_z_r = app->vel_z_r;
   double Fxx_r = app->Fxx_r;
   double Fxy_r = app->Fxy_r;
   double entropy_r = app->entropy_r;
 
   double vel_y = 0.0;
+  double vel_z = 0.0;
   double Fxx = 0.0;
   double Fxy = 0.0;
   double entropy = 0.0;
 
   if (x < 0.5) {
     vel_y = vel_y_l; // Solid y-velocity (left).
+    vel_z = vel_z_l; // Solid z-velocity (left).
     Fxx = Fxx_l; // Solid deformation gradient tensor (xx-component, left).
     Fxy = Fxy_l; // Solid deformation gradient tensor (xy-component, left).
     entropy = entropy_l; // Solid entropy (left).
   }
   else {
     vel_y = vel_y_r; // Solid y-velocity (right).
+    vel_z = vel_z_r; // Solid z-velocity (right).
     Fxx = Fxx_r; // Solid deformation gradient tensor (xx-component, right).
     Fxy = Fxy_r; // Solid deformation gradient tensor (xy-component, right).
     entropy = entropy_r; // Solid entropy (right).
@@ -176,6 +194,7 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
     }
   }
 
+  deformation_gradient[2][1] = Fzy;
   deformation_gradient[0][0] = Fxx;
   deformation_gradient[0][1] = Fxy;
 
@@ -291,7 +310,7 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double rho = rho_ref / deformation_gradient_det; // Solid mass density.
   double mom_x = 0.0; // Solid momentum density (x-direction).
   double mom_y = rho * vel_y; // Solid momentum density (y-direction).
-  double mom_z = 0.0; // Solid momentum density (z-direction).
+  double mom_z = rho * vel_z; // Solid momentum density (z-direction).
 
   double deformation_gradient_cons[3][3];
   for (int i = 0; i < 3; i++) {
@@ -300,7 +319,7 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
     }
   }
 
-  double E_tot = rho * (internal_energy + (0.5 * (vel_y * vel_y))); // Solid total energy density.
+  double E_tot = rho * (internal_energy + (0.5 * ((vel_y * vel_y) + (vel_z * vel_z)))); // Solid total energy density.
 
   // Set solid mass density.
   fout[0] = rho;
@@ -364,7 +383,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct elasticity_fivewave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct elasticity_sevenwave_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
@@ -451,7 +470,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "elasticity_fivewave",
+    .name = "elasticity_sevenwave",
 
     .ndim = 1,
     .lower = { 0.0 },
