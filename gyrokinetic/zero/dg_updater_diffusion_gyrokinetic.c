@@ -8,7 +8,7 @@
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic_priv.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 struct gkyl_dg_eqn*
@@ -21,7 +21,7 @@ struct gkyl_dg_updater_diffusion_gyrokinetic*
 gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, 
   const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_bc, struct gkyl_skip_cell *skip_cell,
+  const bool *is_zero_flux_bc, struct gkyl_dg_array_mask *update_cell,
   const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gyrokinetic));
@@ -33,7 +33,7 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   for (int d=0; d<cdim; d++) is_dir_diffusive[d] = diff_in_dir==NULL? true : diff_in_dir[d];
 
   up->dgeqn = gkyl_dg_diffusion_gyrokinetic_new(basis, cbasis, is_diff_const, is_dir_diffusive,
-    diff_order, diff_range, skip_cell, up->use_gpu);
+    diff_order, diff_range, update_cell, up->use_gpu);
 
   gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) {
     .D = coeff, .jacobgeo_inv = jacobgeo_inv });

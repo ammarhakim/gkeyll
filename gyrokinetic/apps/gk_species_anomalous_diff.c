@@ -149,7 +149,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     // Create solver.
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type, gks->skip_cell,
+      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type, gks->update_cell,
       gkad->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {

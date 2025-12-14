@@ -2,7 +2,8 @@
 
 #include <gkyl_gk_anomalous_diffusion.h>
 #include <gkyl_gk_anomalous_diffusion_kernels.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_ref_count.h>
 
 // Types for various kernels
@@ -22,7 +23,7 @@ struct gk_anomalous_diffusion {
   gk_anom_diff_boundary_surf_t boundary_diag[2]; // 2=lower,upper.
   struct gkyl_range conf_range;
   struct gkyl_gk_anomalous_diffusion_auxfields auxfields;
-  struct gkyl_skip_cell *skip_cell;
+  struct gkyl_dg_array_mask *update_cell;
   int num_basis;
 };
 
@@ -134,13 +135,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  long pidxL = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxL);
-  long pidxC = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxC);
-  long pidxR = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxR);
-  const double *skipL = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxL);
-  const double *skipC = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxC);
-  const double *skipR = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxR);
-  if (*skipL > 0.5 && *skipC > 0.5 && *skipR > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxL) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxC) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxR)) {
     return 0.;
   }
   
@@ -157,11 +154,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
   
-  long pidxEdge = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
-  const double *skipEdge = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxEdge);
-  const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
-  if (*skipEdge > 0.5 && *skipSkin > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -185,11 +179,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  long pidxSkin = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxSkin);
-  long pidxGhost = gkyl_range_idx(&gkad->skip_cell->phase_rng, idxGhost);
-  const double *skipSkin = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxSkin);
-  const double *skipGhost = (const double*) gkyl_array_cfetch(gkad->skip_cell->mask, pidxGhost);
-  if (*skipSkin > 0.5 && *skipGhost > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin) &&
+      !gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxGhost)) {
     return 0.;
   }
 
@@ -222,13 +213,13 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count* ref);
  * @param conf_range Conf-space range object.
  * @param bc_x_lower Boundary condition at lower x boundary.
  * @param bc_x_upper Boundary condition at upper x boundary.
- * @param skip_cell Object for skipping cells during diffusion.
+ * @param update_cell Object for skipping cells during diffusion.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
   const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  struct gkyl_skip_cell *skip_cell);
+  struct gkyl_dg_array_mask *update_cell);
 
 /**
  * CUDA device function to set auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.

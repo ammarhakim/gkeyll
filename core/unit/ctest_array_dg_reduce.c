@@ -78,17 +78,17 @@ void test_reduce_dg(bool use_gpu)
 
     double *arr_c = gkyl_array_fetch(arr_ho, i);
 
-    int idx[ndim];
+    int idx[GKYL_MAX_DIM];
     gkyl_range_inv_idx(&local_ext, i, idx);
 
-    double xc[ndim];
+    double xc[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&grid, idx, xc);
 
     for (int ci=0; ci<ncomp; ci++) {
       double arr_nodal[num_nodes];
       for (size_t k=0; k<num_nodes; k++) {
         const double *nod = gkyl_array_cfetch(nodes, k);
-        double x[ndim];
+        double x[GKYL_MAX_DIM];
         for (int d=0; d<ndim; d++) x[d] = xc[d] + 0.5*grid.dx[0]*nod[d];
   
         arr_nodal[k] = (ci+1);
@@ -235,14 +235,14 @@ void test_reduce_dg_range(bool use_gpu)
 
     double *arr_c = gkyl_array_fetch(arr_ho, linidx);
 
-    double xc[ndim];
+    double xc[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
 
     for (int ci=0; ci<ncomp; ci++) {
       double arr_nodal[num_nodes];
       for (size_t k=0; k<num_nodes; k++) {
         const double *nod = gkyl_array_cfetch(nodes, k);
-        double x[ndim];
+        double x[GKYL_MAX_DIM];
         for (int d=0; d<ndim; d++) x[d] = xc[d] + 0.5*grid.dx[0]*nod[d];
   
         arr_nodal[k] = (ci+1);

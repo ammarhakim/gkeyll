@@ -1229,7 +1229,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
     struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
-      gks->basis, gks->grid, gks->info.mass, gks->skip_cell, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->basis, gks->grid, gks->info.mass, gks->update_cell, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
       gks->f, gks->m0.marr, gks->m0.marr);
@@ -1386,9 +1386,33 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
+  
+  enum gkyl_dg_array_mask_types skip_cell_mask_type;
 
-  gks->skip_cell = gkyl_skip_cell_new(gks->info.skip_cell, gks->local_ext, 
-    app->use_gpu);
+  if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
+  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD;
+  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
+  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL;
+  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;
+  } else if (gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD) {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD;
+  } else {
+    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_NONE;
+  }
+  gks->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
+    .type = skip_cell_mask_type,
+    .val_threshold = gks->info.skip_cell.threshold,
+    .frac_threshold = gks->info.skip_cell.frac_threshold,
+    .phase_rng = gks->local_ext,
+    .config_rng = app->local_ext,
+    .vel_rng = gks->local_ext_vel,
+    .use_gpu = app->use_gpu
+  });
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
@@ -1884,7 +1908,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gkyl_velocity_map_release(s->vel_map);
 
-  gkyl_skip_cell_release(s->skip_cell);
+  gkyl_dg_array_mask_release(s->update_cell);
 
   gk_species_collisionless_release(app, &s->collisionless);
 

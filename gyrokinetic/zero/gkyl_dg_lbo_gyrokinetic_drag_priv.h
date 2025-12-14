@@ -5,6 +5,8 @@
 
 #include <gkyl_gk_geometry.h>
 #include <gkyl_lbo_gyrokinetic_kernels.h>
+#include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 
 // Types for various kernels
 typedef double (*lbo_gyrokinetic_drag_surf_t)(const double *dxv, const double *vmap,
@@ -42,7 +44,7 @@ struct dg_lbo_gyrokinetic_drag {
   lbo_gyrokinetic_drag_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
-  struct gkyl_skip_cell *skip_cell; // Object to skip cells based on criteria.
+  struct gkyl_dg_array_mask *update_cell; // Object to skip cells based on criteria.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields auxfields; // Auxiliary fields.
@@ -62,9 +64,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
 
@@ -99,9 +99,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
 
@@ -136,9 +134,7 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
   
@@ -173,9 +169,7 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidx = gkyl_range_idx(&lbo->skip_cell->phase_rng, idx);
-  const double *skip_cell = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidx);
-  if (*skip_cell > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
     return 0.;
   }
   
@@ -276,13 +270,9 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidxL = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxL);
-  long pidxC = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxC);
-  long pidxR = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxR);
-  const double *skip_cell_L = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxL);
-  const double *skip_cell_C = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxC);
-  const double *skip_cell_R = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxR);
-  if (*skip_cell_L > 0.5 && *skip_cell_C > 0.5 && *skip_cell_R > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxL) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxC) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxR)) {
     return 0.;
   }
 
@@ -329,11 +319,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  long pidxEdge = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&lbo->skip_cell->phase_rng, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(lbo->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.5 && *skip_cell_skin > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxEdge) && 
+      !gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -373,7 +360,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, struct gkyl_skip_cell *skip_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  double mass, struct gkyl_dg_array_mask *update_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.

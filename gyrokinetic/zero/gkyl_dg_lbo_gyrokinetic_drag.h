@@ -7,7 +7,7 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_lbo_gyrokinetic_drag_auxfields { 
@@ -24,14 +24,14 @@ struct gkyl_dg_lbo_gyrokinetic_drag_auxfields {
  * @param conf_range Configuration space range for use in indexing primitive moments
  * @param pgrid Phase-space grid object.
  * @param mass Species mass
- * @param skip_cell Object for skipping cells during drag.
+ * @param update_cell Object for skipping cells during drag.
  * @param gk_geom Gyrokinetic geometry object.
  * @param vel_map Velocity space mapping object.
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, struct gkyl_skip_cell *skip_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
+  double mass, struct gkyl_dg_array_mask *update_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
   bool use_gpu);
 
 /**

@@ -6,7 +6,7 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_array.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 
 // Object type.
 typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinetic;
@@ -21,7 +21,7 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * @param pbasis Phase-space basis.
  * @param pgrid Phase-space grid.
  * @param mass Mass of species.
- * @param skip_cell Object for skipping cells during positivity shift.
+ * @param update_cell Object for skipping cells during positivity shift.
  * @param gk_geom Geometry object.
  * @param vel_map Velocity mapping object.
  * @param conf_rng_ext Extended configuration space range.
@@ -30,7 +30,7 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  */
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, struct gkyl_skip_cell *skip_cell,
+  struct gkyl_rect_grid grid, double mass, struct gkyl_dg_array_mask *update_cell,
   const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu);
 

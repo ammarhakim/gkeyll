@@ -2,7 +2,8 @@
 
 #include <gkyl_dg_diffusion_gyrokinetic.h>
 #include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_ref_count.h>
 
 // private header for use in diffusion DG equation object creation
@@ -45,7 +46,7 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
-  struct gkyl_skip_cell *skip_cell;
+  struct gkyl_dg_array_mask *update_cell;
   int num_basis;
 };
 
@@ -1236,13 +1237,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
 
-  long pidxL = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxL);
-  long pidxC = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxC);
-  long pidxR = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxR);
-  const double *skip_cell_L = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxL);
-  const double *skip_cell_C = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxC);
-  const double *skip_cell_R = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxR);
-  if (*skip_cell_L > 0.5 && *skip_cell_C > 0.5 && *skip_cell_R > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxL) &&
+      !gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxC) && 
+      !gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxR)) {
     return 0.;
   }
   
@@ -1259,11 +1256,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.5 && *skip_cell_skin > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxSkin)) {
     return 0.;
   }
 
@@ -1283,11 +1277,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  long pidxEdge = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxEdge);
-  long pidxSkin = gkyl_range_idx(&diffusion->skip_cell->phase_rng, idxSkin);
-  const double *skip_cell_edge = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxEdge);
-  const double *skip_cell_skin = (const double*) gkyl_array_cfetch(diffusion->skip_cell->mask, pidxSkin);
-  if (*skip_cell_edge > 0.5 && *skip_cell_skin > 0.5) {
+  if (!gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxEdge) &&
+      !gkyl_dg_array_mask_eval_idx_ker(diffusion->update_cell, idxSkin)) {
     return 0.;
   }
   if (diffusion->diff_in_dir[dir])
@@ -1316,10 +1307,10 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count* ref);
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
  * @param diff_range Range object to index the diffusion coefficient.
- * @param skip_cell Object for skipping cells during diffusion.
+ * @param update_cell Object for skipping cells during diffusion.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_skip_cell *skip_cell);
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *update_cell);
 #endif

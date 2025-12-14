@@ -4,7 +4,8 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_boundary_flux_priv.h>
 }
@@ -12,7 +13,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_skip_cell *skip_cell)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *update_cell)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -24,8 +25,8 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = true;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_skip_cell *skip_cell_ho = gkyl_skip_cell_acquire(skip_cell);
-  up->skip_cell = skip_cell_ho->on_dev;
+  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
+  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -47,7 +48,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->skip_cell = skip_cell_ho;
+  up->update_cell = skip_cell_ho;
 
   gkyl_free(eqns_ho_dev);
 
@@ -79,9 +80,8 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
     double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
-    const double *skip_cell_g = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_g);
-    const double *skip_cell_s = (const double*) gkyl_array_cfetch(up->skip_cell->mask, linidx_s);
-    if (*skip_cell_g > 0.5 && *skip_cell_s > 0.5) {
+    if (!gkyl_dg_array_mask_eval_ker(up->update_cell, linidx_g) &&
+        !gkyl_dg_array_mask_eval_ker(up->update_cell, linidx_s)) {
       for (int d=0; d<fluxOut->ncomp; ++d)
         fluxOut_g[d] = 0.0;
     }
