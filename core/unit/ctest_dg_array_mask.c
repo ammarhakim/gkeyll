@@ -669,6 +669,277 @@ void test_mask_threshold_scaling(bool use_gpu)
   gkyl_dg_array_mask_release(mask3d);
 }
 
+// Test fractional threshold mask (global)
+void test_mask_advance_frac_threshold(bool use_gpu)
+{
+  int shape[] = {10};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, shape);
+  
+  double frac_threshold = 0.5; // 50% of max value
+  struct gkyl_dg_array_mask_inp mask_inp = {
+    .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD,
+    .frac_threshold = frac_threshold,
+    .phase_rng = range,
+    .use_gpu = use_gpu
+  };
+  
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
+  
+  // Create test array with known max value
+  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  double max_val = 10.0;
+  for (unsigned i = 0; i < range.volume; ++i) {
+    double *arr_d = gkyl_array_fetch(arr_ho, i);
+    arr_d[0] = (i + 1) * 1.0; // Values from 1.0 to 10.0
+  }
+  
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_dg_array_mask_advance(mask, arr);
+  
+  // Copy mask back to host for verification
+  const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
+  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  gkyl_array_copy(mask_ho, mask_arr);
+  
+  // Expected threshold is 50% of max (10.0) = 5.0
+  double expected_threshold = frac_threshold * max_val;
+  for (unsigned i = 0; i < range.volume; ++i) {
+    const double *mask_d = gkyl_array_cfetch(mask_ho, i);
+    const double *arr_d = gkyl_array_cfetch(arr_ho, i);
+    if (fabs(arr_d[0]) < expected_threshold) {
+      TEST_CHECK( gkyl_compare(mask_d[0], 1.0, 1e-14) ); // True (masked)
+    } else {
+      TEST_CHECK( gkyl_compare(mask_d[0], -1.0, 1e-14) ); // False (not masked)
+    }
+  }
+  
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr);
+  gkyl_array_release(mask_ho);
+  gkyl_dg_array_mask_release(mask);
+}
+
+// Test fractional threshold mask GREATER_THAN (global)
+void test_mask_advance_frac_threshold_greater(bool use_gpu)
+{
+  int shape[] = {8};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, shape);
+  
+  double frac_threshold = 0.3; // 30% of max value
+  struct gkyl_dg_array_mask_inp mask_inp = {
+    .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD,
+    .frac_threshold = frac_threshold,
+    .phase_rng = range,
+    .use_gpu = use_gpu
+  };
+  
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
+  
+  // Create test array with varying values
+  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  double vals[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+  double max_val = 8.0;
+  for (unsigned i = 0; i < range.volume; ++i) {
+    double *arr_d = gkyl_array_fetch(arr_ho, i);
+    arr_d[0] = vals[i];
+  }
+  
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_dg_array_mask_advance(mask, arr);
+  
+  // Copy mask back to host for verification
+  const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
+  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  gkyl_array_copy(mask_ho, mask_arr);
+  
+  // Expected threshold is 30% of max (8.0) = 2.4
+  double expected_threshold = frac_threshold * max_val;
+  for (unsigned i = 0; i < range.volume; ++i) {
+    const double *mask_d = gkyl_array_cfetch(mask_ho, i);
+    const double *arr_d = gkyl_array_cfetch(arr_ho, i);
+    if (fabs(arr_d[0]) > expected_threshold) {
+      TEST_CHECK( gkyl_compare(mask_d[0], 1.0, 1e-14) ); // True (masked)
+    } else {
+      TEST_CHECK( gkyl_compare(mask_d[0], -1.0, 1e-14) ); // False (not masked)
+    }
+  }
+  
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr);
+  gkyl_array_release(mask_ho);
+  gkyl_dg_array_mask_release(mask);
+}
+
+// Test spatial fractional threshold mask (velocity-space dependent)
+void test_mask_advance_frac_threshold_spatial(bool use_gpu)
+{
+  // Set up 2x2 configuration space, 3x3 velocity space
+  int conf_shape[] = {2, 2};
+  int vel_shape[] = {3, 3};
+  int phase_shape[] = {2, 2, 3, 3};
+  
+  struct gkyl_range conf_rng, vel_rng, phase_rng;
+  gkyl_range_init_from_shape(&conf_rng, 2, conf_shape);
+  gkyl_range_init_from_shape(&vel_rng, 2, vel_shape);
+  gkyl_range_init_from_shape(&phase_rng, 4, phase_shape);
+  
+  double frac_threshold = 0.5; // 50% of local max
+  struct gkyl_dg_array_mask_inp mask_inp = {
+    .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL,
+    .frac_threshold = frac_threshold,
+    .phase_rng = phase_rng,
+    .config_rng = conf_rng,
+    .vel_rng = vel_rng,
+    .use_gpu = use_gpu
+  };
+  
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
+  
+  // Create test array with spatially-varying max values
+  // For each config cell, create a different max value in velocity space
+  struct gkyl_array *arr_ho = mkarr(false, 1, phase_rng.volume);
+  
+  struct gkyl_range_iter iter_conf, iter_vel;
+  gkyl_range_iter_init(&iter_conf, &conf_rng);
+  
+  while (gkyl_range_iter_next(&iter_conf)) {
+    long conf_idx = gkyl_range_idx(&conf_rng, iter_conf.idx);
+    // Set different max for each config cell: 10.0, 20.0, 30.0, 40.0
+    double local_max = (conf_idx + 1) * 10.0;
+    
+    gkyl_range_iter_init(&iter_vel, &vel_rng);
+    while (gkyl_range_iter_next(&iter_vel)) {
+      int pidx[4];
+      for (int d = 0; d < 2; d++) pidx[d] = iter_conf.idx[d];
+      for (int d = 0; d < 2; d++) pidx[2 + d] = iter_vel.idx[d];
+      
+      long vel_idx = gkyl_range_idx(&vel_rng, iter_vel.idx);
+      long phase_idx = gkyl_range_idx(&phase_rng, pidx);
+      
+      double *arr_d = gkyl_array_fetch(arr_ho, phase_idx);
+      // Create gradient in velocity space: max at vel_idx=8, min at vel_idx=0
+      arr_d[0] = local_max * (vel_idx + 1) / 9.0;
+    }
+  }
+  
+  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_dg_array_mask_advance(mask, arr);
+  
+  // Copy mask back to host for verification
+  const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
+  struct gkyl_array *mask_ho = mkarr(false, 1, phase_rng.volume);
+  gkyl_array_copy(mask_ho, mask_arr);
+  
+  // Verify: each config cell should have threshold = 50% of its local max
+  gkyl_range_iter_init(&iter_conf, &conf_rng);
+  while (gkyl_range_iter_next(&iter_conf)) {
+    long conf_idx = gkyl_range_idx(&conf_rng, iter_conf.idx);
+    double local_max = (conf_idx + 1) * 10.0;
+    double expected_threshold = frac_threshold * local_max;
+    
+    gkyl_range_iter_init(&iter_vel, &vel_rng);
+    while (gkyl_range_iter_next(&iter_vel)) {
+      int pidx[4];
+      for (int d = 0; d < 2; d++) pidx[d] = iter_conf.idx[d];
+      for (int d = 0; d < 2; d++) pidx[2 + d] = iter_vel.idx[d];
+      long phase_idx = gkyl_range_idx(&phase_rng, pidx);
+      
+      const double *mask_d = gkyl_array_cfetch(mask_ho, phase_idx);
+      const double *arr_d = gkyl_array_cfetch(arr_ho, phase_idx);
+      
+      if (fabs(arr_d[0]) < expected_threshold) {
+        TEST_CHECK( gkyl_compare(mask_d[0], 1.0, 1e-14) ); // True (masked)
+      } else {
+        TEST_CHECK( gkyl_compare(mask_d[0], -1.0, 1e-14) ); // False (not masked)
+      }
+    }
+  }
+  
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr);
+  gkyl_array_release(mask_ho);
+  gkyl_dg_array_mask_release(mask);
+}
+
+// Test spatial fractional threshold GREATER_THAN
+void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
+{
+  // Simpler test: 2 config cells, 4 velocity cells
+  int conf_shape[] = {2};
+  int vel_shape[] = {4};
+  int phase_shape[] = {2, 4};
+  
+  struct gkyl_range conf_rng, vel_rng, phase_rng;
+  gkyl_range_init_from_shape(&conf_rng, 1, conf_shape);
+  gkyl_range_init_from_shape(&vel_rng, 1, vel_shape);
+  gkyl_range_init_from_shape(&phase_rng, 2, phase_shape);
+  
+  double frac_threshold = 0.6; // 60% of local max
+  struct gkyl_dg_array_mask_inp mask_inp = {
+    .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL,
+    .frac_threshold = frac_threshold,
+    .phase_rng = phase_rng,
+    .config_rng = conf_rng,
+    .vel_rng = vel_rng,
+    .use_gpu = use_gpu
+  };
+  
+  struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
+  
+  // Create test array: config cell 0 has max=10, config cell 1 has max=20
+  struct gkyl_array *arr_ho = mkarr(false, 1, phase_rng.volume);
+  
+  for (int ic = 0; ic < 2; ic++) {
+    double local_max = (ic + 1) * 10.0;
+    for (int iv = 0; iv < 4; iv++) {
+      int pidx[2] = {ic, iv};
+      long phase_idx = gkyl_range_idx(&phase_rng, pidx);
+      double *arr_d = gkyl_array_fetch(arr_ho, phase_idx);
+      // Values: 2.5, 5.0, 7.5, 10.0 for ic=0 and 5.0, 10.0, 15.0, 20.0 for ic=1
+      arr_d[0] = local_max * (iv + 1) / 4.0;
+    }
+  }
+  
+  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_dg_array_mask_advance(mask, arr);
+  
+  // Copy mask back to host for verification
+  const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
+  struct gkyl_array *mask_ho = mkarr(false, 1, phase_rng.volume);
+  gkyl_array_copy(mask_ho, mask_arr);
+  
+  // Verify GREATER_THAN logic with spatially-dependent thresholds
+  for (int ic = 0; ic < 2; ic++) {
+    double local_max = (ic + 1) * 10.0;
+    double expected_threshold = frac_threshold * local_max; // 6.0 and 12.0
+    
+    for (int iv = 0; iv < 4; iv++) {
+      int pidx[2] = {ic, iv};
+      long phase_idx = gkyl_range_idx(&phase_rng, pidx);
+      
+      const double *mask_d = gkyl_array_cfetch(mask_ho, phase_idx);
+      const double *arr_d = gkyl_array_cfetch(arr_ho, phase_idx);
+      
+      if (fabs(arr_d[0]) > expected_threshold) {
+        TEST_CHECK( gkyl_compare(mask_d[0], 1.0, 1e-14) ); // True (masked)
+      } else {
+        TEST_CHECK( gkyl_compare(mask_d[0], -1.0, 1e-14) ); // False (not masked)
+      }
+    }
+  }
+  
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr);
+  gkyl_array_release(mask_ho);
+  gkyl_dg_array_mask_release(mask);
+}
+
 // CPU test wrappers
 void test_mask_new_ho() {
   test_mask_new(false);
@@ -730,6 +1001,22 @@ void test_mask_threshold_scaling_ho() {
   test_mask_threshold_scaling(false);
 }
 
+void test_mask_advance_frac_threshold_ho() {
+  test_mask_advance_frac_threshold(false);
+}
+
+void test_mask_advance_frac_threshold_greater_ho() {
+  test_mask_advance_frac_threshold_greater(false);
+}
+
+void test_mask_advance_frac_threshold_spatial_ho() {
+  test_mask_advance_frac_threshold_spatial(false);
+}
+
+void test_mask_advance_frac_threshold_spatial_greater_ho() {
+  test_mask_advance_frac_threshold_spatial_greater(false);
+}
+
 #ifdef GKYL_HAVE_CUDA
 
 // GPU test wrappers
@@ -789,6 +1076,22 @@ void test_mask_threshold_scaling_dev() {
   test_mask_threshold_scaling(true);
 }
 
+void test_mask_advance_frac_threshold_dev() {
+  test_mask_advance_frac_threshold(true);
+}
+
+void test_mask_advance_frac_threshold_greater_dev() {
+  test_mask_advance_frac_threshold_greater(true);
+}
+
+void test_mask_advance_frac_threshold_spatial_dev() {
+  test_mask_advance_frac_threshold_spatial(true);
+}
+
+void test_mask_advance_frac_threshold_spatial_greater_dev() {
+  test_mask_advance_frac_threshold_spatial_greater(true);
+}
+
 #endif
 
 TEST_LIST = {
@@ -807,6 +1110,10 @@ TEST_LIST = {
   { "mask_scale_by_cell", test_mask_scale_by_cell_ho },
   { "mask_acquire_release", test_mask_acquire_release_ho },
   { "mask_threshold_scaling", test_mask_threshold_scaling_ho },
+  { "mask_advance_frac_threshold", test_mask_advance_frac_threshold_ho },
+  { "mask_advance_frac_threshold_greater", test_mask_advance_frac_threshold_greater_ho },
+  { "mask_advance_frac_threshold_spatial", test_mask_advance_frac_threshold_spatial_ho },
+  { "mask_advance_frac_threshold_spatial_greater", test_mask_advance_frac_threshold_spatial_greater_ho },
 #ifdef GKYL_HAVE_CUDA
   { "cu_mask_new", test_mask_new_dev },
   { "cu_mask_none_type", test_mask_none_type_dev },
@@ -822,6 +1129,10 @@ TEST_LIST = {
   { "cu_mask_scale_by_cell", test_mask_scale_by_cell_dev },
   { "cu_mask_acquire_release", test_mask_acquire_release_dev },
   { "cu_mask_threshold_scaling", test_mask_threshold_scaling_dev },
+  { "cu_mask_advance_frac_threshold", test_mask_advance_frac_threshold_dev },
+  { "cu_mask_advance_frac_threshold_greater", test_mask_advance_frac_threshold_greater_dev },
+  { "cu_mask_advance_frac_threshold_spatial", test_mask_advance_frac_threshold_spatial_dev },
+  { "cu_mask_advance_frac_threshold_spatial_greater", test_mask_advance_frac_threshold_spatial_greater_dev },
 #endif
   { NULL, NULL },
 };

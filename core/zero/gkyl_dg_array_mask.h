@@ -12,13 +12,20 @@ enum gkyl_dg_array_mask_types {
   GKYL_DG_ARRAY_MASK_NONE = 0, // No mask applied.
   GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
   GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
+  GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
 };
 
 // Input structure for creating a mask object.
 struct gkyl_dg_array_mask_inp {
   enum gkyl_dg_array_mask_types type; // Type of mask.
   double val_threshold; // Threshold for marking cells as masked.
+  double frac_threshold;
   struct gkyl_range phase_rng; // Phase-space range.
+  struct gkyl_range config_rng; // Configuration-space range.
+  struct gkyl_range vel_rng; // Velocity-space range.
   bool use_gpu; // Flag indicating GPU usage.
 };
 

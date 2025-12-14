@@ -690,6 +690,8 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     .type = skip_cell_mask_type,
     .val_threshold = s->info.skip_cell.threshold,
     .phase_rng = s->local_ext,
+    .config_rng = app->local_ext,
+    .vel_rng = s->local_ext_vel,
     .use_gpu = app->use_gpu
   });
 

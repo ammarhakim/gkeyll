@@ -12,7 +12,10 @@ struct gkyl_dg_array_mask {
   enum gkyl_dg_array_mask_types type; // Type of mask operation.
   struct gkyl_array *mask; // Mask array (1.0 is true, -1.0 is false).
   double val_threshold; // Threshold for marking cells as masked.
+  double frac_threshold; // Fractional threshold of the array to use for masking.
   struct gkyl_range phase_rng; // Phase-space range.
+  struct gkyl_range conf_rng; // Configuration-space range.
+  struct gkyl_range vel_rng; // Velocity-space range.
   bool use_gpu; // Flag indicating GPU usage.
   
   uint32_t flags;
