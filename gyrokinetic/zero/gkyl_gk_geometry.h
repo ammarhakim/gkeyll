@@ -157,7 +157,7 @@ struct gk_geom_int {
 };
 
 struct gk_geometry {
-  // stuff for mapc2p and finite differences array
+  // Objects for mapc2p and finite differences array.
   struct gkyl_range local;
   struct gkyl_range local_ext;
   struct gkyl_range global;
@@ -168,19 +168,19 @@ struct gk_geometry {
   struct gkyl_rect_grid grid;
   double dzc[3];
 
-  // Nodal Ranges
+  // Nodal Ranges.
   struct gkyl_range nrange_corn;
   struct gkyl_range nrange_int;
   struct gkyl_range nrange_surf[3];
 
   // The fields in these structs contain the geometric quantities needed to solve the
-  // GK Equation and Poisson Equation and to apply certain BC's
-  struct gk_geom_corn geo_corn; // Volume geometry from corner Nodes
-  struct gk_geom_int geo_int; // Volume geometry from interior nodes
-  struct gk_geom_surf geo_surf[3]; // Surface geometry
+  // GK Equation and Poisson Equation and to apply certain BC's.
+  struct gk_geom_corn geo_corn; // Volume geometry from corner Nodes.
+  struct gk_geom_int geo_int; // Volume geometry from interior nodes.
+  struct gk_geom_surf geo_surf[3]; // Surface geometry.
 
-  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
-                              // 1 if psi increases toward magnetic axis
+  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
+                              // 1 if psi increases toward magnetic axis.
 
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
@@ -190,47 +190,47 @@ struct gk_geometry {
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
-  struct gk_geometry *on_dev; // pointer to itself or device object
+  struct gk_geometry *on_dev; // Pointer to itself or device object.
 };
 
 
-// Inputs to create geometry for a specific computational grid
+// Inputs to create geometry for a specific computational grid.
 struct gkyl_mirror_geo_grid_inp {
-  char filename_psi[256]; // file with psi(R,Z) data
-  double rclose; // closest R to discrimate
-  double rright; // closest R to discrimate
-  double zmin, zmax; // extents of Z for integration
+  char filename_psi[256]; // File with psi(R,Z) data.
+  double rclose; // Closest R to discrimate.
+  double rright; // Closest R to discrimate.
+  double zmin, zmax; // Extents of Z for integration.
 
-  bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
-  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+  bool include_axis; // Add nodes on r=0 axis (the axis is assumed be psi=0).
+  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // Field-line coordinate to use.
 };
 
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
-  void *c2p_ctx; // context for mapc2p function
-  // pointer to mapc2p function: xc are the computational space
+  void *c2p_ctx; // Context for mapc2p function.
+  // Pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  void *bfield_ctx; // context for bfield function
-  // pointer to bfield function
+  void *bfield_ctx; // Context for bfield function.
+  // Pointer to bfield function.
   void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
-  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
-  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
-  struct gkyl_position_map *position_map; // position map object
-  struct gkyl_comm *comm; // communicator object
+  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_position_map *position_map; // Position map object.
+  struct gkyl_comm *comm; // Communicator object.
 
-  double world[3]; // extra computational coordinates for cases with reduced dimensionality
+  double world[3]; // Extra computational coordinates for cases with reduced dimensionality.
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x location of the LCFS.
 
-  // 3D grid ranges and basis
+  // 3D grid ranges and basis.
   struct gkyl_rect_grid geo_grid;
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
@@ -238,7 +238,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range geo_global_ext;
   struct gkyl_basis geo_basis;
 
-  // Grid ranges and basis with cdim of simulation
+  // Grid ranges and basis with cdim of simulation.
   struct gkyl_rect_grid grid;
   struct gkyl_range local;
   struct gkyl_range local_ext;

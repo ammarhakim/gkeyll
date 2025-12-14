@@ -662,7 +662,7 @@ int main(int argc, char **argv)
       .enabled = true,
       .frequency = 1.0,
       .disable_timings = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

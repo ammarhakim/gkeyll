@@ -1268,8 +1268,8 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_sol;
   struct gkyl_fem_parproj *fem_parproj_core;
 
-  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves
-  struct gkyl_fem_poisson_perp *fem_poisson; // poisson solver which solves
+  struct gkyl_deflated_fem_poisson *fem_poisson_deflated; // poisson solver which solves
+  struct gkyl_fem_poisson_perp *fem_poisson_perp; // poisson solver which solves
                                              // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   // Objects needed for FLR effects.
@@ -1309,7 +1309,16 @@ struct gk_field {
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
   
   // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_parallel_bc) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*enforce_parallel_bc_func) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+
+  // Pointer to function to calculate the potential.
+  void (*rhs_phi_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+  void (*calc_energy_func) (gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
+  
+  void (*accumulate_rhoc_func) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
+
+  void (*solver_release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
