@@ -457,7 +457,7 @@ struct gk_bgk_collisions {
 };
 
 struct gk_anomalous_diff {
-  enum gkyl_gk_anomalous_diff_id anom_diff_id; // Type of heating source.
+  enum gkyl_gk_anomalous_diff_id anom_diff_id; // Type of diffusion.
   bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_array *diffD; // Diffusivity.
   struct gkyl_dg_updater_gk_anomalous_diffusion *slvr; // Anomalous diffusion equation solver.
@@ -843,18 +843,20 @@ struct gk_fdot_multiplier {
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
 };
 
-struct gk_heating {
-  enum gkyl_heating_id heating_id; // Type of heating source.
+struct gk_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // Type of source_bgk source.
   bool write_diagnostics; // Whether to write diagnostics out.
   double norm_power; // Normalized power, 2*P/(vdim_phys*m).
-  struct gkyl_array *rate; // Heating rate.
-  struct gkyl_array *Jrate; // Heating rate times the conf-space Jacobian.
+  struct gkyl_array *rate; // Sourcing rate.
+  struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
   struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
   struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
   double *volint_local, *volint_global; // Local and global volume integrals.
+  struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
+  double coupling_time; // Coupling time for external heating model
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.
@@ -863,9 +865,9 @@ struct gk_heating {
   bool is_first_diag_dynvec_write_call; // Whether dynvec is being written for the first time.
   // Methods chosen at runtime.
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-    struct gk_heating *src, double tm, int frame);
+    struct gk_source_bgk *src, double tm, int frame);
 };
 
 struct gk_positivity {
@@ -1016,7 +1018,7 @@ struct gk_species {
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
-  struct gk_heating heat_src; // Heating source.
+  struct gk_source_bgk bgk_src; // BGK source.
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
@@ -1306,6 +1308,11 @@ struct gk_field {
   void (*solver_release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
+struct gk_eirene {
+  struct gkyl_gyrokinetic_eirene info; // data for coupling
+  struct gk_species *coupling_species[GKYL_MAX_SPECIES]; // pointers to species to couple
+};
+
 // Gyrokinetic object: used as opaque pointer in user code.
 struct gkyl_gyrokinetic_app {
   char name[128]; // Name of app.
@@ -1370,6 +1377,8 @@ struct gkyl_gyrokinetic_app {
   // Pointer to function that computes the fields.
   void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr,
     const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+
+  struct gk_eirene *eirene; // EIRENE coupling object.
 
   int num_species; // Number of charged species.
   struct gk_species *species; // Data for each charged species.
@@ -2936,32 +2945,32 @@ void gk_species_anomalous_diff_write_diags(gkyl_gyrokinetic_app* app, struct gk_
  */
 void gk_species_anomalous_diff_release(const struct gkyl_gyrokinetic_app *app, const struct gk_anomalous_diff *gkad);
 
-/** gk_heating API */
+/** gk_source_bgk API */
 
 /**
- * Initialize species heating object.
+ * Initialize species source_bgk object.
  *
  * @param app Gyrokinetic app object.
  * @param s Species object.
- * @param src Species heating object.
+ * @param src Species source_bgk object.
  */
-void gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_heating *src);
+void gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_source_bgk *src);
 
 /**
- * Compute RHS contribution from heating source.
+ * Compute RHS contribution from source_bgk source.
  *
  * @param app Gyrokinetic app object.
  * @param species Pointer to species.
  * @param src Pointer to source.
  * @param fin Input distribution function.
- * @param rhs Heating contribution to df/dt.
+ * @param rhs source_bgk contribution to df/dt.
  */
-void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_source_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Write out diagnostics from the heating source.
+ * Write out diagnostics from the source_bgk source.
  *
  * @param app Gyrokinetic app object.
  * @param gks Pointer to species.
@@ -2969,16 +2978,16 @@ void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *specie
  * @param tm Current simulation time.
  * @param frame Current I/O frame.
  */
-void gk_species_heating_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-  struct gk_heating *src, double tm, int frame);
+void gk_species_source_bgk_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_source_bgk *src, double tm, int frame);
 
 /**
- * Release species heating object.
+ * Release species source_bgk object.
  *
  * @param app Gyrokinetic app object.
- * @param src Species heating object to release.
+ * @param src Species source_bgk object to release.
  */
-void gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const struct gk_heating *src);
+void gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source_bgk *src);
 
 /** gk_species API */
 

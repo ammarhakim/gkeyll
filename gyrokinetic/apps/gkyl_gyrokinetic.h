@@ -147,14 +147,22 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
-// Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
-struct gkyl_gyrokinetic_heating {
-  enum gkyl_heating_id heating_id; // Type of heating term.
+// Parameters for species bgk source term either:
+// 1. nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f) 
+//    for default model or
+// 2. nu(x)*(f_M(n_S,upar,T) - f)
+//    nu(x)*(f_M(n,upar_S,T) - f)
+//    nu(x)*(f_M(n,upar,T_S) - f)
+//    for external model
+struct gkyl_gyrokinetic_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
   void *rate_profile_ctx;
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
+  double coupling_time; // Coupling time for external source model
+                        // nu(x) = 1/coupling time
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -407,8 +415,8 @@ struct gkyl_gyrokinetic_species {
   // Anomalous diffusion.
   struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
-  // Heating source.
-  struct gkyl_gyrokinetic_heating heating;
+  // BGK source.
+  struct gkyl_gyrokinetic_source_bgk source_bgk;
 
   // Line radiation.
   struct gkyl_gyrokinetic_radiation radiation;
@@ -513,6 +521,13 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
 };
 
+struct gkyl_gyrokinetic_eirene {
+  char data_path[128]; // Path to EIRENE data
+  double coupling_time; // Coupling time
+  int num_coupling_species; // number of species to couple
+  char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
+};
+
 // Top-level app parameters
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix.
@@ -538,6 +553,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
   
   struct gkyl_gyrokinetic_field field; // Field object.
+
+  struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
@@ -578,7 +595,7 @@ struct gkyl_gyrokinetic_stat {
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
-  double species_heat_tm; // Time to compute heating term RHS.
+  double species_source_bgk_tm; // Time to compute bgk source term RHS.
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
