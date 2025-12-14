@@ -290,10 +290,15 @@ struct gk_collisionless {
   double scale_fac; // Factor multiplying collisionless terms.
   struct gkyl_array *scale_fac_array; // Array of cell-wise scale factors (for omega_cfl screening).
   struct gkyl_array *scale_fac_ho; // Host array for scale_fac_array (for GPU diagnostic writes).
-  struct gkyl_array *mask_skip_cell; // Array of cell-wise mask for skipping cells below f_min_threshold.
   double *omega_max_local_cu; // GPU scratch space for reduce operation
-  double time_dilation_f_threshold; // Threshold value for skipping cells in time dilation.
-  struct gkyl_skip_cell *cfl_skip_cell; // Skip cell object for time dilation masking.
+
+  // Time dilation parameters. See https://arxiv.org/html/2510.09756
+  bool enable_time_dilation; // Master switch for time dilation.
+  bool enable_cfl_dt_floor; // Use omega_H/user-specified dt floor for omega_max.
+  bool enable_mask_based_omega; // Use mask-based approach for omega_max.
+  double time_dilation_f_threshold; // Threshold for mask-based time dilation.
+  double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
+  struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
   bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
   double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring. Set to 0.0 to disable
 

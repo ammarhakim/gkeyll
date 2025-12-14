@@ -299,7 +299,7 @@ static const div_set_op_kern_list ten_div_set_list[] = {
 // Serendipity inv kernels
 GKYL_CU_D
 static const inv_op_kern_list ser_inv_list[] = {
-  { NULL, NULL, NULL, NULL },
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, ser_1x_p1_inv, NULL, NULL },
   { NULL, ser_2x_p1_inv, NULL, NULL },
   { NULL, ser_3x_p1_inv, NULL, NULL } 

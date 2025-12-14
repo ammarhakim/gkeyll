@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_skip_cell.h>
+#include <gkyl_dg_array_mask.h>
 
 static void
 gk_species_collisionless_flux_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -57,55 +57,57 @@ static void
 gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
 {
-  // First scale both rhs and cflrate by scale_fac
+  // First scale both rhs and cflrate by scale_fac.
   gkyl_array_scale_range(rhs, gkcls->scale_fac, rng);
   gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
 
-  gkyl_array_copy(gkcls->scale_fac_array, cflrate);
-  // Limit the timestep based on omega_H or a user specified minimum timestep dt.
-  // This procedure is called time dilation. https://arxiv.org/html/2510.09756
-  if (gkcls->cfl_dt_min_omegaH || (gkcls->cfl_dt_min_value > 0.0) || (gkcls->time_dilation_f_threshold > 0.0))
-  {
-    // Compute the maximum omega from either dt_omegaH or cfl_dt_min_value
-    // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields! This takes infinite time steps
-    double omega_max = DBL_MAX; // A ceiling on omega is a floor on dt;
-    if (gkcls->time_dilation_f_threshold > 0.0) {
-      gkyl_skip_cell_advance_inverse(gkcls->cfl_skip_cell, gks->f);
-        
-      gkyl_array_copy(gkcls->mask_skip_cell, gkcls->cfl_skip_cell->mask);
-      gkyl_array_scale_by_cell(gkcls->mask_skip_cell, gkcls->scale_fac_array); // Apply mask to cflrate
-  
-      double omega_max_local;
-      if (app->use_gpu) {
-      #ifdef GKYL_HAVE_CUDA
-        gkyl_array_reduce(gkcls->omega_max_local_cu, gkcls->mask_skip_cell, GKYL_MAX);
-        gkyl_cu_memcpy(&omega_max_local, gkcls->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      #endif
-      }
-      else {
-        gkyl_array_reduce(&omega_max_local, gkcls->mask_skip_cell, GKYL_MAX);
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
-    }
-    else {
-      if (gkcls->cfl_dt_min_omegaH) {
-        omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
-      }
-      if (gkcls->cfl_dt_min_value > 0.0) {
-        double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
-        omega_max = fmin(omega_max, omega_from_user);// Take the largest timestep from either condition
-      }
-    }
+  // Apply time dilation if enabled.
+  // This limits the timestep based on omega_H or a user-specified minimum dt.
+  // See https://arxiv.org/html/2510.09756
+  if (!gkcls->enable_time_dilation) { return; }
 
-    // Compute scale_fac_array = min(1.0, omega_H / omega_cfl)
-    gkyl_array_invert_by_cell(gkcls->scale_fac_array); // 1/omega_cfl
-    gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
-    gkyl_array_min_by_cell(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
-    
-    // Apply cell-wise scaling to both rhs and cflrate
-    gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
-    gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
+  gkyl_array_copy(gkcls->scale_fac_array, cflrate);
+
+  // Compute omega_max - a ceiling on omega is a floor on dt.
+  // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields!
+  double omega_max = DBL_MAX;
+
+  if (gkcls->enable_cfl_dt_floor) {
+    // Use omega_H based CFL dt flooring.
+    if (gkcls->cfl_dt_min_omegaH) {
+      omega_max = (gks->dt_omegaH > 1e-30) ? 1.0 / gks->dt_omegaH : DBL_MAX;
+    }
+    // Also apply user-specified minimum dt if provided.
+    if (gkcls->cfl_dt_min_value > 0.0) {
+      double omega_from_user = 1.0 / gkcls->cfl_dt_min_value;
+      omega_max = fmin(omega_max, omega_from_user); // Take the largest timestep.
+    }
+  } else if (gkcls->enable_mask_based_omega) {
+    // Use mask-based approach to find omega_max from masked cells.
+    gkyl_dg_array_mask_advance(gkcls->cfl_mask, gks->f);
+    gkyl_dg_array_mask_scale_by_cell(gkcls->cfl_mask, gkcls->scale_fac_array);
+    const struct gkyl_array *mask_array = gkyl_dg_array_mask_get_mask(gkcls->cfl_mask);
+
+    double omega_max_local;
+    if (app->use_gpu) {
+    #ifdef GKYL_HAVE_CUDA
+      gkyl_array_reduce(gkcls->omega_max_local_cu, mask_array, GKYL_MAX);
+      gkyl_cu_memcpy(&omega_max_local, gkcls->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    #endif
+    } else {
+      gkyl_array_reduce(&omega_max_local, mask_array, GKYL_MAX);
+    }
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
   }
+
+  // Compute scale_fac_array = min(1.0, omega_max / omega_cfl).
+  gkyl_array_invert_by_cell(gkcls->scale_fac_array); // 1/omega_cfl
+  gkyl_array_scale(gkcls->scale_fac_array, omega_max); // omega_max / omega_cfl
+  gkyl_array_min_by_cell(gkcls->scale_fac_array, 1.0); // min(1.0, omega_max / omega_cfl)
+
+  // Apply cell-wise scaling to both rhs and cflrate.
+  gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
+  gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
 }
 
 
@@ -125,7 +127,7 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
   // Write scale factor array to file.
   char fileNm[256];
 
-  if ((gkcls->cfl_dt_min_omegaH || (gkcls->cfl_dt_min_value > 0.0)) || (gkcls->time_dilation_f_threshold > 0.0)) {
+  if (gkcls->enable_time_dilation) {
     snprintf(fileNm, sizeof fileNm, "%s-%s_collisionless_scale_fac_%d.gkyl", 
       app->name, gks->info.name, frame);
     gkyl_array_copy(gkcls->scale_fac_ho, gkcls->scale_fac_array);
@@ -223,47 +225,71 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
 
     gkcls->scale_fac = 1.0; // Not used if scale_factor in input file is not given.
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
-    if (1.0e-16 < fabs(gks->info.collisionless.scale_factor) || 
-        gks->info.collisionless.cfl_dt_min_omegaH || 
-        (gks->info.collisionless.cfl_dt_min_value > 0.0) ||
-        (gks->info.collisionless.time_dilation_f_threshold > 0.0))
-    {
-      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
-      // We want to set scale_fac to 1 if not provided 
-      if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
-        gkcls->scale_fac = gks->info.collisionless.scale_factor;
-      } else {
-        gkcls->scale_fac = 1.0;
-      }
 
-      // Allocate array to hold cell-wise scale factors for omega_cfl screening.
-      // This array will store min(1.0, omega_H/omega_cfl) for each cell.
+    // Initialize time dilation flags to false.
+    gkcls->enable_time_dilation = false;
+    gkcls->enable_cfl_dt_floor = false;
+    gkcls->enable_mask_based_omega = false;
+    gkcls->cfl_mask = NULL;
+    gkcls->scale_fac_array = NULL;
+    gkcls->omega_max_local_cu = NULL;
+
+    // Determine if any time dilation/scaling feature is enabled.
+    bool has_scale_factor = 1.0e-16 < fabs(gks->info.collisionless.scale_factor);
+    bool has_cfl_dt_floor = gks->info.collisionless.cfl_dt_min_omegaH || 
+                            (gks->info.collisionless.cfl_dt_min_value > 0.0);
+    bool has_mask_threshold = (gks->info.collisionless.time_dilation_f_threshold > 0.0) ||
+                              (gks->info.collisionless.time_dilation_f_frac > 0.0);
+
+    if (has_scale_factor || has_cfl_dt_floor || has_mask_threshold) {
+      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
+
+      // Set scale_fac to user value if provided, otherwise 1.0.
+      gkcls->scale_fac = has_scale_factor ? gks->info.collisionless.scale_factor : 1.0;
+
+      // Copy input parameters to struct.
       gkcls->cfl_dt_min_omegaH = gks->info.collisionless.cfl_dt_min_omegaH;
       gkcls->cfl_dt_min_value = gks->info.collisionless.cfl_dt_min_value;
+      gkcls->time_dilation_f_threshold = gks->info.collisionless.time_dilation_f_threshold;
+      gkcls->time_dilation_f_frac = gks->info.collisionless.time_dilation_f_frac;
+
+      // Set boolean flags for runtime decisions.
+      gkcls->enable_time_dilation = has_cfl_dt_floor || has_mask_threshold;
+      gkcls->enable_cfl_dt_floor = has_cfl_dt_floor;
+      gkcls->enable_mask_based_omega = has_mask_threshold && !has_cfl_dt_floor;
+
+      // Allocate array to hold cell-wise scale factors for omega_cfl screening.
       gkcls->scale_fac_array = mkarr(app->use_gpu, 1, gks->local_ext.volume);
       gkyl_array_clear(gkcls->scale_fac_array, 1.0); // Initialize to 1.0.
 
       // Allocate GPU scratch space for reduce operation if using GPU.
-      gkcls->omega_max_local_cu = 0; // Initialize to NULL.
       if (app->use_gpu) {
       #ifdef GKYL_HAVE_CUDA
         gkcls->omega_max_local_cu = (double*) gkyl_cu_malloc(sizeof(double));
       #endif
       }
 
-      gkcls->time_dilation_f_threshold = 0.0;
-      gkcls->cfl_skip_cell = 0; // Initialize to NULL.
-      if (gks->info.collisionless.time_dilation_f_threshold > 0.0) {
-        gkcls->time_dilation_f_threshold = gks->info.collisionless.time_dilation_f_threshold;
-        gkcls->mask_skip_cell = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-        gkyl_array_clear(gkcls->mask_skip_cell, 1.0);
-        
-        // Create skip cell object for time dilation masking.
-        struct gkyl_skip_cell_inp cfl_skip_cell_inp = {
-          .type = GKYL_GK_SKIP_CELL_F_THRESHOLD,
-          .threshold = gks->info.collisionless.time_dilation_f_threshold,
+      // Create mask object if using mask-based time dilation.
+      if (gkcls->enable_mask_based_omega) {
+        enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
+        if (gks->info.collisionless.time_dilation_f_frac > 0.0) {
+          mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;
+        } else if (gks->info.collisionless.time_dilation_f_threshold > 0.0) {
+          mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
+        }
+        if (gks->info.collisionless.time_dilation_spatial_frac) {
+          mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
+        }
+        struct gkyl_dg_array_mask_inp cfl_mask_inp = {
+          .type = mask_type,
+          .val_threshold = gks->info.collisionless.time_dilation_f_threshold,
+          .frac_threshold = gks->info.collisionless.time_dilation_f_frac,
+          .phase_rng = gks->local_ext,
+          .config_rng = app->local_ext,
+          .vel_rng = gks->local_ext_vel,
+          .use_gpu = app->use_gpu,
         };
-        gkcls->cfl_skip_cell = gkyl_skip_cell_new(cfl_skip_cell_inp, gks->local_ext, app->use_gpu);
+        gkcls->cfl_mask = gkyl_dg_array_mask_new(cfl_mask_inp);
       }
     }
 
@@ -322,9 +348,8 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     #endif
     }
 
-    if (gkcls->time_dilation_f_threshold > 0.0) {
-      gkyl_array_release(gkcls->mask_skip_cell);
-      gkyl_skip_cell_release(gkcls->cfl_skip_cell);
+    if (gkcls->enable_mask_based_omega) {
+      gkyl_dg_array_mask_release(gkcls->cfl_mask);
     }
 
     if (gkcls->write_diagnostics) {
@@ -338,22 +363,88 @@ void
 gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_gyrokinetic_collisionless gkcls_inp)
 {
-  // Update input struct
+  // Update input struct.
   gks->info.collisionless.scale_factor = gkcls_inp.scale_factor;
   gks->info.collisionless.cfl_dt_min_omegaH = gkcls_inp.cfl_dt_min_omegaH;
   gks->info.collisionless.cfl_dt_min_value = gkcls_inp.cfl_dt_min_value;
+  gks->info.collisionless.time_dilation_f_threshold = gkcls_inp.time_dilation_f_threshold;
+  gks->info.collisionless.time_dilation_f_frac = gkcls_inp.time_dilation_f_frac;
+  gks->info.collisionless.time_dilation_spatial_frac = gkcls_inp.time_dilation_spatial_frac;
 
-  // Update local struct
-  gkcls->scale_fac = gkcls_inp.scale_factor;
+  // Update local struct.
   gkcls->cfl_dt_min_omegaH = gkcls_inp.cfl_dt_min_omegaH;
   gkcls->cfl_dt_min_value = gkcls_inp.cfl_dt_min_value;
+  gkcls->time_dilation_f_threshold = gkcls_inp.time_dilation_f_threshold;
+  gkcls->time_dilation_f_frac = gkcls_inp.time_dilation_f_frac;
 
-  // Choose appropriate scaling method
-  gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
-  if (1.0e-16 < fabs(gkcls_inp.scale_factor) ||
-            gkcls->cfl_dt_min_omegaH || 
-            (gkcls->cfl_dt_min_value > 0.0)) {              
+  // Recompute boolean flags and choose appropriate scaling method.
+  bool has_scale_factor = 1.0e-16 < fabs(gkcls_inp.scale_factor);
+  bool has_cfl_dt_floor = gkcls->cfl_dt_min_omegaH || (gkcls->cfl_dt_min_value > 0.0);
+  bool has_mask_threshold = (gkcls_inp.time_dilation_f_threshold > 0.0) ||
+                            (gkcls_inp.time_dilation_f_frac > 0.0);
+
+  if (has_scale_factor || has_cfl_dt_floor || has_mask_threshold) {
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
-    gkyl_array_clear(gkcls->scale_fac_array, 1.0);
+    gkcls->scale_fac = has_scale_factor ? gkcls_inp.scale_factor : 1.0;
+    gkcls->enable_time_dilation = has_cfl_dt_floor || has_mask_threshold;
+    gkcls->enable_cfl_dt_floor = has_cfl_dt_floor;
+
+    // Update mask-based omega flag.
+    bool new_enable_mask_based_omega = has_mask_threshold && !has_cfl_dt_floor;
+
+    // Release and recreate mask if mask parameters changed.
+    if (new_enable_mask_based_omega) {
+      // Release old mask if it exists.
+      if (gkcls->enable_mask_based_omega && gkcls->cfl_mask) {
+        gkyl_dg_array_mask_release(gkcls->cfl_mask);
+      }
+
+      // Create new mask with updated parameters.
+      enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
+      if (gkcls_inp.time_dilation_f_frac > 0.0) {
+        mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;
+      } else if (gkcls_inp.time_dilation_f_threshold > 0.0) {
+        mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
+      }
+      if (gkcls_inp.time_dilation_spatial_frac) {
+        mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
+      }
+
+      struct gkyl_dg_array_mask_inp cfl_mask_inp = {
+        .type = mask_type,
+        .val_threshold = gkcls_inp.time_dilation_f_threshold,
+        .frac_threshold = gkcls_inp.time_dilation_f_frac,
+        .phase_rng = gks->local_ext,
+        .config_rng = app->local_ext,
+        .vel_rng = gks->local_ext_vel,
+        .use_gpu = app->use_gpu,
+      };
+      gkcls->cfl_mask = gkyl_dg_array_mask_new(cfl_mask_inp);
+      gkcls->enable_mask_based_omega = true;
+    } else if (gkcls->enable_mask_based_omega && !new_enable_mask_based_omega) {
+      // Transitioning from mask-based to non-mask-based: release the mask.
+      if (gkcls->cfl_mask) {
+        gkyl_dg_array_mask_release(gkcls->cfl_mask);
+        gkcls->cfl_mask = NULL;
+      }
+      gkcls->enable_mask_based_omega = false;
+    }
+
+    if (gkcls->scale_fac_array) {
+      gkyl_array_clear(gkcls->scale_fac_array, 1.0);
+    }
+  } else {
+    // Disable scaling entirely.
+    gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
+    gkcls->scale_fac = 1.0;
+    gkcls->enable_time_dilation = false;
+    gkcls->enable_cfl_dt_floor = false;
+
+    // Release mask if transitioning from enabled to disabled.
+    if (gkcls->enable_mask_based_omega && gkcls->cfl_mask) {
+      gkyl_dg_array_mask_release(gkcls->cfl_mask);
+      gkcls->cfl_mask = NULL;
+    }
+    gkcls->enable_mask_based_omega = false;
   }
 }
