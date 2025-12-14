@@ -522,7 +522,8 @@ struct gkyl_gyrokinetic_field {
 };
 
 struct gkyl_gyrokinetic_eirene {
-  char data_path[128]; // Path to EIRENE data
+  char input_data_path[128]; // Path to EIRENE data
+  char output_data_path[128]; // Path to EIRENE data
   double coupling_time; // Coupling time
   int num_coupling_species; // number of species to couple
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple

@@ -198,6 +198,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac; 
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH; 
+  app_inp.eirene = mbinp->eirene;
 
   for (int i=0; i<num_species; ++i) {
     const struct gkyl_gyrokinetic_multib_species *sp = &mbinp->species[i];
@@ -1181,6 +1182,23 @@ gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app* app)
   }
 }
 
+void
+gkyl_gyrokinetic_multib_app_write_eirene(gkyl_gyrokinetic_multib_app *app, double tm, int frame)
+{
+
+  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
+  cstr fileNm = cstr_from_fmt("%snew_data_flag", sbapp->eirene->info.output_data_path);
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    FILE *fp = fopen(fileNm.str, "w");
+    if (fp == NULL)
+        return;
+    fprintf(fp, "%d\n", frame);
+    fclose(fp);
+  }
+}
+
 //
 // ............. Species outputs ............... //
 // 
@@ -1541,6 +1559,7 @@ void
 gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, double tm, int frame)
 {
   gkyl_gyrokinetic_multib_app_write_field(app, tm, frame);
+  gkyl_gyrokinetic_multib_app_write_eirene(app, tm, frame);
 
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_multib_app_write_species_conf(app, i, tm, frame);

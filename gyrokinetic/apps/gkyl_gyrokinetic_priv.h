@@ -3961,7 +3961,7 @@ void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
 /** gk_eirene API */
 struct gk_eirene* gk_eirene_init(gkyl_gyrokinetic_app *app, struct gkyl_gk *gk);
 void gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
-void gk_eirene_write(gkyl_gyrokinetic_app *app);
+void gk_eirene_write(gkyl_gyrokinetic_app *app, int frame);
 void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 
 /** Time stepping API */

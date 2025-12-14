@@ -171,6 +171,9 @@ struct gkyl_gyrokinetic_multib {
   // Field inputs.
   struct gkyl_gyrokinetic_multib_field field;
 
+  // EIRENE inputs
+  struct gkyl_gyrokinetic_eirene eirene;
+
   // Communicator to use.  
   struct gkyl_comm *comm;  
 };
