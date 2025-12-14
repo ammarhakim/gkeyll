@@ -88,7 +88,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 2048; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.06; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -198,7 +198,8 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   deformation_gradient[0][0] = Fxx;
   deformation_gradient[0][1] = Fxy;
 
-  double deformation_gradient_det = (deformation_gradient[0][0] * ((deformation_gradient[1][1] * deformation_gradient[2][2]) - (deformation_gradient[2][1] * deformation_gradient[1][2]))) -
+  double deformation_gradient_det = (deformation_gradient[0][0] * ((deformation_gradient[1][1] * deformation_gradient[2][2]) -
+    (deformation_gradient[2][1] * deformation_gradient[1][2]))) -
     (deformation_gradient[0][1] * ((deformation_gradient[1][0] * deformation_gradient[2][2]) - (deformation_gradient[1][2] * deformation_gradient[2][0]))) +
     (deformation_gradient[0][2] * ((deformation_gradient[1][0] * deformation_gradient[2][1]) - (deformation_gradient[1][1] * deformation_gradient[2][0])));
 
@@ -303,9 +304,9 @@ evalElasticityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
     (strain_tensor[0][1] * ((strain_tensor[1][0] * strain_tensor[2][2]) - (strain_tensor[1][2] * strain_tensor[2][0]))) +
     (strain_tensor[0][2] * ((strain_tensor[1][0] * strain_tensor[2][1]) - (strain_tensor[1][1] * strain_tensor[2][0])));
 
-  double internal_energy = ((bulk_modulus / (2.0 * (alpha_param * alpha_param))) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0)) +
-    (heat_capacity * T_ref * pow(strain_invariant3, 0.5 * gamma_param) * (exp(entropy / heat_capacity) - 1.0)) + (0.5 * shear_modulus * pow(strain_invariant3, 0.5 * beta_param) *
-    (((strain_invariant1 * strain_invariant1) / 3.0) - strain_invariant2));
+  double internal_energy = ((bulk_modulus / (2.0 * (alpha_param * alpha_param))) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0) *
+    (pow(strain_invariant3, 0.5 * alpha_param) - 1.0)) + (heat_capacity * T_ref * pow(strain_invariant3, 0.5 * gamma_param) * (exp(entropy / heat_capacity) - 1.0)) +
+    (0.5 * shear_modulus * pow(strain_invariant3, 0.5 * beta_param) * (((strain_invariant1 * strain_invariant1) / 3.0) - strain_invariant2));
 
   double rho = rho_ref / deformation_gradient_det; // Solid mass density.
   double mom_x = 0.0; // Solid momentum density (x-direction).
@@ -388,7 +389,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *elasticity = gkyl_wv_elasticity_new(ctx.T_ref, ctx.sound_speed, ctx.shear_speed, ctx.heat_capacity, ctx.alpha_param, ctx.beta_param,
+  struct gkyl_wv_eqn *elasticity = gkyl_wv_elasticity_new(ctx.rho_ref, ctx.T_ref, ctx.sound_speed, ctx.shear_speed, ctx.heat_capacity, ctx.alpha_param, ctx.beta_param,
     ctx.gamma_param, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
@@ -397,7 +398,7 @@ main(int argc, char **argv)
     
     .init = evalElasticityInit,
     .ctx = &ctx,
-    .force_low_order_flux = false,
+    .force_low_order_flux = true,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

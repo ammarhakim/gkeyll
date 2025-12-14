@@ -10,6 +10,7 @@ enum gkyl_wv_elasticity_rp {
 
 // Input context, packaged as a struct.
 struct gkyl_wv_elasticity_inp {
+  double rho_ref; // Reference density (unstressed configuration).
   double T_ref; // Reference temperature (unstressed configuration).
   double sound_speed; // Sound speed (speed of pressure waves).
   double shear_speed; // Shear speed (speed of shear waves).
@@ -26,6 +27,7 @@ struct gkyl_wv_elasticity_inp {
 /**
 * Create a new nonlinear elasticity equations object with Godunov-Romenskii hyperelastic equation of state.
 *
+* @param rho_ref Reference density (unstressed configuration).
 * @param T_ref Reference temperature (unstressed configuration).
 * @param sound_speed Sound speed (speed of pressure waves).
 * @param shear_speed Shear speed (speed of shear waves).
@@ -37,7 +39,7 @@ struct gkyl_wv_elasticity_inp {
 * @return Pointer to the nonlinear elasticity equations object with Godunov-Romenskii hyperelastic equation of state.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_elasticity_new(double T_ref, double sound_speed, double shear_speed, double heat_capacity, double alpha_param, double beta_param, double gamma_param,
+gkyl_wv_elasticity_new(double rho_ref, double T_ref, double sound_speed, double shear_speed, double heat_capacity, double alpha_param, double beta_param, double gamma_param,
   bool use_gpu);
 
 /**
@@ -48,6 +50,15 @@ gkyl_wv_elasticity_new(double T_ref, double sound_speed, double shear_speed, dou
 */
 struct gkyl_wv_eqn*
 gkyl_wv_elasticity_inew(const struct gkyl_wv_elasticity_inp* inp);
+
+/**
+* Get reference density (unstressed configuration).
+*
+* @param eqn Nonlinear elasticity equations object with Godunov-Romenskii hyperelastic equation of state.
+* @return Reference density (unstressed configuration).
+*/
+double
+gkyl_wv_elasticity_rho_ref(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get reference temperature (unstressed configuration).

@@ -12,6 +12,7 @@
 struct wv_elasticity {
   struct gkyl_wv_eqn eqn; // Base equation object.
 
+  double rho_ref; // Reference density (unstressed configuration).
   double T_ref; // Reference temperature (unstressed configuration).
   double sound_speed; // Sound speed (speed of pressure waves).
   double shear_speed; // Shear speed (speed of shear waves).
@@ -42,6 +43,7 @@ gkyl_elasticity_flux(double T_ref, double sound_speed, double shear_speed, doubl
 
 /**
 * Compute primitive variables given the conserved variables.
+*
 * @param T_ref Reference temperature (unstressed configuration).
 * @param sound_speed Sound speed (speed of pressure waves).
 * @param shear_speed Shear speed (speed of shear waves).
@@ -70,6 +72,7 @@ gkyl_elasticity_inv_deformation_gradient(const double q[14], double ***inv_spati
 /**
 * Compute maximum absolute wave speed.
 *
+* @param rho_ref Reference density (unstressed configuration).
 * @param T_ref Reference temperature (unstressed configuration).
 * @param sound_speed Sound speed (speed of pressure waves).
 * @param shear_speed Shear speed (speed of shear waves).
@@ -82,7 +85,7 @@ gkyl_elasticity_inv_deformation_gradient(const double q[14], double ***inv_spati
 */
 GKYL_CU_D
 static inline double
-gkyl_elasticity_max_abs_speed(double T_ref, double sound_speed, double shear_speed, double heat_capacity, double alpha_param, double beta_param, double gamma_param,
+gkyl_elasticity_max_abs_speed(double rho_ref, double T_ref, double sound_speed, double shear_speed, double heat_capacity, double alpha_param, double beta_param, double gamma_param,
   const double q[14]);
 
 /**
@@ -211,7 +214,8 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_D
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr,
+  const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using Lax fluxes (with potential fallback),
@@ -227,8 +231,8 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq);
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
+  const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using HLL fluxes.
@@ -274,7 +278,8 @@ qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_D
 static double
-wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr,
+  const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using HLL fluxes (with potential fallback),
@@ -290,8 +295,8 @@ wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq);
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
+  const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute jump in flux given two conserved variable states.
