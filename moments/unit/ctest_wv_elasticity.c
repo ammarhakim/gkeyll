@@ -61,23 +61,23 @@ test_elasticity_basic()
     sq_trace += deformation_gradient_sq[i][i];
   }
 
-  double euclidean_metric[3][3];
+  double identity_tensor[3][3];
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       if (i == j) {
-        euclidean_metric[i][j] = 1.0;
+        identity_tensor[i][j] = 1.0;
       }
       else {
-        euclidean_metric[i][j] = 0.0;
+        identity_tensor[i][j] = 0.0;
       }
     }
   }
-
+  
   double inv_deformation_gradient[3][3];
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       inv_deformation_gradient[i][j] = (1.0 / deformation_gradient_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * deformation_gradient[i][j]) + deformation_gradient_sq[i][j]);
+        ((0.5 * ((trace * trace) - sq_trace) * identity_tensor[i][j]) - (trace * deformation_gradient[i][j]) + deformation_gradient_sq[i][j]);
     }
   }
 
