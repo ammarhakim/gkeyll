@@ -156,10 +156,10 @@ gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *s
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   // Translate M2dot into a temperature, add on T, then divide by mass to get vtsq
-  gkyl_array_scale(src->M2dot, species->info.mass/2.0);
-  gkyl_array_scale(src->M2dot, 2.0/3.0);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
+  gkyl_array_scale(src->Jrate_mom, species->info.mass/2.0);
+  gkyl_array_scale(src->Jrate_mom, 2.0/3.0);
   gkyl_array_accumulate_offset(src->Jrate_mom, species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
   gkyl_array_scale(src->Jrate_mom, 1/species->info.mass);
   // Set the LTE moments for projection and project
