@@ -633,7 +633,7 @@ gkyl_elasticity_max_abs_speed(double rho_ref, double T_ref, double sound_speed, 
   }
 
   double eigenvector_guess[3] = { 1.0, 1.0, 1.0 };
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 5; i++) {
     double eigenvector_guess_new[3];
     for (int j = 0; j < 3; j++) {
       eigenvector_guess_new[j] = 0.0;
@@ -664,9 +664,9 @@ gkyl_elasticity_max_abs_speed(double rho_ref, double T_ref, double sound_speed, 
   }
 
   double max_eig = sqrt(sqrt((eigenvector_guess_final[0] * eigenvector_guess_final[0]) + (eigenvector_guess_final[1] * eigenvector_guess_final[1]) +
-    (eigenvector_guess_final[2] * eigenvector_guess_final[2])));
+    (eigenvector_guess_final[2] * eigenvector_guess_final[2]))) / 3.0;
 
-  return fabs(vel_x) + fabs(0.5 * max_eig);
+  return fabs(vel_x) + fabs(max_eig);
 }
 
 static inline void
@@ -865,6 +865,7 @@ static double
 wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   const struct wv_elasticity *elasticity = container_of(eqn, struct wv_elasticity, eqn);
+  double rho_ref = elasticity->rho_ref;
   double T_ref = elasticity->T_ref;
   double sound_speed = elasticity->sound_speed;
   double shear_speed = elasticity->shear_speed;
@@ -874,22 +875,607 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double beta_param = elasticity->beta_param;
   double gamma_param = elasticity->gamma_param;
 
+  double bulk_modulus = (sound_speed * sound_speed) - ((4.0 / 3.0) * (shear_speed * shear_speed));
+  double shear_modulus = shear_speed * shear_speed;
+
+  double epsilon = pow(10.0, -8.0);
+  double identity_tensor[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        identity_tensor[i][j] = 1.0;
+      }
+      else {
+        identity_tensor[i][j] = 0.0;
+      }
+    }
+  }
+
   double vl[14] = { 0.0 };
   double vr[14] = { 0.0 };
   gkyl_elasticity_prim_vars(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, ql, vl);
   gkyl_elasticity_prim_vars(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, qr, vr);
 
-  double vx_l = vl[1];
-  double vx_r = vr[1];
+  double vel_x_l = vl[1];
 
-  double max_eig_l = fmax(fabs(sound_speed), fabs(shear_speed));
-  double max_eig_r = fmax(fabs(sound_speed), fabs(shear_speed));
+  double deformation_gradient_l[3][3];
+  deformation_gradient_l[0][0] = vl[4]; deformation_gradient_l[0][1] = vl[5]; deformation_gradient_l[0][2] = vl[6];
+  deformation_gradient_l[1][0] = vl[7]; deformation_gradient_l[1][1] = vl[8]; deformation_gradient_l[1][2] = vl[9];
+  deformation_gradient_l[2][0] = vl[10]; deformation_gradient_l[2][1] = vl[11]; deformation_gradient_l[2][2] = vl[12];
 
-  double vx_avg = 0.5 * (vx_l + vx_r);
-  double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
+  double E_tot_l = ql[13];
+  double specific_entropy_l = vl[13];
 
-  double sl = fmin(vx_l - max_eig_l, vx_r - max_eig_r);
-  double sr = fmax(vx_l + max_eig_l, vx_r + max_eig_r);
+  double acoustic_tensor_rank4_l[3][3][3][3];
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double deformation_gradient_forward_l[3][3];
+      double deformation_gradient_backward_l[3][3];
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          deformation_gradient_forward_l[k][l] = deformation_gradient_l[k][l];
+          deformation_gradient_backward_l[k][l] = deformation_gradient_l[k][l];
+        }
+      }
+
+      deformation_gradient_forward_l[i][j] += epsilon;
+      deformation_gradient_backward_l[i][j] -= epsilon;
+
+      double deformation_gradient_forward_det_l = (deformation_gradient_forward_l[0][0] * ((deformation_gradient_forward_l[1][1] * deformation_gradient_forward_l[2][2]) -
+        (deformation_gradient_forward_l[2][1] * deformation_gradient_forward_l[1][2]))) -
+        (deformation_gradient_forward_l[0][1] * ((deformation_gradient_forward_l[1][0] * deformation_gradient_forward_l[2][2]) -
+          (deformation_gradient_forward_l[1][2] * deformation_gradient_forward_l[2][0]))) +
+        (deformation_gradient_forward_l[0][2] * ((deformation_gradient_forward_l[1][0] * deformation_gradient_forward_l[2][1]) -
+          (deformation_gradient_forward_l[1][1] * deformation_gradient_forward_l[2][0])));
+      double deformation_gradient_backward_det_l = (deformation_gradient_backward_l[0][0] * ((deformation_gradient_backward_l[1][1] * deformation_gradient_backward_l[2][2]) -
+        (deformation_gradient_backward_l[2][1] * deformation_gradient_backward_l[1][2]))) -
+        (deformation_gradient_backward_l[0][1] * ((deformation_gradient_backward_l[1][0] * deformation_gradient_backward_l[2][2]) -
+          (deformation_gradient_backward_l[1][2] * deformation_gradient_backward_l[2][0]))) +
+        (deformation_gradient_backward_l[0][2] * ((deformation_gradient_backward_l[1][0] * deformation_gradient_backward_l[2][1]) -
+          (deformation_gradient_backward_l[1][1] * deformation_gradient_backward_l[2][0])));
+      
+      double trace_forward_l = 0.0;
+      double trace_backward_l = 0.0;
+      for (int k = 0; k < 3; k++) {
+        trace_forward_l += deformation_gradient_forward_l[k][k];
+        trace_backward_l += deformation_gradient_backward_l[k][k];
+      }
+
+      double deformation_gradient_forward_sq_l[3][3];
+      double deformation_gradient_backward_sq_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          deformation_gradient_forward_sq_l[k][l] = 0.0;
+          deformation_gradient_backward_sq_l[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            deformation_gradient_forward_sq_l[k][l] += deformation_gradient_forward_l[k][m] * deformation_gradient_forward_l[m][l];
+            deformation_gradient_backward_sq_l[k][l] += deformation_gradient_backward_l[k][m] * deformation_gradient_backward_l[m][l];
+          }
+        }
+      }
+
+      double sq_trace_forward_l = 0.0;
+      double sq_trace_backward_l = 0.0;
+      for (int k = 0; k < 3; k++) {
+        sq_trace_forward_l += deformation_gradient_forward_sq_l[k][k];
+        sq_trace_backward_l += deformation_gradient_backward_sq_l[k][k];
+      }
+
+      double inv_deformation_gradient_forward_l[3][3];
+      double inv_deformation_gradient_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_deformation_gradient_forward_l[k][l] = (1.0 / deformation_gradient_forward_det_l) *
+            ((0.5 * ((trace_forward_l * trace_forward_l) - sq_trace_forward_l) * identity_tensor[k][l]) - (trace_forward_l * deformation_gradient_forward_l[k][l]) +
+            deformation_gradient_forward_sq_l[k][l]);
+          inv_deformation_gradient_backward_l[k][l] = (1.0 / deformation_gradient_backward_det_l) *
+            ((0.5 * ((trace_backward_l * trace_backward_l) - sq_trace_backward_l) * identity_tensor[k][l]) - (trace_backward_l * deformation_gradient_backward_l[k][l]) +
+            deformation_gradient_backward_sq_l[k][l]);
+        }
+      }
+
+      double inv_deformation_gradient_forward_transpose_l[3][3];
+      double inv_deformation_gradient_backward_transpose_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_deformation_gradient_forward_transpose_l[k][l] = inv_deformation_gradient_forward_l[l][k];
+          inv_deformation_gradient_backward_transpose_l[k][l] = inv_deformation_gradient_backward_l[l][k];
+        }
+      }
+
+      double strain_tensor_forward_l[3][3];
+      double strain_tensor_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          strain_tensor_forward_l[k][l] = 0.0;
+          strain_tensor_backward_l[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            strain_tensor_forward_l[k][l] += inv_deformation_gradient_forward_transpose_l[k][m] * inv_deformation_gradient_forward_l[m][l];
+            strain_tensor_backward_l[k][l] += inv_deformation_gradient_backward_transpose_l[k][m] * inv_deformation_gradient_backward_l[m][l];
+          }
+        }
+      }
+
+      double strain_tensor_forward_sq_l[3][3];
+      double strain_tensor_backward_sq_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          strain_tensor_forward_sq_l[k][l] = 0.0;
+          strain_tensor_backward_sq_l[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            strain_tensor_forward_sq_l[k][l] += strain_tensor_forward_l[k][m] * strain_tensor_forward_l[m][l];
+            strain_tensor_backward_sq_l[k][l] += strain_tensor_backward_l[k][m] * strain_tensor_backward_l[m][l];
+          }
+        }
+      }
+
+      double strain_invariant1_forward_l = 0.0;
+      double strain_invariant1_backward_l = 0.0;
+      for (int k = 0; k < 3; k++) {
+        strain_invariant1_forward_l += strain_tensor_forward_l[k][k];
+        strain_invariant1_backward_l += strain_tensor_backward_l[k][k];
+      }
+
+      double sq_strain_forward_trace_l = 0.0;
+      double sq_strain_backward_trace_l = 0.0;
+      for (int k = 0; k < 3; k++) {
+        sq_strain_forward_trace_l += strain_tensor_forward_sq_l[k][k];
+        sq_strain_backward_trace_l += strain_tensor_backward_sq_l[k][k];
+      }
+
+      double strain_invariant2_forward_l = 0.5 * ((strain_invariant1_forward_l * strain_invariant1_forward_l) - sq_strain_forward_trace_l);
+      double strain_invariant2_backward_l = 0.5 * ((strain_invariant1_backward_l * strain_invariant1_backward_l) - sq_strain_backward_trace_l);
+
+      double strain_invariant3_forward_l = (strain_tensor_forward_l[0][0] * ((strain_tensor_forward_l[1][1] * strain_tensor_forward_l[2][2]) -
+        (strain_tensor_forward_l[2][1] * strain_tensor_forward_l[1][2]))) -
+        (strain_tensor_forward_l[0][1] * ((strain_tensor_forward_l[1][0] * strain_tensor_forward_l[2][2]) - (strain_tensor_forward_l[1][2] * strain_tensor_forward_l[2][0]))) +
+        (strain_tensor_forward_l[0][2] * ((strain_tensor_forward_l[1][0] * strain_tensor_forward_l[2][1]) - (strain_tensor_forward_l[1][1] * strain_tensor_forward_l[2][0])));
+      double strain_invariant3_backward_l = (strain_tensor_backward_l[0][0] * ((strain_tensor_backward_l[1][1] * strain_tensor_backward_l[2][2]) -
+        (strain_tensor_backward_l[2][1] * strain_tensor_backward_l[1][2]))) -
+        (strain_tensor_backward_l[0][1] * ((strain_tensor_backward_l[1][0] * strain_tensor_backward_l[2][2]) - (strain_tensor_backward_l[1][2] * strain_tensor_backward_l[2][0]))) +
+        (strain_tensor_backward_l[0][2] * ((strain_tensor_backward_l[1][0] * strain_tensor_backward_l[2][1]) - (strain_tensor_backward_l[1][1] * strain_tensor_backward_l[2][0])));
+      
+      double energy_deriv_invariant1_forward_l = (shear_modulus / 3.0) * strain_invariant1_forward_l * pow(strain_invariant3_forward_l, 0.5 * beta_param);
+      double energy_deriv_invariant1_backward_l = (shear_modulus / 3.0) * strain_invariant1_backward_l * pow(strain_invariant3_backward_l, 0.5 * beta_param);
+      double energy_deriv_invariant2_forward_l = -(0.5 * shear_modulus) * pow(strain_invariant3_forward_l, 0.5 * beta_param);
+      double energy_deriv_invariant2_backward_l = -(0.5 * shear_modulus) * pow(strain_invariant3_backward_l, 0.5 * beta_param);
+
+      double energy_deriv_invariant3_forward_l = (1.0 / (12.0 * alpha_param * strain_invariant3_forward_l)) * (alpha_param * shear_modulus * beta_param *
+        ((strain_invariant1_forward_l * strain_invariant1_forward_l) - (3.0 * strain_invariant2_forward_l)) * pow(strain_invariant3_forward_l, 0.5 * beta_param));
+      energy_deriv_invariant3_forward_l -= (1.0 / (12.0 * alpha_param * strain_invariant3_forward_l)) * (6.0 * pow(strain_invariant3_forward_l, 0.5 * alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_forward_l += (1.0 / (12.0 * alpha_param * strain_invariant3_forward_l)) * (6.0 * pow(strain_invariant3_forward_l, alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_forward_l += (1.0 / (12.0 * alpha_param * strain_invariant3_forward_l)) * (6.0 * alpha_param * heat_capacity *
+        (exp(specific_entropy_l / heat_capacity) - 1.0) * gamma_param * pow(strain_invariant3_forward_l, 0.5 * gamma_param) * T_ref);
+
+      double energy_deriv_invariant3_backward_l = (1.0 / (12.0 * alpha_param * strain_invariant3_backward_l)) * (alpha_param * shear_modulus * beta_param *
+        ((strain_invariant1_backward_l * strain_invariant1_backward_l) - (3.0 * strain_invariant2_backward_l)) * pow(strain_invariant3_backward_l, 0.5 * beta_param));
+      energy_deriv_invariant3_backward_l -= (1.0 / (12.0 * alpha_param * strain_invariant3_backward_l)) * (6.0 * pow(strain_invariant3_backward_l, 0.5 * alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_backward_l += (1.0 / (12.0 * alpha_param * strain_invariant3_backward_l)) * (6.0 * pow(strain_invariant3_backward_l, alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_backward_l += (1.0 / (12.0 * alpha_param * strain_invariant3_backward_l)) * (6.0 * alpha_param * heat_capacity *
+        (exp(specific_entropy_l / heat_capacity) - 1.0) * gamma_param * pow(strain_invariant3_backward_l, 0.5 * gamma_param) * T_ref);
+
+      double invariant2_deriv_strain_forward_l[3][3];
+      double invariant2_deriv_strain_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          invariant2_deriv_strain_forward_l[k][l] = (strain_invariant1_forward_l * identity_tensor[k][l]) - strain_tensor_forward_l[k][l];
+          invariant2_deriv_strain_backward_l[k][l] = (strain_invariant1_backward_l * identity_tensor[k][l]) - strain_tensor_backward_l[k][l];
+        }
+      }
+
+      double inv_strain_tensor_forward_l[3][3];
+      double inv_strain_tensor_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_strain_tensor_forward_l[k][l] = (1.0 / strain_invariant3_forward_l) *
+            ((0.5 * ((strain_invariant1_forward_l * strain_invariant1_forward_l) - sq_strain_forward_trace_l) * identity_tensor[k][l]) -
+            (strain_invariant1_forward_l * strain_tensor_forward_l[k][l]) + strain_tensor_forward_sq_l[k][l]);
+          inv_strain_tensor_backward_l[k][l] = (1.0 / strain_invariant3_backward_l) *
+            ((0.5 * ((strain_invariant1_backward_l * strain_invariant1_backward_l) - sq_strain_backward_trace_l) * identity_tensor[k][l]) -
+            (strain_invariant1_backward_l * strain_tensor_backward_l[k][l]) + strain_tensor_backward_sq_l[k][l]);
+        }
+      }
+
+      double invariant3_deriv_strain_forward_l[3][3];
+      double invariant3_deriv_strain_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          invariant3_deriv_strain_forward_l[k][l] = strain_invariant3_forward_l * inv_strain_tensor_forward_l[k][l];
+          invariant3_deriv_strain_backward_l[k][l] = strain_invariant3_backward_l * inv_strain_tensor_backward_l[k][l];
+        }
+      }
+
+      double stress_tensor_forward_l[3][3];
+      double stress_tensor_backward_l[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          stress_tensor_forward_l[k][l] = 0.0;
+          stress_tensor_backward_l[k][l] = 0.0;
+        }
+      }
+
+      double rho_forward_l = rho_ref / deformation_gradient_forward_det_l;
+      double rho_backward_l = rho_ref / deformation_gradient_backward_det_l;
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            stress_tensor_forward_l[k][l] -= (2.0 * rho_forward_l * strain_tensor_forward_l[k][m]) * (energy_deriv_invariant1_forward_l * identity_tensor[l][m]);
+            stress_tensor_forward_l[k][l] -= (2.0 * rho_forward_l * strain_tensor_forward_l[k][m]) * (energy_deriv_invariant2_forward_l * invariant2_deriv_strain_forward_l[l][m]);
+            stress_tensor_forward_l[k][l] -= (2.0 * rho_forward_l * strain_tensor_forward_l[k][m]) * (energy_deriv_invariant3_forward_l * invariant3_deriv_strain_forward_l[l][m]);
+
+            stress_tensor_backward_l[k][l] -= (2.0 * rho_backward_l * strain_tensor_backward_l[k][m]) * (energy_deriv_invariant1_backward_l * identity_tensor[l][m]);
+            stress_tensor_backward_l[k][l] -= (2.0 * rho_backward_l * strain_tensor_backward_l[k][m]) * (energy_deriv_invariant2_backward_l * invariant2_deriv_strain_backward_l[l][m]);
+            stress_tensor_backward_l[k][l] -= (2.0 * rho_backward_l * strain_tensor_backward_l[k][m]) * (energy_deriv_invariant3_backward_l * invariant3_deriv_strain_backward_l[l][m]);
+          }
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          acoustic_tensor_rank4_l[k][i][l][j] = (1.0 / (2.0 * epsilon)) * (stress_tensor_forward_l[k][l] - stress_tensor_backward_l[k][l]);
+        }
+      }
+    }
+  }
+
+  double acoustic_tensor_l[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      acoustic_tensor_l[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        acoustic_tensor_l[i][j] += acoustic_tensor_rank4_l[0][j][i][k] * deformation_gradient_l[0][k];
+      }
+    }
+  }
+
+  double eigenvector_guess_l[3] = { 1.0, 1.0, 1.0 };
+  for (int i = 0; i < 5; i++) {
+    double eigenvector_guess_new_l[3];
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_new_l[j] = 0.0;
+    }
+
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        eigenvector_guess_new_l[j] += acoustic_tensor_l[j][k] * eigenvector_guess_l[k];
+      }
+    }
+
+    double norm_l = sqrt((eigenvector_guess_new_l[0] * eigenvector_guess_new_l[0]) + (eigenvector_guess_new_l[1] * eigenvector_guess_new_l[1]) +
+      (eigenvector_guess_new_l[2] * eigenvector_guess_new_l[2]));
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_l[j] = (1.0 / norm_l) * eigenvector_guess_new_l[j];
+    }
+  }
+
+  double eigenvector_guess_final_l[3];
+  for (int i = 0; i < 3; i++) {
+    eigenvector_guess_final_l[i] = 0.0;
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_final_l[i] += acoustic_tensor_l[i][j] * eigenvector_guess_l[j];
+    }
+  }
+
+  double max_eig_l = sqrt(sqrt((eigenvector_guess_final_l[0] * eigenvector_guess_final_l[0]) + (eigenvector_guess_final_l[1] * eigenvector_guess_final_l[1]) +
+    (eigenvector_guess_final_l[2] * eigenvector_guess_final_l[2]))) / 3.0;
+
+  double vel_x_r = vr[1];
+
+  double deformation_gradient_r[3][3];
+  deformation_gradient_r[0][0] = vr[4]; deformation_gradient_r[0][1] = vr[5]; deformation_gradient_r[0][2] = vr[6];
+  deformation_gradient_r[1][0] = vr[7]; deformation_gradient_r[1][1] = vr[8]; deformation_gradient_r[1][2] = vr[9];
+  deformation_gradient_r[2][0] = vr[10]; deformation_gradient_r[2][1] = vr[11]; deformation_gradient_r[2][2] = vr[12];
+
+  double E_tot_r = qr[13];
+  double specific_entropy_r = vr[13];
+
+  double acoustic_tensor_rank4_r[3][3][3][3];
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double deformation_gradient_forward_r[3][3];
+      double deformation_gradient_backward_r[3][3];
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          deformation_gradient_forward_r[k][l] = deformation_gradient_r[k][l];
+          deformation_gradient_backward_r[k][l] = deformation_gradient_r[k][l];
+        }
+      }
+
+      deformation_gradient_forward_r[i][j] += epsilon;
+      deformation_gradient_backward_r[i][j] -= epsilon;
+
+      double deformation_gradient_forward_det_r = (deformation_gradient_forward_r[0][0] * ((deformation_gradient_forward_r[1][1] * deformation_gradient_forward_r[2][2]) -
+        (deformation_gradient_forward_r[2][1] * deformation_gradient_forward_r[1][2]))) -
+        (deformation_gradient_forward_r[0][1] * ((deformation_gradient_forward_r[1][0] * deformation_gradient_forward_r[2][2]) -
+          (deformation_gradient_forward_r[1][2] * deformation_gradient_forward_r[2][0]))) +
+        (deformation_gradient_forward_r[0][2] * ((deformation_gradient_forward_r[1][0] * deformation_gradient_forward_r[2][1]) -
+          (deformation_gradient_forward_r[1][1] * deformation_gradient_forward_r[2][0])));
+      double deformation_gradient_backward_det_r = (deformation_gradient_backward_r[0][0] * ((deformation_gradient_backward_r[1][1] * deformation_gradient_backward_r[2][2]) -
+        (deformation_gradient_backward_r[2][1] * deformation_gradient_backward_r[1][2]))) -
+        (deformation_gradient_backward_r[0][1] * ((deformation_gradient_backward_r[1][0] * deformation_gradient_backward_r[2][2]) -
+          (deformation_gradient_backward_r[1][2] * deformation_gradient_backward_r[2][0]))) +
+        (deformation_gradient_backward_r[0][2] * ((deformation_gradient_backward_r[1][0] * deformation_gradient_backward_r[2][1]) -
+          (deformation_gradient_backward_r[1][1] * deformation_gradient_backward_r[2][0])));
+      
+      double trace_forward_r = 0.0;
+      double trace_backward_r = 0.0;
+      for (int k = 0; k < 3; k++) {
+        trace_forward_r += deformation_gradient_forward_r[k][k];
+        trace_backward_r += deformation_gradient_backward_r[k][k];
+      }
+
+      double deformation_gradient_forward_sq_r[3][3];
+      double deformation_gradient_backward_sq_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          deformation_gradient_forward_sq_r[k][l] = 0.0;
+          deformation_gradient_backward_sq_r[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            deformation_gradient_forward_sq_r[k][l] += deformation_gradient_forward_r[k][m] * deformation_gradient_forward_r[m][l];
+            deformation_gradient_backward_sq_r[k][l] += deformation_gradient_backward_r[k][m] * deformation_gradient_backward_r[m][l];
+          }
+        }
+      }
+
+      double sq_trace_forward_r = 0.0;
+      double sq_trace_backward_r = 0.0;
+      for (int k = 0; k < 3; k++) {
+        sq_trace_forward_r += deformation_gradient_forward_sq_r[k][k];
+        sq_trace_backward_r += deformation_gradient_backward_sq_r[k][k];
+      }
+
+      double inv_deformation_gradient_forward_r[3][3];
+      double inv_deformation_gradient_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_deformation_gradient_forward_r[k][l] = (1.0 / deformation_gradient_forward_det_r) *
+            ((0.5 * ((trace_forward_r * trace_forward_r) - sq_trace_forward_r) * identity_tensor[k][l]) - (trace_forward_r * deformation_gradient_forward_r[k][l]) +
+            deformation_gradient_forward_sq_r[k][l]);
+          inv_deformation_gradient_backward_r[k][l] = (1.0 / deformation_gradient_backward_det_r) *
+            ((0.5 * ((trace_backward_r * trace_backward_r) - sq_trace_backward_r) * identity_tensor[k][l]) - (trace_backward_r * deformation_gradient_backward_r[k][l]) +
+            deformation_gradient_backward_sq_r[k][l]);
+        }
+      }
+
+      double inv_deformation_gradient_forward_transpose_r[3][3];
+      double inv_deformation_gradient_backward_transpose_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_deformation_gradient_forward_transpose_r[k][l] = inv_deformation_gradient_forward_r[l][k];
+          inv_deformation_gradient_backward_transpose_r[k][l] = inv_deformation_gradient_backward_r[l][k];
+        }
+      }
+
+      double strain_tensor_forward_r[3][3];
+      double strain_tensor_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          strain_tensor_forward_r[k][l] = 0.0;
+          strain_tensor_backward_r[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            strain_tensor_forward_r[k][l] += inv_deformation_gradient_forward_transpose_r[k][m] * inv_deformation_gradient_forward_r[m][l];
+            strain_tensor_backward_r[k][l] += inv_deformation_gradient_backward_transpose_r[k][m] * inv_deformation_gradient_backward_r[m][l];
+          }
+        }
+      }
+
+      double strain_tensor_forward_sq_r[3][3];
+      double strain_tensor_backward_sq_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          strain_tensor_forward_sq_r[k][l] = 0.0;
+          strain_tensor_backward_sq_r[k][l] = 0.0;
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            strain_tensor_forward_sq_r[k][l] += strain_tensor_forward_r[k][m] * strain_tensor_forward_r[m][l];
+            strain_tensor_backward_sq_r[k][l] += strain_tensor_backward_r[k][m] * strain_tensor_backward_r[m][l];
+          }
+        }
+      }
+
+      double strain_invariant1_forward_r = 0.0;
+      double strain_invariant1_backward_r = 0.0;
+      for (int k = 0; k < 3; k++) {
+        strain_invariant1_forward_r += strain_tensor_forward_r[k][k];
+        strain_invariant1_backward_r += strain_tensor_backward_r[k][k];
+      }
+
+      double sq_strain_forward_trace_r = 0.0;
+      double sq_strain_backward_trace_r = 0.0;
+      for (int k = 0; k < 3; k++) {
+        sq_strain_forward_trace_r += strain_tensor_forward_sq_r[k][k];
+        sq_strain_backward_trace_r += strain_tensor_backward_sq_r[k][k];
+      }
+
+      double strain_invariant2_forward_r = 0.5 * ((strain_invariant1_forward_r * strain_invariant1_forward_r) - sq_strain_forward_trace_r);
+      double strain_invariant2_backward_r = 0.5 * ((strain_invariant1_backward_r * strain_invariant1_backward_r) - sq_strain_backward_trace_r);
+
+      double strain_invariant3_forward_r = (strain_tensor_forward_r[0][0] * ((strain_tensor_forward_r[1][1] * strain_tensor_forward_r[2][2]) -
+        (strain_tensor_forward_r[2][1] * strain_tensor_forward_r[1][2]))) -
+        (strain_tensor_forward_r[0][1] * ((strain_tensor_forward_r[1][0] * strain_tensor_forward_r[2][2]) - (strain_tensor_forward_r[1][2] * strain_tensor_forward_r[2][0]))) +
+        (strain_tensor_forward_r[0][2] * ((strain_tensor_forward_r[1][0] * strain_tensor_forward_r[2][1]) - (strain_tensor_forward_r[1][1] * strain_tensor_forward_r[2][0])));
+      double strain_invariant3_backward_r = (strain_tensor_backward_r[0][0] * ((strain_tensor_backward_r[1][1] * strain_tensor_backward_r[2][2]) -
+        (strain_tensor_backward_r[2][1] * strain_tensor_backward_r[1][2]))) -
+        (strain_tensor_backward_r[0][1] * ((strain_tensor_backward_r[1][0] * strain_tensor_backward_r[2][2]) - (strain_tensor_backward_r[1][2] * strain_tensor_backward_r[2][0]))) +
+        (strain_tensor_backward_r[0][2] * ((strain_tensor_backward_r[1][0] * strain_tensor_backward_r[2][1]) - (strain_tensor_backward_r[1][1] * strain_tensor_backward_r[2][0])));
+      
+      double energy_deriv_invariant1_forward_r = (shear_modulus / 3.0) * strain_invariant1_forward_r * pow(strain_invariant3_forward_r, 0.5 * beta_param);
+      double energy_deriv_invariant1_backward_r = (shear_modulus / 3.0) * strain_invariant1_backward_r * pow(strain_invariant3_backward_r, 0.5 * beta_param);
+      double energy_deriv_invariant2_forward_r = -(0.5 * shear_modulus) * pow(strain_invariant3_forward_r, 0.5 * beta_param);
+      double energy_deriv_invariant2_backward_r = -(0.5 * shear_modulus) * pow(strain_invariant3_backward_r, 0.5 * beta_param);
+
+      double energy_deriv_invariant3_forward_r = (1.0 / (12.0 * alpha_param * strain_invariant3_forward_r)) * (alpha_param * shear_modulus * beta_param *
+        ((strain_invariant1_forward_r * strain_invariant1_forward_r) - (3.0 * strain_invariant2_forward_r)) * pow(strain_invariant3_forward_r, 0.5 * beta_param));
+      energy_deriv_invariant3_forward_r -= (1.0 / (12.0 * alpha_param * strain_invariant3_forward_r)) * (6.0 * pow(strain_invariant3_forward_r, 0.5 * alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_forward_r += (1.0 / (12.0 * alpha_param * strain_invariant3_forward_r)) * (6.0 * pow(strain_invariant3_forward_r, alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_forward_r += (1.0 / (12.0 * alpha_param * strain_invariant3_forward_r)) * (6.0 * alpha_param * heat_capacity *
+        (exp(specific_entropy_r / heat_capacity) - 1.0) * gamma_param * pow(strain_invariant3_forward_r, 0.5 * gamma_param) * T_ref);
+
+      double energy_deriv_invariant3_backward_r = (1.0 / (12.0 * alpha_param * strain_invariant3_backward_r)) * (alpha_param * shear_modulus * beta_param *
+        ((strain_invariant1_backward_r * strain_invariant1_backward_r) - (3.0 * strain_invariant2_backward_r)) * pow(strain_invariant3_backward_r, 0.5 * beta_param));
+      energy_deriv_invariant3_backward_r -= (1.0 / (12.0 * alpha_param * strain_invariant3_backward_r)) * (6.0 * pow(strain_invariant3_backward_r, 0.5 * alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_backward_r += (1.0 / (12.0 * alpha_param * strain_invariant3_backward_r)) * (6.0 * pow(strain_invariant3_backward_r, alpha_param) * bulk_modulus);
+      energy_deriv_invariant3_backward_r += (1.0 / (12.0 * alpha_param * strain_invariant3_backward_r)) * (6.0 * alpha_param * heat_capacity *
+        (exp(specific_entropy_r / heat_capacity) - 1.0) * gamma_param * pow(strain_invariant3_backward_r, 0.5 * gamma_param) * T_ref);
+
+      double invariant2_deriv_strain_forward_r[3][3];
+      double invariant2_deriv_strain_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          invariant2_deriv_strain_forward_r[k][l] = (strain_invariant1_forward_r * identity_tensor[k][l]) - strain_tensor_forward_r[k][l];
+          invariant2_deriv_strain_backward_r[k][l] = (strain_invariant1_backward_r * identity_tensor[k][l]) - strain_tensor_backward_r[k][l];
+        }
+      }
+
+      double inv_strain_tensor_forward_r[3][3];
+      double inv_strain_tensor_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          inv_strain_tensor_forward_r[k][l] = (1.0 / strain_invariant3_forward_r) *
+            ((0.5 * ((strain_invariant1_forward_r * strain_invariant1_forward_r) - sq_strain_forward_trace_r) * identity_tensor[k][l]) -
+            (strain_invariant1_forward_r * strain_tensor_forward_r[k][l]) + strain_tensor_forward_sq_r[k][l]);
+          inv_strain_tensor_backward_r[k][l] = (1.0 / strain_invariant3_backward_r) *
+            ((0.5 * ((strain_invariant1_backward_r * strain_invariant1_backward_r) - sq_strain_backward_trace_r) * identity_tensor[k][l]) -
+            (strain_invariant1_backward_r * strain_tensor_backward_r[k][l]) + strain_tensor_backward_sq_r[k][l]);
+        }
+      }
+
+      double invariant3_deriv_strain_forward_r[3][3];
+      double invariant3_deriv_strain_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          invariant3_deriv_strain_forward_r[k][l] = strain_invariant3_forward_r * inv_strain_tensor_forward_r[k][l];
+          invariant3_deriv_strain_backward_r[k][l] = strain_invariant3_backward_r * inv_strain_tensor_backward_r[k][l];
+        }
+      }
+
+      double stress_tensor_forward_r[3][3];
+      double stress_tensor_backward_r[3][3];
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          stress_tensor_forward_r[k][l] = 0.0;
+          stress_tensor_backward_r[k][l] = 0.0;
+        }
+      }
+
+      double rho_forward_r = rho_ref / deformation_gradient_forward_det_r;
+      double rho_backward_r = rho_ref / deformation_gradient_backward_det_r;
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          for (int m = 0; m < 3; m++) {
+            stress_tensor_forward_r[k][l] -= (2.0 * rho_forward_r * strain_tensor_forward_r[k][m]) * (energy_deriv_invariant1_forward_r * identity_tensor[l][m]);
+            stress_tensor_forward_r[k][l] -= (2.0 * rho_forward_r * strain_tensor_forward_r[k][m]) * (energy_deriv_invariant2_forward_r * invariant2_deriv_strain_forward_r[l][m]);
+            stress_tensor_forward_r[k][l] -= (2.0 * rho_forward_r * strain_tensor_forward_r[k][m]) * (energy_deriv_invariant3_forward_r * invariant3_deriv_strain_forward_r[l][m]);
+
+            stress_tensor_backward_r[k][l] -= (2.0 * rho_backward_r * strain_tensor_backward_r[k][m]) * (energy_deriv_invariant1_backward_r * identity_tensor[l][m]);
+            stress_tensor_backward_r[k][l] -= (2.0 * rho_backward_r * strain_tensor_backward_r[k][m]) * (energy_deriv_invariant2_backward_r * invariant2_deriv_strain_backward_r[l][m]);
+            stress_tensor_backward_r[k][l] -= (2.0 * rho_backward_r * strain_tensor_backward_r[k][m]) * (energy_deriv_invariant3_backward_r * invariant3_deriv_strain_backward_r[l][m]);
+          }
+        }
+      }
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          acoustic_tensor_rank4_r[k][i][l][j] = (1.0 / (2.0 * epsilon)) * (stress_tensor_forward_r[k][l] - stress_tensor_backward_r[k][l]);
+        }
+      }
+    }
+  }
+
+  double acoustic_tensor_r[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      acoustic_tensor_r[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        acoustic_tensor_r[i][j] += acoustic_tensor_rank4_r[0][j][i][k] * deformation_gradient_r[0][k];
+      }
+    }
+  }
+
+  double eigenvector_guess_r[3] = { 1.0, 1.0, 1.0 };
+  for (int i = 0; i < 5; i++) {
+    double eigenvector_guess_new_r[3];
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_new_r[j] = 0.0;
+    }
+
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        eigenvector_guess_new_r[j] += acoustic_tensor_r[j][k] * eigenvector_guess_r[k];
+      }
+    }
+
+    double norm_r = sqrt((eigenvector_guess_new_r[0] * eigenvector_guess_new_r[0]) + (eigenvector_guess_new_r[1] * eigenvector_guess_new_r[1]) +
+      (eigenvector_guess_new_r[2] * eigenvector_guess_new_r[2]));
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_r[j] = (1.0 / norm_r) * eigenvector_guess_new_r[j];
+    }
+  }
+
+  double eigenvector_guess_final_r[3];
+  for (int i = 0; i < 3; i++) {
+    eigenvector_guess_final_r[i] = 0.0;
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      eigenvector_guess_final_r[i] += acoustic_tensor_r[i][j] * eigenvector_guess_r[j];
+    }
+  }
+
+  double max_eig_r = sqrt(sqrt((eigenvector_guess_final_r[0] * eigenvector_guess_final_r[0]) + (eigenvector_guess_final_r[1] * eigenvector_guess_final_r[1]) +
+    (eigenvector_guess_final_r[2] * eigenvector_guess_final_r[2]))) / 3.0;
+
+  double sl = fmin(vel_x_l - max_eig_l, vel_x_r - max_eig_r);
+  double sr = fmax(vel_x_l + max_eig_l, vel_x_r + max_eig_r);
 
   double fl[14] = { 0.0 };
   double fr[14] = { 0.0 };

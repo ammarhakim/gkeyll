@@ -379,7 +379,7 @@ main(int argc, char **argv)
     
     .init = evalElasticityInit,
     .ctx = &ctx,
-    .force_low_order_flux = true,
+    .force_low_order_flux = false,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
