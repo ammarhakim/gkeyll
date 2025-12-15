@@ -16,19 +16,20 @@ test_elasticity_basic()
   double beta_param = 3.0;
   double gamma_param = 2.0;
 
-  struct gkyl_wv_eqn *elasticity = gkyl_wv_elasticity_new(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, false);
+  struct gkyl_wv_eqn *elasticity = gkyl_wv_elasticity_new(rho_ref, T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, false);
 
   TEST_CHECK( elasticity->num_equations == 14 );
 
   double deformation_gradient[3][3];
-  deformation_gradient[0][0] = 0.9; deformation_gradient[0][1] = 0.1; deformation_gradient[0][2] = -0.1;
-  deformation_gradient[1][0] = 0.05; deformation_gradient[1][1] = 1.1; deformation_gradient[1][2] = -0.05;
-  deformation_gradient[2][0] = 0.1; deformation_gradient[2][1] = -0.1; deformation_gradient[2][2] = 0.95;
+  deformation_gradient[0][0] = 0.9; deformation_gradient[0][1] = 0.1; deformation_gradient[0][2] = 0.1;
+  deformation_gradient[1][0] = 0.05; deformation_gradient[1][1] = 1.1; deformation_gradient[1][2] = 0.05;
+  deformation_gradient[2][0] = 0.1; deformation_gradient[2][1] = 0.1; deformation_gradient[2][2] = 0.95;
 
   double vel_x = 0.1, vel_y = 0.2, vel_z = 0.3;
-  double specific_entropy = 0.05;
+  double specific_entropy = pow(10.0, -3.0);
 
-  double deformation_gradient_det = (deformation_gradient[0][0] * ((deformation_gradient[1][1] * deformation_gradient[2][2]) - (deformation_gradient[2][1] * deformation_gradient[1][2]))) -
+  double deformation_gradient_det = (deformation_gradient[0][0] * ((deformation_gradient[1][1] * deformation_gradient[2][2]) -
+    (deformation_gradient[2][1] * deformation_gradient[1][2]))) -
     (deformation_gradient[0][1] * ((deformation_gradient[1][0] * deformation_gradient[2][2]) - (deformation_gradient[1][2] * deformation_gradient[2][0]))) +
     (deformation_gradient[0][2] * ((deformation_gradient[1][0] * deformation_gradient[2][1]) - (deformation_gradient[1][1] * deformation_gradient[2][0])));
   double rho = rho_ref / deformation_gradient_det;
@@ -133,10 +134,10 @@ test_elasticity_basic()
   double strain_invariant3 = (strain_tensor[0][0] * ((strain_tensor[1][1] * strain_tensor[2][2]) - (strain_tensor[2][1] * strain_tensor[1][2]))) -
     (strain_tensor[0][1] * ((strain_tensor[1][0] * strain_tensor[2][2]) - (strain_tensor[1][2] * strain_tensor[2][0]))) +
     (strain_tensor[0][2] * ((strain_tensor[1][0] * strain_tensor[2][1]) - (strain_tensor[1][1] * strain_tensor[2][0])));
-
-  double internal_energy = ((bulk_modulus / (2.0 * (alpha_param * alpha_param))) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0)) +
-    (heat_capacity * T_ref * pow(strain_invariant3, 0.5 * gamma_param) * (exp(specific_entropy / heat_capacity) - 1.0)) + (0.5 * shear_modulus * pow(strain_invariant3, 0.5 * beta_param) *
-    (((strain_invariant1 * strain_invariant1) / 3.0) - strain_invariant2));
+  
+  double internal_energy = ((bulk_modulus / (2.0 * (alpha_param * alpha_param))) * (pow(strain_invariant3, 0.5 * alpha_param) - 1.0) *
+    (pow(strain_invariant3, 0.5 * alpha_param) - 1.0)) + (heat_capacity * T_ref * pow(strain_invariant3, 0.5 * gamma_param) * (exp(specific_entropy / heat_capacity) - 1.0)) +
+    (0.5 * shear_modulus * pow(strain_invariant3, 0.5 * beta_param) * (((strain_invariant1 * strain_invariant1) / 3.0) - strain_invariant2));
   
   double E_tot = rho * (internal_energy + (0.5 * ((vel_x * vel_x) + (vel_y * vel_y) + (vel_z * vel_z))));
   
@@ -171,6 +172,148 @@ test_elasticity_basic()
   TEST_CHECK( gkyl_compare(prims[12], deformation_gradient[2][2], 1e-12) );
 
   TEST_CHECK( gkyl_compare(prims[13], specific_entropy, 1e-12) );
+
+  double energy_deriv_invariant1 = (shear_modulus / 3.0) * strain_invariant1 * pow(strain_invariant3, 0.5 * beta_param);
+  double energy_deriv_invariant2 = -(0.5 * shear_modulus) * pow(strain_invariant3, 0.5 * beta_param);
+
+  double energy_deriv_invariant3 = (1.0 / (12.0 * alpha_param * strain_invariant3)) * (alpha_param * shear_modulus * beta_param *
+    ((strain_invariant1 * strain_invariant1) - (3.0 * strain_invariant2)) * pow(strain_invariant3, 0.5 * beta_param));
+  energy_deriv_invariant3 -= (1.0 / (12.0 * alpha_param * strain_invariant3)) * (6.0 * pow(strain_invariant3, 0.5 * alpha_param) * bulk_modulus);
+  energy_deriv_invariant3 += (1.0 / (12.0 * alpha_param * strain_invariant3)) * (6.0 * pow(strain_invariant3, alpha_param) * bulk_modulus);
+  energy_deriv_invariant3 += (1.0 / (12.0 * alpha_param * strain_invariant3)) * (6.0 * alpha_param * heat_capacity * (exp(specific_entropy / heat_capacity) - 1.0) *
+    gamma_param * pow(strain_invariant3, 0.5 * gamma_param) * T_ref);
+
+  double invariant2_deriv_strain[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      invariant2_deriv_strain[i][j] = (strain_invariant1 * identity_tensor[i][j]) - strain_tensor[i][j];
+    }
+  }
+
+  double inv_strain_tensor[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_strain_tensor[i][j] = (1.0 / strain_invariant3) *
+        ((0.5 * ((strain_invariant1 * strain_invariant1) - sq_strain_trace) * identity_tensor[i][j]) - (strain_invariant1 * strain_tensor[i][j]) + strain_tensor_sq[i][j]);
+    }
+  }
+
+  double invariant3_deriv_strain[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      invariant3_deriv_strain[i][j] = strain_invariant3 * inv_strain_tensor[i][j];
+    }
+  }
+
+  double stress_tensor[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      stress_tensor[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        stress_tensor[i][j] -= (2.0 * rho * strain_tensor[i][k]) * (energy_deriv_invariant1 * identity_tensor[j][k]);
+        stress_tensor[i][j] -= (2.0 * rho * strain_tensor[i][k]) * (energy_deriv_invariant2 * invariant2_deriv_strain[j][k]);
+        stress_tensor[i][j] -= (2.0 * rho * strain_tensor[i][k]) * (energy_deriv_invariant3 * invariant3_deriv_strain[j][k]);
+      }
+    }
+  }
+
+  double fluxes[3][14] = {
+    { rho * vel_x,
+      (rho * vel_x * vel_x) - stress_tensor[0][0],
+      (rho * vel_y * vel_x) - stress_tensor[1][0],
+      (rho * vel_z * vel_x) - stress_tensor[2][0],
+      (rho * deformation_gradient[0][0] * vel_x) - (rho * deformation_gradient[0][0] * vel_x),
+      (rho * deformation_gradient[0][1] * vel_x) - (rho * deformation_gradient[0][1] * vel_x),
+      (rho * deformation_gradient[0][2] * vel_x) - (rho * deformation_gradient[0][2] * vel_x),
+      (rho * deformation_gradient[1][0] * vel_x) - (rho * deformation_gradient[0][0] * vel_y),
+      (rho * deformation_gradient[1][1] * vel_x) - (rho * deformation_gradient[0][1] * vel_y),
+      (rho * deformation_gradient[1][2] * vel_x) - (rho * deformation_gradient[0][2] * vel_y),
+      (rho * deformation_gradient[2][0] * vel_x) - (rho * deformation_gradient[0][0] * vel_z),
+      (rho * deformation_gradient[2][1] * vel_x) - (rho * deformation_gradient[0][1] * vel_z),
+      (rho * deformation_gradient[2][2] * vel_x) - (rho * deformation_gradient[0][2] * vel_z),
+      (E_tot * vel_x) - (vel_x * stress_tensor[0][0]) - (vel_y * stress_tensor[1][0]) - (vel_z * stress_tensor[2][0]) },
+    { rho * vel_y,
+      (rho * vel_x * vel_y) - stress_tensor[0][1],
+      (rho * vel_y * vel_y) - stress_tensor[1][1],
+      (rho * vel_z * vel_y) - stress_tensor[2][1],
+      (rho * deformation_gradient[0][0] * vel_y) - (rho * deformation_gradient[1][0] * vel_x),
+      (rho * deformation_gradient[0][1] * vel_y) - (rho * deformation_gradient[1][1] * vel_x),
+      (rho * deformation_gradient[0][2] * vel_y) - (rho * deformation_gradient[1][2] * vel_x),
+      (rho * deformation_gradient[1][0] * vel_y) - (rho * deformation_gradient[1][0] * vel_y),
+      (rho * deformation_gradient[1][1] * vel_y) - (rho * deformation_gradient[1][1] * vel_y),
+      (rho * deformation_gradient[1][2] * vel_y) - (rho * deformation_gradient[1][2] * vel_y),
+      (rho * deformation_gradient[2][0] * vel_y) - (rho * deformation_gradient[1][0] * vel_z),
+      (rho * deformation_gradient[2][1] * vel_y) - (rho * deformation_gradient[1][1] * vel_z),
+      (rho * deformation_gradient[2][2] * vel_y) - (rho * deformation_gradient[1][2] * vel_z),
+      (E_tot * vel_y) - (vel_x * stress_tensor[0][1]) - (vel_y * stress_tensor[1][1]) - (vel_z * stress_tensor[2][1]) },
+    { rho * vel_z,
+      (rho * vel_x * vel_z) - stress_tensor[0][2],
+      (rho * vel_y * vel_z) - stress_tensor[1][2],
+      (rho * vel_z * vel_z) - stress_tensor[2][2],
+      (rho * deformation_gradient[0][0] * vel_z) - (rho * deformation_gradient[2][0] * vel_x),
+      (rho * deformation_gradient[0][1] * vel_z) - (rho * deformation_gradient[2][1] * vel_x),
+      (rho * deformation_gradient[0][2] * vel_z) - (rho * deformation_gradient[2][2] * vel_x),
+      (rho * deformation_gradient[1][0] * vel_z) - (rho * deformation_gradient[2][0] * vel_y),
+      (rho * deformation_gradient[1][1] * vel_z) - (rho * deformation_gradient[2][1] * vel_y),
+      (rho * deformation_gradient[1][2] * vel_z) - (rho * deformation_gradient[2][2] * vel_y),
+      (rho * deformation_gradient[2][0] * vel_z) - (rho * deformation_gradient[2][0] * vel_z),
+      (rho * deformation_gradient[2][1] * vel_z) - (rho * deformation_gradient[2][1] * vel_z),
+      (rho * deformation_gradient[2][2] * vel_z) - (rho * deformation_gradient[2][2] * vel_z),
+      (E_tot * vel_z) - (vel_x * stress_tensor[0][2]) - (vel_y * stress_tensor[1][2]) - (vel_z * stress_tensor[2][2]) },
+  };
+
+  double norm[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
+
+  double tau1[3][3] = {
+    { 0.0, 1.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+  };
+
+  double tau2[3][3] = {
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, -1.0 },
+    { 0.0, 1.0, 0.0 },
+  };
+
+  double q_local[14], flux_local[14], flux[14];
+
+  for (int d = 0; d < 3; d++) {
+    elasticity->rotate_to_local_func(elasticity, tau1[d], tau2[d], norm[d], q, q_local);
+    gkyl_elasticity_flux(T_ref, sound_speed, shear_speed, heat_capacity, alpha_param, beta_param, gamma_param, q_local, flux_local);
+    elasticity->rotate_to_global_func(elasticity, tau1[d], tau2[d], norm[d], flux_local, flux);
+
+    for (int i = 0; i < 14; i++) {
+      TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-12) );
+    }
+  }
+
+  double q_l[14], q_g[14];
+  for (int d = 0; d < 3; d++) {
+    gkyl_wv_eqn_rotate_to_local(elasticity, tau1[d], tau2[d], norm[d], q, q_l);
+    gkyl_wv_eqn_rotate_to_global(elasticity, tau1[d], tau2[d], norm[d], q_l, q_g);
+
+    for (int i = 0; i < 14; i++) {
+      TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+    }
+
+    double w1[14], q1[14];
+    elasticity->cons_to_riem(elasticity, q_local, q_local, w1);
+    elasticity->riem_to_cons(elasticity, q_local, w1, q1);
+
+    for (int i = 0; i < 14; i++) {
+      TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+    }
+  }
 }
 
 TEST_LIST = {

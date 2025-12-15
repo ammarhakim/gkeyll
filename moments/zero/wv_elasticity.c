@@ -747,10 +747,11 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   v3[1] = (r1[2] * tau1[0]) + (r2[2] * tau1[1]) + (r3[2] * tau1[2]);
   v3[2] = (r1[2] * tau2[0]) + (r2[2] * tau2[1]) + (r3[2] * tau2[2]);
 
-  // Rotate spatial metric tensor to local coordinate frame.
-  qlocal[4] = v1[0]; qlocal[5] = v1[1]; qlocal[6] = v1[2];
-  qlocal[7] = v2[0]; qlocal[8] = v2[1]; qlocal[9] = v2[2];
-  qlocal[10] = v3[0]; qlocal[11] = v3[1]; qlocal[12] = v3[2];
+  // Rotate deformation gradient tensor to local coordinate frame.
+  // NOTE: We are taking the transpose of the deformation gradient tensor here.
+  qlocal[4] = v1[0]; qlocal[7] = v1[1]; qlocal[10] = v1[2];
+  qlocal[5] = v2[0]; qlocal[8] = v2[1]; qlocal[11] = v2[2];
+  qlocal[6] = v3[0]; qlocal[9] = v3[1]; qlocal[12] = v3[2];
 
   qlocal[13] = qglobal[13];
 }
@@ -792,10 +793,11 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   v3[1] = (r1[2] * norm[1]) + (r2[2] * tau1[1]) + (r3[2] * tau2[1]);
   v3[2] = (r1[2] * norm[2]) + (r2[2] * tau1[2]) + (r3[2] * tau2[2]);
 
-  // Rotate spatial metric tensor back to global coordinate frame.
-  qglobal[4] = v1[0]; qglobal[5] = v1[1]; qglobal[6] = v1[2];
-  qglobal[7] = v2[0]; qglobal[8] = v2[1]; qglobal[9] = v2[2];
-  qglobal[10] = v3[0]; qglobal[11] = v3[1]; qglobal[12] = v3[2];
+  // Rotate deformation gradient tensor back to global coordinate frame.
+  // NOTE: We are taking the transpose of the deformation gradient tensor here.
+  qglobal[4] = v1[0]; qglobal[7] = v1[1]; qglobal[10] = v1[2];
+  qglobal[5] = v2[0]; qglobal[8] = v2[1]; qglobal[11] = v2[2];
+  qglobal[6] = v3[0]; qglobal[9] = v3[1]; qglobal[12] = v3[2];
 
   qglobal[13] = qlocal[13];
 }
