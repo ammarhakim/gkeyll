@@ -26,6 +26,7 @@ static void
 gk_species_source_bgk_rhs_default_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
@@ -61,7 +62,7 @@ gk_species_source_bgk_rhs_default_enabled(gkyl_gyrokinetic_app *app, struct gk_s
 }
 
 static void
-gk_species_heating_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -102,7 +103,7 @@ gk_species_heating_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *spe
 }
 
 static void
-gk_species_heating_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -144,7 +145,7 @@ gk_species_heating_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species *sp
 }
 
 static void
-gk_species_heating_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -157,7 +158,7 @@ gk_species_heating_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *spec
   // Translate M2dot into a temperature, add on T, then divide by mass to get vtsq
   gkyl_array_scale(src->M2dot, species->info.mass/2.0);
   gkyl_array_scale(src->M2dot, 2.0/3.0);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
   gkyl_array_scale(src->Jrate_mom, 1/species->info.mass);
@@ -192,9 +193,9 @@ static void
 gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gk_species_heating_rhs_density(app, species, src, fin, rhs);
-  gk_species_heating_rhs_momentum(app, species, src, fin, rhs);
-  gk_species_heating_rhs_energy(app, species, src, fin, rhs);
+  gk_species_source_bgk_rhs_density(app, species, src, fin, rhs);
+  gk_species_source_bgk_rhs_momentum(app, species, src, fin, rhs);
+  gk_species_source_bgk_rhs_energy(app, species, src, fin, rhs);
 }
 
 static void
@@ -308,7 +309,7 @@ void
 gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gk_source_bgk *src)
 {
-  src->source_bgk_id = gks->info.source_bgk.source_bgk_id;
+  src->source_bgk_id = src->source_bgk_id ? src->source_bgk_id : gks->info.source_bgk.source_bgk_id;
   src->write_diagnostics = gks->info.source_bgk.write_diagnostics;
 
   src->write_diags_func = gk_species_source_bgk_write_diags_disabled;
