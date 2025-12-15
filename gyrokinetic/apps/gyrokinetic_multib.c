@@ -1186,6 +1186,9 @@ void
 gkyl_gyrokinetic_multib_app_write_eirene(gkyl_gyrokinetic_multib_app *app, double tm, int frame)
 {
 
+  for (int b=0; b<app->num_local_blocks; ++b)
+    gkyl_gyrokinetic_app_write_eirene_diagnostics(app->singleb_apps[b], tm, frame);
+
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
   cstr fileNm = cstr_from_fmt("%snew_data_flag", sbapp->eirene->info.output_data_path);
   int rank;
@@ -1559,7 +1562,6 @@ void
 gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, double tm, int frame)
 {
   gkyl_gyrokinetic_multib_app_write_field(app, tm, frame);
-  gkyl_gyrokinetic_multib_app_write_eirene(app, tm, frame);
 
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_multib_app_write_species_conf(app, i, tm, frame);
@@ -1568,6 +1570,8 @@ gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, double 
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_multib_app_write_neut_species_conf(app, i, tm, frame);
   }
+
+  gkyl_gyrokinetic_multib_app_write_eirene(app, tm, frame);
 }
 
 void

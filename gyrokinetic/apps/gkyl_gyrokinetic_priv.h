@@ -856,6 +856,7 @@ struct gk_source_bgk {
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
   double *volint_local, *volint_global; // Local and global volume integrals.
   struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
+  struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
   double coupling_time; // Coupling time for external heating model
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
@@ -3961,7 +3962,7 @@ void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
 /** gk_eirene API */
 struct gk_eirene* gk_eirene_init(gkyl_gyrokinetic_app *app, struct gkyl_gk *gk);
 void gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
-void gk_eirene_write(gkyl_gyrokinetic_app *app, int frame);
+void gk_eirene_write(gkyl_gyrokinetic_app *app, double tm, int frame);
 void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 
 /** Time stepping API */

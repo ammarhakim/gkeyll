@@ -1510,6 +1510,15 @@ gkyl_gyrokinetic_app_write_species_source_bgk_diagnostics(gkyl_gyrokinetic_app* 
 }
 
 //
+// ............. EIRENE outputs ............... //
+// 
+void
+gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double tm, int frame)
+{
+  gk_eirene_write(app, tm, frame);
+}
+
+//
 // ............. Positivity outputs ............... //
 // 
 void
@@ -1816,6 +1825,8 @@ gkyl_gyrokinetic_app_write_conf(gkyl_gyrokinetic_app* app, double tm, int frame)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_conf(app, i, tm, frame);
   }
+
+  gkyl_gyrokinetic_app_write_eirene_diagnostics(app, tm, frame);
 }
 
 void

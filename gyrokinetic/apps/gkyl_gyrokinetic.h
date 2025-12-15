@@ -738,6 +738,15 @@ void gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm
 void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
 
 /**
+ * Write eirene data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ */
+void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double tm, int frame);
+
+/**
  * Write species data to file.
  * 
  * @param app App object.

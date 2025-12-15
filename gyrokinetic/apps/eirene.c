@@ -54,31 +54,32 @@ gk_eirene_read(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fi
 }
 
 void
-gk_eirene_write(struct gkyl_gyrokinetic_app *app, int frame)
+gk_eirene_write(struct gkyl_gyrokinetic_app *app, double tm, int frame)
 {
   struct gk_eirene *eirene = app->eirene;
-  // Write Gkeyll frame.
-  cstr fileNm = cstr_from_fmt("%snew_data_flag", eirene->info.output_data_path);
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
-  if (0 == rank) {
-    FILE *fp = fopen(fileNm.str, "w");
-    if (fp == NULL)
-        return;
-    fprintf(fp, "%d\n", frame);
-    fclose(fp);
-  }
 
   // Read new EIRENE data.
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     cstr fileNm = cstr_from_fmt("%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M0dot, fileNm);
+    gk_eirene_read(app, bgk_src->M0dot_host, fileNm);
     fileNm = cstr_from_fmt("%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M1dot, fileNm);
+    gk_eirene_read(app, bgk_src->M1dot_host, fileNm);
     fileNm = cstr_from_fmt("%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M2dot, fileNm);
+    gk_eirene_read(app, bgk_src->M2dot_host, fileNm);
+    if(app->use_gpu) {
+      gkyl_array_copy(bgk_src->M0dot, bgk_src->M0dot_host);
+      gkyl_array_copy(bgk_src->M1dot, bgk_src->M1dot_host);
+      gkyl_array_copy(bgk_src->M2dot, bgk_src->M2dot_host);
+    }
+  }
+
+  // Write out the source moments
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
+    struct gk_species *gks = eirene->coupling_species[i];
+    struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
+    gk_species_source_bgk_write_diags(app, gks, bgk_src, tm, frame);
   }
 
 }
@@ -98,6 +99,7 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     struct gk_species *gks = eirene->coupling_species[i];
     eirene->bgk_src[i].coupling_time = eirene->info.coupling_time;
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
+    eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);
   }
 
@@ -106,11 +108,16 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     cstr fileNm = cstr_from_fmt("%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M0dot, fileNm);
+    gk_eirene_read(app, bgk_src->M0dot_host, fileNm);
     fileNm = cstr_from_fmt("%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M1dot, fileNm);
+    gk_eirene_read(app, bgk_src->M1dot_host, fileNm);
     fileNm = cstr_from_fmt("%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name);
-    gk_eirene_read(app, bgk_src->M2dot, fileNm);
+    gk_eirene_read(app, bgk_src->M2dot_host, fileNm);
+    if(app->use_gpu) {
+      gkyl_array_copy(bgk_src->M0dot, bgk_src->M0dot_host);
+      gkyl_array_copy(bgk_src->M1dot, bgk_src->M1dot_host);
+      gkyl_array_copy(bgk_src->M2dot, bgk_src->M2dot_host);
+    }
   }
 
 
