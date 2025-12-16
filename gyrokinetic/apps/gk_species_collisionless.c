@@ -98,7 +98,6 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
       }
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
     }
-    printf("Collisionless time dilation: omega_max = %g\n", omega_max);
 
     // Compute scale_fac_array = min(1.0, omega_max / omega_cfl).
     gkyl_array_invert_by_cell(gkcls->scale_fac_array); // 1/omega_cfl
