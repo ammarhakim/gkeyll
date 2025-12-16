@@ -134,7 +134,7 @@ euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *ski
   ghost[0] = skin[0];
   ghost[4] = skin[4];
 
-  // zero-normal for momentum
+  // zero momentum
   ghost[1] = -skin[1];
   ghost[2] = -skin[2];
   ghost[3] = -skin[3];

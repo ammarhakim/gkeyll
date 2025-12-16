@@ -23,9 +23,21 @@ gkyl_wv_coldfluid_inew(const struct gkyl_wv_coldfluid_inp *inp)
   coldfluid->eqn.num_waves = 2;
   coldfluid->eqn.num_diag = 5; // KE is final component
   
-  coldfluid->eqn.waves_func = wave_roe_l;
-  coldfluid->eqn.qfluct_func = qfluct_roe;
-  coldfluid->eqn.ffluct_func = ffluct_roe;
+  switch (inp->rp_type) {
+    case WV_COLDFLUID_RP_ROE:
+      coldfluid->eqn.num_waves = 2;  
+      coldfluid->eqn.waves_func = wave_roe_l;
+      coldfluid->eqn.qfluct_func = qfluct_roe_l;
+      coldfluid->eqn.ffluct_func = ffluct_roe;
+      break;
+      
+    case WV_COLDFLUID_RP_LAX:
+      coldfluid->eqn.num_waves = 2;
+      coldfluid->eqn.waves_func = wave_lax_l;
+      coldfluid->eqn.qfluct_func = qfluct_lax_l;
+      coldfluid->eqn.ffluct_func = ffluct_roe;
+      break;   
+  }
 
   coldfluid->eqn.flux_jump = flux_jump;
   coldfluid->eqn.check_inv_func = check_inv;
