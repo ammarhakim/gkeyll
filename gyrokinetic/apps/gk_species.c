@@ -1402,6 +1402,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
   gks->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
     .type = skip_cell_mask_type,
+    .default_value = true,
     .val_threshold = gks->info.skip_cell.threshold,
     .frac_threshold = gks->info.skip_cell.frac_threshold,
     .phase_rng = gks->local_ext,

@@ -10,6 +10,7 @@
  */
 struct gkyl_dg_array_mask {
   enum gkyl_dg_array_mask_types type; // Type of mask operation.
+  bool default_value; // Default value for mask (true/false) if no masking is applied. Defaults to false.
   struct gkyl_array *mask; // Mask array (1.0 is true, -1.0 is false).
   double val_threshold; // Threshold for marking cells as masked.
   double frac_threshold; // Fractional threshold of the array to use for masking.
@@ -38,7 +39,7 @@ static inline bool
 gkyl_dg_array_mask_eval_ker(struct gkyl_dg_array_mask *mask, long lidx)
 {
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return false;
+    return mask->default_value;
   }
   const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, lidx);
   return *mask_c > 0; // Returns true if the mask is true.
@@ -49,7 +50,7 @@ static inline bool
 gkyl_dg_array_mask_eval_idx_ker(struct gkyl_dg_array_mask *mask, const int* idx)
 {
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return false;
+    return mask->default_value;
   }
   long linidx = gkyl_range_idx(&mask->phase_rng, idx);
   const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, linidx);
