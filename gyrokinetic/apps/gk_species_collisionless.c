@@ -108,9 +108,6 @@ gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct 
     // Apply cell-wise scaling to both rhs and cflrate.
     gkyl_array_scale_by_cell(rhs, gkcls->scale_fac_array);
     gkyl_array_scale_by_cell(cflrate, gkcls->scale_fac_array);
-
-    gkyl_comm_array_write(app->comm, &gks->grid, &gks->local_ext, 0,
-      gkcls->scale_fac_array, "collisionless_time_dilation_scale_fac.gkyl");
   }
 }
 
