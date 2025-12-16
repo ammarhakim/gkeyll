@@ -128,7 +128,7 @@ test_euler_mixture_threecomponent_basic()
   double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
   double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
   double E3 = (p_total / (gas_gamma3 - 1.0)) + (0.5 * rho3 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
-  double E_total = (alpha1 * E1) + (alpha2 * E2) + ((1.0 - (alpha1 + alpha2)) * rho3);
+  double E_total = (alpha1 * E1) + (alpha2 * E2) + ((1.0 - (alpha1 + alpha2)) * E3);
 
   double q[10] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total, E_total, rho_total * alpha1,
     rho_total * alpha2, alpha1 * rho1, alpha2 * rho2, (1.0 - (alpha1 + alpha2)) * rho3 };

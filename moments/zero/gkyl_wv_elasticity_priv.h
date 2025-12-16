@@ -67,7 +67,7 @@ gkyl_elasticity_prim_vars(double T_ref, double sound_speed, double shear_speed, 
 */
 GKYL_CU_D
 void
-gkyl_elasticity_inv_deformation_gradient(const double q[14], double ***inv_spatial_metric);
+gkyl_elasticity_inv_deformation_gradient(const double q[14], double ***inv_deformation_gradient);
 
 /**
 * Compute maximum absolute wave speed.

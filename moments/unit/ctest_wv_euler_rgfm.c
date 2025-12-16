@@ -128,7 +128,7 @@ test_euler_rgfm_threespecies_basic()
   double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
   double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
   double E3 = (p_total / (gas_gamma3 - 1.0)) + (0.5 * rho3 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
-  double E_total = (phi1 * E1) + (phi2 * E2) + ((1.0 - (phi1 + phi2)) * rho3);
+  double E_total = (phi1 * E1) + (phi2 * E2) + ((1.0 - (phi1 + phi2)) * E3);
 
   double q[11] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total, E_total, rho_total * phi1,
     rho_total * phi2, phi1 * rho1, phi2 * rho2, (1.0 - (phi1 + phi2)) * rho3, 0.0 };
