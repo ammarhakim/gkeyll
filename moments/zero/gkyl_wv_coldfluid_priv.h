@@ -170,8 +170,15 @@ wave_embedded(const struct gkyl_wv_eqn *eqn,
     gkyl_coldfluid_flux(qr, fr);
 
     double *w0 = &waves[0], *w1 = &waves[4];
-    for (int i=0; i<4; ++i) {
-      w1[i] = 0.5*((qr[i]-qphi[i]) + (fr[i]-fl[i])/amax);
+    if (amax > 0.0) {
+      for (int i=0; i<4; ++i) {
+        w1[i] = 0.5*((qr[i]-qphi[i]) + (fr[i]-fl[i])/amax);
+      }
+    }
+    else {
+      for (int i=0; i<4; ++i) {
+        w1[i] = 0.0;
+      }      
     }
   }
   
@@ -187,13 +194,26 @@ wave_embedded(const struct gkyl_wv_eqn *eqn,
     gkyl_coldfluid_flux(qphi, fr);
     
     double *w0 = &waves[0], *w1 = &waves[4];
-    for (int i=0; i<4; ++i) {
-      w0[i] = 0.5*((qphi[i]-ql[i]) - (fr[i]-fl[i])/amax);
+    if (amax > 0.0) {
+      for (int i=0; i<4; ++i) {
+        w0[i] = 0.5*((qphi[i]-ql[i]) - (fr[i]-fl[i])/amax);
+      }
+    }
+    else {
+      for (int i=0; i<4; ++i) {
+        w0[i] = 0.0;
+      }      
     }
   }
 
-  s[0] = -amax;
-  s[1] = amax;
+  if (amax > 0.0) {
+    s[0] = -amax;
+    s[1] = amax;
+  }
+  else {
+    s[0] = 0.0;
+    s[1] = 0.0;
+  }
 
   return s[1];
 }
@@ -216,14 +236,22 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   gkyl_coldfluid_flux(qr, fr);
 
   double *w0 = &waves[0], *w1 = &waves[4];
-  for (int i=0; i<4; ++i) {
-    w0[i] = 0.5*((qr[i]-ql[i]) - (fr[i]-fl[i])/amax);
-    w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
+  if (amax > 0.0) {
+    for (int i=0; i<4; ++i) {
+      w0[i] = 0.5*((qr[i]-ql[i]) - (fr[i]-fl[i])/amax);
+      w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
+    }
+    s[0] = -amax;
+    s[1] = amax;
   }
-
-  s[0] = -amax;
-  s[1] = amax;
-  
+  else {
+    for (int i=0; i<4; ++i) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+    s[0] = 0.0;
+    s[1] = 0.0;
+  }
   return s[1];
 }
 
