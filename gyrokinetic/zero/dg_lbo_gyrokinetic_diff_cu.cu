@@ -104,11 +104,11 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
-  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
+  struct gkyl_dg_array_mask *update_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
   
   lbo->gk_geom = geom_ho->on_dev;
   lbo->vel_map = vel_map_ho->on_dev;
-  lbo->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
+  lbo->update_cell = gkyl_dg_array_mask_get_dev_ptr(update_cell_ho);
 
   lbo->vparMax = GKYL_MAX2(fabs(vel_map->vbounds[0]),vel_map->vbounds[vdim]);
   lbo->vparMaxSq = pow(lbo->vparMax,2);
@@ -133,7 +133,7 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
   // Updater should store host pointers.
   lbo->gk_geom = geom_ho;
   lbo->vel_map = vel_map_ho;
-  lbo->update_cell = skip_cell_ho;
+  lbo->update_cell = update_cell_ho;
   
   return &lbo->eqn;
 }

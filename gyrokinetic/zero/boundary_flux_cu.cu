@@ -25,8 +25,8 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = true;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *skip_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
-  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(skip_cell_ho);
+  struct gkyl_dg_array_mask *update_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
+  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(update_cell_ho);
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -48,7 +48,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->update_cell = skip_cell_ho;
+  up->update_cell = update_cell_ho;
 
   gkyl_free(eqns_ho_dev);
 
