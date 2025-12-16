@@ -21,6 +21,7 @@ enum gkyl_dg_array_mask_types {
 // Input structure for creating a mask object.
 struct gkyl_dg_array_mask_inp {
   enum gkyl_dg_array_mask_types type; // Type of mask.
+  bool default_value; // Default value for mask (true/false) if no masking is applied.
   double val_threshold; // Threshold for marking cells as masked.
   double frac_threshold;
   struct gkyl_range phase_rng; // Phase-space range.

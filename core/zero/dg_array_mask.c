@@ -28,6 +28,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   struct gkyl_dg_array_mask *mask = gkyl_malloc(sizeof(*mask));
 
   mask->type = mask_inp.type;
+  mask->default_value = mask_inp.default_value;
   mask->use_gpu = mask_inp.use_gpu;
   mask->val_threshold = 0.0;
   mask->mask = NULL;
