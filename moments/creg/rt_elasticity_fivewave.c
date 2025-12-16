@@ -71,7 +71,7 @@ create_ctx(void)
   double Fxx_l = 0.95; // Left solid deformation gradient tensor (xx-component).
   double Fxy_l = 0.05; // Left solid deformation gradient tensor (xy-component).
   double entropy_l = pow(10.0, -3.0); // Left solid entropy.
-
+  
   double vel_y_r = 0.0; // Right solid y-velocity.
   double Fxx_r = 1.0; // Right solid deformation gradient tensor (xx-component).
   double Fxy_r = 0.0; // Right solid deformation gradient tensor (xy-component).

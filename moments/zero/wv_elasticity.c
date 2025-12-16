@@ -710,6 +710,7 @@ elasticity_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double
     ghost[i] = skin[i];
   }
 }
+
 static inline void
 rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
   double* GKYL_RESTRICT qlocal)

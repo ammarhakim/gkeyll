@@ -468,7 +468,7 @@ test_elasticity_rgfm_threespecies_basic()
   q[17] = phi2 * rho2;
   q[18] = (1.0 - (phi1 + phi2)) * rho3;
   q[19] = 0.0;
-
+  
   double prims[20];
   gkyl_elasticity_rgfm_prim_vars(3, T_ref_s, sound_speed_s, shear_speed_s, heat_capacity_s, alpha_param_s, beta_param_s, gamma_param_s, q, prims);
 
