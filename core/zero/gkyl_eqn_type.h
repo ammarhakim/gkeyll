@@ -27,7 +27,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
   GKYL_EQN_EULER_RGFM, // Euler Riemann ghost fluid equations.
-  GKYL_EQN_ELASTICITY, // Nonlinear elastic equations with Godunov-Romenskii hyperelastic equation of state.
+  GKYL_EQN_ELASTICITY, // Nonlinear elasticity equations with Godunov-Romenskii hyperelastic equation of state.
+  GKYL_EQN_ELASTICITY_RGFM, // Nonlinear elasticity Riemann ghost fluid equations with Godunov-Romenskii hyperelastic equation of state.
   GKYL_EQN_CAN_PB_INCOMPRESS_EULER, // Canonical Poisson Bracket form of incompressible Euler.
   GKYL_EQN_CAN_PB_HASEGAWA_MIMA, // Canonical Poisson Bracket form of Hasegawa-Mima.
   GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.

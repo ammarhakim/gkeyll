@@ -1,6 +1,7 @@
 #include <gkyl_level_set.h>
 
 #include <gkyl_wv_euler_rgfm_priv.h>
+#include <gkyl_wv_elasticity_rgfm_priv.h>
 #include <gkyl_wv_gr_maxwell_priv.h>
 #include <gkyl_wv_gr_maxwell_tetrad_priv.h>
 #include <gkyl_wv_gr_euler_priv.h>
@@ -138,6 +139,107 @@ euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_
     }
     else {
       qnew[4 + (2 * num_species)] += 1.0;
+    }
+  }
+}
+
+void
+elasticity_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
+  struct gkyl_array *qout, int dir)
+{
+  const struct gkyl_wv_eqn* eqn = wv->equation;
+  const struct wv_elasticity_rgfm *elasticity_rgfm = container_of(eqn, struct wv_elasticity_rgfm, eqn);
+  int num_species = elasticity_rgfm->num_species;
+  int reinit_freq = elasticity_rgfm->reinit_freq;
+  double surface_tension = elasticity_rgfm->surface_tension;
+
+  for (int i = loidx_c; i <= upidx_c; i++) {
+    idxl[dir] = i;
+
+    double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+
+    double reinit_param = qnew[13 + (2 * num_species)];
+
+    if (reinit_param > reinit_freq) {
+      double rho_total = qnew[0];
+
+      bool update_up = false;
+      bool update_down = false;
+      for (int j = 0; j < num_species - 1; j++) {
+        if (qnew[14 + j] / rho_total >= (0.5 + surface_tension)) {
+          idxl[dir] = i - 1;
+          double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i - 2;
+          double *qll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i - 3;
+          double *qlll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+        
+          double rho_total_l = ql[0];
+          double rho_total_ll = qll[0];
+          double rho_total_lll = qlll[0];
+
+          idxl[dir] = i + 1;
+          double *qr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i + 2;
+          double *qrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i + 3;
+          double *qrrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+        
+          double rho_total_r = qr[0];
+          double rho_total_rr = qrr[0];
+          double rho_total_rrr = qrrr[0];
+        
+          if (ql[14 + j] / rho_total_l < (0.5 + surface_tension) || qll[14 + j] / rho_total_ll < (0.5 + surface_tension) || qlll[14 + j] / rho_total_lll < (0.5 + surface_tension) || qr[14 + j] / rho_total_r < (0.5 + surface_tension) ||
+            qrr[14 + j] / rho_total_rr < (0.5 + surface_tension) || qrrr[14 + j] / rho_total_rrr < (0.5 + surface_tension))  {
+            qnew[14 + j] = 0.99999 * rho_total;
+            qnew[13 + num_species + j] = 0.99999 * rho_total;
+            update_up = true;
+          }
+        }
+        
+        if (qnew[14 + j] / rho_total < (0.5 + surface_tension)) {
+          idxl[dir] = i - 1;
+          double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i - 2;
+          double *qll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i - 3;
+          double *qlll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+        
+          double rho_total_l = ql[0];
+          double rho_total_ll = qll[0];
+          double rho_total_lll = qlll[0];
+
+          idxl[dir] = i + 1;
+          double *qr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i + 2;
+          double *qrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+          idxl[dir] = i + 3;
+          double *qrrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+        
+          double rho_total_r = qr[0];
+          double rho_total_rr = qrr[0];
+          double rho_total_rrr = qrrr[0];
+
+          if (qr[14 + j] / rho_total_r >= (0.5 + surface_tension) || qrr[14 + j] / rho_total_rr >= (0.5 + surface_tension) || qrrr[14 + j] / rho_total_rrr >= (0.5 + surface_tension) || ql[14 + j] / rho_total_l >= (0.5 + surface_tension) ||
+            qll[14 + j] / rho_total_ll >= (0.5 + surface_tension) || qlll[14 + j] / rho_total_lll >= (0.5 + surface_tension)) {
+            qnew[14 + j] = 0.00001 * rho_total;
+            qnew[13 + num_species + j] = 0.00001 * rho_total;
+            update_down = true;
+          }
+        }
+      }
+
+      if (update_up) {
+        qnew[12 + (2 * num_species)] = 0.00001 * rho_total;
+      }
+      if (update_down) {
+        qnew[12 + (2 * num_species)] = 0.99999 * rho_total;
+      }
+
+      qnew[13 + (2 * num_species)] = 0.0;
+    }
+    else {
+      qnew[13 + (2 * num_species)] += 1.0;
     }
   }
 }
