@@ -83,7 +83,7 @@ struct gkyl_gyrokinetic_collisionless {
   double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring. Set to 0.0 to disable
   double time_dilation_f_threshold; // Minimum distribution function value for time dilation masking.
   double time_dilation_f_frac; // Fraction of maximum distribution function to use for time dilation masking.
-  bool time_dilation_spatial_frac; // Whether to apply the fractional threshold to f_max(x), which depends on space.
+  bool time_dilation_has_spatial_dependence; // Whether to apply the fractional threshold to f_max(x), which depends on space.
 };
 
 // Parameters for species collisions

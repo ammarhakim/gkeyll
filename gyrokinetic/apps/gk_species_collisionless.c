@@ -277,7 +277,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
         } else if (gks->info.collisionless.time_dilation_f_threshold > 0.0) {
           mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
         }
-        if (gks->info.collisionless.time_dilation_spatial_frac) {
+        if (gks->info.collisionless.time_dilation_has_spatial_dependence) {
           mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
         }
         struct gkyl_dg_array_mask_inp cfl_mask_inp = {
@@ -369,7 +369,7 @@ gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_s
   gks->info.collisionless.cfl_dt_min_value = gkcls_inp.cfl_dt_min_value;
   gks->info.collisionless.time_dilation_f_threshold = gkcls_inp.time_dilation_f_threshold;
   gks->info.collisionless.time_dilation_f_frac = gkcls_inp.time_dilation_f_frac;
-  gks->info.collisionless.time_dilation_spatial_frac = gkcls_inp.time_dilation_spatial_frac;
+  gks->info.collisionless.time_dilation_has_spatial_dependence = gkcls_inp.time_dilation_has_spatial_dependence;
 
   // Update local struct.
   gkcls->cfl_dt_min_omegaH = gkcls_inp.cfl_dt_min_omegaH;
@@ -401,7 +401,7 @@ gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_s
     } else if (gkcls_inp.time_dilation_f_threshold > 0.0) {
       mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
     }
-    if (gkcls_inp.time_dilation_spatial_frac) {
+    if (gkcls_inp.time_dilation_has_spatial_dependence) {
       mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
     }
 
