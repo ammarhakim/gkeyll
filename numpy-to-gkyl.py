@@ -279,12 +279,13 @@ def convert_np_to_gkyl(inp_dir, filename, N, dims, lower, upper, output_dir=None
 
 
 if __name__ == '__main__':
+      nfp = 5 # set to 1 or 5 depending on what NFP in DESC code was set to
       lower = [0, 0, 0]
-      upper = [1, 2*np.pi, (2*np.pi)/5]
+      upper = [1, 2*np.pi, (2*np.pi)/nfp]
       
-      num_rho = 10
-      num_alpha = 10
-      num_zeta = 10
+      num_rho = 10   #5
+      num_alpha = 50 # 20
+      num_zeta = 7 # 7
       
       dims_corner = [num_rho, num_alpha, num_zeta]
       dims_S1 = [num_rho, 2*(num_alpha-1), 2*(num_zeta-1)]
@@ -307,7 +308,7 @@ if __name__ == '__main__':
       convert_np_to_gkyl(inp_dir, "tangents_I.npy", N_i, dims_I, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_I.npy", N_i, dims_I, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
-      convert_np_to_gkyl(inp_dir, "B_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
+      convert_np_to_gkyl(inp_dir, "b_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
 
       convert_np_to_gkyl(inp_dir, "tangents_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
