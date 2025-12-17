@@ -531,19 +531,6 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
   return gksun;
 }
 
-void
-gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time, struct gkyl_sundials_nvec *gsnv)
-{
-  N_Vector nvin = gsnv->nvec;
-
-  int flag = ARKodeReset(gksun->arkode_mem, time, nvin);
-
-  if (check_flag(&flag, "ARKodeReset", 1)) {
-    fprintf(stderr, "\nError: Resetting ARKode .\n");
-    assert(false);
-  }
-}
-
 /**
  * Compute the RHS function df/dt.
  *
@@ -574,8 +561,11 @@ dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
   fin[0] = fin_s;
   fout[0] = fout_s;
 
-  // Call the Gkeyll function that computes df/dt.
-  return app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  // Call the Gkeyll function that computes df/dt. Store local CFL constrained
+  // dt (may not be used, depends on stepping method used).
+  app_ctx->dt_local = app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+
+  return 0; // Success.
 }
 
 /**
@@ -586,9 +576,12 @@ dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
  * @return SUNDIALS LSRK method flag.
  */
 static ARKODE_LSRKMethodType
-translate_gk_to_sundials_lsrk_method(enum gkyl_sundials_lsrk_method gk_lsrk_method)
+translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
 {
-  switch (gk_lsrk_method) {
+  switch (gk_rk_method) {
+    case GKYL_RK_METHOD_SSP_3_3:
+      assert(false); // Shouldn't be necessary.
+      break;
     case GKYL_SUNDIALS_LSRK_METHOD_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
       return ARKODE_LSRK_RKC_2;
       break;
@@ -611,10 +604,109 @@ translate_gk_to_sundials_lsrk_method(enum gkyl_sundials_lsrk_method gk_lsrk_meth
   return 0;
 }
 
+static int
+cfl_stable_dt(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  double dt_local = app_ctx->dt_local;
+
+  app_ctx->dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
+  *dt_out = app_ctx->dt_global;
+
+  return 0; // Success.
+}
+
+static void
+gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  // Initialize Gkeyll's native 3rd order 3-stage SSP RK but through SUNDIALS.
+  int flag;
+  N_Vector nvin = inp->gsnv->nvec;
+  if (nvin == 0) {
+    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    assert(false);
+  }
+
+  // Call ERKStepCreate to initialize the ARK timestepper module and
+  // specify the right-hand side function in y'=f(t,y), the initial time
+  // T0, and the initial dependent variable vector y.
+  gksun->arkode_mem = ERKStepCreate(dfdt, inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem, "ERKStepCreate", 0);
+
+  // Set routines.
+  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
+  sundials_check_flag(&flag, "ARKodeSetUserData", 1);
+
+  // Specify tolerances.
+  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
+  sundials_check_flag(&flag, "ARKodeSStolerances", 1);
+
+  // Set the initial step size.
+  sunrealtype dt_stab = 0.1; // Recalculated and passed with _reset method.
+  flag = ARKodeSetInitStep(gksun->arkode_mem, dt_stab);
+  sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
+
+  // Set CFL stable time step size function.
+  flag = ARKodeSetStabilityFn(gksun->arkode_mem, cfl_stable_dt, inp->app_ctx);
+  sundials_check_flag(&flag, "ARKodeSetStabilityFn", 1);
+
+  // Set CFL safety factor one to ensure exact use of the stable time step size.
+  flag = ARKodeSetCFLFraction(gksun->arkode_mem, SUN_RCONST(1.0));
+  sundials_check_flag(&flag, "ARKodeSetCFLFraction", 1);
+
+  // Specify max number of steps allowed.
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
+  sundials_check_flag(&flag, "ARKodeSetMaxNumSteps", 1);
+
+  // Insert the SSP33 Butcher tableau
+  ARKodeButcherTable B_ssp33;
+  B_ssp33 = ARKodeButcherTable_Alloc(3, SUNTRUE);
+  sundials_check_flag((void*)(B_ssp33), "ARKodeButcherTable_Alloc", 0);
+  B_ssp33->A[1][0] = SUN_RCONST(1.0);
+  B_ssp33->A[2][0] = SUN_RCONST(0.25);
+  B_ssp33->A[2][1] = SUN_RCONST(0.25);
+  B_ssp33->b[0]    = SUN_RCONST(1.0/6.0);
+  B_ssp33->b[1]    = SUN_RCONST(1.0/6.0);
+  B_ssp33->b[2]    = SUN_RCONST(2.0/3.0);
+  B_ssp33->c[1]    = SUN_RCONST(1.0);
+  B_ssp33->c[2]    = SUN_RCONST(0.5);
+  B_ssp33->q       = 3;
+  B_ssp33->p       = 3;    // dummy embedding order
+  B_ssp33->d[0]    = SUN_RCONST(1.0/6.0); // dummy embedding
+  B_ssp33->d[1]    = SUN_RCONST(1.0/6.0);
+  B_ssp33->d[2]    = SUN_RCONST(2.0/3.0);
+
+  flag = ERKStepSetTable(gksun->arkode_mem, B_ssp33);
+  sundials_check_flag(&flag, "ERKStepSetTable", 1);
+
+  // Free the Butcher tableau.
+  ARKodeButcherTable_Free(B_ssp33);
+}
+
 void
 gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
 {
+  // Set default values if user didn't provide a value.
+  if (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE)
+    inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
+  
+  if (inp->max_steps == 0)
+    inp->max_steps = 100000;
+  // Finished setting default values.
+
+
+  gksun->rk_method = inp->rk_method; // Store method in Sundials object.
+  gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
+
+  if (inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    // Gkeyll's native 3rd order 3-stage SSP RK.
+    gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
+    return;
+  }
+
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
   if (nvin == 0) {
@@ -626,67 +718,73 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
   gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->t_curr, nvin, nvin->sunctx);
-  if (check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0)) {
-    fprintf(stderr, "\nError: initializing SSP.\n");
-    assert(false);
-  }
+  sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0);
 
   // Set user data (app pointer).
   flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
-  if (check_flag(&flag, "ARKodeSetUserData", 1)) {
-    fprintf(stderr, "\nError: setting user data.\n");
-    assert(false);
-  }
+  sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
   // Specify tolerances.
   flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
-  if (check_flag(&flag, "ARKStepSStolerances", 1)) {
-    fprintf(stderr, "\nError: setting tolerances.\n");
-    assert(false);
-  }
+  sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
   // Specify max number of steps allowed.
   flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
-  if (check_flag(&flag, "ARKodeSetMaxNumSteps", 1)) {
-    fprintf(stderr, "\nError: setting max number of steps.\n");
-    assert(false);
-  }
+  sundials_check_flag(&flag, "ARKodeSetMaxNumSteps", 1);
 
   // Specify the SSP method.
-  flag = LSRKStepSetSSPMethod(gksun->arkode_mem, translate_gk_to_sundials_lsrk_method(inp->method));
-  if (check_flag(&flag, "LSRKStepSetSSPMethod", 1)) {
-    fprintf(stderr, "\nError: initializing SSP.\n");
-    assert(false);
-  }
+  flag = LSRKStepSetSSPMethod(gksun->arkode_mem, translate_gk_to_sundials_rk_method(inp->rk_method));
+  sundials_check_flag(&flag, "LSRKStepSetSSPMethod", 1);
 
   // Specify the number of SSP stages.
   flag = LSRKStepSetNumSSPStages(gksun->arkode_mem, inp->num_SSP_stages);
-  if (check_flag(&flag, "LSRKStepSetNumSSPStages", 1)) {
-    fprintf(stderr, "\nError: setting number of SSP stages.\n");
-    assert(false);
-  }
+  sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
 
   // Attach the error function.
   flag = ARKodeWFtolerances(gksun->arkode_mem, snvec_efun_cell_norm);
-  if (check_flag(&flag, "ARKodeWFtolerances", 1)) {
-    fprintf(stderr, "\nError: attaching error function.\n");
-    assert(false);
+  sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
+}
+
+void
+gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
+  struct gkyl_sundials_nvec *gsnv, struct gkyl_array *fbuffer)
+{
+  N_Vector nvin = gsnv->nvec;
+
+  int flag = ARKodeReset(gksun->arkode_mem, time, nvin);
+  sundials_check_flag(&flag, "ARKodeReset", 1);
+
+  if (gksun->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    // Estimate the CFL stable dt.
+    // Create a temporary NVector.
+    struct gkyl_comm *comm = NV_CONTENT_GKZ(nvin)->comm;
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(nvin)->local_range;
+    struct gkyl_sundials_nvec *fbuff_nvec = gkyl_sundials_nvec_new(gksun, fbuffer,
+      comm, local_range);
+    N_Vector nvbuff = fbuff_nvec->nvec;
+  
+    // Compute dt.
+    double dt_init;
+    flag = dfdt(time, nvin, nvbuff, gksun->app_ctx);
+    flag = cfl_stable_dt(nvin, time, &dt_init, gksun->app_ctx);
+
+    // Set the initial step size.
+    flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
+    sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
+  
+    gkyl_sundials_nvec_release(fbuff_nvec);
   }
 }
 
 int
 gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
-  struct gkyl_sundials_nvec *gsnv, double t_curr)
+  struct gkyl_sundials_nvec *gsnv, double *t_curr)
 {
   N_Vector nvin = gsnv->nvec;
 
   // Call integrator to evolve the solution to time t_new.
-  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, &t_curr, ARK_NORMAL);
-
-  if (check_flag(&flag, "ARKodeEvolve", 1)) {
-    fprintf(stderr, "\nError: evolving the state vector.\n");
-    assert(false);
-  }
+  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, t_curr, ARK_ONE_STEP);
+  sundials_check_flag(&flag, "ARKodeEvolve", 1);
 
   return flag;
 }

@@ -715,15 +715,16 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
   struct gkyl_update_status st = { .success = true };
 
   double t_curr = app->tcurr;
-  double t_new = t_curr + dt0;
+  double t_end = t_curr + dt0;
 
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_sundials_evolve(app->gk_sundials, t_new, app->sundials_nvec, t_curr);
+  double t_new;
+  gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_nvec, &t_new);
 
   app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
 
-  st.dt_actual = dt0;
+  st.dt_actual = t_new - t_curr;
   st.dt_suggested = dt0;
 
   // Check for any CUDA errors during time step.
@@ -873,12 +874,12 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Create a sundials Nvector for the Gkeyll state vector.
     assert(ns == 1);
     assert(neuts == 0);
-    printf("app->species[0].f = %p\n",app->species[0].f);
     app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[0].f, app->comm, &app->species[0].local);
 
     // Initialize SSP RK stepper.
     app->sundials_app_ctx.app_ptr = app;
     app->sundials_app_ctx.dfdt_func = gyrokinetic_dfdt_generic;
+    app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
 
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
@@ -887,7 +888,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
     app->sundials_stepper_inp.gsnv = app->sundials_nvec,
     app->sundials_stepper_inp.t_curr = 0.0,
-    app->sundials_stepper_inp.method = gk->sundials_stepper.method,
+    app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
 
     gkyl_sundials_stepper_init_ssp_rk(app->gk_sundials, &app->sundials_stepper_inp);
@@ -1064,8 +1065,11 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     }
   }
 
-  if (app->use_sundials)
-    gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_nvec);
+  if (app->use_sundials) {
+    // Give initial time and ICs to Sundials.
+    struct gk_species *gks = &app->species[0];
+    gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_nvec, gks->lte.f_lte);
+  }
 }
 
 void
@@ -1993,14 +1997,14 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
   return dtmin;
 }
 
-int
+double
 gyrokinetic_dfdt_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
 {
   struct gkyl_gyrokinetic_app *app = ctx;
   double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
-  return 0;
+  return dtmin;
 }
 
 void
@@ -2029,6 +2033,20 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+double
+gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local)
+{
+  struct gkyl_gyrokinetic_app *app = ctx;
+
+  // Compute minimum time-step across all processors.
+  struct timespec wtm = gkyl_wall_clock();
+  double dt_global;
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dt_local, &dt_global);
+  app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
+
+  return dt_global;
 }
 
 void
@@ -3083,8 +3101,11 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
-  if (app->use_sundials)
-    gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_nvec);
+  if (app->use_sundials) {
+    // Give initial time and ICs to Sundials.
+    struct gk_species *gks = &app->species[0];
+    gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_nvec, gks->lte.f_lte);
+  }
 
   return rstat;
 }

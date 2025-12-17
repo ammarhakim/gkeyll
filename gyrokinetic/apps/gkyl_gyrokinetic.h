@@ -521,7 +521,7 @@ struct gkyl_sundials_inp {
   double absolute_tolerance; // Absolute tolerance.
   long max_steps; // Maximum number of steps.
   int num_SSP_stages; // Number of stages in SSP RK method.
-  enum gkyl_sundials_lsrk_method method; // Time stepping method.
+  enum gkyl_sundials_rk_method rk_method; // Time stepping method.
 };
 
 // Top-level app parameters

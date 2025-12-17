@@ -4002,7 +4002,7 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
  * Like gyrokinetic_dfdt (compute the RHS of the gyrokinetic equation)
  * but pass the app as a void * and return 0 if successful.
  *
- * @param app Gyrokinetic app.
+ * @param ctx Gyrokinetic app (as a void*).
  * @param tcurr Current simulation time.
  * @param fin Input array of charged-species distribution functions.
  * @param fout Output array of charged-species distribution functions.
@@ -4010,12 +4010,24 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
  * @param fin_neut Input array of neutral-species distribution functions.
  * @param fout_neut Output array of neutral-species distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
- * @return If successful, return 0.
+ * @return Minimum stable dt in local MPI process.
  */
-int
+double
 gyrokinetic_dfdt_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+
+/**
+ * Obtain the minimum CFL stable time step, reducing the local one found in
+ * gyrokinetic_dfdt_generic.
+ *
+ * @param ctx Gyrokinetic app (as a void*).
+ * @param tcurr Current simulation time.
+ * @param dt_local Time step in local MPI process.
+ * @return Minimum stable dt accross all MPI processes.
+ */
+double
+gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local);
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time

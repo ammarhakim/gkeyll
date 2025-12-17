@@ -11,8 +11,9 @@
 #include <gkyl_comm.h>
 
 // Time stepping method options.
-enum gkyl_sundials_lsrk_method {
-  GKYL_SUNDIALS_LSRK_METHOD_NONE = 0,
+enum gkyl_sundials_rk_method {
+  GKYL_SUNDIALS_METHOD_NONE = 0,
+  GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method (for testing only).
   GKYL_SUNDIALS_LSRK_METHOD_RKC_2, // 2nd order Runge-Kutta-Chebyshev (RKC).
   GKYL_SUNDIALS_LSRK_METHOD_RKL_2, // 2nd order Runge-Kutta-Legendre (RKL).
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order s-stage SSP RK method.
@@ -25,23 +26,28 @@ enum gkyl_sundials_lsrk_method {
 struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
   // Function that computes df/dt.
-  int (*dfdt_func)(void *app, double t_curr,
+  double (*dfdt_func)(void *app, double t_curr,
     const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
     const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+  // Function that reduces a local dt across MPI processes.
+  double (*reduce_dt_func)(void *app, double t_curr, double dt_local);
   // Function that computes weight for the error norm.
   int (*error_wgt_func)(void *app, const struct gkyl_array *xarr,
     struct gkyl_array *wgt, struct gkyl_range *local_range);
+  // Objects below are private.
+  double dt_local; // CFL constrained time step in local MPI process.
+  double dt_global; // Reduction of dt_local over all MPI processes.
 };
 
 // Sundials inputs specified in input file.
 struct gkyl_sundials_stepper_inp {
   double rel_tol; // Relative tolerance.
   double abs_tol; // Absolute tolerance.
-  long max_steps; // Maximum number of steps.
+  long max_steps; // Maximum number of steps (Default: 1e5).
   int num_SSP_stages; // Number of stages in SSP RK method.
+  enum gkyl_sundials_rk_method rk_method; // Time stepping method (Default: GKYL_RK_METHOD_SSP_3_3).
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
-  enum gkyl_sundials_lsrk_method method; // Time stepping method.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
 };
 
@@ -76,9 +82,10 @@ void gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
  * @param gksun SUNDIALS object.
  * @param time New simulation time.
  * @param gsnv New state vector.
+ * @param fbuffer Buffer array, as big as state vector array.
  */
 void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
-  struct gkyl_sundials_nvec *gsnv);
+  struct gkyl_sundials_nvec *gsnv, struct gkyl_array *fbuffer);
 
 /**
  * Evolve the solution contained in a given Nvector from
@@ -90,7 +97,7 @@ void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
  * @param t_curr Current time.
  */
 int gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
-  struct gkyl_sundials_nvec *gsnv, double t_curr);
+  struct gkyl_sundials_nvec *gsnv, double *t_curr);
 
 /**
  * Free resources associates with a SUNDIALS object.
