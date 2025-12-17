@@ -4,37 +4,14 @@ from mpl_toolkits.mplot3d import Axes3D
 import postgkyl as pg
 
 # Read the gkyl files
-data = pg.GData("W7X-nodal_modal_arrays/nodal/mc2p_corner_nodal.gkyl")  # (R, Z, phi)
+data = pg.GData("./W7-X_geometry/W7X-nodes.gkyl")  # (R, Z, phi)
 vals = data.get_values()
 
 # Companion file with the *same nodes* in (rho, alpha, zeta)
-nu_data = pg.GData("W7X-nodal_modal_arrays/nodal/mc2nu_pos_corner_nodal.gkyl")     # (rho, alpha, zeta)
+nu_data = pg.GData("./W7-X_geometry/W7X-nodes-computational.gkyl")     # (rho, alpha, zeta)
 nu_vals = nu_data.get_values()
 
-# B-field magnitude on the same nodes
-bmag_data = pg.GData("W7X-nodal_modal_arrays/nodal/bmag_corner_nodal.gkyl")
-bmag_vals = bmag_data.get_values()
 
-# Extract Bmag as both a 3D array (nx, ny, nz) and flattened 1D array
-bmag3 = None
-bmag = None
-if vals.ndim == 4:
-    # vals has shape (nx, ny, nz, ncomp)
-    if bmag_vals.ndim == 3 and bmag_vals.shape == vals.shape[:3]:
-        # Scalar Bmag: shape (nx, ny, nz)
-        bmag3 = bmag_vals
-    elif bmag_vals.ndim == 4 and bmag_vals.shape[:3] == vals.shape[:3] and bmag_vals.shape[3] >= 1:
-        # Bmag stored as first component in last dimension
-        bmag3 = bmag_vals[:, :, :, 0]
-
-if bmag3 is not None:
-    bmag = bmag3.flatten()
-else:
-    # Fallback: try to flatten whatever we have, or zeros if shapes don't match
-    try:
-        bmag = bmag_vals.flatten()
-    except Exception:
-        bmag = np.zeros_like(vals.flatten())
 
 # Extract coordinates - assuming the data has R, Z, phi or x, y, z coordinates
 # The shape depends on the data structure
@@ -95,13 +72,13 @@ fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 
 # Plot the points from first gkyl file (larger markers for visibility)
-ax.scatter(x, y, z, marker='.', s=6, alpha=0.7, label='W7X nodes', color='blue')
+ax.scatter(x, y, z, marker='.', s=6, alpha=0.7, label='W7-X nodes', color='blue')
 
 # Set labels
 ax.set_xlabel('X [m]')
 ax.set_ylabel('Y [m]')
 ax.set_zlabel('Z [m]')
-ax.set_title('W7X nodes 3D Plot')
+ax.set_title('W7-X nodes 3D Plot')
 
 # Set equal aspect ratio for better visualization
 # Ensure all arrays are 1D before concatenating
@@ -142,6 +119,49 @@ if vals.ndim == 4 and nu_vals.ndim == 4 and vals.shape[:3] == nu_vals.shape[:3] 
 
     nx, ny, nz = zeta3.shape
 
+    # ---------------------------------------------------------------------------
+    # Rectangular grid plot of nu_data (rho, alpha, zeta)
+    # ---------------------------------------------------------------------------
+    
+    # Create 3D plot for rectangular grid
+    fig_nu = plt.figure(figsize=(10, 8))
+    ax_nu = fig_nu.add_subplot(111, projection='3d')
+    
+    # Flatten the coordinates for scatter plot
+    rho_flat = rho3.flatten()
+    alpha_flat = alpha3.flatten()
+    zeta_flat = zeta3.flatten()
+    
+    # Plot the points in rectangular (rho, alpha, zeta) space
+    # Swap alpha and zeta: alpha goes upwards (z-axis), zeta goes depthwards (y-axis)
+    ax_nu.scatter(rho_flat, zeta_flat, alpha_flat, marker='.', s=6, alpha=0.7, 
+                  label='raz nodes', color='red')
+    
+    # Set labels (rho=x, zeta=y, alpha=z)
+    ax_nu.set_xlabel('rho')
+    ax_nu.set_ylabel('zeta [rad]')
+    ax_nu.set_zlabel('alpha [rad]')
+    ax_nu.set_title('W7-X nodes in rho alpha zeta space')
+    
+    # Set equal aspect ratio for better visualization
+    all_rho = np.atleast_1d(rho_flat).flatten()
+    all_alpha = np.atleast_1d(alpha_flat).flatten()
+    all_zeta = np.atleast_1d(zeta_flat).flatten()
+    
+    max_range = np.array([all_rho.max()-all_rho.min(), 
+                          all_alpha.max()-all_alpha.min(), 
+                          all_zeta.max()-all_zeta.min()]).max() / 2.0
+    mid_alpha = (all_alpha.max()+all_alpha.min()) * 0.5
+    mid_zeta = (all_zeta.max()+all_zeta.min()) * 0.5
+    ax_nu.set_xlim(0, 1)  # rho axis fixed to 0-1
+    ax_nu.set_ylim(mid_zeta - max_range, mid_zeta + max_range)
+    ax_nu.set_zlim(mid_alpha - max_range, mid_alpha + max_range)
+    
+    # Add legend
+    ax_nu.legend()
+    
+    plt.tight_layout()
+
     # Choose slices: use at most the first 6 phi/zeta slices
     slice_indices = list(range(min(nz, 6)))
 
@@ -151,8 +171,6 @@ if vals.ndim == 4 and nu_vals.ndim == 4 and vals.shape[:3] == nu_vals.shape[:3] 
     fig2, axs2 = plt.subplots(nrows, ncols, figsize=(16, 8))
     axs2 = axs2.flatten()
 
-    # |B| in 3D if available
-    bmag3_local = bmag3 if bmag3 is not None else None
 
     # Global R/Z limits so every subplot has identical bounds, with a small margin
     R_min, R_max = R3.min(), R3.max()

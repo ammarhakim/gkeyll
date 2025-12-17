@@ -37,7 +37,7 @@ data = {}
 
 zeta_idx = 0
 
-bdata = pg.GData('./W7X-nodal_modal_arrays/modal/bmag_interior_modal.gkyl')
+bdata = pg.GData('./W7-X_geometry/W7X-bmag.gkyl')
 grid,val = pg.data.GInterpModal(bdata,poly_order=1,basis_type='ms').interpolate(0)
 data["B"] = val.squeeze()
 #data["B"] = np.column_stack((data["B"][:,:], data["B"][:,0]))
@@ -47,17 +47,17 @@ alpha = fix_gridvals(grid[1])
 print("rho shape:", rho.shape)
 print("alpha shape:", alpha.shape)
 
-bdata_corner = pg.GData('./W7X-nodal_modal_arrays/modal/bmag_corner_modal.gkyl')
+bdata_corner = pg.GData('./W7-X_geometry/W7X-bmag_corn.gkyl')
 grid,val = pg.data.GInterpModal(bdata_corner,poly_order=1,basis_type='ms').interpolate(0)
 data["Bcorn"] = val.squeeze()
 #data["Bcorn"] = np.column_stack((data["Bcorn"][:,:], data["Bcorn"][:,0]))
 
-jdata = pg.GData('./W7X-nodal_modal_arrays/modal/jacobgeo_interior_modal.gkyl')
+jdata = pg.GData('./W7-X_geometry/W7X-jacobgeo.gkyl')
 grid,val = pg.data.GInterpModal(jdata,poly_order=1,basis_type='ms').interpolate(0)
 data["J"] = val.squeeze()
 #data["J"] = np.column_stack((data["J"][:,:], data["J"][:,0]))
 
-mc2pdata = pg.GData('./W7X-nodal_modal_arrays/modal/mc2p_corner_modal.gkyl')
+mc2pdata = pg.GData('./W7-X_geometry/W7X-nodes.gkyl')
 grid,rvals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(0)
 grid,zvals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(1)
 grid,phivals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(2)

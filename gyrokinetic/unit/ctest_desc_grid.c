@@ -838,7 +838,7 @@ void test_3xp1(){
     // Write out all nodal and modal arrays 
     // Create output directories
     // Note: Test is run from gkeyll/ directory, so create directories there
-    const char *output_dir = "W7X-nodal_modal_arrays";
+    const char *output_dir = "W7-X_geometry";
     const char *nodal_dir = "W7X-nodal_modal_arrays/nodal";
     const char *modal_dir = "W7X-nodal_modal_arrays/modal";
     
@@ -870,7 +870,7 @@ void test_3xp1(){
         do { \
             if (arr != NULL) { \
                 char fname[512]; \
-                snprintf(fname, sizeof(fname), "%s/%s.gkyl", modal_dir, name); \
+                snprintf(fname, sizeof(fname), "%s/%s.gkyl", output_dir, name); \
                 gkyl_grid_sub_array_write(grid, comp_range, 0, arr, fname); \
             } \
         } while(0)
@@ -880,7 +880,7 @@ void test_3xp1(){
         do { \
             if (nodal_arr != NULL) { \
                 char fname[512]; \
-                snprintf(fname, sizeof(fname), "%s/%s.gkyl", nodal_dir, name); \
+                snprintf(fname, sizeof(fname), "%s/%s.gkyl", output_dir, name); \
                 gkyl_grid_sub_array_write(ngrid, nrange, 0, nodal_arr, fname); \
             } \
         } while(0)
@@ -995,149 +995,81 @@ void test_3xp1(){
     N2M_CONVERT_SURFACE(nrange_surface3, 1, lenr_surface3_nodal,     lenr_s3_modal, 2);
     printf("DEBUG: Finished surface3 n2m conversions.\n");
     
-    // Write corner nodal arrays - use actual nodal arrays
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "mc2nu_pos_corner_nodal");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "mc2p_corner_nodal");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, bmag_corner_nodal, "bmag_corner_nodal");
+    // Write corner nodal arrays 
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "W7X-nodes-computational");
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "W7X-nodes");
+     
+     // Write corner modal arrays 
+    WRITE_MODAL(&grid_modal, &modal_range, mc2nu_pos_corner_modal, "W7X-mc2nu_pos");
+    WRITE_MODAL(&grid_modal, &modal_range, mc2p_corner_modal, "W7X-mapc2p");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_corner_modal, "W7X-bmag_corn");
     
-    // Write interior nodal arrays - use actual nodal arrays
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dxdz_interior_nodal, "dxdz_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_interior_nodal, "bmag_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, curlbhat_interior_nodal, "curlbhat_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bcart_interior_nodal, "bcart_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, B3_interior_nodal, "B3_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, b_i_interior_nodal, "b_i_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_inv_interior_nodal, "bmag_inv_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bmag_inv_sq_interior_nodal, "bmag_inv_sq_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, bioverJB_interior_nodal, "bioverJB_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, cmag_interior_nodal, "cmag_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlbhat_interior_nodal, "dualcurlbhat_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dualcurlbhatoverB_interior_nodal, "dualcurlbhatoverB_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, dzdx_interior_nodal, "dzdx_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, eps2_interior_nodal, "eps2_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, g_ij_interior_nodal, "g_ij_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, gij_interior_nodal, "gij_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxxj_interior_nodal, "gxxj_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxyj_interior_nodal, "gxyj_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, gxzj_interior_nodal, "gxzj_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, gyyj_interior_nodal, "gyyj_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobgeo_interior_nodal, "jacobgeo_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobgeo_inv_interior_nodal, "jacobgeo_inv_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobtot_interior_nodal, "jacobtot_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, jacobtot_inv_interior_nodal, "jacobtot_inv_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, normals_interior_nodal, "normals_interior_nodal");
-    WRITE_NODAL(&ngrid_interior, &nrange_interior, rtg33inv_interior_nodal, "rtg33inv_interior_nodal");
+    // Write interior modal arrays 
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_interior_modal, "W7X-dxdz");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_interior_modal, "W7X-bmag");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_interior_modal, "W7X-curlbhat");
+    WRITE_MODAL(&grid_modal, &modal_range, bcart_interior_modal, "W7X-bcart");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_interior_modal, "W7X-B3");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_interior_modal, "W7X-b_i");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_interior_modal, "W7X-bmag_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_sq_interior_modal, "W7X-bmag_inv_sq");
+    WRITE_MODAL(&grid_modal, &modal_range, bioverJB_interior_modal, "W7X-bioverJB");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_interior_modal, "W7X-cmag");
+    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhat_interior_modal, "W7X-dualcurlbhat");
+    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhatoverB_interior_modal, "W7X-dualcurlbhatoverB");
+    WRITE_MODAL(&grid_modal, &modal_range, dzdx_interior_modal, "W7X-dzdx");
+    WRITE_MODAL(&grid_modal, &modal_range, eps2_interior_modal, "W7X-eps2");
+    WRITE_MODAL(&grid_modal, &modal_range, g_ij_interior_modal, "W7X-g_ij");
+    WRITE_MODAL(&grid_modal, &modal_range, gij_interior_modal, "W7X-gij");
+    WRITE_MODAL(&grid_modal, &modal_range, gxxj_interior_modal, "W7X-gxxj");
+    WRITE_MODAL(&grid_modal, &modal_range, gxyj_interior_modal, "W7X-gxyj");
+    WRITE_MODAL(&grid_modal, &modal_range, gxzj_interior_modal, "W7X-gxzj");
+    WRITE_MODAL(&grid_modal, &modal_range, gyyj_interior_modal, "W7X-gyyj");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_interior_modal, "W7X-jacobgeo");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_inv_interior_modal, "W7X-jacobgeo_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_interior_modal, "W7X-jacobtot");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_interior_modal, "W7X-jacobtot_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_interior_modal, "W7X-normals");
+    WRITE_MODAL(&grid_modal, &modal_range, rtg33inv_interior_modal, "W7X-rtg33inv");
     
-    // Write surface 1 nodal arrays - use actual nodal arrays
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, dxdz_surface1_nodal, "dxdz_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, bmag_surface1_nodal, "bmag_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, curlbhat_surface1_nodal, "curlbhat_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, B3_surface1_nodal, "B3_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, b_i_surface1_nodal, "b_i_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, cmag_surface1_nodal, "cmag_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, normcurlbhat_surface1_nodal, "normcurlbhat_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, jacobgeo_surface1_nodal, "jacobgeo_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, jacobtot_inv_surface1_nodal, "jacobtot_inv_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, normals_surface1_nodal, "normals_surface1_nodal");
-    WRITE_NODAL(&ngrid_surface1, &nrange_surface1, lenr_surface1_nodal, "lenr_surface1_nodal");
-    
-    // Write surface 2 nodal arrays
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, dxdz_surface2_nodal, "dxdz_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, bmag_surface2_nodal, "bmag_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, curlbhat_surface2_nodal, "curlbhat_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, B3_surface2_nodal, "B3_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, b_i_surface2_nodal, "b_i_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, cmag_surface2_nodal, "cmag_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, normcurlbhat_surface2_nodal, "normcurlbhat_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, jacobgeo_surface2_nodal, "jacobgeo_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, jacobtot_inv_surface2_nodal, "jacobtot_inv_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, normals_surface2_nodal, "normals_surface2_nodal");
-    WRITE_NODAL(&ngrid_surface2, &nrange_surface2, lenr_surface2_nodal, "lenr_surface2_nodal");
-    
-    // Write surface 3 nodal arrays
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, dxdz_surface3_nodal, "dxdz_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, bmag_surface3_nodal, "bmag_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, curlbhat_surface3_nodal, "curlbhat_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, B3_surface3_nodal, "B3_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, b_i_surface3_nodal, "b_i_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, cmag_surface3_nodal, "cmag_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, normcurlbhat_surface3_nodal, "normcurlbhat_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, jacobgeo_surface3_nodal, "jacobgeo_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, jacobtot_inv_surface3_nodal, "jacobtot_inv_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, normals_surface3_nodal, "normals_surface3_nodal");
-    WRITE_NODAL(&ngrid_surface3, &nrange_surface3, lenr_surface3_nodal, "lenr_surface3_nodal");
-    
-     // Write corner modal arrays - use same grid structure as nodal (10x10x10)
-    WRITE_MODAL(&grid_modal, &modal_range, mc2nu_pos_corner_modal, "mc2nu_pos_corner_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, mc2p_corner_modal, "mc2p_corner_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_corner_modal, "bmag_corner_modal");
-    
-    // Write interior modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_interior_modal, "dxdz_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_interior_modal, "bmag_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_interior_modal, "curlbhat_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bcart_interior_modal, "bcart_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_interior_modal, "B3_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_interior_modal, "b_i_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_interior_modal, "bmag_inv_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_sq_interior_modal, "bmag_inv_sq_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bioverJB_interior_modal, "bioverJB_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_interior_modal, "cmag_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhat_interior_modal, "dualcurlbhat_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhatoverB_interior_modal, "dualcurlbhatoverB_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, dzdx_interior_modal, "dzdx_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, eps2_interior_modal, "eps2_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, g_ij_interior_modal, "g_ij_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, gij_interior_modal, "gij_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, gxxj_interior_modal, "gxxj_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, gxyj_interior_modal, "gxyj_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, gxzj_interior_modal, "gxzj_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, gyyj_interior_modal, "gyyj_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_interior_modal, "jacobgeo_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_inv_interior_modal, "jacobgeo_inv_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_interior_modal, "jacobtot_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_interior_modal, "jacobtot_inv_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_interior_modal, "normals_interior_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, rtg33inv_interior_modal, "rtg33inv_interior_modal");
-    
-    // Write surface 1 modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s1_modal, "dxdz_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s1_modal, "bmag_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s1_modal, "curlbhat_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s1_modal, "B3_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s1_modal, "b_i_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s1_modal, "cmag_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s1_modal, "normcurlbhat_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s1_modal, "jacobgeo_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s1_modal, "jacobtot_inv_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s1_modal, "normals_s1_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s1_modal, "lenr_s1_modal");
+    // Write surface 1 modal arrays 
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s1_modal, "W7X-dxdz_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s1_modal, "W7X-bmag_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s1_modal, "W7X-curlbhat_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s1_modal, "W7X-B3_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s1_modal, "W7X-b_i_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s1_modal, "W7X-cmag_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s1_modal, "W7X-normcurlbhat_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s1_modal, "W7X-jacobgeo_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s1_modal, "W7X-jacobtot_inv_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s1_modal, "W7X-normals_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s1_modal, "W7X-lenr_dir0");
     
     // Write surface 2 modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s2_modal, "dxdz_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s2_modal, "bmag_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s2_modal, "curlbhat_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s2_modal, "B3_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s2_modal, "b_i_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s2_modal, "cmag_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s2_modal, "normcurlbhat_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s2_modal, "jacobgeo_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s2_modal, "jacobtot_inv_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s2_modal, "normals_s2_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s2_modal, "lenr_s2_modal");
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s2_modal, "W7X-dxdz_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s2_modal, "W7X-bmag_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s2_modal, "W7X-curlbhat_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s2_modal, "W7X-B3_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s2_modal, "W7X-b_i_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s2_modal, "W7X-cmag_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s2_modal, "W7X-normcurlbhat_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s2_modal, "W7X-jacobgeo_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s2_modal, "W7X-jacobtot_inv_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s2_modal, "W7X-normals_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s2_modal, "W7X-lenr_dir1");
     
     // Write surface 3 modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s3_modal, "dxdz_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s3_modal, "bmag_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s3_modal, "curlbhat_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s3_modal, "B3_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s3_modal, "b_i_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s3_modal, "cmag_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s3_modal, "normcurlbhat_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s3_modal, "jacobgeo_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s3_modal, "jacobtot_inv_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s3_modal, "normals_s3_modal");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s3_modal, "lenr_s3_modal");
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s3_modal, "W7X-dxdz_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s3_modal, "W7X-bmag_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s3_modal, "W7X-curlbhat_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s3_modal, "W7X-B3_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s3_modal, "W7X-b_i_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s3_modal, "W7X-cmag_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s3_modal, "W7X-normcurlbhat_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s3_modal, "W7X-jacobgeo_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s3_modal, "W7X-jacobtot_inv_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s3_modal, "W7X-normals_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s3_modal, "W7X-lenr_dir2");
 
     // Clean up everything
     // Release corner loaded arrays

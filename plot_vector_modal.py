@@ -95,7 +95,7 @@ ax = fig.add_subplot(111, projection='3d')
 ax.quiver(
     X_ds.flatten(), Y_ds.flatten(), Z_ds.flatten(),
     Bx_ds.flatten(), By_ds.flatten(), Bz_ds.flatten(),
-    length=0.25, normalize=True, linewidth=0.5, color='tab:blue', label='B field'
+    length=0.25, normalize=True, linewidth=0.5, color='tab:blue', label='$\\hat{\\mathbf{b}}$ field'
 )
 
 # Overlay quiver for e_3 vectors at the same nodes
@@ -107,7 +107,7 @@ ax.quiver(
 
 # Add custom legend for quiver (since quiver does not add entry by itself)
 import matplotlib.lines as mlines
-quiver_b_legend = mlines.Line2D([], [], color='tab:blue', label='B field', linewidth=2)
+quiver_b_legend = mlines.Line2D([], [], color='tab:blue', label='$\\hat{\\mathbf{b}}$ field', linewidth=2)
 quiver_e3_legend = mlines.Line2D([], [], color='tab:orange', label='e₃ vectors', linewidth=2)
 ax.legend(handles=[quiver_b_legend, quiver_e3_legend])
 
@@ -115,7 +115,7 @@ ax.legend(handles=[quiver_b_legend, quiver_e3_legend])
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
-ax.set_title('3D Vector Field of B and e₃')
+ax.set_title('3D Vector Field of $\\hat{\\mathbf{b}}$ and e₃')
 
 
 plt.tight_layout()
