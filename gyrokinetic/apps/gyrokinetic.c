@@ -482,9 +482,17 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
                                     e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_sol);
     }
 
-    // Create a core local range, extended in the BC dir.
+    // Create a core global and local ranges, extended in the BC dir.
     int ndim = app->cdim;
     int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = app->global_core.lower[i];
+      upper_bcdir_ext[i] = app->global_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = app->global_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = app->global_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&app->global_par_ext_core, &app->global_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+
     for (int i=0; i<ndim; i++) {
       lower_bcdir_ext[i] = app->local_core.lower[i];
       upper_bcdir_ext[i] = app->local_core.upper[i];

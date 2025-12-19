@@ -78,7 +78,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->local_par_ext_core,
+      .bcdir_ext_update_r = app->global_par_ext_core,
       .num_ghost = ghost,
       .basis = app->basis,
       .grid = app->grid,
@@ -95,7 +95,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->local_par_ext_core,
+      .bcdir_ext_update_r = app->global_par_ext_core,
       .num_ghost = ghost,
       .basis = app->basis,
       .grid = app->grid,
@@ -105,12 +105,36 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
     };
     f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
 
-    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, app->lower_ghost_par_sol.volume);
+    // Global skin and ghost ranges.
+    int cdim = app->cdim;
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_skin_ghost_ranges(&f->global_lower_skin[dir], &f->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
+      gkyl_skin_ghost_ranges(&f->global_upper_skin[dir], &f->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->global_ext, ghost);
+    }
+    // Create core and SOL parallel skin and ghost ranges.
+    int par_dir = app->cdim-1;
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    int len_core = idx_LCFS_lo;
+    int len_sol = app->global.upper[0]-len_core;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? &f->global_lower_skin_par_core  : &f->global_upper_skin_par_core,
+                                    e==0? &f->global_lower_skin[par_dir]  : &f->global_upper_skin[par_dir], 0, len_core);
+      gkyl_range_shorten_from_above(e==0? &f->global_lower_ghost_par_core : &f->global_upper_ghost_par_core,
+                                    e==0? &f->global_lower_ghost[par_dir] : &f->global_upper_ghost[par_dir], 0, len_core);
+      gkyl_range_shorten_from_below(e==0? &f->global_lower_skin_par_sol   : &f->global_upper_skin_par_sol,
+                                    e==0? &f->global_lower_skin[par_dir]  : &f->global_upper_skin[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_below(e==0? &f->global_lower_ghost_par_sol  : &f->global_upper_ghost_par_sol,
+                                    e==0? &f->global_lower_ghost[par_dir] : &f->global_upper_ghost[par_dir], 0, len_sol);
+    }
+  
+    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, f->global_lower_ghost_par_sol.volume);
 
+    f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+      &app->basis, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, 1, app->cdim, app->use_gpu);
     f->gfss_bc_op_sol_lo = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
-      &app->basis, &app->lower_skin_par_sol, &app->lower_ghost_par_sol, 1, app->cdim, app->use_gpu);
+      &app->basis, &f->global_lower_skin_par_sol, &f->global_lower_ghost_par_sol, 1, app->cdim, app->use_gpu);
     f->gfss_bc_op_sol_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
-      &app->basis, &app->upper_skin_par_sol, &app->upper_ghost_par_sol, 1, app->cdim, app->use_gpu);
+      &app->basis, &f->global_upper_skin_par_sol, &f->global_upper_ghost_par_sol, 1, app->cdim, app->use_gpu);
   }
 
   // Add the SSFG updater for lower and upper application.
@@ -177,6 +201,21 @@ gk_field_fem_projection_par_iwl(gkyl_gyrokinetic_app *app, struct gk_field *fiel
 
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Apply parallel BCs so that the Dirichlet BCs of fem_parproj work.
+  // Apply periodicity in the core.
+  int par_dir = app->cdim - 1;
+  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
+    &field->global_lower_ghost_par_core, &field->global_upper_skin_par_core);
+  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
+    &field->global_upper_ghost_par_core, &field->global_lower_skin_par_core);
+  // Apply TS BC in the core.
+  gkyl_bc_twistshift_advance(field->bc_T_LU_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+//  gkyl_bc_twistshift_advance(field->bc_T_UL_up, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
+  // Apply BC in the SOL so the smoothing with Dirichlet BCs works.
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_sol_lo, field->bc_buffer, field->rho_c_global_dg);
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_sol_up, field->bc_buffer, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -700,7 +739,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
 
       // Enforce a BC of the field in the parallel direction.
-      field->enforce_parallel_bc_func(app, field, field->phi_smooth);
+//      field->enforce_parallel_bc_func(app, field, field->phi_smooth);
 
       // Smooth the potential along z.
       field->fem_projection_par_func_post(app, field, field->phi_smooth, field->phi_smooth);
@@ -864,6 +903,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     if(app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
       gkyl_bc_twistshift_release(f->bc_T_UL_up);
+      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_sol_lo);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_sol_up);
       gkyl_array_release(f->bc_buffer);
