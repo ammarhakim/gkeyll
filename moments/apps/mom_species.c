@@ -466,9 +466,7 @@ moment_species_update(gkyl_moment_app *app,
   for (int d=0; d<ndim; ++d) {
     struct gkyl_wv_eqn *eqn = sp->equation;
     if (eqn->type==GKYL_EQN_MHD) {
-      if (sp->eqn_type==GKYL_MHD_DIVB_GLM) {
-        gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
-      }
+      gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
     }
   }
   if (app->update_mhd_source) {

@@ -1856,6 +1856,8 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_t
   gr_ultra_rel_euler_tetrad->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_ultra_rel_euler_tetrad_free);
   gr_ultra_rel_euler_tetrad->eqn.on_dev = &gr_ultra_rel_euler_tetrad->eqn; // On the CPU, the equation object points to itself.
 
+  gr_ultra_rel_euler_tetrad->eqn.embed_geo = NULL;
+
   return &gr_ultra_rel_euler_tetrad->eqn;
 }
 

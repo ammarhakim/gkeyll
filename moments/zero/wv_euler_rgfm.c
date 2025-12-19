@@ -459,6 +459,8 @@ gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
   euler_rgfm->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_rgfm_free);
   euler_rgfm->eqn.on_dev = &euler_rgfm->eqn; // On the CPU, the equation object points ot itself.
 
+  euler_rgfm->eqn.embed_geo = NULL;
+
   return &euler_rgfm->eqn;
 }
 

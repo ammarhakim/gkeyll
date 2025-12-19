@@ -53,6 +53,16 @@ struct gk_app_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
+void pfunc_upper(double s, double* RZ){
+    RZ[0] = 0.14047;
+    RZ[1] = -(s-0.061)*0.6;
+}
+
+void pfunc_lower(double s, double* RZ){
+    RZ[0] = 0.14047;
+    RZ[1] = (s-0.061)*0.6;
+}
+
 // Electron source profiles.
 void density_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -448,6 +458,9 @@ int main(int argc, char **argv)
     .rmax = 0.7,
     .zmin = -0.35,
     .zmax = 0.35,
+    .plate_spec = true,
+    .plate_func_lower = pfunc_lower,
+    .plate_func_upper = pfunc_upper,
   }; 
 
   // GK app
@@ -496,7 +509,7 @@ int main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
