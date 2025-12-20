@@ -720,7 +720,7 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
   struct timespec wst = gkyl_wall_clock();
 
   double t_new;
-  gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_nvec, &t_new);
+  gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_mnvec, &t_new);
 
   app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
 
@@ -862,31 +862,42 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Step the solution forward with SUNDIALS.
     app->use_sundials = true;
 
-    int ncomp_max = 0; // Max components per cell among all species.
+    app->gk_sundials = gkyl_sundials_new(app->use_gpu);
+
+    // Create a Sundials Nvector for each quantity stepped in time.
+    for (int i=0; i<ns; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      gk_s->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, gk_s->f, gk_s->comm, &gk_s->local);
+    }
+    for (int i=0; i<neuts; ++i) {
+      struct gk_neut_species *gk_ns = &app->neut_species[i];
+      gk_ns->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, gk_ns->f, gk_ns->comm, &gk_ns->local);
+    }
+
+    // Total number of Nvectors, i.e. quantities stepped in time.
+    int tot_num_vecs = app->num_species + app->num_neut_species;
+    struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
     for (int i=0; i<ns; ++i)
-      ncomp_max = ncomp_max < app->species[i].f->ncomp? app->species[i].f->ncomp : ncomp_max;
+      snvec_arr[i] = app->species[i].sundials_nvec;
 
     for (int i=0; i<neuts; ++i)
-      ncomp_max = ncomp_max < app->neut_species[i].f->ncomp? app->neut_species[i].f->ncomp : ncomp_max;
+      snvec_arr[ns+i] = app->neut_species[i].sundials_nvec;
 
-    app->gk_sundials = gkyl_sundials_new(ncomp_max, app->use_gpu);
-
-    // Create a sundials Nvector for the Gkeyll state vector.
-    assert(ns == 1);
-    assert(neuts == 0);
-    app->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, app->species[0].f, app->comm, &app->species[0].local);
+    app->sundials_mnvec = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
 
     // Initialize SSP RK stepper.
     app->sundials_app_ctx.app_ptr = app;
     app->sundials_app_ctx.dfdt_func = gyrokinetic_dfdt_generic;
     app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
+    app->sundials_app_ctx.num_species = app->num_species;
+    app->sundials_app_ctx.num_neut_species = app->num_neut_species;
 
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
     app->sundials_stepper_inp.max_steps = gk->sundials_stepper.max_steps,
     app->sundials_stepper_inp.num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
-    app->sundials_stepper_inp.gsnv = app->sundials_nvec,
+    app->sundials_stepper_inp.gsnv = app->sundials_mnvec,
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
@@ -1067,8 +1078,36 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   if (app->use_sundials) {
     // Give initial time and ICs to Sundials.
-    struct gk_species *gks = &app->species[0];
-    gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_nvec, gks->lte.f_lte);
+    struct gkyl_sundials_nvec *mnvec_buff = 0;
+    int num_spec = app->num_species;
+    int tot_num_vecs = num_spec + app->num_neut_species;
+    struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
+    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+      // Need to create a temporary ManyNvector with buffers to store dy/dt
+      // Total number of Nvectors, i.e. quantities stepped in time.
+      for (int i=0; i<num_spec; ++i) {
+        struct gk_species *gk_s = &app->species[i];
+        snvec_arr[i] = gkyl_sundials_nvec_new(app->gk_sundials, gk_s->lte.f_lte, gk_s->comm, &gk_s->local);
+      }
+      for (int i=0; i<app->num_neut_species; ++i) {
+        struct gk_neut_species *gk_ns = &app->neut_species[i];
+        snvec_arr[num_spec+i] = gkyl_sundials_nvec_new(app->gk_sundials, gk_ns->lte.f_lte, gk_ns->comm, &gk_ns->local);
+      }
+
+      mnvec_buff = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
+    }
+
+    gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_mnvec, mnvec_buff);
+
+    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+      for (int i=0; i<num_spec; ++i) {
+        gkyl_sundials_nvec_release(snvec_arr[i]);
+      }
+      for (int i=0; i<app->num_neut_species; ++i) {
+        gkyl_sundials_nvec_release(snvec_arr[num_spec+i]);
+      }
+      gkyl_sundials_many_nvec_release(mnvec_buff);
+    }
   }
 }
 
@@ -3103,8 +3142,36 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
   if (app->use_sundials) {
     // Give initial time and ICs to Sundials.
-    struct gk_species *gks = &app->species[0];
-    gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_nvec, gks->lte.f_lte);
+    struct gkyl_sundials_nvec *mnvec_buff = 0;
+    int num_spec = app->num_species;
+    int tot_num_vecs = num_spec + app->num_neut_species;
+    struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
+    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+      // Need to create a temporary ManyNvector with buffers to store dy/dt
+      // Total number of Nvectors, i.e. quantities stepped in time.
+      for (int i=0; i<num_spec; ++i) {
+        struct gk_species *gk_s = &app->species[i];
+        snvec_arr[i] = gkyl_sundials_nvec_new(app->gk_sundials, gk_s->lte.f_lte, gk_s->comm, &gk_s->local);
+      }
+      for (int i=0; i<app->num_neut_species; ++i) {
+        struct gk_neut_species *gk_ns = &app->neut_species[i];
+        snvec_arr[num_spec+i] = gkyl_sundials_nvec_new(app->gk_sundials, gk_ns->lte.f_lte, gk_ns->comm, &gk_ns->local);
+      }
+
+      mnvec_buff = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
+    }
+
+    gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_mnvec, mnvec_buff);
+
+    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+      for (int i=0; i<num_spec; ++i) {
+        gkyl_sundials_nvec_release(snvec_arr[i]);
+      }
+      for (int i=0; i<app->num_neut_species; ++i) {
+        gkyl_sundials_nvec_release(snvec_arr[num_spec+i]);
+      }
+      gkyl_sundials_many_nvec_release(mnvec_buff);
+    }
   }
 
   return rstat;
@@ -3186,7 +3253,15 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_dynvec_release(app->dts);
 
   if (app->use_sundials) {
-    gkyl_sundials_nvec_release(app->sundials_nvec);
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      gkyl_sundials_nvec_release(gk_s->sundials_nvec);
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
+      struct gk_neut_species *gk_ns = &app->neut_species[i];
+      gkyl_sundials_nvec_release(gk_ns->sundials_nvec);
+    }
+    gkyl_sundials_many_nvec_release(app->sundials_mnvec);
     gkyl_sundials_release(app->gk_sundials);
   }
 

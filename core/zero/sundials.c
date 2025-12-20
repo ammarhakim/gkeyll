@@ -80,7 +80,7 @@ snvec_clone_empty(N_Vector nvin)
   content->arr         = NULL;
   content->comm        = NULL;
   content->local_range = NULL;
-  content->op_mem     = NULL;
+  content->red_mem     = NULL;
 
   return nvout;
 }
@@ -110,7 +110,7 @@ snvec_clone(N_Vector nvin)
   NV_CONTENT_GKZ(nvout)->use_gpu     = NV_CONTENT_GKZ(nvin)->use_gpu;
   NV_CONTENT_GKZ(nvout)->comm        = NV_CONTENT_GKZ(nvin)->comm;
   NV_CONTENT_GKZ(nvout)->local_range = NV_CONTENT_GKZ(nvin)->local_range;
-  NV_CONTENT_GKZ(nvout)->op_mem     = NV_CONTENT_GKZ(nvin)->op_mem;
+  NV_CONTENT_GKZ(nvout)->red_mem     = NV_CONTENT_GKZ(nvin)->red_mem;
   NV_CONTENT_GKZ(nvout)->own_vector  = SUNTRUE;
 
   return nvout;
@@ -160,6 +160,21 @@ snvec_space(N_Vector v, sunindextype* x, sunindextype* y)
 {
   *x = 0;
   *y = 0;
+}
+
+/**
+ * Return the number of DOF wrapped by the nvector, excluding ghost cells.
+ * future SUNDIALS releases.
+ *
+ * @param v Input Nvector.
+ * @return Number of DOF wrapped by v (excluding ghosts).
+ */
+static sunindextype
+snvec_get_length(N_Vector x)
+{
+  struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
+  struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
+  return xarr->ncomp * local_range->volume;
 }
 
 /**
@@ -309,22 +324,22 @@ snvec_dot_product(N_Vector x, N_Vector y)
   struct gkyl_array *y_arr = NV_CONTENT_GKZ(y)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(y)->comm;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
-  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(x)->op_mem;
+  struct gkyl_sundials_reduce_mem *red_mem = NV_CONTENT_GKZ(x)->red_mem;
   bool use_gpu = NV_CONTENT_GKZ(y)->use_gpu;
 
   // Sum reduce (component-wise) x_i^{(k)} * y_i^{(k)}.
   int ncomp = x_arr->ncomp;
-  gkyl_array_reduce_weighted_range(op_mem->red_local, x_arr, y_arr, GKYL_SUM, local_range);
-  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, op_mem->red_local, op_mem->red_global);
+  gkyl_array_reduce_weighted_range(red_mem->red_local, x_arr, y_arr, GKYL_SUM, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, red_mem->red_local, red_mem->red_global);
 
   if (use_gpu)
-    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp*sizeof(double));
+    memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp*sizeof(double));
 
   sunrealtype dot_prod = 0.0;
   for (sunindextype i = 0; i < ncomp; ++i)
-    dot_prod += op_mem->red_global_ho[i];
+    dot_prod += red_mem->red_global_ho[i];
 
   return dot_prod;
 }
@@ -341,23 +356,22 @@ snvec_abs_max_norm(N_Vector u)
   struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(u)->comm;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
-  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(u)->op_mem;
+  struct gkyl_sundials_reduce_mem *red_mem = NV_CONTENT_GKZ(u)->red_mem;
   bool use_gpu = NV_CONTENT_GKZ(u)->use_gpu;
 
   int ncomp = u_arr->ncomp;
-  assert(op_mem->ncomp == ncomp);
 
-  gkyl_array_reduce_range(op_mem->red_local, u_arr, GKYL_ABS_MAX, local_range);
-  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MAX, ncomp, op_mem->red_local, op_mem->red_global);
+  gkyl_array_reduce_range(red_mem->red_local, u_arr, GKYL_ABS_MAX, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MAX, ncomp, red_mem->red_local, red_mem->red_global);
 
   if (use_gpu)
-    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double));
+    memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double));
 
   sunrealtype u_abs_max = -1.0;
   for (sunindextype i = 0; i < ncomp; ++i)
-    u_abs_max = fmax(u_abs_max, op_mem->red_global_ho[i]);
+    u_abs_max = fmax(u_abs_max, red_mem->red_global_ho[i]);
 
   return u_abs_max;
 }
@@ -387,26 +401,25 @@ snvec_wrms_norm(N_Vector nvx, N_Vector nvwgt)
   struct gkyl_array *nvwgt_arr = NV_CONTENT_GKZ(nvwgt)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(nvwgt)->comm;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(nvx)->local_range;
-  struct gkyl_sundials_op_mem *op_mem = NV_CONTENT_GKZ(nvx)->op_mem;
+  struct gkyl_sundials_reduce_mem *red_mem = NV_CONTENT_GKZ(nvx)->red_mem;
   bool use_gpu = NV_CONTENT_GKZ(nvx)->use_gpu;
 
   int ncomp = nvx_arr->ncomp;
-  assert(op_mem->ncomp == ncomp);
 
   // Reduce over cells.
-  gkyl_array_reduce_weighted_range(op_mem->red_local, nvx_arr, nvwgt_arr, GKYL_RMS, local_range);
-  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, op_mem->red_local, op_mem->red_global);
+  gkyl_array_reduce_weighted_range(red_mem->red_local, nvx_arr, nvwgt_arr, GKYL_RMS, local_range);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, ncomp, red_mem->red_local, red_mem->red_global);
 
   if (use_gpu)
-    gkyl_cu_memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    memcpy(op_mem->red_global_ho, op_mem->red_global, ncomp * sizeof(double));
+    memcpy(red_mem->red_global_ho, red_mem->red_global, ncomp * sizeof(double));
 
   // Reduce over components.
   //  sunrealtype red_out = 0.0;
   //  for (sunindextype i = 0; i < ncomp; ++i) red_out += red_ho[i];
   // Use the 0th component because each component should have the same result.
-  sunrealtype red_out = op_mem->red_global_ho[0];
+  sunrealtype red_out = red_mem->red_global_ho[0];
 
   red_out = SUNRsqrt(red_out / local_range->volume);
 
@@ -441,6 +454,7 @@ snvec_new_empty(SUNContext sunctx)
 
   // Data operations.
   nvec->ops->nvspace     = snvec_space;
+  nvec->ops->nvgetlength = snvec_get_length;
   nvec->ops->nvlinearsum = snvec_linear_sum;
   nvec->ops->nvconst     = snvec_const;
   nvec->ops->nvscale     = snvec_scale;
@@ -469,7 +483,7 @@ snvec_new_empty(SUNContext sunctx)
   content->arr         = 0;
   content->comm        = 0;
   content->local_range = 0;
-  content->op_mem      = 0;
+  content->red_mem     = 0;
 
   return nvec;
 }
@@ -478,35 +492,58 @@ snvec_new_empty(SUNContext sunctx)
  * Return the gkyl_array wrapped by an Nvector.
  *
  * @param nvin Input Nvector.
+ * @return A pointer to the gkyl_array wrapped by this Nvector.
  */
-struct gkyl_array*
+static struct gkyl_array*
 snvec_get_array(N_Vector nvin)
 {
   return NV_CONTENT_GKZ(nvin)->arr;
 }
 
 /**
+ * Return the gkyl_array wrapped by an Nvector, which
+ * is itself wrapped by a ManyNvector.
+ *
+ * @param manynvin Input ManyNvector.
+ * @param nvidx Index of desired Nvector.
+ * @return A pointer to the gkyl_array wrapped by this Nvector.
+ */
+static struct gkyl_array*
+smanynvec_get_array(N_Vector manynvin, int nvidx)
+{
+  N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, nvidx);
+  return snvec_get_array(nvin);
+}
+
+/**
  * Error weight function for error norm of y_{n-1}.
  *
- * @param x Nvector y_{n-1} whose norm appears in the weight.
- * @param w Weight to be computed.
+ * @param x ManyNvector y_{n-1} whose norm appears in the weight.
+ * @param w ManyNvector weight to be computed.
  * @param ctx Context with app-specific pointers.
+ * @return Sucess (=0) flag.
  */
 static int
-snvec_efun_cell_norm(N_Vector x, N_Vector w, void *ctx)
+snvec_efun_cell_norm(N_Vector manyx, N_Vector manyw, void *ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
+  int flag = 0;
+  for (int i=0; i<app_ctx->num_species; i++) {
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, i);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, i);
+    struct gkyl_array *x_arr = snvec_get_array(x);
+    struct gkyl_array *w_arr = snvec_get_array(w);
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
 
-  struct gkyl_array *x_arr       = NV_CONTENT_GKZ(x)->arr;
-  struct gkyl_array *w_arr       = NV_CONTENT_GKZ(w)->arr;
-  struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+    // Call the Gkeyll function that computes the error weight.
+    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  }
 
-  // Call the Gkeyll function that computes the error weight.
-  return app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  return flag;
 }
 
 struct gkyl_sundials *
-gkyl_sundials_new(int ncomp, bool use_gpu)
+gkyl_sundials_new(bool use_gpu)
 {
   struct gkyl_sundials *gksun = gkyl_malloc(sizeof(*gksun));
 
@@ -515,19 +552,6 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
   // Create the SUNDIALS context object.
   SUNContext_Create(SUN_COMM_NULL, &gksun->sunctx);
 
-  gksun->op_mem.ncomp = ncomp;
-
-  // Allocate memory needed for reductions
-  if (use_gpu) {
-    gksun->op_mem.red_local  = gkyl_cu_malloc(ncomp * sizeof(double));
-    gksun->op_mem.red_global = gkyl_cu_malloc(ncomp * sizeof(double));
-  }
-  else {
-    gksun->op_mem.red_local  = gkyl_malloc(ncomp * sizeof(double));
-    gksun->op_mem.red_global = gkyl_malloc(ncomp * sizeof(double));
-  }
-  gksun->op_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
-
   return gksun;
 }
 
@@ -535,21 +559,19 @@ gkyl_sundials_new(int ncomp, bool use_gpu)
  * Compute the RHS function df/dt.
  *
  * @param t_curr Current simulation time.
- * @param nvec_y State vector f.
- * @param nvec_ydot Time rate of change df/dt.
+ * @param mnvec_y State vectors f_s.
+ * @param mnvec_ydot Time rate of change df_s/dt of each state vector.
  * @param ctx Context with app-specific pointers.
  */
 static int
-dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
+dfdt(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
-  struct gkyl_array *fin_s  = snvec_get_array(nvec_y);
-  struct gkyl_array *fout_s = snvec_get_array(nvec_ydot);
-
   // Distribute state vector as Gkeyll expects.
-  int num_species = 1;
-  int num_neut_species = 1;
+  int num_species = app_ctx->num_species;
+  int num_neut_species = app_ctx->num_neut_species;
+
   const struct gkyl_array *fin[num_species];
   struct gkyl_array *fout[num_species];
   struct gkyl_array **bflux_out[num_species];
@@ -558,8 +580,10 @@ dfdt(sunrealtype t_curr, N_Vector nvec_y, N_Vector nvec_ydot, void *ctx)
   struct gkyl_array *fout_neut[num_neut_species];
   struct gkyl_array **bflux_out_neut[num_neut_species];
 
-  fin[0] = fin_s;
-  fout[0] = fout_s;
+  for (int i=0; i<num_species; ++i) {
+    fin[i] = smanynvec_get_array(manynvec_y, i);
+    fout[i] = smanynvec_get_array(manynvec_ydot, i);
+  }
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
@@ -747,32 +771,26 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
 
 void
 gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
-  struct gkyl_sundials_nvec *gsnv, struct gkyl_array *fbuffer)
+  struct gkyl_sundials_nvec *gsmanynv, struct gkyl_sundials_nvec *gsmanynv_buff)
 {
-  N_Vector nvin = gsnv->nvec;
+  N_Vector manynvin = gsmanynv->nvec;
 
-  int flag = ARKodeReset(gksun->arkode_mem, time, nvin);
+  int flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
   if (gksun->rk_method == GKYL_RK_METHOD_SSP_3_3) {
     // Estimate the CFL stable dt.
     // Create a temporary NVector.
-    struct gkyl_comm *comm = NV_CONTENT_GKZ(nvin)->comm;
-    struct gkyl_range *local_range = NV_CONTENT_GKZ(nvin)->local_range;
-    struct gkyl_sundials_nvec *fbuff_nvec = gkyl_sundials_nvec_new(gksun, fbuffer,
-      comm, local_range);
-    N_Vector nvbuff = fbuff_nvec->nvec;
+    N_Vector manynvbuff = gsmanynv_buff->nvec;
   
     // Compute dt.
     double dt_init;
-    flag = dfdt(time, nvin, nvbuff, gksun->app_ctx);
-    flag = cfl_stable_dt(nvin, time, &dt_init, gksun->app_ctx);
+    flag = dfdt(time, manynvin, manynvbuff, gksun->app_ctx);
+    flag = cfl_stable_dt(manynvin, time, &dt_init, gksun->app_ctx);
 
     // Set the initial step size.
     flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
     sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
-  
-    gkyl_sundials_nvec_release(fbuff_nvec);
   }
 }
 
@@ -792,16 +810,6 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
 void
 gkyl_sundials_release(struct gkyl_sundials *gksun)
 {
-  if (gksun->use_gpu) {
-    gkyl_cu_free(gksun->op_mem.red_local);
-    gkyl_cu_free(gksun->op_mem.red_global);
-  }
-  else {
-    gkyl_free(gksun->op_mem.red_local);
-    gkyl_free(gksun->op_mem.red_global);
-  }
-  gkyl_free(gksun->op_mem.red_global_ho);
-
   gkyl_free(gksun);
 }
 
@@ -811,6 +819,20 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
 {
   struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
 
+  // Allocate memory needed for reductions
+  bool use_gpu = gkyl_array_is_cu_dev(arr);
+  int ncomp = arr->ncomp;
+  if (use_gpu) {
+    gsnv->red_mem.red_local  = gkyl_cu_malloc(ncomp * sizeof(double));
+    gsnv->red_mem.red_global = gkyl_cu_malloc(ncomp * sizeof(double));
+  }
+  else {
+    gsnv->red_mem.red_local  = gkyl_malloc(ncomp * sizeof(double));
+    gsnv->red_mem.red_global = gkyl_malloc(ncomp * sizeof(double));
+  }
+  gsnv->red_mem.red_global_ho = gkyl_malloc(ncomp * sizeof(double));
+
+  // Allocate the Sundials NVector.
   N_Vector nvout;
   nvout = 0;
   nvout = snvec_new_empty(gksun->sunctx);
@@ -824,7 +846,7 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   NV_CONTENT_GKZ(nvout)->comm = comm;
   NV_CONTENT_GKZ(nvout)->local_range = local_range;
   NV_CONTENT_GKZ(nvout)->arr = arr;
-  NV_CONTENT_GKZ(nvout)->op_mem = &gksun->op_mem;
+  NV_CONTENT_GKZ(nvout)->red_mem = &gsnv->red_mem;
 
   gsnv->nvec = nvout;
   return gsnv;
@@ -841,8 +863,53 @@ void
 gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
 {
   N_Vector nvin = gsnv->nvec;
+  struct gkyl_array *arr = snvec_get_array(nvin);
+  bool use_gpu = gkyl_array_is_cu_dev(arr);
+
+  if (use_gpu) {
+    gkyl_cu_free(gsnv->red_mem.red_local);
+    gkyl_cu_free(gsnv->red_mem.red_global);
+  }
+  else {
+    gkyl_free(gsnv->red_mem.red_local);
+    gkyl_free(gsnv->red_mem.red_global);
+  }
+  gkyl_free(gsnv->red_mem.red_global_ho);
+
   snvec_destroy(nvin);
   gkyl_free(gsnv);
+}
+
+struct gkyl_sundials_nvec*
+gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
+  struct gkyl_sundials_nvec *gsnv_arr[])
+{
+  struct gkyl_sundials_nvec *gsmanynv = gkyl_malloc(sizeof(*gsmanynv));
+  
+  // Create array of NVectors.
+  N_Vector nvarr[num_nvector];
+  for (int i=0; i<num_nvector; i++)
+    nvarr[i] = gsnv_arr[i]->nvec;
+
+  // Allocate the Sundials ManyNVector.
+  N_Vector nvout = 0;
+  nvout = N_VNew_ManyVector(num_nvector, nvarr, gksun->sunctx);
+  if (nvout == 0) {
+    fprintf(stderr, "Error: Creating new many nvector.\n");
+    assert(false);
+  }
+
+  gsmanynv->nvec = nvout;
+
+  return gsmanynv;
+}
+
+void
+gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
+{
+  N_Vector nvin = gsmanynv->nvec;
+  N_VDestroy(nvin);
+  gkyl_free(gsmanynv);
 }
 
 #else
@@ -892,4 +959,16 @@ gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
   // Do nothing.
 }
 
+struct gkyl_sundials_nvec*
+gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
+  struct gkyl_sundials_nvec *gsnv_arr[])
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
+{
+  // Do nothing.
+}
 #endif

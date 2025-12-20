@@ -34,6 +34,8 @@ struct gkyl_sundials_app_ctx {
   // Function that computes weight for the error norm.
   int (*error_wgt_func)(void *app, const struct gkyl_array *xarr,
     struct gkyl_array *wgt, struct gkyl_range *local_range);
+  int num_species; // Number of species.
+  int num_neut_species; // Number of neutral species.
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
   double dt_global; // Reduction of dt_local over all MPI processes.
@@ -60,12 +62,10 @@ typedef struct gkyl_sundials gkyl_sundials; // Sundials object.
 /**
  * Create a new SUNDIALS object (e.g. a SUNDIALS context).
  *
- * @param ncomp Number of components per cell in the state vector to be wrapped
- *              by SUNDIALS NVECTORS. Used to allocate memory for reductions.
  * @param use_gpu Whether data wrapped by SUNDIALS NVECTORS lives on the GPU.
  * @return A new SUNDIALS object.
  */
-struct gkyl_sundials* gkyl_sundials_new(int ncomp, bool use_gpu);
+struct gkyl_sundials* gkyl_sundials_new(bool use_gpu);
 
 /**
  * Initialize the SSP RK time stepper.
@@ -81,11 +81,11 @@ void gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
  *
  * @param gksun SUNDIALS object.
  * @param time New simulation time.
- * @param gsnv New state vector.
- * @param fbuffer Buffer array, as big as state vector array.
+ * @param gsmanynv New state vectors (as ManyNVector).
+ * @param gsmanynv_buff Buffer array, as big as state vector array.
  */
 void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
-  struct gkyl_sundials_nvec *gsnv, struct gkyl_array *fbuffer);
+  struct gkyl_sundials_nvec *gsmanynv, struct gkyl_sundials_nvec *gsmanynv_buff);
 
 /**
  * Evolve the solution contained in a given Nvector from
@@ -137,4 +137,23 @@ struct gkyl_array* gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *nvin)
  * @param nvin NVECTOR to be destroyed.
  */
 void gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *nvin);
+
+/**
+ * Create a new ManyNVECTOR wrapping of all our Nvectors (one for each
+ * gkyl_array that is evolved via time integration of a PDE).
+ *
+ * @param gksun SUNDIALS object.
+ * @param num_nvector Number of NVectors to wrap.
+ * @param gsnv_arr Array of Gkeyll nvector objects.
+ * @return A new NVECTOR, which holds the ManyVector.
+ */
+struct gkyl_sundials_nvec* gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun,
+  int num_nvector, struct gkyl_sundials_nvec* gsnv_arr[]);
+
+/**
+ * Destroy SUNDIALS ManyNVECTOR.
+ *
+ * @param gsmanynv ManyNVECTOR to be destroyed.
+ */
+void gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv);
 

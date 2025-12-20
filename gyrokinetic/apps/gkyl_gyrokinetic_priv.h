@@ -946,6 +946,8 @@ struct gk_species {
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  struct gkyl_sundials_nvec *sundials_nvec; // Sundials Nvector wrap of f.
+
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
@@ -1090,9 +1092,10 @@ struct gk_neut_species {
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
-  struct gkyl_array *f_host; // Host array for initialization and I/O.
+  struct gkyl_sundials_nvec *sundials_nvec; // Sundials Nvector wrap of f.
 
   struct gkyl_array *cflrate; // CFL rate in each cell.
+  struct gkyl_array *f_host; // Host array for initialization and I/O.
 
   struct gk_species_moment *moms; // Compute diagnostic moments.
   struct gk_species_moment integ_moms; // Computes integrated moments.
@@ -1389,7 +1392,8 @@ struct gkyl_gyrokinetic_app {
   // Objects and pointers for SUNDIALS stepper.
   bool use_sundials;
   struct gkyl_sundials *gk_sundials;
-  struct gkyl_sundials_nvec *sundials_nvec;
+  struct gkyl_sundials_nvec *sundials_mnvec; // Sundials ManyNvector wrap of Nvectors,
+                                             // each wrapping a gkyl_array stepped in time.
   struct gkyl_sundials_app_ctx sundials_app_ctx;
   struct gkyl_sundials_stepper_inp sundials_stepper_inp;
 
