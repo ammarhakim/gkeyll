@@ -710,7 +710,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
   }
   if (mom_em->has_resistivity_sources) {
-    explicit_resistivity_source_update(mom_em, t_curr, dt, em, ext_em);
+    explicit_resistivity_source_update(mom_em, t_curr, dt, em, sigma);
   }
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);

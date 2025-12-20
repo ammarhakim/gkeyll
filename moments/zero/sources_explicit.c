@@ -364,13 +364,9 @@ explicit_resistivity_source_update(const gkyl_moment_em_coupling* mom_em, double
   double epsilon0 = mom_em->epsilon0;
   double sigma_exp = exp(sigma[0] * dt / epsilon0);
 
-  printf("em = [%e, %e, %e], sigma = %e, dt = %e, epsilon0 = %e, sigma_exp = %e\n", em[0], em[1], em[2], sigma[0], dt, epsilon0, sigma_exp);
-
   em[0] = em[0] / sigma_exp;
   em[1] = em[1] / sigma_exp;
   em[2] = em[2] / sigma_exp;
-
-  printf("em_final = [%e, %e, %e]\n", em[0], em[1], em[2]);
 }
 
 void
