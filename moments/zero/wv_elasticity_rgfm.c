@@ -24,7 +24,6 @@ gkyl_elasticity_rgfm_flux(int num_species, double* T_ref_s, double* sound_speed_
   deformation_gradient_total[2][0] = v[10]; deformation_gradient_total[2][1] = v[11]; deformation_gradient_total[2][2] = v[12];
 
   double E_tot = q[13];
-  double specific_entropy_total = v[13];
 
   double *level_set_s = gkyl_malloc(sizeof(double[num_species]));
   double level_set_total = 0.0;
@@ -116,6 +115,15 @@ gkyl_elasticity_rgfm_flux(int num_species, double* T_ref_s, double* sound_speed_
     energy_deriv_invariant2_s[i] = -(0.5 * shear_modulus_s[i]) * pow(strain_invariant3_total, 0.5 * beta_param_s[i]);
   }
 
+  double internal_energy_total = (E_tot / rho_total) - (0.5 * ((vel_x_total * vel_x_total) + (vel_y_total * vel_y_total) + (vel_z_total * vel_z_total)));
+  double *specific_entropy_s = gkyl_malloc(sizeof(double[num_species]));
+  for (int i = 0; i < num_species; i++) {
+    specific_entropy_s[i] = heat_capacity_s[i] * log((1.0 / (6.0 * (alpha_param_s[i] * alpha_param_s[i]) * heat_capacity_s[i] * T_ref_s[i])) * (pow(strain_invariant3_total, -0.5 * gamma_param_s[i]) *
+      ((-3.0 * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * bulk_modulus_s[i]) +
+      ((alpha_param_s[i] * alpha_param_s[i]) * ((6.0 * internal_energy_total) - (shear_modulus_s[i] * ((strain_invariant1_total * strain_invariant1_total) - (3.0 * strain_invariant2_total)) *
+      pow(strain_invariant3_total, 0.5 * beta_param_s[i])) + (6.0 * heat_capacity_s[i] * pow(strain_invariant3_total, 0.5 * gamma_param_s[i]) * T_ref_s[i]))))));
+  }
+
   double *energy_deriv_invariant3_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
     energy_deriv_invariant3_s[i] = (1.0 / (12.0 * alpha_param_s[i] * strain_invariant3_total)) * (alpha_param_s[i] * shear_modulus_s[i] * beta_param_s[i] *
@@ -123,7 +131,7 @@ gkyl_elasticity_rgfm_flux(int num_species, double* T_ref_s, double* sound_speed_
     
     energy_deriv_invariant3_s[i] -= (1.0 / (12.0 * alpha_param_s[i] * strain_invariant3_total)) * (6.0 * pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) * bulk_modulus_s[i]);
     energy_deriv_invariant3_s[i] += (1.0 / (12.0 * alpha_param_s[i] * strain_invariant3_total)) * (6.0 * pow(strain_invariant3_total, alpha_param_s[i]) * bulk_modulus_s[i]);
-    energy_deriv_invariant3_s[i] += (1.0 / (12.0 * alpha_param_s[i] * strain_invariant3_total)) * (6.0 * alpha_param_s[i] * heat_capacity_s[i] * (exp(specific_entropy_total / heat_capacity_s[i]) - 1.0) *
+    energy_deriv_invariant3_s[i] += (1.0 / (12.0 * alpha_param_s[i] * strain_invariant3_total)) * (6.0 * alpha_param_s[i] * heat_capacity_s[i] * (exp(specific_entropy_s[i] / heat_capacity_s[i]) - 1.0) *
       gamma_param_s[i] * pow(strain_invariant3_total, 0.5 * gamma_param_s[i]) * T_ref_s[i]);
   }
 
@@ -377,9 +385,9 @@ gkyl_elasticity_rgfm_prim_vars(int num_species, double* T_ref_s, double* sound_s
   double *specific_entropy_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
     specific_entropy_s[i] = heat_capacity_s[i] * log((1.0 / (6.0 * (alpha_param_s[i] * alpha_param_s[i]) * heat_capacity_s[i] * T_ref_s[i])) * (pow(strain_invariant3_total, -0.5 * gamma_param_s[i]) *
-    ((-3.0 * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * bulk_modulus_s[i]) +
-    ((alpha_param_s[i] * alpha_param_s[i]) * ((6.0 * internal_energy_total) - (shear_modulus_s[i] * ((strain_invariant1_total * strain_invariant1_total) - (3.0 * strain_invariant2_total)) *
-    pow(strain_invariant3_total, 0.5 * beta_param_s[i])) + (6.0 * heat_capacity_s[i] * pow(strain_invariant3_total, 0.5 * gamma_param_s[i]) * T_ref_s[i]))))));
+      ((-3.0 * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * (pow(strain_invariant3_total, 0.5 * alpha_param_s[i]) - 1.0) * bulk_modulus_s[i]) +
+      ((alpha_param_s[i] * alpha_param_s[i]) * ((6.0 * internal_energy_total) - (shear_modulus_s[i] * ((strain_invariant1_total * strain_invariant1_total) - (3.0 * strain_invariant2_total)) *
+      pow(strain_invariant3_total, 0.5 * beta_param_s[i])) + (6.0 * heat_capacity_s[i] * pow(strain_invariant3_total, 0.5 * gamma_param_s[i]) * T_ref_s[i]))))));
   }
 
   double specific_entropy_total = 0.0;
