@@ -1228,6 +1228,27 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
+    if (app->field->is_em) {
+      // Copy data from device to host before writing it out.
+      if (app->use_gpu) {
+        gkyl_array_copy(app->field->apar_host, app->field->apar);
+        gkyl_array_copy(app->field->apardot_host, app->field->apardot);
+      }
+      const char *fmt_apar = "%s-apar_%d.gkyl";
+      int sz_apar = gkyl_calc_strlen(fmt_apar, app->name, frame);
+      char fileNm_apar[sz_apar+1]; // ensures no buffer overflow
+      snprintf(fileNm_apar, sizeof fileNm_apar, fmt_apar, app->name, frame);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm_apar);
+
+      const char *fmt_apardot = "%s-apardot_%d.gkyl";
+      int sz_apardot = gkyl_calc_strlen(fmt_apardot, app->name, frame);
+      char fileNm_apardot[sz_apardot+1]; // ensures no buffer overflow
+      snprintf(fileNm_apardot, sizeof fileNm_apardot, fmt_apardot, app->name, frame);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm_apardot);
+    }
+
     gk_array_meta_release(mt);
 
     app->stat.field_io_tm += gkyl_time_diff_now_sec(wtm);
