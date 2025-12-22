@@ -130,7 +130,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 2048; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.4; // CFL coefficient.
+  double cfl_frac = 0.8; // CFL coefficient.
   int reinit_freq = 3; // Reinitialization frequency (for level set).
   double surface_tension = 0.0; // Surface tension (for level set).
 
