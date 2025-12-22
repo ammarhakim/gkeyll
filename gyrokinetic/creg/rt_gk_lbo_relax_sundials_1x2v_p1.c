@@ -324,8 +324,9 @@ main(int argc, char **argv)
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,
 //      .max_steps = 100000,
-      .num_SSP_stages = 4,
-      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
+//      .num_stages = 4,
+//      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
+      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKL_2,
     },
 
     .geometry = {

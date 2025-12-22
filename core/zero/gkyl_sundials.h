@@ -14,11 +14,11 @@
 enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_NONE = 0,
   GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method (for testing only).
-  GKYL_SUNDIALS_LSRK_METHOD_RKC_2, // 2nd order Runge-Kutta-Chebyshev (RKC).
-  GKYL_SUNDIALS_LSRK_METHOD_RKL_2, // 2nd order Runge-Kutta-Legendre (RKL).
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order s-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3, // Optimal 3rd order s-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4, // Optimal 4th order 10-stage SSP RK method.
+  GKYL_SUNDIALS_LSRK_METHOD_RKC_2, // 2nd order Runge-Kutta-Chebyshev (RKC).
+  GKYL_SUNDIALS_LSRK_METHOD_RKL_2, // 2nd order Runge-Kutta-Legendre (RKL).
 };
 
 // Context for functions that are app-specific and/or
@@ -45,12 +45,20 @@ struct gkyl_sundials_app_ctx {
 struct gkyl_sundials_stepper_inp {
   double rel_tol; // Relative tolerance.
   double abs_tol; // Absolute tolerance.
-  long max_steps; // Maximum number of steps (Default: 1e5).
-  int num_SSP_stages; // Number of stages in SSP RK method.
-  enum gkyl_sundials_rk_method rk_method; // Time stepping method (Default: GKYL_RK_METHOD_SSP_3_3).
+  long max_steps; // Maximum number of steps (default: 1e5).
+  unsigned int num_stages; // Number of stages in a step, for methods with fixed number of stages.
+  unsigned int max_num_stages; // Maximum number of stages, for methods with adaptive number of stages (default: 200).
+  enum gkyl_sundials_rk_method rk_method; // Time stepping method (default: GKYL_RK_METHOD_SSP_3_3).
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
+  // Dominant eigenvalue estimator inputs.
+  unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
+  double dee_rel_tol; // Relative tolerance (default: 0.01).
+  unsigned int dee_num_init_warmups; // Number of initial warm ups (default: 100).
+  unsigned int dee_num_succ_warmups; // Number of succeeding warm ups (default: 0).
+  unsigned int dee_frequency; // Number of steps between DEEs (default: 10).
+  double dee_safety_fac; // Safety factor setting the effective dominant eigenvalue (default: 1.01).
 };
 
 //
@@ -68,12 +76,12 @@ typedef struct gkyl_sundials gkyl_sundials; // Sundials object.
 struct gkyl_sundials* gkyl_sundials_new(bool use_gpu);
 
 /**
- * Initialize the SSP RK time stepper.
+ * Initialize the SUNDIALS time stepper.
  *
  * @param gksun SUNDIALS object.
  * @param inp SUNDIALS inputs for time stepper.
  */
-void gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
+void gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp);
 
 /**

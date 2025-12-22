@@ -896,13 +896,13 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
     app->sundials_stepper_inp.max_steps = gk->sundials_stepper.max_steps,
-    app->sundials_stepper_inp.num_SSP_stages = gk->sundials_stepper.num_SSP_stages,
+    app->sundials_stepper_inp.num_stages = gk->sundials_stepper.num_stages,
     app->sundials_stepper_inp.gsnv = app->sundials_mnvec,
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
 
-    gkyl_sundials_stepper_init_ssp_rk(app->gk_sundials, &app->sundials_stepper_inp);
+    gkyl_sundials_stepper_init(app->gk_sundials, &app->sundials_stepper_inp);
 
     app->update_func = gyrokinetic_update_sundials;
   }
@@ -1083,7 +1083,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     int tot_num_vecs = num_spec + app->num_neut_species;
     struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
     if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
-      // Need to create a temporary ManyNvector with buffers to store dy/dt
+      // Create a temporary ManyNvector with buffers to store dy/dt
       // Total number of Nvectors, i.e. quantities stepped in time.
       for (int i=0; i<num_spec; ++i) {
         struct gk_species *gk_s = &app->species[i];
@@ -3147,7 +3147,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     int tot_num_vecs = num_spec + app->num_neut_species;
     struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
     if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
-      // Need to create a temporary ManyNvector with buffers to store dy/dt
+      // Create a temporary ManyNvector with buffers to store dy/dt
       // Total number of Nvectors, i.e. quantities stepped in time.
       for (int i=0; i<num_spec; ++i) {
         struct gk_species *gk_s = &app->species[i];

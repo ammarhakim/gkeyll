@@ -520,8 +520,16 @@ struct gkyl_sundials_inp {
   double relative_tolerance; // Relative tolerance.
   double absolute_tolerance; // Absolute tolerance.
   long max_steps; // Maximum number of steps.
-  int num_SSP_stages; // Number of stages in SSP RK method.
+  unsigned int num_stages; // Number of stages per step.
+  unsigned int max_stages; // Maximum number of stages per step.
   enum gkyl_sundials_rk_method rk_method; // Time stepping method.
+  // Dominant eigenvalue estimator inputs.
+  unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
+  double dee_rel_tol; // Relative tolerance (default: 0.01).
+  unsigned int dee_num_init_warmups; // Number of initial warm ups (default: 100).
+  unsigned int dee_num_succ_warmups; // Number of succeeding warm ups (default: 0).
+  unsigned int dee_frequency; // Number of steps between DEEs (default: 10).
+  double dee_safety_fac; // Safety factor setting the effective dominant eigenvalue (default: 1.01).
 };
 
 // Top-level app parameters

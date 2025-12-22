@@ -12,6 +12,7 @@
 #include <sundials/sundials_types.h> // Definition of type sunrealtype.
 #include <arkode/arkode_lsrkstep.h> // Access to LSRKStep.
 #include <arkode/arkode_erkstep.h> // Access to ERKStep.
+#include <sundomeigest/sundomeigest_power.h> // Power iteration dominant eigen value estimator.
 
 // Give access to the Gkeyll vector from within the NVECTOR.
 #define NV_CONTENT_GKZ(v) ((N_VectorContent_Gkeyll)(v->content))
@@ -48,6 +49,7 @@ struct gkyl_sundials
   bool use_gpu; // Whether to run on GPU.
   void *arkode_mem; // Memory for ARKODE.
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.
+  SUNDomEigEstimator dom_eig_est; // Dominant eigenvalue estimator.
 };
 
 /**

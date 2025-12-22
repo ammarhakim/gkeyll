@@ -606,12 +606,6 @@ translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
     case GKYL_RK_METHOD_SSP_3_3:
       assert(false); // Shouldn't be necessary.
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
-      return ARKODE_LSRK_RKC_2;
-      break;
-    case GKYL_SUNDIALS_LSRK_METHOD_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
-      return ARKODE_LSRK_RKL_2;
-      break;
     case GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2: // Optimal 2nd order s-stage SSP RK method.
       return ARKODE_LSRK_SSP_S_2;
       break;
@@ -620,6 +614,12 @@ translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
       break;
     case GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4: // Optimal 4th order 10-stage SSP RK method.
       return ARKODE_LSRK_SSP_10_4;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
+      return ARKODE_LSRK_RKC_2;
+      break;
+    case GKYL_SUNDIALS_LSRK_METHOD_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
+      return ARKODE_LSRK_RKL_2;
       break;
     default:
       assert(false);
@@ -709,28 +709,11 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   ARKodeButcherTable_Free(B_ssp33);
 }
 
-void
+static void
 gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
 {
-  // Set default values if user didn't provide a value.
-  if (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE)
-    inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
-  
-  if (inp->max_steps == 0)
-    inp->max_steps = 100000;
-  // Finished setting default values.
-
-
-  gksun->rk_method = inp->rk_method; // Store method in Sundials object.
-  gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
-
-  if (inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
-    // Gkeyll's native 3rd order 3-stage SSP RK.
-    gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
-    return;
-  }
-
+  // Initialize a SSP RK time stepper (not 3-stage SSP RK3).
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
   if (nvin == 0) {
@@ -761,12 +744,132 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "LSRKStepSetSSPMethod", 1);
 
   // Specify the number of SSP stages.
-  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem, inp->num_SSP_stages);
+  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem, inp->num_stages);
   sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
 
   // Attach the error function.
   flag = ARKodeWFtolerances(gksun->arkode_mem, snvec_efun_cell_norm);
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
+}
+
+static void
+gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  // Initialize the Super Time Stepping integrator.
+
+  // Set default values if user didn't provide a value.
+  if (inp->dee_max_iter == 0)
+    inp->dee_max_iter = 1e3;
+  
+  if (fabs(inp->dee_rel_tol) < 1e-16)
+    inp->dee_rel_tol = 0.01;
+  
+  if (inp->dee_num_init_warmups == 0)
+    inp->dee_num_init_warmups = 1e2;
+  
+  if (inp->dee_num_succ_warmups != 0)
+    inp->dee_num_succ_warmups = inp->dee_num_succ_warmups;
+  
+  if (inp->dee_frequency == 0)
+    inp->dee_frequency = 10;
+  // Finished setting default values.
+
+  int flag;
+  N_Vector nvin = inp->gsnv->nvec;
+  if (nvin == 0) {
+    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    assert(false);
+  }
+
+  // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
+  // specify the right-hand side function in dfdt, the initial time
+  // t_curr, and the initial dependent variable vector nvin.
+  gksun->arkode_mem = LSRKStepCreateSTS(dfdt, inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSTS", 0);
+
+  // Set user data (app pointer).
+  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
+  sundials_check_flag(&flag, "ARKodeSetUserData", 1);
+
+  // Specify tolerances.
+  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
+  sundials_check_flag(&flag, "ARKStepSStolerances", 1);
+
+  // Set the initial eigenvector for DEE. Should reset after ICs are set.
+  gksun->dom_eig_est = SUNDomEigEstimator_Power(nvin, inp->dee_max_iter,
+    inp->dee_rel_tol, nvin->sunctx);
+  sundials_check_flag(&flag, "SUNDomEigEstimator_Power", 0);
+
+  flag = LSRKStepSetDomEigEstimator(gksun->arkode_mem, gksun->dom_eig_est);
+  sundials_check_flag(&flag, "LSRKStepSetDomEigEstimator", 1);
+
+  flag = LSRKStepSetNumDomEigEstInitPreprocessIters(gksun->arkode_mem, inp->dee_num_init_warmups);
+  sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstInitPreprocessIters", 1);
+
+  flag = LSRKStepSetNumDomEigEstPreprocessIters(gksun->arkode_mem, inp->dee_num_succ_warmups);
+  sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstPreprocessIters", 1);
+
+  // Specify after how many successful steps dom_eig is recomputed.
+  // Note that nsteps = 0 refers to constant dominant eigenvalue.
+  flag = LSRKStepSetDomEigFrequency(gksun->arkode_mem, inp->dee_frequency);
+  sundials_check_flag(&flag, "LSRKStepSetDomEigFrequency", 1);
+
+  // Specify max number of stages allowed.
+  flag = LSRKStepSetMaxNumStages(gksun->arkode_mem, inp->max_num_stages);
+  sundials_check_flag(&flag, "LSRKStepSetMaxNumStages", 1);
+
+  // Specify max number of steps allowed.
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
+  sundials_check_flag(&flag, "LSRKStepSetMaxNumStages", 1);
+
+  // Specify safety factor for user provided dom_eig.
+  flag = LSRKStepSetDomEigSafetyFactor(gksun->arkode_mem, inp->dee_safety_fac);
+  sundials_check_flag(&flag, "LSRKStepSetDomEigSafetyFactor", 1);
+
+  // Specify the STS method.
+  flag = LSRKStepSetSTSMethod(gksun->arkode_mem, translate_gk_to_sundials_rk_method(inp->rk_method));
+  sundials_check_flag(&flag, "LSRKStepSetSTSMethod", 1);
+}
+
+
+void
+gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  // Set default values if user didn't provide a value.
+  if (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE)
+    inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
+  
+  if (inp->max_steps == 0)
+    inp->max_steps = 100000;
+  // Finished setting default values.
+
+  gksun->rk_method = inp->rk_method; // Store method in Sundials object.
+  gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
+
+  if (inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    // Gkeyll's native 3rd order 3-stage SSP RK.
+    gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
+  }
+  else if ( (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2) ||
+            (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3) ||
+            (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4) ) {
+    if (inp->num_stages == 3) {
+      // Gkeyll's native 3rd order 3-stage SSP RK, without embedding,
+      // adapting dt using Gkeyll's CFL constraint.
+      gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
+    }
+    else {
+      // Other SSP RK methods (with embedding to adapt dt).
+      gkyl_sundials_stepper_init_ssp_rk(gksun, inp);
+    }
+  }
+  else {
+    // Super time stepping.
+    gkyl_sundials_stepper_init_sts(gksun, inp);
+  }
+
 }
 
 void
