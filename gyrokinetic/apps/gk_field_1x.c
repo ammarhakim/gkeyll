@@ -177,9 +177,6 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
       f->fem_parproj_ampere_bc, 0, 0, app->use_gpu);
 
-    f->ampere_solve = gk_field_ampere_solve_1x_enabled;
-    f->em_rhs_func = gk_field_em_rhs_enabled;
-
     assert(f->info.mu0 > 0.0);
     f->apar_energy_fac_1d = 0.5/f->info.mu0 * f->info.kperpSq;
     f->apar_energy_fac_1d *= -1.0; // the -1 is to be consistent with ES energy.
@@ -194,8 +191,8 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Set function pointers.
   f->rhs_phi_func = gk_field_rhs_phi_1x;
   if (f->is_em) {
-    f->em_rhs_func = gk_field_em_rhs_none;
-    f->ampere_solve = gk_field_ampere_solve_1x_none;
+    f->em_rhs_func = gk_field_em_rhs_enabled;
+    f->ampere_solve = gk_field_ampere_solve_1x_enabled;
   } else {
     f->em_rhs_func = gk_field_em_rhs_none;
     f->ampere_solve = gk_field_ampere_solve_1x_none;

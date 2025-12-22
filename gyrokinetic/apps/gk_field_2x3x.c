@@ -249,7 +249,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-  f->em_rhs_func = gk_field_em_rhs_none;
   // Setup electromagnetic variables if needed.
   if (f->is_em) {
     f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -281,9 +280,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   } else {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
   }
-
-  f->ampere_solve = gk_field_ampere_solve_none;
-  f->em_rhs_func = gk_field_em_rhs_none;
 
   double polarization_weight = 0.0;
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
@@ -418,6 +414,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc, 0, 0, app->use_gpu);
   }
 
+  f->ampere_solve = gk_field_ampere_solve_none;
+  f->em_rhs_func = gk_field_em_rhs_none;
   // Setup EM solvers.
   if (f->is_em) {
     // Translate input file BCs into Ampere BCs.
