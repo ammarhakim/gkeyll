@@ -200,13 +200,13 @@ create_ctx(void)
   int Nz = 12; // Reduce this to delay recurrence effect.
   double z_min = -M_PI/kz_min;  // Min z-coordinate [m].
   double z_max = M_PI/kz_min;   // Max z-coordinate [m].
-  int Nvpar = 16; // Increase this to delay recurrence effect.
-  double vpar_max_elc = 5.0*vte; // Max electron parallel velocity [m/s].
+  int Nvpar = 24; // Increase this to delay recurrence effect.
+  double vpar_max_elc = 6.0*vte; // Max electron parallel velocity [m/s].
   double vpar_min_elc = -vpar_max_elc; // Min electron parallel velocity [m/s].
-  double vpar_max_ion = 5.0*vti; // Max ion parallel velocity [m/s].
+  double vpar_max_ion = 6.0*vti; // Max ion parallel velocity [m/s].
   double vpar_min_ion = -vpar_max_ion; // Min ion parallel
   // The x and mu directions are not playing a role in the dynamics.
-  int Nx = 16; // Number of cells in x-direction.
+  int Nx = 2; // Number of cells in x-direction.
   double x_min = -Lx/2;
   double x_max = Lx/2;
   int Nmu = 2;
