@@ -14,7 +14,7 @@
 enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_NONE = 0,
   GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method (for testing only).
-  GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order s-stage SSP RK method.
+  GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order SSP RK method s stages (>=2).
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3, // Optimal 3rd order s-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4, // Optimal 4th order 10-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_RKC_2, // 2nd order Runge-Kutta-Chebyshev (RKC).

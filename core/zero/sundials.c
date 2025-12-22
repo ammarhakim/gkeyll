@@ -878,7 +878,9 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
 {
   N_Vector manynvin = gsmanynv->nvec;
 
-  int flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
+  int flag;
+
+  flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
   if (gksun->rk_method == GKYL_RK_METHOD_SSP_3_3) {
@@ -895,6 +897,13 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
     flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
     sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
   }
+  else if ( (gksun->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKC_2) ||
+            (gksun->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKL_2) ) {
+    // Pass ICs to the eigenvalue estimate.
+    flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetInitialGuess", 1);
+  }
+
 }
 
 int

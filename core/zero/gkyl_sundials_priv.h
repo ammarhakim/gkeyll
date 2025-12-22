@@ -54,22 +54,20 @@ struct gkyl_sundials
 
 /**
  * Check function return value.
- *   opt == 0 means function allocates memory so check if
- *            returned NULL pointer
- *   opt == 1 means function returns a flag so check if
- *            flag >= 0
- *   opt == 2 means function allocates memory so check if returned
- *            NULL pointer
+ *   opt == 0 means function allocates memory so check if returned NULL pointer.
+ *   opt == 1 means function returns a flag so check if flag >= 0.
  */
 static void
 sundials_check_flag(void *flagvalue, const char *funcname, int opt)
 {
   int *errflag;
 
-  if (opt == 0 && flagvalue == NULL) {
-    // Check if function returned NULL pointer - no memory allocated.
-    fprintf(stderr, "\nError: %s() failed - returned NULL pointer\n", funcname);
-    assert(false);
+  if (opt == 0) {
+    if (flagvalue == NULL) {
+      // Check if function returned NULL pointer - no memory allocated.
+      fprintf(stderr, "\nError: %s() failed - returned NULL pointer\n", funcname);
+      assert(false);
+    }
   }
   else if (opt == 1) {
     // Check if flag != 0.
@@ -78,10 +76,5 @@ sundials_check_flag(void *flagvalue, const char *funcname, int opt)
       fprintf(stderr, "\nError %s() failed with flag = %d\n", funcname, *errflag);
       assert(false);
     }
-  }
-  else if (opt == 2 && flagvalue == NULL) {
-    // Check if function returned NULL pointer - no memory allocated.
-    fprintf(stderr, "\nMemory error: %s() failed - returned NULL pointer\n", funcname);
-    assert(false);
   }
 }

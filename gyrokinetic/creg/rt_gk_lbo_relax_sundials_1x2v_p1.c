@@ -82,7 +82,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 1.0 / nu; // Final simulation time.
+  double t_end = 0.250 / nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -326,7 +326,9 @@ main(int argc, char **argv)
 //      .max_steps = 100000,
 //      .num_stages = 4,
 //      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
-      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKL_2,
+      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
+//      .max_num_stages = 10,
+//      .dee_frequency = 1000,
     },
 
     .geometry = {

@@ -897,10 +897,17 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
     app->sundials_stepper_inp.max_steps = gk->sundials_stepper.max_steps,
     app->sundials_stepper_inp.num_stages = gk->sundials_stepper.num_stages,
+    app->sundials_stepper_inp.max_num_stages = gk->sundials_stepper.max_num_stages,
     app->sundials_stepper_inp.gsnv = app->sundials_mnvec,
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
+    app->sundials_stepper_inp.dee_max_iter = gk->sundials_stepper.dee_max_iter,
+    app->sundials_stepper_inp.dee_rel_tol = gk->sundials_stepper.dee_relative_tolerance,
+    app->sundials_stepper_inp.dee_num_init_warmups = gk->sundials_stepper.dee_num_init_warmups,
+    app->sundials_stepper_inp.dee_num_succ_warmups = gk->sundials_stepper.dee_num_succ_warmups,
+    app->sundials_stepper_inp.dee_frequency = gk->sundials_stepper.dee_frequency,
+    app->sundials_stepper_inp.dee_safety_fac = gk->sundials_stepper.dee_safety_fac,
 
     gkyl_sundials_stepper_init(app->gk_sundials, &app->sundials_stepper_inp);
 
