@@ -26,7 +26,7 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   // Compute the LHS factor (= k_perp^2/mu_0 + sum_s q_s^2 n_s/m_s)
   // gkyl_array_set(field->dApartdtSlvr_lhs_factor, 1.0, field->dApartdtSlvr_kSq);
   gkyl_array_clear(field->dApartdtSlvr_lhs_factor, 0.0);
-  gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor, 1.0, field->dApartdtSlvr_kSq, &app->local);
+  gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor,-1.0, field->dApartdtSlvr_kSq, &app->local);
   gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor, 1.0, field->lapWeightAmpere, &app->local);
 
   // Weak division method dApar/dt = sum_s q_s int dv vpar d/dt(F_s) / ( (k_perp^2/mu_0 + sum_s q_s^2/m_s int dv F_s) )

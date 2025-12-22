@@ -585,7 +585,7 @@ gk_field_accumulate_ohms_kSq(gkyl_gyrokinetic_app *app, struct gk_field *field,
     // Gyroaverage the density if needed.
     s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
     // Use m0 to update also update the kSq matrix for the Ohm's law solver.
-    double fac = s->info.charge*s->info.charge/s->info.mass;
+    double fac = -s->info.charge*s->info.charge/s->info.mass;
     gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
   }
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
