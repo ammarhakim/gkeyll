@@ -1351,6 +1351,8 @@ struct gk_field {
   // Pointer to function to calculate the potential.
   void (*rhs_phi_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
+  void (*em_rhs_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],  struct gkyl_array *rhs_in[]);
+
   void (*calc_energy_func) (gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
   
   void (*accumulate_rhoc_func) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
@@ -4018,6 +4020,28 @@ void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field
  * @param fin[] Input distribution function (num_species size).
  */
 void gk_field_accumulate_current_dens(gkyl_gyrokinetic_app *app, struct gk_field *field, 
+  const struct gkyl_array *fin[]);
+
+/**
+ * Accumulate time derivative of current density for Ohm solve.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param rhs_in[] right-hand side of the ES GK equation for each species.
+ */
+void
+gk_field_accumulate_current_dens_dot(gkyl_gyrokinetic_app *app, struct gk_field *field, 
+  struct gkyl_array *rhs_in[]);
+
+/**
+ * Accumulate kSq term for Ohm solve.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param fin[] Input distribution function (num_species size).
+ */
+void
+gk_field_accumulate_ohms_kSq(gkyl_gyrokinetic_app *app, struct gk_field *field, 
   const struct gkyl_array *fin[]);
 
 /**

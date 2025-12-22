@@ -73,7 +73,52 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   }
 }
 
+static void
+gk_species_update_bflux_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
+  gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
+
+  // Compute diagnostic moments of the boundary fluxes.
+  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+}
+
 static double
+gk_species_get_cfl_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  // Reduce the CFL frequency anc compute stable dt needed by this species.
+  app->stat.n_species_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+
+  double omega_cfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omega_cfl_ho[0] = species->omega_cfl[0];
+  }
+  double dt_out = app->cfl/omega_cfl_ho[0];
+  
+  // Enforce the omega_H constraint on dt.
+  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, dt_omegaH);
+
+  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return dt_out;
+}
+
+static double
+gk_species_get_cfl_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  double omega_cfl = 1/DBL_MAX;
+  return app->cfl/omega_cfl;
+}
+
+static void
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
@@ -110,36 +155,17 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Heating source.
   gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
+}
 
-  // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
-  gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
+static void
+gk_species_add_apardot_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct timespec wst = gkyl_wall_clock();
 
-  // Compute moments of the boundary fluxes.
-  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  gk_species_collisionless_add_apardot_rhs(app, species, &species->collisionless, fin, rhs);
 
-  // Multiply CFL rate by the df/dt multiplier.
-  gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult, app->field->phi_smooth, species->cflrate);
-  
-  // Reduce the CFL frequency anD compute stable dt needed by this species.
-  app->stat.n_species_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
-
-  double omega_cfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omega_cfl_ho[0] = species->omega_cfl[0];
-  }
-  double dt_out = app->cfl/omega_cfl_ho[0];
-  
-  // Enforce the omega_H constraint on dt.
-  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
-  dt_out = fmin(dt_out, dt_omegaH);
-
-  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return dt_out;
+  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static double
@@ -172,12 +198,11 @@ gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *sp
   return app->cfl/omega_cfl;
 }
 
-static double
+static void
 gk_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  double omega_cfl = 1/DBL_MAX;
-  return app->cfl/omega_cfl;
+  // Do nothing.
 }
 
 static double
@@ -952,6 +977,12 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM || gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)
+    gks->add_apardot_rhs_func = gk_species_add_apardot_dynamic;
+  else
+    gks->add_apardot_rhs_func = gk_species_rhs_static;
+  gks->bflux_update = gk_species_update_bflux_dynamic;
+  gks->get_cfl = gk_species_get_cfl_dynamic;
   gks->bc_func = gk_species_apply_bc_dynamic;
   gks->release_func = gk_species_release_dynamic;
   gks->step_f_func = gk_species_step_f_dynamic;
@@ -986,6 +1017,9 @@ gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
+  gks->add_apardot_rhs_func = gk_species_rhs_static;
+  gks->bflux_update = gk_species_rhs_static;
+  gks->get_cfl = gk_species_get_cfl_static;  
   gks->bc_func = gk_species_apply_bc_static;
   gks->release_func = gk_species_release_static;
   gks->step_f_func = gk_species_step_f_static;
@@ -1479,6 +1513,16 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
+  // We do not have FLR effects for EM yet.
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_ES)
+    gks->gyro_apar = gkyl_array_acquire(app->field->apar);
+  else
+    gks->gyro_apar = gkyl_array_acquire(app->field->apar_curr);
+  gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
+
+  // To compute current density for Ampere's law and current dot for Ohm's law.
+  gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
+
   // Initialize the collisionless solver.
   gks->collisionless = (struct gk_collisionless) { };
   gk_species_collisionless_init(app, gks, &gks->collisionless);
@@ -1762,11 +1806,32 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
   }
 }
 
-double
+void
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  return species->rhs_func(app, species, fin, rhs, bflux_moms);
+  species->rhs_func(app, species, fin, rhs, bflux_moms);
+}
+
+void
+gk_species_add_apardot_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  species->add_apardot_rhs_func(app, species, fin, rhs, bflux_moms);
+}
+
+void 
+gk_species_update_bflux(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  species->bflux_update(app, species, fin, rhs, bflux_moms);
+}
+
+double 
+gk_species_get_cfl(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  return species->get_cfl(app, species, fin, rhs, bflux_moms);
 }
 
 double
@@ -1920,6 +1985,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_array_release(s->flr_kSq);
     gkyl_deflated_fem_poisson_release(s->flr_op);
   }
+
+  gkyl_array_release(s->gyro_apar);
+  gkyl_array_release(s->gyro_apardot);
+  gk_species_moment_release(app, &s->m1);
 
   s->release_func(app, s);
 }
