@@ -399,15 +399,16 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
                 -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
               };
 	      if (idx1[1] == 1)
-	printf("solve_range = %2d:%2d,%2d:%2d,%2d:%2d | idx1=%2d,%2d | bl_idx_m=%2d,%2d | edge=%2d,%2d\n",
+	printf("solve_range = %2d:%2d,%2d:%2d,%2d:%2d | idx1=%2d,%2d | bl_idx_m=%2d,%2d | edge=%2d,%2d | keri=%d\n",
 			solve_range->lower[0],solve_range->upper[0],
 			solve_range->lower[1],solve_range->upper[1],
 			solve_range->lower[2],solve_range->upper[2],
 			idx1[0], idx1[2],
 			bl_idx_m[0], bl_idx_m[1],
-			edge[0],edge[1]
+			edge[0],edge[1],
+                        keri
 			);
-              up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[0]);
+              up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[paridx]);
             }
           }
         }
