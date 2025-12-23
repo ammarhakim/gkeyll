@@ -209,8 +209,20 @@ gk_field_fem_projection_par_iwl(gkyl_gyrokinetic_app *app, struct gk_field *fiel
   int par_dir = app->cdim - 1;
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &field->global_lower_ghost_par_core, &field->global_upper_skin_par_core);
-  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
-    &field->global_upper_ghost_par_core, &field->global_lower_skin_par_core);
+//  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
+//    &field->global_upper_ghost_par_core, &field->global_lower_skin_par_core);
+
+//  gkyl_array_copy_range_to_range(field->phi_fem, field->rho_c_global_dg,
+//    &field->global_lower_skin_par_core, &field->global_upper_skin_par_core);
+  gkyl_array_copy_range_to_range(field->phi_fem, field->rho_c_global_dg,
+    &field->global_upper_skin_par_core, &field->global_lower_skin_par_core);
+//  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_lo, field->bc_buffer, field->phi_fem);
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->phi_fem);
+//  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->phi_fem,
+//    &field->global_lower_ghost_par_core, &field->global_lower_ghost_par_core);
+  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->phi_fem,
+    &field->global_upper_ghost_par_core, &field->global_upper_ghost_par_core);
+
   // Apply TS BC in the core.
 //  gkyl_bc_twistshift_advance(field->bc_T_LU_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_twistshift_advance(field->bc_T_UL_up, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -745,7 +757,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 //      field->enforce_parallel_bc_func(app, field, field->phi_smooth);
 
       // Smooth the potential along z.
-      field->fem_projection_par_func_post(app, field, field->phi_smooth, field->phi_smooth);
+//      field->fem_projection_par_func_post(app, field, field->phi_smooth, field->phi_smooth);
 
       // Finish the Poisson solve with FLR effects.
       field->invert_flr(app, field, field->phi_smooth);

@@ -82,7 +82,8 @@ fem_poisson_perp_set_cu_biasker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers,
   int ndim, enum gkyl_basis_type b_type, int poly_order, const int *bckey)
 {
 
-  // Set l2g kernels.
+  // Set biasing kernels.
+  int ndim_perp = ndim-1;
   const bias_src_kern_bcx_list_2x *bias_plane_2x_kernels;
   const bias_src_kern_bcx_list_3x *bias_plane_3x_kernels;
 
@@ -96,7 +97,7 @@ fem_poisson_perp_set_cu_biasker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers,
       break;
   }
 
-  for (int k=0; k<(int)(pow(2,ndim)+0.5); k++) {
+  for (int k=0; k<(int)(pow(2,ndim_perp)+0.5); k++) {
     if (ndim == 2) {
       kers->bias_src_ker[k] = CK2x(bias_plane_2x_kernels, poly_order, k, bckey[0]);
     } else if ( ndim == 3) {
@@ -247,6 +248,17 @@ gkyl_fem_poisson_perp_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid 
           -1+2*((bl_idx_m[0]+1)-idx[bl->perp_dirs[0]]),
           -1+2*((bl_idx_m[1]+1)-idx[bl->perp_dirs[1]]),
         };
+//	      if (idx[1] == 1)
+//	printf("range = %2d:%2d,%2d:%2d,%2d:%2d | idx=%2d,%2d | bl_idx_m=%2d,%2d | edge=%2d,%2d | val=%.6e | keri=%d\n",
+//			range.lower[0],range.upper[0],
+//			range.lower[1],range.upper[1],
+//			range.lower[2],range.upper[2],
+//			idx[0], idx[2],
+//			bl_idx_m[0], bl_idx_m[1],
+//			edge[0],edge[1],
+//			bl->val,
+//			keri
+//			);
         kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, globalidx, rhs_global);
       }
     }

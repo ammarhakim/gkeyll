@@ -547,9 +547,9 @@ struct gkyl_fem_poisson_perp_kernels {
 
   solstencil_t solker;
 
-  // Pointer to kernels that enforce biasing (2^3, 2 (interior and upper) in each direction).
-  bias_lhs_t bias_lhs_ker[8];
-  bias_src_t bias_src_ker[8];
+  // Pointer to kernels that enforce biasing (2^2, 2 (interior and upper) in each direction).
+  bias_lhs_t bias_lhs_ker[4];
+  bias_src_t bias_src_ker[4];
 };
 
 // Type of function used to enforce biasing in the RHS src.
@@ -571,7 +571,7 @@ struct gkyl_fem_poisson_perp {
 #ifdef GKYL_HAVE_CUDA
   double *dx_cu;
 #endif
-  bool isdirperiodic[GKYL_MAX_DIM]; // =true if direction is periodic.
+  bool isdirperiodic[GKYL_MAX_CDIM]; // =true if direction is periodic.
 
   struct gkyl_array *epsilon; // Permittivity.
   bool ishelmholtz; // If solving Helmholtz equation (kSq is not zero/NULL).
@@ -760,18 +760,19 @@ static void
 fem_poisson_perp_choose_bias_lhs_kernels(const struct gkyl_basis* basis,
   const bool *isdirperiodic, bias_lhs_t *blhs_out)
 {
-  int dim = basis->ndim;
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1};
-  for (int d=0; d<basis->ndim; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
+  for (int d=0; d<ndim_perp; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
-        if (dim == 2) {
+      for (int k=0; k<(int)(pow(2,ndim_perp)+0.5); k++) {
+        if (ndim == 2) {
           blhs_out[k] = CK2x(ser_bias_lhs_list_2x, poly_order, k, bckey[0]);
-        } else if (dim == 3) {
+        } else if (ndim == 3) {
           blhs_out[k] = CK3x(ser_bias_lhs_list_3x, poly_order, k, bckey[0], bckey[1]);
         }
       }
@@ -789,18 +790,19 @@ static void
 fem_poisson_perp_choose_bias_src_kernels(const struct gkyl_basis* basis,
   const bool *isdirperiodic, bias_src_t *bsrc_out)
 {
-  int dim = basis->ndim;
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1};
-  for (int d=0; d<basis->ndim; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
+  for (int d=0; d<ndim_perp; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
-        if (dim == 2) {
+      for (int k=0; k<(int)(pow(2,ndim_perp)+0.5); k++) {
+        if (ndim == 2) {
           bsrc_out[k] = CK2x(ser_bias_src_list_2x, poly_order, k, bckey[0]);
-        } else if (dim == 3) {
+        } else if (ndim == 3) {
           bsrc_out[k] = CK3x(ser_bias_src_list_3x, poly_order, k, bckey[0], bckey[1]);
         }
       }
