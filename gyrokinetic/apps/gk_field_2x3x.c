@@ -188,7 +188,6 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);
     gkyl_array_release(f->dApartdtSlvr_kSq);
-    gkyl_array_release(f->currentDens_global);
     gkyl_fem_parproj_release(f->fem_apar_parproj);
     gkyl_fem_poisson_perp_release(f->fem_apar_solver);
     gkyl_fem_poisson_perp_release(f->fem_apardot_solver);
