@@ -54,7 +54,6 @@ struct gkyl_position_map {
   struct gkyl_range local, local_ext, global, global_ext; // Local & extended local position-space range.
   struct gkyl_basis basis;  // Basis for position mapping.
   struct gkyl_array *mc2nu; // Position mapping in each position direction.
-  uint32_t flags;
   struct gkyl_ref_count ref_count;
   bool to_optimize; // Whether to optimize the position map for constant B mapping.
   bool use_map_derivs; // Whether to use analytical derivatives of the mapping
