@@ -8,6 +8,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -122,10 +123,13 @@ test_ltx_miller()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

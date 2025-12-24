@@ -105,7 +105,6 @@ struct gkyl_position_map_xpt_ctx {
   double psisep; // Separatrix psi value
 };
 
-
 /**
  * Create a new position map object. A position map is a function that maps 
  * uniform computational coordinates to non-uniform coordinates in the 

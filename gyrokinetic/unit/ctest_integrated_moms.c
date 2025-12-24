@@ -14,6 +14,7 @@
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_radiation_read.h>
@@ -138,6 +139,8 @@ test_2x_option(bool use_gpu)
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
@@ -146,6 +149,7 @@ test_2x_option(bool use_gpu)
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx = 0 ,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
