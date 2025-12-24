@@ -55,7 +55,7 @@ static void gk_species_collisionless_add_apardot_rhs_enabled(gkyl_gyrokinetic_ap
   gkyl_array_clear(gkcls->flux_surf, 0.0);
   gkyl_gk_collisionless_flux_surf(gkcls->add_apardot_surf_flux_op, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, species->gyro_apar, fin, gkcls->flux_surf, species->cflrate);
+    species->gyro_phi, species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate);
 
   // Advance the rhs adding only the Apardot volume contribution.
   gkyl_dg_updater_gyrokinetic_advance(gkcls->add_apardot_slvr, &species->local,
