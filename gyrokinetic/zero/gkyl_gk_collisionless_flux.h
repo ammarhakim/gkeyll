@@ -52,7 +52,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
  * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
  * @param phi Electrostatic potential.
- * @param apar Parallel component of vector potential.
+ * @param apar Parallel component of vector potential OR should be Apardot if only_apardot is true.
  * @param fin Distribution function.
  * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction.
  * @param clfrate Output CFL rate.
