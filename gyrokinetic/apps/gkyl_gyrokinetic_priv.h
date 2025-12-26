@@ -1334,6 +1334,8 @@ struct gk_field {
   
   // Pointer to functions for the twist-and-shift BCs.
   void (*enforce_parallel_bc_func) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*enforce_parallel_bc_em_func) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  void (*twistshift_func) (struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
   // Pointer to function for electromagnetic field solve.
   void (*accumulate_current) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
