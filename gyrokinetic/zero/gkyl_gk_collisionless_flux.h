@@ -23,6 +23,7 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param charge Species charge
  * @param mass Species mass
  * @param collless_type Type of collisionless terms.
+ * @param no_by Whether to neglect the toroidal field (set b_y=0).
  * @param only_apardot Whether to only add Apardot terms to the flux.
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
@@ -35,9 +36,9 @@ struct gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
-  const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
-  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
+  const bool no_by, const bool only_apardot, const struct gk_geometry *gk_geom, 
+  const struct gkyl_dg_geom *dg_geom, const struct gkyl_gk_dg_geom *gk_dg_geom, 
+  const struct gkyl_velocity_map *vel_map, const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha

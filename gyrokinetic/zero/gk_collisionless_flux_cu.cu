@@ -201,7 +201,8 @@ void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up, 
-  bool em, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type, bool only_apardot,
+  bool em, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type, 
+  bool no_by, bool only_apardot,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
 {
   if (only_apardot){
@@ -213,7 +214,7 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
-    if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+    if (no_by) {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
         up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
@@ -240,7 +241,8 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type type, const bool only_apardot,
+  const double charge, const double mass, enum gkyl_gk_collisionless_type type, 
+  const bool no_by, const bool only_apardot,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
@@ -279,7 +281,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_gk_collisionless_flux *up_cu = (struct gkyl_gk_collisionless_flux*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_collisionless_flux), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, em, cdim, vdim, poly_order, type, only_apardot, bctype_conf_dev);
+  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, em, cdim, vdim, poly_order, type, no_by, only_apardot, bctype_conf_dev);
 
   gkyl_cu_free(bctype_conf_dev);
 

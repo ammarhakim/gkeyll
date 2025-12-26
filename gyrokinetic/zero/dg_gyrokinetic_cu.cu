@@ -38,7 +38,7 @@ gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 __global__ static void 
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type, 
-  bool only_apardot)
+  bool no_by, bool only_apardot)
 {
   gyrokinetic->auxfields.flux_surf = 0; 
   gyrokinetic->auxfields.phi = 0; 
@@ -84,7 +84,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       break;    
   }  
 
-  if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+  if (no_by) {
     gyrokinetic->eqn.vol_term = vol_no_by_kernels[cv_index].kernels[poly_order];
   }
   else {
@@ -117,7 +117,7 @@ struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, double skip_cell_threshold, enum gkyl_gk_collisionless_type collless_type,
-  const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
+  const bool no_by, const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
 
@@ -155,7 +155,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
   dg_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
-    cdim, vdim, poly_order, collless_type, only_apardot);
+    cdim, vdim, poly_order, collless_type, no_by, only_apardot);
 
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;

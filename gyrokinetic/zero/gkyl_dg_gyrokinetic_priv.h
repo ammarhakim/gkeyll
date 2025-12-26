@@ -676,7 +676,7 @@ boundary_diag(const struct gkyl_dg_eqn *eqn,
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, double skip_if_smaller_than, enum gkyl_gk_collisionless_type collless_type,
-  const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  const bool no_by, const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)

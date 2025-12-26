@@ -30,6 +30,7 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param mass Species mass
  * @param skip_cell_threshold Threshold for skipping cells in the gyrokinetic equation
  * @param collless_type Type of collisionless terms.
+ * @param no_by Whether to neglect the toroidal field (set b_y=0).
  * @param only_apardot Whether we want to only add the apardot term.
  * @param gk_geom Geometry struct 
  * @param vel_map Velocity space mapping object.
@@ -41,8 +42,8 @@ gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_r
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_bc, double charge, double mass, double skip_cell_threshold,
-  enum gkyl_gk_collisionless_type collless_type, const bool only_apardot, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool only_apardot, 
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object.

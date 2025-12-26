@@ -1355,7 +1355,8 @@ main(int argc, char **argv)
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .no_by = true,
     },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
@@ -1727,7 +1728,8 @@ main(int argc, char **argv)
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES_NO_BY,
+      .type = GKYL_GK_COLLISIONLESS_ES,
+      .no_by = true,
     },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },

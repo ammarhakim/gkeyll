@@ -47,14 +47,14 @@ struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, double skip_cell_threshold, 
-  enum gkyl_gk_collisionless_type collless_type, const bool only_apardot,
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool only_apardot,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
-      charge, mass, skip_cell_threshold, collless_type, only_apardot, gk_geom, vel_map);
+      charge, mass, skip_cell_threshold, collless_type, no_by, only_apardot, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -112,7 +112,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       break;
   }
 
-  if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+  if (no_by) {
     gyrokinetic->eqn.vol_term = CK(vol_no_by_kernels,cdim,vdim,poly_order);
   }
   else {
