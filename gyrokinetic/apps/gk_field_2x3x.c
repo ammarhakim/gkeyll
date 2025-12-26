@@ -205,11 +205,11 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->phi_smooth);
   gkyl_array_release(f->apar);
   gkyl_array_release(f->apardot);
+  gkyl_array_release(f->apar_curr);
+  gkyl_array_release(f->apar1);
+  gkyl_array_release(f->aparnew);
 
   if (f->is_em) {
-    gkyl_array_release(f->apar_curr);
-    gkyl_array_release(f->apar1);
-    gkyl_array_release(f->aparnew);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);
@@ -245,7 +245,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_integrate_release(f->calc_em_energy);
 
   // Release TS BC and SSFG updater
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
     if (app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
@@ -272,13 +272,13 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
   f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Setup electromagnetic variables if needed.
   if (f->is_em) {
-    f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;

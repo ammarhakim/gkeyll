@@ -83,12 +83,12 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->phi_smooth);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->apar);
+  gkyl_array_release(f->apar_curr);
+  gkyl_array_release(f->apar1);
+  gkyl_array_release(f->aparnew);
   gkyl_array_release(f->apardot);
 
   if (f->is_em) {
-    gkyl_array_release(f->apar_curr);
-    gkyl_array_release(f->apar1);
-    gkyl_array_release(f->aparnew);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->currentDens_global);
@@ -133,13 +133,13 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
   f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Allocate additional arrays for EM case.
   if (f->is_em) {
-    f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
