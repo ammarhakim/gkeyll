@@ -276,21 +276,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         size_t bl_sz = up->num_bias_line * sizeof(struct gkyl_poisson_bias_line);
         struct gkyl_poisson_bias_line *bias_lines_buff = gkyl_malloc(bl_sz);
         int blc = 0;
-	printf("solve_range = %2d:%2d,%2d:%2d,%2d:%2d | num_bias_line=%d line perp_dirs=",
-			solve_range->lower[0],solve_range->upper[0],
-			solve_range->lower[1],solve_range->upper[1],
-			solve_range->lower[2],solve_range->upper[2],
-			up->num_bias_line
-			);
         for (int i=0; i<bias_lines->num_bias_line; i++) {
           if (bl_in_solve_range[i]) {
             struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
-	    printf(" perp_dirs=%d,%d perp_coords=%.6e,%.6e ",bl->perp_dirs[0],bl->perp_dirs[1],bl->perp_coords[0],bl->perp_coords[1]);
             memcpy(&bias_lines_buff[blc], &bias_lines->bl[i], sizeof(struct gkyl_poisson_bias_line));
             blc++;
           }
         }
-	printf("\n");
 
         if (up->use_gpu) {
           up->bias_lines = gkyl_cu_malloc(bl_sz);
@@ -398,16 +390,6 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
                 -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
                 -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
               };
-	      if (idx1[1] == 1)
-	printf("solve_range = %2d:%2d,%2d:%2d,%2d:%2d | idx1=%2d,%2d | bl_idx_m=%2d,%2d | edge=%2d,%2d | keri=%d\n",
-			solve_range->lower[0],solve_range->upper[0],
-			solve_range->lower[1],solve_range->upper[1],
-			solve_range->lower[2],solve_range->upper[2],
-			idx1[0], idx1[2],
-			bl_idx_m[0], bl_idx_m[1],
-			edge[0],edge[1],
-                        keri
-			);
               up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[paridx]);
             }
           }

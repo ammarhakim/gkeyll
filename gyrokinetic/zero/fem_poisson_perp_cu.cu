@@ -248,17 +248,6 @@ gkyl_fem_poisson_perp_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid 
           -1+2*((bl_idx_m[0]+1)-idx[bl->perp_dirs[0]]),
           -1+2*((bl_idx_m[1]+1)-idx[bl->perp_dirs[1]]),
         };
-//	      if (idx[1] == 1)
-//	printf("range = %2d:%2d,%2d:%2d,%2d:%2d | idx=%2d,%2d | bl_idx_m=%2d,%2d | edge=%2d,%2d | val=%.6e | keri=%d\n",
-//			range.lower[0],range.upper[0],
-//			range.lower[1],range.upper[1],
-//			range.lower[2],range.upper[2],
-//			idx[0], idx[2],
-//			bl_idx_m[0], bl_idx_m[1],
-//			edge[0],edge[1],
-//			bl->val,
-//			keri
-//			);
         kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, globalidx, rhs_global);
       }
     }
