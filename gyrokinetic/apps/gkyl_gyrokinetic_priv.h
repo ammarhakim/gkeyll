@@ -1344,8 +1344,8 @@ struct gk_field {
   void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
   void (*step_apar) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
-  void (*combine_func) (struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,const struct gkyl_range *rng);
-  void (*copy_func) (struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
+  void (*em_combine_func) (struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,const struct gkyl_range *rng);
+  void (*em_copy_func) (struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
 
   // Pointer to function to calculate the potential.
   void (*rhs_phi_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
@@ -4065,7 +4065,7 @@ void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struc
   const struct gkyl_array* inp);
 
 /**
- * Combine for rk3 method.
+ * Combine method for Apar stepping, disabled if electrostatic.
  *
  * @param field Pointer to field.
  * @param out Output array.
@@ -4075,19 +4075,19 @@ void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struc
  * @param arr2 Input array.
  * @param rng Range.
  */
-void gk_field_combine(struct gk_field *field, struct gkyl_array *out, double c1,
+void gk_field_em_combine(struct gk_field *field, struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
   const struct gkyl_range *rng);
 
 /**
- * Copy for rk3 method.
+ * Copy method for Apar stepping, disabled if electrostatic.
  *
  * @param field Pointer to field.
  * @param out Output array.
  * @param inp Input array.
  * @param range Range.
  */
-void gk_field_copy_range(struct gk_field *field, struct gkyl_array *out,
+void gk_field_em_copy_range(struct gk_field *field, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 

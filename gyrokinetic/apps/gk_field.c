@@ -402,12 +402,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (f->is_em) {
     assert(f->info.mu0 > 0.0);
     f->step_apar = gk_field_step_apar_enabled;
-    f->combine_func = gk_field_combine_enabled;
-    f->copy_func = gk_field_copy_range_enabled;
+    f->em_combine_func = gk_field_combine_enabled;
+    f->em_copy_func = gk_field_copy_range_enabled;
   } else {
     f->step_apar = gk_field_step_apar_disabled;
-    f->combine_func = gk_field_combine_disabled;
-    f->copy_func = gk_field_copy_range_disabled;
+    f->em_combine_func = gk_field_combine_disabled;
+    f->em_copy_func = gk_field_copy_range_disabled;
   }
 
   f->calc_init_field = !f->info.zero_init_field;
@@ -476,18 +476,18 @@ void gk_field_step_apar(gkyl_gyrokinetic_app *app, struct gk_field *field, struc
 }
 
 void
-gk_field_combine(struct gk_field *field, struct gkyl_array *out, double c1,
+gk_field_em_combine(struct gk_field *field, struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
   const struct gkyl_range *rng)
 {
-  field->combine_func(out, c1, arr1, c2, arr2, rng);
+  field->em_combine_func(out, c1, arr1, c2, arr2, rng);
 }
 
 void
-gk_field_copy_range(struct gk_field *field, struct gkyl_array *out,
+gk_field_em_copy_range(struct gk_field *field, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
 {
-  field->copy_func(out, inp, range);
+  field->em_copy_func(out, inp, range);
 }
 
 void

@@ -79,7 +79,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar;
         aparout = app->field->apar1;
-        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar, &app->local_ext); // Update apar_curr to latest A_parallel.
+        gk_field_em_copy_range(app->field, app->field->apar_curr, app->field->apar, &app->local_ext); // Update apar_curr to latest A_parallel.
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
@@ -149,7 +149,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar1;
         aparout = app->field->aparnew;
-        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
+        gk_field_em_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
@@ -188,7 +188,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
             gk_neut_species_bflux_set(app, &gkns->bflux, gkns->bflux.f1, 1.0/4.0, gkns->bflux.fnew);
           }
-          gk_field_combine(app->field, app->field->apar1, 3.0/4.0, app->field->apar, 1.0/4.0, app->field->aparnew, &app->local_ext);
+          gk_field_em_combine(app->field, app->field->apar1, 3.0/4.0, app->field->apar, 1.0/4.0, app->field->aparnew, &app->local_ext);
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Compute the fields and apply BCs.
@@ -225,7 +225,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         aparin = app->field->apar1;
         aparout = app->field->aparnew;
-        gk_field_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
+        gk_field_em_copy_range(app->field, app->field->apar_curr, app->field->apar1, &app->local_ext); // Update apar_curr to latest A_parallel.
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, aparin, aparout, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
@@ -272,9 +272,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
           }
           // Step A_parallel.
-          gk_field_combine(app->field, app->field->apar1, 1.0/3.0, app->field->apar, 2.0/3.0, app->field->aparnew, 
+          gk_field_em_combine(app->field, app->field->apar1, 1.0/3.0, app->field->apar, 2.0/3.0, app->field->aparnew, 
             &app->local_ext);
-          gk_field_copy_range(app->field, app->field->apar, app->field->apar1, &app->local_ext);
+          gk_field_em_copy_range(app->field, app->field->apar, app->field->apar1, &app->local_ext);
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
