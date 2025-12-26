@@ -50,13 +50,13 @@ GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
   double B3_quad = 0.0; 
   double Jc_quad = 0.0; 
   double dualcurlbhat_quad[3] = {0.0}; 
-  double m_bmag_inv = 0.0; 
-  double mvpar_over_q = 0.0; 
   double alpha_quad = 0.0; 
   double JfL_quad = 0.0; 
   double JfR_quad = 0.0; 
   double Jfavg_quad = 0.0; 
   double Jfjump_quad = 0.0; 
+  double m_bmag_inv = 0.0; 
+  double mvpar_over_q = 0.0; 
   double  g_13 = 0.0; 
   double  g_23 = 0.0; 
   double  g_33 = 0.0; 

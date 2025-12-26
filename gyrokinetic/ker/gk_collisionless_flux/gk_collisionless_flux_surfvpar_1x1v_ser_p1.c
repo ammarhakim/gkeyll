@@ -38,17 +38,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p1(
   double B3_quad = 0.0; 
   double Jc_quad = 0.0; 
   double dualcurlbhat_quad[3] = {0.0}; 
-  double m_bmag_inv = 0.0; 
-  double mvpar_over_q = 0.0; 
   double alpha_quad = 0.0; 
   double JfL_quad = 0.0; 
   double JfR_quad = 0.0; 
   double Jfavg_quad = 0.0; 
   double Jfjump_quad = 0.0; 
-  double  g_13 = 0.0; 
-  double  g_23 = 0.0; 
-  double  g_33 = 0.0; 
-  double  mag_e_3 = 0.0; 
 
   bmag_quad = gkdgv[0].bmag; 
   B3_quad = gkdgv[0].B3; 
@@ -56,11 +50,6 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p1(
   dualcurlbhat_quad[0] = gkdgv[0].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[0].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[0].dualcurlbhat.x[2]; 
-  m_bmag_inv = 1.0/(m_*bmag_quad); 
-  g_13 = gkdgv[0].g_13; 
-  g_23 = gkdgv[0].g_23; 
-  g_33 = gkdgv[0].g_33; 
-  mag_e_3 = gkdgv[0].mag_e_3; 
 
   alpha_quad = -(0.8660254037844386*hamil[1]*rdx2)/m_/bmag_quad * B3_quad -(0.8660254037844386*hamil[1]*rdx2)/m_/bmag_quad * 1/q_*dualcurlbhat_quad[2]*((0.8164965809277261*(0.8660254037844386*hamil[2]-3.3541019662496847*hamil[4]))/vmap[1]);
 
@@ -77,11 +66,6 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p1(
   dualcurlbhat_quad[0] = gkdgv[1].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[1].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[1].dualcurlbhat.x[2]; 
-  m_bmag_inv = 1.0/(m_*bmag_quad); 
-  g_13 = gkdgv[1].g_13; 
-  g_23 = gkdgv[1].g_23; 
-  g_33 = gkdgv[1].g_33; 
-  mag_e_3 = gkdgv[1].mag_e_3; 
 
   alpha_quad = -(0.8660254037844386*hamil[1]*rdx2)/m_/bmag_quad * B3_quad -(0.8660254037844386*hamil[1]*rdx2)/m_/bmag_quad * 1/q_*dualcurlbhat_quad[2]*((0.8164965809277261*(0.8660254037844386*hamil[2]-3.3541019662496847*hamil[4]))/vmap[1]);
 
