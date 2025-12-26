@@ -295,9 +295,6 @@ struct gk_collisionless {
     // Charged (gyrokinetic) species ............................................ //
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
-      struct gkyl_array *apar; // A_parallel.
-      struct gkyl_array *apardot; // d/dt A_parallel.
-
       struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
   struct gkyl_gk_collisionless_flux *add_apardot_surf_flux_op; // Updater to add Apardot terms to fluxes.
       gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.

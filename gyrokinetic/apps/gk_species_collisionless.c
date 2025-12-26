@@ -227,10 +227,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
 {
   if (gkcls->collisionless_id) {
 
-    gkyl_array_release(gkcls->flux_surf);
-    gkyl_array_release(gkcls->apar);
-    gkyl_array_release(gkcls->apardot);
-  
+    gkyl_array_release(gkcls->flux_surf);  
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
