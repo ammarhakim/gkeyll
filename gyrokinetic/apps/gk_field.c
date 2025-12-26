@@ -448,8 +448,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     } else {
-      fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
-      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_DIRICHLET;
+      fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
     }
 
     f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,

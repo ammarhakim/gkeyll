@@ -12,10 +12,11 @@ extern "C" {
 // cudaMemcpyFromSymbol.
 __global__ static void
 fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_basis_type b_type,
-  int dim, int poly_order, bool isperiodic, bool isweighted, bool isdirichlet)
+  int dim, int poly_order, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype)
 {
   // Set l2g kernels.
-  int bckey_periodic = isperiodic? 0 : 1;
+  int bckey_periodic = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
   const local2global_kern_list *local2global_kernels;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -29,11 +30,18 @@ fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_bas
     kers->l2g[k] = CK(local2global_kernels, dim, bckey_periodic, poly_order, k);
 
   // Set RHS stencil kernels.
-  int bckey_dirichlet = isdirichlet? 1 : 0;
+  int bckey_dirichlet;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    bckey_dirichlet = 1;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey_dirichlet = 2;
+  else
+    bckey_dirichlet = 0;
+
   const srcstencil_kern_list *srcstencil_kernels;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      srcstencil_kernels = isweighted? ser_srcstencil_list_weighted : ser_srcstencil_list_noweight;
+      srcstencil_kernels = has_rhs_weight? ser_srcstencil_list_weighted : ser_srcstencil_list_noweight;
       break;
     default:
       assert(false);
@@ -52,14 +60,20 @@ fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_bas
   }
   kers->solker = solstencil_kernels[dim-1].kernels[poly_order-1];
 
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_ghost;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
+  else
+    kers->get_dirichlet_value = get_dirichlet_value_disabled;
 }
 
 void
-fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool has_weight_rhs,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_kernels *kers)
+fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers)
 {
   fem_parproj_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, basis->ndim,
-    basis->poly_order, isperiodic, has_weight_rhs, isdirichlet);
+    basis->poly_order, has_weight_lhs, has_weight_rhs, bctype);
 }
 
 __global__ void
@@ -86,14 +100,8 @@ gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhs
     long linidx = gkyl_range_idx(&range, idx);
 
     const double *wgt_p = weight? (const double *) gkyl_array_cfetch(weight, linidx) : NULL;
-//    const double *phibc_p = phibc? (const double *) gkyl_array_cfetch(phibc, linidx) : NULL;
     const double *rhsin_p = (const double*) gkyl_array_cfetch(rhsin, linidx);
-
-    int idx1d[] = {idx[range.ndim-1]};
-    for (size_t d=0; d<range.ndim-1; d++) ghost_idx[d] = idx[d];
-    ghost_idx[range.ndim-1] = idx1d[0] == parnum_cells? idx1d[0]+1 : idx1d[0]-1;
-    linidx = gkyl_range_idx(&range, ghost_idx);
-    const double *phibc_p = phibc? (const double *) gkyl_array_cfetch(phibc, linidx) : NULL;
+    const double *phibc_p = kers->get_dirichlet_value(range.ndim-1, parnum_cells, idx, &range, phibc);
 
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     int keri = idx1d[0] == parnum_cells? 1 : 0;

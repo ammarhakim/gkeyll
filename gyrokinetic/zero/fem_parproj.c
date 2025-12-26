@@ -8,16 +8,6 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
 {
   struct gkyl_fem_parproj *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj));
 
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-  else
-    up->kernels_cu = up->kernels;
-#else
-  up->kernels_cu = up->kernels;
-#endif
-
   up->solve_range = solve_range;
   up->ndim = solve_range->ndim;
   up->num_basis  = basis->num_basis;
@@ -25,7 +15,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
   up->poly_order = basis->poly_order;
   up->pardir = up->ndim-1; // Assume parallel direction is always the last.
   up->isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
-  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET;
+  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
   up->use_gpu = use_gpu;
 
   up->has_weight_rhs = false;
@@ -72,22 +62,21 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*perp_range.volume); // Global right side vector.
 
-  // Select local-to-global mapping kernel:
-  fem_parproj_choose_local2global_kernel(basis, up->isperiodic, up->kernels->l2g);
-
-  // Select weighted LHS kernel (not always used):
-  fem_parproj_choose_lhs_kernel(basis, up->isdirichlet, has_weight_lhs, up->kernels->lhsker);
-
-  // Select RHS source kernel:
-  fem_parproj_choose_srcstencil_kernel(basis, up->isdirichlet, up->has_weight_rhs, up->kernels->srcker);
-
-  // Select kernel that fetches the solution:
-  up->kernels->solker = fem_parproj_choose_solstencil_kernel(basis);
+  // Allocate struct holding kernel pointers.
+  struct gkyl_fem_parproj_kernels *kernels_ho = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+  if (!use_gpu)
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    fem_parproj_choose_kernels_cu(basis, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels_cu);
+  if (use_gpu)
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
 #endif
+
+  // Choose kernels.
+  fem_parproj_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, use_gpu, up->kernels);
+
+  // Select kernels for building LHS matrix on host:
+  fem_parproj_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, false, kernels_ho);
 
   // We support two cases:
   //  a) No weight, or weight is a single number so we can divide the RHS by it.
@@ -149,11 +138,11 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
       }
 
       int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
-      up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
+      kernels_ho->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
       // Apply the wgt*phi*basis stencil.
       keri = idx_to_inloup_ker(up->parnum_cells, up->par_iter1d.idx[0]);
-      up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[perpidx]);
+      kernels_ho->lhsker[keri](wgt_p, up->globalidx, tri[perpidx]);
     }
   }
 #ifdef GKYL_HAVE_CUDA
@@ -168,6 +157,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
   for (size_t i=0; i<prob_range.volume; i++)
     gkyl_mat_triples_release(tri[i]);
   gkyl_free(tri);
+  gkyl_free(kernels_ho);
 
   if (weight_left)
     gkyl_array_release(weight_left_ho);
@@ -193,7 +183,7 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
   gkyl_array_clear(up->brhs, 0.0);
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
 
-  int idx1[GKYL_MAX_CDIM], ghost_idx[GKYL_MAX_CDIM];
+  int idx1[GKYL_MAX_CDIM], dirichlet_idx[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
   while (gkyl_range_iter_next(&up->perp_iter2d)) {
     long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
@@ -207,13 +197,8 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       const double *wgt_p = up->has_weight_rhs? gkyl_array_cfetch(up->weight_rhs, linidx) : NULL;
-//      const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
       const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
-
-      for (size_t d=0; d<up->pardir; d++) ghost_idx[d] = up->perp_iter2d.idx[d];
-      ghost_idx[up->pardir] = up->par_iter1d.idx[0] == up->parnum_cells? up->par_iter1d.idx[0]+1 : up->par_iter1d.idx[0]-1;
-      linidx = gkyl_range_idx(up->solve_range, ghost_idx);
-      const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
+      const double *phibc_p = up->kernels->get_dirichlet_value(up->pardir, up->parnum_cells, idx1, up->solve_range, phibc);
 
       long perpProbOff = perpidx*up->numnodes_global;
 
@@ -272,18 +257,17 @@ void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
   if (up->has_weight_rhs) {
     gkyl_array_release(up->weight_rhs);
   }
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_cu_free(up->kernels_cu);
-    gkyl_culinsolver_prob_release(up->prob_cu);
-  } else {
+  if (!up->use_gpu) {
+    gkyl_free(up->kernels);
     gkyl_superlu_prob_release(up->prob);
   }
-#else
-  gkyl_superlu_prob_release(up->prob);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->kernels);
+    gkyl_culinsolver_prob_release(up->prob_cu);
+  }
 #endif
   gkyl_array_release(up->brhs);
   gkyl_free(up->globalidx);
-  gkyl_free(up->kernels);
   gkyl_free(up);
 }

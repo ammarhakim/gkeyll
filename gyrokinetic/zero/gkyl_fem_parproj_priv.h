@@ -132,7 +132,7 @@ static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
                   {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx,}, 
                  },
           },
-         }
+         },
   },
   // 2x
   {.list={ 
@@ -226,7 +226,7 @@ typedef void (*srcstencil_t)(const double *weight, const double *rho, const doub
 
 typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_loc_list;  // For use in kernel tables.
 typedef struct { srcstencil_kern_loc_list list[2]; } srcstencil_kern_bc_list;  // For use in kernel tables.
-typedef struct { srcstencil_kern_bc_list list[2]; } srcstencil_kern_list;  // For use in kernel tables.
+typedef struct { srcstencil_kern_bc_list list[3]; } srcstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity src kernels.
 GKYL_CU_D
@@ -239,10 +239,16 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
                   {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_lox_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_upx_nondirichletx,},
                  },
           },
-          // dirichletx
+          // dirichletx ghost
           {.list={
-                  {fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichletx, fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichletx,},
-                  {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichletx,},
+                  {fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_ghostx, fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_ghostx,},
+                  {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_ghostx, fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_ghostx,},
+                 },
+          },
+          // dirichletx skin
+          {.list={
+                  {fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_skinx, fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_skinx,},
+                  {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_skinx, fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_skinx,},
                  },
           },
          }
@@ -255,10 +261,16 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
                   {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_loy_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_upy_nondirichlety,},
                  },
           },
-          // dirichlety
+          // dirichlety ghost
           {.list={
-                  {fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlety, fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlety,},
-                  {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlety,},
+                  {fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_ghosty, fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_ghosty,},
+                  {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_ghosty, fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_ghosty,},
+                 },
+          },
+          // dirichlety skin
+          {.list={
+                  {fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_skiny, fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_skiny,},
+                  {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_skiny, fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_skiny,},
                  },
           },
          }
@@ -271,10 +283,16 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
                   {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_loz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_upz_nondirichletz,},
                  },
           },
-          // dirichletz
+          // dirichletz ghost
           {.list={
-                  {fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichletz, fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichletz,},
-                  {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichletz,},
+                  {fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_ghostz, fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_ghostz,},
+                  {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_ghostz, fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_ghostz,},
+                 },
+          },
+          // dirichletz skin
+          {.list={
+                  {fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_skinz, fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_skinz,},
+                  {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_skinz, fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_skinz,},
                  },
           },
          }
@@ -291,10 +309,16 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
                   {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_lox_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_upx_nondirichletx,},
                  },
           },
-          // dirichletx
+          // dirichletx ghost
           {.list={
-                  {fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichletx, fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichletx,},
-                  {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichletx,},
+                  {fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_ghostx, fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_ghostx,},
+                  {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_ghostx, fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_ghostx,},
+                 },
+          },
+          // dirichletx skin
+          {.list={
+                  {fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_skinx, fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_skinx,},
+                  {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_skinx, fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_skinx,},
                  },
           },
          }
@@ -307,10 +331,16 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
                   {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_loy_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_upy_nondirichlety,},
                  },
           },
-          // dirichlety
+          // dirichlety ghost
           {.list={
-                  {fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlety, fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlety,},
-                  {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlety,},
+                  {fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_ghosty, fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_ghosty,},
+                  {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_ghosty, fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_ghosty,},
+                 },
+          },
+          // dirichlety skin
+          {.list={
+                  {fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_skiny, fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_skiny,},
+                  {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_skiny, fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_skiny,},
                  },
           },
          }
@@ -323,10 +353,16 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
                   {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_loz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_upz_nondirichletz,},
                  },
           },
-          // dirichletz
+          // dirichletz ghost
           {.list={
-                  {fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichletz, fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichletz,},
-                  {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichletz,},
+                  {fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_ghostz, fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_ghostz,},
+                  {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_ghostz, fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_ghostz,},
+                 },
+          },
+          // dirichletz skin
+          {.list={
+                  {fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_skinz, fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_skinz,},
+                  {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_skinz, fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_skinz,},
                  },
           },
          }
@@ -348,6 +384,40 @@ static const solstencil_kern_list ser_solstencil_list[] = {
   { fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
 };
 
+// Functions that return the value to impose as Dirichlet BC.
+typedef const double *(*get_diri_val_t)(int par_dir, int par_num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc);
+
+// No Dirichlet BC.
+static const double *get_dirichlet_value_disabled(int par_dir, int par_num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  return 0;
+}
+
+// Dirichlet BC using the ghost value.
+static const double *get_dirichlet_value_enabled_ghost(int par_dir, int par_num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  int dirichlet_idx[GKYL_MAX_CDIM];
+  for (size_t d=0; d<par_dir+1; d++)
+    dirichlet_idx[d] = idx[d];
+
+  dirichlet_idx[par_dir] = dirichlet_idx[par_dir] == par_num_cells? dirichlet_idx[par_dir]+1 : dirichlet_idx[par_dir]-1;
+  return gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
+}
+
+// Dirichlet BC using the skin value.
+static const double *get_dirichlet_value_enabled_skin(int par_dir, int par_num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  int dirichlet_idx[GKYL_MAX_CDIM];
+  for (size_t d=0; d<par_dir+1; d++)
+    dirichlet_idx[d] = idx[d];
+
+  return gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
+}
+
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_kernels {
   local2global_t l2g[2];  // Pointer to local-to-global kernel.
@@ -357,6 +427,8 @@ struct gkyl_fem_parproj_kernels {
   srcstencil_t srcker[3];  // RHS source kernel.
 
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
+
+  get_diri_val_t get_dirichlet_value; // Gets value to impose as Dirichlet BC.
 };
 
 struct gkyl_fem_parproj {
@@ -391,21 +463,19 @@ struct gkyl_fem_parproj {
   long *globalidx;
 
   struct gkyl_fem_parproj_kernels *kernels;
-  struct gkyl_fem_parproj_kernels *kernels_cu;
   bool use_gpu;  
 };
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.
 #define CK(lst,dim,bc,poly_order,loc) lst[dim-1].list[bc].list[poly_order-1].kernels[loc]
 
-void
-fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isweighted,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_kernels *kers);
-
 GKYL_CU_D
 static void
-fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis, bool isperiodic, local2global_t *l2gout)
+fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis,
+  enum gkyl_fem_parproj_bc_type bctype, local2global_t *l2gout)
 {
+  bool isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
+
   int bckey[1] = {-1};
   bckey[0] = isperiodic? 0 : 1;
 
@@ -422,10 +492,14 @@ fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis, bool ispe
 
 GKYL_CU_D
 static void 
-fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, bool isdirichlet, bool isweighted, lhsstencil_t *lhsout)
+fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  bool isweighted, lhsstencil_t *lhsout)
 {
   int bckey[1] = {-1};
-  bckey[0] = isdirichlet? 1 : 0;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey[0] = 1;
+  else
+    bckey[0] = 0;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -441,10 +515,16 @@ fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, bool isdirichlet, 
 
 GKYL_CU_D
 static void
-fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis, bool isdirichlet, bool isweighted, srcstencil_t *srcout)
+fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  bool isweighted, srcstencil_t *srcout)
 {
   int bckey[1] = {-1};
-  bckey[0] = isdirichlet? 1 : 0;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    bckey[0] = 1;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey[0] = 2;
+  else
+    bckey[0] = 0;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -472,6 +552,35 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
   return 0;
 }
 
+static void
+fem_parproj_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype, bool use_gpu, struct gkyl_fem_parproj_kernels *kers)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    fem_parproj_choose_kernels_cu(basis, has_weight_lhs, has_weight_rhs, bctype, kers);
+#endif
+
+  // Select local-to-global mapping kernel:
+  fem_parproj_choose_local2global_kernel(basis, bctype, kers->l2g);
+
+  // Select weighted LHS kernel (not always used):
+  fem_parproj_choose_lhs_kernel(basis, bctype, has_weight_lhs, kers->lhsker);
+
+  // Select RHS source kernel:
+  fem_parproj_choose_srcstencil_kernel(basis, bctype, has_weight_rhs, kers->srcker);
+
+  // Select kernel that fetches the solution:
+  kers->solker = fem_parproj_choose_solstencil_kernel(basis);
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_ghost;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
+  else
+    kers->get_dirichlet_value = get_dirichlet_value_disabled;
+}
+
 GKYL_CU_DH
 static inline int idx_to_inloup_ker(int num_cells, int idx) {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
@@ -486,6 +595,10 @@ static inline int idx_to_inloup_ker(int num_cells, int idx) {
 }
 
 #ifdef GKYL_HAVE_CUDA
+
+void fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers);
+
 /**
  * Assign the right-side vector with the discontinuous (DG) source field
  * on the NVIDIA GPU.
