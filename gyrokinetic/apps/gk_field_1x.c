@@ -34,12 +34,6 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
     0, field->dApartdtSlvr_lhs_factor, &app->local);
   
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
-
-  // // Smooth apardot
-  // gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->apardot, field->rho_c_global_dg);
-  // gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  // gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
-  // gkyl_array_copy_range_to_range(field->apardot, field->apar_fem, &app->local, &field->global_sub_range);
   
 }
 
@@ -95,7 +89,6 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(f->apar_curr);
     gkyl_array_release(f->apar1);
     gkyl_array_release(f->aparnew);
-    gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->currentDens_global);
@@ -147,7 +140,6 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;

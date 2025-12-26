@@ -1249,7 +1249,6 @@ struct gk_field {
     struct {
       struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
       struct gkyl_array *apar_curr; // A_parallel at current RK stage.
-      struct gkyl_array *apar_fem; // FEM A_parallel. 
       struct gkyl_array *apar_host; // Host copy for use IO.
       struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
       struct gkyl_array *apardot_host; // Host copy for use IO.

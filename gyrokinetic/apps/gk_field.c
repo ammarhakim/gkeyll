@@ -222,16 +222,7 @@ static void
 gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
-
-  // gkyl_array_clear_range(out, 0.0, &app->local_ext);
-
-  // Smooth apar
-  // gkyl_comm_array_allgather(app->comm, &app->local, &app->global, out, field->rho_c_global_dg);
-  // gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  // gkyl_fem_parproj_solve(field->fem_apar_parproj, field->apar_fem);
-  // gkyl_array_copy_range_to_range(out, field->apar_fem, &app->local, &field->global_sub_range);
-  
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);  
 }
 
 static void
