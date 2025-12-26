@@ -500,12 +500,13 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
   f->enforce_parallel_bc_em_func = gk_field_enforce_parallel_bc_disabled;
   f->twistshift_func = gk_field_twistshift_disabled;
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
     gk_field_2x3x_add_TSBC_and_SSFG_updaters(app,f);
-    f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_enabled;
-    f->enforce_parallel_bc_em_func = gk_field_enforce_parallel_bc_em_enabled;
     if (app->cdim == 3)
       f->twistshift_func = gk_field_twistshift_enabled;
+    f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_enabled;
+    if (f->is_em)
+      f->enforce_parallel_bc_em_func = gk_field_enforce_parallel_bc_em_enabled;
   }
 
   f->solver_release_func = gk_field_fem_release_2x3x;
