@@ -9,11 +9,6 @@
 #include <gkyl_gk_collisionless_flux_priv.h>
 #include <gkyl_util.h>
 
-// TODO: remove add_em flag and replace by the collisionless enum type.
-// TODO: Combine apar and ES kernel together to allow the add Apardot only option.
-// TODO: In particular I have to have the same signature for each kernels regardless of whether they add EM terms or not,
-//       so that we can pass apar, or apardot if needed.
-
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
