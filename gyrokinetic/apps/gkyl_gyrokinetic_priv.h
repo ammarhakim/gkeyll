@@ -1211,18 +1211,16 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_T_LU_lo, *bc_T_UL_up; // TS BC updaters.
+  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updaters.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo, *gfss_bc_op_core_up;
-  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_sol_lo, *gfss_bc_op_sol_up;
   struct gkyl_array *bc_buffer;
   
   // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_parallel_bc_func)(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
-  void (*fem_projection_par_func_pre)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  void (*fem_projection_par_pre_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
-  void (*fem_projection_par_func_post)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  void (*fem_projection_par_post_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 };
 

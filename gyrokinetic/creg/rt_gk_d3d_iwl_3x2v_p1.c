@@ -825,7 +825,7 @@ main(int argc, char **argv)
     {
      .perp_dirs = {0, 2}, // Directions perpendicular to line.
      .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
-     .val = ctx.side_wall_bias,, // Biasing value.
+     .val = ctx.side_wall_bias, // Biasing value.
     },
   };
 
