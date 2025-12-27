@@ -389,6 +389,7 @@ typedef const double *(*get_diri_val_t)(int par_dir, int par_num_cells,
   const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc);
 
 // No Dirichlet BC.
+GKYL_CU_D
 static const double *get_dirichlet_value_disabled(int par_dir, int par_num_cells,
   const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
 {
@@ -396,6 +397,7 @@ static const double *get_dirichlet_value_disabled(int par_dir, int par_num_cells
 }
 
 // Dirichlet BC using the ghost value.
+GKYL_CU_D
 static const double *get_dirichlet_value_enabled_ghost(int par_dir, int par_num_cells,
   const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
 {
@@ -404,10 +406,11 @@ static const double *get_dirichlet_value_enabled_ghost(int par_dir, int par_num_
     dirichlet_idx[d] = idx[d];
 
   dirichlet_idx[par_dir] = dirichlet_idx[par_dir] == par_num_cells? dirichlet_idx[par_dir]+1 : dirichlet_idx[par_dir]-1;
-  return gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
+  return (const double *) gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
 }
 
 // Dirichlet BC using the skin value.
+GKYL_CU_D
 static const double *get_dirichlet_value_enabled_skin(int par_dir, int par_num_cells,
   const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
 {
@@ -415,7 +418,7 @@ static const double *get_dirichlet_value_enabled_skin(int par_dir, int par_num_c
   for (size_t d=0; d<par_dir+1; d++)
     dirichlet_idx[d] = idx[d];
 
-  return gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
+  return (const double *) gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
 }
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
@@ -469,15 +472,36 @@ struct gkyl_fem_parproj {
 // "Choose Kernel" based on polyorder, stencil location and BCs.
 #define CK(lst,dim,bc,poly_order,loc) lst[dim-1].list[bc].list[poly_order-1].kernels[loc]
 
+#ifdef GKYL_HAVE_CUDA
+void fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers);
+
+/**
+ * Assign the right-side vector with the discontinuous (DG) source field
+ * on the NVIDIA GPU.
+ *
+ * @param up FEM project updater to run.
+ * @param rhsin DG field to set as RHS source.
+ * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
+ */
+void gkyl_fem_parproj_set_rhs_cu(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+
+/**
+ * Solve the linear problem
+ * on the NVIDIA GPU.
+ *
+ * @param up FEM project updater to run.
+ */
+void gkyl_fem_parproj_solve_cu(struct gkyl_fem_parproj* up, struct gkyl_array *phiout);
+#endif
+
 GKYL_CU_D
 static void
 fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis,
   enum gkyl_fem_parproj_bc_type bctype, local2global_t *l2gout)
 {
-  bool isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
-
   int bckey[1] = {-1};
-  bckey[0] = isperiodic? 0 : 1;
+  bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -492,8 +516,8 @@ fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis,
 
 GKYL_CU_D
 static void 
-fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
-  bool isweighted, lhsstencil_t *lhsout)
+fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis,
+  enum gkyl_fem_parproj_bc_type bctype, bool isweighted, lhsstencil_t *lhsout)
 {
   int bckey[1] = {-1};
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
@@ -515,8 +539,8 @@ fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parp
 
 GKYL_CU_D
 static void
-fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
-  bool isweighted, srcstencil_t *srcout)
+fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis,
+  enum gkyl_fem_parproj_bc_type bctype, bool isweighted, srcstencil_t *srcout)
 {
   int bckey[1] = {-1};
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
@@ -552,13 +576,16 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
   return 0;
 }
 
+GKYL_CU_D
 static void
 fem_parproj_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
   enum gkyl_fem_parproj_bc_type bctype, bool use_gpu, struct gkyl_fem_parproj_kernels *kers)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     fem_parproj_choose_kernels_cu(basis, has_weight_lhs, has_weight_rhs, bctype, kers);
+    return;
+  }
 #endif
 
   // Select local-to-global mapping kernel:
@@ -573,6 +600,7 @@ fem_parproj_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, 
   // Select kernel that fetches the solution:
   kers->solker = fem_parproj_choose_solstencil_kernel(basis);
 
+  // Select function that obtains the value to impose as Dirichlet BC.
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
     kers->get_dirichlet_value = get_dirichlet_value_enabled_ghost;
   else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
@@ -593,27 +621,3 @@ static inline int idx_to_inloup_ker(int num_cells, int idx) {
     iout = 2;
   return iout;
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-void fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers);
-
-/**
- * Assign the right-side vector with the discontinuous (DG) source field
- * on the NVIDIA GPU.
- *
- * @param up FEM project updater to run.
- * @param rhsin DG field to set as RHS source.
- * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
- */
-void gkyl_fem_parproj_set_rhs_cu(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
-
-/**
- * Solve the linear problem
- * on the NVIDIA GPU.
- *
- * @param up FEM project updater to run.
- */
-void gkyl_fem_parproj_solve_cu(struct gkyl_fem_parproj* up, struct gkyl_array *phiout);
-#endif

@@ -316,11 +316,12 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
     // Fill the ghost cell so we can apply Dirichlet BCs.
-    ghost_from_skin_surf(use_gpu, dim, &skin_ghost, &basis, rho);
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
 
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
@@ -531,11 +532,12 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // Project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
     // Fill the ghost cell so we can apply Dirichlet BCs.
-    ghost_from_skin_surf(use_gpu, dim, &skin_ghost, &basis, rho);
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
 
 //  // Project a function that is continuous in x but discontinuous in z.
 //  gkyl_eval_on_nodes *evcont = gkyl_eval_on_nodes_new(&grid, &basis,
@@ -936,11 +938,12 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
     bctype==GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN? evalFunc2x_dirichlet : evalFunc2x,
     NULL);
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
     // Fill the ghost cell so we can apply Dirichlet BCs.
-    ghost_from_skin_surf(use_gpu, dim, &skin_ghost, &basis, rho_ho);
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
 
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
 
@@ -1155,11 +1158,12 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
     // Fill the ghost cell so we can apply Dirichlet BCs.
-    ghost_from_skin_surf(use_gpu, dim, &skin_ghost, &basis, rho);
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
 
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
