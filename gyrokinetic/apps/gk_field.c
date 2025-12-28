@@ -110,7 +110,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
                                     e==0? &f->global_lower_ghost[par_dir] : &f->global_upper_ghost[par_dir], 0, len_sol);
     }
   
-    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, f->global_lower_ghost_par_sol.volume);
+    long buff_sz = GKYL_MAX2(f->global_lower_ghost_par_sol.volume, f->global_lower_ghost_par_core.volume);
+    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
     f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       &app->basis, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, 1, app->cdim, app->use_gpu);
@@ -828,7 +829,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 
   // Release TS BS and SSFG updater
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    if(app->cdim == 3) {
+    if (app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
       gkyl_array_release(f->bc_buffer);

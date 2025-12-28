@@ -236,7 +236,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
       // Check if any bias lines are in solve_range, and copy their info into updater.
       bl_in_solve_range = gkyl_malloc(bias_lines->num_bias_line * sizeof(bool));
       for (int i=0; i<bias_lines->num_bias_line; i++)
-        bl_in_solve_range[bias_lines->num_bias_line] = false;
+        bl_in_solve_range[i] = false;
 
       for (int i=0; i<bias_lines->num_bias_line; i++) {
         struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
