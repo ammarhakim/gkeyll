@@ -1225,6 +1225,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->write_cell_avg = vms->info.write_cell_avg; // Write out only the cell averages?
 
   vms->use_vmap = false;
+  if (vms->basis_vel.b_type == GKYL_BASIS_MODAL_TENSOR) {
+    vms->use_vmap = true;
+  }
   // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
   vms->vmap = mkarr(app->use_gpu, vdim*4, vms->local_vel.volume);
   // velocity-space Jacobian at quadrature points and "surface" quadrature points. Used to compute
