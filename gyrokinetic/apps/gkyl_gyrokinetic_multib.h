@@ -173,6 +173,9 @@ struct gkyl_gyrokinetic_multib {
 
   // Communicator to use.  
   struct gkyl_comm *comm;  
+
+  void (*phys_density_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*phys_phi_func)(double t, const double *xn, double *fout, void *ctx);
 };
 
 /**

@@ -718,6 +718,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
+  app->phys_density_func = gk->phys_density_func;
+  app->phys_phi_func = gk->phys_phi_func;
   // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
@@ -905,6 +907,63 @@ gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm)
       return i;
   return -1;
 }
+
+static void
+phys_phi_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  struct gkyl_gyrokinetic_app *app = ctx;
+  double RZPHI[app->grid.ndim];
+
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < app->grid.ndim; i++){
+    int idxtemp = app->global.lower[i] + (int) floor((xn[i] - (app->grid.lower[i]) )/app->grid.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, app->local.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, app->local.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&app->local, cidx);
+  const double *mcoeffs = gkyl_array_cfetch(app->gk_geom->geo_int.mc2p, lidx);
+  
+  double cxc[app->grid.ndim];
+  double xyz[app->grid.ndim];
+  gkyl_rect_grid_cell_center(&app->grid, cidx, cxc);
+  for(int i = 0; i < app->grid.ndim; i++)
+    xyz[i] = (xn[i]-cxc[i])/(app->grid.dx[i]*0.5);
+  for(int i = 0; i < app->grid.ndim; i++){
+    RZPHI[i] = app->basis.eval_expand(xyz, &mcoeffs[i*app->basis.num_basis]);
+  }
+
+  app->phys_phi_func(0, RZPHI, fout, 0);
+}
+
+
+void
+gkyl_gyrokinetic_app_apply_ic_phys_phi(gkyl_gyrokinetic_app* app, double t0)
+{
+  app->phys_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  // Project an extra function
+  struct gkyl_proj_on_basis *proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = phys_phi_func,
+        .ctx = app,
+        .c2p_func = 0,
+        .c2p_func_ctx = 0,
+      }
+    );
+  gkyl_proj_on_basis_advance(proj_func, 0.0, &app->local, app->phys_phi); 
+  cstr fileNm = cstr_from_fmt("%s-physphi.gkyl", app->name);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->phys_phi, fileNm.str);
+  gkyl_proj_on_basis_release(proj_func);
+}
+
+
+
+
 
 void
 gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
@@ -1106,6 +1165,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   }
 
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.mc2p       , arr_ho3, "mapc2pint", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.g_ij_neut   , arr_ho6, "g_ij_neut", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz", mt);
@@ -1182,6 +1242,30 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     gkyl_nodal_ops_release(n2m);
     gkyl_array_release(mc2p_nodal);
   }
+
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, "nodesquad");
+  char fileNm[sz+1]; // ensures no buffer overflow
+  sprintf(fileNm, fmt, app->name, "nodesquad");
+  struct gkyl_rect_grid ngrid_quad;
+  gkyl_gk_geometry_init_nodal_grid(&ngrid_quad, &app->grid, &app->gk_geom->nrange_int);
+  sprintf(fileNm, fmt, app->name, "nodesquad");
+  gkyl_grid_sub_array_write(&ngrid_quad, &app->gk_geom->nrange_int, 0,  app->gk_geom->geo_int.mc2p_nodal, fileNm);
+
+  sprintf(fileNm, fmt, app->name, "vol");
+  gkyl_grid_sub_array_write(&ngrid_quad, &app->gk_geom->nrange_int, 0,  app->gk_geom->geo_int.vol_nodal, fileNm);
+
+  const char *fmt2 = "%s-%s-dir%d.gkyl";
+  int sz2 = gkyl_calc_strlen(fmt2, app->name, "nodesquad", 0);
+  char fileNm2[sz2+1]; // ensures no buffer overflow
+
+  for (int dir =0; dir < app->cdim; dir++ ) {
+    struct gkyl_rect_grid ngrid_quad_dir;
+    gkyl_gk_geometry_init_nodal_grid(&ngrid_quad_dir, &app->grid, &app->gk_geom->nrange_surf[dir]);
+    sprintf(fileNm2, fmt2, app->name, "nodesquad", dir);
+    gkyl_grid_sub_array_write(&ngrid_quad_dir, &app->gk_geom->nrange_surf[dir], 0,  app->gk_geom->geo_surf[dir].mc2p_nodal, fileNm2);
+  }
+
 
   gkyl_array_release(mc2p_global);
   gkyl_array_release(mc2p_global_ho);
@@ -2708,6 +2792,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos   , arr_ho3, "mc2nu_pos");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.bmag        , arr_ho1, "bmag_corn");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.mc2p        , arr_ho3, "mapc2pint");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dzdx        , arr_ho9, "dzdx");

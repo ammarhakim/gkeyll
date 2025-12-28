@@ -1390,6 +1390,10 @@ struct gkyl_gyrokinetic_app {
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
+
+  void (*phys_density_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*phys_phi_func)(double t, const double *xn, double *fout, void *ctx);
+  struct gkyl_array *phys_phi;
 };
 
 /** gkyl_gyrokinetic_app private API */

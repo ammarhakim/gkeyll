@@ -154,6 +154,7 @@ struct gk_geom_int {
   struct gkyl_array* rtg33inv_nodal; // 1 component 1/sqrt(g_33)
   struct gkyl_array*  bioverJB_nodal; // 3 components b_i/J/|B|
 
+  struct gkyl_array* vol_nodal;
 };
 
 struct gk_geometry {

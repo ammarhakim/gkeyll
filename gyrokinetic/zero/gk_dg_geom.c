@@ -160,6 +160,10 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
       gkdgv[qvloc].dualcurlbhat.x[0] = global_val[0];
       gkdgv[qvloc].dualcurlbhat.x[1] = global_val[1];
       gkdgv[qvloc].dualcurlbhat.x[2] = global_val[2];
+
+
+      double * global_set = gkyl_array_fetch(gk_geom->geo_int.vol_nodal, global_loc);
+      global_set[0] = dgv[qvloc].Jc*dg_geom->vol_weights[qvloc]*gk_geom->grid.dx[0]*gk_geom->grid.dx[1]/4.0;
     }
   }
 }

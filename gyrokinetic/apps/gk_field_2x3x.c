@@ -142,7 +142,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->epsilon);
 
   gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
-  gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
+  //gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
   if (f->is_dirichletvar) {
     gkyl_array_release(f->phi_bc);
   }
@@ -210,12 +210,32 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     polarization_weight += s->info.polarization_density*s->info.mass/pow(polarization_bmag,2);
   }
   // Allocate array for the polarization weight times geometric coefficients.
-  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+  //f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
   
   // Initialize the polarization weight.
-  struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
-  for (int i=0; i<app->cdim-2/app->cdim; i++) {
-    gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+  //struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+  //for (int i=0; i<app->cdim-2/app->cdim; i++) {
+  //  gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+  //}
+
+  struct gkyl_array *Jgij[3];
+  if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
+    f->epsilon = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    // Must do an all gather on these variables
+    Jgij[0] = app->gk_geom->geo_int.gxxj;
+    Jgij[1] = app->gk_geom->geo_int.gxzj;
+    Jgij[2] = app->gk_geom->geo_int.eps2;
+    for (int i=0; i<3; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+    }
+
+  } else {
+    f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+    // Initialize the polarization weight.
+    struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+    for (int i=0; i<app->cdim-2/app->cdim; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+    }
   }
 
   // Translate input file BCs into Poisson BCs.
@@ -259,8 +279,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Initialize the Poisson solver.
   f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
     app->local, f->global_sub_range, f->epsilon, 0, poisson_bcs, f->info.bias_plane_list, app->use_gpu);
-  f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &poisson_bcs, f->epsilon, NULL, app->use_gpu);
+  //f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
+  //  &poisson_bcs, f->epsilon, NULL, app->use_gpu);
 
   f->phi_bc = 0;
   f->is_dirichletvar = false;

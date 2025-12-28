@@ -540,6 +540,9 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_field field; // Field object.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
+
+  void (*phys_density_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*phys_phi_func)(double t, const double *xn, double *fout, void *ctx);
 };
 
 // Simulation statistics
@@ -686,6 +689,9 @@ gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param t0 Time for initial conditions.
  */
 void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0);
+
+
+void gkyl_gyrokinetic_app_apply_ic_phys_phi(gkyl_gyrokinetic_app* app, double t0);
 
 /**
  * Write geometry file.

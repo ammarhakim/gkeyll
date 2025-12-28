@@ -109,7 +109,8 @@ struct gk_multib_field {
   struct gkyl_array **phi_multib_perp;
   struct gkyl_array **rho_c_multib_perp;
   struct gkyl_array **epsilon_multib_perp; // Multib polarization weight.
-  struct gkyl_fem_poisson_perp **fem_poisson; // Perpendicular Poisson solver.
+  struct gkyl_fem_poisson **fem_poisson; // Poisson solver.
+  struct gkyl_fem_poisson_perp **fem_poisson_perp; // Perpendicular Poisson solver.
 };
 
 /** Time stepping API */

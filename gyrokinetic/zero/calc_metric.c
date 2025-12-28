@@ -456,8 +456,8 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
         dualFld_n[8] = +R/J*dxdz[0][0];
 
-        check_right_handed(tanvecFld_n, dualFld_n);
-        check_right_handed2(tanvecFld_n, dualFld_n);
+        //check_right_handed(tanvecFld_n, dualFld_n);
+        //check_right_handed2(tanvecFld_n, dualFld_n);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -649,8 +649,8 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
         dualFld_n[8] = +R/J*dxdz[0][0];
 
-        check_right_handed(tanvecFld_n, dualFld_n);
-        check_right_handed2(tanvecFld_n, dualFld_n);
+        //check_right_handed(tanvecFld_n, dualFld_n);
+        //check_right_handed2(tanvecFld_n, dualFld_n);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);

@@ -380,7 +380,12 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
   gkyl_free(epsilon_local);
 
   // Create the perpendicular solve.
-  mbf->fem_poisson = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_poisson_perp*));
+  if(mbf->gkfield_id==GKYL_GK_FIELD_FULL_2X) {
+    mbf->fem_poisson = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_poisson*));
+  }
+  else {
+    mbf->fem_poisson_perp = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_poisson_perp*));
+  }
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = mbapp->local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
@@ -404,8 +409,15 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
       }
     }
 
-    mbf->fem_poisson[bI] = gkyl_fem_poisson_perp_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
-      &bcs, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
+    if(mbf->gkfield_id==GKYL_GK_FIELD_FULL_2X) {
+      mbf->fem_poisson[bI] = gkyl_fem_poisson_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
+        &bcs, NULL, mbf->epsilon_multib_perp[bI], NULL, false, mbapp->use_gpu);
+    }
+    else {
+      mbf->fem_poisson_perp[bI] = gkyl_fem_poisson_perp_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
+        &bcs, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
+    }
+
   }
 
 }
@@ -469,8 +481,9 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
   // Make charge density continuous on the multibz range.
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->rho_c_multibz_dg[bI], mbf->rho_c_multibz_dg[bI]);
-    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
+    //gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->rho_c_multibz_dg[bI], mbf->rho_c_multibz_dg[bI]);
+    //gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
+    gkyl_array_copy(mbf->rho_c_multibz_smooth[bI], mbf->rho_c_multibz_dg[bI]);
   }
 
   if (mbf->cdim == 1) {
@@ -500,8 +513,14 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
       // Solve the perp problem.
-      gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI]);
-      gkyl_fem_poisson_perp_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
+      if(mbf->gkfield_id==GKYL_GK_FIELD_FULL_2X) {
+        gkyl_fem_poisson_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI], mbf->rho_c_multib_perp[bI]);
+        gkyl_fem_poisson_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
+      }
+      else {
+        gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson_perp[bI], mbf->rho_c_multib_perp[bI]);
+        gkyl_fem_poisson_perp_solve(mbf->fem_poisson_perp[bI], mbf->phi_multib_perp[bI]);
+      }
       // Copy the potential from the mulib range to local.
       gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->phi_multib_perp[bI],
         &mbapp->singleb_apps[bI]->local, mbf->block_subranges_perp[bI]);
@@ -510,24 +529,24 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     // Finished solving the perpendicular Poisson problem.
     //
 
-    // Gather the potential along the magnetic field.
-    int stat_par_phi = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
-      mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
-    // Make the potential continuous along B on the multibz range.
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
-      gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
-    }
-    // Copy continuous potential back to apps.
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-      // Copy from multib to block global.
-      gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
-        mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
-      // Copy from block-global to block local.
-      gkyl_array_copy_range_to_range(sbapp->field->phi_smooth, sbapp->field->rho_c_global_smooth,
-        &sbapp->local, &sbapp->field->global_sub_range);
-    }
+    //// Gather the potential along the magnetic field.
+    //int stat_par_phi = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    //  mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
+    //// Make the potential continuous along B on the multibz range.
+    //for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    //  gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
+    //  gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
+    //}
+    //// Copy continuous potential back to apps.
+    //for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    //  struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    //  // Copy from multib to block global.
+    //  gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
+    //    mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
+    //  // Copy from block-global to block local.
+    //  gkyl_array_copy_range_to_range(sbapp->field->phi_smooth, sbapp->field->rho_c_global_smooth,
+    //    &sbapp->local, &sbapp->field->global_sub_range);
+    //}
   }
 
   mbapp->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -586,7 +605,12 @@ gk_multib_field_release(struct gk_multib_field *mbf)
       gkyl_array_release(mbf->phi_multib_perp[bI]);
       gkyl_array_release(mbf->rho_c_multib_perp[bI]);
       gkyl_array_release(mbf->epsilon_multib_perp[bI]);
-      gkyl_fem_poisson_perp_release(mbf->fem_poisson[bI]);
+      if(mbf->gkfield_id==GKYL_GK_FIELD_FULL_2X) {
+        gkyl_fem_poisson_release(mbf->fem_poisson[bI]);
+      }
+      else {
+        gkyl_fem_poisson_perp_release(mbf->fem_poisson_perp[bI]);
+      }
     }
     gkyl_free(mbf->multib_perp_ranges);
     gkyl_free(mbf->multib_perp_ranges_ext);

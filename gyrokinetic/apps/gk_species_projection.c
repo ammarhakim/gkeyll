@@ -137,23 +137,68 @@ gk_species_projection_correct_all_moms_none(gkyl_gyrokinetic_app *app, struct gk
   struct gk_proj *proj, struct gkyl_array *f, double tm) {}
 
 static void
+density_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  struct gkyl_gyrokinetic_app *app = ctx;
+  double RZPHI[app->grid.ndim];
+
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < app->grid.ndim; i++){
+    int idxtemp = app->global.lower[i] + (int) floor((xn[i] - (app->grid.lower[i]) )/app->grid.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, app->local.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, app->local.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&app->local, cidx);
+  const double *mcoeffs = gkyl_array_cfetch(app->gk_geom->geo_int.mc2p, lidx);
+  
+  double cxc[app->grid.ndim];
+  double xyz[app->grid.ndim];
+  gkyl_rect_grid_cell_center(&app->grid, cidx, cxc);
+  for(int i = 0; i < app->grid.ndim; i++)
+    xyz[i] = (xn[i]-cxc[i])/(app->grid.dx[i]*0.5);
+  for(int i = 0; i < app->grid.ndim; i++){
+    RZPHI[i] = app->basis.eval_expand(xyz, &mcoeffs[i*app->basis.num_basis]);
+  }
+
+  app->phys_density_func(0, RZPHI, fout, 0);
+}
+
+static void
 init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
   {
   proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &app->grid,
-      .basis = &app->basis,
-      .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = app->basis.poly_order+1,
-      .num_ret_vals = 1,
-      .eval = inp.density,
-      .ctx = inp.ctx_density,
-      .c2p_func = proj_on_basis_c2p_position_func,
-      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-    }
-  );
+  if ( proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM_PHYS) {
+    proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = density_func,
+        .ctx = app,
+        .c2p_func = 0,
+        .c2p_func_ctx = 0,
+      }
+    );
+  }
+  else {
+    proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = inp.density,
+        .ctx = inp.ctx_density,
+        .c2p_func = proj_on_basis_c2p_position_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+      }
+    );
+  }
   proj->proj_upar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &app->grid,
       .basis = &app->basis,
@@ -168,7 +213,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
   );
 
   bool bimaxwellian = false;
-  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM_PHYS) {
     proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->proj_temp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
@@ -369,9 +414,9 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->moms_correct = gk_species_projection_correct_all_moms_none;
   }
   else {
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN || proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM_PHYS) {
       init_maxwellian_bimaxwellian(app, s, inp, proj);
-      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
+      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM_PHYS  ?
         gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
     } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
       init_maxwellian_gaussian(app, s, inp, proj);

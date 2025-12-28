@@ -39,6 +39,7 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
   GKYL_GK_FIELD_EM = 4, // Electromagnetic GK.
+  GKYL_GK_FIELD_FULL_2X = 5, // Electromagnetic GK.
 };
 
 // Identifiers for specific field object types.
@@ -90,6 +91,7 @@ enum gkyl_projection_id {
   GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
                         // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
   GKYL_PROJ_MAXWELLIAN_GAUSSIAN, // Maxwellian in velocity space + Gaussian in configuration space
+  GKYL_PROJ_MAXWELLIAN_PRIM_PHYS, // Maxwellian projection from primitive moments (n, u, T)
 };
 
 // Identifiers for specific radiation object types
