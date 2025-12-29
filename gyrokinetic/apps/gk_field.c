@@ -222,7 +222,10 @@ static void
 gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);  
+  // Project inp (dApar/dt) onto FEM basis to make Apar continuous along z.
+  gk_field_fem_projection_par(app, field, out, out);
+  // Apar^{n+1} = Apar^{n} + dt*dApar/dt
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 }
 
 static void
@@ -456,6 +459,8 @@ void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
   field->ampere_solve(app, field);
+  // Smooth Apar after solving Ampere's law.
+  gk_field_fem_projection_par(app, field, field->apar, field->apar);
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 

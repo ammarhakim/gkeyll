@@ -41,17 +41,9 @@ static void
 gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field){
   struct timespec wst = gkyl_wall_clock();
 
-
   // Weak division method Apar = sum_s q_s int dv vpar F_s / (k_perp^2/mu_0)
   gkyl_dg_div_op_range(field->div_mem, app->basis, 0, field->apar, 0, field->currentDens, 
     0, field->lapWeightAmpere, &app->local);
-  
-  // gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->currentDens, field->currentDens_global);
-
-  // gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->currentDens_global, field->currentDens_global);
-  // gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
-
-  // gkyl_array_copy_range_to_range(field->apar, field->phi_fem, &app->local, &field->global_sub_range);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -96,7 +88,6 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(f->lapWeightAmpere);
     gkyl_array_release(f->dApartdtSlvr_kSq);
     gkyl_dg_bin_op_mem_release(f->div_mem);
-    gkyl_fem_parproj_release(f->fem_apar_parproj);
     if (app->use_gpu) {
       gkyl_array_release(f->apar_host);
       gkyl_array_release(f->apardot_host);
@@ -165,9 +156,6 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_NONE;
     for (int d=0; d<app->num_periodic_dir; ++d)
       if (app->periodic_dirs[d] == app->cdim-1) f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
-
-    f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-      f->fem_parproj_ampere_bc, 0, 0, app->use_gpu);
 
     assert(f->info.mu0 > 0.0);
     f->apar_energy_fac_1d = 0.5/f->info.mu0 * f->info.kperpSq;

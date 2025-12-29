@@ -238,7 +238,8 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_fem_parproj_release(f->fem_parproj_core);
     gkyl_fem_parproj_release(f->fem_parproj_sol);
-  } else {
+  }
+  if (f->is_em || !(f->gkfield_id == GKYL_GK_FIELD_ES_IWL)) {
     gkyl_fem_parproj_release(f->fem_parproj);
   }
 
@@ -279,7 +280,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   // Setup electromagnetic variables if needed.
   if (f->is_em) {
-    
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
     if (app->use_gpu) {
@@ -427,13 +427,15 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } else {
     f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
+  }
+
+  if (f->is_em || !(f->gkfield_id == GKYL_GK_FIELD_ES_IWL)) {
     enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
     for (int d=0; d<app->num_periodic_dir; ++d) {
       if (app->periodic_dirs[d] == app->cdim-1) {
         fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
       }
     }
-
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
       fem_parproj_bc, 0, 0, app->use_gpu);
   }
