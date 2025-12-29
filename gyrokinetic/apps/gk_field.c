@@ -222,8 +222,6 @@ static void
 gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  // Project inp (dApar/dt) onto FEM basis to make Apar continuous along z.
-  gk_field_fem_projection_par(app, field, out, out);
   // Apar^{n+1} = Apar^{n} + dt*dApar/dt
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 }
