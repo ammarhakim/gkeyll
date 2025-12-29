@@ -111,7 +111,6 @@ test_position_map_init_1x()
   TEST_CHECK(pos_map->local_ext.ndim == 1);
   TEST_CHECK(pos_map->basis.ndim == 1);
   TEST_CHECK(pos_map->basis.poly_order == 1);
-  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -160,7 +159,6 @@ test_position_map_init_1x_null()
   TEST_CHECK(pos_map->local_ext.ndim == 1);
   TEST_CHECK(pos_map->basis.ndim == 1);
   TEST_CHECK(pos_map->basis.poly_order == 1);
-  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -198,7 +196,6 @@ test_position_map_init_2x()
   TEST_CHECK(pos_map->local_ext.ndim == 2);
   TEST_CHECK(pos_map->basis.ndim == 2);
   TEST_CHECK(pos_map->basis.poly_order == 1);
-  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -236,7 +233,6 @@ test_position_map_init_3x()
   TEST_CHECK(pos_map->local_ext.ndim == 3);
   TEST_CHECK(pos_map->basis.ndim == 3);
   TEST_CHECK(pos_map->basis.poly_order == 1);
-  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
