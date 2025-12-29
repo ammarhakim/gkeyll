@@ -125,19 +125,6 @@ gk_neut_species_kinetic_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void
-gk_neut_species_kinetic_apply_pos_shift_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
-{
-  struct timespec wtm = gkyl_wall_clock();
-  // Copy f so we can calculate the moments of the change later. 
-  gkyl_array_set(gkns->fnew, -1.0, gkns->f);
-
-  // Shift each species.
-  gkyl_positivity_shift_vlasov_advance(gkns->pos_shift_op, &app->local, &gkns->local,
-    gkns->f, gkns->m0.marr, gkns->ps_delta_m0);
-  app->stat.neut_species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
-}
-
 // release all resources for dynamic species
 static void
 gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
@@ -195,12 +182,6 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
     }
   }
 
-  if (s->enforce_positivity) {
-    gkyl_array_release(s->ps_delta_m0);
-    gkyl_positivity_shift_vlasov_release(s->pos_shift_op);
-    gk_species_moment_release(app, &s->ps_moms);
-    gkyl_dynvec_release(s->ps_integ_diag);
-  }
 }
 
 static void
@@ -228,6 +209,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   gkyl_free(ns->moms);
 
   gk_neut_species_bgk_release(app, &ns->bgk);
+
+  gk_neut_species_positivity_release(app, &ns->positivity);
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, ns, &ns->bflux);
@@ -350,22 +333,6 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
     }
   }
 
-  if (app->enforce_positivity || s->info.enforce_positivity) {
-    s->enforce_positivity = true;
-
-    // Positivity enforcing by shifting f (ps=positivity shift).
-    s->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    s->pos_shift_op = gkyl_positivity_shift_vlasov_new(app->basis, s->basis,
-      s->grid, &app->local_ext, app->use_gpu);
-
-    // Allocate data for diagnostic moments
-    gk_neut_species_moment_init(app, s, &s->ps_moms, GKYL_F_MOMENT_M0, false);
-
-    s->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
-    s->is_first_ps_integ_write_call = true;
-  }
-
   // Set function pointers
   s->rhs_func = gk_neut_species_kinetic_rhs_dynamic;
   s->rhs_implicit_func = gk_neut_species_kinetic_rhs_implicit_dynamic;
@@ -375,10 +342,6 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   s->step_f_func = gk_neut_species_step_f_dynamic;
   s->combine_func = gk_neut_species_combine_dynamic;
   s->copy_func = gk_neut_species_copy_range_dynamic;
-  if (s->enforce_positivity)
-    s->apply_pos_shift_func = gk_neut_species_kinetic_apply_pos_shift_enabled;
-  else
-    s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_dynamic;
   s->write_mom_func = gk_neut_species_write_mom_dynamic;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_dynamic;
@@ -402,7 +365,6 @@ gk_neut_species_kinetic_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
   s->step_f_func = gk_neut_species_step_f_static;
   s->combine_func = gk_neut_species_combine_static;
   s->copy_func = gk_neut_species_copy_range_static;
-  s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_init_only;
   s->write_mom_func = gk_neut_species_write_mom_static;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
@@ -865,11 +827,13 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     .use_last_converged = use_last_converged };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 
-  s->enforce_positivity = false;
-  
   // Initialize elastic collisions.
   s->bgk = (struct gk_bgk_collisions) { };
   gk_neut_species_bgk_init(app, s, &s->bgk);
+
+  // Initialize positivity enforcing operator.
+  s->positivity = (struct gk_positivity) { };
+  gk_neut_species_positivity_init(app, s, &s->positivity);
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).

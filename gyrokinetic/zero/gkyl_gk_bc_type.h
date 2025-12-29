@@ -19,6 +19,7 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_IWL, // Inner wall limited.
   GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
   GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.
+  GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, // Skin value at the boundary.
   // Field BCs.
   GKYL_BC_GK_FIELD_PERIODIC, // Periodic.
   GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet.

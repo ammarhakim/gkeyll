@@ -80,9 +80,6 @@ gk_neut_species_copy_range_static(struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 void
-gk_neut_species_apply_pos_shift_disabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
-
-void
 gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
 
 void

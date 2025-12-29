@@ -1,12 +1,6 @@
 #include <gkyl_gk_neut_species_priv.h>
 
 void
-gk_neut_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
-{
-  gkns->apply_pos_shift_func(app, gkns);
-}
-
-void
 gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   if (ns->info.cells[0] == 0) {
@@ -158,7 +152,7 @@ void
 gk_neut_species_step_f_static(struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
@@ -175,7 +169,7 @@ gk_neut_species_combine_static(struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
   const struct gkyl_range *rng)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
@@ -189,12 +183,7 @@ void
 gk_neut_species_copy_range_static(struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
 {
-  // do nothing
-}
-
-void
-gk_neut_species_apply_pos_shift_disabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
-{
+  // Do nothing.
 }
 
 void
@@ -268,33 +257,6 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_neut_diag_io += 1;
   }
-
-  if (gkns->enforce_positivity) {
-    struct timespec wst = gkyl_wall_clock();
-    // We placed the change in f from the positivity shift in fnew.
-    gk_neut_species_moment_calc(&gkns->ps_moms, gkns->local, app->local, gkns->fnew);
-    app->stat.n_mom += 1;
-
-    // Rescale moment by inverse of Jacobian.
-    gkyl_dg_div_op_range(gkns->ps_moms.mem_geo, app->basis,
-      0, gkns->ps_moms.marr, 0, gkns->ps_moms.marr, 0,
-      app->gk_geom->geo_int.jacobgeo, &app->local);
-    app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
-
-    struct timespec wtm = gkyl_wall_clock();
-    if (app->use_gpu)
-      gkyl_array_copy(gkns->ps_moms.marr_host, gkns->ps_moms.marr);
-
-    const char *fmt = "%s-%s_positivity_shift_M0_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, frame);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, frame);
-
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-      gkns->ps_moms.marr_host, fileNm);
-    app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.n_neut_diag_io += 1;
-  }
   gk_array_meta_release(mt); 
 }
 
@@ -320,24 +282,6 @@ gk_neut_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk
     memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]));
   }
   gkyl_dynvec_append(gkns->integ_diag, tm, avals_global);
-
-  if (gkns->enforce_positivity) {
-    // The change in f from the positivity shift is in fnew.
-    gk_neut_species_moment_calc(&gkns->integ_moms, gkns->local, app->local, gkns->fnew);
-    app->stat.n_mom += 1;
-
-    // Reduce (sum) over whole domain, append to diagnostics.
-    gkyl_array_reduce_range(gkns->red_integ_diag, gkns->integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
-      gkns->red_integ_diag, gkns->red_integ_diag_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]));
-    }
-    gkyl_dynvec_append(gkns->ps_integ_diag, tm, avals_global);
-  }
 
   app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_neut_diag += 1;
@@ -368,33 +312,13 @@ gk_neut_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct g
   gkyl_dynvec_clear(gkns->integ_diag);
   app->stat.n_neut_diag_io += 1;
 
-  if (gkns->enforce_positivity) {
-    if (rank == 0) {
-      // Write integrated diagnostic moments.
-      const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, "integrated_moms");
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
-
-      if (gkns->is_first_ps_integ_write_call) {
-        gkyl_dynvec_write(gkns->ps_integ_diag, fileNm);
-        gkns->is_first_ps_integ_write_call = false;
-      }
-      else {
-        gkyl_dynvec_awrite(gkns->ps_integ_diag, fileNm);
-      }
-    }
-    gkyl_dynvec_clear(gkns->ps_integ_diag);
-    app->stat.n_diag_io += 1;
-  }
-
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
 gk_neut_species_write_static(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
@@ -407,7 +331,7 @@ gk_neut_species_write_init_only(gkyl_gyrokinetic_app* app, struct gk_neut_specie
 void
 gk_neut_species_write_mom_static(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
@@ -420,13 +344,13 @@ gk_neut_species_write_mom_init_only(gkyl_gyrokinetic_app* app, struct gk_neut_sp
 void
 gk_neut_species_calc_integrated_mom_static(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
 gk_neut_species_write_integrated_mom_static(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
 {
-  // do nothing
+  // Do nothing.
 }
 
 void
