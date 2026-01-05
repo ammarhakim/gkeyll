@@ -49,8 +49,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 
