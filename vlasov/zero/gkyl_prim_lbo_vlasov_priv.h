@@ -19,14 +19,13 @@ typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, co
 static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
-  {-1, -1,  3,  4}, // 2x kernel indices
-  {-1, -1, -1,  5}, // 3x kernel indices  
+  {-1,  3,  4,  5}, // 2x kernel indices
+  {-1, -1, -1,  6}, // 3x kernel indices  
 };
 
 // for use in kernel tables
-typedef struct { vlasov_self_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_self_kern_list;
-typedef struct { vlasov_cross_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_cross_kern_list;
-
+typedef struct { vlasov_self_prim_t kernels[4]; } gkyl_prim_lbo_vlasov_self_kern_list;
+typedef struct { vlasov_cross_prim_t kernels[4]; } gkyl_prim_lbo_vlasov_cross_kern_list;
 
 //
 // Serendipity basis kernels
@@ -36,28 +35,64 @@ typedef struct { vlasov_cross_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_cross_ke
 GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_self_prim_moments_1x1v_ser_p1, vlasov_self_prim_moments_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_self_prim_moments_1x2v_ser_p1, vlasov_self_prim_moments_1x2v_ser_p2 }, // 1
-  { NULL, vlasov_self_prim_moments_1x3v_ser_p1, vlasov_self_prim_moments_1x3v_ser_p2 }, // 2
+  { NULL, NULL, vlasov_self_prim_moments_1x1v_ser_p2, vlasov_self_prim_moments_1x1v_ser_p3 }, // 0
+  { NULL, NULL, vlasov_self_prim_moments_1x2v_ser_p2, NULL }, // 1
+  { NULL, NULL, vlasov_self_prim_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_self_prim_moments_2x2v_ser_p1, vlasov_self_prim_moments_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_self_prim_moments_2x3v_ser_p1, vlasov_self_prim_moments_2x3v_ser_p2 }, // 4
+  { NULL, NULL, vlasov_self_prim_moments_2x1v_ser_p2, vlasov_self_prim_moments_2x1v_ser_p3 }, // 3
+  { NULL, NULL, vlasov_self_prim_moments_2x2v_ser_p2, NULL }, // 4
+  { NULL, NULL, vlasov_self_prim_moments_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_self_prim_moments_3x3v_ser_p1, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // cross-primitive moment kernel list
 GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_cross_kern_list ser_cross_prim_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_cross_prim_moments_1x1v_ser_p1, vlasov_cross_prim_moments_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_cross_prim_moments_1x2v_ser_p1, vlasov_cross_prim_moments_1x2v_ser_p2 }, // 1
-  { NULL, vlasov_cross_prim_moments_1x3v_ser_p1, vlasov_cross_prim_moments_1x3v_ser_p2 }, // 2
+  { NULL, NULL, vlasov_cross_prim_moments_1x1v_ser_p2, vlasov_cross_prim_moments_1x1v_ser_p3 }, // 0
+  { NULL, NULL, vlasov_cross_prim_moments_1x2v_ser_p2, NULL }, // 1
+  { NULL, NULL, vlasov_cross_prim_moments_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_cross_prim_moments_2x2v_ser_p1, vlasov_cross_prim_moments_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_cross_prim_moments_2x3v_ser_p1, vlasov_cross_prim_moments_2x3v_ser_p2 }, // 4
+  { NULL, NULL, vlasov_cross_prim_moments_2x1v_ser_p2, vlasov_cross_prim_moments_2x1v_ser_p3 }, // 0
+  { NULL, NULL, vlasov_cross_prim_moments_2x2v_ser_p2, NULL }, // 3
+  { NULL, NULL, vlasov_cross_prim_moments_2x3v_ser_p2, NULL }, // 4
   // 3x kernels
-  { NULL, vlasov_cross_prim_moments_3x3v_ser_p1, NULL }, // 5
+  { NULL, NULL, NULL, NULL }, // 5
+};
+
+//
+// Tensor basis kernels
+//
+
+// self-primitive moment kernel list
+GKYL_CU_D
+static const gkyl_prim_lbo_vlasov_self_kern_list ten_self_prim_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, vlasov_self_prim_moments_1x1v_tensor_p2, vlasov_self_prim_moments_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, vlasov_self_prim_moments_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_self_prim_moments_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_self_prim_moments_2x1v_tensor_p2, vlasov_self_prim_moments_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, vlasov_self_prim_moments_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_self_prim_moments_2x3v_tensor_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// cross-primitive moment kernel list
+GKYL_CU_D
+static const gkyl_prim_lbo_vlasov_cross_kern_list ten_cross_prim_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, vlasov_cross_prim_moments_1x1v_tensor_p2, vlasov_cross_prim_moments_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, vlasov_cross_prim_moments_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_cross_prim_moments_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_cross_prim_moments_2x1v_tensor_p2, vlasov_cross_prim_moments_2x1v_tensor_p3 }, // 0
+  { NULL, NULL, vlasov_cross_prim_moments_2x2v_tensor_p2, NULL }, // 3
+  { NULL, NULL, vlasov_cross_prim_moments_2x3v_tensor_p2, NULL }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 5
 };
 
 struct prim_lbo_type_vlasov {

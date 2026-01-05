@@ -71,6 +71,7 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_vlasov_cross_prim_moms_bgk.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
@@ -126,40 +127,57 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
-struct vm_lbo_collisions {
-  enum gkyl_collision_id collision_id; // Type of collisions.  
-  struct gkyl_array *boundary_corrections; // LBO boundary corrections
-  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
-  bool normNu; // Boolean to determine if using Spitzer value
-  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
-  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
-  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
+struct vm_lbo_collisions {  
+  enum gkyl_collision_id collision_id; // type of collisions
+  bool write_coll_diagnostics; // Whether to write diagnostics out.
 
-  double betaGreenep1; // value of Greene's factor beta + 1
-  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
-  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
-  struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
-  
-  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
-
-  struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
-  struct gkyl_array *m0;
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
+  struct gkyl_array *self_nu; // Self-collision frequency.
+  struct gkyl_array *boundary_corrections; // LBO boundary corrections.
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator.
+  struct gkyl_array *nu_sum; // Sum of collision frequencies.
+  struct gkyl_array *prim_moms, *nu_prim_moms; // Primitive moments.
+  struct gkyl_array *nu_sum_host, *nu_prim_moms_host; // Host arrays for I/O.
+  bool norm_nu_self; // Whether to compute self-species collision frequency in space and time.
+  double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
+  double vtsq_min; // Minimum vtsq.
+  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value.
+  struct gkyl_array *nu_boundary_corrections; // Boundary corrections multiplied by nu.
+  struct gkyl_array *nu_moms; // Moments multiplied by nu.
+  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
 
   int num_cross_collisions; // number of species we cross-collide with
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
-
-  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
+  bool norm_nu_cross; // Whether to compute cross-species collision frequency in space and time.
+  double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
+  double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
+  double betaGreenep1; // Galue of Greene's factor beta + 1.
+  double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
+  double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
+  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
+  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // Cross-primitive moments.
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // Cross-species collision frequencies.
+  struct gkyl_array *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
+  struct gkyl_array *alpha_E; // Morse's alpha_E factor.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
+  
+  struct vm_species_moment moms; // Moments needed in LBO (M0, M1, M2).
+
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
+
+  // Pointers to methods chosen at runtime.
+  void (*moms_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo, const struct gkyl_array *fin);
+  void (*self_nu_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo, const struct gkyl_array *fin);
+  void (*cross_nu_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo, int coll_idx);
+  void (*alpha_E_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo, int coll_idx);
+  void (*cross_moms_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo);
+  void (*rhs_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
 };
 
 struct vm_lte {  
@@ -182,30 +200,60 @@ struct vm_lte {
 
 struct vm_bgk_collisions {  
   enum gkyl_collision_id collision_id; // Type of collisions.
-  struct gkyl_array *nu_sum; // BGK collision frequency 
-  struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
-  struct gkyl_array *self_nu; // BGK self-collision frequency
+  bool write_coll_diagnostics; // Whether to write diagnostics out.
 
-  int num_conf_basis; // number of configuration space basis functions
-  struct gkyl_array *actual_nu; // BGK collision frequency, corrected to 0 for regions where n,T< 0
-
-  bool normNu; // Boolean to determine if using Spitzer value
-  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
-  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
+  struct gkyl_array *self_nu; // Self-collision frequency.
+  struct gkyl_array *ref_self_nu; // Reference self-collision frequency needed for robustness checks n, T < 0.
+  struct gkyl_array *nu_sum; // Sum of collision frequencies.
+  struct gkyl_array *nu_sum_host; // Host arrays for I/O.
+  bool norm_nu_self; // Whether to compute self-species collision frequency in space and time.
+  double norm_nu_fac_self; // Self collision frequency without factor of n_s/(2*v_ts^2)^(3/2).
+  double vtsq_min; // Minimum vtsq.
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct vm_lte lte; // lte data and updater
+  int num_cross_collisions; // number of species we cross-collide with
+  struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  bool norm_nu_cross; // Whether to compute cross-species collision frequency in space and time.
+  double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
+  double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
+  double betaGreenep1; // Galue of Greene's factor beta + 1.
+  double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
+  double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
+  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
+  struct gkyl_array *cross_prim_moms; // Cross-primitive moments.
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // Cross-species collision frequencies.
+  struct gkyl_array *ref_cross_nu[GKYL_MAX_SPECIES]; // Reference cross-collision frequencies needed for robustness checks n, T < 0.
+  struct gkyl_array *alpha_E; // Morse's alpha_E factor.
+  struct gkyl_vlasov_cross_prim_moms_bgk *cross_calc; // Cross-species moment computation.
+  
+  struct gkyl_array *nu_f_lte; // Collision frequency times Maxwellian.
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep).
 
-  struct gkyl_array *nu_f_lte;
-  enum gkyl_model_id model_id;
+  bool fixed_temp_relax; // Boolean for whether the temperature being relaxed to is fixed in time.
+  struct gkyl_array *fixed_temp; // Array of fixed temperature BGK collisions are relaxing to.
 
-  bool fixed_temp_relax; // boolean for whether the temperature being relaxed to is fixed in time.
-  struct gkyl_array *fixed_temp; // array of fixed temperature BGK collisions are relaxing to
+  bool implicit_step; // Whether or not to take an implcit BGK step.
 
-  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
-
-  bool implicit_step; // whether or not to take an implcit bgk step
-  double dt_implicit; // timestep used by the implicit collisions
+  // Pointers to methods chosen at runtime.
+  void (*moms_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, const struct gkyl_array *fin);
+  void (*moms_func_implicit)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, const struct gkyl_array *fin);
+  void (*self_nu_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk);
+  void (*cross_nu_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, int coll_idx);
+  void (*alpha_E_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, int coll_idx);
+  void (*cross_moms_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, int coll_idx);
+  void (*rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+  void (*rhs_func_implicit)(gkyl_vlasov_app *app, struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+  void (*fixed_temp_calc_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
+    struct vm_bgk_collisions *bgk, const struct gkyl_array *fin);
+  void (*write_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
 };
 
 struct vm_boundary_fluxes {
@@ -480,14 +528,8 @@ struct vm_species {
   struct vm_lte lte; // object needed for the lte equilibrium
 
   // collisions
-  union {
-    struct {
-      struct vm_lbo_collisions lbo; // LBO collisions object
-    };
-    struct {
-      struct vm_bgk_collisions bgk; // BGK collisions object
-    };
-  }; 
+  struct vm_lbo_collisions lbo; // LBO collisions object
+  struct vm_bgk_collisions bgk; // BGK collisions object
 
   double *omega_cfl;
 
@@ -1063,6 +1105,16 @@ void vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write moments from LBO object.
+ *
+ * @param app Vlasov app object.
+ * @param species Pointer to species.
+ * @param tm Simulation time.
+ * @param frame Simulation output frame.
+ */
+void vm_species_lbo_write_mom(gkyl_vlasov_app* app, struct vm_species *species, double tm, int frame);
+
+/**
  * Release species LBO object.
  *
  * @param app Vlasov app object
@@ -1136,17 +1188,28 @@ void vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_bgk_collisions *bgk);
 
 /**
- * Compute necessary moments for BGK collisions
+ * Initialize species BGK cross-collisions object.
  *
  * @param app Vlasov app object
- * @param species Pointer to species
- * @param bgk Pointer to BGK
- * @param fin Input distribution function
+ * @param s Species object 
+ * @param bgk Species BGK object
  */
-void vm_species_bgk_moms(gkyl_vlasov_app *app,
-  const struct vm_species *species,
-  struct vm_bgk_collisions *bgk,
-  const struct gkyl_array *fin);
+void vm_species_bgk_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_bgk_collisions *bgk);
+
+/**
+ * Compute necessary moments for BGK collisions.
+ *
+ * @param app Vlasov app object
+ * @param vms Pointer to species.
+ * @param bgk Pointer to BGK.
+ * @param fin Input distribution function.
+ */
+void vm_species_bgk_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
+  struct vm_bgk_collisions *bgk, const struct gkyl_array *fin);
+
+void vm_species_bgk_moms_implicit(gkyl_vlasov_app *app, const struct vm_species *vms,
+  struct vm_bgk_collisions *bgk, const struct gkyl_array *fin);
 
 /**
  * Compute and store a fixed temperature for BGK collisions
@@ -1162,7 +1225,7 @@ void vm_species_bgk_moms_fixed_temp(gkyl_vlasov_app *app,
   const struct gkyl_array *fin);
 
 /**
- * Compute RHS from BGK collisions
+ * Compute RHS from BGK collisions.
  *
  * @param app Vlasov app object
  * @param species Pointer to species
@@ -1174,6 +1237,31 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
   struct vm_species *species,
   struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute RHS from BGK collisions (implicit integrator).
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ * @param dt Time step.
+ * @param rhs On output, the implicit RHS from bgk
+ */
+void vm_species_bgk_rhs_implicit(gkyl_vlasov_app *app,
+  struct vm_species *species,
+  struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+
+/**
+ * Write moments from BGK object.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param tm Simulation time.
+ * @param frame Simulation output frame.
+ */
+void vm_species_bgk_write_mom(gkyl_vlasov_app* app, struct vm_species *species, double tm, int frame);
 
 /**
  * Release species BGK object.

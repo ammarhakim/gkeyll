@@ -410,23 +410,32 @@ struct vlasov_species_lw {
   double iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
   int max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
   bool use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
-  bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
   
   enum gkyl_collision_id collision_id; // Collision type.
-  
+  double nu_frac; // Rescales collision frequencies (default = 1).
+  bool write_coll_diagnostics; // Whether to output diagnostics.
+
   bool has_self_nu_func; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ref; // Lua registry reference to self-collision frequency function.
 
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+  bool has_cross_nu_func[GKYL_MAX_SPECIES]; // Are there cross-collision frequency functions?
+  struct lua_func_ctx cross_nu_func_ref[GKYL_MAX_SPECIES]; // Lua registry reference to cross-collision frequency functions.
+
+  // Parameters used to compute the Coulomb Logarithm.
+  double den_ref; // Reference density.
+  double temp_ref; // Regerence temperature.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   bool lte_correct_all_moms; // Are we correcting all moments in collisions, or only density?
   double lte_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
   int lte_max_iter; // Maximum number of iterations for moment fixes in collisions.
   bool lte_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+  bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
 
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?  
-  bool has_implicit_coll_scheme; // Use implicit scheme for collisions?
+  bool is_implicit; // Boolean for using implicit BGK collisions (replaces rk3).
 
   enum gkyl_source_id source_id; // Source type.
 
@@ -725,17 +734,26 @@ vlasov_species_lw_new(lua_State *L)
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
+  double nu_frac = 1.0; 
+  bool write_coll_diagnostics = false; 
 
   bool has_self_nu_func = false;
   int self_nu_func_ref = LUA_NOREF;
 
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
+  bool has_cross_nu_func[GKYL_MAX_SPECIES];
+  int cross_nu_func_ref[GKYL_MAX_SPECIES];
 
+  double den_ref = 0.0; 
+  double temp_ref = 0.0; 
+  double hbar = 0.0, eps0 = 0.0, eV = 0.0; 
   bool fixed_temp_relax = false;
-  bool has_implicit_coll_scheme = false;
+  bool is_implicit = false;
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
+    nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
+    write_coll_diagnostics = glua_tbl_get_bool(L, "writeSource", false);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -747,10 +765,33 @@ vlasov_species_lw_new(lua_State *L)
       for (int i = 0; i < num_cross_collisions; i++) {
         const char* collide_with_char = glua_tbl_iget_string(L, i + 1, "");
         strcpy(collide_with[i], collide_with_char);
+        // Initialize cross nu function pointers. 
+        // These are only used if user specifies functional form of cross
+        // collision frequency. 
+        has_cross_nu_func[i] = false;
+        cross_nu_func_ref[i] = LUA_NOREF;
       }
     }
+    // Set user-defined cross collision frequency if specified. 
+    with_lua_tbl_tbl(L, "collideWithCrossNu") {
+      for (int i = 0; i < num_cross_collisions; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          if (glua_tbl_get_func(L, "crossNu")) {
+            cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          }
+        }
+        lua_pop(L, 1);
+      }
+    }
+    // Parameters used to compute Coulomb logarithm. 
+    den_ref = glua_tbl_get_number(L, "n0", 1.0);
+    temp_ref = glua_tbl_get_number(L, "T0", 1.0);
+    hbar = glua_tbl_get_number(L, "hbar", 1.0);
+    eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
+    eV = glua_tbl_get_number(L, "eV", 1.0);   
+    // BGK collisions specific inputs
     fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
-    has_implicit_coll_scheme = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
+    is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -1081,6 +1122,8 @@ vlasov_species_lw_new(lua_State *L)
   }
 
   vms_lw->collision_id = collision_id;
+  vms_lw->nu_frac = nu_frac;
+  vms_lw->write_coll_diagnostics = write_coll_diagnostics;
 
   vms_lw->has_self_nu_func = has_self_nu_func;
   vms_lw->self_nu_func_ref = (struct lua_func_ctx) {
@@ -1093,15 +1136,27 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
     strcpy(vms_lw->collide_with[i], collide_with[i]);
+    vms_lw->has_cross_nu_func[i] = has_cross_nu_func[i];
+    vms_lw->cross_nu_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = cross_nu_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
   }
+  vms_lw->den_ref = den_ref;
+  vms_lw->temp_ref = temp_ref;
+  vms_lw->hbar = hbar;
+  vms_lw->eps0 = eps0;
+  vms_lw->eV = eV;  
+  vms_lw->fixed_temp_relax = fixed_temp_relax;
+  vms_lw->is_implicit = is_implicit;
 
   vms_lw->lte_correct_all_moms = lte_correct_all_moms;
   vms_lw->lte_iter_eps = lte_iter_eps;
   vms_lw->lte_max_iter = lte_max_iter;
   vms_lw->lte_use_last_converged = lte_use_last_converged;
   vms_lw->output_f_lte = output_f_lte;
-  vms_lw->fixed_temp_relax = fixed_temp_relax;
-  vms_lw->has_implicit_coll_scheme = has_implicit_coll_scheme;
 
   vms_lw->radiation_id = radiation_id; 
   vms_lw->t_cool = t_cool; 
@@ -1558,8 +1613,6 @@ struct vlasov_app_lw {
   bool has_metric_determinant_func[GKYL_MAX_SPECIES]; // Is there a metric determinant function?
   struct lua_func_ctx metric_determinant_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to metric determinant function.
 
-  bool output_f_lte[GKYL_MAX_SPECIES]; // Should f_lte be written out (for calculating transport coefficients)?
-
   int num_init[GKYL_MAX_SPECIES]; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type.
 
@@ -1581,19 +1634,27 @@ struct vlasov_app_lw {
   bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
+  double nu_frac[GKYL_MAX_SPECIES]; // Rescales collision frequencies (default = 1).
+  bool write_coll_diagnostics[GKYL_MAX_SPECIES]; // Whether to output diagnostics.
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
 
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+  bool has_cross_nu_func[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Is there a cross-collision frequency function?
+  struct lua_func_ctx cross_nu_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Context for cross-collision frequency function.
+  double den_ref[GKYL_MAX_SPECIES]; // Reference density.
+  double temp_ref[GKYL_MAX_SPECIES]; // Regerence temperature.
+  double hbar[GKYL_MAX_SPECIES], eps0[GKYL_MAX_SPECIES], eV[GKYL_MAX_SPECIES]; // Planck's constant/2 pi, vacuum permittivity, elementary charge.  
+  bool fixed_temp_relax[GKYL_MAX_SPECIES]; // Are BGK collisions relaxing to a fixed input temperature?
+  bool is_implicit[GKYL_MAX_SPECIES]; // Use implicit scheme for BGK collisions?
 
   bool lte_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
   double lte_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
   int lte_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
-  bool fixed_temp_relax[GKYL_MAX_SPECIES]; // Are BGK collisions relaxing to a fixed input temperature?
   bool lte_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
-  bool has_implicit_coll_scheme[GKYL_MAX_SPECIES]; // Use implicit scheme for collisions?
+  bool output_f_lte[GKYL_MAX_SPECIES]; // Should f_lte be written out (for calculating transport coefficients)?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
 
@@ -1736,6 +1797,12 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
 
         if (vms->has_self_nu_func) {
           vms->self_nu_func_ref.ndim = cdim;
+        }
+
+        for (int i = 0; i < vms->num_cross_collisions; i++) {
+          if (vms->has_cross_nu_func[i]) {
+            vms->cross_nu_func_ref[i].ndim = cdim;
+          }          
         }
 
         for (int i = 0; i < vms->num_sources; i++) {
@@ -2155,6 +2222,8 @@ vm_app_new(lua_State *L)
     }
 
     app_lw->collision_id[s] = species[s]->collision_id;
+    app_lw->nu_frac[s] = species[s]->nu_frac;
+    app_lw->write_coll_diagnostics[s] = species[s]->write_coll_diagnostics;
 
     app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
     app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
@@ -2162,36 +2231,50 @@ vm_app_new(lua_State *L)
     app_lw->num_cross_collisions[s] = species[s]->num_cross_collisions;
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
+      app_lw->has_cross_nu_func[s][i] = species[s]->has_cross_nu_func[i];
+      app_lw->cross_nu_func_ctx[s][i] = species[s]->cross_nu_func_ref[i];
+    }
+    app_lw->den_ref[s] = species[s]->den_ref;
+    app_lw->temp_ref[s] = species[s]->temp_ref;
+    app_lw->hbar[s] = species[s]->hbar;
+    app_lw->eps0[s] = species[s]->eps0;
+    app_lw->eV[s] = species[s]->eV;  
+    app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
+    app_lw->is_implicit[s] = species[s]->is_implicit;
+    
+    vm.species[s].collisions.collision_id = app_lw->collision_id[s];
+    vm.species[s].collisions.nu_frac = app_lw->nu_frac[s];
+    vm.species[s].collisions.write_coll_diagnostics = app_lw->write_coll_diagnostics[s];
+    if (species[s]->has_self_nu_func) {
+      vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
+      vm.species[s].collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
     }
 
-    app_lw->output_f_lte[s] = species[s]->output_f_lte;    
+    vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
+    for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
+      strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
+      vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
+      vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+    }
+    vm.species[s].collisions.den_ref = app_lw->den_ref[s];
+    vm.species[s].collisions.temp_ref = app_lw->temp_ref[s];
+    vm.species[s].collisions.hbar = app_lw->hbar[s];
+    vm.species[s].collisions.eps0 = app_lw->eps0[s];
+    vm.species[s].collisions.eV = app_lw->eV[s]; 
+    vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
+    vm.species[s].collisions.is_implicit = app_lw->is_implicit[s];
+
     app_lw->lte_correct_all_moms[s] = species[s]->lte_correct_all_moms;
     app_lw->lte_iter_eps[s] = species[s]->lte_iter_eps;
     app_lw->lte_max_iter[s] = species[s]->lte_max_iter;
     app_lw->lte_use_last_converged[s] = species[s]->lte_use_last_converged;
+    app_lw->output_f_lte[s] = species[s]->output_f_lte;  
 
     vm.species[s].correct.correct_all_moms = app_lw->lte_correct_all_moms[s];
     vm.species[s].correct.iter_eps = app_lw->lte_iter_eps[s];
     vm.species[s].correct.max_iter = app_lw->lte_max_iter[s];
     vm.species[s].correct.use_last_converged = app_lw->lte_use_last_converged[s];
     vm.species[s].correct.output_f_lte = app_lw->output_f_lte[s];
-
-    app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
-    app_lw->has_implicit_coll_scheme[s] = species[s]->has_implicit_coll_scheme;
-
-    vm.species[s].collisions.collision_id = app_lw->collision_id[s];
-    if (species[s]->has_self_nu_func) {
-      vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      vm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
-    }
-
-    vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
-    for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
-      strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
-    }
-
-    vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
-    vm.species[s].collisions.has_implicit_coll_scheme = app_lw->has_implicit_coll_scheme[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 

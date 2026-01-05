@@ -102,6 +102,10 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/bgk_vlasov/%.c.o : $(KERNELS_DIR)/bgk_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/canonical_pb/%.c.o : $(KERNELS_DIR)/canonical_pb/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@

@@ -278,10 +278,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
-  for (int i=0; i<ns; ++i)
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS &&
-        app->species[i].lbo.num_cross_collisions)
-      vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+  for (int i=0; i<ns; ++i) {
+    vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+    vm_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
+  }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species.
@@ -312,7 +312,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // Use implicit BGK collisions if specified
   app->has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
-    if (vm->species[i].collisions.has_implicit_coll_scheme){
+    if (vm->species[i].collisions.is_implicit){
       app->has_implicit_coll_scheme = true;
     }
   }
