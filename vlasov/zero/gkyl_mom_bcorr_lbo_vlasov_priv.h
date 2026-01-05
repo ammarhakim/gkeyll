@@ -67,7 +67,7 @@ struct mom_type_bcorr_lbo_vlasov {
   double vBoundary[2*GKYL_MAX_DIM];
 };
 
-void gkyl_mom_free(const struct gkyl_ref_count *ref);
+void gkyl_mom_bcorr_vlasov(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static void

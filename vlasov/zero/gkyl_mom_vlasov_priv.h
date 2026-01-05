@@ -4984,4 +4984,4 @@ static const gkyl_vlasov_mom_kern_list tensor_m0_lower_kernels[] = {
  *
  * @param ref Reference counter for moment to free
  */
-void gkyl_mom_free(const struct gkyl_ref_count *ref);
+void gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref);

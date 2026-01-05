@@ -232,7 +232,7 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   mom_vlasov->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   // copy struct to device
   struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));
@@ -341,7 +341,7 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   mom_vlasov->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   // copy struct to device
   struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));

@@ -59,7 +59,7 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
-  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_vlasov);
 
   // copy struct to device
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr_cu = (struct mom_type_bcorr_lbo_vlasov*)
