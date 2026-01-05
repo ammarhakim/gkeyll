@@ -10,7 +10,7 @@ gkyl_vlasov_cross_prim_moms_bgk_new(const struct gkyl_basis *pbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_vlasov_cross_prim_moms_bgk_cu_dev_new(phase_basis, conf_basis); 
+    return gkyl_vlasov_cross_prim_moms_bgk_cu_dev_new(pbasis, cbasis); 
   }
 #endif
   gkyl_vlasov_cross_prim_moms_bgk *up = gkyl_malloc(sizeof(*up));
