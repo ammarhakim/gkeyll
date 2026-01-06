@@ -230,12 +230,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
   // Copy the biasing line list (bias_lines) into this updater.
   up->num_bias_line = 0;
+  bool *bl_in_solve_range = 0;
   if (bias_lines) {
     if (bias_lines->num_bias_line > 0) {
       // Check if any bias lines are in solve_range, and copy their info into updater.
-      bool bl_in_solve_range[bias_lines->num_bias_line];
+      bl_in_solve_range = gkyl_malloc(bias_lines->num_bias_line * sizeof(bool));
       for (int i=0; i<bias_lines->num_bias_line; i++)
-        bl_in_solve_range[bias_lines->num_bias_line] = false;
+        bl_in_solve_range[i] = false;
 
       for (int i=0; i<bias_lines->num_bias_line; i++) {
         struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
@@ -369,26 +370,28 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
         for (int i=0; i<bias_lines->num_bias_line; i++) {
-          // Index of the cell that abuts the line from below.
-          struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
-          int bl_idx_m[up->bl_ndim_perp];
-          for (int d=0; d<up->bl_ndim_perp; d++) {
-            int perp_dir = bl->perp_dirs[d];
-            double dx = up->grid.dx[perp_dir];
-            bl_idx_m[d] = (bl->perp_coords[d]-1e-3*dx - up->grid.lower[perp_dir])/dx+1;
-          }
+          if (bl_in_solve_range[i]) {
+            // Index of the cell that abuts the line from below.
+            struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
+            int bl_idx_m[up->bl_ndim_perp];
+            for (int d=0; d<up->bl_ndim_perp; d++) {
+              int perp_dir = bl->perp_dirs[d];
+              double dx = up->grid.dx[perp_dir];
+              bl_idx_m[d] = (bl->perp_coords[d]-1e-3*dx - up->grid.lower[perp_dir])/dx+1;
+            }
 
-          if (
-              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
-              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
-              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
-              ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
-             ) {
-            int edge[2] = {
-              -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
-              -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
-            };
-            up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[0]);
+            if (
+                ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+                ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+                ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]   && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
+                ( idx1[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
+               ) {
+              int edge[2] = {
+                -1+2*((bl_idx_m[0]+1)-idx1[bl->perp_dirs[0]]),
+                -1+2*((bl_idx_m[1]+1)-idx1[bl->perp_dirs[1]]),
+              };
+              up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[paridx]);
+            }
           }
         }
       }
@@ -399,6 +402,9 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   else {
     up->bias_line_src = fem_poisson_perp_bias_src_disabled;
   }
+
+  if (bl_in_solve_range)
+    gkyl_free(bl_in_solve_range);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)

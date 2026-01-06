@@ -1125,7 +1125,17 @@ struct gk_field {
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
 
-  struct gkyl_job_pool *job_pool; // Job pool  .
+  // Global skin/ghost ranges;
+  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
+  // Core and SOL ranges for IWL sims.
+  struct gkyl_range global_lower_skin_par_core, global_lower_ghost_par_core;
+  struct gkyl_range global_upper_skin_par_core, global_upper_ghost_par_core;
+  struct gkyl_range global_lower_skin_par_sol , global_lower_ghost_par_sol;
+  struct gkyl_range global_upper_skin_par_sol , global_upper_ghost_par_sol;
+
   // Arrays for local charge density, global charge density, and global smoothed (in z) charge density.
   struct gkyl_array *rho_c;
   struct gkyl_array *rho_c_global_dg;
@@ -1201,13 +1211,16 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
+  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updaters.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo, *gfss_bc_op_core_up;
+  struct gkyl_array *bc_buffer;
   
   // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_parallel_bc_func)(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
-  void (*fem_projection_par_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  void (*fem_projection_par_pre_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
+  void (*fem_projection_par_post_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 };
 
@@ -1249,7 +1262,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
   struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
   struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
-  struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  struct gkyl_range global_par_ext_core; // Core global range extended in parallel direction.
+  struct gkyl_range local_par_ext_core; // Core local range extended in parallel direction.
 
   struct gkyl_basis basis; // conf-space basis
   
