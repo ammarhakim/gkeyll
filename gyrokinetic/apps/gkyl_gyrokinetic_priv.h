@@ -1312,7 +1312,7 @@ struct gk_field {
   // Pointer to function that accumulates the charge density. 
   void (*accumulate_rhoc_func)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
   // Pointer to function that frees memory.
-  void (*solver_release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
+  void (*release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

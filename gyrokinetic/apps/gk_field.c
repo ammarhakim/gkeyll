@@ -398,7 +398,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release solver-specific resources.
-  f->solver_release_func(app, f);
+  f->release_func(app, f);
 
   // Release energy diagnostics.
   gk_field_energy_release(app, f);

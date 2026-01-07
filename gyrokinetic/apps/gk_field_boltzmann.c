@@ -159,5 +159,5 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     }
   }
 
-  f->solver_release_func = gk_field_fem_release_boltzmann;
+  f->release_func = gk_field_fem_release_boltzmann;
 }
