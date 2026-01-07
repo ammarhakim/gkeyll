@@ -13,7 +13,6 @@
 #include <time.h>
 
 // Functions related to setting the potential by adjusting the polarization density
-
 static void
 eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
@@ -276,7 +275,8 @@ gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field,
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
 }
 
-void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
+void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -288,7 +288,8 @@ void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_fi
   gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
 }
 
-void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
+void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app,
+  struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
