@@ -115,11 +115,20 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 /**
  * Scale out = a*out. Returns out.
  *
- * @param out Output array
- * @param a Factor to scale that varies by cell
- * @return out array
+ * @param out Output array.
+ * @param a Factor to scale that varies by cell.
+ * @return out array.
  */
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
+
+/**
+ * Divide out = out/a. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to divide by that varies by cell.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
  * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
@@ -332,6 +341,8 @@ void gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gky
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
+
+void gkyl_array_divide_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 

@@ -256,7 +256,6 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->c2p_pos_ctx = up;
   }
   else {
-    assert(!up->use_gpu); // Need to set the c2p_pos function pointer in GPU.
     up->c2p_pos = inp->c2p_pos_func;
     up->c2p_pos_ctx = inp->c2p_pos_func_ctx;
   }
