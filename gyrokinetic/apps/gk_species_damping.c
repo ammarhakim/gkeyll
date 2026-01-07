@@ -1,8 +1,16 @@
 #include <assert.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array_dg_find_peaks.h>
+#include <gkyl_dg_basis_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
-#include <gkyl_alloc.h>
-#include <gkyl_dg_basis_ops.h>
+
+static void
+proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
+}
 
 void
 gk_species_damping_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
@@ -66,6 +74,13 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   // Default function pointers.
   damp->write_func = gk_species_damping_write_disabled;
 
+
+  damp->proj_on_basis_c2p_ctx.cdim = app->cdim;
+  damp->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+  damp->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+  damp->proj_on_basis_c2p_ctx.pos_map = app->position_map;
+
+
   if (damp->type) {
     // Allocate rate array.
     damp->rate = mkarr(app->use_gpu, num_quad==1? 1 : gks->basis.num_basis, gks->local_ext.volume);
@@ -99,47 +114,46 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
 
-      // Store pointers to per-field-line bmag_max arrays from gk_geometry.
-      damp->bmag_max = app->gk_geom->bmag_max;
-      damp->bmag_max_z_coord = app->gk_geom->bmag_max_z_coord;
-      damp->bmag_max_basis = &app->gk_geom->bmag_max_basis;
-      damp->bmag_max_range = &app->gk_geom->bmag_max_range;
+      // Available options:
+      //   A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
+      //   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_const=true. Output: ncomp=1 array.
+      enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
+      int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
+                                              // at least p+1 for Gauss-Lobatto.
 
-      // Compute reference coordinate for phi evaluation at mirror throat.
-      // For 1x: use the single bmag_max_z value.
-      // For 2x: use the bmag_max_z at the center of the psi domain (mid field line).
-      double bmag_max_coord_ref_ho[GKYL_MAX_CDIM];
-      if (app->cdim == 1) {
-        // 1x case: single value.
-        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, 0);
-        bmag_max_coord_ref_ho[0] = bmag_max_z_d[0];
-      } else {
-        // 2x case: use the center psi cell's bmag_max_z.
-        int mid_psi_idx = (app->gk_geom->bmag_max_range.lower[0] + app->gk_geom->bmag_max_range.upper[0]) / 2;
-        int psi_idx[1] = {mid_psi_idx};
-        long bmag_max_z_linidx = gkyl_range_idx(&app->gk_geom->bmag_max_range, psi_idx);
-        const double *bmag_max_z_d = gkyl_array_cfetch(app->gk_geom->bmag_max_z_coord, bmag_max_z_linidx);
-        double xc[1] = {0.0};
-        double z_val = app->gk_geom->bmag_max_basis.eval_expand(xc, bmag_max_z_d);
-        double psi_lo = app->gk_geom->bmag_max_grid.lower[0];
-        double psi_dx = app->gk_geom->bmag_max_grid.dx[0];
-        double psi_val = psi_lo + (mid_psi_idx - 0.5) * psi_dx;
-        bmag_max_coord_ref_ho[0] = psi_val;
-        bmag_max_coord_ref_ho[1] = z_val;
-      }
+      // Create peak finder for bmag to find the mirror throat.
+      // Search along the parallel (z) direction, which is the last configuration space dimension.
+      int search_dir = app->cdim - 1;
+      struct gkyl_array_dg_find_peaks_inp peak_inp = {
+        .basis = &app->basis,
+        .grid = &app->grid,
+        .range = &app->local,
+        .range_ext = &app->local_ext,
+        .search_dir = search_dir,
+        .use_gpu = app->use_gpu,
+      };
+      // Pass a global bmag_int into the peak finder
+      struct gkyl_array *bmag_int_global = mkarr(false, 
+        app->gk_geom->geo_int.bmag->ncomp, app->gk_geom->geo_int.bmag->size);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
+      damp->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
+      gkyl_array_dg_find_peaks_advance(damp->bmag_peak_finder, app->gk_geom->geo_int.bmag);
+      gkyl_array_release(bmag_int_global);
+      
+      // Get the LOCAL_MAX peak (bmag maximum along z direction).
+      int num_peaks = gkyl_array_dg_find_peaks_num_peaks(damp->bmag_peak_finder);
+      damp->bmag_max_peak_idx = num_peaks-2; // Edge is num_peaks-1, so maximum is one less
+      damp->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(damp->bmag_peak_finder, damp->bmag_max_peak_idx);
+      damp->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(damp->bmag_peak_finder, damp->bmag_max_peak_idx);
+      damp->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(damp->bmag_peak_finder, num_peaks-1);
+      damp->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(damp->bmag_peak_finder, num_peaks-1);
+      damp->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(damp->bmag_peak_finder);
+      damp->bmag_max_range = gkyl_array_dg_find_peaks_get_range(damp->bmag_peak_finder);
+      damp->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(damp->bmag_peak_finder);
 
-      // Allocate and copy reference coordinate.
-      if (app->use_gpu) {
-        damp->bmag_max_coord_ref = gkyl_cu_malloc(app->cdim*sizeof(double));
-        gkyl_cu_memcpy(damp->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
-        damp->phi_m = gkyl_cu_malloc(sizeof(double));
-        damp->phi_m_global = gkyl_cu_malloc(sizeof(double));
-      } else {
-        damp->bmag_max_coord_ref = gkyl_malloc(app->cdim*sizeof(double));
-        memcpy(damp->bmag_max_coord_ref, bmag_max_coord_ref_ho, app->cdim*sizeof(double));
-        damp->phi_m = gkyl_malloc(sizeof(double));
-        damp->phi_m_global = gkyl_malloc(sizeof(double));
-      }
+      damp->phi_at_bmag_max = mkarr(app->use_gpu, damp->bmag_max_basis->num_basis, 
+        damp->bmag_max_range_ext->volume);
+      // phi is defined as 0 at the wall
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
@@ -157,7 +171,11 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .bmag_max_range = damp->bmag_max_range,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
+        .qtype = qtype,
         .num_quad = num_quad,
+        .cellwise_trap_loss = true,
+        .c2p_pos_func = proj_on_basis_c2p_position_func,
+        .c2p_pos_func_ctx = &damp->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
       };
       damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
@@ -181,12 +199,11 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
       // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
       // Find the potential at the mirror throat.
-      gkyl_dg_basis_ops_eval_array_at_coord_comp(app->field->phi_smooth, damp->bmag_max_coord_ref,
-        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+      gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, app->field->phi_smooth,
+        damp->bmag_max_peak_idx, damp->phi_at_bmag_max);
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        app->field->phi_smooth, damp->phi_m_global, damp->rate);
+        app->field->phi_smooth, damp->phi_at_bmag_max, damp->rate);
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
     }
@@ -214,14 +231,15 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
       gkyl_array_accumulate(rhs, -1.0, f_buffer);
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      // Find the potential at the mirror throat.
-      gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord_ref,
-        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+      // Find the potential at all peak locations (including the mirror throat).
+      gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, phi,
+        damp->bmag_max_peak_idx, damp->phi_at_bmag_max);
+      // Allgather on phi_at_bmag_max. It's not an allgather.
+      // One process has the correct one, but the others do not. Is it a bcast or a sync?
 
-      // Project the loss cone mask.
+      // Project the loss cone mask using the phi_m array.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        phi, damp->phi_m_global, damp->rate);
+        phi, damp->phi_at_bmag_max, damp->rate);
 
       // Assemble the damping term -scale_prof * mask * f.
       gkyl_array_set(f_buffer, 1.0, fin);
@@ -258,15 +276,13 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
-      if (app->use_gpu) {
-        gkyl_cu_free(damp->bmag_max_coord_ref);
-        gkyl_cu_free(damp->phi_m);
-        gkyl_cu_free(damp->phi_m_global);
-      } else {
-        gkyl_free(damp->bmag_max_coord_ref);
-        gkyl_free(damp->phi_m);
-        gkyl_free(damp->phi_m_global);
-      }
+      gkyl_array_release(damp->bmag_max);
+      gkyl_array_release(damp->bmag_max_z_coord);
+      gkyl_array_release(damp->bmag_wall);
+      gkyl_array_release(damp->bmag_wall_z_coord);
+      gkyl_array_dg_find_peaks_release(damp->bmag_peak_finder);
+      gkyl_array_release(damp->phi_at_bmag_max);
+
       gkyl_loss_cone_mask_gyrokinetic_release(damp->lcm_proj_op);
       gkyl_array_release(damp->scale_prof);
     }

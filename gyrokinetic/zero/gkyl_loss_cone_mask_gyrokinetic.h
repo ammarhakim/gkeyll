@@ -30,6 +30,8 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
   const struct gkyl_array *bmag_max; // Maximum bmag per field line (1D DG expansion for 2x, scalar for 1x).
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
   const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   double mass; // Species mass.

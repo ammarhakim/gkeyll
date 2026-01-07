@@ -206,6 +206,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MAPC2P,
@@ -220,6 +222,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .global = local_conf,
     .global_ext = local_ext_conf,
     .basis = basis_conf,
+    .position_map = pmap,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -248,8 +251,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   // Get the LOCAL_MAX peak (bmag maximum along z direction).
   int num_peaks = gkyl_array_dg_find_peaks_num_peaks(bmag_peak_finder);
   int bmag_max_peak_idx = num_peaks - 2; // Edge is num_peaks-1, so maximum is one less
-  const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_get_vals(bmag_peak_finder, bmag_max_peak_idx);
-  const struct gkyl_array *bmag_max_z_coord = gkyl_array_dg_find_peaks_get_coords(bmag_peak_finder, bmag_max_peak_idx);
+  const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_acquire_vals(bmag_peak_finder, bmag_max_peak_idx);
+  const struct gkyl_array *bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(bmag_peak_finder, bmag_max_peak_idx);
+  const struct gkyl_array *bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(bmag_peak_finder, num_peaks-1); // First peak is wall
+  const struct gkyl_array *bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(bmag_peak_finder, num_peaks-1);
   const struct gkyl_basis *bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(bmag_peak_finder);
   const struct gkyl_range *bmag_max_range = gkyl_array_dg_find_peaks_get_range(bmag_peak_finder);
   const struct gkyl_range *bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(bmag_peak_finder);
@@ -317,8 +322,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_range = &local_vel, 
     .vel_map = gvm,
     .bmag = gk_geom->geo_int.bmag,
-    .bmag_max = bmag_max,
     .bmag_max_z_coord = bmag_max_z_coord,
+    .bmag_max = bmag_max,
+    .bmag_wall = bmag_wall,
+    .bmag_wall_z_coord = bmag_wall_z_coord,
     .bmag_max_basis = bmag_max_basis,
     .bmag_max_range = bmag_max_range,
     .mass = ctx.mass,
@@ -391,7 +398,13 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_array_release(mask_ref_ho);
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
   gkyl_velocity_map_release(gvm);
+  // Release acquired peak arrays.
+  gkyl_array_release(bmag_max);
+  gkyl_array_release(bmag_max_z_coord);
+  gkyl_array_release(bmag_wall);
+  gkyl_array_release(bmag_wall_z_coord);
   gkyl_array_dg_find_peaks_release(bmag_peak_finder);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 
 #ifdef GKYL_HAVE_CUDA

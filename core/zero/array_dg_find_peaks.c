@@ -637,31 +637,31 @@ gkyl_array_dg_find_peaks_get_nodal_range(const struct gkyl_array_dg_find_peaks *
 }
 
 const struct gkyl_array*
-gkyl_array_dg_find_peaks_get_vals(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
+gkyl_array_dg_find_peaks_acquire_vals(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
 {
   assert(peak_idx >= 0 && peak_idx < up->num_peaks);
-  return up->out_vals[peak_idx];
+  return gkyl_array_acquire(up->out_vals[peak_idx]);
 }
 
 const struct gkyl_array*
-gkyl_array_dg_find_peaks_get_vals_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
+gkyl_array_dg_find_peaks_acquire_vals_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
 {
   assert(peak_idx >= 0 && peak_idx < up->num_peaks);
-  return up->out_vals_nodal[peak_idx];
+  return gkyl_array_acquire(up->out_vals_nodal[peak_idx]);
 }
 
 const struct gkyl_array*
-gkyl_array_dg_find_peaks_get_coords(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
+gkyl_array_dg_find_peaks_acquire_coords(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
 {
   assert(peak_idx >= 0 && peak_idx < up->num_peaks);
-  return up->out_coords[peak_idx];
+  return gkyl_array_acquire(up->out_coords[peak_idx]);
 }
 
 const struct gkyl_array*
-gkyl_array_dg_find_peaks_get_coords_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
+gkyl_array_dg_find_peaks_acquire_coords_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx)
 {
   assert(peak_idx >= 0 && peak_idx < up->num_peaks);
-  return up->out_coords_nodal[peak_idx];
+  return gkyl_array_acquire(up->out_coords_nodal[peak_idx]);
 }
 
 void

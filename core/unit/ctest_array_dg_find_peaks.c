@@ -153,8 +153,8 @@ test_1d_find_peaks_cos(int poly_order)
 
   for (int p = 0; p < 3 && p < num_peaks; p++) {
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
-    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_get_vals(peaks, p);
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
@@ -166,6 +166,9 @@ test_1d_find_peaks_cos(int poly_order)
     TEST_CHECK(ptype == expected_peaks[p].type);
     TEST_CHECK(fabs(coord[0] - expected_peaks[p].z_expected) < 0.1);
     TEST_CHECK(gkyl_compare_double(val[0], expected_val[0], 0.2));
+
+    gkyl_array_release(coords);
+    gkyl_array_release(vals);
   }
 
   gkyl_array_release(f);
@@ -217,8 +220,8 @@ test_1d_find_peaks_mirror(int poly_order)
 
   for (int p = 0; p < num_peaks; p++) {
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
-    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_get_vals(peaks, p);
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
@@ -236,6 +239,8 @@ test_1d_find_peaks_mirror(int poly_order)
       TEST_CHECK(gkyl_compare_double(val[0], 4.0, 1e-15));
       TEST_CHECK(fabs(coord[0] - 1.0) < 1e-15);
     }
+    gkyl_array_release(vals);
+    gkyl_array_release(coords);
   }
 
   gkyl_array_release(f);
@@ -290,8 +295,8 @@ test_2d_find_peaks(int poly_order)
   // Check that values and coordinates are reasonable for each peak.
   for (int p = 0; p < num_peaks; p++) {
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
-    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_get_vals(peaks, p);
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     double xc_log[1] = {0.0};
     
@@ -323,6 +328,8 @@ test_2d_find_peaks(int poly_order)
         TEST_CHECK(fabs(coord_at_center - 1.0) < 1e-15);
       }
     }
+    gkyl_array_release(vals);
+    gkyl_array_release(coords);
   }
 
   gkyl_array_release(f);
@@ -389,8 +396,8 @@ test_1d_find_peaks_complex(int poly_order)
 
   for (int p = 0; p < num_peaks; p++) {
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
-    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_get_vals(peaks, p);
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
@@ -403,6 +410,9 @@ test_1d_find_peaks_complex(int poly_order)
     TEST_CHECK(fabs(coord[0] - expected_peaks[p].z_expected) < 1e-15);
     double rel_error = fabs(val[0] - expected_val[0]) / fabs(expected_val[0]);
     TEST_CHECK(rel_error < 1e-15);
+
+    gkyl_array_release(coords);
+    gkyl_array_release(vals);
   }
 
   gkyl_array_release(f);
@@ -483,8 +493,8 @@ test_2d_find_peaks_complex(int poly_order)
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
     TEST_CHECK(ptype == expected_peaks[p].type);
     
-    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_get_vals(peaks, p);
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *vals = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     // Check each psi cell.
     struct gkyl_range_iter iter;
@@ -521,6 +531,8 @@ test_2d_find_peaks_complex(int poly_order)
         TEST_CHECK(rel_error < 1e-15);
       }
     }
+    gkyl_array_release(vals);
+    gkyl_array_release(coords);
   }
 
   gkyl_array_release(nodes);
@@ -684,7 +696,7 @@ test_2d_project_on_peaks(int poly_order)
 
   // Verify that g evaluated at each peak matches analytical values.
   for (int p = 0; p < num_peaks; p++) {
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     // Check each psi cell.
     struct gkyl_range_iter iter;
@@ -716,6 +728,7 @@ test_2d_project_on_peaks(int poly_order)
         TEST_CHECK(gkyl_compare_double(g_at_node, expected, 1e-15));
       }
     }
+    gkyl_array_release(coords);
   }
 
   // Clean up.
@@ -881,7 +894,7 @@ test_2d_project_on_peak_idx(int poly_order)
 
   // Verify that g evaluated at each peak matches analytical values.
   for (int p = 0; p < num_peaks; p++) {
-    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_get_coords(peaks, p);
+    const struct gkyl_array *coords = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
     
     // Check each psi cell.
     struct gkyl_range_iter iter;
@@ -913,6 +926,7 @@ test_2d_project_on_peak_idx(int poly_order)
         TEST_CHECK(gkyl_compare_double(g_at_node, expected, 1e-15));
       }
     }
+    gkyl_array_release(coords);
   }
 
   // Clean up.

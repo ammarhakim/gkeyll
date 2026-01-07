@@ -134,7 +134,7 @@ gkyl_array_dg_find_peaks_get_nodal_range(const struct gkyl_array_dg_find_peaks *
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output values array (modal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_get_vals(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing peak values in nodal basis for a specific peak.
@@ -143,7 +143,7 @@ const struct gkyl_array* gkyl_array_dg_find_peaks_get_vals(const struct gkyl_arr
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output values array (nodal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_get_vals_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing coordinates of a specific peak.
@@ -152,7 +152,7 @@ const struct gkyl_array* gkyl_array_dg_find_peaks_get_vals_nodal(const struct gk
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output coordinates array (modal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_get_coords(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing coordinates in nodal basis of a specific peak.
@@ -161,7 +161,7 @@ const struct gkyl_array* gkyl_array_dg_find_peaks_get_coords(const struct gkyl_a
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output coordinates array (nodal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_get_coords_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Project (evaluate) an arbitrary array onto the peak locations previously
@@ -193,8 +193,8 @@ const struct gkyl_array* gkyl_array_dg_find_peaks_get_coords_nodal(const struct 
  *     break;
  *   }
  * }
- * const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_get_vals(peak_finder, bmag_max_idx);
- * const struct gkyl_array *z_max = gkyl_array_dg_find_peaks_get_coords(peak_finder, bmag_max_idx);
+ * const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_acquire_vals(peak_finder, bmag_max_idx);
+ * const struct gkyl_array *z_max = gkyl_array_dg_find_peaks_acquire_coords(peak_finder, bmag_max_idx);
  * 
  * // 3. Evaluate phi at the same locations where bmag has peaks
  * struct gkyl_array *phi_at_peaks[num_peaks];

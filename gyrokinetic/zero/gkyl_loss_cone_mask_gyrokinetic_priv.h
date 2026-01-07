@@ -48,12 +48,15 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   // Per-field-line bmag_max arrays (1D for 2x, scalar for 1x).
   const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
   const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   
   // GPU helper: scalar bmag_max_z value for simple 1x cases.
   // TODO: For 2x GPU support, need to pass full arrays and do per-cell lookup.
   double *bmag_max_z_scalar_gpu; // Single z-coordinate for GPU (1x case only).
+  double *bmag_wall_z_scalar_gpu; // Single z-coordinate for GPU (1x case only).
   
   bool use_gpu; // Boolean if we are performing projection on device.
 
@@ -83,7 +86,10 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   struct gkyl_array *mask_out_quad; // Array keeping f_lte at phase-space quadrature nodes.
   struct gkyl_array *qDphiDbmag_quad; // Array keeping q*(phi-phi_m)/(B_max-B)
                                       // at configuration-space quadrature nodes.
+  struct gkyl_array *qDphiDbmag_quad_wall; // Array keeping q*phi/(B_wall-B)
+                                      // at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
+  struct gkyl_array *Dbmag_quad_wall; // B_wall-B at configuration-space quadrature nodes.
 
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts  
                                                           // stores the info to convert phase
@@ -98,10 +104,11 @@ struct gkyl_loss_cone_mask_gyrokinetic {
  * @param conf_rng Configuration-space range.
  * @param bmag Magnetic field magnitude.
  * @param bmag_max Maximum bmag.
+ * @param bmag_wall Minimum bmag.
  */
 void 
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max, const double *bmag_wall);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis
