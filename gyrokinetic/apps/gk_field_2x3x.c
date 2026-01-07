@@ -72,7 +72,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
     f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
-      &app->basis, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, 1, app->cdim, app->use_gpu);
+      app->basis_on_dev, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, 1, app->cdim, app->use_gpu);
   }
 
 }
