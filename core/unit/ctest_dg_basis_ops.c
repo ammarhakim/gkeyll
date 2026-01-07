@@ -3,11 +3,101 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_rect_decomp.h>
-#include <gkyl_rect_grid.h>
+#include <gkyl_range.h>
+#include <gkyl_proj_on_basis.h>
 
 
 static inline double sq(double x) { return x*x; }
 static inline double cub(double x) { return x*x*x; }
+
+// Allocate array (filled with zeros).
+static struct gkyl_array*
+mkarr(bool use_gpu, long nc, long size)
+{
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+	                        : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+static void
+eval_array_at_coord_1d_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0];
+  double Lx = 5.0;
+  fout[0] = 3.3*0.5*(1.0+cos((2*M_PI/Lx)*x));
+}
+
+void
+test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
+{
+  double lower[] = { 0.0 }, upper[] = { 5.0 };
+  int cells[] = { 8 };
+  double eval_coord_ho[] = {3.0}; // Result = 3.3*0.5*(1+sin((2*pi/5)*3.0)) = 0.315121959
+
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int nghost[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; d++)
+    nghost[d] = 1;
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_tensor(&basis, ndim, poly_order);
+  struct gkyl_basis *basis_on_dev = use_gpu? gkyl_cart_modal_tensor_cu_dev_new(ndim, poly_order)
+                                           : gkyl_cart_modal_tensor_new(ndim, poly_order);
+
+  struct gkyl_array *fld = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fld_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume)
+	                             : gkyl_array_acquire(fld);
+
+  gkyl_proj_on_basis *proj_op = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, eval_array_at_coord_1d_func, NULL);
+  gkyl_proj_on_basis_advance(proj_op, 0.0, &local, fld_ho);
+  gkyl_array_copy(fld, fld_ho);
+
+  double *eval_coord, *fld_at_coord;
+  if (use_gpu) {
+    eval_coord = gkyl_cu_malloc(sizeof(double));
+    fld_at_coord = gkyl_cu_malloc(sizeof(double));
+    gkyl_cu_memcpy(eval_coord, eval_coord_ho, ndim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+  }
+  else {
+    eval_coord = gkyl_malloc(sizeof(double));
+    fld_at_coord = gkyl_malloc(sizeof(double));
+    memcpy(eval_coord, eval_coord_ho, ndim*sizeof(double));
+  }
+
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(fld, eval_coord, basis_on_dev, &grid, &local, fld_at_coord);
+
+  double fld_at_coord_ho[1];
+  if (use_gpu)
+    gkyl_cu_memcpy(fld_at_coord_ho, fld_at_coord, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(fld_at_coord_ho, fld_at_coord, sizeof(double));
+
+  double accepted_val = 3.121168140e-01;
+  TEST_CHECK( gkyl_compare_double(fld_at_coord_ho[0], accepted_val, 1.0e-8) );
+  TEST_MSG( "Got: %.9e | Expected: %.9e\n",fld_at_coord_ho[0], accepted_val );
+
+  if (use_gpu) {
+    gkyl_cart_modal_basis_release_cu(basis_on_dev);
+    gkyl_cu_free(eval_coord);
+    gkyl_cu_free(fld_at_coord);
+  }
+  else {
+    gkyl_cart_modal_basis_release(basis_on_dev);
+    gkyl_free(eval_coord);
+    gkyl_free(fld_at_coord);
+  }
+  gkyl_proj_on_basis_release(proj_op);
+  gkyl_array_release(fld_ho);
+  gkyl_array_release(fld);
+}
 
 void
 test_cubic_1d(void)
@@ -131,11 +221,28 @@ test_cubic_evalf_2d(void)
   gkyl_dg_basis_ops_evalf_release(evf);
 }
 
+void
+test_eval_array_at_coord_1d_ho() {
+  // p = 1
+  test_eval_array_at_coord_1d_p_hodev(1, false);
+}
+
+#ifdef GKYL_HAVE_CUDA
+void
+test_eval_array_at_coord_1d_dev() {
+  // p = 1
+  test_eval_array_at_coord_1d_p_hodev(1, true);
+}
+#endif
 
 TEST_LIST = {
+  { "test_eval_array_at_coord_1d_ho", test_eval_array_at_coord_1d_ho },
   { "cubic_1d", test_cubic_1d },
   { "cubic_2d", test_cubic_2d },
   { "cubic_evalf_2d", test_cubic_evalf_2d },
+#ifdef GKYL_HAVE_CUDA
+  { "test_eval_array_at_coord_1d_dev", test_eval_array_at_coord_1d_dev },
+#endif
   { NULL, NULL },
 };
 

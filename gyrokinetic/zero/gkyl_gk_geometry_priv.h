@@ -59,6 +59,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   // bmag.metrics and derived geo quantities
   gk_geom->geo_surf[dir].bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].ddpsi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].curlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].normcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
@@ -100,6 +101,7 @@ gk_geometry_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].curlbhat_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].normcurlbhat_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].ddtheta_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].ddpsi_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal_fd);
@@ -125,6 +127,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry* gk_geom)
   // bmag.metrics and derived geo quantities
   gk_geom->geo_int.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.ddpsi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.curlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dualcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
@@ -187,6 +190,7 @@ gk_geometry_int_release_nodal(struct gk_geometry* gk_geom)
   gkyl_array_release(gk_geom->geo_int.mc2p_nodal);
   gkyl_array_release(gk_geom->geo_int.bmag_nodal);
   gkyl_array_release(gk_geom->geo_int.ddtheta_nodal);
+  gkyl_array_release(gk_geom->geo_int.ddpsi_nodal);
   gkyl_array_release(gk_geom->geo_int.curlbhat_nodal);
   gkyl_array_release(gk_geom->geo_int.dualcurlbhat_nodal);
   gkyl_array_release(gk_geom->geo_int.jacobgeo_nodal);

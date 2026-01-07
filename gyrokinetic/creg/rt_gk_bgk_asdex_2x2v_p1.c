@@ -410,6 +410,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
       
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -490,6 +496,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
     
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -541,8 +553,6 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.03,
 
-    .enforce_positivity = true,
-
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = efit_inp,
@@ -575,7 +585,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

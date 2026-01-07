@@ -580,6 +580,8 @@ gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp)
   gr_maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_maxwell_free);
   gr_maxwell->eqn.on_dev = &gr_maxwell->eqn; // On the CPU, the equation object points to itself.
 
+  gr_maxwell->eqn.embed_geo = NULL;
+
   return &gr_maxwell->eqn;
 }
 
