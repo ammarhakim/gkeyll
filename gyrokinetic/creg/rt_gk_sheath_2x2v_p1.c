@@ -827,7 +827,7 @@ main(int argc, char **argv)
       .enabled = true,
       .frequency = 0.1,
       .estimate_completion_time = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

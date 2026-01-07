@@ -474,7 +474,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

@@ -772,55 +772,54 @@ static void
 position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
-  if (gpm->constB_ctx->moving_average_width == 0.0)
+  if (gpm->constB_ctx->gaussian_std == 0.0)
   {
     position_map_constB_z_numeric(t, xn, fout, ctx);
+    return;
   }
-  else
+
+  const double theta_c = xn[0];
+  const double sigma = gpm->constB_ctx->gaussian_std;
+  const double max_width = gpm->constB_ctx->gaussian_max_integration_width;
+  const double tmin = gpm->grid.lower[0];
+  const double tmax = gpm->grid.upper[0];
+  
+  // Shrink the half-width symmetrically to stay within bounds
+  // This ensures the integration window is always centered at theta_c
+  double dist_to_min = theta_c - tmin;
+  double dist_to_max = tmax - theta_c;
+  double wd2 = fmin(fmin(dist_to_min, dist_to_max) * 0.99, max_width/2);
+  
+  // If the symmetric window is too small, fall back to unsmoothed
+  if (wd2 < 1e-6)
   {
-    const double theta_c = xn[0];
-    double wd2 = gpm->constB_ctx->moving_average_width / 2.0;
-    const double tmin = gpm->grid.lower[0];
-    const double tmax = gpm->grid.upper[0];
-    double rng_lo = theta_c - wd2;
-    double rng_up = theta_c + wd2;
-
-    if (rng_lo < tmin || rng_up > tmax)
-    {
-      wd2 = fmin(fabs(theta_c - tmin), fabs(theta_c - tmax));
-      rng_lo = theta_c - wd2;
-      rng_up = theta_c + wd2;
-      if (wd2 <= 1e-6)
-      {
-        position_map_constB_z_numeric(t, xn, fout, ctx);
-        return;
-      }
-    }
-    double rng_len = rng_up - rng_lo;
-
-    // Create Gaussian weight context
-    // Gaussian standard deviation (sigma = width/2 gives ~95% of weight within the window)
-    double sigma = wd2 / 2.0;
-    struct gaussian_weight_ctx gw_ctx = {
-      .gpm = gpm,
-      .theta_c = theta_c,
-      .wd2 = wd2,
-      .sigma = sigma,
-    };
-
-    struct gkyl_qr_res res = gkyl_dbl_exp(
-      position_map_constB_z_numeric_dbl_exp_wrapper, &gw_ctx,
-      rng_lo, rng_up, 7, 1e-16);
-
-    // Normalize by the integral of the Gaussian weight over the range
-    // For a Gaussian, we need to divide by the normalization factor
-    struct gkyl_qr_res norm_res = gkyl_dbl_exp(
-      gaussian_norm_wrapper, &gw_ctx,
-      rng_lo, rng_up, 7, 1e-16);
-
-    double theta_avg = res.res / norm_res.res;
-    fout[0] = theta_avg;
+    position_map_constB_z_numeric(t, xn, fout, ctx);
+    return;
   }
+  
+  double rng_lo = theta_c - wd2;
+  double rng_up = theta_c + wd2;
+
+  // Keep sigma fixed at the original gaussian_std
+  // This maintains consistent smoothing behavior even at boundaries
+  struct gaussian_weight_ctx gw_ctx = {
+    .gpm = gpm,
+    .theta_c = theta_c,
+    .wd2 = wd2,
+    .sigma = sigma,
+  };
+
+  struct gkyl_qr_res res = gkyl_dbl_exp(
+    position_map_constB_z_numeric_dbl_exp_wrapper, &gw_ctx,
+    rng_lo, rng_up, 7, 1e-16);
+
+  // Normalize by the integral of the Gaussian weight over the symmetric range
+  struct gkyl_qr_res norm_res = gkyl_dbl_exp(
+    gaussian_norm_wrapper, &gw_ctx,
+    rng_lo, rng_up, 7, 1e-16);
+
+  double theta_avg = res.res / norm_res.res;
+  fout[0] = theta_avg;
 }
 
 /**
