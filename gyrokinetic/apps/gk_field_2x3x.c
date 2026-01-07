@@ -255,15 +255,14 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
   }
 
-  // Translate input file BCs into Poisson BCs.
-  struct gkyl_poisson_bc poisson_bcs = { };
-
   bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
   for (int d=0; d<app->cdim; ++d) bc_is_np[d] = true;
   for (int d=0; d<app->num_periodic_dir; ++d) {
     bc_is_np[app->periodic_dirs[d]] = false;
   }
 
+  // Translate input file BCs into Poisson BCs.
+  struct gkyl_poisson_bc poisson_bcs = { };
   for (int d=0; d<app->cdim-1; d++) {
     if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
@@ -328,8 +327,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(phi_bc_ho);
   }
 
-  f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
-
   // Potential smoothing (in z) updater
   enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
   for (int d=0; d<app->num_periodic_dir; ++d)
@@ -361,8 +358,12 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gk_field_2x3x_add_IWL_updaters(app,f);
+    gk_field_2x3x_add_IWL_updaters(app, f);
   }
 
+  // Set the pointer to the function that computes phi.
+  f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
+
+  // Set pointer to function that releases memory.
   f->release_func = gk_field_fem_release_2x3x;
 }

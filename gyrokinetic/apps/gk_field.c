@@ -284,7 +284,7 @@ void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_fi
   // Add the background (electron) charge density.
   double n_s0 = field->info.electron_density;
   double q_s = field->info.electron_charge;
-  double dg_norm = pow(sqrt(2), app->basis.ndim);
+  double dg_norm = pow(sqrt(2.0), app->basis.ndim);
   gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
 }
 
