@@ -4,6 +4,7 @@
 #include <gkyl_math.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_range.h>
+#include <gkyl_position_map.h>
 
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
@@ -41,6 +42,7 @@ struct gkyl_mirror_grid_gen_inp {
   const struct gkyl_range local; // local range
   const struct gkyl_range global; //global range
   int dir; // Surface direction
+  const struct gkyl_position_map *position_map; // position map
   enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
   

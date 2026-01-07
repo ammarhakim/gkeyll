@@ -135,7 +135,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc, epsilon_global, 0, app->use_gpu);
   }
 
-  f->es_energy_fac_1d = polarization_weight*f->info.kperpSq + es_energy_fac_1d_adiabatic;
+  f->es_energy_fac_1d = 0.5*polarization_weight*f->info.kperpSq + es_energy_fac_1d_adiabatic;
 
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
     1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);

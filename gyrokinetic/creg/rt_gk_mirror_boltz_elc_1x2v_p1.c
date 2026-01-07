@@ -656,7 +656,7 @@ int main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
