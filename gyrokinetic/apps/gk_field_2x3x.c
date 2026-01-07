@@ -22,7 +22,6 @@ gk_field_fem_projection_par_iwl_2x(gkyl_gyrokinetic_app *app, struct gk_field *f
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  int par_dir = app->cdim - 1;
   // Apply periodicity in the core.
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &field->global_lower_ghost_par_core, &field->global_upper_skin_par_core);
@@ -49,12 +48,10 @@ gk_field_fem_projection_par_iwl_3x(gkyl_gyrokinetic_app *app, struct gk_field *f
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  int par_dir = app->cdim - 1;
   // Apply TS BC in the core lower parallel boundary, and
   // fill core upper parallel boundary ghost with skin boundary value.
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &field->global_lower_ghost_par_core, &field->global_upper_skin_par_core);
-
   gkyl_bc_twistshift_advance(field->bc_T_LU_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
@@ -141,7 +138,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
     f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
-      app->basis_on_dev, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, 1, app->cdim, app->use_gpu);
+      app->basis_on_dev, &f->global_upper_skin_par_core, &f->global_upper_ghost_par_core, app->basis.num_basis, app->cdim, app->use_gpu);
   }
 
 }
