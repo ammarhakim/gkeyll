@@ -18,6 +18,14 @@
 //          = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]) + charge*(phi-phi_m)/(bmag_max-bmag[0]);
 //
 
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size, bool use_gpu)
+{
+  return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+    : gkyl_array_new(GKYL_DOUBLE, nc, size);
+}
+
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
 static inline void
 c2p_pos_identity(const double *xcomp, double *xphys, void *ctx)
@@ -211,63 +219,6 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
   }
 }
 
-static void
-gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall(gkyl_loss_cone_mask_gyrokinetic *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
-  struct gkyl_array *Dbmag_quad, const struct gkyl_array *bmag_max)
-{
-  // Get bmag_max-bmag at quadrature nodes.
-  // bmag_max is now a per-field-line array (1D for 2x, scalar for 1x).
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall_cu(up, conf_range, bmag,
-      Dbmag_quad, bmag_max);
-#endif
-
-  int cdim = up->cdim, pdim = up->pdim;
-
-  int tot_quad_conf = up->tot_quad_conf;
-  int num_basis_conf = up->num_basis_conf;
-
-  struct gkyl_range_iter conf_iter;
-  gkyl_range_iter_init(&conf_iter, conf_range);
-  while (gkyl_range_iter_next(&conf_iter)) {
-    long linidx = gkyl_range_idx(conf_range, conf_iter.idx);
-
-    const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
-    double *Dbmag_quad_n = gkyl_array_fetch(Dbmag_quad, linidx);
-
-    // Get bmag_max for this field line (psi value).
-    // For 1x: bmag_max is a single value (index 0).
-    // For 2x: bmag_max varies with psi (x-direction), so use conf_iter.idx[0].
-    double bmag_max_val;
-    if (cdim == 1) {
-      // 1x case: single value.
-      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, 0);
-      bmag_max_val = bmag_max_d[0]; // Just the constant coefficient.
-    }
-    else {
-      // 2x case: evaluate bmag_max at this psi cell.
-      // The bmag_max array is 1D in psi, so we need the psi index.
-      int psi_idx[1] = {conf_iter.idx[0]};
-      long psi_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
-      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, psi_linidx);
-      // For simplicity, evaluate at cell center (logical coord 0).
-      double xc[1] = {0.0};
-      bmag_max_val = up->bmag_max_basis->eval_expand(xc, bmag_max_d);
-    }
-
-    // Sum over basis 
-    for (int n=0; n<tot_quad_conf; ++n) {
-      const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
-      for (int k=0; k<num_basis_conf; ++k) {
-        Dbmag_quad_n[n] += bmag_d[k]*b_ord[k];
-      }
-      Dbmag_quad_n[n] = Dbmag_quad_n[n] - bmag_max_val;
-    }
-  }
-}
-
 struct gkyl_loss_cone_mask_gyrokinetic* 
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp)
 {
@@ -410,34 +361,24 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->bmag_max_z_coord = gkyl_array_acquire(inp->bmag_max_z_coord);
   up->bmag_wall = gkyl_array_acquire(inp->bmag_wall);
   up->bmag_wall_z_coord = gkyl_array_acquire(inp->bmag_wall_z_coord);
-  if (up->is_tandem) {
-    up->bmag_tandem = gkyl_array_acquire(inp->bmag_tandem);
-    up->bmag_tandem_z_coord = gkyl_array_acquire(inp->bmag_tandem_z_coord);
-  } else {
-    up->bmag_tandem = gkyl_array_acquire(inp->bmag_max);
-    up->bmag_tandem_z_coord = gkyl_array_acquire(inp->bmag_max_z_coord);
-  }
+  up->bmag_tandem = up->is_tandem ? gkyl_array_acquire(inp->bmag_tandem) : gkyl_array_acquire(inp->bmag_max);
+  up->bmag_tandem_z_coord = up->is_tandem ? gkyl_array_acquire(inp->bmag_tandem_z_coord) : gkyl_array_acquire(inp->bmag_max_z_coord);
   up->bmag_max_basis = inp->bmag_max_basis;
   up->bmag_max_range = inp->bmag_max_range;
 
   // Allocate and obtain bmag_max-bmag at quadrature points.
-  if (up->use_gpu) {
-    up->Dbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-    up->Dbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-    up->Dbmag_quad_tandem = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-  } else {
-    up->Dbmag_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-    up->Dbmag_quad_wall = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-    up->Dbmag_quad_tandem = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-  }
+  up->Dbmag_quad = mkarr(up->tot_quad_conf, inp->conf_range_ext->volume, up->use_gpu);
+  up->Dbmag_quad_wall = mkarr(up->tot_quad_conf, inp->conf_range_ext->volume, up->use_gpu);
+  up->Dbmag_quad_tandem = mkarr(up->tot_quad_conf, inp->conf_range_ext->volume, up->use_gpu);
 
-  gkyl_array_clear(up->Dbmag_quad, 0.0); 
+  gkyl_array_clear(up->Dbmag_quad, 0.0);
   gkyl_array_clear(up->Dbmag_quad_wall, 0.0);
   gkyl_array_clear(up->Dbmag_quad_tandem, 0.0);
   
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad, up->bmag_max);
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall(up, inp->conf_range, inp->bmag, up->Dbmag_quad_wall, up->bmag_wall);
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad_tandem, up->bmag_tandem);
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad, up->bmag_max); // bmag_max - bmag
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad_wall, up->bmag_wall); // bmag_wall - bmag
+  gkyl_array_scale(up->Dbmag_quad_wall, -1.0); // bmag - bmag_wall
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad_tandem, up->bmag_tandem); // bmag_tandem - bmag
     
   return up;
 }
@@ -455,7 +396,6 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
   for (int k=0; k<num_basis; ++k) {
     f[k] = 0.0;
   }
-
   for (int imu=0; imu<tot_quad; ++imu) {
     double tmp = weights[imu]*func_at_ords[imu];
     for (int k=0; k<num_basis; ++k) {
@@ -680,29 +620,23 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         
         if (is_tandem) {
           // Tandem mirror trapping condition:
-          // Calculate mu_outer (barrier to outer mirror) and mu_inner (barrier to inner tandem).
-          // A particle is trapped if mu < min(mu_outer, mu_inner).
-          // This captures particles that need to overcome the lower of the two barriers to escape.
-          
-          double mu_bound_outer = GKYL_MAX2(0.0, KEparDbmag + qDphiDbmag_quad[cqidx]);  // Barrier to outer mirror peak
-          double mu_bound_inner = GKYL_MAX2(0.0, KEparDbmag_tandem + qDphiDbmag_quad_tandem[cqidx]);  // Barrier to inner tandem peak
-          
-          // Determine which region we're in based on position
+          // Determine which region we're in based on position.
           bool in_outer_cell = fabs(xmu[cdim-1]) < fabs(bmag_max_z_val) &&
                                fabs(xmu[cdim-1]) > fabs(bmag_tandem_z_val);
           bool in_central_cell = fabs(xmu[cdim-1]) <= fabs(bmag_tandem_z_val);
           
           if (in_outer_cell) {
             // Between tandem and outer mirror - check outer barrier
-            if (mu_bound_outer < xmu[cdim+1]) {
+            if (mu_bound < xmu[cdim+1]) {
               fq[0] = 1.0 * up->norm_fac;
             } else {
               fq[0] = 0.0;
             }
           } else if (in_central_cell) {
-            // In central cell - must overcome the maximum of both barriers
-            double mu_bound_max = GKYL_MIN2(mu_bound_outer, mu_bound_inner);
-            if (mu_bound_max < xmu[cdim+1]) {
+            // In central cell - must overcome the minimum of both barriers to escape.
+            // A particle is trapped if mu > min(mu_bound, mu_bound_tandem).
+            double mu_bound_min = GKYL_MIN2(mu_bound, mu_bound_tandem);
+            if (mu_bound_min < xmu[cdim+1]) {
               fq[0] = 1.0 * up->norm_fac;
             } else {
               fq[0] = 0.0;

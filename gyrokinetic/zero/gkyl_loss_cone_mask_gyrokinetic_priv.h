@@ -94,7 +94,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   struct gkyl_array *qDphiDbmag_quad_tandem; // Array keeping q*(phi-phi_tandem)/(B_tandem-B)
                                       // at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
-  struct gkyl_array *Dbmag_quad_wall; // B_wall-B at configuration-space quadrature nodes.
+  struct gkyl_array *Dbmag_quad_wall; // B-B_wall at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad_tandem; // B_tandem-B at configuration-space quadrature nodes.
 
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts  
@@ -104,18 +104,18 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * Obtain bmag_max-bmag at conf-space quadrature nodes and store it in up->Dbmag_quad.
+ * Obtain bmag_peak-bmag at conf-space quadrature nodes and store it in Dbmag_quad.
  *
- * @param up Project on basis updater to run.
- * @param conf_rng Configuration-space range.
+ * @param up Loss cone mask updater.
+ * @param conf_range Configuration-space range.
  * @param bmag Magnetic field magnitude.
- * @param bmag_max Maximum bmag.
- * @param bmag_wall Minimum bmag.
+ * @param Dbmag_quad Output array (bmag_peak - bmag) at quadrature nodes.
+ * @param bmag_peak Peak bmag value (per-field-line array for 2x, scalar for 1x).
  */
 void 
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max,
-  const double *bmag_wall);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
+  struct gkyl_array *Dbmag_quad, const struct gkyl_array *bmag_peak);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis
