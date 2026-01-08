@@ -458,6 +458,26 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
+  // Create a global and local ranges, extended in the BC dir.
+  int ndim = app->cdim;
+  int par_dir = ndim-1;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->global.lower[i];
+    upper_bcdir_ext[i] = app->global.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->global_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->global_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->global_par_ext, &app->global_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->local.lower[i];
+    upper_bcdir_ext[i] = app->local.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->local_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->local_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->local_par_ext, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
   if (gk->geometry.has_LCFS) {
     // IWL simulation. Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
@@ -523,7 +543,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_range_shorten_from_below(local_ext_up_r, &app->local_ext, 0, len_up_ext);
 
     // Create core and SOL parallel skin and ghost ranges.
-    int par_dir = app->cdim-1;
     for (int e=0; e<2; e++) {
       gkyl_range_shorten_from_above(e==0? lower_skin_par_lo_r        : upper_skin_par_lo_r,
                                     e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_lo);
@@ -536,8 +555,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     }
 
     // Create a core global and local ranges, extended in the BC dir.
-    int ndim = app->cdim;
-    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
     for (int i=0; i<ndim; i++) {
       lower_bcdir_ext[i] = app->global_core.lower[i];
       upper_bcdir_ext[i] = app->global_core.upper[i];

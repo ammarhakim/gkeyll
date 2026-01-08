@@ -284,7 +284,10 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir)
     fg_ctx.is_dir_periodic[dir] = false;
-  fg_ctx.is_dir_periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
+
+  fg_ctx.is_dir_periodic[app->cdim-1] = app->field->bc_par_phi == GKYL_BC_GK_FIELD_IWL || 
+    app->field->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT;
+
   for (int i=0; i < app->num_periodic_dir; ++i)
     fg_ctx.is_dir_periodic[app->periodic_dirs[i]] = true;
 

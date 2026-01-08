@@ -993,6 +993,7 @@ struct gk_species {
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_par_ext; // Range extended in parallel direction for TS BC.
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
@@ -1208,7 +1209,8 @@ struct gk_neut_species {
 struct gk_field {
   struct gkyl_gyrokinetic_field info; // Data for field.
 
-  enum gkyl_gkfield_id gkfield_id;
+  enum gkyl_gkfield_id gkfield_id; // Field solver ID.
+  enum gkyl_gyrokinetic_bc_type bc_par_phi; // Parallel BC to enforce on phi.
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
@@ -1259,8 +1261,10 @@ struct gk_field {
   struct gkyl_array *kSq; // Weight for Poisson/Helmholtz solver. 
 
   struct gkyl_fem_parproj *fem_parproj; // Projects DG function onto continuous  FEM basis:  weight*phi_{fem} = phi_{dg} 
-  struct gkyl_fem_parproj *fem_parproj_sol; // FEM projection in the SOL.
-  struct gkyl_fem_parproj *fem_parproj_core; // FEM projection in the core.
+  // FEM projectors used on the potential after perp problem is solved.
+  struct gkyl_fem_parproj *fem_parproj_phi;
+  struct gkyl_fem_parproj *fem_parproj_phi_sol;
+  struct gkyl_fem_parproj *fem_parproj_phi_core;
 
   struct gkyl_fem_poisson_perp *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
 
@@ -1295,10 +1299,10 @@ struct gk_field {
   // Pointer to function that computes the time rate of change of the energy.
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
-  // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // Fills lower core z-ghost with TS BC.
-  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
+  // Objects used in for TS BCs.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
+  struct gkyl_bc_twistshift *bc_T_LU_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_up; // Fills z-ghost with z-skin boundary value.
   
   // Pointer to functions that make phi continuous along z.
   void (*fem_projection_par_pre_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
@@ -1353,6 +1357,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
   struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
   struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
+  struct gkyl_range global_par_ext; // Global range extended in parallel direction.
+  struct gkyl_range local_par_ext; // Local range extended in parallel direction.
   struct gkyl_range global_par_ext_core; // Core global range extended in parallel direction.
   struct gkyl_range local_par_ext_core; // Core local range extended in parallel direction.
 
