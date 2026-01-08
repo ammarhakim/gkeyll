@@ -337,7 +337,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
 
-  gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf, phi, phi_m, mask);
+  gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf, phi, phi_m, phi_m, mask);
 
   gkyl_array_copy(mask_ho, mask);
 

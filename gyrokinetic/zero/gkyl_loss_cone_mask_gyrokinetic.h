@@ -32,8 +32,11 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line (1D DG expansion for 2x, scalar for 1x).
   const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
   const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
   const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  bool is_tandem; // =True
   double mass; // Species mass.
   double charge; // Species charge.
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.
@@ -69,11 +72,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
  * @param phi_m Electrostatic potential at the mirror throat (DG array on reduced grid).
+ * @param phi_tandem Electrostatic potential at the tandem mirror throat (DG array on reduced grid).
  * @param mask_out Output masking function.
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, const struct gkyl_array *phi_tandem,
+  struct gkyl_array *mask_out);
 
 /**
  * Delete updater.

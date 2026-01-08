@@ -72,15 +72,24 @@ void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
-  // Find the potential at all peak locations (including the mirror throat).
+  // Find the potential at bmag_max
   gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi,
     fdmul->bmag_max_peak_idx, fdmul->phi_at_bmag_max);
   // Allgather on phi_at_bmag_max. It's not an allgather.
   // One process has the correct one, but the others do not. Is it a bcast or a sync?
-
-  // Project the loss cone mask using the phi_m array.
-  gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_at_bmag_max, fdmul->multiplier);
+  
+  if (fdmul->is_tandem) {
+    gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi,
+      fdmul->bmag_tandem_peak_idx, fdmul->phi_at_bmag_tandem);
+    // Allgather on phi_at_bmag_tandem. It's not an allgather.
+    // One process has the correct one, but the others do not. Is it a bcast or a sync?
+    gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
+      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem, fdmul->multiplier);
+  } else {
+    // Project the loss cone mask using the phi_m array.
+    gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
+      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
+  }
 
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -199,17 +208,51 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       // Get the LOCAL_MAX peak (bmag maximum along z direction).
       int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
       fdmul->bmag_max_peak_idx = num_peaks-2; // Edge is num_peaks-1, so maximum is one less
+      fdmul->bmag_tandem_peak_idx = num_peaks-1; 
       fdmul->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
       fdmul->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
-      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-1);
-      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-1);
+      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
+      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
       fdmul->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range = gkyl_array_dg_find_peaks_get_range(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(fdmul->bmag_peak_finder);
 
       fdmul->phi_at_bmag_max = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
         fdmul->bmag_max_range_ext->volume);
+      fdmul->phi_at_bmag_tandem = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
+        fdmul->bmag_max_range_ext->volume);
       // phi is defined as 0 at the wall
+
+
+      bool is_symmetric, is_tandem;
+      int cdim = app->cdim;
+      if (gkyl_compare_double(-app->grid.lower[cdim-1], app->grid.upper[cdim-1], 1e-12)) {
+        is_symmetric = true;
+      }
+      else if (gkyl_compare_double(app->grid.lower[cdim-1], 0.0, 1e-12)){
+        is_symmetric = false;
+      }
+      else {
+        assert(false); // Needs either the lower bound at 0 or symmetric grid
+      }
+
+      if ( (is_symmetric && num_peaks == 5) || (!is_symmetric && num_peaks == 3) ) {
+        is_tandem = false;
+      }
+      else if ((is_symmetric && num_peaks == 9) || (!is_symmetric && num_peaks == 5)) {
+        is_tandem = true;
+      }
+      else {
+        assert(false); // Unsupported number of extrema for loss-cone multiplier
+      }
+
+      if (is_tandem) {
+        fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-4);
+        fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-4);
+      } else {
+        fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-2);
+        fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-2);
+      }
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
@@ -221,10 +264,13 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .vel_range = &gks->local_vel, 
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->geo_int.bmag,
-        .bmag_wall = fdmul->bmag_wall,
-        .bmag_wall_z_coord = fdmul->bmag_wall_z_coord,
         .bmag_max = fdmul->bmag_max,
         .bmag_max_z_coord = fdmul->bmag_max_z_coord,
+        .bmag_wall = fdmul->bmag_wall,
+        .bmag_wall_z_coord = fdmul->bmag_wall_z_coord,
+        .bmag_tandem = fdmul->bmag_tandem,
+        .bmag_tandem_z_coord = fdmul->bmag_tandem_z_coord,
+        .is_tandem = is_tandem,
         .bmag_max_basis = fdmul->bmag_max_basis,
         .bmag_max_range = fdmul->bmag_max_range,
         .mass = gks->info.mass,
@@ -308,8 +354,12 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
       gkyl_array_release(fdmul->bmag_max_z_coord);
       gkyl_array_release(fdmul->bmag_wall);
       gkyl_array_release(fdmul->bmag_wall_z_coord);
+      gkyl_array_release(fdmul->bmag_tandem);
+      gkyl_array_release(fdmul->bmag_tandem_z_coord);
 
       gkyl_array_release(fdmul->phi_at_bmag_max);
+      gkyl_array_release(fdmul->phi_at_bmag_tandem);
+
       gkyl_array_dg_find_peaks_release(fdmul->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
     }

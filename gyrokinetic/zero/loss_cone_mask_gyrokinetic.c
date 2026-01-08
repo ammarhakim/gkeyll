@@ -156,13 +156,15 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
 
 static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
+  struct gkyl_array *Dbmag_quad, const struct gkyl_array *bmag_max)
 {
   // Get bmag_max-bmag at quadrature nodes.
   // bmag_max is now a per-field-line array (1D for 2x, scalar for 1x).
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag);
+    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(up, conf_range, bmag,
+      Dbmag_quad, bmag_max);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -176,45 +178,92 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
     long linidx = gkyl_range_idx(conf_range, conf_iter.idx);
 
     const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
-    double *Dbmag_quad = gkyl_array_fetch(up->Dbmag_quad, linidx);
-    double *Dbmag_quad_wall = gkyl_array_fetch(up->Dbmag_quad_wall, linidx);
+    double *Dbmag_quad_d = gkyl_array_fetch(Dbmag_quad, linidx);
 
     // Get bmag_max for this field line (psi value).
     // For 1x: bmag_max is a single value (index 0).
     // For 2x: bmag_max varies with psi (x-direction), so use conf_iter.idx[0].
     double bmag_max_val;
-    double bmag_wall_val;
     if (cdim == 1) {
       // 1x case: single value.
-      const double *bmag_max_d = gkyl_array_cfetch(up->bmag_max, 0);
+      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, 0);
       bmag_max_val = bmag_max_d[0]; // Just the constant coefficient.
-
-      const double *bmag_wall_d = gkyl_array_cfetch(up->bmag_wall, 0);
-      bmag_wall_val = bmag_wall_d[0]; // Just the constant coefficient.
     }
     else {
       // 2x case: evaluate bmag_max at this psi cell.
       // The bmag_max array is 1D in psi, so we need the psi index.
       int psi_idx[1] = {conf_iter.idx[0]};
       long psi_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
-      const double *bmag_max_d = gkyl_array_cfetch(up->bmag_max, psi_linidx);
+      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, psi_linidx);
       // For simplicity, evaluate at cell center (logical coord 0).
       double xc[1] = {0.0};
       bmag_max_val = up->bmag_max_basis->eval_expand(xc, bmag_max_d);
-
-      const double *bmag_wall_d = gkyl_array_cfetch(up->bmag_wall, psi_linidx);
-      bmag_wall_val = up->bmag_max_basis->eval_expand(xc, bmag_wall_d);
     }
 
     // Sum over basis 
     for (int n=0; n<tot_quad_conf; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
       for (int k=0; k<num_basis_conf; ++k) {
-        Dbmag_quad[n] += bmag_d[k]*b_ord[k];
-        Dbmag_quad_wall[n] += bmag_d[k]*b_ord[k];
+        Dbmag_quad_d[n] += bmag_d[k]*b_ord[k];
       }
-      Dbmag_quad[n] = bmag_max_val - Dbmag_quad[n];
-      Dbmag_quad_wall[n] = Dbmag_quad_wall[n] - bmag_wall_val;
+      Dbmag_quad_d[n] = bmag_max_val - Dbmag_quad_d[n];
+    }
+  }
+}
+
+static void
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall(gkyl_loss_cone_mask_gyrokinetic *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
+  struct gkyl_array *Dbmag_quad, const struct gkyl_array *bmag_max)
+{
+  // Get bmag_max-bmag at quadrature nodes.
+  // bmag_max is now a per-field-line array (1D for 2x, scalar for 1x).
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall_cu(up, conf_range, bmag,
+      Dbmag_quad, bmag_max);
+#endif
+
+  int cdim = up->cdim, pdim = up->pdim;
+
+  int tot_quad_conf = up->tot_quad_conf;
+  int num_basis_conf = up->num_basis_conf;
+
+  struct gkyl_range_iter conf_iter;
+  gkyl_range_iter_init(&conf_iter, conf_range);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long linidx = gkyl_range_idx(conf_range, conf_iter.idx);
+
+    const double *bmag_d = gkyl_array_cfetch(bmag, linidx);
+    double *Dbmag_quad_n = gkyl_array_fetch(Dbmag_quad, linidx);
+
+    // Get bmag_max for this field line (psi value).
+    // For 1x: bmag_max is a single value (index 0).
+    // For 2x: bmag_max varies with psi (x-direction), so use conf_iter.idx[0].
+    double bmag_max_val;
+    if (cdim == 1) {
+      // 1x case: single value.
+      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, 0);
+      bmag_max_val = bmag_max_d[0]; // Just the constant coefficient.
+    }
+    else {
+      // 2x case: evaluate bmag_max at this psi cell.
+      // The bmag_max array is 1D in psi, so we need the psi index.
+      int psi_idx[1] = {conf_iter.idx[0]};
+      long psi_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
+      const double *bmag_max_d = gkyl_array_cfetch(bmag_max, psi_linidx);
+      // For simplicity, evaluate at cell center (logical coord 0).
+      double xc[1] = {0.0};
+      bmag_max_val = up->bmag_max_basis->eval_expand(xc, bmag_max_d);
+    }
+
+    // Sum over basis 
+    for (int n=0; n<tot_quad_conf; ++n) {
+      const double *b_ord = gkyl_array_cfetch(up->basis_at_ords_conf, n);
+      for (int k=0; k<num_basis_conf; ++k) {
+        Dbmag_quad_n[n] += bmag_d[k]*b_ord[k];
+      }
+      Dbmag_quad_n[n] = Dbmag_quad_n[n] - bmag_max_val;
     }
   }
 }
@@ -228,6 +277,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
   up->mass = inp->mass;
   up->charge = inp->charge;
+  up->is_tandem = inp->is_tandem;
 
   up->cdim = inp->conf_basis->ndim;
   up->pdim = inp->phase_basis->ndim;
@@ -297,6 +347,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
       inp->conf_range_ext->volume*inp->vel_range->volume);
     up->qDphiDbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
     up->qDphiDbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->qDphiDbmag_tandem = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
@@ -359,6 +410,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->bmag_max_z_coord = gkyl_array_acquire(inp->bmag_max_z_coord);
   up->bmag_wall = gkyl_array_acquire(inp->bmag_wall);
   up->bmag_wall_z_coord = gkyl_array_acquire(inp->bmag_wall_z_coord);
+  if (up->is_tandem) {
+    up->bmag_tandem = gkyl_array_acquire(inp->bmag_tandem);
+    up->bmag_tandem_z_coord = gkyl_array_acquire(inp->bmag_tandem_z_coord);
+  } else {
+    up->bmag_tandem = gkyl_array_acquire(inp->bmag_max);
+    up->bmag_tandem_z_coord = gkyl_array_acquire(inp->bmag_max_z_coord);
+  }
   up->bmag_max_basis = inp->bmag_max_basis;
   up->bmag_max_range = inp->bmag_max_range;
 
@@ -366,15 +424,20 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   if (up->use_gpu) {
     up->Dbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
     up->Dbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->Dbmag_quad_tandem = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
   } else {
     up->Dbmag_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
     up->Dbmag_quad_wall = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->Dbmag_quad_tandem = gkyl_array_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
   }
 
   gkyl_array_clear(up->Dbmag_quad, 0.0); 
   gkyl_array_clear(up->Dbmag_quad_wall, 0.0);
+  gkyl_array_clear(up->Dbmag_quad_tandem, 0.0);
   
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag);
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad, up->bmag_max);
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_wall(up, inp->conf_range, inp->bmag, up->Dbmag_quad_wall, up->bmag_wall);
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(up, inp->conf_range, inp->bmag, up->Dbmag_quad_tandem, up->bmag_tandem);
     
   return up;
 }
@@ -389,12 +452,15 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
   const double* GKYL_RESTRICT basis_at_ords = up->basis_at_ords_phase->data;
   const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
 
-  for (int k=0; k<num_basis; ++k) f[k] = 0.0;
-  
+  for (int k=0; k<num_basis; ++k) {
+    f[k] = 0.0;
+  }
+
   for (int imu=0; imu<tot_quad; ++imu) {
     double tmp = weights[imu]*func_at_ords[imu];
-    for (int k=0; k<num_basis; ++k)
+    for (int k=0; k<num_basis; ++k) {
       f[k] += tmp*basis_at_ords[k+num_basis*imu];
+    }
   }
 }
 
@@ -408,7 +474,9 @@ nod_to_mod_reduce(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_a
   const double* GKYL_RESTRICT basis_at_ords = up->basis_at_ords_phase->data;
   const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
 
-  for (int k=0; k<num_basis; ++k) f[k] = 0.0;
+  for (int k=0; k<num_basis; ++k) {
+    f[k] = 0.0;
+  }
   f[0] = 1.0;
   
   for (int imu=0; imu<tot_quad; ++imu) {
@@ -422,13 +490,14 @@ nod_to_mod_reduce(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_a
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_m, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, 
+  const struct gkyl_array *phi_tandem, struct gkyl_array *mask_out)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range, 
-      phi, phi_m, mask_out);
+    return gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range,
+      phi, phi_m, phi_tandem, mask_out);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -437,16 +506,21 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   int tot_quad_conf = up->tot_quad_conf;
   int num_basis_conf = up->num_basis_conf;
 
+  bool is_tandem = up->is_tandem;
+
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_range->ndim; ++d) {
+    rem_dir[d] = 1;
+  }
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
   double phi_quad[tot_quad_conf];
   double qDphiDbmag_quad[tot_quad_conf]; // charge*(phi-phi_m)/(bmag_max-bmag[0]).
   double qDphiDbmag_quad_wall[tot_quad_conf]; // charge*(phi-phi_m)/(bmag[0]-bmag_wall).
+  double qDphiDbmag_quad_tandem[tot_quad_conf]; // charge*(phi-phi_m)/(bmag_max-bmag_tandem).
 
   // Outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space.
@@ -457,23 +531,29 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
     const double *phi_d = gkyl_array_cfetch(phi, linidx_conf);
     const double *Dbmag_quad = gkyl_array_cfetch(up->Dbmag_quad, linidx_conf);
     const double *Dbmag_quad_wall = gkyl_array_cfetch(up->Dbmag_quad_wall, linidx_conf);
+    const double *Dbmag_quad_tandem = is_tandem ? 
+      gkyl_array_cfetch(up->Dbmag_quad_tandem, linidx_conf) : gkyl_array_cfetch(up->Dbmag_quad, linidx_conf);
 
     // Get phi_m value for this field line.
     // For 1x: single value (phi_m is a scalar stored as p=0 DG expansion).
     // For 2x: varies with psi, evaluate at this psi cell.
-    double phi_m_val;
+    double phi_m_val, phi_tandem_m_val;
     if (cdim == 1) {
       // 1x case: single scalar value stored as p=0 DG expansion.
       const double *phi_m_d = gkyl_array_cfetch(phi_m, 0);
+      const double *phi_tandem_m_d = gkyl_array_cfetch(phi_tandem, 0);
       phi_m_val = phi_m_d[0];
+      phi_tandem_m_val = phi_tandem_m_d[0];
     } else {
       // 2x case: evaluate phi_m at this psi cell center.
       int psi_idx[1] = {conf_iter.idx[0]};
       long phi_m_linidx = gkyl_range_idx(up->bmag_max_range, psi_idx);
       const double *phi_m_d = gkyl_array_cfetch(phi_m, phi_m_linidx);
+      const double *phi_tandem_m_d = gkyl_array_cfetch(phi_tandem, phi_m_linidx);
       // Evaluate at cell center (logical coord 0).
       double xc_log[1] = {0.0};
       phi_m_val = up->bmag_max_basis->eval_expand(xc_log, phi_m_d);
+      phi_tandem_m_val = up->bmag_max_basis->eval_expand(xc_log, phi_tandem_m_d);
     }
 
     // Sum over basis for given potential phi.
@@ -482,18 +562,29 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
       // Compute the configuration-space quadrature
       phi_quad[n] = 0.0;
-      for (int k=0; k<num_basis_conf; ++k)
+      for (int k=0; k<num_basis_conf; ++k) {
         phi_quad[n] += phi_d[k]*b_ord[k];
+      }
 
-      if (Dbmag_quad[n] > 0.0)
+      if (Dbmag_quad[n] > 0.0) {
         qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m_val)/Dbmag_quad[n];
-      else
+      } else {
         qDphiDbmag_quad[n] = 0.0;
+      }
 
-      if (Dbmag_quad_wall[n] > 0.0)
+      if (Dbmag_quad_wall[n] > 0.0) {
         qDphiDbmag_quad_wall[n] = up->charge*phi_quad[n]/Dbmag_quad_wall[n];
-      else
+      } else {
         qDphiDbmag_quad_wall[n] = 0.0;
+      }
+
+      if (is_tandem) {
+        if (Dbmag_quad_tandem[n] > 0.0) {
+          qDphiDbmag_quad_tandem[n] = up->charge*(phi_quad[n]-phi_tandem_m_val)/Dbmag_quad_tandem[n];
+        } else {
+          qDphiDbmag_quad_tandem[n] = 0.0;
+        }
+      }
     }
 
     // Inner loop over velocity space.
@@ -530,30 +621,46 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         }
 
         // KEparDbmag = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]).
+        // KEparDbmag_wall = 0.5*mass*pow(vpar,2)/(bmag[0]-bmag_wall).
+        // KEparDbmag_tandem = 0.5*mass*pow(vpar,2)/(bmag_tandem-bmag[0]).
         double KEparDbmag = 0.0;
         double KEparDbmag_wall = 0.0;
+        double KEparDbmag_tandem = 0.0;
+
         if (Dbmag_quad[cqidx] > 0.0) {
           KEparDbmag = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad[cqidx];
         } else {
           KEparDbmag = 0.0;
         }
 
-        if (Dbmag_quad_wall[cqidx] > 0.0)
+        if (Dbmag_quad_wall[cqidx] > 0.0) {
           KEparDbmag_wall = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad_wall[cqidx];
-        else
+        } else {
           KEparDbmag_wall = 0.0;
+        }
+
+        if (Dbmag_quad_tandem[cqidx] > 0.0) {
+          KEparDbmag_tandem = 0.5*up->mass*pow(xmu[cdim], 2.0)/Dbmag_quad_tandem[cqidx];
+        } else {
+          KEparDbmag_tandem = 0.0;
+        }
 
         double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
         double mu_bound_wall = GKYL_MAX2(0.0, -(KEparDbmag_wall+qDphiDbmag_quad_wall[cqidx]));
+        double mu_bound_tandem = GKYL_MAX2(0.0, KEparDbmag_tandem+qDphiDbmag_quad_tandem[cqidx]);
 
         // Get the z-coordinate of bmag_max for this field line.
         // For 1x: single value (index 0).
         // For 2x: varies with psi, so use conf_iter.idx[0].
-        double bmag_max_z_val;
+        double bmag_max_z_val, bmag_tandem_z_val;
         if (cdim == 1) {
           // 1x case: single value.
           const double *bmag_max_z_d = gkyl_array_cfetch(up->bmag_max_z_coord, 0);
           bmag_max_z_val = bmag_max_z_d[0];
+          if (is_tandem) {
+            const double *bmag_tandem_z_d = gkyl_array_cfetch(up->bmag_tandem_z_coord, 0);
+            bmag_tandem_z_val = bmag_tandem_z_d[0];
+          }
         } else {
           // 2x case: evaluate bmag_max_z at this psi cell.
           int psi_idx[1] = {conf_iter.idx[0]};
@@ -562,16 +669,61 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
           // For simplicity, evaluate at cell center (logical coord 0).
           double xc[1] = {0.0};
           bmag_max_z_val = up->bmag_max_basis->eval_expand(xc, bmag_max_z_d);
+          if (is_tandem) {
+            const double *bmag_tandem_z_d = gkyl_array_cfetch(up->bmag_tandem_z_coord, bmag_max_z_linidx);
+            bmag_tandem_z_val = up->bmag_max_basis->eval_expand(xc, bmag_tandem_z_d);
+          }
         }
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         // xmu[cdim-1] is the z-coordinate (last config space coordinate).
-        if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_z_val)) {
-          fq[0] = 1.0 * up->norm_fac;
-        } else if (mu_bound_wall > xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(bmag_max_z_val)) {
-          fq[0] = 1.0 * up->norm_fac;
+        
+        if (is_tandem) {
+          // Tandem mirror trapping condition:
+          // Calculate mu_outer (barrier to outer mirror) and mu_inner (barrier to inner tandem).
+          // A particle is trapped if mu < min(mu_outer, mu_inner).
+          // This captures particles that need to overcome the lower of the two barriers to escape.
+          
+          double mu_bound_outer = GKYL_MAX2(0.0, KEparDbmag + qDphiDbmag_quad[cqidx]);  // Barrier to outer mirror peak
+          double mu_bound_inner = GKYL_MAX2(0.0, KEparDbmag_tandem + qDphiDbmag_quad_tandem[cqidx]);  // Barrier to inner tandem peak
+          
+          // Determine which region we're in based on position
+          bool in_outer_cell = fabs(xmu[cdim-1]) < fabs(bmag_max_z_val) &&
+                               fabs(xmu[cdim-1]) > fabs(bmag_tandem_z_val);
+          bool in_central_cell = fabs(xmu[cdim-1]) <= fabs(bmag_tandem_z_val);
+          
+          if (in_outer_cell) {
+            // Between tandem and outer mirror - check outer barrier
+            if (mu_bound_outer < xmu[cdim+1]) {
+              fq[0] = 1.0 * up->norm_fac;
+            } else {
+              fq[0] = 0.0;
+            }
+          } else if (in_central_cell) {
+            // In central cell - must overcome the maximum of both barriers
+            double mu_bound_max = GKYL_MIN2(mu_bound_outer, mu_bound_inner);
+            if (mu_bound_max < xmu[cdim+1]) {
+              fq[0] = 1.0 * up->norm_fac;
+            } else {
+              fq[0] = 0.0;
+            }
+          } else {
+            // In the outer wall region beyond outer mirror
+            if (mu_bound_wall > xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(bmag_max_z_val)) {
+              fq[0] = 1.0 * up->norm_fac;
+            } else {
+              fq[0] = 0.0;
+            }
+          }
         } else {
-          fq[0] = 0.0;
+          // Single mirror case (original logic)
+          if (mu_bound < xmu[cdim+1] && fabs(xmu[cdim-1]) < fabs(bmag_max_z_val)) {
+            fq[0] = 1.0 * up->norm_fac;
+          } else if (mu_bound_wall > xmu[cdim+1] && fabs(xmu[cdim-1]) >= fabs(bmag_max_z_val)) {
+            fq[0] = 1.0 * up->norm_fac;
+          } else {
+            fq[0] = 0.0;
+          }
         }
       }
       // Compute DG expansion coefficients of the mask.
@@ -599,22 +751,25 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
   gkyl_array_release(up->fun_at_ords);
   gkyl_array_release(up->Dbmag_quad);
   gkyl_array_release(up->Dbmag_quad_wall);
+  gkyl_array_release(up->Dbmag_quad_tandem);
 
   gkyl_array_release(up->bmag_max);
   gkyl_array_release(up->bmag_max_z_coord);
   gkyl_array_release(up->bmag_wall);
   gkyl_array_release(up->bmag_wall_z_coord);
+  gkyl_array_release(up->bmag_tandem);
+  gkyl_array_release(up->bmag_tandem_z_coord);
 
   if (up->use_gpu) {
     gkyl_cu_free(up->p2c_qidx);
     gkyl_array_release(up->mask_out_quad);
     gkyl_array_release(up->qDphiDbmag_quad);
     gkyl_array_release(up->qDphiDbmag_quad_wall);
+    gkyl_array_release(up->qDphiDbmag_quad_tandem);
+
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     gkyl_cu_free(up->bmag_max_z_scalar_gpu);
-    // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
   }
-  // Note: bmag_max and bmag_max_z_coord are owned by gk_geometry, not us.
 
   gkyl_free(up);
 }

@@ -837,6 +837,7 @@ struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
   bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
+  bool is_tandem; // Whether we are doing a tandem mirror
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
@@ -848,11 +849,15 @@ struct gk_fdot_multiplier {
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
   const struct gkyl_array *bmag_wall; // Magnetic field amplitude at the wall per field line.
   const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag_wall per field line.
+  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
   const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   const struct gkyl_range *bmag_max_range_ext; // Extended range for bmag_max arrays.
   int bmag_max_peak_idx; // Index of the LOCAL_MAX peak in the peak finder.
+  int bmag_tandem_peak_idx; // Index of the TANDEM_MIRROR peak in the peak finder.
   struct gkyl_array *phi_at_bmag_max; // Phi evaluated at all peak locations.
+  struct gkyl_array *phi_at_bmag_tandem; // Phi evaluated at tandem mirror locations.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
