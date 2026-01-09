@@ -115,13 +115,6 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
 
-      // Available options:
-      //   A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
-      //   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_const=true. Output: ncomp=1 array.
-      enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
-      int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
-                                              // at least p+1 for Gauss-Lobatto.
-
       // Create peak finder for bmag to find the mirror throat.
       // Search along the parallel (z) direction, which is the last configuration space dimension.
       int search_dir = app->cdim - 1;
@@ -210,9 +203,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .bmag_max_range = damp->bmag_max_range,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
-        .qtype = qtype,
         .num_quad = num_quad,
-        .cellwise_trap_loss = true,
         .c2p_pos_func = proj_on_basis_c2p_position_func,
         .c2p_pos_func_ctx = &damp->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
