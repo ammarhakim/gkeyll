@@ -208,11 +208,10 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       // Get the LOCAL_MAX peak (bmag maximum along z direction).
       int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
       fdmul->bmag_max_peak_idx = num_peaks-2; // Edge is num_peaks-1, so maximum is one less
-      fdmul->bmag_tandem_peak_idx = num_peaks-1; 
       fdmul->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
       fdmul->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
-      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
-      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
+      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-1);
+      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-1);
       fdmul->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range = gkyl_array_dg_find_peaks_get_range(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(fdmul->bmag_peak_finder);
@@ -247,12 +246,12 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       }
 
       if (is_tandem) {
-        fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-4);
-        fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-4);
+        fdmul->bmag_tandem_peak_idx = num_peaks-4;
       } else {
-        fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-2);
-        fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-2);
+        fdmul->bmag_tandem_peak_idx = num_peaks-2;
       }
+      fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
+      fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
