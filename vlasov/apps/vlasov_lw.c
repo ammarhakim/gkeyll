@@ -59,6 +59,15 @@ static const struct gkyl_str_int_pair model_type[] = {
   { 0, 0 }
 };
 
+// Vlasov model type -> enum map.
+static const struct gkyl_str_int_pair triad_geom_type[] = {
+  { "None", GKYL_TRIAD_NONE },
+  { "Annulus", GKYL_TRIAD_ANNULUS },
+  { "Cylindrical_rz", GKYL_TRIAD_CYLINDRICAL_RZ },
+  { 0, 0 }
+};
+
+
 // Vlasov collision type -> enum map.
 static const struct gkyl_str_int_pair collision_type[] = {
   { "None", GKYL_NO_COLLISIONS },
@@ -103,6 +112,13 @@ gkyl_register_vlasov_model_types(lua_State *L)
 {
   register_types(L, model_type, "Model");
 }
+
+void
+gkyl_register_vlasov_triad_geom_types(lua_State *L)
+{
+  register_types(L, triad_geom_type, "TriadGeom");
+}
+
 
 void
 gkyl_register_vlasov_collision_types(lua_State *L)
@@ -489,6 +505,8 @@ vlasov_species_lw_new(lua_State *L)
   struct gkyl_vlasov_species vm_species = { };
 
   vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
+
+  vm_species.triad_preset_geom_type = glua_tbl_get_integer(L, "triadPresetGeomType", 0);
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -518,6 +536,9 @@ vlasov_species_lw_new(lua_State *L)
 
   bool use_vierbein = glua_tbl_get_bool(L, "useVierbein", false);
   vm_species.use_vierbein = use_vierbein;
+
+  bool use_preset_geom = glua_tbl_get_bool(L, "usePresetGeom", false);
+  vm_species.use_preset_geom = use_preset_geom;
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_species.is_static = !evolve; 
@@ -3190,6 +3211,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
   // collision ID, source ID, and radiation ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_triad_geom_types(L);
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L); 
   gkyl_register_vlasov_radiation_types(L);  

@@ -61,11 +61,15 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
+    inp_triad_geom.use_preset_geom = vms->info.use_preset_geom;
     if ( (vms->info.use_vierbein) && (vms->info.vierbein) && (vms->info.vierbein_gradient) ) {
       inp_triad_geom.eval_vierbein = vms->info.vierbein;
       inp_triad_geom.eval_vierbein_gradient = vms->info.vierbein_gradient;
       inp_triad_geom.eval_vierbein_ctx = vms->info.vierbein_ctx;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->info.vierbein_gradient_ctx;
+    }
+    else if (vms->info.use_preset_geom) {
+      inp_triad_geom.triad_preset_geom_type = vms->info.triad_preset_geom_type;
     }
     else if ((vms->info.triad_basis) && (vms->info.triad_basis_gradient) && (vms->info.cov_tangent_basis))  {
       inp_triad_geom.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
@@ -1373,6 +1377,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->use_extended_hamil_def = false; 
   if (vms->info.use_extended_hamil_def == true) {
     vms->use_extended_hamil_def = true; 
+  }
+  vms->use_preset_geom = false; 
+  if (vms->info.use_preset_geom == true) {
+    vms->use_preset_geom = true; 
   }
 
   // Construct Hamiltonian. 
