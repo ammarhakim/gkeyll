@@ -504,8 +504,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
-      .ctx = &ctx,
-      .has_implicit_coll_scheme = true,
+      .self_nu_ctx = &ctx,
+      .is_implicit = true,
     },
 
     .correct = {

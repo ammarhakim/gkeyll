@@ -357,7 +357,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNeut1Nu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
+      .cross_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "neut2" },
     },
@@ -383,7 +384,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNeut2Nu,
-      .ctx = &ctx,
+      .self_nu_ctx = &ctx,
+      .cross_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "neut1" },
     },
