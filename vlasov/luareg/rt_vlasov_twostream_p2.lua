@@ -11,7 +11,7 @@ charge_elc = -1.0 -- Electron charge.
 
 n0 = 1.0 -- Reference number density.
 vt = 1.0 -- Thermal velocity.
-Vx_drift = 5.0 -- Drift velocity (x-direction).
+Vx_drift = 4.0 -- Drift velocity (x-direction).
 lambda_D = 1.0 -- Electron Debye length.
 
 alpha = 1.0e-6 -- Applied perturbation amplitude.
@@ -19,14 +19,14 @@ alpha = 1.0e-6 -- Applied perturbation amplitude.
 -- Derived physical quantities (using normalized code units).
 T = (vt * vt) * mass_elc -- Temperature.
 
-kx = 0.1 * lambda_D -- Perturbed wave number (x-direction).
+kx = 0.1 / lambda_D -- Perturbed wave number (x-direction).
 omega_pe = vt / lambda_D -- Electron plasma frequency.
 
 -- Simulation parameters.
 Nx = 64 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
-Lx = 20.0 * pi * lambda_D -- Domain size (configuration space: x-direction).
-vx_max = 24.0 * vt -- Domain boundary (velocity space: vx-direction).
+Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
+vx_max = 16.0 * vt -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -49,8 +49,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 

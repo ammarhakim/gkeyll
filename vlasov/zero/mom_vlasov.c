@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 void
-gkyl_mom_free(const struct gkyl_ref_count *ref)
+gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *base = container_of(ref, struct gkyl_mom_type, ref_count);
 
@@ -66,7 +66,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
-  mom_vlasov->v_thresh = inp->v_thresh; 
+  // Also set threshold for whether we accumulate moment over subset of the domain. 
+  mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0; 
+  mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0; 
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
@@ -210,7 +212,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   mom_vlasov->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   mom_vlasov->momt.on_dev = &mom_vlasov->momt; // on host, self-reference
     
@@ -298,7 +300,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   mom_vlasov->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   mom_vlasov->momt.on_dev = &mom_vlasov->momt; // on host, self-reference
     

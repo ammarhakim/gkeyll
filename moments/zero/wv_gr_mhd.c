@@ -2003,6 +2003,8 @@ gkyl_wv_gr_mhd_inew(const struct gkyl_wv_gr_mhd_inp* inp)
   gr_mhd->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_mhd_free);
   gr_mhd->eqn.on_dev = &gr_mhd->eqn; // On the CPU, the equation object points to itself.
 
+  gr_mhd->eqn.embed_geo = NULL;
+
   return &gr_mhd->eqn;
 }
 

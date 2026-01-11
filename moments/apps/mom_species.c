@@ -117,6 +117,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_twofluid_charge_ion = mom_sp->gr_twofluid_charge_ion;
     sp->gr_twofluid_gas_gamma_elc = mom_sp->gr_twofluid_gas_gamma_elc;
     sp->gr_twofluid_gas_gamma_ion = mom_sp->gr_twofluid_gas_gamma_ion;
+    sp->gr_twofluid_e_fact = mom_sp->gr_twofluid_e_fact;
   }
 
   sp->has_gr_mhd = false;
@@ -465,9 +466,7 @@ moment_species_update(gkyl_moment_app *app,
   for (int d=0; d<ndim; ++d) {
     struct gkyl_wv_eqn *eqn = sp->equation;
     if (eqn->type==GKYL_EQN_MHD) {
-      if (sp->eqn_type==GKYL_MHD_DIVB_GLM) {
-        gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
-      }
+      gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
     }
   }
   if (app->update_mhd_source) {

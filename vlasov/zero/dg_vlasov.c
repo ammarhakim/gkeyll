@@ -93,6 +93,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->eqn.vol_term = vlasov_vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
+  vlasov->eqn.boundary_diag_term = boundary_diag;
 
   // By default, we have no forces from E, B, phi, or radiation. 
   vlasov->E_vol = no_E_vol; 

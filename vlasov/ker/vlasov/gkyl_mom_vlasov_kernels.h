@@ -190,8 +190,8 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2(const double *w, const d
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void mom_vlasov_M0_upper_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void mom_vlasov_M0_lower_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_upper_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_lower_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
 
 GKYL_CU_DH void mom_vlasov_M0_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_M2ij_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *f, double* GKYL_RESTRICT out); 
@@ -200,8 +200,8 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3(const double *w, const d
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void mom_vlasov_M0_upper_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void mom_vlasov_M0_lower_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_upper_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_lower_1x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
 
 GKYL_CU_DH void mom_vlasov_M0_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_M2ij_1x2v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *f, double* GKYL_RESTRICT out); 
@@ -226,8 +226,8 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2(const double *w, const d
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void mom_vlasov_M0_upper_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void mom_vlasov_M0_lower_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_upper_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_lower_2x1v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
 
 GKYL_CU_DH void mom_vlasov_M0_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_M2ij_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *f, double* GKYL_RESTRICT out); 
@@ -236,8 +236,8 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x1v_tensor_p3(const double *w, const d
 GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void mom_vlasov_M0_upper_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void mom_vlasov_M0_lower_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, double v_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_upper_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
+GKYL_CU_DH void mom_vlasov_M0_lower_2x1v_tensor_p3(const double *w, const double *dxv, const int *idx, const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) ; 
 
 GKYL_CU_DH void mom_vlasov_M0_2x2v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void mom_vlasov_M2ij_2x2v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *vmap, const double *f, double* GKYL_RESTRICT out); 

@@ -90,8 +90,6 @@ vlasovApp = Vlasov.App.new {
       selfNu = function (t, xn)
         return nu -- Collision frequency.
       end,
-      
-      correctAllMoments = true
     },
 
     evolve = true, -- Evolve species?

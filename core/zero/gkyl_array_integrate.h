@@ -24,7 +24,7 @@ enum gkyl_array_integrate_op {
  *
  * @param grid Grid array is defined on.
  * @param basis Basis array is defined on.
- * @param num_comp Number of (vector) components in the array).
+ * @param num_comp Number of (vector) components in the array.
  * @param op Additional operator to apply in very cell.
  * @param use_gpu Indicate whether to perform integral on the device.
  */

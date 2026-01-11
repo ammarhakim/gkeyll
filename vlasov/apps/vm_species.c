@@ -332,13 +332,9 @@ vm_species_rhs_dynamic(gkyl_vlasov_app *app, struct vm_species *vms,
 
   vm_species_collisionless_rhs(app, vms, fin, em, rhs);
 
-  if (vms->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_rhs(app, vms, &vms->lbo, fin, rhs);
-  }
-  else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-    vms->bgk.implicit_step = false;
-    vm_species_bgk_rhs(app, vms, &vms->bgk, fin, rhs);
-  }
+  // Update RHS due to collisions if collisions are present. 
+  vm_species_lbo_rhs(app, vms, &vms->lbo, fin, rhs);
+  vm_species_bgk_rhs(app, vms, &vms->bgk, fin, rhs);
 
   if (vms->calc_bflux) {
     vm_species_bflux_rhs(app, vms, &vms->bflux, fin, rhs);
@@ -369,10 +365,8 @@ vm_species_rhs_implicit_dynamic(gkyl_vlasov_app *app, struct vm_species *vms,
   gkyl_array_clear(vms->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  // Compute implicit update and update rhs to new time step.   
-  if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    vm_species_bgk_rhs(app, vms, &vms->bgk, fin, rhs);
-  }
+  // Compute implicit update and update rhs to new time with time step size dt. 
+  vm_species_bgk_rhs_implicit(app, vms, &vms->bgk, fin, dt, rhs);
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
 
   if (vms->calc_bflux) {
@@ -996,13 +990,6 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   vms->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   vms->is_first_integ_L2_write_call = true;
   vms->is_first_integ_write_call = true; 
-
-  if (vms->info.collisions.collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_init(app, vms, &vms->lbo);
-  }
-  else if (vms->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
-    vm_species_bgk_init(app, vms, &vms->bgk);
-  }  
   
   // Allocate buffer for applying BCs.
   long buff_sz = 0;
@@ -1261,6 +1248,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->write_cell_avg = vms->info.write_cell_avg; // Write out only the cell averages?
 
   vms->use_vmap = false;
+  if (vms->basis_vel.b_type == GKYL_BASIS_MODAL_TENSOR) {
+    vms->use_vmap = true;
+  }
   // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
   vms->vmap = mkarr(app->use_gpu, vdim*4, vms->local_vel.volume);
   // velocity-space Jacobian at quadrature points and "surface" quadrature points. Used to compute
@@ -1540,9 +1530,15 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Initialize empty structs. New methods will fill them if specified.
   vms->src = (struct vm_source) { };
-  vms->lbo = (struct vm_lbo_collisions) { };
-  vms->bgk = (struct vm_bgk_collisions) { };
   vms->bflux = (struct vm_boundary_fluxes) { };
+
+  // Initialize collision objects. Init method checks if collision
+  // table has been specified and allocates appropriate arrays and
+  // sets relevant function pointers. 
+  vms->lbo = (struct vm_lbo_collisions) { };
+  vm_species_lbo_init(app, vms, &vms->lbo);
+  vms->bgk = (struct vm_bgk_collisions) { };
+  vm_species_bgk_init(app, vms, &vms->bgk);
 
   // Set species source id. 
   vms->source_id = vms->info.source.source_id;

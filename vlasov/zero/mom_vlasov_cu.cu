@@ -224,13 +224,15 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
-  mom_vlasov->v_thresh = inp->v_thresh; 
+  // Also set threshold for whether we accumulate moment over subset of the domain. 
+  mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0; 
+  mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0; 
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
   mom_vlasov->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   // copy struct to device
   struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));
@@ -339,7 +341,7 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   mom_vlasov->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov->momt.flags);
-  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
   
   // copy struct to device
   struct mom_type_vlasov *mom_vlasov_cu = (struct mom_type_vlasov*) gkyl_cu_malloc(sizeof(*mom_vlasov_cu));

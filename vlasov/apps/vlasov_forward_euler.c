@@ -39,27 +39,20 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
-    else if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-      vm_species_bgk_moms(app, &app->species[i], 
-        &app->species[i].bgk, fin[i]);
-    }
+    vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    vm_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
   }
 
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
-      vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
+    vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
   }
 
   // Compute primitive moments for fluid species evolution
-  for (int i=0; i<app->num_fluid_species; ++i) 
+  for (int i=0; i<app->num_fluid_species; ++i) {
     vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
+  }
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {

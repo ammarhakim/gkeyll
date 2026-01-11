@@ -85,12 +85,16 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
       gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
     }
   }
-  else {
+  else if (inp->qtype == GKYL_GAUSS_LOBATTO_QUAD) {
     assert( (num_quad > 1) && (num_quad <= gkyl_gauss_max) );
     
     // Gauss-Lobatto quadrature
     memcpy(ordinates1, gkyl_gauss_lobatto_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_lobatto_weights[num_quad], sizeof(double[num_quad]));
+  }
+  else {
+    fprintf(stderr, "Quadrature type not available. Exiting... \n");
+    assert(false);
   }
 
   // create range to loop over quadrature points
