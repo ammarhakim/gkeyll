@@ -261,24 +261,16 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   for (int d=0; d<cdim; ++d)
     ghost[d] = 1;
 
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->lower_skin[dir], &ns->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->upper_skin[dir], &ns->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&ns->local_lower_skin[dir], &ns->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&ns->local_upper_skin[dir], &ns->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_lower_skin[dir], &ns->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &ns->global_ext, ghost); 
-    gkyl_sub_range_intersect(&ns->global_lower_skin[dir], &ns->local_ext, &ns->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_lower_ghost[dir], &ns->local_ext, &ns->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&ns->global_upper_skin[dir], &ns->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-    gkyl_sub_range_intersect(&ns->global_upper_skin[dir], &ns->local_ext, &ns->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_upper_ghost[dir], &ns->local_ext, &ns->global_upper_ghost[dir]);
   }
 
   // Initialize projection routine for initial conditions.
