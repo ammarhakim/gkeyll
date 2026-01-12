@@ -26,6 +26,9 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(vlasov->qmem);
   gkyl_array_release(vlasov->pot_tot);
   gkyl_array_release(vlasov->rad);
+  if (vlasov->use_vmap) {
+    gkyl_array_release(vlasov->jacob_vel);
+  }
   if (vlasov->use_conf_flux_surf) {
     gkyl_array_release(vlasov->conf_flux_surf);
   }
@@ -73,7 +76,9 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
   vlasov->jacob_vel = 0;
+  vlasov->use_vmap = false;
   if (inp->use_vmap) {
+    vlasov->use_vmap = inp->use_vmap;
     vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
   }
   vlasov->poisson_tensor_conf = gkyl_array_acquire(inp->poisson_tensor_conf); 

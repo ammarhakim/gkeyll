@@ -77,6 +77,7 @@ struct dg_vlasov {
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index.
+  bool use_vmap; // If Using vmap. 
   bool use_conf_flux_surf; // If Using configuration-space fluxes for streaming terms (Triads). 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   struct gkyl_range conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.)

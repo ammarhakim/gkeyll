@@ -9,6 +9,7 @@
 
 struct mom_type_vlasov {
   struct gkyl_mom_type momt;
+  bool use_vmap; // If using nonuniform velocity space grids.
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).

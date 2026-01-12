@@ -237,7 +237,9 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   vlasov->jacob_vel = 0;    
   struct gkyl_array *jacob_vel_ho = 0; 
+  vlasov->use_vmap = false;
   if (inp->use_vmap) {
+    vlasov->use_vmap = inp->use_vmap;
     jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
     vlasov->jacob_vel = jacob_vel_ho->on_dev; 
   }

@@ -20,6 +20,10 @@ gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref)
   }
 
   struct mom_type_vlasov *mom_vlasov = container_of(base, struct mom_type_vlasov, momt);
+  if (mom_vlasov->use_vmap) {
+    gkyl_array_release(mom_vlasov->vmap); 
+    gkyl_array_release(mom_vlasov->jacob_vel); 
+  }
   gkyl_array_release(mom_vlasov->hamil);
   gkyl_free(mom_vlasov);
 }
@@ -60,7 +64,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->vel_range = *inp->vel_range;
   mom_vlasov->vmap = 0;
   mom_vlasov->jacob_vel = 0;
+  mom_vlasov->use_vmap = false;
   if (inp->use_vmap) {
+    mom_vlasov->use_vmap = true;
     mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
     mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
   }

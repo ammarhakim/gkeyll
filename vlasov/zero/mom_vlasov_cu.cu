@@ -216,7 +216,9 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->jacob_vel = 0;    
   struct gkyl_array *vmap_ho = 0; 
   struct gkyl_array *jacob_vel_ho = 0; 
+  mom_vlasov->use_vmap = false;
   if (inp->use_vmap) {
+    mom_vlasov->use_vmap = inp->use_vmap;
     vmap_ho = gkyl_array_acquire(inp->vmap); 
     jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
     mom_vlasov->vmap = vmap_ho->on_dev;

@@ -704,6 +704,11 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
+  if (up->use_vmap) {
+    gkyl_array_release(up->vmap);
+    gkyl_array_release(up->jacob_vel_gauss);
+  }
+
   gkyl_array_release(up->num_ratio);
   gkyl_dg_bin_op_mem_release(up->mem);
 
