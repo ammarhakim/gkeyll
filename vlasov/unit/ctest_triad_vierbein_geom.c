@@ -601,7 +601,7 @@ test_triad_math_3v()
 
 }
 
-void eval_vierbein_oblate_spheriod_3v(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_vierbein_obl_sph_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   // Parameters
   double a = 0.2;
@@ -633,7 +633,7 @@ void eval_vierbein_oblate_spheriod_3v(double t, const double *xn, double* restri
   fout[8] = sqrt( h_pp - h_rp * h_rp / h_rr );
 }
 
-void eval_vierbein_gradient_oblate_spheriod_3v(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_vierbein_gradient_obl_sph_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double a = 0.2;
   double M = 0.7;
@@ -680,7 +680,7 @@ void eval_vierbein_gradient_oblate_spheriod_3v(double t, const double *xn, doubl
 }
 
 void
-test_triad_3v_oblate_spheriod_conf(int poly_order)
+test_triad_3v_obl_sph_conf(int poly_order)
 {
 
   double lower[] = {0.5, -1.0, -1.0, -1.0}, upper[] = {1.5, 1.0, 1.0, 1.0};
@@ -725,8 +725,8 @@ test_triad_3v_oblate_spheriod_conf(int poly_order)
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
-  inp_triad_geom.eval_vierbein = eval_vierbein_oblate_spheriod_3v; 
-  inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_oblate_spheriod_3v; 
+  inp_triad_geom.eval_vierbein = eval_vierbein_obl_sph_3v; 
+  inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_obl_sph_3v; 
   inp_triad_geom.eval_vierbein_ctx = 0; 
   inp_triad_geom.eval_vierbein_gradient_ctx = 0;  
 
@@ -815,13 +815,152 @@ test_triad_3v_oblate_spheriod_conf(int poly_order)
   gkyl_array_release(conf_poisson_tensor);
 }
 
+
+void
+test_triad_3v_obl_sph_conf_pnt(int poly_order)
+{
+
+  // The small radial domain is to make the PT computable point-like
+  double lower[] = {1.2, -1.0, -1.0, -1.0}, upper[] = {1.201, 1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2, 2};
+  int vdim = 3, cdim = 1;
+  int ndim = cdim+vdim;
+
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
+  double velLower[] = {lower[1], lower[2], lower[3]}, velUpper[] = {upper[1], upper[2], upper[3]};
+  int velCells[] = {cells[1], cells[2], cells[3]};
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+    struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = { 0, 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; 
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis, velBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
+
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = { confGhost[0], 0, 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Construct the input map
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  inp_triad_geom.use_vierbein = true;
+  inp_triad_geom.use_preset_geom = false;
+  inp_triad_geom.eval_vierbein = eval_vierbein_obl_sph_3v; 
+  inp_triad_geom.eval_vierbein_gradient = eval_vierbein_gradient_obl_sph_3v; 
+  inp_triad_geom.eval_vierbein_ctx = 0; 
+  inp_triad_geom.eval_vierbein_gradient_ctx = 0;  
+
+  // Make the memory for arrays (modal)
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+
+  // Size of the PT
+  int num_pt_indices[3] = { 1 , 6, 18 }; 
+
+  // Allocate arrays for covariant tangent basis 
+  conf_poisson_tensor = mkarr(basis.num_basis*num_pt_indices[vdim-1], local_ext.volume);
+
+  // Construct the Geometry for this configuration
+  gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
+    &grid, &local, basis, inp_triad_geom, conf_poisson_tensor);
+
+  // Iterate over the grid, conf space, checking output
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &confLocal);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *conf_poisson_tensor_d = gkyl_array_cfetch(conf_poisson_tensor, gkyl_range_idx(&confLocal, iter.idx));
+    
+    int NC = confBasis.num_basis;
+
+    // index size of the symmetric vierbein
+    int n_sym = vdim*(vdim+1)/2; 
+
+    // Double precision values of the expected output
+    // pt at the first and second points of conflocal
+    double conf_pt_pnt1_vals[54] = {
+      9.6290932667188200e-01,  3.0557192303253710e-05, -1.9060309741679256e-09,
+     -0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.9749649683737491e-01, -2.3559225423118542e-05,  2.5034786937286079e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.1735193512493030e+00, -1.3998834094392952e-04,  1.4875609027276800e-08,
+     -0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.3946046535605872e+00, -1.6636145924360524e-04,  1.7678100999715272e-08,
+     -7.8825693985710692e-03,  3.2533094023435649e-06, -7.5997620951496514e-10,
+      4.3421825783067178e-02, -1.2614050461930800e-05,  2.2226953151201167e-09,
+     -3.0909497157018945e-01,  8.3552360881739072e-05, -1.4753654335173865e-08,
+      7.9580674413801245e-01, -6.8907451802267957e-05,  5.6345035264203492e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+     -1.6322310167933296e-01,  3.8783726313331308e-05, -6.1565631082591592e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      7.9580674413801233e-01, -6.8907451802086651e-05,  5.6345035819315004e-09,
+      7.3881286793473677e-01, -8.4626522972194968e-05,  8.4315775465537861e-09
+    };
+
+    double conf_pt_pnt2_vals[54] = {
+      9.6301515432534812e-01,  3.0542433744200089e-05, -1.9046126736654344e-09,
+     -0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.9741491886046661e-01, -2.3539845475652491e-05,  2.5004028958501497e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.1730346169068171e+00, -1.3987318577010459e-04,  1.4857332885849471e-08,
+     -0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      1.3940285976403748e+00, -1.6622460939880196e-04,  1.7656381705803026e-08,
+     -7.8713097929162569e-03,  3.2474291031404502e-06, -7.5831105403301365e-10,
+      4.3378159233906165e-02, -1.2596848405148490e-05,  2.2188576674860956e-09,
+     -3.0880573552501606e-01,  8.3438181690105028e-05, -1.4727293548494199e-08,
+      7.9556811729279164e-01, -6.8863828717794862e-05,  5.6289295621407699e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+     -1.6308883346440881e-01,  3.8736076679782285e-05, -6.1465219895234848e-09,
+      0.0000000000000000e+00,  0.0000000000000000e+00,  0.0000000000000000e+00,
+      7.9556811729279164e-01, -6.8863828717749529e-05,  5.6289296089518828e-09,
+      7.3851982613910860e-01, -8.4561248795774556e-05,  8.4221442670652718e-09
+    };
+
+
+    for (int k = 0; k<num_pt_indices[vdim-1]; ++k) {
+      for (int m = 0; m<NC; ++m) {
+        int test_idx = k*NC + m;
+        double expected = 0;
+        if (iter.idx[0] == 1) expected = conf_pt_pnt1_vals[test_idx];
+        if (iter.idx[0] == 2) expected = conf_pt_pnt2_vals[test_idx];
+        //printf("conf_poisson_tensor_d[%d]: %1.16e\n",test_idx,conf_poisson_tensor_d[test_idx]);
+        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
+      }
+    }
+  }
+
+  // Release the memory
+  gkyl_array_release(conf_poisson_tensor);
+}
+
 void test_triad_1v() { test_triad_math_1v(); }
 void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
 void test_triad_1x2v_flat() { test_triad_1x2v_flat_conf(2); }
 void test_triad_1x2v_annulus() { test_triad_1x2v_annulus_conf(2); }
 void test_triad_2v() { test_triad_math_2v(); }
 void test_triad_3v() { test_triad_math_3v(); }
-void test_triad_3v_oblate_spheriod() { test_triad_3v_oblate_spheriod_conf(2); }
+void test_triad_3v_obl_sph() { test_triad_3v_obl_sph_conf(2); }
+void test_triad_3v_obl_sph_pnt() { test_triad_3v_obl_sph_conf_pnt(2); }
 
 TEST_LIST = {
   { "test_triad_1v", test_triad_1v}, 
@@ -830,6 +969,7 @@ TEST_LIST = {
   { "test_triad_1x2v_annulus", test_triad_1x2v_annulus}, 
   { "test_triad_2v", test_triad_2v},
   { "test_triad_3v", test_triad_3v},
-  { "test_triad_3v_oblate_spheriod", test_triad_3v_oblate_spheriod},
+  { "test_triad_3v_obl_sph", test_triad_3v_obl_sph},
+  { "test_triad_3v_obl_sph_pnt", test_triad_3v_obl_sph_pnt},
   {NULL, NULL}
 };
