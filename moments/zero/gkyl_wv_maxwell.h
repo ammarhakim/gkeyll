@@ -47,6 +47,7 @@ struct gkyl_wv_maxwell_inp {
   double b_fact; // Factor of speed of light for magnetic field correction.
 
   struct gkyl_wv_embed_geo *embed_geo; // embedded geometry
+  struct gkyl_wv_resistive_layer *resistive_layer; // resistivity layer
   enum gkyl_wv_maxwell_rp rp_type; // Type of Riemann-solver to use.
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
 };

@@ -133,13 +133,13 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
       .type = mesh_pdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
-      .k0 = k0_elc,
+      .nu0 = k0_elc,
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_pdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
-      .k0 = k0_ion,
+      .nu0 = k0_ion,
     };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -442,13 +442,13 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
       .type = mesh_pdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
-      .k0 = k0_elc,
+      .nu0 = k0_elc,
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_pdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
-      .k0 = k0_ion,
+      .nu0 = k0_ion,
     };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -789,13 +789,13 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
       .type = mesh_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
-      .k0 = k0_elc,
+      .nu0 = k0_elc,
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
-      .k0 = k0_ion,
+      .nu0 = k0_ion,
     };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -1169,13 +1169,13 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
       .type = mesh_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
-      .k0 = k0_elc,
+      .nu0 = k0_elc,
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
-      .k0 = k0_ion,
+      .nu0 = k0_ion,
     };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);

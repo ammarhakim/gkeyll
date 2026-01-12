@@ -10,7 +10,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
-    .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
+    .mu0 = app->field.mu0 ? app->field.mu0 : 0.0,
     // is the field static?
     .static_field = app->field.is_static, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
@@ -23,8 +23,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      // If gradient-based or neural network-based closure is present, k0=0.0 in source solve to avoid applying local closure.
-      .k0 = (app->species[i].has_grad_closure || app->species[i].has_nn_closure) ? 0.0 : app->species[i].k0,
+      .nu0 = app->species[i].nu0,
     };
 
   src_inp.has_collision = app->has_collision;
@@ -81,6 +80,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.volume_R0 = app->field.volume_R0;
     }
   }
+
+  src_inp.has_resistivity_sources = false;
+  if (app->field.has_app_resistivity)
+    src_inp.has_resistivity_sources = true;
 
   src_inp.has_reactive_sources = false;
   for (int i = 0; i < app->num_species; i++) {
@@ -260,6 +263,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
+  const struct gkyl_array *embed_mask[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
   double dt_suggested = DBL_MAX;
@@ -325,6 +329,11 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     pr_rhs_const[i] = src->pr_rhs[i];
   }
 
+  // Get the RHS pointer for accumulation during source update
+  for (int i=0; i<app->num_species; ++i) {
+    embed_mask[i] = app->species[i].embed_mask;
+  }
+
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].proj_nT_source
         && !(app->species[i].nT_source_set_only_once
@@ -346,7 +355,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
-      fluids, app_accels, pr_rhs_const, 
+      fluids, app_accels, pr_rhs_const, app->field.resistivity, embed_mask, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
   }

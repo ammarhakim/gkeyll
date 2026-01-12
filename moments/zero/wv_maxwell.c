@@ -125,6 +125,8 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);
   maxwell->eqn.on_dev = &maxwell->eqn; // On the CPU, the equation object points to itself.
 
+  maxwell->eqn.resistive_layer = inp->resistive_layer;
+
   maxwell->eqn.embed_geo = inp->embed_geo;
   if (maxwell->eqn.embed_geo) {
     switch (maxwell->eqn.embed_geo->type) {

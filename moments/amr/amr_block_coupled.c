@@ -865,8 +865,8 @@ five_moment_update_block_job_func_source(void* ctx)
   nT_source[0] = bdata->nT_source_elc;
   nT_source[1] = bdata->nT_source_ion;
 
-  gkyl_moment_em_coupling_implicit_advance(bdata->src_slvr, t_curr, dt, &bdata->range, fluids, app_accel, rhs_source,
-    bdata->f_maxwell[nstrang], bdata->app_current, bdata->ext_em, nT_source);
+  gkyl_moment_em_coupling_implicit_advance(bdata->src_slvr, t_curr, dt, &bdata->range, fluids, app_accel, rhs_source, NULL,
+    NULL, bdata->f_maxwell[nstrang], bdata->app_current, bdata->ext_em, nT_source);
 
   five_moment_block_bc_updaters_apply(bdata, t_curr, bdata->f_elc[nstrang], bdata->f_ion[nstrang], bdata->f_maxwell[nstrang]);
 }

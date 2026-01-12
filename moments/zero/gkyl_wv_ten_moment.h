@@ -6,6 +6,7 @@
 // Input packaged as a struct.
 struct gkyl_wv_ten_moment_inp {
   double k0; // Closure parameter.
+  double nu0; // Relaxation parameter.
   bool use_grad_closure; // Should we use gradient-based closure?
   bool use_nn_closure; // Should we use neural network-based closure?
   int poly_order; // Polynomial order of learned DG coefficients.
@@ -68,6 +69,15 @@ gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure, bool use_nn_clos
  */
 double
 gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get relaxation parameter.
+ * 
+ * @param wv 10-moment equation object.
+ * @return Relaxation parameter.
+ */
+double
+gkyl_wv_ten_moment_nu0(const struct gkyl_wv_eqn* wv);
 
 /**
  * Should we use gradient-based closure?

@@ -570,7 +570,7 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
 void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
-  const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES])
+  const double* ext_em, const double* sigma, const double* nT_sources_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double ke_old[GKYL_MAX_SPECIES];
@@ -584,7 +584,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
 
     double q = mom_em->param[i].charge;
     double m = mom_em->param[i].mass;
-    double k0 = mom_em->param[i].k0;
+    double nu0 = mom_em->param[i].nu0;
+    // double k0 = mom_em->param[i].k0;
 
     // Setup RHS of implicit solve with fluid variables at known time-step
     // includes potential contributions from transport terms/density & momentum sources
@@ -637,7 +638,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
 
       double p = (1.0 / 3.0) * (p_tensor_old[0] + p_tensor_old[3] + p_tensor_old[5]);
       double v_th = sqrt(p / rho);
-      double nu = v_th * k0;
+      double nu = v_th * nu0;
       double exp_nu = exp(nu * dt);
 
       if (mom_em->is_charged_species) {
@@ -707,6 +708,9 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
   if (mom_em->has_volume_sources) {
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
+  }
+  if (mom_em->has_resistivity_sources) {
+    explicit_resistivity_source_update(mom_em, t_curr, dt, em, sigma);
   }
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);

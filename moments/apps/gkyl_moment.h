@@ -107,6 +107,7 @@ struct gkyl_moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
 
   struct gkyl_wv_embed_geo *embed_geo;
+  struct gkyl_wv_resistive_layer *resistive_layer;
   
   void *app_current_ctx; // context for external electromagnetic fields function
   // pointer to external electromagnetic fields function

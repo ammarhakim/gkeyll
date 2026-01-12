@@ -15,7 +15,7 @@ struct gkyl_moment_em_coupling_data {
   double charge; // Species charge.
   double mass; // Species mass.
 
-  double k0; // Closure parameter (for 10-moment equations only; defaults to 0.0).
+  double nu0; // Relaxation parameter (for 10-moment equations only; defaults to 0.0).
 };
 
 struct gkyl_moment_em_coupling_inp {
@@ -50,6 +50,8 @@ struct gkyl_moment_em_coupling_inp {
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
   double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
+  bool has_resistivity_sources; // Run with resistive layer sources.
 
   bool has_reactive_sources; // Run with reactive sources.
   double reactivity_gas_gamma; // Adiabatic index for reactive sources.
@@ -107,6 +109,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp);
 * @param app_accel Array of acceleration terms to be applied to the fluid equations (for external forces).
 * @param p_rhs Array of RHS/source terms to be applied to the fluid variables  
 *              (e.g., Braginskii transport for Euler/Isothermal Euler; gradient-based closure for ten-moment).
+* @param sigma Array containing the resistivity profile data.
 * @param em Array of electromagnetic variables.
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
@@ -114,7 +117,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp);
 */
 void
 gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], const struct gkyl_array* sigma, const struct gkyl_array* embed_mask[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES]);
 
 /**

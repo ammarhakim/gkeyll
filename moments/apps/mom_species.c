@@ -28,11 +28,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
 
   sp->k0 = 0.0;
+  sp->nu0 = 0.0;
   sp->has_grad_closure = false;
   sp->has_nn_closure = false;
   if (mom_sp->equation->type == GKYL_EQN_TEN_MOMENT) {
     sp->update_sources = true; 
     sp->k0 = gkyl_wv_ten_moment_k0(mom_sp->equation);
+    sp->nu0 = gkyl_wv_ten_moment_nu0(mom_sp->equation);
     sp->has_grad_closure = gkyl_wv_ten_moment_use_grad_closure(mom_sp->equation);
     sp->has_nn_closure = gkyl_wv_ten_moment_use_nn_closure(mom_sp->equation);
     sp->poly_order = gkyl_wv_ten_moment_poly_order(mom_sp->equation);
@@ -278,6 +280,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             bc_copy, 0);
           break;
 
+        case GKYL_SPECIES_ABSORB:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_absorb, 0);
+          break;
+
         case GKYL_SPECIES_SKIP:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
@@ -316,6 +324,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             bc_copy, 0);
           break;
 
+        case GKYL_SPECIES_ABSORB:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_absorb, 0);
+          break;
+
         case GKYL_SPECIES_SKIP:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
@@ -349,7 +363,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   if (mom_sp->equation->embed_geo) {
     gkyl_wv_embed_geo_new_mask(mom_sp->equation->embed_geo, &app->grid,
-      &app->local, sp->embed_mask);
+      &app->local_ext, sp->embed_mask);
   }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);

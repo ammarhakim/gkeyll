@@ -32,9 +32,10 @@ ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 struct gkyl_wv_eqn*
 gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
 {
-  double k0 = inp->k0;
   bool use_grad_closure = inp->use_grad_closure;
   bool use_nn_closure = inp->use_nn_closure;
+  double k0 = (use_grad_closure) ? inp->k0 : 0.0;
+  double nu0 = (use_grad_closure) ? inp->nu0 : inp->k0;
   int poly_order = inp->poly_order;
   kann_t* ann = inp->ann;
   bool use_gpu = inp->use_gpu;
@@ -47,6 +48,7 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
 
   ten_moment->k0 = k0;
+  ten_moment->nu0 = nu0;
   ten_moment->use_grad_closure = use_grad_closure;
   ten_moment->use_nn_closure = use_nn_closure;
   ten_moment->poly_order = poly_order;
@@ -121,6 +123,13 @@ gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn* eqn)
 {
   const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
   return tm->k0;
+}
+
+double
+gkyl_wv_ten_moment_nu0(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
+  return tm->nu0;
 }
 
 bool
