@@ -48,6 +48,8 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     assert(false);
   }
 
+  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+
   // create mirror geometry for corners
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -55,6 +57,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
         .nrange = up->nrange_corn,
         .local = up->local,
         .global = up->global,
+        .position_map = geometry_inp->position_map,
         
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -77,6 +80,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
         .nrange = up->nrange_int,
         .local = up->local,
         .global = up->global,
+        .position_map = geometry_inp->position_map,
         
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -102,6 +106,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
           .local = up->local,
           .global = up->global,
           .dir = dir,
+          .position_map = geometry_inp->position_map,
           
           .R = { psi_grid.lower[0], psi_grid.upper[0] },
           .Z = { psi_grid.lower[1], psi_grid.upper[1] },
