@@ -1301,7 +1301,7 @@ struct gk_field {
 
   // Objects used in for TS BCs.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_twistshift *bc_T_LU_lo, *bc_T_UL_up; // Fills core z-ghost with TS BC.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_up; // Fills z-ghost with z-skin boundary value.
   
   // Pointer to functions that make phi continuous along z.

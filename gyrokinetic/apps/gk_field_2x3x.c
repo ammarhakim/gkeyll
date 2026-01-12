@@ -26,8 +26,10 @@ gk_field_fem_projection_par_ts(gkyl_gyrokinetic_app *app, struct gk_field *field
   int par_dir = app->cdim-1; // Parallel direction index.
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &field->global_lower_ghost[par_dir], &field->global_upper_skin[par_dir]);
+  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
+    &field->global_upper_ghost[par_dir], &field->global_lower_skin[par_dir]);
   gkyl_bc_twistshift_advance(field->bc_T_LU_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_up, field->bc_buffer, field->rho_c_global_dg);
+  gkyl_bc_twistshift_advance(field->bc_T_UL_up, field->rho_c_global_dg, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(field->fem_parproj_phi, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -113,12 +115,13 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
 
   // Take the TS function from the parallel BC of the first species.
   struct gk_species *gks = &app->species[0];
-  const struct gkyl_gyrokinetic_bc *par_lower_bc;
+  const struct gkyl_gyrokinetic_bc *par_lower_bc, *par_upper_bc;
   for (int i = 0; i < 2*app->cdim; i++) {
-    if ( gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].edge == GKYL_LOWER_EDGE &&
-         gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT ) {
-      par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
-      break;
+    if ( gks->info.bcs[i].dir == par_dir && gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+      if (gks->info.bcs[i].edge == GKYL_LOWER_EDGE)
+        par_lower_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
+      if (gks->info.bcs[i].edge == GKYL_UPPER_EDGE)
+        par_upper_bc = (const struct gkyl_gyrokinetic_bc *) &gks->info.bcs[i];
     }
   }
 
@@ -139,12 +142,21 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
   };
   f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
 
-  long buff_sz = f->global_lower_ghost[par_dir].volume;
-  f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
-
-  f->gfss_bc_op_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
-    app->basis_on_dev, &f->global_upper_skin[par_dir], &f->global_upper_ghost[par_dir], app->basis.num_basis, app->cdim, app->use_gpu);
-
+  struct gkyl_bc_twistshift_inp T_UL_up = {
+    .bc_dir = par_dir,
+    .shift_dir = 1, // y shift.
+    .shear_dir = 0, // shift varies with x.
+    .edge = GKYL_UPPER_EDGE,
+    .cdim = app->cdim,
+    .bcdir_ext_update_r = app->global_par_ext,
+    .num_ghost = ghost, // one ghost per config direction
+    .basis = app->basis,
+    .grid = app->grid,
+    .shift_func = par_upper_bc->aux_profile,
+    .shift_func_ctx = par_upper_bc->aux_ctx,
+    .use_gpu = app->use_gpu,
+  };
+  f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
 }
 
 static void
@@ -275,8 +287,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     gkyl_fem_parproj_release(f->fem_parproj_phi);
     gkyl_bc_twistshift_release(f->bc_T_LU_lo);
-    gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_up);
-    gkyl_array_release(f->bc_buffer);
+    gkyl_bc_twistshift_release(f->bc_T_UL_up);
   }
   
   // Release IWL updaters.
