@@ -206,7 +206,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     bgk->implicit_step = gks->info.collisions.is_implicit;
     bgk->num_cross_collisions = gks->info.collisions.num_cross_collisions;
     
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gks->info.vdim;
   
     // Allocate self-species collision frequency and sum of collision frequencies.
     bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -252,12 +252,9 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       bgk->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
         1.0, 1.0, 1.0, app->use_gpu);
 
-      // We define nu_ss = 0.5*nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s),
-      // with delta_ss = 1, beta = 0. This gives a nu_ss that is arguably 2X
-      // smaller than it should be, but we argue that it is high-energy
-      // particles that set the resistivity and those are in reality less
-      // collisional (because nu should be proportional to 1/v^3). And it makes
-      // the code 2X faster in the collisional regime.
+      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2,
+      // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
+      // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       bgk->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
         gks->info.collisions.den_ref, gks->info.collisions.den_ref, 
         gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge,
@@ -311,7 +308,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
   if (bgk->collision_id == GKYL_BGK_COLLISIONS) {
     if (gks->bgk.num_cross_collisions) {
       bgk->betaGreenep1 = 1.0; // Greene's beta factor + 1.
-      bgk->delta_sr = 1.0; // delta_sr free parameter.
+      bgk->delta_sr = 2.0; // delta_sr free parameter.
         
       // Set pointers to species we cross-collide with.
       int my_idx_in_other[GKYL_MAX_SPECIES];

@@ -1,0 +1,338 @@
+#include <assert.h>
+#include <gkyl_gyrokinetic_priv.h>
+
+int
+gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app* app)
+{
+  int num_quasineut_rescale = 0;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    if (s->info.positivity.type && s->info.positivity.quasineutrality_rescale)
+      num_quasineut_rescale += 1;
+  }
+  return num_quasineut_rescale;
+}
+
+static void
+gks_pos_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos, double tm, int frame)
+{
+  // Empty.
+}
+
+static void
+gks_pos_deltaf_moms_calc(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  gk_species_moment_calc(&pos->moms, gks->local, app->local, pos->fbuffer_ptr);
+
+  // Rescale moment by inverse of Jacobian.
+  gkyl_dg_div_op_range(pos->moms.mem_geo, app->basis, 
+    0, pos->moms.marr, 0, pos->moms.marr, 0, 
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
+}
+
+static void
+gks_pos_deltaf_moms_clear(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  gkyl_array_clear(pos->moms.marr, 0.0);
+  pos->deltaf_moms_func = gks_pos_deltaf_moms_calc;
+}
+
+static void
+gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos, double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }, GKYL_GK_META_NONE, 0
+  );
+
+  struct timespec wst = gkyl_wall_clock();
+  // We placed the change in f in fbuffer_ptr.
+  pos->deltaf_moms_func(app, gks, pos);
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_mom += 1;
+
+  if (app->use_gpu)
+    gkyl_array_copy(pos->moms.marr_host, pos->moms.marr);
+
+  const char *fmt = "%s-%s_positivity_FourMoments_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  
+  struct timespec wtm = gkyl_wall_clock();
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+    pos->moms.marr_host, fileNm);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+  app->stat.n_diag_io += 1;
+  
+  gk_array_meta_release(mt); 
+
+  app->stat.n_diag += 1;
+}
+
+static void
+gks_pos_calc_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
+  struct gk_species *gks, struct gk_positivity *pos, double tm)
+{
+  // Empty.
+}
+
+static void
+gks_pos_deltaf_integ_moms_calc(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  gk_species_moment_calc(&pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr); 
+}
+
+static void
+gks_pos_deltaf_integ_moms_clear(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  gkyl_array_clear(pos->integ_moms.marr, 0.0);
+  pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_calc;
+}
+
+static void
+gks_pos_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
+  struct gk_species *gks, struct gk_positivity *pos, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  int num_mom = pos->integ_moms.num_mom;
+  double avals_global[num_mom];
+  
+  // The change in f after the positivity operation is stored in fbuffer_ptr.
+  pos->deltaf_integ_moms_func(app, gks, pos);
+  app->stat.n_mom += 1;
+
+  // Reduce (sum) over whole domain, append to diagnostics.
+  gkyl_array_reduce_range(pos->red_integ_diag, pos->integ_moms.marr, GKYL_SUM, &app->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+    pos->red_integ_diag, pos->red_integ_diag_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(avals_global, pos->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(avals_global, pos->red_integ_diag_global, sizeof(double[num_mom]));
+  }
+  gkyl_dynvec_append(pos->integ_diag, tm, avals_global);
+  
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag += 1;
+}
+
+static void
+gks_pos_write_integrated_diags_disabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_positivity *pos)
+{
+  // Empty.
+}
+
+static void
+gks_pos_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_positivity *pos)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    // Write integrated diagnostic moments.
+    const char *fmt = "%s-%s_positivity_%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
+
+    if (pos->is_first_integ_write_call) {
+      gkyl_dynvec_write(pos->integ_diag, fileNm);
+      pos->is_first_integ_write_call = false;
+      pos->integ_diag_file_exists = true;
+    }
+    else {
+      gkyl_dynvec_awrite(pos->integ_diag, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(pos->integ_diag);
+  app->stat.n_diag_io += 1;
+  
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gks_pos_apply_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
+{
+  // Do nothing.
+}
+
+void
+gks_pos_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
+{
+  struct timespec wtm = gkyl_wall_clock();
+  // Copy f so we can calculate the moments of delta f later. 
+  pos->fbuffer_ptr = fbuffer;
+  gkyl_array_set(pos->fbuffer_ptr, -1.0, fout);
+
+  // Shift each species.
+  gkyl_positivity_shift_gyrokinetic_advance(pos->shift_op_gk, &app->local, &gks->local,
+    fout, gks->m0.marr, pos->delta_m0);
+
+  app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+void
+gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  pos->type = gks->info.positivity.type;
+  pos->write_diagnostics = gks->info.positivity.write_diagnostics;
+  pos->quasineut_rescale = gks->info.positivity.quasineutrality_rescale;
+
+  pos->apply_func = gks_pos_apply_disabled;
+  pos->write_diags_func = gks_pos_write_diags_disabled;
+  pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_disabled;
+  pos->write_integrated_diags_func = gks_pos_write_integrated_diags_disabled;
+
+  if (pos->type) {
+
+    pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    // Positivity shift updater.
+    pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
+      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+
+    // Methods chosen at runtime.
+    pos->apply_func = gks_pos_apply_enabled;
+
+    if (pos->write_diagnostics) {
+      // Allocate data for diagnostic moments.
+      gk_species_moment_init(app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+
+      // Integrated moments of delta f.
+      gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+
+      if (app->use_gpu) {
+        pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
+        pos->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
+      } 
+      else {
+        pos->red_integ_diag = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
+        pos->red_integ_diag_global = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
+      }
+      pos->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, pos->integ_moms.num_mom);
+      pos->is_first_integ_write_call = true;
+
+      // Methods chosen at runtime.
+      pos->deltaf_moms_func = gks_pos_deltaf_moms_clear;
+      pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_clear;
+      pos->write_diags_func = gks_pos_write_diags_enabled;
+      pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_enabled;
+      pos->write_integrated_diags_func = gks_pos_write_integrated_diags_enabled;
+    }
+
+    if (app->post_positivity_quasineut) {
+      // Set pointers to total ion/electron Delta m0, used to enforce quasineutrality.
+      if (gks->info.charge > 0.0) {
+        pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+        pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+      }
+      else {
+        pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+        pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+      }
+    }
+
+  }
+}
+
+void
+gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
+{
+  pos->apply_func(app, gks, pos, fbuffer, fout);
+}
+
+void
+gk_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos, double tm, int frame)
+{
+  pos->write_diags_func(app, gks, pos, tm, frame);
+}
+
+void
+gk_species_positivity_calc_integrated_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_positivity *pos, double tm)
+{
+  pos->calc_integrated_diags_func(app, gks, pos, tm);
+}
+
+void
+gk_species_positivity_write_integrated_diags(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos)
+{
+  pos->write_integrated_diags_func(app, gks, pos);
+}
+
+void
+gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos)
+{
+  if (pos->type) {
+
+    gkyl_array_release(pos->delta_m0);
+    gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
+    if (app->post_positivity_quasineut) {
+      gkyl_array_release(pos->delta_m0s_tot);
+      gkyl_array_release(pos->delta_m0r_tot);
+    }
+
+    if (pos->write_diagnostics) {
+      gk_species_moment_release(app, &pos->moms);
+      gk_species_moment_release(app, &pos->integ_moms); 
+      gkyl_dynvec_release(pos->integ_diag);
+      if (app->use_gpu) {
+        gkyl_cu_free(pos->red_integ_diag);
+        gkyl_cu_free(pos->red_integ_diag_global);
+      }
+      else {
+        gkyl_free(pos->red_integ_diag);
+        gkyl_free(pos->red_integ_diag_global);
+      }
+    }
+
+  }
+}
+
+void
+gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
+  struct gk_species *gks, struct gk_positivity *pos, struct gkyl_gyrokinetic_positivity pos_inp)
+{
+  gk_species_positivity_release(app, pos);
+
+  gks->info.positivity = pos_inp;
+
+  int num_quasineut_rescale = gk_species_positivity_num_species_in_quasineut(app);
+  if (app->post_positivity_quasineut) {
+    if (num_quasineut_rescale < 2)
+      gyrokinetic_post_positivity_quasineut_release(app);
+  }
+  else
+    gyrokinetic_post_positivity_quasineut_init(app);
+
+  gk_species_positivity_init(app, gks, pos);
+
+  if (pos_inp.type) {
+    if (pos->integ_diag_file_exists) {
+      pos->is_first_integ_write_call = false;
+      pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_calc;
+    }
+  }
+}

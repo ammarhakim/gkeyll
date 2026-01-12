@@ -610,6 +610,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -699,6 +700,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
@@ -759,7 +761,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_sheath_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
@@ -778,7 +780,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -788,7 +790,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
