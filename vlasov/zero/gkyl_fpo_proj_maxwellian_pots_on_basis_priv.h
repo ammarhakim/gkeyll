@@ -304,9 +304,12 @@ static inline double eval_fpo_dhdv(double den,
 {
   double rel_speedsq = pow(rel_speed, 2);
   double vth = sqrt(2.0*vtsq);
-  double dHdvi = den*rel_vel_in_dir*(
-    2.0*exp(-rel_speedsq/pow(vth,2))/(sqrt(GKYL_PI)*vth*rel_speedsq) -
-    erf(rel_speed/vth)/pow(rel_speed,3));
+  double exp_term = exp(-pow(rel_speed/vth, 2));
+  double erf_term = erf(rel_speed / vth);
+  double term1 =  (2.0 / sqrt(GKYL_PI)) * exp_term * (rel_vel_in_dir / (vth * pow(rel_speed, 2)));
+  double term2 = erf_term * ((-1.0) * rel_vel_in_dir / pow(rel_speed, 3)); 
+
+  double dHdvi = den*(term1 + term2);
   return dHdvi;
 }
 
@@ -326,14 +329,13 @@ static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
   double vth = sqrt(2.0*vtsq);
-  double term1 = den*vth*exp(-rel_speedsq/pow(vth,2))*
-    (rel_speedsq - 3.0*pow(rel_vel_in_dir, 2))/(sqrt(GKYL_PI)*pow(rel_speedsq,2));
+  double exp_term = exp(-pow(rel_speed/vth, 2));
+  double erf_term = erf(rel_speed / vth);
 
-  double term2 = den*erf(rel_speed/vth)*(
-    2.0*pow(rel_speedsq,2) - rel_speedsq*pow(vth,2) +
-    pow(rel_vel_in_dir,2)*(3.0*pow(vth,2) - 2.0*rel_speedsq))/(2.0*pow(rel_speed,5));
-
-  double d2Gdvi2 = term1 + term2;
+  double term1 = (1.0/sqrt(GKYL_PI))*((rel_speedsq - 3.0*pow(rel_vel_in_dir, 2))/(rel_speedsq*rel_speedsq))*exp_term;
+  double term2 = erf_term * ((3.0*vth*pow(rel_vel_in_dir, 2) - rel_speedsq*vth)/(2*pow(rel_speed, 5)));
+  double term3 = erf_term * ((rel_speedsq - pow(rel_vel_in_dir, 2))/(vth*pow(rel_speed, 3)));
+  double d2Gdvi2 = den*vth*(term1 + term2 + term3);
   return d2Gdvi2;
 }
 
@@ -343,14 +345,14 @@ static inline double eval_fpo_d2gdv2_cross(double den,
   double vtsq) {
   double rel_speedsq = pow(rel_speed,2);
   double vth = sqrt(2.0*vtsq);
+  double expTerm = exp(-pow(rel_speed/vth, 2));
+  double erfTerm = erf(rel_speed / vth);
 
-  double term1 = -1.0*den*rel_vel_in_dir1*rel_vel_in_dir2/(2.0*sqrt(GKYL_PI)*pow(rel_speed,5))*
-    6.0*exp(-rel_speedsq/pow(vth,2)*(vth*rel_speed));
+  double term1 = (2.0/sqrt(GKYL_PI))*((-1.5*rel_vel_in_dir1*rel_vel_in_dir2)/(rel_speedsq*rel_speedsq))*expTerm;
+  double term2 = ((1.5 * vth * rel_vel_in_dir1*rel_vel_in_dir2)/pow(rel_speed, 5))*erfTerm;
+  double term3 = ((-1.0 * rel_vel_in_dir1*rel_vel_in_dir2)/(vth * pow(rel_speed, 3)))*erfTerm;
 
-  double term2 = -1.0*den*rel_vel_in_dir1*rel_vel_in_dir2/(2.0*pow(rel_speed,5))*
-    erf(rel_speed/vth)*(2.0*rel_speedsq - 3.0*pow(vth,2));
-
-  double d2Gdvidvj = term1 + term2;
+  double d2Gdvidvj = den*vth*(term1 + term2 + term3);
   return d2Gdvidvj;
 }
 
