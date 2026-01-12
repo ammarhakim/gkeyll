@@ -261,7 +261,9 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->vel_range = *inp->vel_range;
   mom_vlasov->vmap = 0;
   mom_vlasov->jacob_vel = 0;
+  mom_vlasov->use_vmap = false;
   if (inp->use_vmap) {
+    mom_vlasov->use_vmap = true;
     mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
     mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
   }
