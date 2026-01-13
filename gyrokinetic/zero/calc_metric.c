@@ -9,9 +9,12 @@
 gkyl_calc_metric*
 gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *global, const struct gkyl_range *global_ext,
-  const struct gkyl_range *local, const struct gkyl_range *local_ext, bool use_gpu)
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  bool exit_at_checks, bool use_gpu)
 {
   gkyl_calc_metric *up = gkyl_malloc(sizeof(gkyl_calc_metric));
+
+  up->exit_at_checks = exit_at_checks;
   up->cbasis = cbasis;
   up->cdim = cbasis->ndim;
   up->cnum_basis = cbasis->num_basis;
@@ -26,6 +29,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 
   up->local = *local;
   up->local_ext = *local_ext;
+
   return up;
 }
 
@@ -66,24 +70,32 @@ static inline void cross(const double a[3], const double b[3], double c[3]) {
   c[2] = a[0]*b[1] - a[1]*b[0];
 }
 
-static inline double
-check_right_handed(double tan[9], double dual[9]) {
-  // calculate e_i \dot e^j
+static inline void
+check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check) {
+  // Check that the coordinate system has tangent/dual vectors
+  // satisfying orthonormality.
+
+  // Calculate e_i \dot e^j.
   double prod[3][3];
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       prod[i][j] = tan[3*i +0]*dual[3*j +0] + tan[3*i +1]*dual[3*j +1] + tan[3*i +2]*dual[3*j +2];
     }
   }
+
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       if ( i==j && prod[i][j] < 0 ) {
-        printf("Orthonormality violated : e_%d . e^%d = %g\n", i+1, j+1, prod[i][j]);
-        assert(false);
+        fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %g\n", i+1, j+1, prod[i][j]);
+        assert(!exit_at_check);
       }
     }
   }
+}
 
+static inline void
+check_right_handed(const double tan[9], const double dual[9], bool exit_at_check) {
+  // Check that the coordinate system is right handed.
   const double *e1 = &tan[0];
   const double *e2 = &tan[3];
   const double *e3 = &tan[6];
@@ -92,21 +104,22 @@ check_right_handed(double tan[9], double dual[9]) {
   cross(e2, e3, cross_e2e3);
 
   double J = dot(e1, cross_e2e3);
+
   if (J < 0.0) {
-    printf("Left Handed Coordinate System, J < 0\n");
-    assert(false);
+    fprintf(stderr, "calc_metric.c: Left-handed coordinate system, J = e_1 . (e_2 x e_3) < 0.\n");
+    assert(!exit_at_check);
   }
   else if (J == 0.0) {
-    printf("Degenerate Coordinate System, J < 0\n");
-    assert(false);
+    fprintf(stderr, "calc_metric.c: Degenerate coordinate system, J = 0.\n");
+    assert(!exit_at_check);
   }
-  return J;
 }
 
 static inline void
-check_parallel(double *v1, double *v2) {
-  // Check |v1 cross v2 | < eps 
-  // and also v1 dot v2 > 0
+check_parallel(double *v1, double *v2, bool exit_at_check) {
+  // Check v1 and v2 are parallel by checking that:
+  //   |v1 x v2 | < eps 
+  //   v1 . v2 >= 0
   const double eps = 1e-12;
 
   double cx = v1[1]*v2[2] - v1[2]*v2[1];
@@ -116,44 +129,19 @@ check_parallel(double *v1, double *v2) {
   double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
 
   double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-  if (c_mag < eps && dot >=0)
+  if (c_mag < eps && dot >= 0)
     return;
   else {
-    printf("B and mapc2p are inconsistent\n");
-    assert(false);
+    fprintf(stderr, "calc_metric.c: B and mapc2p are inconsistent (hat{b} and e_3 are not parallel).\n");
+    assert(!exit_at_check);
   }
 }
 
-
-
-double check_right_handed2(const double tan[9], const double dual[9]) {
-  const double *e1 = &tan[0];
-  const double *e2 = &tan[3];
-  const double *e3 = &tan[6];
-
-  double cross_e2e3[3];
-  cross(e2, e3, cross_e2e3);
-
-  double J = dot(e1, cross_e2e3);
-
-  if (J > 0.0) {
-    return J;  // right-handed
-  } else if (J < 0.0) {
-    printf("LEFT  HANDED\n");
-    return J;  // left-handed
-  } else {
-    return J;
-  }
-}
-
-void gkyl_calc_metric_advance_rz(
-  gkyl_calc_metric *up, struct gkyl_range *nrange,
+void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld,
-  struct gkyl_array *tanvecFld,
-  struct gkyl_array *dualFld,
-  struct gkyl_array *dualmagFld,
-  struct gkyl_array *normFld,
+  struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
+  struct gkyl_array *dualmagFld, struct gkyl_array *normFld,
   struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range)
 {
   struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
@@ -355,7 +343,7 @@ void gkyl_calc_metric_advance_rz(
 }
 
 void 
-gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *gk_geom)
+gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -463,8 +451,10 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
         dualFld_n[8] = +R/J*dxdz[0][0];
 
-        check_right_handed(tanvecFld_n, dualFld_n);
-        check_right_handed2(tanvecFld_n, dualFld_n);
+        // Check that the coordinate system has tangent/dual vectors
+        // satisfying orthonormality, and that it's right handed.
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -534,7 +524,7 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
 }
 
-void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
+void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -597,7 +587,7 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
-        // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+        // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
         }
@@ -660,8 +650,10 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
         dualFld_n[8] = +R/J*dxdz[0][0];
 
-        check_right_handed(tanvecFld_n, dualFld_n);
-        check_right_handed2(tanvecFld_n, dualFld_n);
+        // Check that the coordinate system has tangent/dual vectors
+        // satisfying orthonormality, and that it's right handed.
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1188,8 +1180,6 @@ void gkyl_calc_metric_advance_mirror_surface(
   gkyl_array_release(gFld_nodal);
 }
 
-
-
 void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, double *dzc,
   struct gkyl_array *gFld,
@@ -1355,149 +1345,154 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
   for(int ia=gk_geom->nrange_int.lower[AL_IDX]; ia<=gk_geom->nrange_int.upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_int.lower[PSI_IDX]; ip<=gk_geom->nrange_int.upper[PSI_IDX]; ++ip) {
       for (int it=gk_geom->nrange_int.lower[TH_IDX]; it<=gk_geom->nrange_int.upper[TH_IDX]; ++it) {
-         cidx[PSI_IDX] = ip;
-         cidx[AL_IDX] = ia;
-         cidx[TH_IDX] = it;
-         const double *mc2p_n = gkyl_array_cfetch(gk_geom->geo_int.mc2p_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         double dxdz[3][3]; // tan vecs at node
-         double dzdx[3][3]; // duals at node
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *mc2p_n = gkyl_array_cfetch(gk_geom->geo_int.mc2p_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double dxdz[3][3]; // tan vecs at node
+        double dzdx[3][3]; // duals at node
 
-         dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
-         dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
-         dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
-
-
-         dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
-         dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
-         dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
-
-         dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/gk_geom->dzc[2];
-         dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/gk_geom->dzc[2];
-         dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/gk_geom->dzc[2];
+        dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
+        dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
+        dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
 
 
-         const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         double dbhatdz[3][3]; // tan vecs at node
+        dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
+        dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+        dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
 
-         dbhatdz[0][0] = -(bhat_n[3 +X_IDX] -   bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
-         dbhatdz[1][0] = -(bhat_n[3 +Y_IDX] -   bhat_n[6+Y_IDX])/2/gk_geom->dzc[0];
-         dbhatdz[2][0] = -(bhat_n[3 +Z_IDX] -   bhat_n[6+Z_IDX])/2/gk_geom->dzc[0];
-
-         dbhatdz[0][1] = -(bhat_n[15 +X_IDX] -  bhat_n[18 +X_IDX])/2/gk_geom->dzc[1];
-         dbhatdz[1][1] = -(bhat_n[15 +Y_IDX] -  bhat_n[18 +Y_IDX])/2/gk_geom->dzc[1];
-         dbhatdz[2][1] = -(bhat_n[15 +Z_IDX] -  bhat_n[18 +Z_IDX])/2/gk_geom->dzc[1];
-
-         dbhatdz[0][2] = -(bhat_n[27 +X_IDX] - bhat_n[30 +X_IDX])/2/gk_geom->dzc[2];
-         dbhatdz[1][2] = -(bhat_n[27 +Y_IDX] - bhat_n[30 +Y_IDX])/2/gk_geom->dzc[2];
-         dbhatdz[2][2] = -(bhat_n[27 +Z_IDX] - bhat_n[30 +Z_IDX])/2/gk_geom->dzc[2];
-
-         double *gFld_n= gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         gFld_n[0] = calc_metric(dxdz, 1, 1); 
-         gFld_n[1] = calc_metric(dxdz, 1, 2); 
-         gFld_n[2] = calc_metric(dxdz, 1, 3); 
-         gFld_n[3] = calc_metric(dxdz, 2, 2); 
-         gFld_n[4] = calc_metric(dxdz, 2, 3); 
-         gFld_n[5] = calc_metric(dxdz, 3, 3); 
-
-         double Jsq = gFld_n[0]*( gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] )
-                     -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
-                     +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
-         double J = sqrt(Jsq);
-         double e_1[3], e_2[3], e_3[3];
-         e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
-         e_2[0] = dxdz[0][1]; e_2[1] = dxdz[1][1]; e_2[2] = dxdz[2][1];
-         e_3[0] = dxdz[0][2]; e_3[1] = dxdz[1][2]; e_3[2] = dxdz[2][2];
-         calc_dual(J, e_2, e_3, dzdx[0]);
-         calc_dual(J, e_3, e_1, dzdx[1]);
-         calc_dual(J, e_1, e_2, dzdx[2]);
-
-         double *dualFld_n= gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         dualFld_n[0] = dzdx[0][0];
-         dualFld_n[1] = dzdx[0][1];
-         dualFld_n[2] = dzdx[0][2];
-         dualFld_n[3] = dzdx[1][0];
-         dualFld_n[4] = dzdx[1][1];
-         dualFld_n[5] = dzdx[1][2];
-         dualFld_n[6] = dzdx[2][0];
-         dualFld_n[7] = dzdx[2][1];
-         dualFld_n[8] = dzdx[2][2];
-
-         double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         tanvecFld_n[0] = dxdz[0][0]; 
-         tanvecFld_n[1] = dxdz[1][0]; 
-         tanvecFld_n[2] = dxdz[2][0]; 
-         tanvecFld_n[3] = dxdz[0][1]; 
-         tanvecFld_n[4] = dxdz[1][1]; 
-         tanvecFld_n[5] = dxdz[2][1]; 
-         tanvecFld_n[6] = dxdz[0][2]; 
-         tanvecFld_n[7] = dxdz[1][2]; 
-         tanvecFld_n[8] = dxdz[2][2]; 
+        dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/gk_geom->dzc[2];
+        dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/gk_geom->dzc[2];
+        dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/gk_geom->dzc[2];
 
 
-         check_right_handed(tanvecFld_n, dualFld_n);
-         check_right_handed2(tanvecFld_n, dualFld_n);
-         double bhat_vec[3] = {bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX]};
-         double e_3_norm[3] = {tanvecFld_n[6]/sqrt(gFld_n[5]), tanvecFld_n[7]/sqrt(gFld_n[5]), tanvecFld_n[8]/sqrt(gFld_n[5])};
-         check_parallel(bhat_vec, e_3_norm);
+        const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double dbhatdz[3][3]; // tan vecs at node
 
-         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
-         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
-         double norm3 = sqrt(dualFld_n[6]*dualFld_n[6] + dualFld_n[7]*dualFld_n[7] + dualFld_n[8]*dualFld_n[8]);
+        dbhatdz[0][0] = -(bhat_n[3 +X_IDX] -   bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
+        dbhatdz[1][0] = -(bhat_n[3 +Y_IDX] -   bhat_n[6+Y_IDX])/2/gk_geom->dzc[0];
+        dbhatdz[2][0] = -(bhat_n[3 +Z_IDX] -   bhat_n[6+Z_IDX])/2/gk_geom->dzc[0];
 
-         double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_int.dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         dualmagFld_n[0] = norm1;
-         dualmagFld_n[1] = norm2;
-         dualmagFld_n[2] = norm3;
-         
-         // Set normal vectors
-         double *normFld_n = gkyl_array_fetch(gk_geom->geo_int.normals_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         normFld_n[0] = dualFld_n[0]/norm1;
-         normFld_n[1] = dualFld_n[1]/norm1;
-         normFld_n[2] = dualFld_n[2]/norm1;
+        dbhatdz[0][1] = -(bhat_n[15 +X_IDX] -  bhat_n[18 +X_IDX])/2/gk_geom->dzc[1];
+        dbhatdz[1][1] = -(bhat_n[15 +Y_IDX] -  bhat_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+        dbhatdz[2][1] = -(bhat_n[15 +Z_IDX] -  bhat_n[18 +Z_IDX])/2/gk_geom->dzc[1];
 
-         normFld_n[3] = dualFld_n[3]/norm2;
-         normFld_n[4] = dualFld_n[4]/norm2;
-         normFld_n[5] = dualFld_n[5]/norm2;
+        dbhatdz[0][2] = -(bhat_n[27 +X_IDX] - bhat_n[30 +X_IDX])/2/gk_geom->dzc[2];
+        dbhatdz[1][2] = -(bhat_n[27 +Y_IDX] - bhat_n[30 +Y_IDX])/2/gk_geom->dzc[2];
+        dbhatdz[2][2] = -(bhat_n[27 +Z_IDX] - bhat_n[30 +Z_IDX])/2/gk_geom->dzc[2];
 
-         normFld_n[6] = dualFld_n[6]/norm3;
-         normFld_n[7] = dualFld_n[7]/norm3;
-         normFld_n[8] = dualFld_n[8]/norm3;
+        double *gFld_n= gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        gFld_n[0] = calc_metric(dxdz, 1, 1); 
+        gFld_n[1] = calc_metric(dxdz, 1, 2); 
+        gFld_n[2] = calc_metric(dxdz, 1, 3); 
+        gFld_n[3] = calc_metric(dxdz, 2, 2); 
+        gFld_n[4] = calc_metric(dxdz, 2, 3); 
+        gFld_n[5] = calc_metric(dxdz, 3, 3); 
 
-         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         // Set e^m \dot curl(bhat) 
-         double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_int.curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         // I first need the derivatives of B_X,Y,Z wrt XYZ
-         double dbhatdX[3][3];
-         matTvec(dzdx, dbhatdz[0], dbhatdX[0]);
-         matTvec(dzdx, dbhatdz[1], dbhatdX[1]);
-         matTvec(dzdx, dbhatdz[2], dbhatdX[2]);
-         curlbhat_n[0] = (dbhatdX[2][1] - dbhatdX[1][2]);
-         curlbhat_n[1] = (dbhatdX[0][2] - dbhatdX[2][0]);
-         curlbhat_n[2] = (dbhatdX[1][0] - dbhatdX[0][1]);
-         double *dualcurlbhat_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         dualcurlbhat_n[0] = dualFld_n[0]*curlbhat_n[0] +  dualFld_n[1]*curlbhat_n[1] + dualFld_n[2]*curlbhat_n[2];
-         dualcurlbhat_n[1] = dualFld_n[3]*curlbhat_n[0] +  dualFld_n[4]*curlbhat_n[1] + dualFld_n[5]*curlbhat_n[2];
-         dualcurlbhat_n[2] = dualFld_n[6]*curlbhat_n[0] +  dualFld_n[7]*curlbhat_n[1] + dualFld_n[8]*curlbhat_n[2];
+        double Jsq = gFld_n[0]*( gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] )
+                    -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
+                    +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+        double J = sqrt(Jsq);
+        double e_1[3], e_2[3], e_3[3];
+        e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
+        e_2[0] = dxdz[0][1]; e_2[1] = dxdz[1][1]; e_2[2] = dxdz[2][1];
+        e_3[0] = dxdz[0][2]; e_3[1] = dxdz[1][2]; e_3[2] = dxdz[2][2];
+        calc_dual(J, e_2, e_3, dzdx[0]);
+        calc_dual(J, e_3, e_1, dzdx[1]);
+        calc_dual(J, e_1, e_2, dzdx[2]);
 
-         // Set e^3 \dot B 
-         double *B3_n = gkyl_array_fetch(gk_geom->geo_int.B3_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         B3_n[0] = bmag_n[0]/sqrt(gFld_n[5]);
+        double *dualFld_n= gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        dualFld_n[0] = dzdx[0][0];
+        dualFld_n[1] = dzdx[0][1];
+        dualFld_n[2] = dzdx[0][2];
+        dualFld_n[3] = dzdx[1][0];
+        dualFld_n[4] = dzdx[1][1];
+        dualFld_n[5] = dzdx[1][2];
+        dualFld_n[6] = dzdx[2][0];
+        dualFld_n[7] = dzdx[2][1];
+        dualFld_n[8] = dzdx[2][2];
 
-         // set e^3 \dot B /|B|
-         double *dualcurlbhatoverB_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhatoverB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         dualcurlbhatoverB_n[0] = dualcurlbhat_n[0]/bmag_n[0];
-         dualcurlbhatoverB_n[1] = dualcurlbhat_n[1]/bmag_n[0];
-         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2]/bmag_n[0];
+        double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        tanvecFld_n[0] = dxdz[0][0]; 
+        tanvecFld_n[1] = dxdz[1][0]; 
+        tanvecFld_n[2] = dxdz[2][0]; 
+        tanvecFld_n[3] = dxdz[0][1]; 
+        tanvecFld_n[4] = dxdz[1][1]; 
+        tanvecFld_n[5] = dxdz[2][1]; 
+        tanvecFld_n[6] = dxdz[0][2]; 
+        tanvecFld_n[7] = dxdz[1][2]; 
+        tanvecFld_n[8] = dxdz[2][2]; 
 
-         // set B^3/B = 1/sqrt(g_33)
-         double *rtg33inv_n = gkyl_array_fetch(gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         rtg33inv_n[0] = 1.0/sqrt(gFld_n[5]);
+        // Check that the coordinate system has tangent/dual vectors
+        // satisfying orthonormality, and that it's right handed.
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
-         // set b_i/JB
-         double* bioverJB_n = gkyl_array_fetch(gk_geom->geo_int.bioverJB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         bioverJB_n[0] = gFld_n[2]/sqrt(gFld_n[5])/J/bmag_n[0];
-         bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
-         bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
+        // Check if bhat and e_3 are parallel.
+        double bhat_vec[3] = {bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX]};
+        double e_3_norm[3] = {tanvecFld_n[6]/sqrt(gFld_n[5]),
+                              tanvecFld_n[7]/sqrt(gFld_n[5]),
+                              tanvecFld_n[8]/sqrt(gFld_n[5])};
+        check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
+
+        double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
+        double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
+        double norm3 = sqrt(dualFld_n[6]*dualFld_n[6] + dualFld_n[7]*dualFld_n[7] + dualFld_n[8]*dualFld_n[8]);
+
+        double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_int.dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        dualmagFld_n[0] = norm1;
+        dualmagFld_n[1] = norm2;
+        dualmagFld_n[2] = norm3;
+        
+        // Set normal vectors
+        double *normFld_n = gkyl_array_fetch(gk_geom->geo_int.normals_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        normFld_n[0] = dualFld_n[0]/norm1;
+        normFld_n[1] = dualFld_n[1]/norm1;
+        normFld_n[2] = dualFld_n[2]/norm1;
+
+        normFld_n[3] = dualFld_n[3]/norm2;
+        normFld_n[4] = dualFld_n[4]/norm2;
+        normFld_n[5] = dualFld_n[5]/norm2;
+
+        normFld_n[6] = dualFld_n[6]/norm3;
+        normFld_n[7] = dualFld_n[7]/norm3;
+        normFld_n[8] = dualFld_n[8]/norm3;
+
+        double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        // Set e^m \dot curl(bhat) 
+        double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_int.curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        // I first need the derivatives of B_X,Y,Z wrt XYZ
+        double dbhatdX[3][3];
+        matTvec(dzdx, dbhatdz[0], dbhatdX[0]);
+        matTvec(dzdx, dbhatdz[1], dbhatdX[1]);
+        matTvec(dzdx, dbhatdz[2], dbhatdX[2]);
+        curlbhat_n[0] = (dbhatdX[2][1] - dbhatdX[1][2]);
+        curlbhat_n[1] = (dbhatdX[0][2] - dbhatdX[2][0]);
+        curlbhat_n[2] = (dbhatdX[1][0] - dbhatdX[0][1]);
+        double *dualcurlbhat_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        dualcurlbhat_n[0] = dualFld_n[0]*curlbhat_n[0] +  dualFld_n[1]*curlbhat_n[1] + dualFld_n[2]*curlbhat_n[2];
+        dualcurlbhat_n[1] = dualFld_n[3]*curlbhat_n[0] +  dualFld_n[4]*curlbhat_n[1] + dualFld_n[5]*curlbhat_n[2];
+        dualcurlbhat_n[2] = dualFld_n[6]*curlbhat_n[0] +  dualFld_n[7]*curlbhat_n[1] + dualFld_n[8]*curlbhat_n[2];
+
+        // Set e^3 \dot B 
+        double *B3_n = gkyl_array_fetch(gk_geom->geo_int.B3_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5]);
+
+        // set e^3 \dot B /|B|
+        double *dualcurlbhatoverB_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhatoverB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        dualcurlbhatoverB_n[0] = dualcurlbhat_n[0]/bmag_n[0];
+        dualcurlbhatoverB_n[1] = dualcurlbhat_n[1]/bmag_n[0];
+        dualcurlbhatoverB_n[2] = dualcurlbhat_n[2]/bmag_n[0];
+
+        // set B^3/B = 1/sqrt(g_33)
+        double *rtg33inv_n = gkyl_array_fetch(gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        rtg33inv_n[0] = 1.0/sqrt(gFld_n[5]);
+
+        // set b_i/JB
+        double* bioverJB_n = gkyl_array_fetch(gk_geom->geo_int.bioverJB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        bioverJB_n[0] = gFld_n[2]/sqrt(gFld_n[5])/J/bmag_n[0];
+        bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
+        bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
 
       }
     }
@@ -1674,9 +1669,10 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
         tanvecFld_n[7] = dxdz[1][2]; 
         tanvecFld_n[8] = dxdz[2][2]; 
 
-
-        check_right_handed(tanvecFld_n, dualFld_n);
-        check_right_handed2(tanvecFld_n, dualFld_n);
+        // Check that the coordinate system has tangent/dual vectors
+        // satisfying orthonormality, and that it's right handed.
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1722,26 +1718,21 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
         double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         normcurlbhat_n[0] = normFld_n[3*dir+0]*curlbhat_n[0] +  normFld_n[3*dir+1]*curlbhat_n[1] + normFld_n[3*dir+2]*curlbhat_n[2];
 
-
       }
     }
   }
 }
 
-
 void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *biFld, struct gkyl_array *dualFld, struct gkyl_array *bcartFld,
   const struct gkyl_range *update_range)
 {
-
-
   struct gkyl_array* bcartFld_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange->volume);
   struct gkyl_array* biFld_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange->volume);
   struct gkyl_array* dualFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
-
 
   // Fill the inputs
   gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld_nodal, dualFld, true);
