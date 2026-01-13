@@ -57,13 +57,13 @@ matTvec(double M[3][3], double v[3], double result[3]) {
 }
 
 static inline double dot(const double a[3], const double b[3]) {
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+  return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
 
 static inline void cross(const double a[3], const double b[3], double c[3]) {
-    c[0] = a[1]*b[2] - a[2]*b[1];
-    c[1] = a[2]*b[0] - a[0]*b[2];
-    c[2] = a[0]*b[1] - a[1]*b[0];
+  c[0] = a[1]*b[2] - a[2]*b[1];
+  c[1] = a[2]*b[0] - a[0]*b[2];
+  c[2] = a[0]*b[1] - a[1]*b[0];
 }
 
 static inline double
@@ -105,46 +105,45 @@ check_right_handed(double tan[9], double dual[9]) {
 
 static inline void
 check_parallel(double *v1, double *v2) {
-    // Check |v1 cross v2 | < eps 
-    // and also v1 dot v2 > 0
-    const double eps = 1e-12;
+  // Check |v1 cross v2 | < eps 
+  // and also v1 dot v2 > 0
+  const double eps = 1e-12;
 
-    double cx = v1[1]*v2[2] - v1[2]*v2[1];
-    double cy = v1[2]*v2[0] - v1[0]*v2[2];
-    double cz = v1[0]*v2[1] - v1[1]*v2[0];
+  double cx = v1[1]*v2[2] - v1[2]*v2[1];
+  double cy = v1[2]*v2[0] - v1[0]*v2[2];
+  double cz = v1[0]*v2[1] - v1[1]*v2[0];
 
-    double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
+  double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
 
-    double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-    if (c_mag < eps && dot >=0)
-      return;
-    else {
-      printf("B and mapc2p are inconsistent\n");
-      assert(false);
-    }
-
+  double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+  if (c_mag < eps && dot >=0)
+    return;
+  else {
+    printf("B and mapc2p are inconsistent\n");
+    assert(false);
+  }
 }
 
 
 
 double check_right_handed2(const double tan[9], const double dual[9]) {
-    const double *e1 = &tan[0];
-    const double *e2 = &tan[3];
-    const double *e3 = &tan[6];
+  const double *e1 = &tan[0];
+  const double *e2 = &tan[3];
+  const double *e3 = &tan[6];
 
-    double cross_e2e3[3];
-    cross(e2, e3, cross_e2e3);
+  double cross_e2e3[3];
+  cross(e2, e3, cross_e2e3);
 
-    double J = dot(e1, cross_e2e3);
+  double J = dot(e1, cross_e2e3);
 
-    if (J > 0.0) {
-        return J;  // right-handed
-    } else if (J < 0.0) {
-        printf("LEFT  HANDED\n");
-        return J;  // left-handed
-    } else {
-        return J;
-    }
+  if (J > 0.0) {
+    return J;  // right-handed
+  } else if (J < 0.0) {
+    printf("LEFT  HANDED\n");
+    return J;  // left-handed
+  } else {
+    return J;
+  }
 }
 
 void gkyl_calc_metric_advance_rz(
@@ -253,7 +252,9 @@ void gkyl_calc_metric_advance_rz(
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
+                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] ));
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -302,8 +303,10 @@ void gkyl_calc_metric_advance_rz(
         dualFld_n[1] = -R/J*sin(phi)*dxdz[1][2];
         dualFld_n[2] = +R/J*dxdz[0][2];
 
-        dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-        dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) + dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) - dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
+        dualFld_n[3] =  1/J * ( dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
+        dualFld_n[4] = -1/J * ( dxdz[1][0]*dxdz[0][2]*cos(phi) + dxdz[1][0]*R*sin(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*cos(phi) - dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
         dualFld_n[6] = +R/J*cos(phi)*dxdz[1][0];
@@ -395,7 +398,9 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
+                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] )) ;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -448,8 +453,10 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
         dualFld_n[2] = -R/J*dxdz[0][2];
 
-        dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-        dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
+        dualFld_n[3] =  1/J * ( dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
+        dualFld_n[4] = -1/J * ( dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
         dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
@@ -581,7 +588,9 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
+                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] )) ;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -641,8 +650,10 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
         dualFld_n[2] = -R/J*dxdz[0][2];
 
-        dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-        dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
+        dualFld_n[3] =  1/J * ( dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
+        dualFld_n[4] = -1/J * ( dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta
+                               -dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
         dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
@@ -730,7 +741,9 @@ gkyl_calc_metric_advance_rz_neut_interior( gkyl_calc_metric *up, struct gk_geome
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double R = mc2p_n[R_IDX];
-        double jac = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        double jac = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
+                               +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                               -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] )) ;
 
         double *gFld_n= gkyl_array_fetch(gk_geom->geo_int.g_ij_neut_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
@@ -855,7 +868,9 @@ void gkyl_calc_metric_advance_mirror(
         double dRdpsi = 1/dxdz[1][2]*(sqrt(gFld_n[5])/bmag_n[0]/R + dxdz[0][2]*dxdz[1][0]);
         // Calculate J as J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
-        jFld_n[0] = sqrt(R*R*(dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*( dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2]
+                              +dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] ));
 
         gFld_n[0] = dRdpsi*dRdpsi + dxdz[1][0]*dxdz[1][0]; 
         gFld_n[1] = 0.0; 
@@ -892,7 +907,7 @@ void gkyl_calc_metric_advance_mirror(
         dualFld_n[1] = -R/J*sin(phi)*dxdz[1][2];
         dualFld_n[2] = +R/J*dxdz[0][2];
 
-        dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
+        dualFld_n[3] =  1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
         dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * dxdz[0][2]*dxdz[2][0];
 
@@ -997,7 +1012,9 @@ void gkyl_calc_metric_advance_mirror_interior(
         double dRdpsi = 1/dxdz[1][2]*(sqrt(gFld_n[5])/bmag_n[0]/R + dxdz[0][2]*dxdz[1][0]);
         // Calculate J as J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
-        jFld_n[0] = sqrt(R*R*(dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*( dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2]
+                              +dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] ));
 
         gFld_n[0] = dRdpsi*dRdpsi + dxdz[1][0]*dxdz[1][0]; 
         gFld_n[1] = 0.0; 
@@ -1034,7 +1051,7 @@ void gkyl_calc_metric_advance_mirror_interior(
         dualFld_n[1] = -R/J*sin(phi)*dxdz[1][2];
         dualFld_n[2] = +R/J*dxdz[0][2];
 
-        dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
+        dualFld_n[3] =  1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
         dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][2]*dxdz[0][0]*cos(phi) - dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
         dualFld_n[5] =  R/J * dxdz[0][2]*dxdz[2][0];
 
@@ -1145,7 +1162,9 @@ void gkyl_calc_metric_advance_mirror_surface(
         double dRdpsi = 1/dxdz[1][2]*(sqrt(gFld_n[5])/bmag_n[0]/R + dxdz[0][2]*dxdz[1][0]);
         // Calculate J as J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
-        jFld_n[0] = sqrt(R*R*(dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+        jFld_n[0] = sqrt(R*R*( dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2]
+                              +dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
+                              -2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] ));
 
         gFld_n[0] = dRdpsi*dRdpsi + dxdz[1][0]*dxdz[1][0]; 
         gFld_n[1] = 0.0; 
@@ -1256,7 +1275,9 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
           gFld_n[4] = calc_metric(dxdz, 2, 3); 
           gFld_n[5] = calc_metric(dxdz, 3, 3); 
 
-          double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+          double Jsq = gFld_n[0]*( gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] )
+                      -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
+                      +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
           double J = sqrt(Jsq);
           double e_1[3], e_2[3], e_3[3];
           e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
@@ -1378,7 +1399,9 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          gFld_n[4] = calc_metric(dxdz, 2, 3); 
          gFld_n[5] = calc_metric(dxdz, 3, 3); 
 
-         double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+         double Jsq = gFld_n[0]*( gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] )
+                     -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
+                     +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
          double J = sqrt(Jsq);
          double e_1[3], e_2[3], e_3[3];
          e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
@@ -1440,7 +1463,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          normFld_n[7] = dualFld_n[7]/norm3;
          normFld_n[8] = dualFld_n[8]/norm3;
 
-         double *bmag_n= gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
          // Set e^m \dot curl(bhat) 
          double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_int.curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
          // I first need the derivatives of B_X,Y,Z wrt XYZ
@@ -1603,7 +1626,9 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
         gFld_n[4] = calc_metric(dxdz, 2, 3); 
         gFld_n[5] = calc_metric(dxdz, 3, 3); 
 
-        double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+        double Jsq = gFld_n[0]*( gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] )
+                    -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
+                    +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
         double J = sqrt(Jsq);
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         jFld_n[0] = J;
