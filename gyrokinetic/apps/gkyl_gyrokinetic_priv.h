@@ -983,12 +983,12 @@ struct gk_species {
   // Pointers to updaters that apply (non-sheath) BC.
   struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
   struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
-  // To simplify BC application, store local skin and ghost ranges
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  // Local skin/ghost ranges.
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
@@ -997,10 +997,10 @@ struct gk_species {
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
-  struct gkyl_range lower_skin_par_core, lower_ghost_par_core;
-  struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
-  struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
-  struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
+  struct gkyl_range local_lower_skin_par_core, local_lower_ghost_par_core;
+  struct gkyl_range local_upper_skin_par_core, local_upper_ghost_par_core;
+  struct gkyl_range local_lower_skin_par_sol , local_lower_ghost_par_sol;
+  struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
@@ -1102,12 +1102,12 @@ struct gk_neut_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
-  // To simplify BC application, store local skin and ghost ranges
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  // Local skin/ghost ranges.
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
@@ -1214,17 +1214,6 @@ struct gk_field {
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
-
-  // Global skin/ghost ranges;
-  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
-  // Core and SOL ranges for IWL sims.
-  struct gkyl_range global_lower_skin_par_core, global_lower_ghost_par_core;
-  struct gkyl_range global_upper_skin_par_core, global_upper_ghost_par_core;
-  struct gkyl_range global_lower_skin_par_sol , global_lower_ghost_par_sol;
-  struct gkyl_range global_upper_skin_par_sol , global_upper_ghost_par_sol;
 
   // Arrays for local charge density, global charge density, and global smoothed (in z) charge density.
   struct gkyl_array *rho_c;
@@ -1340,27 +1329,31 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range local, local_ext; // Local, local-ext conf-space ranges.
   struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
   // To simplify BC application, store local skin and ghost ranges.
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
   // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  // Core and SOL ranges for IWL sims.
+  // Range extended in parallel direction (for TS BCs).
+  struct gkyl_range global_par_ext, local_par_ext;
+  // Core and SOL ranges for sims with a LCFS.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+  struct gkyl_range global_par_ext_core; // Core range extended in parallel direction.
+  struct gkyl_range global_lower_skin_par_core, global_lower_ghost_par_core;
+  struct gkyl_range global_upper_skin_par_core, global_upper_ghost_par_core;
+  struct gkyl_range global_lower_skin_par_sol , global_lower_ghost_par_sol;
+  struct gkyl_range global_upper_skin_par_sol , global_upper_ghost_par_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
-  struct gkyl_range lower_skin_par_core, lower_ghost_par_core;
-  struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
-  struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
-  struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
-  struct gkyl_range global_par_ext; // Global range extended in parallel direction.
-  struct gkyl_range local_par_ext; // Local range extended in parallel direction.
-  struct gkyl_range global_par_ext_core; // Core global range extended in parallel direction.
-  struct gkyl_range local_par_ext_core; // Core local range extended in parallel direction.
+  struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  struct gkyl_range local_lower_skin_par_core, local_lower_ghost_par_core;
+  struct gkyl_range local_upper_skin_par_core, local_upper_ghost_par_core;
+  struct gkyl_range local_lower_skin_par_sol , local_lower_ghost_par_sol;
+  struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
 
   struct gkyl_basis basis; // conf-space basis
   
