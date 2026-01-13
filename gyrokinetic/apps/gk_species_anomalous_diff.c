@@ -128,8 +128,8 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
           (b == 1 && ((gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) || (gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_ABSORB))) ) {
         int dir = 0;
         enum gkyl_edge_loc edge = b==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-        struct gkyl_range *skin_r = b==0? &app->lower_skin[dir] : &app->upper_skin[dir];
-        struct gkyl_range *ghost_r = b==0? &app->lower_ghost[dir] : &app->upper_ghost[dir];
+        struct gkyl_range *skin_r = b==0? &app->local_lower_skin[dir] : &app->local_upper_skin[dir];
+        struct gkyl_range *ghost_r = b==0? &app->local_lower_ghost[dir] : &app->local_upper_ghost[dir];
 
         long vol = skin_r->volume;
         long buff_sz = 1;
