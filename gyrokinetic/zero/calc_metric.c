@@ -249,7 +249,7 @@ void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrang
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
-        // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+        // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
         }
@@ -374,11 +374,6 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         dxdz[0][2] = ddtheta_n[0];
         dxdz[1][2] = ddtheta_n[1];
 
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0;
-        dxdz[1][1] = 0.0;
-        dxdz[2][1] = -1.0;
-
         // Get position map deriv for psi
         double *ddpsi_n = gkyl_array_fetch(gk_geom->geo_int.ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
 
@@ -395,7 +390,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
-        // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+        // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
         }
@@ -566,11 +561,6 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
         dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
 
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0;
-        dxdz[1][1] = 0.0;
-        dxdz[2][1] = -1.0;
-
         // Get position map deriv for psi
         double *ddpsi_n = gkyl_array_fetch(gk_geom->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
 
@@ -725,11 +715,6 @@ gkyl_calc_metric_advance_rz_neut_interior( gkyl_calc_metric *up, struct gk_geome
         dxdz[2][2] = 0.0;
         double dphidtheta = dxdz[2][2];
 
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0;
-        dxdz[1][1] = 0.0;
-        dxdz[2][1] = -1.0;
-
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double R = mc2p_n[R_IDX];
@@ -842,11 +827,6 @@ void gkyl_calc_metric_advance_mirror(
         dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
         dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
         dxdz[2][2] = ddtheta_n[2]; // dphi/dtheta
-
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0; // dR/dalpha
-        dxdz[1][1] = 0.0; // dZ/dalpha
-        dxdz[2][1] = -1.0; // dphi/dalpha
 
         double R = mc2p_n[R_IDX];
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
@@ -986,11 +966,6 @@ void gkyl_calc_metric_advance_mirror_interior(
         dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
         dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
         dxdz[2][2] = ddtheta_n[2]; // dphi/dtheta
-
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0; // dR/dalpha
-        dxdz[1][1] = 0.0; // dZ/dalpha
-        dxdz[2][1] = -1.0; // dphi/dalpha
 
         double R = mc2p_n[R_IDX];
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
@@ -1136,11 +1111,6 @@ void gkyl_calc_metric_advance_mirror_surface(
         dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
         dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
         dxdz[2][2] = ddtheta_n[2]; // dphi/dtheta
-
-        // use exact expressions for d/dalpha
-        dxdz[0][1] = 0.0; // dR/dalpha
-        dxdz[1][1] = 0.0; // dZ/dalpha
-        dxdz[2][1] = -1.0; // dphi/dalpha
 
         double R = mc2p_n[R_IDX];
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
@@ -1352,14 +1322,14 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
         double dxdz[3][3]; // tan vecs at node
         double dzdx[3][3]; // duals at node
 
-        dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
-        dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
-        dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
+        dxdz[0][0] = -(mc2p_n[3 +X_IDX] - mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
+        dxdz[1][0] = -(mc2p_n[3 +Y_IDX] - mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
+        dxdz[2][0] = -(mc2p_n[3 +Z_IDX] - mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
 
 
-        dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
-        dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
-        dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
+        dxdz[0][1] = -(mc2p_n[15 +X_IDX] - mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
+        dxdz[1][1] = -(mc2p_n[15 +Y_IDX] - mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+        dxdz[2][1] = -(mc2p_n[15 +Z_IDX] - mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
 
         dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/gk_geom->dzc[2];
         dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/gk_geom->dzc[2];
@@ -1369,13 +1339,13 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
         const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double dbhatdz[3][3]; // tan vecs at node
 
-        dbhatdz[0][0] = -(bhat_n[3 +X_IDX] -   bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
-        dbhatdz[1][0] = -(bhat_n[3 +Y_IDX] -   bhat_n[6+Y_IDX])/2/gk_geom->dzc[0];
-        dbhatdz[2][0] = -(bhat_n[3 +Z_IDX] -   bhat_n[6+Z_IDX])/2/gk_geom->dzc[0];
+        dbhatdz[0][0] = -(bhat_n[3 +X_IDX] - bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
+        dbhatdz[1][0] = -(bhat_n[3 +Y_IDX] - bhat_n[6+Y_IDX])/2/gk_geom->dzc[0];
+        dbhatdz[2][0] = -(bhat_n[3 +Z_IDX] - bhat_n[6+Z_IDX])/2/gk_geom->dzc[0];
 
-        dbhatdz[0][1] = -(bhat_n[15 +X_IDX] -  bhat_n[18 +X_IDX])/2/gk_geom->dzc[1];
-        dbhatdz[1][1] = -(bhat_n[15 +Y_IDX] -  bhat_n[18 +Y_IDX])/2/gk_geom->dzc[1];
-        dbhatdz[2][1] = -(bhat_n[15 +Z_IDX] -  bhat_n[18 +Z_IDX])/2/gk_geom->dzc[1];
+        dbhatdz[0][1] = -(bhat_n[15 +X_IDX] - bhat_n[18 +X_IDX])/2/gk_geom->dzc[1];
+        dbhatdz[1][1] = -(bhat_n[15 +Y_IDX] - bhat_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+        dbhatdz[2][1] = -(bhat_n[15 +Z_IDX] - bhat_n[18 +Z_IDX])/2/gk_geom->dzc[1];
 
         dbhatdz[0][2] = -(bhat_n[27 +X_IDX] - bhat_n[30 +X_IDX])/2/gk_geom->dzc[2];
         dbhatdz[1][2] = -(bhat_n[27 +Y_IDX] - bhat_n[30 +Y_IDX])/2/gk_geom->dzc[2];
@@ -1470,9 +1440,9 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
         curlbhat_n[1] = (dbhatdX[0][2] - dbhatdX[2][0]);
         curlbhat_n[2] = (dbhatdX[1][0] - dbhatdX[0][1]);
         double *dualcurlbhat_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        dualcurlbhat_n[0] = dualFld_n[0]*curlbhat_n[0] +  dualFld_n[1]*curlbhat_n[1] + dualFld_n[2]*curlbhat_n[2];
-        dualcurlbhat_n[1] = dualFld_n[3]*curlbhat_n[0] +  dualFld_n[4]*curlbhat_n[1] + dualFld_n[5]*curlbhat_n[2];
-        dualcurlbhat_n[2] = dualFld_n[6]*curlbhat_n[0] +  dualFld_n[7]*curlbhat_n[1] + dualFld_n[8]*curlbhat_n[2];
+        dualcurlbhat_n[0] = dualFld_n[0]*curlbhat_n[0] + dualFld_n[1]*curlbhat_n[1] + dualFld_n[2]*curlbhat_n[2];
+        dualcurlbhat_n[1] = dualFld_n[3]*curlbhat_n[0] + dualFld_n[4]*curlbhat_n[1] + dualFld_n[5]*curlbhat_n[2];
+        dualcurlbhat_n[2] = dualFld_n[6]*curlbhat_n[0] + dualFld_n[7]*curlbhat_n[1] + dualFld_n[8]*curlbhat_n[2];
 
         // Set e^3 \dot B 
         double *B3_n = gkyl_array_fetch(gk_geom->geo_int.B3_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
