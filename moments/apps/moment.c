@@ -433,6 +433,14 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
     }
   }
 
+  if (app->species[sidx].equation->embed_geo) {
+    if (frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s-embed_mask_%d.gkyl", app->name, app->species[sidx].name, frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].embed_mask, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
   moment_array_meta_release(mt);
 }
 
