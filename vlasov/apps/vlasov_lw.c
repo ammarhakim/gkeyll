@@ -56,6 +56,7 @@ static const struct gkyl_str_int_pair model_type[] = {
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
   { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
   { "Triad", GKYL_MODEL_TRIAD},
+  { "TriadGR", GKYL_MODEL_TRIAD_GR},
   { 0, 0 }
 };
 

@@ -120,6 +120,10 @@ struct vm_species_moment {
     };
   };
 
+  // Moment specific pointers for the moment hamiltonian and it's range
+  struct gkyl_array *mom_hamil;
+  struct gkyl_range *mom_hamil_range;
+
   bool is_vlasov_lte_moms;
   bool is_integrated; // =True means volume integrated moment.
 };
@@ -450,8 +454,12 @@ struct vm_species {
   int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
 
   // Organization of the different equation objects and the required data and solvers.
+  struct gkyl_range mom_hamil_range; // Range Hamiltonian (for moments) is defined over (only velocity-space or all phase-space).
+  struct gkyl_array *mom_hamil; // Specified Hamiltonian (for moments) function for canonical poisson bracket.
+  struct gkyl_array *mom_hamil_host; // Host-side Hamiltonian (for moments) array for intial projection. 
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
   struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
+  struct gkyl_array *hamil_host; // Host-side Hamiltonian array for intial projection. 
   struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
   struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
@@ -464,7 +472,6 @@ struct vm_species {
     };
     // Canonical Poisson Bracket using specified Hamiltonian in phase space. 
     struct {
-      struct gkyl_array *hamil_host; // Host-side Hamiltonian array for intial projection. 
       struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket

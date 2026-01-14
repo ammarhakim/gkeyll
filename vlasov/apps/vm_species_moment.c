@@ -9,6 +9,9 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *vms,
   sm->is_integrated = is_integrated;
   sm->is_vlasov_lte_moms = mom_type == GKYL_F_MOMENT_LTE;
 
+  sm->mom_hamil = gkyl_array_acquire(vms->mom_hamil);
+  sm->mom_hamil_range = &vms->mom_hamil_range;
+
   int num_mom;
   if (sm->is_vlasov_lte_moms) {
     struct gkyl_vlasov_lte_moments_inp inp_mom = {
@@ -24,8 +27,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *vms,
       .use_vmap = vms->use_vmap, 
       .vmap = vms->vmap, 
       .jacob_vel = vms->jacob_vel, 
-      .hamil_range = &vms->hamil_range,
-      .hamil = vms->hamil,
+      .hamil_range = sm->mom_hamil_range,
+      .hamil = sm->mom_hamil,
       .model_id = vms->model_id,
       .gamma_inv = vms->gamma_inv,
       .h_ij = vms->h_ij,
@@ -94,6 +97,8 @@ vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_spe
 {
   gkyl_array_release(sm->marr_host);
   gkyl_array_release(sm->marr);
+
+  gkyl_array_release(sm->mom_hamil);
 
   if(sm->is_vlasov_lte_moms) {
     gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);

@@ -74,8 +74,13 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = ser_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels; 
       }
-      else if (model_id == GKYL_MODEL_TRIAD) {
-        vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+      else if (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
+        if (model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = ser_nc_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else if (model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = ser_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+        }
 
         if ( use_lo ) {
           stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
