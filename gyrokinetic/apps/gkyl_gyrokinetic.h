@@ -368,6 +368,24 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
+// Multiplier applied to f at the beginning and end of gyrokinetic_rhs.
+enum gkyl_gyrokinetic_f_multiplier_type {
+  GKYL_GK_F_MULTIPLIER_NONE = 0,
+  GKYL_GK_F_MULTIPLIER_USER_INPUT,
+  GKYL_GK_F_MULTIPLIER_TIME_DILATION,
+};
+
+struct gkyl_gyrokinetic_f_multiplier {
+  enum gkyl_gyrokinetic_f_multiplier_type type;
+  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply/divide f by.
+  void *profile_ctx; // Context for profile function.
+  bool write_diagnostics; // Whether to output diagnostics.
+  // Time dilation mask parameters (for GKYL_GK_F_MULTIPLIER_TIME_DILATION).
+  double time_dilation_f_threshold; // Threshold for mask-based time dilation.
+  double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
+  bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -392,6 +410,9 @@ struct gkyl_gyrokinetic_species {
 
   // Phase-space field multiplying df/dt.
   struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
+
+  // Phase-space field multiplying/dividing f in RHS.
+  struct gkyl_gyrokinetic_f_multiplier f_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -594,7 +615,8 @@ struct gkyl_gyrokinetic_stat {
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
   double species_damp_tm; // Time to accumulate species damping onto RHS.
-  double species_fdot_mult_tm; // Time to spent on the df/dt multiplier.
+  double species_fdot_mult_tm; // Time spent on the df/dt multiplier.
+  double species_f_mult_tm; // Time spent on the f multiplier.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator

@@ -857,6 +857,28 @@ struct gk_fdot_multiplier {
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
 };
 
+struct gk_f_multiplier {
+  enum gkyl_gyrokinetic_f_multiplier_type type; // Type of multiplicative function term.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  bool evolve; // Whether the multiplicative function is time dependent.
+  struct gkyl_array *multiplier; // Multiplier field.
+  struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+
+  // Time dilation mask parameters.
+  double time_dilation_f_threshold; // Threshold for mask-based time dilation.
+  double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
+  bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.
+  struct gkyl_dg_array_mask *f_mask; // Mask object for time dilation masking.
+
+  // Functions chosen at runtime.
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*advance_div_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_f_multiplier *fmul, struct gkyl_array *f);
+  void (*advance_mul_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_f_multiplier *fmul, struct gkyl_array *f);
+};
+
 struct gk_heating {
   enum gkyl_heating_id heating_id; // Type of heating source.
   bool write_diagnostics; // Whether to write diagnostics out.
@@ -1030,6 +1052,8 @@ struct gk_species {
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
   struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
+
+  struct gk_f_multiplier f_mult; // Function multiplying/dividing f in RHS.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -2912,6 +2936,58 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
 
+/** gk_species_f_multiplier API */
+
+/**
+ * Initialize species f multiplier object. This object multiplies/divides f
+ * at the beginning/end of the RHS evaluation.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fmul Species f multiplier object.
+ */
+void gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_f_multiplier *fmul);
+
+/**
+ * Divide f by the multiplier (called at beginning of RHS).
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fmul Species f multiplier object.
+ * @param f Distribution function to divide.
+ */
+void gk_species_f_multiplier_advance_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_f_multiplier *fmul, struct gkyl_array *f);
+
+/**
+ * Multiply f by the multiplier (called at end of RHS).
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fmul Species f multiplier object.
+ * @param f Distribution function to multiply.
+ */
+void gk_species_f_multiplier_advance_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_f_multiplier *fmul, struct gkyl_array *f);
+
+/**
+ * Write f multiplier diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param tm Time for diagnostic.
+ * @param frame Output frame.
+ */
+void gk_species_f_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Release species f multiplier object.
+ *
+ * @param app gyrokinetic app object.
+ * @param fmul Species f multiplier object.
+ */
+void gk_species_f_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_f_multiplier *fmul);
+
 /** gk_anomalous_diff API */
 
 /**
@@ -3058,7 +3134,7 @@ double gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *spe
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
 
 /**
- * Scale and accumulate for forward euler method.
+ * Scale and accumulate for forward euler method. out = dt*out + inp
  *
  * @param species Pointer to species.
  * @param out Output array.
@@ -4001,10 +4077,10 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
  * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
+ * @param fout Output array of charged-species change in distribution functions.
  * @param bflux_out Output array of charged-species boundary fluxes.
  * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
+ * @param fout_neut Output array of neutral-species change in distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
  * @param st Time stepping status object.
  */
@@ -4020,10 +4096,10 @@ void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
  * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
+ * @param fout Output array of change in charged-species distribution functions.
  * @param bflux_out Output array of charged-species boundary fluxes.
  * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
+ * @param fout_neut Output array of change in neutral-species distribution functions.
  * @param bflux_out_neut Output array of neutral-species boundary fluxes.
  * @param st Time stepping status object.
  */
