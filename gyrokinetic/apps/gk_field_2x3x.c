@@ -80,10 +80,10 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     
   int par_dir = app->cdim-1; // Parallel direction index.
   if (app->cdim == 2) {
-    f->fem_projection_par_post_func = gk_field_fem_projection_par_iwl_2x;
+    f->fem_projection_par_phi_func = gk_field_fem_projection_par_iwl_2x;
   }
   else if (app->cdim == 3) {
-    f->fem_projection_par_post_func = gk_field_fem_projection_par_iwl_3x;
+    f->fem_projection_par_phi_func = gk_field_fem_projection_par_iwl_3x;
 
     // Take the TS function from the parallel BC of the first species.
     struct gk_species *gks = &app->species[0];
@@ -135,14 +135,14 @@ static void
 gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Smooth the charge density along z.
-  field->fem_projection_par_pre_func(app, field, field->rho_c, field->rho_c);
+  field->fem_projection_par_rho_func(app, field, field->rho_c, field->rho_c);
 
   // Solve the Poisson equation.
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
   // Smooth the potential along z.
-  field->fem_projection_par_post_func(app, field, field->phi_smooth, field->phi_smooth);
+  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
@@ -323,8 +323,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
     fem_parproj_bc, 0, 0, app->use_gpu);
 
-  f->fem_projection_par_pre_func = gk_field_fem_projection_par;
-  f->fem_projection_par_post_func = gk_field_fem_projection_par;
+  f->fem_projection_par_rho_func = gk_field_fem_projection_par;
+  f->fem_projection_par_phi_func = gk_field_fem_projection_par;
 
   // Updater for field energy calculation.
   gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);

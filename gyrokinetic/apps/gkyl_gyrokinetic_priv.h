@@ -1290,9 +1290,9 @@ struct gk_field {
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
   // Pointer to functions that make phi continuous along z.
-  void (*fem_projection_par_pre_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  void (*fem_projection_par_rho_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
-  void (*fem_projection_par_post_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  void (*fem_projection_par_phi_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
   // Pointer to function to calculate the potential.
   void (*rhs_phi_func)(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
