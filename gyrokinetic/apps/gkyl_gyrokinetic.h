@@ -79,11 +79,6 @@ struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms (should be > 0).
-  bool cfl_dt_min_omegaH; // Whether to apply omega_H based CFL dt flooring.
-  double cfl_dt_min_value; // Minimum CFL dt value when using omega_H based CFL dt flooring. Set to 0.0 to disable
-  double time_dilation_f_threshold; // Minimum distribution function value for time dilation masking.
-  double time_dilation_f_frac; // Fraction of maximum distribution function to use for time dilation masking.
-  bool time_dilation_spatial_frac; // Whether to apply the fractional threshold to f_max(x), which depends on space.
 };
 
 // Parameters for species collisions
@@ -369,14 +364,14 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 };
 
 // Multiplier applied to f at the beginning and end of gyrokinetic_rhs.
-enum gkyl_gyrokinetic_f_multiplier_type {
+enum gkyl_gyrokinetic_time_dilation_type {
   GKYL_GK_F_MULTIPLIER_NONE = 0,
   GKYL_GK_F_MULTIPLIER_USER_INPUT,
   GKYL_GK_F_MULTIPLIER_TIME_DILATION,
 };
 
-struct gkyl_gyrokinetic_f_multiplier {
-  enum gkyl_gyrokinetic_f_multiplier_type type;
+struct gkyl_gyrokinetic_time_dilation {
+  enum gkyl_gyrokinetic_time_dilation_type type;
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply/divide f by.
   void *profile_ctx; // Context for profile function.
   bool write_diagnostics; // Whether to output diagnostics.
@@ -412,7 +407,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   // Phase-space field multiplying/dividing f in RHS.
-  struct gkyl_gyrokinetic_f_multiplier f_multiplier;
+  struct gkyl_gyrokinetic_time_dilation time_dilation;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 

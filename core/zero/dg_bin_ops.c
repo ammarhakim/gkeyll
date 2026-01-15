@@ -557,4 +557,3 @@ gkyl_dg_calc_l2_range(struct gkyl_basis basis,
 {
   gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN_L2);
 }
-

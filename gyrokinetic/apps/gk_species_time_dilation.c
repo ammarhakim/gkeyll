@@ -6,13 +6,13 @@
 
 // Disabled write function - does nothing.
 static void
-gk_species_f_multiplier_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_time_dilation_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
 }
 
 // Enabled write function - writes the multiplier array to file.
 static void
-gk_species_f_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_time_dilation_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
@@ -24,7 +24,7 @@ gk_species_f_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_speci
   );
 
   // Write out the multiplicative function.
-  const char *fmt = "%s-%s_f_multiplier_%d.gkyl";
+  const char *fmt = "%s-%s_time_dilation_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
@@ -43,40 +43,40 @@ gk_species_f_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_speci
 
 // Write only on init - writes once then disables further writes.
 static void
-gk_species_f_multiplier_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_time_dilation_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
-  gk_species_f_multiplier_write_enabled(app, gks, tm, frame);
-  gks->f_mult.write_func = gk_species_f_multiplier_write_disabled;
+  gk_species_time_dilation_write_enabled(app, gks, tm, frame);
+  gks->f_mult.write_func = gk_species_time_dilation_write_disabled;
 }
 
 // Multiply f by the multiplier (f = f * multiplier).
 static void
-gk_species_f_multiplier_advance_mul_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_mul_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   gkyl_array_scale_by_cell(f, fmul->multiplier);
 }
 
 // Divide f by the multiplier (f = f / multiplier).
 static void
-gk_species_f_multiplier_advance_div_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_div_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   gkyl_array_divide_by_cell(f, fmul->multiplier);
 }
 
 // Disabled advance functions - do nothing.
 static void
-gk_species_f_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
 }
 
 // Multiply f by the time dilation mask (f = f * mask).
 // The mask is computed based on f using gkyl_dg_array_mask.
 static void
-gk_species_f_multiplier_advance_mul_time_dilation(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_mul_mask(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   // Compute the mask based on current f.
   gkyl_dg_array_mask_advance(fmul->f_mask, f);
@@ -89,8 +89,8 @@ gk_species_f_multiplier_advance_mul_time_dilation(gkyl_gyrokinetic_app *app, con
 // Divide f by the time dilation mask (f = f / mask).
 // The mask is computed based on f using gkyl_dg_array_mask.
 static void
-gk_species_f_multiplier_advance_div_time_dilation(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_div_mask(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   // Compute the mask based on current f.
   gkyl_dg_array_mask_advance(fmul->f_mask, f);
@@ -117,16 +117,16 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 void
-gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_f_multiplier *fmul)
+gk_species_time_dilation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_time_dilation *fmul)
 {
-  fmul->type = gks->info.f_multiplier.type;
-  fmul->write_diagnostics = gks->info.f_multiplier.write_diagnostics;
+  fmul->type = gks->info.time_dilation.type;
+  fmul->write_diagnostics = gks->info.time_dilation.write_diagnostics;
 
   // Default function pointers - disabled.
-  fmul->write_func = gk_species_f_multiplier_write_disabled;
-  fmul->advance_mul_func = gk_species_f_multiplier_advance_disabled;
-  fmul->advance_div_func = gk_species_f_multiplier_advance_disabled;
+  fmul->write_func = gk_species_time_dilation_write_disabled;
+  fmul->advance_mul_func = gk_species_time_dilation_advance_disabled;
+  fmul->advance_div_func = gk_species_time_dilation_advance_disabled;
 
   if (fmul->type) {
 
@@ -151,8 +151,8 @@ gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species
           .basis = &basis_mult,
           .num_quad = basis_mult.poly_order+1,
           .num_ret_vals = 1,
-          .eval = gks->info.f_multiplier.profile,
-          .ctx = gks->info.f_multiplier.profile_ctx,
+          .eval = gks->info.time_dilation.profile,
+          .ctx = gks->info.time_dilation.profile_ctx,
           .c2p_func = proj_on_basis_c2p_phase_func,
           .c2p_func_ctx = &fmul->proj_on_basis_c2p_ctx,
         }
@@ -161,19 +161,19 @@ gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(fmul->multiplier, fmul->multiplier_host);
 
-      fmul->advance_mul_func = gk_species_f_multiplier_advance_mul_mult;
-      fmul->advance_div_func = gk_species_f_multiplier_advance_div_mult;
+      fmul->advance_mul_func = gk_species_time_dilation_advance_mul_mult;
+      fmul->advance_div_func = gk_species_time_dilation_advance_div_mult;
       if (fmul->write_diagnostics) {
-        fmul->write_func = gk_species_f_multiplier_write_init_only;
+        fmul->write_func = gk_species_time_dilation_write_init_only;
       } else {
         gkyl_array_release(fmul->multiplier_host);
       }
     }
     else if (fmul->type == GKYL_GK_F_MULTIPLIER_TIME_DILATION) {
       // Copy input parameters to struct.
-      fmul->time_dilation_f_threshold = gks->info.f_multiplier.time_dilation_f_threshold;
-      fmul->time_dilation_f_frac = gks->info.f_multiplier.time_dilation_f_frac;
-      fmul->time_dilation_spatial_frac = gks->info.f_multiplier.time_dilation_spatial_frac;
+      fmul->time_dilation_f_threshold = gks->info.time_dilation.time_dilation_f_threshold;
+      fmul->time_dilation_f_frac = gks->info.time_dilation.time_dilation_f_frac;
+      fmul->time_dilation_spatial_frac = gks->info.time_dilation.time_dilation_spatial_frac;
 
       // Determine mask type based on input parameters.
       enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
@@ -201,10 +201,10 @@ gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species
       // Initialize multiplier to 1.0.
       gkyl_array_clear(fmul->multiplier, 1.0);
 
-      fmul->advance_mul_func = gk_species_f_multiplier_advance_mul_time_dilation;
-      fmul->advance_div_func = gk_species_f_multiplier_advance_div_time_dilation;
+      fmul->advance_mul_func = gk_species_time_dilation_advance_mul_mask;
+      fmul->advance_div_func = gk_species_time_dilation_advance_div_mask;
       if (fmul->write_diagnostics) {
-        fmul->write_func = gk_species_f_multiplier_write_enabled;
+        fmul->write_func = gk_species_time_dilation_write_enabled;
       } else {
         gkyl_array_release(fmul->multiplier_host);
       }
@@ -213,8 +213,8 @@ gk_species_f_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species
 }
 
 void
-gk_species_f_multiplier_advance_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -224,8 +224,8 @@ gk_species_f_multiplier_advance_div(gkyl_gyrokinetic_app *app, const struct gk_s
 }
 
 void
-gk_species_f_multiplier_advance_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_f_multiplier *fmul, struct gkyl_array *f)
+gk_species_time_dilation_advance_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -235,13 +235,13 @@ gk_species_f_multiplier_advance_mul(gkyl_gyrokinetic_app *app, const struct gk_s
 }
 
 void
-gk_species_f_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_time_dilation_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   gks->f_mult.write_func(app, gks, tm, frame);
 }
 
 void
-gk_species_f_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_f_multiplier *fmul)
+gk_species_time_dilation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_time_dilation *fmul)
 {
   if (fmul->type) {
     gkyl_array_release(fmul->multiplier);

@@ -1497,13 +1497,13 @@ gkyl_gyrokinetic_app_write_species_fdot_multiplier(gkyl_gyrokinetic_app* app, in
 }
 
 //
-// ............. f multiplier outputs ............... //
+// ............. time dilation outputs ............... //
 //
 void
-gkyl_gyrokinetic_app_write_species_f_multiplier(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+gkyl_gyrokinetic_app_write_species_time_dilation(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_f_multiplier_write(app, gks, tm, frame);
+  gk_species_time_dilation_write(app, gks, tm, frame);
 }
 
 //
@@ -1676,7 +1676,7 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
 
   gkyl_gyrokinetic_app_write_species_fdot_multiplier(app, sidx, tm, frame);
 
-  gkyl_gyrokinetic_app_write_species_f_multiplier(app, sidx, tm, frame);
+  gkyl_gyrokinetic_app_write_species_time_dilation(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
 
@@ -1872,7 +1872,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Divide f by a factor. f = g/beta. Sometimes g is the input rather than f
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_f_multiplier_advance_div(app, gks, &gks->f_mult, fin[i]);
+    gk_species_time_dilation_advance_div(app, gks, &gks->f_mult, fin[i]);
   }
 
   // Compute moments needed by various modules.
@@ -1942,7 +1942,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // Multiply f (fin) by a factor. g = f*beta. Output g rather than f. We evolve dg/dt
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_f_multiplier_advance_mul(app, gks, &gks->f_mult, fin[i]);
+    gk_species_time_dilation_advance_mul(app, gks, &gks->f_mult, fin[i]);
   }
 
   struct timespec wtm = gkyl_wall_clock();

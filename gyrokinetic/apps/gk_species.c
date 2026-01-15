@@ -1525,7 +1525,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
 
   // Function multiplying/dividing f in RHS.
-  gk_species_f_multiplier_init(app, gks, &gks->f_mult);
+  gk_species_time_dilation_init(app, gks, &gks->f_mult);
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
@@ -1930,7 +1930,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_fdot_multiplier_release(app, &s->fdot_mult);
 
-  gk_species_f_multiplier_release(app, &s->f_mult);
+  gk_species_time_dilation_release(app, &s->f_mult);
 
   gk_species_lbo_release(app, &s->lbo);
 

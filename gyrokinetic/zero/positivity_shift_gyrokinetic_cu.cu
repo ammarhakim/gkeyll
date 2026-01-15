@@ -59,9 +59,8 @@ pos_shift_atomicMax_double(double *address, double val)
   while(val > __longlong_as_double(ret))
   {
     unsigned long long int old = ret;
-    if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old) {
+    if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old)
       break;
-    }
   }
   return __longlong_as_double(ret);
 }
@@ -72,9 +71,8 @@ gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_arr
   int *out_d = (int*) out->data;
   unsigned long start_id = threadIdx.x + blockIdx.x*blockDim.x;
   unsigned long nelm = out->size*out->ncomp;
-  for (unsigned long linc = start_id; linc < nelm; linc += blockDim.x*gridDim.x) {
+  for (unsigned long linc = start_id; linc < nelm; linc += blockDim.x*gridDim.x)
     out_d[linc] = val;
-  }
 }
 
 __global__ static void
@@ -116,69 +114,65 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
 
     // Contribution to the old number density from this v-space cell.
     double m0phase_in_c[num_cbasis];
-    for (unsigned int k=0; k<delta_m0->ncomp; ++k) {
+    for (unsigned int k=0; k<delta_m0->ncomp; ++k)
       m0phase_in_c[k] = 0.0;
-    }
     kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_in_c);
 
     // Add to the old number density.
-    for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
+    for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
       atomicAdd(&delta_m0_c[k], m0phase_in_c[k]);
-    }
-    
+
+      
     // Shift f if needed.
     bool shifted_node = false;
     if (gkyl_dg_array_mask_eval_ker(update_cell, plinidx)) {
       // Divide by jacobtot and jacobvel so that we are shifting just f.
       kers->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
-      for (int k=0; k<distf->ncomp; k++) {
+      for (int k=0; k<distf->ncomp; k++)
         distf_c[k] /= jacobvel_c[0];
-      }
-      // Apply shift to the distribution function.
+      // Shift f to enforce positivity if needed.
       shifted_node = kers->shift(ffloor[0], distf_c);
       // Multiply by jacobtot and jacobvel to compute M0.
       kers->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
-      for (int k=0; k<distf->ncomp; k++) {
+      for (int k=0; k<distf->ncomp; k++)
         distf_c[k] *= jacobvel_c[0];
-      }
     }
 
 
     if (shifted_node) {
       // Compute the new number density local to this phase-space cell.
       double m0phase_out_c[num_cbasis];
-      for (unsigned int k=0; k<m0->ncomp; ++k) {
+      for (unsigned int k=0; k<m0->ncomp; ++k)
         m0phase_out_c[k] = 0.0;
-      }
       kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_out_c);
 
       if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
         // Rescale f in this cell so it keeps the same cell-averaged density.
         double m0ratio = m0phase_in_c[0]/m0phase_out_c[0];
 
-        for (unsigned int k=0; k<distf->ncomp; ++k) {
-          distf_c[k] *= m0ratio;
-        }
+        for (unsigned int k=0; k<distf->ncomp; ++k)
+	  distf_c[k] *= m0ratio;
+
         // Add contribution from this phase-space cell to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k) {
+        for (unsigned int k = 0; k < m0->ncomp; ++k)
           atomicAdd(&m0_c[k], m0ratio*m0phase_out_c[k]);
-        }
       }
       else {
         // Add contribution from this phase-space cell to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k) {
+        for (unsigned int k = 0; k < m0->ncomp; ++k)
           atomicAdd(&m0_c[k], m0phase_out_c[k]);
-        }
+
         atomicOr(shiftedf_c, shifted_node);
       }
     }
     else {
       // Add contribution from this phase-space cell to the new number density.
-      for (unsigned int k = 0; k < m0->ncomp; ++k) {
+      for (unsigned int k = 0; k < m0->ncomp; ++k)
         atomicAdd(&m0_c[k], m0phase_in_c[k]);
-      }
     }
+
     distf_max = fmax(distf_max, distf_c[0]);
+
   }
 
   pos_shift_atomicMax_double(ffloor, ffloor_fac * distf_max * cellav_fac);
