@@ -28,8 +28,9 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_sp
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
 
   // Copy data from device to host before writing it out.
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_array_copy(gks->fdot_mult.multiplier_host, gks->fdot_mult.multiplier);
+  }
 
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->fdot_mult.multiplier_host, fileNm);
   app->stat.n_io += 1;
@@ -110,10 +111,11 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
     // Create a basis for the multiplier.
     struct gkyl_basis basis_mult;
-    if (cellwise_const)
+    if (cellwise_const) {
       gkyl_cart_modal_serendip(&basis_mult, gks->basis.ndim, 0);
-    else
+    } else {
       basis_mult = gks->basis;
+    }
 
     // Allocate multiplier array.
     fdmul->multiplier = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
@@ -145,11 +147,11 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
-      if (fdmul->write_diagnostics)
+      if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_init_only;
-      else
+      } else {
         gkyl_array_release(fdmul->multiplier_host);
-
+      }
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
       // Available options:
@@ -169,26 +171,28 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
       double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
       if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
-        for (int d=0; d<app->cdim; d++)
+        for (int d=0; d<app->cdim; d++) {
           bmag_max_coord_local[d] = bmag_max_coord_ho[d];
+        }
       }
       else {
-        for (int d=0; d<app->cdim; d++)
+        for (int d=0; d<app->cdim; d++) {
           bmag_max_coord_local[d] = -DBL_MAX;
+        }
       }
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
 
       if (app->use_gpu) {
         fdmul->bmag_max = gkyl_cu_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-	gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-	gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         fdmul->bmag_max = gkyl_malloc(sizeof(double));
         fdmul->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-	memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
-	memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+        memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
+        memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.
@@ -226,10 +230,11 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
-      if (fdmul->write_diagnostics)
+      if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
-      else
+      } else {
         gkyl_array_release(fdmul->multiplier_host);
+      }
     }
   }
 }
@@ -268,8 +273,9 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
 {
   if (fdmul->type) {
     gkyl_array_release(fdmul->multiplier);
-    if (fdmul->write_diagnostics)
+    if (fdmul->write_diagnostics) {
       gkyl_array_release(fdmul->multiplier_host);
+    }
 
     if (fdmul->type == GKYL_GK_DAMPING_USER_INPUT) {
       // Nothing to release.
