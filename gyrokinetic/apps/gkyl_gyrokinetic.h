@@ -367,7 +367,7 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 enum gkyl_gyrokinetic_time_dilation_type {
   GKYL_GK_F_MULTIPLIER_NONE = 0,
   GKYL_GK_F_MULTIPLIER_USER_INPUT,
-  GKYL_GK_F_MULTIPLIER_TIME_DILATION,
+  GKYL_GK_CFL_DRIVEN_TIME_DILATION,
 };
 
 struct gkyl_gyrokinetic_time_dilation {
@@ -375,7 +375,10 @@ struct gkyl_gyrokinetic_time_dilation {
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply/divide f by.
   void *profile_ctx; // Context for profile function.
   bool write_diagnostics; // Whether to output diagnostics.
-  // Time dilation mask parameters (for GKYL_GK_F_MULTIPLIER_TIME_DILATION).
+  // Time dilation CFL dt floor parameters (for GKYL_GK_CFL_DRIVEN_TIME_DILATION).
+  bool cfl_dt_min_omegaH; // Use omega_H based CFL dt flooring.
+  double cfl_dt_min_value; // User-specified minimum dt value.
+  // Time dilation mask parameters (for GKYL_GK_CFL_DRIVEN_TIME_DILATION).
   double time_dilation_f_threshold; // Threshold for mask-based time dilation.
   double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
   bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.

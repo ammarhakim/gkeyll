@@ -852,18 +852,31 @@ struct gk_time_dilation {
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
 
+  // Time dilation CFL dt floor parameters.
+  bool cfl_dt_min_omegaH; // Use omega_H based CFL dt flooring.
+  double cfl_dt_min_value; // User-specified minimum dt value.
+
   // Time dilation mask parameters.
   double time_dilation_f_threshold; // Threshold for mask-based time dilation.
   double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
   bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.
-  struct gkyl_dg_array_mask *f_mask; // Mask object for time dilation masking.
+  struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
+
+  // Boolean flags for runtime decisions.
+  bool enable_cfl_dt_floor; // Whether CFL dt floor is enabled.
+  bool enable_mask_based_omega; // Whether mask-based omega is enabled.
+
+  // Scratch arrays for time dilation computation.
+  double *omega_max_local_cu; // GPU scratch space for reduce operation.
 
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
-  void (*advance_div_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_time_dilation *fmul, struct gkyl_array *f);
-  void (*advance_mul_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_time_dilation *fmul, struct gkyl_array *f);
+  void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_time_dilation *time_dilation, const struct gkyl_array *f, const struct gkyl_array *cflrate);
+  void (*mul_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+      struct gk_time_dilation *time_dilation, struct gkyl_array *f);
+  void (*div_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_time_dilation *time_dilation, struct gkyl_array *f);
 };
 
 struct gk_heating {
@@ -1040,7 +1053,7 @@ struct gk_species {
 
   struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
 
-  struct gk_time_dilation f_mult; // Function multiplying/dividing f in RHS.
+  struct gk_time_dilation time_dilation; // Function multiplying/dividing f in RHS.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -2936,6 +2949,18 @@ void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, stru
 void gk_species_time_dilation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_time_dilation *fmul);
 
 /**
+ * Compute the time dilation multiplier and apply it to cflrate.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fmul Species time dilation object.
+ * @param f Distribution function to use in computing the multiplier.
+ * @param cflrate CFL rate array to multiply.
+ */
+void gk_species_time_dilation_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_time_dilation *fmul, const struct gkyl_array *f, const struct gkyl_array *cflrate);
+
+/**
  * Divide f by the multiplier (called at beginning of RHS).
  *
  * @param app gyrokinetic app object.
@@ -2943,7 +2968,7 @@ void gk_species_time_dilation_init(struct gkyl_gyrokinetic_app *app, struct gk_s
  * @param fmul Species f multiplier object.
  * @param f Distribution function to divide.
  */
-void gk_species_time_dilation_advance_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+void gk_species_time_dilation_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_time_dilation *fmul, struct gkyl_array *f);
 
 /**
@@ -2954,7 +2979,7 @@ void gk_species_time_dilation_advance_div(gkyl_gyrokinetic_app *app, const struc
  * @param fmul Species f multiplier object.
  * @param f Distribution function to multiply.
  */
-void gk_species_time_dilation_advance_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+void gk_species_time_dilation_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_time_dilation *fmul, struct gkyl_array *f);
 
 /**

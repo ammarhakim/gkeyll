@@ -1868,11 +1868,11 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 {
   double dtmin = DBL_MAX;
 
-
-  // Divide f by a factor. f = g/beta. Sometimes g is the input rather than f
+  // Divide g by a factor. f = g/beta. With time dilation, g is the input.
+  // Discards the const modifyier. I'm not sure how to overcome this
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_time_dilation_advance_div(app, gks, &gks->f_mult, fin[i]);
+    gk_species_time_dilation_div(app, gks, &gks->time_dilation, fin[i]);
   }
 
   // Compute moments needed by various modules.
@@ -1939,10 +1939,12 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fout[i]);
   }
 
-    // Multiply f (fin) by a factor. g = f*beta. Output g rather than f. We evolve dg/dt
+  // Multiply f and dfdt by a factor. g = f*beta. Output g and dg/dt.
+  // Discards the const modifyier. I'm not sure how to overcome this
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_time_dilation_advance_mul(app, gks, &gks->f_mult, fin[i]);
+    gk_species_time_dilation_mul(app, gks, &gks->time_dilation, fin[i]);
+    gk_species_time_dilation_mul(app, gks, &gks->time_dilation, fout[i]);
   }
 
   struct timespec wtm = gkyl_wall_clock();
