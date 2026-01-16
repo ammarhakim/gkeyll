@@ -80,6 +80,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     
   int par_dir = app->cdim-1; // Parallel direction index.
   if (app->cdim == 2) {
+    f->fem_projection_par_rho_func = gk_field_fem_projection_par_iwl_2x;
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_iwl_2x;
   }
   else if (app->cdim == 3) {
