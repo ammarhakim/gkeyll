@@ -363,7 +363,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm app_inp = {
-    .name = "vp_emission_spectrum_1x1v_p2",
+    .name = "vp_SEE_1x1v_p2",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -ctx.Lx },

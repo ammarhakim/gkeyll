@@ -287,7 +287,7 @@ int main(int argc, char **argv)
   char in_species[1][128] = {"elc"};
   // struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
   struct gkyl_emission_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_emission_spectrum_chung_everhart_2V_new(ctx.q0, ctx.phi, app_args.use_gpu);
+  spectrum_model[0] = gkyl_emission_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu);
   struct gkyl_emission_yield_model *yield_model[1];
   yield_model[0] = gkyl_emission_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu);
   struct gkyl_emission_elastic_model *elastic_model = gkyl_emission_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, ctx.e1, ctx.e2, app_args.use_gpu);
@@ -388,7 +388,7 @@ int main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm app_inp = {
-      .name = "vp_emission_spectrum_1x2v_p2",
+      .name = "vp_SEE_1x2v_p2",
 
       .cdim = ctx.cdim,
       .vdim = ctx.vdim,
