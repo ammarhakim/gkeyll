@@ -21,20 +21,14 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 {
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
-  up->grid = inp->grid;
-  up->cbasis = inp->cbasis;
-  up->pbasis = inp->pbasis;
   up->conf_rng = inp->conf_rng;
-  up->conf_rng_ext = inp->conf_rng_ext;
-  up->phase_rng = inp->phase_rng;
   up->type_self = inp->type_self;
 
   int charge_state = inp->charge_state;
   enum gkyl_ion_type type_ion = inp->type_ion;
   
-  int cdim = up->cbasis->ndim;
-  int pdim = up->pbasis->ndim;
-  int poly_order = up->cbasis->poly_order;
+  int cdim = inp->cbasis->ndim;
+  int poly_order = inp->cbasis->poly_order;
   up->cdim = cdim;
   up->use_gpu = use_gpu;
 
@@ -71,7 +65,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   struct gkyl_range range_nodal;
   gkyl_range_init_from_shape(&range_nodal, 2, (int[]) { data.NT, data.NN } );
 
-  // allocate grid and DG array
+  // Allocate grid and DG array.
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2,
     (double[]) { logTmin, logNmin},
@@ -80,7 +74,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   );
 
   if (use_gpu) {
-    // allocate device basis if we are using GPUs
+    // Allocate device basis if we are using GPUs.
     up->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   }
   else {
@@ -98,7 +92,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
@@ -113,14 +107,12 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = modal_range;
 
-  if (use_gpu) {
-    up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
-    gkyl_array_copy(up->ioniz_data, adas_dg);
-  }
-  else {
-    up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
-    gkyl_array_copy(up->ioniz_data, adas_dg);
-  }
+  if (use_gpu)
+    up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
+  else
+    up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
+
+  gkyl_array_copy(up->ioniz_data, adas_dg);
   
   up->on_dev = up; // CPU eqn obj points to itself
 
@@ -136,7 +128,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(coef_iz)) {
+  if (gkyl_array_is_cu_dev(coef_iz)) {
     return gkyl_dg_iz_coll_cu(up, prim_vars_elc,
       vtSq_iz1, vtSq_iz2, coef_iz, cflrate);
   } 
@@ -200,7 +192,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
       if (up->type_self == GKYL_SELF_ELC) {
-        //calculate vtSq_iz at each cell for primary and secondary elc
+        // Calculate vtSq_iz at each cell for primary and secondary elc.
         if ( 3./2.*temp_elc_av >= 2.*up->E) {
           // T_e2 = 1/3*sqrt(3./2.*T_e*E_iz - E_iz)
           temp_elc_2 = 1.0/3.0*pow(up->E*(3./2.*temp_elc_av - up->E), 0.5);
@@ -225,19 +217,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     }
   }
   
-  // cfl calculation
-  //struct gkyl_range vel_rng;
-  /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
-  /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */
-  /* // cfl associated with reaction is a *phase space* cfl */
-  /* // Need to loop over velocity space for each configuration space cell */
-  /* // to get total cfl rate in each phase space cell */
-  /* while (gkyl_range_iter_next(&vel_iter)) { */
-  /*   long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx); */
-  /*   double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx); */
-  /*   cflrate_d[0] += cflr; // frequencies are additive */
-  /* } */
-
 }
 
 void

@@ -33,12 +33,15 @@ struct twostream_ctx
   double n0; // Reference density.
   double vt; // Thermal velocity.
   double Vx_drift; // Drift velocity (x-direction).
+  double lambda_D; // Electron Debye length.
 
   double alpha; // Applied perturbation amplitude.
-  double kx; // Perturbed wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
   double T; // Temperature.
+
+  double kx; // Perturbed wave number (x-direction).
+  double omega_pe; // Electron plasma frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -70,24 +73,27 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double n0 = 1.0; // Reference density.
-  double vt = 0.2; // Thermal velocity.
-  double Vx_drift = 1.0; // Drift velocity (x-direction).
+  double vt = 1.0; // Thermal velocity.
+  double Vx_drift = 5.0; // Drift velocity (x-direction).
+  double lambda_D = 1.0; // Electron Debye length.
 
   double alpha = 1.0e-6; // Applied perturbation amplitude.
-  double kx = 0.5; // Perturbed wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
   double T = (vt * vt) * mass_elc; // Temperature.
 
+  double kx = 0.1 * lambda_D; // Perturbed wave number (x-direction).
+  double omega_pe = vt / lambda_D; // Electron plasma frequency.
+
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0; // Domain boundary (velocity space: vx-direction).
+  double Lx = 20.0 * pi * lambda_D; // Domain size (configuration space: x-direction).
+  double vx_max = 24.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.6; // CFL coefficient.
 
-  double t_end = 40.0; // Final simulation time.
+  double t_end = 100.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -104,9 +110,11 @@ create_ctx(void)
     .n0 = n0, 
     .vt = vt,
     .Vx_drift = Vx_drift,
+    .lambda_D = lambda_D,
     .alpha = alpha,
-    .kx = kx,
     .T = T,
+    .kx = kx,
+    .omega_pe = omega_pe,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,

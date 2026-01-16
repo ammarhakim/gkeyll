@@ -20,6 +20,9 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
+  GKYL_EQN_GR_TWOFLUID_TETRAD, // General relativistic two-fluid equations in the tetrad basis.
+  GKYL_EQN_GR_MHD, // General relativistic magnetohydrodynamics equations.
+  GKYL_EQN_GR_MHD_TETRAD, // General relativistic magnetohydrodynamics equations in the tetrad basis.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
@@ -27,12 +30,6 @@ enum gkyl_eqn_type {
   GKYL_EQN_CAN_PB_INCOMPRESS_EULER, // Canonical Poisson Bracket form of incompressible Euler.
   GKYL_EQN_CAN_PB_HASEGAWA_MIMA, // Canonical Poisson Bracket form of Hasegawa-Mima.
   GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.
-};
-
-// Identifiers for specific gyrokinetic model types.
-enum gkyl_gkmodel_id {
-  GKYL_GK_MODEL_GEN_GEO = 0, // General geometry GK. This is default.
-  GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0).
 };
 
 // Identifiers for specific gyrokinetic field object types.
@@ -153,7 +150,7 @@ enum gkyl_geometry_id {
 
 // type of quadrature to use
 enum gkyl_quad_type {
-  GKYL_GAUSS_QUAD = 0,     // Gauss-Legendre quadrature
+  GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
   GKYL_POSITIVITY_QUAD // Positivity quadrature nodes
 };
@@ -168,4 +165,21 @@ enum gkyl_vel_edge {
 enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
   GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts=sqrt(Tperp_s/m_s)
+};
+
+// Gyrokinetic anomaous diffusion models.
+enum gkyl_gk_anomalous_diff_id {
+  GKYL_GK_ANOMALOUS_DIFF_NONE = 0, // No anomalous diffusion.
+  GKYL_GK_ANOMALOUS_DIFF_D, // Specify D only.
+  GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
+};
+
+enum gkyl_gk_collisionless_type {
+  GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
+  GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
+  GKYL_GK_COLLISIONLESS_ES_NO_BY, // Electrostatic, w/o toroidal field (b_y=0).
+  GKYL_GK_COLLISIONLESS_EM_BPERP, // Electromagnetic with B_perp fluctuations.
+  GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
+  GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
+  GKYL_GK_COLLISIONLESS_NEUTRAL, // Neutral collisionless terms.
 };

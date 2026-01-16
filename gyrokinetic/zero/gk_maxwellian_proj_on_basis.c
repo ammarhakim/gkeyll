@@ -69,7 +69,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     weights1_v[1] = -4.0;
     weights1_v[2] = 3.0;
   }
-  else {
+  else if (quad_type == GKYL_GAUSS_QUAD) {
     if (num_quad <= gkyl_gauss_max) {
       // use pre-computed values if possible (these are more accurate
     // than computing them on the fly)
@@ -86,6 +86,10 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     else {
       gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
     }
+  }
+  else {
+    fprintf(stderr, "Quadrature type not available. Exiting... \n");
+    assert(false);
   }
 
   struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
@@ -337,7 +341,7 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
   gkyl_array_clear(up->bmag_quad, 0.0); 
   gkyl_array_clear(up->jacobtot_quad, 0.0); 
   gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(up, inp->conf_range, 
-    inp->gk_geom->bmag, inp->gk_geom->jacobtot);
+    inp->gk_geom->geo_int.bmag, inp->gk_geom->geo_int.jacobtot);
     
   // Store a Maxwellian moment calculation updater to compute and correct the density
   struct gkyl_gk_maxwellian_moments_inp inp_mom = {
@@ -517,7 +521,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
         fq[0] = T_over_m_quad[cqidx] > 0.0 ? f_floor + 
           jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact) : f_floor;
       }
-      // compute expansion coefficients of Maxwellian distribution function on basis
+      // Compute expansion coefficients of Maxwellian distribution function on basis.
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_maxwellian, lidx));
     }
   }
@@ -525,12 +529,12 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
   gkyl_gk_maxwellian_density_moment_advance(up->moments_up, phase_range, conf_range, 
     f_maxwellian, up->num_ratio);
 
-  // compute number density ratio: num_ratio = n/n0
-  // 0th component of moms_target is the target density
+  // Compute number density ratio: num_ratio = n/n0.
+  // The 0th component of moms_target is the target density.
   gkyl_dg_div_op_range(up->mem, up->conf_basis, 0, up->num_ratio,
     0, moms_maxwellian, 0, up->num_ratio, conf_range);
 
-  // rescale distribution function
+  // Rescale distribution function.
   gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis,
     f_maxwellian, up->num_ratio, f_maxwellian, conf_range, phase_range);
 }

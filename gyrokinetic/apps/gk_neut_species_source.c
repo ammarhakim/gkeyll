@@ -8,7 +8,7 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
-    int vdim = app->vdim+1;
+    int vdim = s->info.vdim;
     // we need to ensure source has same shape as distribution function
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
@@ -45,7 +45,7 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
 }
 
 void
-gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *s, 
+gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {
   if (src->source_id) {
@@ -79,7 +79,7 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Write out the source distribution function
@@ -110,7 +110,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {
@@ -123,7 +123,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       // the density (the 0th component).
       gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
         0, gkns->src.moms[m].marr, 0, gkns->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+        app->gk_geom->geo_int.jacobgeo, &app->local);      
       app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
       struct timespec wtm = gkyl_wall_clock();
@@ -154,7 +154,7 @@ gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
   if (gkns->src.source_id && gkns->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
-    int vdim = app->vdim+1; // Neutrals are always 3V
+    int vdim = gkns->info.vdim;
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
     gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);

@@ -13,11 +13,12 @@ typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
  *
  * @param cbasis Configuration-space basis object.
  * @param grid Configuration-space grid
+ * @param node_type 0 for serendipity, 1 for gauss-legendre quadrature nodes
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, int node_type, bool use_gpu);
 
 /**
  * Advance calc_derived_geo (compute the derived_geo coefficients) under the constraint

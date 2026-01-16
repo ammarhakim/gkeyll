@@ -117,8 +117,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
-      return B0
+    bfieldFunc = function (t, zc)
+      return 0.0, 0.0, B0
     end
   },
 
@@ -164,6 +164,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Electron parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -214,13 +218,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -252,6 +252,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       end
     },
 
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
+    },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
 
@@ -267,13 +271,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       collideWith = { "elc", "Ar1", "Ar2" }
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -303,6 +303,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ar1+ ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -353,13 +357,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -389,6 +389,10 @@ gyrokineticApp = Gyrokinetic.App.new {
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ar2+ ion parallel velocity.
       end
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -439,13 +443,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       },
     },
 
-    bcx = {
-      lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
+    bcs = {
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?

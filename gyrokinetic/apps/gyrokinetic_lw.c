@@ -54,6 +54,17 @@ static const struct gkyl_str_int_pair position_map_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic collisionless type -> enum map.
+static const struct gkyl_str_int_pair gk_collisionless_type[] = {
+  { "None", GKYL_GK_COLLISIONLESS_NONE },
+  { "GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES },
+  { "GKCollisionlessES_no_by", GKYL_GK_COLLISIONLESS_ES_NO_BY },
+  { "GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP },
+  { "GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR },
+  { "GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM },
+  { 0, 0 }
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
@@ -115,6 +126,32 @@ static const struct gkyl_str_int_pair gk_react_self_type[] = {
   { 0, 0 }
 };
 
+// Species boundary conditions -> enum map.
+static const struct gkyl_str_int_pair gk_bcs[] = {
+  // Particle BCs.
+  { "speciesSkip", GKYL_BC_GK_SKIP }, // Do not apply any BCs
+  { "speciesCopy", GKYL_BC_GK_SPECIES_COPY }, // Copy skin into ghost.
+  { "speciesReflect", GKYL_BC_GK_SPECIES_REFLECT }, // Reflect particles.
+  { "speciesAbsorb", GKYL_BC_GK_SPECIES_ABSORB }, // Absorbing BCs.
+  { "speciesFunc", GKYL_BC_GK_SPECIES_FUNC }, // Fill ghost cell using a user-function.
+  { "speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC }, // Fixed function, time-independent.
+  { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
+  { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
+  { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
+  { "speciesIWL", GKYL_BC_GK_SPECIES_IWL }, // Inner wall limited.
+  { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
+  { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
+  // Field BCs.
+  { "fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC }, // Periodic.
+  { "fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET }, // Dirichlet.
+  { "fieldNeumann", GKYL_BC_GK_FIELD_NEUMANN }, // Nemann.
+  { "fieldDirichletVarying", GKYL_BC_GK_FIELD_DIRICHLET_VARYING }, // Spatially varying Dirichlet.
+  { "fieldBoundaryValue", GKYL_BC_GK_FIELD_BOUNDARY_VALUE }, // Skin value at the boundary.
+  { "fieldTwistshift", GKYL_BC_GK_FIELD_TWISTSHIFT }, // Twist-shift.
+  { 0, 0 }
+};
+
+
 void
 gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
 {
@@ -131,6 +168,12 @@ void
 gkyl_register_gyrokinetic_position_map_types(lua_State *L)
 {
   register_types(L, position_map_type, "PositionMap");
+}
+
+void
+gkyl_register_gyrokinetic_collisionless_types(lua_State *L)
+{
+  register_types(L, gk_collisionless_type, "GKCollisionless");
 }
 
 void
@@ -169,6 +212,11 @@ gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
   register_types(L, gk_react_self_type, "Self");
 }
 
+void
+gkyl_register_gyrokinetic_bc_types(lua_State *L)
+{
+  register_types(L, gk_bcs, "GyrokineticBc");
+}
 
 // Magic IDs for use in distinguishing various species and field types.
 enum gyrokinetic_magic_ids {
@@ -217,6 +265,8 @@ struct gyrokinetic_species_lw {
 
   bool proj_correct_all_moms; // Are we correcting all moments in projection, or only density?
 
+  enum gkyl_gk_collisionless_type collisionless_type; // Collisionless type.
+
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
@@ -226,8 +276,8 @@ struct gyrokinetic_species_lw {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_norm_nu; // Are we rescaling the collision frequency?
-  double collision_n_ref; // Density used to calculate Coulomb logarithm for collision frequency.
-  double collision_T_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_den_ref; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_temp_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
   double collision_hbar; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0; // Vacuum permittivity for calculating collision frequency.
   double collision_eV; // Elementary charge for calculating collision frequency.
@@ -301,13 +351,12 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim  = 0;
+  int vdim = 0;
   struct gkyl_gyrokinetic_species gk_species = { };
   
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   gk_species.mass = glua_tbl_get_number(L, "mass", 1.0);
   gk_species.polarization_density = glua_tbl_get_number(L, "polarizationDensity", 0.0);
-  gk_species.no_by = glua_tbl_get_bool(L, "noBy", false);
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);
@@ -341,33 +390,18 @@ gyrokinetic_species_lw_new(lua_State *L)
     gk_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
@@ -439,21 +473,6 @@ gyrokinetic_species_lw_new(lua_State *L)
     proj_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
   }
 
-  enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
-
-  bool has_self_nu_func = false;
-  int self_nu_func_ref = LUA_NOREF;
-
-  int num_cross_collisions = 0;
-  char collide_with[GKYL_MAX_SPECIES][128];
-
-  bool collision_norm_nu = false;
-  double collision_n_ref = 0.0;
-  double collision_T_ref = 0.0;
-  double collision_hbar = 0.0;
-  double collision_eps0 = 0.0;
-  double collision_eV = 0.0;
-
   bool correct_all_moms = false;
   double iter_eps = 0.0;
   int max_iter = 0; 
@@ -464,6 +483,27 @@ gyrokinetic_species_lw_new(lua_State *L)
     max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
     use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
   }
+
+  enum gkyl_gk_collisionless_type collisionless_type = GKYL_GK_COLLISIONLESS_NONE;
+
+  with_lua_tbl_tbl(L, "collisionless") {
+    collisionless_type = glua_tbl_get_integer(L, "type", 0);
+  }
+
+  enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
+
+  bool has_self_nu_func = false;
+  int self_nu_func_ref = LUA_NOREF;
+
+  int num_cross_collisions = 0;
+  char collide_with[GKYL_MAX_SPECIES][128];
+
+  bool collision_norm_nu = false;
+  double collision_den_ref = 0.0;
+  double collision_temp_ref = 0.0;
+  double collision_hbar = 0.0;
+  double collision_eps0 = 0.0;
+  double collision_eV = 0.0;
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -482,8 +522,8 @@ gyrokinetic_species_lw_new(lua_State *L)
     }
 
     collision_norm_nu = glua_tbl_get_bool(L, "normalizeNu", false);
-    collision_n_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
-    collision_T_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
+    collision_den_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
+    collision_temp_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
     collision_hbar = glua_tbl_get_number(L, "hbar", 0.0);
     collision_eps0 = glua_tbl_get_number(L, "epsilon0", 0.0);
     collision_eV = glua_tbl_get_number(L, "eV", 0.0);
@@ -798,6 +838,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->max_iter = max_iter;
   gks_lw->use_last_converged = use_last_converged;
 
+  gks_lw->collisionless_type = collisionless_type;
+
   gks_lw->collision_id = collision_id;
 
   gks_lw->has_self_nu_func = has_self_nu_func;
@@ -814,8 +856,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   }
 
   gks_lw->collision_norm_nu = collision_norm_nu;
-  gks_lw->collision_n_ref = collision_n_ref;
-  gks_lw->collision_T_ref = collision_T_ref;
+  gks_lw->collision_den_ref = collision_den_ref;
+  gks_lw->collision_temp_ref = collision_temp_ref;
   gks_lw->collision_hbar = collision_hbar;
   gks_lw->collision_eps0 = collision_eps0;
   gks_lw->collision_eV = collision_eV;
@@ -943,36 +985,22 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
     gk_neut_species.num_diag_moments = num_diag_moments;
   }
 
-  with_lua_tbl_tbl(L, "bcx") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-    
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
-
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+  with_lua_tbl_tbl(L, "bcs") {
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_neut_species.bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_neut_species.bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_neut_species.bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_neut_species.bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
+      }
     }
   }
 
-  with_lua_tbl_tbl(L, "bcz") {
-    with_lua_tbl_tbl(L, "lower") {
-      gk_neut_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
-    }
 
-    with_lua_tbl_tbl(L, "upper") {
-      gk_neut_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
-    }
-  }
-  
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
   bool has_density_init_func = false;
@@ -1078,43 +1106,16 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
   with_lua_tbl_tbl(L, "poissonBcs") {
-    with_lua_tbl_tbl(L, "lowerType") {
-      int nbc = glua_objlen(L);
-      
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperType") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        gk_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
-      }
-    }
-
-    with_lua_tbl_tbl(L, "lowerValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value lower_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.lo_value[i] = lower_bc;
-      }
-    }
-
-    with_lua_tbl_tbl(L, "upperValue") {
-      int nbc = glua_objlen(L);
-
-      for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value upper_bc = {
-          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
-        };
-
-        gk_field.poisson_bcs.up_value[i] = upper_bc;
+    int num_bcs = glua_objlen(L);
+    for (int i = 0; i < num_bcs; i++) {
+      gk_field.poisson_bcs[i].dir = glua_tbl_get_integer(L, "dir", 0);
+      gk_field.poisson_bcs[i].edge = glua_tbl_get_integer(L, "edge", 0);
+      gk_field.poisson_bcs[i].type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_tbl(L, "value") {
+        int num_vals = glua_objlen(L);
+        for (int k = 0; k < num_vals; k++) {
+          gk_field.poisson_bcs[i].value[k] = glua_tbl_iget_number(L, k + 1, 0.0);;
+        }
       }
     }
   }
@@ -1149,7 +1150,7 @@ struct gyrokinetic_app_lw {
   gkyl_gyrokinetic_app *app; // Gyrokinetic app object.
 
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
-  struct lua_func_ctx bmag_ctx; // Function context for bmag.
+  struct lua_func_ctx bfield_ctx; // Function context for bmag.
 
   struct lua_func_ctx nonuniform_position_map_ctx[3]; // Function context for nonuniform position maps.
 
@@ -1178,6 +1179,8 @@ struct gyrokinetic_app_lw {
 
   bool proj_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
 
+  enum gkyl_gk_collisionless_type collisionless_type[GKYL_MAX_SPECIES]; // Collisionless type.
+                                                        
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
@@ -1187,8 +1190,8 @@ struct gyrokinetic_app_lw {
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_norm_nu[GKYL_MAX_SPECIES]; // Are we rescaling the collision frequency?
-  double collision_n_ref[GKYL_MAX_SPECIES]; // Density used to calculate Coulomb logarithm for collision frequency.
-  double collision_T_ref[GKYL_MAX_SPECIES]; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_den_ref[GKYL_MAX_SPECIES]; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_temp_ref[GKYL_MAX_SPECIES]; // Temperature used to calculate Coulomb logarithm for collision frequency.
   double collision_hbar[GKYL_MAX_SPECIES]; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0[GKYL_MAX_SPECIES]; // Vacuum permittivity for calculating collision frequency.
   double collision_eV[GKYL_MAX_SPECIES]; // Elementary charge for calculating collision frequency.
@@ -1616,13 +1619,13 @@ gk_app_new(lua_State *L)
       mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
-    gk.geometry.bmag_ctx = 0;
-    gk.geometry.bmag_func = 0;
-    bool has_bmag_func = false;
-    int bmag_func_ref = LUA_NOREF;
-    if (glua_tbl_get_func(L, "bmagFunc")) {
-      has_bmag_func = true;
-      bmag_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    gk.geometry.bfield_ctx = 0;
+    gk.geometry.bfield_func = 0;
+    bool has_bfield_func = false;
+    int bfield_func_ref = LUA_NOREF;
+    if (glua_tbl_get_func(L, "bfieldFunc")) {
+      has_bfield_func = true;
+      bfield_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
 
     with_lua_tbl_tbl(L, "positionMap") {
@@ -1669,15 +1672,15 @@ gk_app_new(lua_State *L)
       gk.geometry.c2p_ctx = &app_lw->mapc2p_ctx;
     }
 
-    if (has_bmag_func) {
-      app_lw->bmag_ctx = (struct lua_func_ctx) {
-        .func_ref = bmag_func_ref,
+    if (has_bfield_func) {
+      app_lw->bfield_ctx = (struct lua_func_ctx) {
+        .func_ref = bfield_func_ref,
         .ndim = 3,
-        .nret = 1,
+        .nret = 3,
         .L = L,
       };
-      gk.geometry.bmag_func = gkyl_lw_eval_cb;
-      gk.geometry.bmag_ctx = &app_lw->bmag_ctx;
+      gk.geometry.bfield_func = gkyl_lw_eval_cb;
+      gk.geometry.bfield_ctx = &app_lw->bfield_ctx;
     }
   }
 
@@ -1693,7 +1696,7 @@ gk_app_new(lua_State *L)
   
   for (int s = 0; s < gk.num_species; s++) {
     gk.species[s] = species[s]->gk_species;
-    gk.vdim = species[s]->vdim;
+    gk.species[s].vdim = species[s]->vdim;
 
     app_lw->has_mapc2p_mapping_func[s] = species[s]->has_mapc2p_mapping_func;
     app_lw->mapc2p_mapping_func_ctx[s] = species[s]->mapc2p_mapping_func_ref;
@@ -1769,6 +1772,8 @@ gk_app_new(lua_State *L)
     gk.species[s].correct.max_iter = app_lw->max_iter[s];
     gk.species[s].correct.use_last_converged = app_lw->use_last_converged[s];
 
+    app_lw->collisionless_type[s] = species[s]->collisionless_type;
+
     app_lw->collision_id[s] = species[s]->collision_id;
 
     app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
@@ -1780,17 +1785,19 @@ gk_app_new(lua_State *L)
     }
 
     app_lw->collision_norm_nu[s] = species[s]->collision_norm_nu;
-    app_lw->collision_n_ref[s] = species[s]->collision_n_ref;
-    app_lw->collision_T_ref[s] = species[s]->collision_T_ref;
+    app_lw->collision_den_ref[s] = species[s]->collision_den_ref;
+    app_lw->collision_temp_ref[s] = species[s]->collision_temp_ref;
     app_lw->collision_hbar[s] = species[s]->collision_hbar;
     app_lw->collision_eps0[s] = species[s]->collision_eps0;
     app_lw->collision_eV[s] = species[s]->collision_eV;
+
+    gk.species[s].collisionless.type = app_lw->collisionless_type[s];
 
     gk.species[s].collisions.collision_id = app_lw->collision_id[s];
 
     if (species[s]->has_self_nu_func) {
       gk.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      gk.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+      gk.species[s].collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
     }
 
     gk.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
@@ -1798,9 +1805,8 @@ gk_app_new(lua_State *L)
       strcpy(gk.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
 
-    gk.species[s].collisions.normNu = app_lw->collision_norm_nu[s];
-    gk.species[s].collisions.n_ref = app_lw->collision_n_ref[s];
-    gk.species[s].collisions.T_ref = app_lw->collision_T_ref[s];
+    gk.species[s].collisions.den_ref = app_lw->collision_den_ref[s];
+    gk.species[s].collisions.temp_ref = app_lw->collision_temp_ref[s];
     gk.species[s].collisions.hbar = app_lw->collision_hbar[s];
     gk.species[s].collisions.eps0 = app_lw->collision_eps0[s];
     gk.species[s].collisions.eV = app_lw->collision_eV[s];
@@ -1871,7 +1877,7 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->radiation_num_cross_collisions[s]; i++) {
       strcpy(gk.species[s].radiation.collide_with[i], app_lw->radiation_collide_with[s][i]);
 
-      gk.species[s].radiation.z[i] = app_lw->radiation_z[s][i];
+      gk.species[s].radiation.atomic_Z[i] = app_lw->radiation_z[s][i];
       gk.species[s].radiation.charge_state[i] = app_lw->radiation_charge_state[s][i];
       gk.species[s].radiation.num_of_densities[i] = app_lw->radiation_num_of_densities[s][i];
     }
@@ -2326,7 +2332,7 @@ write_step_message(const struct gkyl_gyrokinetic_app *app, struct step_message_t
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+      gkyl_gyrokinetic_app_cout(app, stdout, " Step %d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
     }
     else {
       trigs->log_count += 1;
@@ -2635,12 +2641,14 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_fem_bc_types(L);
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_position_map_types(L);
+  gkyl_register_gyrokinetic_collisionless_types(L);
   gkyl_register_gyrokinetic_field_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);
   gkyl_register_gyrokinetic_reaction_types(L);
   gkyl_register_gyrokinetic_ion_types(L);
   gkyl_register_gyrokinetic_self_reaction_types(L);
+  gkyl_register_gyrokinetic_bc_types(L);
   
   app_openlibs(L);
 }

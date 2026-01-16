@@ -30,6 +30,9 @@
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_gr_twofluid.h>
+#include <gkyl_wv_gr_twofluid_tetrad.h>
+#include <gkyl_wv_gr_mhd.h>
+#include <gkyl_wv_gr_mhd_tetrad.h>
 #include <gkyl_wv_advect.h>
 #include <gkyl_wv_burgers.h>
 #include <gkyl_zero_lw.h>
@@ -106,6 +109,23 @@ static const struct gkyl_str_int_pair braginskii_type[] = {
   { 0, 0 }
 };
 
+// Spacetime gauge type -> enum map.
+static const struct gkyl_str_int_pair spacetime_gauge_type[] = {
+  { "Static", GKYL_STATIC_GAUGE },
+  { "BlackHoleCollapse", GKYL_BLACKHOLE_COLLAPSE_GAUGE },
+  { 0, 0 }
+};
+
+// Embedded boundary type -> enum map.
+static const struct gkyl_str_int_pair embed_geo_type[] = {
+  { "Absorb", GKYL_EMBED_ABSORB },
+  { "Reflect", GKYL_EMBED_REFLECT },
+  { "CopyB", GKYL_EMBED_COPY_B },
+  { "PEC", GKYL_EMBED_PEC },
+  { "Func", GKYL_EMBED_FUNC },
+  { 0, 0 }
+};
+
 void
 gkyl_register_moment_scheme_types(lua_State *L)
 {
@@ -140,6 +160,18 @@ void
 gkyl_register_braginskii_types(lua_State *L)
 {
   register_types(L, braginskii_type, "Braginskii");
+}
+
+void
+gkyl_register_spacetime_gauge_types(lua_State *L)
+{
+  register_types(L, spacetime_gauge_type, "SpacetimeGauge");
+}
+
+void
+gkyl_register_embed_geo_types(lua_State *L)
+{
+  register_types(L, embed_geo_type, "EmbedBC");
 }
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -243,6 +275,27 @@ static const struct gkyl_str_int_pair gr_twofluid_rp_type[] = {
   { 0, 0 }
 };
 
+// General relativistic two-fluid Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_twofluid_tetrad_rp_type[] = {
+  { "hll", WV_GR_TWOFLUID_TETRAD_RP_HLL },
+  { "lax", WV_GR_TWOFLUID_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic magnetohydrodynamics Riemann problem -> enum map.
+static const struct gkyl_str_int_pair gr_mhd_rp_type[] = {
+  { "hll", WV_GR_MHD_RP_HLL },
+  { "lax", WV_GR_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic magnetohydrodynamics Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_mhd_tetrad_rp_type[] = {
+  { "hll", WV_GR_MHD_TETRAD_RP_HLL },
+  { "lax", WV_GR_MHD_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
 // Metatable name for equation object input struct.
 #define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
@@ -254,6 +307,8 @@ struct wv_eqn_lw {
   struct gkyl_wv_eqn *eqn; // Equation object.
   bool has_nn; // Does this equation object have a neural network attached?
   kann_t *ann; // Neural network.
+  bool has_spacetime; // Does this equation object have a spacetime object attached?
+  struct gkyl_gr_spacetime *spacetime; // Spacetime.
 };
 
 // Clean up memory allocated for equation object.
@@ -266,6 +321,9 @@ wv_eqn_lw_gc(lua_State *L)
   gkyl_wv_eqn_release(wv_lw->eqn);
   if (wv_lw->has_nn) {
     kann_delete(wv_lw->ann);
+  }
+  if (wv_lw->has_spacetime) {
+    gkyl_gr_spacetime_release(wv_lw->spacetime);
   }
   gkyl_free(*l_wv_lw);
   
@@ -305,6 +363,8 @@ eqn_euler_lw_new(lua_State *L)
   );
   euler_lw->has_nn = false;
   euler_lw->ann = 0;
+  euler_lw->has_spacetime = false;
+  euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -342,6 +402,8 @@ eqn_iso_euler_lw_new(lua_State *L)
   iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt, false);
   iso_euler_lw->has_nn = false;
   iso_euler_lw->ann = 0;
+  iso_euler_lw->has_spacetime = false;
+  iso_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -376,6 +438,8 @@ eqn_sr_euler_lw_new(lua_State *L)
   sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
   sr_euler_lw->has_nn = false;
   sr_euler_lw->ann = 0;
+  sr_euler_lw->has_spacetime = false;
+  sr_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -408,6 +472,8 @@ eqn_coldfluid_lw_new(lua_State *L)
   coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
   coldfluid_lw->has_nn = false;
   coldfluid_lw->ann = 0;
+  coldfluid_lw->has_spacetime = false;
+  coldfluid_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -465,6 +531,8 @@ eqn_tenmoment_lw_new(lua_State *L)
   tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, has_nn_closure, poly_order, ann, false);
   tenm_lw->has_nn = has_nn_closure;
   tenm_lw->ann = ann;
+  tenm_lw->has_spacetime = false;
+  tenm_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -514,6 +582,8 @@ eqn_mhd_lw_new(lua_State *L)
   );
   mhd_lw->has_nn = false;
   mhd_lw->ann = 0;
+  mhd_lw->has_spacetime = false;
+  mhd_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -565,6 +635,8 @@ eqn_reactive_euler_lw_new(lua_State *L)
   );
   reactive_euler_lw->has_nn = false;
   reactive_euler_lw->ann = 0;
+  reactive_euler_lw->has_spacetime = false;
+  reactive_euler_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_reactive_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -616,6 +688,8 @@ eqn_euler_mixture_lw_new(lua_State *L)
   );
   euler_mixture_lw->has_nn = false;
   euler_mixture_lw->ann = 0;
+  euler_mixture_lw->has_spacetime = false;
+  euler_mixture_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -667,6 +741,10 @@ eqn_euler_rgfm_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  euler_rgfm_lw->has_nn = false;
+  euler_rgfm_lw->ann = 0;
+  euler_rgfm_lw->has_spacetime = false;
+  euler_rgfm_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_rgfm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -718,6 +796,8 @@ eqn_iso_euler_mixture_lw_new(lua_State *L)
   );
   iso_euler_mixture_lw->has_nn = false;
   iso_euler_mixture_lw->ann = 0;
+  iso_euler_mixture_lw->has_spacetime = false;
+  iso_euler_mixture_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -793,6 +873,8 @@ eqn_gr_maxwell_lw_new(lua_State *L)
   );
   gr_maxwell_lw->has_nn = false;
   gr_maxwell_lw->ann = 0;
+  gr_maxwell_lw->has_spacetime = true;
+  gr_maxwell_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -868,6 +950,8 @@ eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
   );
   gr_maxwell_tetrad_lw->has_nn = false;
   gr_maxwell_tetrad_lw->ann = 0;
+  gr_maxwell_tetrad_lw->has_spacetime = true;
+  gr_maxwell_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -939,6 +1023,8 @@ eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
   );
   gr_ultra_rel_euler_lw->has_nn = false;
   gr_ultra_rel_euler_lw->ann = 0;
+  gr_ultra_rel_euler_lw->has_spacetime = true;
+  gr_ultra_rel_euler_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1010,6 +1096,8 @@ eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
   );
   gr_ultra_rel_euler_tetrad_lw->has_nn = false;
   gr_ultra_rel_euler_tetrad_lw->ann = 0;
+  gr_ultra_rel_euler_tetrad_lw->has_spacetime = true;
+  gr_ultra_rel_euler_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1081,6 +1169,8 @@ eqn_gr_euler_lw_new(lua_State *L)
   );
   gr_euler_lw->has_nn = false;
   gr_euler_lw->ann = 0;
+  gr_euler_lw->has_spacetime = true;
+  gr_euler_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1152,6 +1242,8 @@ eqn_gr_euler_tetrad_lw_new(lua_State *L)
   );
   gr_euler_tetrad_lw->has_nn = false;
   gr_euler_tetrad_lw->ann = 0;
+  gr_euler_tetrad_lw->has_spacetime = true;
+  gr_euler_tetrad_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1196,6 +1288,8 @@ eqn_gr_medium_lw_new(lua_State *L)
   );
   gr_medium_lw->has_nn = false;
   gr_medium_lw->ann = 0;
+  gr_medium_lw->has_spacetime = false;
+  gr_medium_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_medium_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1283,6 +1377,10 @@ eqn_gr_twofluid_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_twofluid_lw->has_nn = false;
+  gr_twofluid_lw->ann = 0;
+  gr_twofluid_lw->has_spacetime = true;
+  gr_twofluid_lw->spacetime = spacetime;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_twofluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1298,6 +1396,257 @@ eqn_gr_twofluid_lw_new(lua_State *L)
 // Equation constructor.
 static struct luaL_Reg eqn_gr_twofluid_ctor[] = {
   { "new", eqn_gr_twofluid_lw_new },
+  { 0, 0 }
+};
+
+/* **************************************************************************************** */
+/* General Relativistic Two-Fluid Equations in the Tetrad Basis (General Equation of State) */
+/* **************************************************************************************** */
+
+// GRTwoFluidTetrad.new { massElc = 1.0 / 1836.2, massIon = 1.0, chargeElc = -1.0, chargeIon = 1.0, gasGammaElc = 5.0 / 3.0, gasGammaIon = 5.0 / 3.0,
+// lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
+// where rpType is one of "hll" or "lax".
+static int
+eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_twofluid_tetrad_lw = gkyl_malloc(sizeof(*gr_twofluid_tetrad_lw));
+
+  double mass_elc = glua_tbl_get_number(L, "massElc", 1.0 / 1836.2);
+  double mass_ion = glua_tbl_get_number(L, "massIon", 1.0);
+  double charge_elc = glua_tbl_get_number(L, "chargeElc", -1.0);
+  double charge_ion = glua_tbl_get_number(L, "chargeIon", 1.0);
+  double gas_gamma_elc = glua_tbl_get_number(L, "gasGammaElc", 5.0 / 3.0);
+  double gas_gamma_ion = glua_tbl_get_number(L, "gasGammaIon", 5.0 / 3.0);
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_twofluid_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_twofluid_tetrad_rp_type, rp_str, WV_GR_TWOFLUID_TETRAD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
+  gr_twofluid_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_twofluid_tetrad_lw->eqn = gkyl_wv_gr_twofluid_tetrad_inew( &(struct gkyl_wv_gr_twofluid_tetrad_inp) {
+      .mass_elc = mass_elc,
+      .mass_ion = mass_ion,
+      .charge_elc = charge_elc,
+      .charge_ion = charge_ion,
+      .gas_gamma_elc = gas_gamma_elc,
+      .gas_gamma_ion = gas_gamma_ion,
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+  gr_twofluid_tetrad_lw->has_nn = false;
+  gr_twofluid_tetrad_lw->ann = 0;
+  gr_twofluid_tetrad_lw->has_spacetime = true;
+  gr_twofluid_tetrad_lw->spacetime = spacetime;
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_twofluid_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_twofluid_tetrad_lw = gr_twofluid_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_twofluid_tetrad_ctor[] = {
+  { "new", eqn_gr_twofluid_tetrad_lw_new },
+  { 0, 0 }
+};
+
+/* ********************************************************************************* */
+/* General Relativistic Magnetohydrodynamics Equations (Ideal Gas Equation of State) */
+/* ********************************************************************************* */
+
+// GRMHD.new { gasGamma = 5.0 / 3.0, lightSpeed = 1.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
+// where rpType is one of "hll" or "lax".
+static int
+eqn_gr_mhd_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_mhd_lw = gkyl_malloc(sizeof(*gr_mhd_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_mhd_rp rp_type = gkyl_search_str_int_pair_by_str(gr_mhd_rp_type, rp_str, WV_GR_MHD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
+  int spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
+
+  gr_mhd_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_mhd_lw->eqn = gkyl_wv_gr_mhd_inew( &(struct gkyl_wv_gr_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .light_speed = light_speed,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+  gr_mhd_lw->has_nn = false;
+  gr_mhd_lw->ann = 0;
+  gr_mhd_lw->has_spacetime = true;
+  gr_mhd_lw->spacetime = spacetime;
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_mhd_lw = gr_mhd_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_mhd_ctor[] = {
+  { "new", eqn_gr_mhd_lw_new },
+  { 0, 0 }
+};
+
+/* ***************************************************************************************************** */
+/* General Relativistic Magnetohydrodynamics Equations in the Tetrad Basis (Ideal Gas Equation of State) */
+/* ***************************************************************************************************** */
+
+// GRMHDTetrad.new { gasGamma = 5.0 / 3.0, lightSpeed = 1.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
+// where rpType is one of "hll" or "lax".
+static int
+eqn_gr_mhd_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_mhd_tetrad_lw = gkyl_malloc(sizeof(*gr_mhd_tetrad_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_mhd_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_mhd_tetrad_rp_type, rp_str, WV_GR_MHD_TETRAD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
+  int spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
+
+  gr_mhd_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_mhd_tetrad_lw->eqn = gkyl_wv_gr_mhd_tetrad_inew( &(struct gkyl_wv_gr_mhd_tetrad_inp) {
+      .gas_gamma = gas_gamma,
+      .light_speed = light_speed,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+  gr_mhd_tetrad_lw->has_nn = false;
+  gr_mhd_tetrad_lw->ann = 0;
+  gr_mhd_tetrad_lw->has_spacetime = true;
+  gr_mhd_tetrad_lw->spacetime = spacetime;
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_mhd_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_mhd_tetrad_lw = gr_mhd_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_mhd_tetrad_ctor[] = {
+  { "new", eqn_gr_mhd_tetrad_lw_new },
   { 0, 0 }
 };
 
@@ -1317,6 +1666,8 @@ eqn_advect_lw_new(lua_State *L)
   advect_lw->eqn = gkyl_wv_advect_new(c, false);
   advect_lw->has_nn = false;
   advect_lw->ann = 0;
+  advect_lw->has_spacetime = false;
+  advect_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1349,6 +1700,8 @@ eqn_burgers_lw_new(lua_State *L)
   burgers_lw->eqn = gkyl_wv_burgers_new(false);
   burgers_lw->has_nn = false;
   burgers_lw->ann = 0;
+  burgers_lw->has_spacetime = false;
+  burgers_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1395,6 +1748,9 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.GRTwoFluid", eqn_gr_twofluid_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRTwoFluidTetrad", eqn_gr_twofluid_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMHD", eqn_gr_mhd_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMHDTetrad", eqn_gr_mhd_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.LinearAdvection", eqn_advect_ctor);
   luaL_register(L, "G0.Moments.Eq.Burgers", eqn_burgers_ctor);
 }
@@ -3026,6 +3382,12 @@ moment_species_lw_new(lua_State *L)
     mom_species.gr_twofluid_charge_ion = glua_tbl_get_number(L, "GRTwoFluidChargeIon", 1.0);
     mom_species.gr_twofluid_gas_gamma_elc = glua_tbl_get_number(L, "GRTwoFluidGasGammaElc", 5.0 / 3.0);
     mom_species.gr_twofluid_gas_gamma_ion = glua_tbl_get_number(L, "GRTwoFluidGasGammaIon", 5.0 / 3.0);
+    mom_species.gr_twofluid_e_fact = glua_tbl_get_number(L, "GRTwoFluidEFact", 0.0);
+  }
+
+  mom_species.has_gr_mhd = glua_tbl_get_bool(L, "hasGRMHD", false);
+  if (mom_species.has_gr_mhd) {
+    mom_species.gr_mhd_gas_gamma = glua_tbl_get_number(L, "GRMHDGasGamma", 5.0 / 3.0);
   }
   
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
@@ -4412,6 +4774,8 @@ gkyl_moment_lw_openlibs(lua_State *L)
   gkyl_register_mhd_rp_types(L);
   gkyl_register_mhd_divb_types(L);
   gkyl_register_braginskii_types(L);
+  gkyl_register_spacetime_gauge_types(L);
+  gkyl_register_embed_geo_types(L);
   
   eqn_openlibs(L);
   spacetime_openlibs(L);

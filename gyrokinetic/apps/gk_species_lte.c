@@ -5,7 +5,7 @@ void
 gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim;
 
   // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
   gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
@@ -103,7 +103,7 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Divide out the Jacobian from the density.
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local);  
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
@@ -119,7 +119,7 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_specie
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       // Write out correction status.
-      const char *fmt = "%s-%s-%s.gkyl";
+      const char *fmt = "%s-%s_lte_%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");

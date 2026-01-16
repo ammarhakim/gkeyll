@@ -284,6 +284,7 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 * @param charge_elc Electron charge.
 * @param mass_ion Ion mass.
 * @param charge_ion Ion charge.
+* @param e_fact Electric field divergence error propagation speed.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
 * @param fluid_old Array of old fluid variables (before source update).
@@ -291,7 +292,7 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 */
 void
 explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double gas_gamma_ion,
-  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion, double t_curr, const double dt,
+  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion, double e_fact, double t_curr, const double dt,
   double* fluid_old, double* fluid_new);
 
 /**
@@ -335,6 +336,33 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 */
 void
 explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+
+/**
+* Integrate the general relativistic source terms (general relativistic magnetohydrodynamics equations) in the multi-fluid equation system within a
+single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma Adiabatic index.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void
+explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the general relativistic source terms (general relativistic magnetohydrodynamics) in the multi-fluid equation system within a
+* single cell, using an explicit forcing solver (specifically a strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void
+explicit_gr_mhd_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically

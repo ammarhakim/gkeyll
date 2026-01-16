@@ -142,3 +142,15 @@ static const double *gkyl_gauss_lobatto_weights[] = {
  * @param n Order of the quadrature.
  */
 void gkyl_gauleg(double x1, double x2,  double x[], double w[], int n);
+
+/**
+ * Compute ordinates and weights for use in n-dimensiona Gaussian
+ * quadrature of order q. The array "x" needs to be at least
+ * ndim*pow(nq,ndim) long and the array "w" needs to be at least
+ * pow(nq,ndim) long.
+ *
+ * @param x On output, ordinates.
+ * @param w On output, weights.
+ * @param nq Order of the quadrature.
+ */
+void gkyl_ndim_ordinates_weights(int ndim, double *x, double *w, int nq);

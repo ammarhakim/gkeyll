@@ -285,13 +285,13 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 }
 
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
@@ -458,6 +458,8 @@ gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
   GKYL_CLEAR_CU_ALLOC(euler_rgfm->eqn.flags);
   euler_rgfm->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_rgfm_free);
   euler_rgfm->eqn.on_dev = &euler_rgfm->eqn; // On the CPU, the equation object points ot itself.
+
+  euler_rgfm->eqn.embed_geo = NULL;
 
   return &euler_rgfm->eqn;
 }

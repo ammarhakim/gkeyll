@@ -20,6 +20,43 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
   fout[0] = xn[0];
 }
 
+void
+gkyl_position_map_identity_slope(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = 1.0;
+}
+
+
+struct gkyl_position_map*
+gkyl_position_map_null_new()
+{
+  struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
+  gpm->id = GKYL_PMAP_USER_INPUT;
+  for (int i = 0; i < 3; i++){
+    gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
+    gpm->ctxs[i] = 0;
+  }
+  gpm->use_map_derivs = true;
+  gpm->to_optimize = false;
+  gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
+  gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
+  gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(gpm->flags);
+  gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
+  return gpm;
+}
+
+struct gkyl_position_map*
+gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp)
+{
+  return gkyl_position_map_new(inp.pmap_info, inp.grid, inp.local, inp.local_ext,
+    inp.global, inp.global_ext, inp.basis);
+}
+
 struct gkyl_position_map*
 gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
@@ -31,14 +68,20 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, global_ext.volume);
   gpm->to_optimize = false;
+  gpm->use_map_derivs = (pmap_info.id == GKYL_PMAP_XPT_COMPRESSION || pmap_info.id == GKYL_PMAP_USER_INPUT_W_DERIVATIVE) ? true : false;
+
 
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
+  gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
 
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
     gpm->ctxs[i] = 0;
     gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
     gpm->constB_ctx->ctxs_backup[i] = 0;
+    gpm->xpt_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->xpt_ctx->ctxs_backup[i] = 0;
   }
 
   switch (pmap_info.id)
@@ -47,6 +90,15 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       for (int i = 0; i < 3; i++){
         if (pmap_info.maps[i] != 0)
         { gpm->maps[i] = pmap_info.maps[i];
+          gpm->ctxs[i] = pmap_info.ctxs[i];
+        }
+      }
+
+    case GKYL_PMAP_USER_INPUT_W_DERIVATIVE:
+      for (int i = 0; i < 3; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->maps[i] = pmap_info.maps[i];
+          gpm->map_derivs[i] = pmap_info.map_derivs[i];
           gpm->ctxs[i] = pmap_info.ctxs[i];
         }
       }
@@ -82,6 +134,19 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
+      gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
+      gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
+
+    case GKYL_PMAP_XPT_COMPRESSION:
+
+      for (int i = 0; i < 2; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
+      }
+      gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
+      gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
   }
 
   gpm->grid = grid;
@@ -123,6 +188,38 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
   else {
     gkyl_comm_array_allgather_host(comm, &gpm->local, \
     &gpm->global, bmag, (struct gkyl_array*) gpm->bmag_ctx->bmag);
+  }
+}
+
+void
+gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, double zcenter, double w, double psisep)
+{
+  gpm->xpt_ctx->zcut = zcut;
+  gpm->xpt_ctx->zcenter = zcenter;
+  gpm->xpt_ctx->w = w;
+  gpm->xpt_ctx->psisep = psisep;
+
+  if (gpm->xpt_ctx->radial_compression_factor!=0.0) {
+    gpm->maps[0] = position_map_sep_compression;
+    gpm->map_derivs[0] = position_map_deriv_sep_compression;
+    gpm->ctxs[0] = gpm->xpt_ctx;
+  }
+  else {
+    gpm->maps[0] = gpm->xpt_ctx->maps_backup[0];
+    gpm->ctxs[0] = gpm->xpt_ctx->ctxs_backup[0];
+  }
+
+  gpm->maps[1] = gpm->xpt_ctx->maps_backup[1];
+  gpm->ctxs[1] = gpm->xpt_ctx->ctxs_backup[1];
+
+  if (gpm->xpt_ctx->compression_factor!=0.0) {
+    gpm->maps[2] = position_map_xpt_compression;
+    gpm->map_derivs[2] = position_map_deriv_xpt_compression;
+    gpm->ctxs[2] = gpm->xpt_ctx;
+  }
+  else {
+    gpm->maps[2] = gpm->xpt_ctx->maps_backup[2];
+    gpm->ctxs[2] = gpm->xpt_ctx->ctxs_backup[2];
   }
 }
 
@@ -191,7 +288,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
     gpm->ctxs[1] = gpm->constB_ctx->ctxs_backup[1];
-    gpm->maps[2] = position_map_constB_z_numeric;
+    gpm->maps[2] = position_map_constB_z_numeric_moving_average;
     gpm->ctxs[2] = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
@@ -208,8 +305,15 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
 
 double
 gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
-  double x, double dx, int ix_comp, struct gkyl_range *nrange)
+  double x, double dx, int ix_comp, const struct gkyl_range *nrange)
 {
+  if (gpm->use_map_derivs)
+  {
+    double slope;
+    gpm->map_derivs[ix_map](0.0, &x, &slope, gpm->ctxs[ix_map]);
+    return slope;
+  }
+
   double x_left = x - dx;
   double x_right = x + dx;
   double f_left, f, f_right;
@@ -260,5 +364,6 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   }
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
+  gkyl_free(gpm->xpt_ctx);
   gkyl_free(gpm);
 }

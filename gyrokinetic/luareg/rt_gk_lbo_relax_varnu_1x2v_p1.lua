@@ -78,8 +78,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     end,
 
     -- Magnetic field strength.
-    bmagFunc = function (t, zc)
-      return B0
+    bfieldFunc = function (t, zc)
+      return 0.0, 0.0, B0
     end
   },
 
@@ -112,6 +112,10 @@ gyrokineticApp = Gyrokinetic.App.new {
         
         return n
       end,
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {
@@ -158,6 +162,10 @@ gyrokineticApp = Gyrokinetic.App.new {
         
         return n
       end,
+    },
+
+    collisionless = {
+      type = G0.GKCollisionless.GKCollisionlessES,
     },
 
     collisions = {

@@ -151,13 +151,13 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 }
 
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
@@ -214,7 +214,7 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 }
 
 static double
-wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -227,7 +227,7 @@ wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 }
 
 static void
-qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
@@ -361,6 +361,8 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
   GKYL_CLEAR_CU_ALLOC(iso_euler->eqn.flags);
   iso_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_iso_euler_free);
   iso_euler->eqn.on_dev = &iso_euler->eqn; // On the CPU, the equation object points to itself.
+
+  iso_euler->eqn.embed_geo = NULL;
 
   return &iso_euler->eqn;
 }
