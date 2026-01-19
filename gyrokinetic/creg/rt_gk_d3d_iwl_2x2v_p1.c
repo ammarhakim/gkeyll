@@ -351,7 +351,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = Z_rtheta(r, z, ctx);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = +q0/r0*y + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -376,14 +376,14 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = +q0/r0*y + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
   fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
   fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
-  fout[2] = -B_z;
+  fout[2] = B_z;
 }
 
 struct gk_app_ctx
@@ -469,7 +469,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 1.e-7; // Should terminate in 111 steps.
+  double t_end = 1.e-7;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
