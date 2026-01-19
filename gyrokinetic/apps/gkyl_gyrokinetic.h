@@ -523,7 +523,8 @@ struct gkyl_sundials_inp {
   unsigned int num_stages; // Number of stages per step.
   unsigned int max_num_stages; // Maximum number of stages per step.
   enum gkyl_sundials_rk_method rk_method; // Time stepping method.
-  // Dominant eigenvalue estimator inputs.
+  // Dominant eigenvalue estimator (DEE) inputs.
+  bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
   double dee_relative_tolerance; // Relative tolerance (default: 0.01).
   unsigned int dee_num_init_warmups; // Number of initial warm ups (default: 100).

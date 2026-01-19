@@ -254,6 +254,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
     case GKYL_SUM:
     case GKYL_ABS_MAX:
     case GKYL_SQ_SUM:
+    case GKYL_RMS:
       assert(false);
       break;
   }
@@ -506,6 +507,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
     case GKYL_SUM:
     case GKYL_ABS_MAX:
     case GKYL_SQ_SUM:
+    case GKYL_RMS:
       assert(false);
       break;
     case GKYL_ABS:

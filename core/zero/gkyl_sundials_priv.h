@@ -44,8 +44,8 @@ struct gkyl_sundials_nvec
 
 struct gkyl_sundials
 {
+  struct gkyl_sundials_stepper_inp *stepper_inp; // SUNDIALS stepper inputs.
   SUNContext sunctx; // Sundials context.
-  enum gkyl_sundials_rk_method rk_method; // RK method.
   bool use_gpu; // Whether to run on GPU.
   void *arkode_mem; // Memory for ARKODE.
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.

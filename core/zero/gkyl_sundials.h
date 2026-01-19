@@ -13,7 +13,7 @@
 // Time stepping method options.
 enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_NONE = 0,
-  GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method (for testing only).
+  GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order SSP RK method s stages (>=2).
   GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3, // Optimal 3rd order s-stage SSP RK method.
   GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4, // Optimal 4th order 10-stage SSP RK method.
@@ -27,6 +27,10 @@ struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
   // Function that computes df/dt.
   double (*dfdt_func)(void *app, double t_curr,
+    const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
+    const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+  // Function that computes df/dt due to operators stepped with STS.
+  double (*dfdt_sts_func)(void *app, double t_curr,
     const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
     const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
   // Function that reduces a local dt across MPI processes.
@@ -53,6 +57,7 @@ struct gkyl_sundials_stepper_inp {
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
   // Dominant eigenvalue estimator inputs.
+  bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
   double dee_rel_tol; // Relative tolerance (default: 0.01).
   unsigned int dee_num_init_warmups; // Number of initial warm ups (default: 100).

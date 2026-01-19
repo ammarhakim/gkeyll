@@ -888,6 +888,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Initialize SSP RK stepper.
     app->sundials_app_ctx.app_ptr = app;
     app->sundials_app_ctx.dfdt_func = gyrokinetic_dfdt_generic;
+    app->sundials_app_ctx.dfdt_sts_func = gyrokinetic_dfdt_sts_generic;
     app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
     app->sundials_app_ctx.num_species = app->num_species;
@@ -902,6 +903,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
+    app->sundials_stepper_inp.dee_by_gkeyll = gk->sundials_stepper.dee_by_gkeyll,
     app->sundials_stepper_inp.dee_max_iter = gk->sundials_stepper.dee_max_iter,
     app->sundials_stepper_inp.dee_rel_tol = gk->sundials_stepper.dee_relative_tolerance,
     app->sundials_stepper_inp.dee_num_init_warmups = gk->sundials_stepper.dee_num_init_warmups,
@@ -2044,7 +2046,49 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
 }
 
 double
+gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+{
+  double dtmin = DBL_MAX;
+
+  // Compute moments needed by various modules.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_lbo_moms(app, gk_s, &gk_s->lbo, fin[i]);
+  }
+
+  // Compute cross-species moments needed by various modules.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+
+    // Elastic collisions.
+    gk_species_lbo_cross_moms(app, gk_s, &gk_s->lbo, fin[i]);        
+    gk_species_bgk_cross_moms(app, gk_s, &gk_s->bgk, fin[i]);        
+  }
+
+  // Compute df/dt (not including sources).
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    double dt1 = gk_species_rhs_sts(app, gk_s, fin[i], fout[i], bflux_out[i]);
+    dtmin = fmin(dtmin, dt1);
+  }
+
+  return dtmin;
+}
+
+double
 gyrokinetic_dfdt_generic(void* ctx, double tcurr,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+{
+  struct gkyl_gyrokinetic_app *app = ctx;
+  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  return dtmin;
+}
+
+double
+gyrokinetic_dfdt_sts_generic(void* ctx, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
 {

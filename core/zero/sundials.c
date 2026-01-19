@@ -562,6 +562,7 @@ gkyl_sundials_new(bool use_gpu)
  * @param mnvec_y State vectors f_s.
  * @param mnvec_ydot Time rate of change df_s/dt of each state vector.
  * @param ctx Context with app-specific pointers.
+ * @return Sucess (=0) flag.
  */
 static int
 dfdt(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
@@ -588,6 +589,53 @@ dfdt(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
   app_ctx->dt_local = app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+
+  return 0; // Success.
+}
+
+/**
+ * Gkeyll's estimate of the dominant eigenvalue of the operator stepped with STS.
+ *
+ * @param t_curr Current simulation time.
+ * @param manynvec_y State vectors f_s.
+ * @param manynvec_ydot Time rate of change df_s/dt of each state vector.
+ * @param lambdaR Real part of the dominant eigenvalue.
+ * @param lambdaI Imaginary part of the dominant eigenvalue.
+ * @param ctx Context with app-specific pointers.
+ * @param temp1,temp2,temp3 Buffers that may be used locally if needed.
+ * @return Sucess (=0) flag.
+ */
+static int
+sts_dom_eig(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
+            sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  // Distribute state vector as Gkeyll expects.
+  int num_species = app_ctx->num_species;
+  int num_neut_species = app_ctx->num_neut_species;
+
+  const struct gkyl_array *fin[num_species];
+  struct gkyl_array *fout[num_species];
+  struct gkyl_array **bflux_out[num_species];
+
+  const struct gkyl_array *fin_neut[num_neut_species];
+  struct gkyl_array *fout_neut[num_neut_species];
+  struct gkyl_array **bflux_out_neut[num_neut_species];
+
+  for (int i=0; i<num_species; ++i) {
+    fin[i] = smanynvec_get_array(manynvec_y, i);
+    fout[i] = smanynvec_get_array(manynvec_ydot, i);
+  }
+
+  // Call the Gkeyll function that computes df/dt due to the operator stepped
+  // with STS and compute it slocal CFL constrained dt.
+  double dt_local = app_ctx->dfdt_sts_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+
+  double dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
+
+  *lambdaR = -1.0/dt_global;
+  *lambdaI = SUN_RCONST(0.0);
 
   return 0; // Success.
 }
@@ -628,6 +676,19 @@ translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
   return 0;
 }
 
+/**
+ * Return the time step dt required for stability according to Gkeyll's CFL
+ * constraint.
+ *
+ * This takes the local dt computed when df/dt was called, and performs
+ * a min reduction.
+ *
+ * @param nvec_y State vector.
+ * @param t_curr Current simulation time.
+ * @param dt_out CFL-stable dt.
+ * @param ctx App in void form.
+ * @return Sucess (=0) flag.
+ */
 static int
 cfl_stable_dt(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx)
 {
@@ -796,19 +857,27 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
   sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
-  // Set the initial eigenvector for DEE. Should reset after ICs are set.
-  gksun->dom_eig_est = SUNDomEigEstimator_Power(nvin, inp->dee_max_iter,
-    inp->dee_rel_tol, nvin->sunctx);
-  sundials_check_flag(&flag, "SUNDomEigEstimator_Power", 0);
-
-  flag = LSRKStepSetDomEigEstimator(gksun->arkode_mem, gksun->dom_eig_est);
-  sundials_check_flag(&flag, "LSRKStepSetDomEigEstimator", 1);
-
-  flag = LSRKStepSetNumDomEigEstInitPreprocessIters(gksun->arkode_mem, inp->dee_num_init_warmups);
-  sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstInitPreprocessIters", 1);
-
-  flag = LSRKStepSetNumDomEigEstPreprocessIters(gksun->arkode_mem, inp->dee_num_succ_warmups);
-  sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstPreprocessIters", 1);
+  gksun->dom_eig_est = 0;
+  if (inp->dee_by_gkeyll) {
+    // Gkeyll estimates the dominant eigenvalue.
+    flag = LSRKStepSetDomEigFn(gksun->arkode_mem, sts_dom_eig);
+    sundials_check_flag(&flag, "LSRKStepSetDomEigFn", 1);
+  }
+  else {
+    // Set the initial eigenvector for DEE. Should reset after ICs are set.
+    gksun->dom_eig_est = SUNDomEigEstimator_Power(nvin, inp->dee_max_iter,
+      inp->dee_rel_tol, nvin->sunctx);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_Power", 0);
+  
+    flag = LSRKStepSetDomEigEstimator(gksun->arkode_mem, gksun->dom_eig_est);
+    sundials_check_flag(&flag, "LSRKStepSetDomEigEstimator", 1);
+  
+    flag = LSRKStepSetNumDomEigEstInitPreprocessIters(gksun->arkode_mem, inp->dee_num_init_warmups);
+    sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstInitPreprocessIters", 1);
+  
+    flag = LSRKStepSetNumDomEigEstPreprocessIters(gksun->arkode_mem, inp->dee_num_succ_warmups);
+    sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstPreprocessIters", 1);
+  }
 
   // Specify after how many successful steps dom_eig is recomputed.
   // Note that nsteps = 0 refers to constant dominant eigenvalue.
@@ -845,7 +914,7 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
     inp->max_steps = 100000;
   // Finished setting default values.
 
-  gksun->rk_method = inp->rk_method; // Store method in Sundials object.
+  gksun->stepper_inp = inp; // Store stepper inputs.
   gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
 
   if (inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
@@ -883,7 +952,7 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
-  if (gksun->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+  if (gksun->stepper_inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
     // Estimate the CFL stable dt.
     // Create a temporary NVector.
     N_Vector manynvbuff = gsmanynv_buff->nvec;
@@ -897,11 +966,13 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
     flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
     sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
   }
-  else if ( (gksun->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKC_2) ||
-            (gksun->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKL_2) ) {
-    // Pass ICs to the eigenvalue estimate.
-    flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
-    sundials_check_flag(&flag, "SUNDomEigEstimator_SetInitialGuess", 1);
+  else if ( (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKC_2) ||
+            (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKL_2) ) {
+    if ( !(gksun->stepper_inp->dee_by_gkeyll) ) {
+      // Pass ICs to the eigenvalue estimate.
+      flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
+      sundials_check_flag(&flag, "SUNDomEigEstimator_SetInitialGuess", 1);
+    }
   }
 
 }

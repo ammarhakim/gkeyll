@@ -328,7 +328,8 @@ main(int argc, char **argv)
 //      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
       .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
 //      .max_num_stages = 10,
-//      .dee_frequency = 1000,
+//      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+//      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
     },
 
     .geometry = {
