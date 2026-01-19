@@ -22,6 +22,7 @@ struct gkyl_bc_twistshift_inp {
   struct gkyl_rect_grid grid; // Grid the field shifted is defined on.
   evalf_t shift_func; // Function defining the shift.
   void *shift_func_ctx; // Context for shift_func.
+  struct gkyl_array *shift_dg; // Discretized shift.
   bool use_gpu; // Whether to apply the BC using the GPU.
   // Optional inputs:
   int shift_poly_order; // Basis order for the DG representation of the shift.

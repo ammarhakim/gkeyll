@@ -1784,11 +1784,16 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
 
   // Project the shift onto the shift basis.
   gkyl_cart_modal_serendip(&up->shift_b, 1, up->shift_poly_order);
-  up->shift_dg = gkyl_array_new(GKYL_DOUBLE, up->shift_b.num_basis, up->shear_r.volume);
-  gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&up->shear_grid, &up->shift_b, 1,
-    inp->shift_func, inp->shift_func_ctx);
-  gkyl_eval_on_nodes_advance(evup, 0.0, &up->shear_r, up->shift_dg);
-  gkyl_eval_on_nodes_release(evup);
+  if (inp->shift_func) {
+    up->shift_dg = gkyl_array_new(GKYL_DOUBLE, up->shift_b.num_basis, up->shear_r.volume);
+    gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&up->shear_grid, &up->shift_b, 1,
+      inp->shift_func, inp->shift_func_ctx);
+    gkyl_eval_on_nodes_advance(evup, 0.0, &up->shear_r, up->shift_dg);
+    gkyl_eval_on_nodes_release(evup);
+  }
+  else {
+    up->shift_dg = gkyl_array_acquire(inp->shift_dg);
+  }
 
   // Function defining the shift (and its context).
   if (shift_func_op == 0) {
