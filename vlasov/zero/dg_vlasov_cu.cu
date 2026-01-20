@@ -78,7 +78,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         if (model_id == GKYL_MODEL_TRIAD) {
           vlasov->hamil_vol = ser_nc_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
         }
-        else if (model_id == GKYL_MODEL_TRIAD) {
+        else if (model_id == GKYL_MODEL_TRIAD_GR) {
+          // GR triads use the full phase-space Hamiltonian
           vlasov->hamil_vol = ser_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
         }
 
@@ -301,4 +302,3 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   return &vlasov->eqn;
 }
-
