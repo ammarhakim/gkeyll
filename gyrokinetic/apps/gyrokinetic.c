@@ -937,6 +937,36 @@ phys_phi_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   app->phys_phi_func(0, RZPHI, fout, 0);
 }
 
+static void
+phys_phi_func_corner(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  struct gkyl_gyrokinetic_app *app = ctx;
+  double RZPHI[app->grid.ndim];
+
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < app->grid.ndim; i++){
+    int idxtemp = app->global.lower[i] + (int) floor((xn[i] - (app->grid.lower[i]) )/app->grid.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, app->local.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, app->local.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&app->local, cidx);
+  const double *mcoeffs = gkyl_array_cfetch(app->gk_geom->geo_corn.mc2p, lidx);
+  
+  double cxc[app->grid.ndim];
+  double xyz[app->grid.ndim];
+  gkyl_rect_grid_cell_center(&app->grid, cidx, cxc);
+  for(int i = 0; i < app->grid.ndim; i++)
+    xyz[i] = (xn[i]-cxc[i])/(app->grid.dx[i]*0.5);
+  for(int i = 0; i < app->grid.ndim; i++){
+    RZPHI[i] = app->basis.eval_expand(xyz, &mcoeffs[i*app->basis.num_basis]);
+  }
+
+  app->phys_phi_func(0, RZPHI, fout, 0);
+}
+
+
 
 void
 gkyl_gyrokinetic_app_apply_ic_phys_phi(gkyl_gyrokinetic_app* app, double t0)
@@ -956,9 +986,14 @@ gkyl_gyrokinetic_app_apply_ic_phys_phi(gkyl_gyrokinetic_app* app, double t0)
       }
     );
   gkyl_proj_on_basis_advance(proj_func, 0.0, &app->local, app->phys_phi); 
+  gkyl_proj_on_basis_release(proj_func);
+  // Do the continuous version
+  //gkyl_eval_on_nodes *eval_phi = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, phys_phi_func_corner, app);
+  //gkyl_eval_on_nodes_advance(eval_phi, 0.0, &app->local, app->phys_phi); //on ghosts with ext_range
+  //gkyl_eval_on_nodes_release(eval_phi);
+
   cstr fileNm = cstr_from_fmt("%s-physphi.gkyl", app->name);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->phys_phi, fileNm.str);
-  gkyl_proj_on_basis_release(proj_func);
 }
 
 

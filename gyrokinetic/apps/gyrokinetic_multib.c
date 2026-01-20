@@ -1030,6 +1030,8 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
     gkyl_array_copy(diff, sbapp->field->phi_smooth);
     gkyl_array_accumulate(diff, -1.0, sbapp->phys_phi);
 
+    cstr fileNm = cstr_from_fmt("%s-phidiff.gkyl", sbapp->name);
+    gkyl_comm_array_write(sbapp->comm, &sbapp->grid, &sbapp->local, 0, diff, fileNm.str);
 
     gkyl_array_integrate_advance(integ_op, diff, 1.0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local, &sbapp->local, &l2diff_local);
 
@@ -1058,7 +1060,7 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
   //gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &l2_local, &l2_global);
 
   double error = sqrt(l2diff_global/l2_global);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "L2 : %g\n", error);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Error : %g\n", error);
 
 
 }
