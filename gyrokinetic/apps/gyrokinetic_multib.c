@@ -1021,44 +1021,44 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
 
 
   // Builtin way with weight
-  double l2diff_local = 0.0;
-  double l2diff_global = 0.0;
-  for (int b=0; b<app->num_local_blocks; ++b) {
-    gkyl_gyrokinetic_app* sbapp = app->singleb_apps[b];
-    struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, sbapp->use_gpu);
-    struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, sbapp->field->phi_smooth->ncomp, sbapp->field->phi_smooth->size);
-    gkyl_array_copy(diff, sbapp->field->phi_smooth);
-    gkyl_array_accumulate(diff, -1.0, sbapp->phys_phi);
+  //double l2diff_local = 0.0;
+  //double l2diff_global = 0.0;
+  //for (int b=0; b<app->num_local_blocks; ++b) {
+  //  gkyl_gyrokinetic_app* sbapp = app->singleb_apps[b];
+  //  struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, sbapp->use_gpu);
+  //  struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, sbapp->field->phi_smooth->ncomp, sbapp->field->phi_smooth->size);
+  //  gkyl_array_copy(diff, sbapp->field->phi_smooth);
+  //  gkyl_array_accumulate(diff, -1.0, sbapp->phys_phi);
 
 
-    gkyl_array_integrate_advance(integ_op, diff, 1.0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local, &sbapp->local, &l2diff_local);
+  //  gkyl_array_integrate_advance(integ_op, diff, 1.0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local, &sbapp->local, &l2diff_local);
 
-    gkyl_array_release(diff);
-    gkyl_array_integrate_release(integ_op);
-    printf("%s_L2diff = %g\n", sbapp->name, l2diff_local);
-    l2diff_global+=l2diff_local;
-  }
+  //  gkyl_array_release(diff);
+  //  gkyl_array_integrate_release(integ_op);
+  //  printf("%s_L2diff = %g\n", sbapp->name, l2diff_local);
+  //  l2diff_global+=l2diff_local;
+  //}
 
-  double l2_local = 0.0;
-  double l2_global = 0.0;
-  for (int b=0; b<app->num_local_blocks; ++b) {
-    gkyl_gyrokinetic_app* sbapp = app->singleb_apps[b];
-    struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, sbapp->use_gpu);
-
-
-    gkyl_array_integrate_advance(integ_op, sbapp->phys_phi, 1.0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local, &sbapp->local, &l2_local);
-
-    gkyl_array_integrate_release(integ_op);
-    printf("%s_L2 = %g\n", sbapp->name, l2_local);
-    l2_global+=l2_local;
-  }
+  //double l2_local = 0.0;
+  //double l2_global = 0.0;
+  //for (int b=0; b<app->num_local_blocks; ++b) {
+  //  gkyl_gyrokinetic_app* sbapp = app->singleb_apps[b];
+  //  struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, sbapp->use_gpu);
 
 
-  //gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &l2diff_local, &l2diff_global);
-  //gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &l2_local, &l2_global);
+  //  gkyl_array_integrate_advance(integ_op, sbapp->phys_phi, 1.0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local, &sbapp->local, &l2_local);
 
-  double error = sqrt(l2diff_global/l2_global);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "L2 : %g\n", error);
+  //  gkyl_array_integrate_release(integ_op);
+  //  printf("%s_L2 = %g\n", sbapp->name, l2_local);
+  //  l2_global+=l2_local;
+  //}
+
+
+  ////gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &l2diff_local, &l2diff_global);
+  ////gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &l2_local, &l2_global);
+
+  //double error = sqrt(l2diff_global/l2_global);
+  //gkyl_gyrokinetic_multib_app_cout(app, stdout, "L2 : %g\n", error);
 
 
 }
@@ -1124,6 +1124,8 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
     for (int i=0; i<app->num_species; i++) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(sbapp, i, frame);
     }
+
+    gkyl_gyrokinetic_app_apply_ic_phys_phi(app->singleb_apps[b], 0.0);
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
@@ -1934,6 +1936,62 @@ void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp
 
   gkyl_free(mbapp);
 }
+
+void gkyl_gyrokinetic_multib_app_printl2(gkyl_gyrokinetic_multib_app* mbapp)
+{
+  
+  // Builtin way with weight
+  double l2diff_local = 0.0;
+  double l2diff_global = 0.0;
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app* sbapp = mbapp->singleb_apps[b];
+    struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, false);
+
+    int sidx = 0;
+    int m = 0;
+    struct gk_species *gks = &sbapp->species[sidx];
+    gk_species_moment_calc(&gks->m0, gks->local, sbapp->local, gks->f);
+    
+    // Rescale moment by inverse of Jacobian. 
+    // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
+    // the density (the 0th component).
+    gkyl_dg_div_op_range(gks->m0.mem_geo, sbapp->basis, 0, gks->m0.marr, 0, gks->m0.marr, 0, sbapp->gk_geom->geo_int.jacobgeo, &sbapp->local);  
+    if (mbapp->use_gpu)
+      gkyl_array_copy(gks->m0.marr_host, gks->m0.marr);
+
+
+    struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, gks->m0.marr_host->ncomp, gks->m0.marr_host->size);
+    gkyl_array_copy(diff, gks->m0.marr_host);
+    gkyl_array_accumulate(diff, -1.0, sbapp->phys_phi);
+
+    cstr fileNm = cstr_from_fmt("%s-phidiff.gkyl", sbapp->name);
+    gkyl_comm_array_write(sbapp->comm, &sbapp->grid, &sbapp->local, 0, diff, fileNm.str);
+
+    gkyl_array_integrate_advance(integ_op, diff, 1.0, sbapp->jint, &sbapp->local, &sbapp->local, &l2diff_local);
+
+    gkyl_array_release(diff);
+    gkyl_array_integrate_release(integ_op);
+    printf("%s_L2diff = %g\n", sbapp->name, l2diff_local);
+    l2diff_global+=l2diff_local;
+  }
+
+  double l2_local = 0.0;
+  double l2_global = 0.0;
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app* sbapp = mbapp->singleb_apps[b];
+    struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(&sbapp->grid, &sbapp->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, false);
+    gkyl_array_integrate_advance(integ_op, sbapp->phys_phi, 1.0, sbapp->jint, &sbapp->local, &sbapp->local, &l2_local);
+    gkyl_array_integrate_release(integ_op);
+    printf("%s_L2 = %g\n", sbapp->name, l2_local);
+    l2_global+=l2_local;
+  }
+
+  double error = sqrt(l2diff_global/l2_global);
+  gkyl_gyrokinetic_multib_app_cout(mbapp, stdout, "L2 : %g\n", error);
+}
+
+
+
 
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {

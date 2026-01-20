@@ -208,9 +208,9 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_ge
 
         // set normals
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].normals_nodal, global_loc);
-        dgs[qsloc].norm.x[0] = global_val[dir*3+0];
-        dgs[qsloc].norm.x[1] = global_val[dir*3+1];
-        dgs[qsloc].norm.x[2] = global_val[dir*3+2];
+        dgs[qsloc].norm.x[0] = global_val[dir*6+0];
+        dgs[qsloc].norm.x[1] = global_val[dir*6+1];
+        dgs[qsloc].norm.x[2] = global_val[dir*6+2];
         
         // set e3hat \dot B = B^3/sqrt(g_33}
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].B3_nodal, global_loc);

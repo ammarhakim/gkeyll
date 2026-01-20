@@ -840,3 +840,10 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* app);
  * @param app App to release.
  */
 void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Free gk app.
+ *
+ * @param app App to release.
+ */
+void gkyl_gyrokinetic_multib_app_printl2(gkyl_gyrokinetic_multib_app* app);

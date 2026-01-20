@@ -565,6 +565,7 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   }
 
   freeresources:
+  gkyl_gyrokinetic_multib_app_printl2(app);
   gkyl_gyrokinetic_multib_app_release(app);
 }
 

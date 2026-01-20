@@ -151,7 +151,7 @@ density_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     cidx[i] = idxtemp;
   }
   long lidx = gkyl_range_idx(&app->local, cidx);
-  const double *mcoeffs = gkyl_array_cfetch(app->gk_geom->geo_int.mc2p, lidx);
+  const double *mcoeffs = gkyl_array_cfetch(app->mc2pint, lidx);
   
   double cxc[app->grid.ndim];
   double xyz[app->grid.ndim];

@@ -1363,6 +1363,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  struct gkyl_array *mc2pint;
+  struct gkyl_array *jint;
   
   struct gkyl_position_map *position_map; // Position mapping object.
 
