@@ -257,7 +257,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->conf_flux_surf = 0;
   struct gkyl_array *conf_flux_surf_ho = 0;
   vlasov->use_conf_flux_surf = false;
-  if ( inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     vlasov->use_conf_flux_surf = true;
     conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
     vlasov->conf_flux_surf = conf_flux_surf_ho->on_dev; 
