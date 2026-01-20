@@ -386,6 +386,13 @@ struct vm_source {
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 
+// geometry data
+struct vm_geom {
+  struct gkyl_vlasov_geom info; // data for vlasov geometry
+    double spin_bh, mass_bh; // Charge and mass.
+
+};
+
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -452,6 +459,9 @@ struct vm_species {
   struct gkyl_array *rad; // array for radiation drag force. 
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
   int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
+
+  // Geometry
+  struct vm_geom *geom; // Geometry structure for vm
 
   // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range mom_hamil_range; // Range Hamiltonian (for moments) is defined over (only velocity-space or all phase-space).
@@ -846,6 +856,9 @@ struct gkyl_vlasov_app {
   void (*field_write)(gkyl_vlasov_app *app, double tm, int frame);
   // Function which writes out integrated field energy. 
   void (*field_energy_write)(gkyl_vlasov_app *app);
+
+  // geometry data
+  struct vm_geom *vm_geom;
 
   // species data
   int num_species;
@@ -1464,6 +1477,16 @@ void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct v
 /** vm_species API */
 
 /**
+ * Initialize geom.
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @param s On output, initialized geom object
+ */
+void vm_geom_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_geom *s);
+
+
+/**
  * Initialize species.
  *
  * @param vm Input VM data
@@ -1633,6 +1656,14 @@ void vm_species_write_L2(gkyl_vlasov_app* app, struct vm_species *vms);
  * @param app App object to update stat timers.
  */
 void vm_species_n_iter_corr(gkyl_vlasov_app *app);
+
+/**
+ * Delete resources used in geom.
+ *
+ * @param app Vlasov app object
+ * @param species Geom object to delete
+ */
+void vm_geom_release(const gkyl_vlasov_app* app, const struct vm_geom *s);
 
 /**
  * Delete resources used in species.

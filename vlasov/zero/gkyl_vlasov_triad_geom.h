@@ -12,6 +12,8 @@ enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_NONE = 0,
   GKYL_TRIAD_ANNULUS,
   GKYL_TRIAD_CYLINDRICAL_RZ,
+  GKYL_TRIAD_GR_KERR_SCHILD_RPHI,
+  GKYL_TRIAD_GR_KERR_SCHILD_3V,
 };
 
 struct gkyl_vlasov_triad_geom_inp {
@@ -47,3 +49,10 @@ struct gkyl_vlasov_triad_geom_inp {
 void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor);
+
+/**
+ * Preset function for the triad hamil 
+ *
+ * @param preset_geom_type Preset geometry type
+ */
+evalf_t gkyl_vlasov_triad_preset_hamil(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);

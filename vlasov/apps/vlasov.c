@@ -244,6 +244,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     }
   }
 
+  // allocate space to store geometry objects
+  app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
+  vm_geom_init(vm, app, app->vm_geom);
+
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
   for (int i=0; i<ns; ++i)

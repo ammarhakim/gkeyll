@@ -270,7 +270,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   }
 
 
-  if (inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
@@ -299,7 +299,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    if (inp->model_id == GKYL_MODEL_TRIAD) {
+    if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
       assert(vlasov->stream_surf_from_flux[i]);
       assert(vlasov->stream_boundary_surf_from_flux[i]);
     } else {

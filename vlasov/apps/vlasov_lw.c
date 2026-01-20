@@ -65,6 +65,8 @@ static const struct gkyl_str_int_pair triad_geom_type[] = {
   { "None", GKYL_TRIAD_NONE },
   { "Annulus", GKYL_TRIAD_ANNULUS },
   { "Cylindrical_rz", GKYL_TRIAD_CYLINDRICAL_RZ },
+  { "GR_KS_rphi", GKYL_TRIAD_GR_KERR_SCHILD_RPHI },
+  { "GR_KS_3V", GKYL_TRIAD_GR_KERR_SCHILD_3V },
   { 0, 0 }
 };
 
@@ -145,6 +147,7 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
   VLASOV_EQN_DEFAULT, // Equation object.
+  VLASOV_GEOM_DEFAULT, // Vlasov Geometry.
 };
 
 // Metatable name for equation object input struct.
@@ -1206,6 +1209,47 @@ static struct luaL_Reg vm_species_ctor[] = {
   { 0, 0 }
 };
 
+/* **************** */
+/* Geometry methods */
+/* **************** */
+
+// Metatable name for species input struct.
+#define VLASOV_GEOM_METATABLE_NM "GkeyllZero.App.Vlasov.Geom"
+
+// Lua userdata object for constructing species input.
+struct vlasov_geom_lw {
+  int magic; // This must be first element in the struct.
+  struct gkyl_vlasov_geom vlasov_geom; // Input struct to construct geometry.
+
+};
+
+static int
+vlasov_geom_lw_new(lua_State *L)
+{
+
+  struct gkyl_vlasov_geom vm_geom = { };
+
+  vm_geom.mass_bh = glua_tbl_get_number(L, "massBH", 1.0);
+  vm_geom.spin_bh = glua_tbl_get_number(L, "spinBH", 1.0);
+
+  struct vlasov_geom_lw *geom_lw = lua_newuserdata(L, sizeof(*geom_lw));
+  geom_lw->magic = VLASOV_GEOM_DEFAULT;
+  geom_lw->vlasov_geom = vm_geom;
+
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_GEOM_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+
+}
+
+// Geometry constructor.
+static struct luaL_Reg vm_geom_ctor[] = {
+  { "new", vlasov_geom_lw_new },
+  { 0, 0 }
+};
+
 /* ********************* */
 /* Fluid Species methods */
 /* ********************* */
@@ -2095,6 +2139,19 @@ vm_app_new(lua_State *L)
       }
     }
   }
+
+  // Set all geom input.
+  with_lua_tbl_key(L, "geom") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct vlasov_geom_lw *glw = lua_touserdata(L, -1);
+
+      if (glw->magic == VLASOV_GEOM_DEFAULT) {
+        vm.geom = glw->vlasov_geom;  
+      }
+
+    }
+  }
+
 
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
 
@@ -3170,6 +3227,13 @@ app_openlibs(lua_State *L)
     
     luaL_register(L, "G0.Vlasov.App", vm_app_ctor);
     
+  }
+  while (0);
+
+  // Register Geometry input struct.
+  do {
+    luaL_newmetatable(L, VLASOV_GEOM_METATABLE_NM);
+    luaL_register(L, "G0.Vlasov.Geom", vm_geom_ctor);
   }
   while (0);
 

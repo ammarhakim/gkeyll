@@ -154,6 +154,13 @@ struct vlasov_mapc2p_vel {
   void (*mapc2p_vel_func)(double t, const double *xc, double *xp, void *ctx);
 };
 
+// Parameters for Vlasov geometry.
+struct gkyl_vlasov_geom {
+
+  double spin_bh, mass_bh; // Black hole charge and mass.
+
+};
+
 // Parameters for Vlasov species.
 struct gkyl_vlasov_species {
   char name[128]; // Species name.
@@ -360,6 +367,8 @@ struct gkyl_vm {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
+
+  struct gkyl_vlasov_geom geom; // geom object
 
   int num_species; // number of species
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects

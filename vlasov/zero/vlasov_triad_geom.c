@@ -249,3 +249,10 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
   }
 
 }
+
+
+evalf_t
+gkyl_vlasov_triad_preset_hamil(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type)
+{
+    return choose_hamil_kern(preset_geom_type, vdim);
+}
