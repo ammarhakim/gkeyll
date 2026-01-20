@@ -142,6 +142,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
           zcenter = 0.0;
           break;
         case GKYL_CORE_R:
+        case GKYL_CORE:
+        case GKYL_LSN_SOL_MID:
           len = geometry_inp->tok_grid_info.half_domain ? 2.0*(geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
           zcenter = geometry_inp->geo_grid.lower[2] + len/2.0;
           zcut = len/2.0;
@@ -155,6 +157,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
         case GKYL_PF_UP_L:
         case GKYL_DN_SOL_OUT_LO:
         case GKYL_DN_SOL_IN_UP:
+        case GKYL_LSN_SOL_LO:
           len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
           zcenter = geometry_inp->geo_grid.lower[2];
           zcut = len;
@@ -163,6 +166,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
         case GKYL_PF_UP_R:
         case GKYL_DN_SOL_OUT_UP:
         case GKYL_DN_SOL_IN_LO:
+        case GKYL_LSN_SOL_UP:
           len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
           zcenter = geometry_inp->geo_grid.upper[2];
           zcut = len;
