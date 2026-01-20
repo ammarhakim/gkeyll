@@ -34,8 +34,8 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .use_vmap = vms->use_vmap, 
       .vmap = vms->vmap, 
       .jacob_vel = vms->jacob_vel, 
-      .hamil_range = &vms->hamil_range,
-      .hamil = vms->hamil,
+      .hamil_range = &vms->mom_hamil_range,
+      .hamil = vms->mom_hamil,
       .model_id = vms->model_id,
       .use_gpu = app->use_gpu,
     };
