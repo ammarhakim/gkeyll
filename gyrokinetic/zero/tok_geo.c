@@ -171,58 +171,57 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // The idea for axisymmetry is that I am avoiding starting integrals at the x-point to minimize issues
   double ival = 0;
   double phi_ref = 0.0;
-  if (actx->ftype==GKYL_CORE){ 
-    if(actx->right==true){ // phi = alpha at outboard midplane
+  if (actx->ftype==GKYL_CORE){ // phi = alpha at outboard midplane
+    if(actx->right==true){
       if(Z<actx->zmaxis)
         ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
       else
         ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
     }
-    else{// alpha = phi at inboard midplane
-      if (Z<actx->zmaxis)
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
-      else
-        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    else{
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+      phi_ref = actx->phi_right;
     }
   }
-  else if (actx->ftype==GKYL_CORE_L){ 
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
-    phi_ref = actx->phi_right;
+  else if (actx->ftype==GKYL_CORE_L){ // alpha = phi at inboard midplane
+    if(Z<actx->zmaxis)
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+    else
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
 
-  else if (actx->ftype==GKYL_CORE_R){ 
+  else if (actx->ftype==GKYL_CORE_R){ // alpha = phi at outboard midplane
     if(Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
 
-  else if( (actx->ftype==GKYL_DN_SOL_OUT) || (actx->ftype==GKYL_DN_SOL_OUT_MID)){
+  else if( (actx->ftype==GKYL_DN_SOL_OUT) || (actx->ftype==GKYL_DN_SOL_OUT_MID)){ // alpha = phi at outboard midplane
     if (Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_OUT_LO){
+  else if(actx->ftype==GKYL_DN_SOL_OUT_LO){ // alpha = phi at lower plate and increases towards xpt
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_OUT_UP){
+  else if(actx->ftype==GKYL_DN_SOL_OUT_UP){ //alpha = phi at upper plate and decreases towards xpt
     ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  if( (actx->ftype==GKYL_DN_SOL_IN) || (actx->ftype==GKYL_DN_SOL_IN_MID) ){
+  if( (actx->ftype==GKYL_DN_SOL_IN) || (actx->ftype==GKYL_DN_SOL_IN_MID) ){ // alpha = phi at inboard midplane
     if (Z<actx->zmaxis)
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_IN_LO){
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  else if(actx->ftype==GKYL_DN_SOL_IN_LO){ // alpha = phi at lower plate and decreases towards xpt
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_IN_UP){
-    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
+  else if(actx->ftype==GKYL_DN_SOL_IN_UP){// alpha = phi at upper plate and increases towards xpt
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-
-  else if(actx->ftype==GKYL_LSN_SOL || actx->ftype == GKYL_LSN_SOL_LO || actx->ftype == GKYL_LSN_SOL_MID || actx->ftype == GKYL_LSN_SOL_UP){
+  else if(actx->ftype==GKYL_LSN_SOL  || actx->ftype == GKYL_LSN_SOL_MID){
     // alpha = phi at outboard midplane
     if (actx->right==true){
       if (Z<actx->zmaxis)
@@ -235,17 +234,23 @@ phi_func(double alpha_curr, double Z, void *ctx)
       phi_ref = actx->phi_right;
     }
   }
-  else if(actx->ftype==GKYL_PF_LO_R){
+  else if(actx->ftype == GKYL_LSN_SOL_LO){ //alpha = phi at outer plate and increases towards xpt
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  }
+  else if(actx->ftype == GKYL_LSN_SOL_UP){ //alpha = phi at inner plate and decreases towards xpt
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  }
+  else if(actx->ftype==GKYL_PF_LO_R){ // alpha = phi at outer plate and increases towards xpt
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_PF_LO_L){
-      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);// + actx->phi_right;
+  else if(actx->ftype==GKYL_PF_LO_L){ //alpha = phi at inner plate and decreases towards xpt
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_PF_UP_R){
+  else if(actx->ftype==GKYL_PF_UP_R){ // alpha = phi at outer plate and decreases towards Xpt
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_PF_UP_L){
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+  else if(actx->ftype==GKYL_PF_UP_L){ // alpha = phi at inner plate and increases towards xpt
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
   else if (actx->ftype==GKYL_IWL) {
     // phi = alpha at outboard midplane
