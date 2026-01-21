@@ -1,0 +1,204 @@
+#ifdef GKYL_HAVE_SUNDIALS
+
+//
+// Gyrokinetic-specific SUNDIALS methods.
+//
+
+#include <gkyl_time_integ_gyrokinetic.h>
+#include <gkyl_sundials_priv.h>
+#include <gkyl_sundials_gyrokinetic.h>
+
+/**
+ * Error weight function for error norm of y_{n-1}.
+ *
+ * @param x ManyNvector y_{n-1} whose norm appears in the weight.
+ * @param w ManyNvector weight to be computed.
+ * @param ctx Context with app-specific pointers.
+ * @return Sucess (=0) flag.
+ */
+static int
+snvec_efun_cell_norm_gyrokinetic(N_Vector manyx, N_Vector manyw, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+
+  int ns_charged = fdot_args->num_species;
+  int ns_neut = fdot_args->num_neut_species;
+
+  int flag = 0;
+  for (int i=0; i<ns_charged; i++) {
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, i);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, i);
+    struct gkyl_array *x_arr = snvec_get_array(x);
+    struct gkyl_array *w_arr = snvec_get_array(w);
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+    // Call the Gkeyll function that computes the error weight.
+    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  }
+
+  return flag;
+}
+
+/**
+ * Compute the RHS function df/dt.
+ *
+ * @param t_curr Current simulation time.
+ * @param mnvec_y State vectors f_s.
+ * @param mnvec_ydot Time rate of change df_s/dt of each state vector.
+ * @param ctx Context with app-specific pointers.
+ * @return Sucess (=0) flag.
+ */
+static int
+dfdt_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
+  // Distribute state vector as Gkeyll expects.
+  int ns_charged = fdot_args->num_species;
+  int ns_neut = fdot_args->num_neut_species;
+
+  for (int i=0; i<ns_charged; ++i) {
+    fin[i] = smanynvec_get_array(manynvec_y, i);
+    fout[i] = smanynvec_get_array(manynvec_ydot, i);
+  }
+
+  // Call the Gkeyll function that computes df/dt. Store local CFL constrained
+  // dt (may not be used, depends on stepping method used).
+  app_ctx->dt_local = app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fdot_args);
+
+  return 0; // Success.
+}
+
+/**
+ * Compute the RHS function df/dt due to operators stepped with STS.
+ *
+ * @param t_curr Current simulation time.
+ * @param mnvec_y State vectors f_s.
+ * @param mnvec_ydot Time rate of change df_s/dt of each state vector.
+ * @param ctx Context with app-specific pointers.
+ * @return Sucess (=0) flag.
+ */
+static int
+dfdt_sts_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
+  // Distribute state vector as Gkeyll expects.
+  int ns_charged = fdot_args->num_species;
+  int ns_neut = fdot_args->num_neut_species;
+
+  for (int i=0; i<ns_charged; ++i) {
+    fin[i] = smanynvec_get_array(manynvec_y, i);
+    fout[i] = smanynvec_get_array(manynvec_ydot, i);
+  }
+
+  // Call the Gkeyll function that computes df/dt. Store local CFL constrained
+  // dt (may not be used, depends on stepping method used).
+  app_ctx->dt_local = app_ctx->dfdt_sts_func(app_ctx->app_ptr, t_curr, fdot_args);
+
+  return 0; // Success.
+}
+
+/**
+ * Gkeyll's estimate of the dominant eigenvalue of the operator stepped with STS.
+ *
+ * @param t_curr Current simulation time.
+ * @param manynvec_y State vectors f_s.
+ * @param manynvec_ydot Time rate of change df_s/dt of each state vector.
+ * @param lambdaR Real part of the dominant eigenvalue.
+ * @param lambdaI Imaginary part of the dominant eigenvalue.
+ * @param ctx Context with app-specific pointers.
+ * @param temp1,temp2,temp3 Buffers that may be used locally if needed.
+ * @return Sucess (=0) flag.
+ */
+static int
+sts_dom_eig_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot,
+  sunrealtype* lambdaR, sunrealtype* lambdaI, void *ctx,
+  N_Vector temp1, N_Vector temp2, N_Vector temp3)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
+  int ns_charged = fdot_args->num_species;
+  int ns_neut = fdot_args->num_neut_species;
+
+  for (int i=0; i<ns_charged; ++i) {
+    fin[i] = smanynvec_get_array(manynvec_y, i);
+    fout[i] = smanynvec_get_array(manynvec_ydot, i);
+  }
+
+  // Call the Gkeyll function that computes df/dt due to the operator stepped
+  // with STS and compute it slocal CFL constrained dt.
+  double dt_local = app_ctx->dfdt_sts_func(app_ctx->app_ptr, t_curr, fdot_args);
+
+  double dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
+
+  *lambdaR = -1.0/dt_global;
+  *lambdaI = SUN_RCONST(0.0);
+
+  return 0; // Success.
+}
+
+/**
+ * Return the time step dt required for stability according to Gkeyll's CFL
+ * constraint.
+ *
+ * This takes the local dt computed when df/dt was called, and performs
+ * a min reduction.
+ *
+ * @param nvec_y State vector.
+ * @param t_curr Current simulation time.
+ * @param dt_out CFL-stable dt.
+ * @param ctx App in void form.
+ * @return Sucess (=0) flag.
+ */
+static int
+cfl_stable_dt_gyrokinetic(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  double dt_local = app_ctx->dt_local;
+
+  app_ctx->dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
+  *dt_out = app_ctx->dt_global;
+
+  return 0; // Success.
+}
+
+void
+gkyl_sundials_gyrokinetic_assign_methods(struct gkyl_sundials *gksun)
+{
+  gksun->dfdt_func = dfdt_gyrokinetic;
+  gksun->dfdt_sts_func = dfdt_sts_gyrokinetic;
+  gksun->sts_dom_eig_func = sts_dom_eig_gyrokinetic;
+  gksun->cfl_stable_dt_func = cfl_stable_dt_gyrokinetic;
+  gksun->snvec_efun_cell_norm_func = snvec_efun_cell_norm_gyrokinetic;
+}
+
+#endif

@@ -1,0 +1,34 @@
+#pragma once
+// Some definitions for objects used in time integration. 
+
+#include <gkyl_array.h>
+
+// Arguments to df/dt function.
+struct gkyl_gyrokinetic_fdot_args {
+  int num_species; // Number of species.
+  int num_neut_species; // Number of neutral species.
+  const struct gkyl_array **fin; // Input charged species state (e.g. distribution function).
+  const struct gkyl_array **fin_neut; // Input neutral species state (e.g. distribution function).
+  struct gkyl_array **fout; // Time rate of change of fin (df/dt).
+  struct gkyl_array **fout_neut; // Time rate of change of fin_neut (df/dt).
+  struct gkyl_array ***bflux_in; // Input moments of boundary fluxes of charged species.
+  struct gkyl_array ***bflux_in_neut; // Input moments of boundary fluxes of neutral species.
+  struct gkyl_array ***bflux_out; // Output moments of boundary fluxes of charged species.
+  struct gkyl_array ***bflux_out_neut; // Output moments of boundary fluxes of neutral species.
+};
+
+// Arguments to df/dt function.
+struct gkyl_gyrokinetic_multib_fdot_args {
+  int nblocks_local; // Number of blocks in this MPI process.
+  int num_species; // Number of species.
+  int num_neut_species; // Number of neutral species.
+  const struct gkyl_array **fin; // Input charged species state (e.g. distribution function).
+  const struct gkyl_array **fin_neut; // Input neutral species state (e.g. distribution function).
+  struct gkyl_array **fout; // Time rate of change of fin (df/dt).
+  struct gkyl_array **fout_neut; // Time rate of change of fin_neut (df/dt).
+  struct gkyl_array ***bflux_in; // Input moments of boundary fluxes of charged species.
+  struct gkyl_array ***bflux_in_neut; // Input moments of boundary fluxes of neutral species.
+  struct gkyl_array ***bflux_out; // Output moments of boundary fluxes of charged species.
+  struct gkyl_array ***bflux_out_neut; // Output moments of boundary fluxes of neutral species.
+};
+

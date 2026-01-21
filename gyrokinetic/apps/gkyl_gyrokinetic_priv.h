@@ -90,6 +90,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_skin_surf_from_ghost.h>
+#include <gkyl_sundials_gyrokinetic.h>
+#include <gkyl_time_integ_gyrokinetic.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_vlasov.h>
@@ -1390,6 +1392,8 @@ struct gkyl_gyrokinetic_app {
   
   // Pointer to function that takes a single-step of simulation.
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
+
+  struct gkyl_gyrokinetic_fdot_args fdot_args; // Arguments for df/dt calculation.
 
   // Objects and pointers for SUNDIALS stepper.
   bool use_sundials;
@@ -4004,37 +4008,35 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @param fdot_args Arguments for df/dt calculation.
  * @return Minimum stable time step.
  */
 double
-gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Compute the RHS of the gyrokinetic equation (df/dt) due to terms stepped
+ * with STS.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @return Minimum stable time step.
+ */
+double
+gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
  * Like gyrokinetic_dfdt (compute the RHS of the gyrokinetic equation)
  * but pass the app as a void * and return 0 if successful.
  *
- * @param ctx Gyrokinetic app (as a void*).
+ * @param app_gen Gyrokinetic app (as a void*).
  * @param tcurr Current simulation time.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @param fdot_args_gen Arguments for df/dt calculation (as a void*).
  * @return Minimum stable dt in local MPI process.
  */
 double
-gyrokinetic_dfdt_generic(void* ctx, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+gyrokinetic_dfdt_generic(void *app_gen, double tcurr, void *fdot_args_gen);
 
 /**
  * Compute the RHS of the gyrokinetic equation due to operators stepped with
@@ -4051,21 +4053,19 @@ gyrokinetic_dfdt_generic(void* ctx, double tcurr,
  * @return Minimum stable dt in local MPI process.
  */
 double
-gyrokinetic_dfdt_sts_generic(void* ctx, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+gyrokinetic_dfdt_sts_generic(void *app_gen, double tcurr, void *fdot_args_gen);
 
 /**
  * Obtain the minimum CFL stable time step, reducing the local one found in
  * gyrokinetic_dfdt_generic.
  *
- * @param ctx Gyrokinetic app (as a void*).
+ * @param app_gen Gyrokinetic app (as a void*).
  * @param tcurr Current simulation time.
  * @param dt_local Time step in local MPI process.
  * @return Minimum stable dt accross all MPI processes.
  */
 double
-gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local);
+gyrokinetic_reduce_dt_generic(void *app_gen, double tcurr, double dt_local);
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
@@ -4074,19 +4074,12 @@ gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local);
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @param fdot_args Arguments for df/dt calculation.
  * @param st Time stepping status object.
  * @return Minimum stable time step.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
-  struct gkyl_update_status *st); 
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st); 
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) due to implicit terms.
@@ -4094,18 +4087,11 @@ void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @param fdot_args Arguments for df/dt calculation.
  * @param st Time stepping status object.
  */
 void gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
-  struct gkyl_update_status *st); 
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st); 
 
 /**
  * Take time-step using the RK3 method. Also sets the status object

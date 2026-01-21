@@ -488,58 +488,17 @@ snvec_new_empty(SUNContext sunctx)
   return nvec;
 }
 
-/**
- * Return the gkyl_array wrapped by an Nvector.
- *
- * @param nvin Input Nvector.
- * @return A pointer to the gkyl_array wrapped by this Nvector.
- */
-static struct gkyl_array*
+struct gkyl_array*
 snvec_get_array(N_Vector nvin)
 {
   return NV_CONTENT_GKZ(nvin)->arr;
 }
 
-/**
- * Return the gkyl_array wrapped by an Nvector, which
- * is itself wrapped by a ManyNvector.
- *
- * @param manynvin Input ManyNvector.
- * @param nvidx Index of desired Nvector.
- * @return A pointer to the gkyl_array wrapped by this Nvector.
- */
-static struct gkyl_array*
+struct gkyl_array*
 smanynvec_get_array(N_Vector manynvin, int nvidx)
 {
   N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, nvidx);
   return snvec_get_array(nvin);
-}
-
-/**
- * Error weight function for error norm of y_{n-1}.
- *
- * @param x ManyNvector y_{n-1} whose norm appears in the weight.
- * @param w ManyNvector weight to be computed.
- * @param ctx Context with app-specific pointers.
- * @return Sucess (=0) flag.
- */
-static int
-snvec_efun_cell_norm(N_Vector manyx, N_Vector manyw, void *ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-  int flag = 0;
-  for (int i=0; i<app_ctx->num_species; i++) {
-    N_Vector x = N_VGetSubvector_ManyVector(manyx, i);
-    N_Vector w = N_VGetSubvector_ManyVector(manyw, i);
-    struct gkyl_array *x_arr = snvec_get_array(x);
-    struct gkyl_array *w_arr = snvec_get_array(w);
-    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
-
-    // Call the Gkeyll function that computes the error weight.
-    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
-  }
-
-  return flag;
 }
 
 struct gkyl_sundials *
@@ -553,91 +512,6 @@ gkyl_sundials_new(bool use_gpu)
   SUNContext_Create(SUN_COMM_NULL, &gksun->sunctx);
 
   return gksun;
-}
-
-/**
- * Compute the RHS function df/dt.
- *
- * @param t_curr Current simulation time.
- * @param mnvec_y State vectors f_s.
- * @param mnvec_ydot Time rate of change df_s/dt of each state vector.
- * @param ctx Context with app-specific pointers.
- * @return Sucess (=0) flag.
- */
-static int
-dfdt(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-
-  // Distribute state vector as Gkeyll expects.
-  int num_species = app_ctx->num_species;
-  int num_neut_species = app_ctx->num_neut_species;
-
-  const struct gkyl_array *fin[num_species];
-  struct gkyl_array *fout[num_species];
-  struct gkyl_array **bflux_out[num_species];
-
-  const struct gkyl_array *fin_neut[num_neut_species];
-  struct gkyl_array *fout_neut[num_neut_species];
-  struct gkyl_array **bflux_out_neut[num_neut_species];
-
-  for (int i=0; i<num_species; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-    fout[i] = smanynvec_get_array(manynvec_ydot, i);
-  }
-
-  // Call the Gkeyll function that computes df/dt. Store local CFL constrained
-  // dt (may not be used, depends on stepping method used).
-  app_ctx->dt_local = app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
-
-  return 0; // Success.
-}
-
-/**
- * Gkeyll's estimate of the dominant eigenvalue of the operator stepped with STS.
- *
- * @param t_curr Current simulation time.
- * @param manynvec_y State vectors f_s.
- * @param manynvec_ydot Time rate of change df_s/dt of each state vector.
- * @param lambdaR Real part of the dominant eigenvalue.
- * @param lambdaI Imaginary part of the dominant eigenvalue.
- * @param ctx Context with app-specific pointers.
- * @param temp1,temp2,temp3 Buffers that may be used locally if needed.
- * @return Sucess (=0) flag.
- */
-static int
-sts_dom_eig(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
-            sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-
-  // Distribute state vector as Gkeyll expects.
-  int num_species = app_ctx->num_species;
-  int num_neut_species = app_ctx->num_neut_species;
-
-  const struct gkyl_array *fin[num_species];
-  struct gkyl_array *fout[num_species];
-  struct gkyl_array **bflux_out[num_species];
-
-  const struct gkyl_array *fin_neut[num_neut_species];
-  struct gkyl_array *fout_neut[num_neut_species];
-  struct gkyl_array **bflux_out_neut[num_neut_species];
-
-  for (int i=0; i<num_species; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-    fout[i] = smanynvec_get_array(manynvec_ydot, i);
-  }
-
-  // Call the Gkeyll function that computes df/dt due to the operator stepped
-  // with STS and compute it slocal CFL constrained dt.
-  double dt_local = app_ctx->dfdt_sts_func(app_ctx->app_ptr, t_curr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
-
-  double dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
-
-  *lambdaR = -1.0/dt_global;
-  *lambdaI = SUN_RCONST(0.0);
-
-  return 0; // Success.
 }
 
 /**
@@ -676,32 +550,6 @@ translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
   return 0;
 }
 
-/**
- * Return the time step dt required for stability according to Gkeyll's CFL
- * constraint.
- *
- * This takes the local dt computed when df/dt was called, and performs
- * a min reduction.
- *
- * @param nvec_y State vector.
- * @param t_curr Current simulation time.
- * @param dt_out CFL-stable dt.
- * @param ctx App in void form.
- * @return Sucess (=0) flag.
- */
-static int
-cfl_stable_dt(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-
-  double dt_local = app_ctx->dt_local;
-
-  app_ctx->dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
-  *dt_out = app_ctx->dt_global;
-
-  return 0; // Success.
-}
-
 static void
 gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
@@ -717,7 +565,7 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   // Call ERKStepCreate to initialize the ARK timestepper module and
   // specify the right-hand side function in y'=f(t,y), the initial time
   // T0, and the initial dependent variable vector y.
-  gksun->arkode_mem = ERKStepCreate(dfdt, inp->t_curr, nvin, nvin->sunctx);
+  gksun->arkode_mem = ERKStepCreate(gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
   sundials_check_flag((void*)gksun->arkode_mem, "ERKStepCreate", 0);
 
   // Set routines.
@@ -734,7 +582,7 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
 
   // Set CFL stable time step size function.
-  flag = ARKodeSetStabilityFn(gksun->arkode_mem, cfl_stable_dt, inp->app_ctx);
+  flag = ARKodeSetStabilityFn(gksun->arkode_mem, gksun->cfl_stable_dt_func, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetStabilityFn", 1);
 
   // Set CFL safety factor one to ensure exact use of the stable time step size.
@@ -785,7 +633,7 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   // Call LSRKStepCreateSSP to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSSP(dfdt, inp->t_curr, nvin, nvin->sunctx);
+  gksun->arkode_mem = LSRKStepCreateSSP(gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
   sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0);
 
   // Set user data (app pointer).
@@ -809,7 +657,7 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
 
   // Attach the error function.
-  flag = ARKodeWFtolerances(gksun->arkode_mem, snvec_efun_cell_norm);
+  flag = ARKodeWFtolerances(gksun->arkode_mem, gksun->snvec_efun_cell_norm_func);
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
 }
 
@@ -846,7 +694,7 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSTS(dfdt, inp->t_curr, nvin, nvin->sunctx);
+  gksun->arkode_mem = LSRKStepCreateSTS(gksun->dfdt_sts_func, inp->t_curr, nvin, nvin->sunctx);
   sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSTS", 0);
 
   // Set user data (app pointer).
@@ -860,7 +708,7 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   gksun->dom_eig_est = 0;
   if (inp->dee_by_gkeyll) {
     // Gkeyll estimates the dominant eigenvalue.
-    flag = LSRKStepSetDomEigFn(gksun->arkode_mem, sts_dom_eig);
+    flag = LSRKStepSetDomEigFn(gksun->arkode_mem, gksun->sts_dom_eig_func);
     sundials_check_flag(&flag, "LSRKStepSetDomEigFn", 1);
   }
   else {
@@ -959,8 +807,8 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   
     // Compute dt.
     double dt_init;
-    flag = dfdt(time, manynvin, manynvbuff, gksun->app_ctx);
-    flag = cfl_stable_dt(manynvin, time, &dt_init, gksun->app_ctx);
+    flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
+    flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
 
     // Set the initial step size.
     flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);

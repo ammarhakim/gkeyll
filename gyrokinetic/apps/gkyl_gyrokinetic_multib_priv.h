@@ -6,70 +6,71 @@
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
+#include <gkyl_time_integ_gyrokinetic.h>
 
 // A multib_comm_conn send/recv pair used for communicating between blocks.
 struct gkyl_mbcc_sr {
   struct gkyl_multib_comm_conn **recv, **send;
 };
 
-// top-level internal App
+// Top-level internal App.
 struct gkyl_gyrokinetic_multib_app {
-  char name[128]; // name of app
-  struct gkyl_comm *comm; // global communicator to use
+  char name[128]; // Name of app.
+  struct gkyl_comm *comm; // Global communicator to use.
   bool use_gpu; // Whether to use the GPU.
   
-  // geometry and topology of all blocks in simulation
+  // Geometry and topology of all blocks in simulation.
   struct gkyl_gk_block_geom *gk_block_geom;
   struct gkyl_block_topo *block_topo;
   
-  double cfl_frac; // CFL fraction to use
-  double bmag_ref; // Reference magnetic field
-  int num_species; // number of species
-  int num_neut_species; // number of neutral species
+  double cfl_frac; // CFL fraction to use.
+  double bmag_ref; // Reference magnetic field.
+  int num_species; // Number of species.
+  int num_neut_species; // Number of neutral species.
 
-  bool update_field; // true if there solving Poisson equation
+  bool update_field; // True if there solving Poisson equation.
   struct gk_multib_field *field; // Field object.
 
-  char species_name[GKYL_MAX_SPECIES][128]; // name of each species
-  char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species  
+  char species_name[GKYL_MAX_SPECIES][128]; // Name of each species.
+  char neut_species_name[GKYL_MAX_SPECIES][128]; // Name of each neutral species.
 
-  struct gkyl_comm **block_comms; // list of block-communicators
+  struct gkyl_comm **block_comms; // List of block-communicators.
 
-  int num_local_blocks; // total number of blocks on current rank
-  int *local_blocks; // local blocks IDs handled by current rank
+  int num_local_blocks; // Total number of blocks on current rank.
+  int *local_blocks; // Local blocks IDs handled by current rank.
   struct gkyl_gyrokinetic_app **singleb_apps; // App objects: one per local block
 
-  const struct gkyl_rrobin_decomp *round_robin; // round-robin decomp
-  struct gkyl_rect_decomp **decomp; // list of decomps (num_blocks)
+  const struct gkyl_rrobin_decomp *round_robin; // Round-robin decomp.
+  struct gkyl_rect_decomp **decomp; // List of decomps (num_blocks).
 
   struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for conf-space sync.
   struct gkyl_mbcc_sr *mbcc_sync_charged; // Connections for charged species phase-space.
   struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
 
-  double tcurr; // current time
+  double tcurr; // Current simulation time.
   
-  struct gkyl_gyrokinetic_stat stat; // statistics
+  struct gkyl_gyrokinetic_multib_fdot_args fdot_args; // Arguments for df/dt calculation.
+  struct gkyl_gyrokinetic_stat stat; // Statistics.
 
   gkyl_dynvec dts; // Record time step over time.
-  bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
+  bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
 };
 
-// Meta-data for IO
+// Meta-data for IO.
 struct gyrokinetic_multib_output_meta {
-  int frame; // frame number
-  double stime; // output time
-  const char *app_name; // name of App
-  const char *topo_file_name; // name of topology file
+  int frame; // Frame number.
+  double stime; // Output time.
+  const char *app_name; // Name of App.
+  const char *topo_file_name; // Name of topology file.
 };
 
-// field data
+// Field data.
 struct gk_multib_field {
-  struct gkyl_gyrokinetic_multib_field info; // data for field
-  enum gkyl_gkfield_id gkfield_id; // type of field
-  int num_local_blocks; // total number of blocks on current rank
-  int cdim; // number of configuration space dimensions
-  bool half_domain; // For use in double null
-                    // Whether to set BCs for simulation of lower half (Z<0)
+  struct gkyl_gyrokinetic_multib_field info; // Data for field.
+  enum gkyl_gkfield_id gkfield_id; // Type of field.
+  int num_local_blocks; // Total number of blocks on current rank.
+  int cdim; // Number of configuration space dimensions.
+  bool half_domain; // For use in double null. Whether to set BCs for simulation of lower half (Z<0).
 
   struct gkyl_array **phi_local;
   struct gkyl_array **rho_c_local;

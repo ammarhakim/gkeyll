@@ -12,6 +12,7 @@
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
+#include <gkyl_time_integ_gyrokinetic.h>
 
 #include <mpack.h>
 
@@ -708,6 +709,58 @@ gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app* app)
   app->post_pos_quasineut_func = gyrokinetic_post_positivity_quasineut_disabled;
 }
 
+static inline void
+gyrokinetic_fdot_args_alloc(struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_gyrokinetic_app* app)
+{
+  // Allocate space to hold pointers to arguments to dfdt.
+  int ns_charged = app->num_species;
+  fdot_args->num_species = ns_charged;
+  fdot_args->fin = 0;
+  fdot_args->fout = 0;
+  fdot_args->bflux_in = 0;
+  fdot_args->bflux_out = 0;
+  if (ns_charged > 0) {
+    fdot_args->fin = gkyl_malloc(ns_charged * sizeof(struct gkyl_array *));
+    fdot_args->fout = gkyl_malloc(ns_charged * sizeof(struct gkyl_array *));
+    fdot_args->bflux_in = gkyl_malloc(ns_charged * sizeof(struct gkyl_array **));
+    fdot_args->bflux_out = gkyl_malloc(ns_charged * sizeof(struct gkyl_array **));
+  }
+
+  int ns_neut = app->num_neut_species;
+  fdot_args->num_neut_species = ns_neut;
+  fdot_args->fin_neut = 0;
+  fdot_args->fout_neut = 0;
+  fdot_args->bflux_in_neut = 0;
+  fdot_args->bflux_out_neut = 0;
+  if (ns_neut > 0) {
+    fdot_args->fin_neut = gkyl_malloc(ns_neut * sizeof(struct gkyl_array *));
+    fdot_args->fout_neut = gkyl_malloc(ns_neut * sizeof(struct gkyl_array *));
+    fdot_args->bflux_in_neut = gkyl_malloc(ns_neut * sizeof(struct gkyl_array **));
+    fdot_args->bflux_out_neut = gkyl_malloc(ns_neut * sizeof(struct gkyl_array **));
+  }
+}
+
+static inline void
+gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_gyrokinetic_app* app)
+{
+  // Free space used to hold pointers to arguments to dfdt.
+  int ns_charged = app->num_species;
+  if (ns_charged > 0) {
+    gkyl_free(fdot_args->fin);
+    gkyl_free(fdot_args->fout);
+    gkyl_free(fdot_args->bflux_in);
+    gkyl_free(fdot_args->bflux_out);
+  }
+
+  int ns_neut = app->num_neut_species;
+  if (ns_neut > 0) {
+    gkyl_free(fdot_args->fin_neut);
+    gkyl_free(fdot_args->fout_neut);
+    gkyl_free(fdot_args->bflux_in_neut);
+    gkyl_free(fdot_args->bflux_out_neut);
+  }
+}
+
 struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
@@ -832,6 +885,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
+  // Allocate space to hold pointers to arguments to dfdt.
+  gyrokinetic_fdot_args_alloc(&app->fdot_args, app);
+
   app->use_sundials = false;
   if (!gk->sundials_stepper.enable) {
     // Use implicit BGK collisions if specified
@@ -862,7 +918,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     // Step the solution forward with SUNDIALS.
     app->use_sundials = true;
 
+    // Allocate Gkeyll's Sundials object.
     app->gk_sundials = gkyl_sundials_new(app->use_gpu);
+
+    // Set GK specific methods in Sundials object.
+    gkyl_sundials_gyrokinetic_assign_methods(app->gk_sundials);
 
     // Create a Sundials Nvector for each quantity stepped in time.
     for (int i=0; i<ns; ++i) {
@@ -887,12 +947,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize SSP RK stepper.
     app->sundials_app_ctx.app_ptr = app;
+    app->sundials_app_ctx.fdot_args_ptr = &app->fdot_args;
     app->sundials_app_ctx.dfdt_func = gyrokinetic_dfdt_generic;
     app->sundials_app_ctx.dfdt_sts_func = gyrokinetic_dfdt_sts_generic;
     app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
-    app->sundials_app_ctx.num_species = app->num_species;
-    app->sundials_app_ctx.num_neut_species = app->num_neut_species;
 
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
@@ -1972,10 +2031,15 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 // 
 
 double
-gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
   double dtmin = DBL_MAX;
 
   // Compute moments needed by various modules.
@@ -2046,10 +2110,15 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr,
 }
 
 double
-gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
   double dtmin = DBL_MAX;
 
   // Compute moments needed by various modules.
@@ -2078,33 +2147,33 @@ gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr,
 }
 
 double
-gyrokinetic_dfdt_generic(void* ctx, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+gyrokinetic_dfdt_generic(void* app_gen, double tcurr, void *fdot_args_gen)
 {
-  struct gkyl_gyrokinetic_app *app = ctx;
-  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  double dtmin = gyrokinetic_dfdt(app, tcurr, fdot_args);
+
   return dtmin;
 }
 
 double
-gyrokinetic_dfdt_sts_generic(void* ctx, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[])
+gyrokinetic_dfdt_sts_generic(void* app_gen, double tcurr, void *fdot_args_gen)
 {
-  struct gkyl_gyrokinetic_app *app = ctx;
-  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  double dtmin = gyrokinetic_dfdt_sts(app, tcurr, fdot_args);
+
   return dtmin;
 }
 
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st)
 {
   // Compute df/dt
-  double dtmin = gyrokinetic_dfdt(app, tcurr, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut);
+  double dtmin = gyrokinetic_dfdt(app, tcurr, fdot_args);
 
   struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;
@@ -2126,9 +2195,9 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 }
 
 double
-gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local)
+gyrokinetic_reduce_dt_generic(void *app_gen, double tcurr, double dt_local)
 {
-  struct gkyl_gyrokinetic_app *app = ctx;
+  struct gkyl_gyrokinetic_app *app = app_gen;
 
   // Compute minimum time-step across all processors.
   struct timespec wtm = gkyl_wall_clock();
@@ -2141,10 +2210,15 @@ gyrokinetic_reduce_dt_generic(void *ctx, double tcurr, double dt_local)
 
 void
 gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st)
 {
+  const struct gkyl_array **fin = fdot_args->fin;
+  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  struct gkyl_array **fout = fdot_args->fout;
+  struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
+
   // Compute moments needed by various modules.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
@@ -3269,6 +3343,8 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app)
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
+  gyrokinetic_fdot_args_release(&app->fdot_args, app);
+
   gyrokinetic_post_positivity_quasineut_release(app);
 
   gkyl_array_release(app->jacobtot_inv_weak);

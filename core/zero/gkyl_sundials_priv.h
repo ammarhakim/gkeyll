@@ -50,6 +50,13 @@ struct gkyl_sundials
   void *arkode_mem; // Memory for ARKODE.
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.
   SUNDomEigEstimator dom_eig_est; // Dominant eigenvalue estimator.
+  // Methods assigned by specific apps.
+  int (*dfdt_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
+  int (*dfdt_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
+  int (*sts_dom_eig_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
+                          sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
+  int (*cfl_stable_dt_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
+  int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
 };
 
 /**
@@ -78,3 +85,21 @@ sundials_check_flag(void *flagvalue, const char *funcname, int opt)
     }
   }
 }
+
+/**
+ * Return the gkyl_array wrapped by an Nvector.
+ *
+ * @param nvin Input Nvector.
+ * @return A pointer to the gkyl_array wrapped by this Nvector.
+ */
+struct gkyl_array* snvec_get_array(N_Vector nvin);
+
+/**
+ * Return the gkyl_array wrapped by an Nvector, which
+ * is itself wrapped by a ManyNvector.
+ *
+ * @param manynvin Input ManyNvector.
+ * @param nvidx Index of desired Nvector.
+ * @return A pointer to the gkyl_array wrapped by this Nvector.
+ */
+struct gkyl_array* smanynvec_get_array(N_Vector manynvin, int nvidx);

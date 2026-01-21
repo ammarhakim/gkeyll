@@ -25,21 +25,16 @@ enum gkyl_sundials_rk_method {
 // need to handle the app pointer as a void *.
 struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
+  void *fdot_args_ptr; // Arguments to df/dt calculation.
   // Function that computes df/dt.
-  double (*dfdt_func)(void *app, double t_curr,
-    const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
-    const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+  double (*dfdt_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that computes df/dt due to operators stepped with STS.
-  double (*dfdt_sts_func)(void *app, double t_curr,
-    const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[],
-    const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[]);
+  double (*dfdt_sts_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that reduces a local dt across MPI processes.
-  double (*reduce_dt_func)(void *app, double t_curr, double dt_local);
+  double (*reduce_dt_func)(void *app_gen, double t_curr, double dt_local);
   // Function that computes weight for the error norm.
-  int (*error_wgt_func)(void *app, const struct gkyl_array *xarr,
+  int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr,
     struct gkyl_array *wgt, struct gkyl_range *local_range);
-  int num_species; // Number of species.
-  int num_neut_species; // Number of neutral species.
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
   double dt_global; // Reduction of dt_local over all MPI processes.

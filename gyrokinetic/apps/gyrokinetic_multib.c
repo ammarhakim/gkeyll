@@ -427,7 +427,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
+gkyl_gyrokinetic_multib_app*
+gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -530,7 +531,63 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   return mbapp;
 }
 
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
+static inline void
+gyrokinetic_multib_fdot_args_alloc(struct gkyl_gyrokinetic_multib_fdot_args *fdot_args, struct gkyl_gyrokinetic_multib_app* mbapp)
+{
+  // Allocate space to hold pointers to arguments to dfdt.
+  int nblocks_local = mbapp->num_local_blocks;
+  fdot_args->nblocks_local = nblocks_local;
+
+  int ns_charged = mbapp->num_species;
+  fdot_args->num_species = ns_charged;
+  fdot_args->fin = 0;
+  fdot_args->fout = 0;
+  fdot_args->bflux_in = 0;
+  fdot_args->bflux_out = 0;
+  if (ns_charged > 0) {
+    fdot_args->fin = gkyl_malloc(nblocks_local * ns_charged * sizeof(struct gkyl_array *));
+    fdot_args->fout = gkyl_malloc(nblocks_local * ns_charged * sizeof(struct gkyl_array *));
+    fdot_args->bflux_in = gkyl_malloc(nblocks_local * ns_charged * sizeof(struct gkyl_array **));
+    fdot_args->bflux_out = gkyl_malloc(nblocks_local * ns_charged * sizeof(struct gkyl_array **));
+  }
+
+  int ns_neut = mbapp->num_neut_species;
+  fdot_args->num_neut_species = ns_neut;
+  fdot_args->fin_neut = 0;
+  fdot_args->fout_neut = 0;
+  fdot_args->bflux_in_neut = 0;
+  fdot_args->bflux_out_neut = 0;
+  if (ns_neut > 0) {
+    fdot_args->fin_neut = gkyl_malloc(nblocks_local * ns_neut * sizeof(struct gkyl_array *));
+    fdot_args->fout_neut = gkyl_malloc(nblocks_local * ns_neut * sizeof(struct gkyl_array *));
+    fdot_args->bflux_in_neut = gkyl_malloc(nblocks_local * ns_neut * sizeof(struct gkyl_array **));
+    fdot_args->bflux_out_neut = gkyl_malloc(nblocks_local * ns_neut * sizeof(struct gkyl_array **));
+  }
+}
+
+static inline void
+gyrokinetic_multib_fdot_args_release(struct gkyl_gyrokinetic_multib_fdot_args *fdot_args, struct gkyl_gyrokinetic_multib_app* mbapp)
+{
+  // Free space used to hold pointers to arguments to dfdt.
+  int ns_charged = mbapp->num_species;
+  if (ns_charged > 0) {
+    gkyl_free(fdot_args->fin);
+    gkyl_free(fdot_args->fout);
+    gkyl_free(fdot_args->bflux_in);
+    gkyl_free(fdot_args->bflux_out);
+  }
+
+  int ns_neut = mbapp->num_neut_species;
+  if (ns_neut > 0) {
+    gkyl_free(fdot_args->fin_neut);
+    gkyl_free(fdot_args->fout_neut);
+    gkyl_free(fdot_args->bflux_in_neut);
+    gkyl_free(fdot_args->bflux_out_neut);
+  }
+}
+
+gkyl_gyrokinetic_multib_app*
+gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -856,6 +913,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   mbapp->dts = gkyl_dynvec_new(GKYL_DOUBLE, 1); // Dynvector to store time steps.
   mbapp->is_first_dt_write_call = true;
+
+  // Allocate space to hold pointers to arguments to dfdt.
+  gyrokinetic_multib_fdot_args_alloc(&mbapp->fdot_args, mbapp);
 
   gkyl_free(rank_list);
   gkyl_free(branks);
@@ -1816,6 +1876,7 @@ gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app* app, double tm,
 
 void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
 {
+  gyrokinetic_multib_fdot_args_release(&mbapp->fdot_args, mbapp);
 
   if (mbapp->singleb_apps) {
     for (int i=0; i<mbapp->num_local_blocks; ++i)
