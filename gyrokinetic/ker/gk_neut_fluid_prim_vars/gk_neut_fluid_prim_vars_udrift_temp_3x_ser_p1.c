@@ -28,6 +28,12 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_3x_ser_p1(int count
   const double *rhouz = &moms[24]; 
   const double *totE  = &moms[32]; 
 
+  double rhoSq[8] = {0.0}; 
+  binop_mul_3d_ser_p1(rho, rho, rhoSq); 
+ 
+  double rho_totE[8] = {0.0}; 
+  binop_mul_3d_ser_p1(rho, totE, rho_totE); 
+ 
   double rhouxSq[8] = {0.0}; 
   binop_mul_3d_ser_p1(rhoux, rhoux, rhouxSq); 
  
@@ -48,20 +54,22 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_temp_set_prob_3x_ser_p1(int count
   binop_mul_3d_ser_p1(rho_inv, rhouy, uy); 
   binop_mul_3d_ser_p1(rho_inv, rhouz, uz); 
  
-  double rho_temp[8]; 
-  rho_temp[0] = (gas_gamma - 1.0)*(mass * totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
-  rho_temp[1] = (gas_gamma - 1.0)*(mass * totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
-  rho_temp[2] = (gas_gamma - 1.0)*(mass * totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
-  rho_temp[3] = (gas_gamma - 1.0)*(mass * totE[3] - 0.5*(rhouxSq[3] + rhouySq[3] + rhouzSq[3])); 
-  rho_temp[4] = (gas_gamma - 1.0)*(mass * totE[4] - 0.5*(rhouxSq[4] + rhouySq[4] + rhouzSq[4])); 
-  rho_temp[5] = (gas_gamma - 1.0)*(mass * totE[5] - 0.5*(rhouxSq[5] + rhouySq[5] + rhouzSq[5])); 
-  rho_temp[6] = (gas_gamma - 1.0)*(mass * totE[6] - 0.5*(rhouxSq[6] + rhouySq[6] + rhouzSq[6])); 
-  rho_temp[7] = (gas_gamma - 1.0)*(mass * totE[7] - 0.5*(rhouxSq[7] + rhouySq[7] + rhouzSq[7])); 
+  double rhoSq_temp[8]; 
+  rhoSq_temp[0] = mass*(gas_gamma-1.0)*(rho_totE[0] - 0.5*(rhouxSq[0] + rhouySq[0] + rhouzSq[0])); 
+  rhoSq_temp[1] = mass*(gas_gamma-1.0)*(rho_totE[1] - 0.5*(rhouxSq[1] + rhouySq[1] + rhouzSq[1])); 
+  rhoSq_temp[2] = mass*(gas_gamma-1.0)*(rho_totE[2] - 0.5*(rhouxSq[2] + rhouySq[2] + rhouzSq[2])); 
+  rhoSq_temp[3] = mass*(gas_gamma-1.0)*(rho_totE[3] - 0.5*(rhouxSq[3] + rhouySq[3] + rhouzSq[3])); 
+  rhoSq_temp[4] = mass*(gas_gamma-1.0)*(rho_totE[4] - 0.5*(rhouxSq[4] + rhouySq[4] + rhouzSq[4])); 
+  rhoSq_temp[5] = mass*(gas_gamma-1.0)*(rho_totE[5] - 0.5*(rhouxSq[5] + rhouySq[5] + rhouzSq[5])); 
+  rhoSq_temp[6] = mass*(gas_gamma-1.0)*(rho_totE[6] - 0.5*(rhouxSq[6] + rhouySq[6] + rhouzSq[6])); 
+  rhoSq_temp[7] = mass*(gas_gamma-1.0)*(rho_totE[7] - 0.5*(rhouxSq[7] + rhouySq[7] + rhouzSq[7])); 
 
+  double rhoSq_inv[8] = {0.0}; 
+  ser_3x_p1_inv(rhoSq, rhoSq_inv); 
   // Calculate expansions of temperature. 
   double temp[8] = {0.0}; 
  
-  binop_mul_3d_ser_p1(rho_inv, rho_temp, temp); 
+  binop_mul_3d_ser_p1(rhoSq_inv, rhoSq_temp, temp); 
   gkyl_mat_set(&rhs_ux,0,0,ux[0]); 
   gkyl_mat_set(&rhs_uy,0,0,uy[0]); 
   gkyl_mat_set(&rhs_uz,0,0,uz[0]); 
