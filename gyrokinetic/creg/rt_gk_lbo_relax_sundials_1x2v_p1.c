@@ -82,9 +82,9 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.250 / nu; // Final simulation time.
+  double t_end = 0.5 / nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
-  double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double write_phase_freq = .20; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -324,11 +324,11 @@ main(int argc, char **argv)
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,
 //      .max_steps = 100000,
-//      .num_stages = 4,
+//      .num_stages = 3,
 //      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
       .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
 //      .max_num_stages = 10,
-//      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
 //      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
     },
 
