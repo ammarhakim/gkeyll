@@ -17,8 +17,11 @@
 #include <gkyl_vlasov_kernels.h>
 
 void
-test_triad_2x2v_rphi_ks_pnt_alpha(int poly_order)
+test_triad_2x2v_rphi_ks_pnt_alpha_p2()
 {
+
+  // poylnomial order for this test is fixed to 2
+  int poly_order = 2;
 
   // Black hole parameters
   struct vm_geom geom;
@@ -79,7 +82,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha(int poly_order)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
 
   // Allocate arrays for covariant tangent basis 
-  conf_poisson_tensor = mkarr(false, basis.num_basis*num_pt_indices[vdim-1], local_ext.volume);
+  conf_poisson_tensor = mkarr(false, confBasis.num_basis*num_pt_indices[vdim-1], confLocal_ext.volume);
 
   // Construct the Geometry for this configuration
   gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
@@ -183,10 +186,10 @@ test_triad_2x2v_rphi_ks_pnt_alpha(int poly_order)
       for (int m = 0; m<NC; ++m) {
         int test_idx = k*NC + m;
         double expected = 0;
-        if (iter.idx[0] == 1) expected = conf_pt_pnt1_vals[test_idx];
-        if (iter.idx[0] == 3) expected = conf_pt_pnt2_vals[test_idx];
-        if (iter.idx[0] == 2) expected = conf_pt_pnt3_vals[test_idx];
-        if (iter.idx[0] == 4) expected = conf_pt_pnt4_vals[test_idx];
+        if (iter.idx[0] == 1 && iter.idx[1] == 1) expected = conf_pt_pnt1_vals[test_idx];
+        if (iter.idx[0] == 1 && iter.idx[1] == 2) expected = conf_pt_pnt2_vals[test_idx];
+        if (iter.idx[0] == 2 && iter.idx[1] == 1) expected = conf_pt_pnt3_vals[test_idx];
+        if (iter.idx[0] == 2 && iter.idx[1] == 2) expected = conf_pt_pnt4_vals[test_idx];
         //printf("conf_poisson_tensor_d[%d]: %1.16e\n",test_idx,conf_poisson_tensor_d[test_idx]);
         TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
       }
@@ -252,7 +255,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha(int poly_order)
   gkyl_array_release(hamil);
 }
 
-void test_triad_2x2v_rphi_ks_alpha() { test_triad_2x2v_rphi_ks_pnt_alpha(2); }
+void test_triad_2x2v_rphi_ks_alpha() { test_triad_2x2v_rphi_ks_pnt_alpha_p2(); }
 
 TEST_LIST = {
   { "test_triad_2x2v_rphi_ks_alpha", test_triad_2x2v_rphi_ks_alpha},
