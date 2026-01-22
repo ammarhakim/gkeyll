@@ -819,6 +819,22 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   }
 
+  if (cdim == 3) {
+    // Sync the surface deltats. Need top copy the upper ghost into the upper skin before syncing.
+    for (int d = 0; d<cdim; d++) {
+      // Sync jacobgeo.
+      struct gkyl_array *deltats[mbapp->num_local_blocks];
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+        deltats[b] = geo_surf.deltats;
+        gkyl_array_copy_range_to_range(deltats[b], deltats[b], &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+      }
+      gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+        mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, deltats, deltats);
+    }
+  }
+
   // Sync the effective diffusivity of the anomalous diffusion operator.
   // Assume they either all have anomalous diffusion or none of them do.
   bool any_anomalous_diff = false;

@@ -26,6 +26,7 @@ struct gk_geom_surf {
   struct gkyl_array* normcurlbhat; // 1 component, n^m \dot curl(bhat)
   struct gkyl_array* normals; // 9 components Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* lenr; // 1 components Jc|n^i|
+  struct gkyl_array* deltats; // 1 component phi-alpha
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array* mc2p_nodal_fd; // 3 components. Cartesian X,Y, and Z at surf quad nodes and nodes epsilon away
@@ -53,6 +54,8 @@ struct gk_geom_surf {
 
   struct gkyl_array* B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33 
   struct gkyl_array* lenr_nodal; // 1 components Jc|n^i|
+
+  struct gkyl_array* deltats_nodal; // 1 component phi-alpha
 };
 
 struct gk_geom_corn {
