@@ -451,6 +451,20 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
+  // sync the numerical shift if requested
+  if (geometry_inp.sync_numerical_shift) {
+    int dir  = 2;
+    gkyl_array_copy_range_to_range(app->gk_geom->geo_surf[dir].deltats, app->gk_geom->geo_surf[dir].deltats, &app->upper_skin[d], &app->upper_ghost[d]);
+    int shift_periodic_dirs[1] = {1};
+    int shift_num_periodic_dirs = 1;
+    gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, shift_num_periodic_dirs, shift_periodic_dirs, app->gk_geom->geo_surf[dir].deltats);
+    struct gkyl_array *buffer = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_copy(buffer, app->gk_geom->geo_surf[dir].deltats);
+    gkyl_array_accumulate_range(app->gk_geom->geo_surf[dir].deltats, -1.0, buffer, &app->upper_skin[d], &app->upper_ghost[d]);
+    gkyl_array_accumulate_range(app->gk_geom->geo_surf[dir].deltats, -1.0, buffer, &app->lower_skin[d], &app->lower_ghost[d]);
+    gkyl_array_release(buffer);
+  }
+
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   app->jacobtot_inv_weak = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

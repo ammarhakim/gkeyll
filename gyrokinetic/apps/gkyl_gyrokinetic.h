@@ -202,6 +202,8 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
+  bool sync_numerical_shift; // Whether to sync numerical shift function
 };
 
 // Parameters for species radiation.
