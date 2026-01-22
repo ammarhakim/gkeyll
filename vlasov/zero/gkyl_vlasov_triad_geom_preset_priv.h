@@ -52,6 +52,31 @@ eval_annulus_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, doub
 }
 
 void
+eval_ks_rphi_hamil_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+
+  // Grab the geometry
+  const struct vm_geom *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+  
+  double r = xn[0];
+  double phi = xn[1];
+
+  double pr_hat = xn[2];
+  double pphi_hat = xn[3];
+
+  // Build the Hamiltonian for Kerr-Schild in 2D (Assumes theta = pi/2)
+  double rho_sq = r * r ;
+  double H = (1.0/ sqrt(1 + 2*M*r/rho_sq)) * (
+        sqrt(1 + pr_hat * pr_hat + pphi_hat * pphi_hat) 
+        - (2*M*r/rho_sq) * pr_hat );
+
+  fout[0] = H;
+}
+
+
+void
 eval_ks_rphi_vierbein_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
@@ -100,7 +125,7 @@ eval_ks_rphi_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, doub
   fout[2] = -(M * a * ( - r * r)) / (pow(rho_sq, 1.5) * sqrt(rho_sq + 2.0 * M * r));
   fout[3] = r / sqrt(rho_sq);
 
-  // Gradient w.r.t. theta: d(e_i^a)/dphi
+  // Gradient w.r.t. phi: d(e_i^a)/dphi
   fout[4] = 0.0;
   fout[5] = 0.0;
   fout[6] = 0.0;
@@ -302,31 +327,6 @@ eval_rz_cylindrical_vierbein_gradient_3v(double t, const double* GKYL_RESTRICT x
   fout[18+8] = d_e_tt_dt;
 
 }
-
-void
-eval_ks_rphi_hamil_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-
-  // Grab the geometry
-  const struct vm_geom *geom = ctx;
-  double a = geom->spin_bh;
-  double M = geom->mass_bh;
-  
-  double r = xn[0];
-  double phi = xn[1];
-
-  double pr_hat = xn[2];
-  double pphi_hat = xn[3];
-
-  // Build the Hamiltonian for Kerr-Schild in 3D
-  double rho_sq = r * r ;
-  double H = (1.0/ sqrt(1 + 2*M*r/rho_sq)) * (
-        sqrt(1 + pr_hat * pr_hat + pphi_hat * pphi_hat) 
-        - (2*M*r/rho_sq) * pr_hat );
-
-  fout[0] = H;
-}
-
 
 void
 eval_ks_hamil_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
