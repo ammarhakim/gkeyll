@@ -1790,10 +1790,14 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
     gkyl_dg_vlasov_conf_flux_surf_release(vms->calc_conf_flux);
     gkyl_array_release(vms->conf_flux_surf);
   }
-    gkyl_array_release(vms->mom_hamil); 
-    if (app->use_gpu){
-      gkyl_array_release(vms->mom_hamil_host);
-    }
+  gkyl_array_release(vms->hamil);
+  if (app->use_gpu) {
+    gkyl_array_release(vms->hamil_host);
+  }
+  gkyl_array_release(vms->mom_hamil); 
+  if (app->use_gpu){
+    gkyl_array_release(vms->mom_hamil_host);
+  }
   gkyl_dg_vlasov_vel_flux_surf_release(vms->calc_vel_flux);
   gkyl_array_release(vms->qmem); 
   gkyl_array_release(vms->pot_tot); 
@@ -1845,7 +1849,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
       }
     }
   }
-  gkyl_array_release(vms->mom_hamil);  
   gkyl_array_release(vms->conf_poisson_tensor);
   if (app->use_gpu) {
     gkyl_array_release(vms->conf_poisson_tensor_host);
