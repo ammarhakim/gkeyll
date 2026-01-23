@@ -882,6 +882,90 @@ void test_array_shiftc_range_ho() {
   test_array_shiftc_range(false);
 }
 
+void test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
+{
+  // Test array_copy_range_to_range with ranges of different dimensionality.
+  // MF 2025/01/22: at the moment this only works for deflating the last
+  // dimension.
+  int shape_do[] = {10, 20};
+  int ncomp = 6;
+
+  int deflate_idx = 3;
+
+  int ndim_do = sizeof(shape_do)/sizeof(shape_do[0]);
+  struct gkyl_range range_do;
+  gkyl_range_init_from_shape(&range_do, ndim_do, shape_do);
+
+  struct gkyl_array *a_do = mkarr(use_gpu, ncomp, range_do.volume);
+  struct gkyl_array *a_do_ho = use_gpu? mkarr(false, ncomp, range_do.volume)
+                                      : gkyl_array_acquire(a_do);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range_do);
+  while (gkyl_range_iter_next(&iter)) {
+    double *a_do_c = gkyl_array_fetch(a_do_ho, gkyl_range_idx(&range_do, iter.idx));
+    for (int k=0; k<ncomp; k++) {
+      a_do_c[k] = 0.2*k;
+      for (int d=0; d<ndim_do; d++)
+        a_do_c[k] += d*iter.idx[d];
+    }
+  }
+  gkyl_array_copy(a_do, a_do_ho);
+
+  for (int deflate_dir=1; deflate_dir<ndim_do; deflate_dir++) {
+
+    int remaining_dir = deflate_dir==0? 1 : 0;
+    int shape_tar[] = {shape_do[remaining_dir]};
+
+    int ndim_tar = sizeof(shape_tar)/sizeof(shape_tar[0]);
+
+    struct gkyl_range range_tar;
+    gkyl_range_init_from_shape(&range_tar, ndim_tar, shape_tar);
+
+    struct gkyl_array *a_tar = mkarr(use_gpu, ncomp, range_tar.volume);
+    struct gkyl_array *a_tar_ho = use_gpu? mkarr(false, ncomp, range_tar.volume)
+                                         : gkyl_array_acquire(a_tar);
+
+    struct gkyl_range range_do_defl; // Deflated range as a subrange.
+    int remove_dir[GKYL_MAX_DIM] = {0};
+    int loc_in_dir[GKYL_MAX_DIM] = {0};
+    remove_dir[deflate_dir] = 1;
+    loc_in_dir[deflate_dir] = deflate_idx;
+    gkyl_range_deflate(&range_do_defl, &range_do, remove_dir, loc_in_dir);
+
+    gkyl_array_copy_range_to_range(a_tar, a_do, &range_tar, &range_do_defl);
+    
+    gkyl_array_copy(a_tar_ho, a_tar);
+    gkyl_range_iter_init(&iter, &range_tar);
+    while (gkyl_range_iter_next(&iter)) {
+      double *a_tar_c = gkyl_array_fetch(a_tar_ho, gkyl_range_idx(&range_tar, iter.idx));
+      double ref_val;
+      for (int k=0; k<ncomp; k++) {
+        ref_val = 0.2*k;
+        for (int d=0; d<ndim_do; d++) {
+          if (d != deflate_dir)
+            ref_val += d*iter.idx[d];
+          else
+            ref_val += d*deflate_idx;
+        }
+
+        TEST_CHECK( a_tar_c[k] == ref_val );
+        TEST_MSG("k:%2d Expected: %.13e in cell (%d) | Produced: %.13e", k, a_tar_c[k], iter.idx[remaining_dir], ref_val);
+      }
+    }
+
+    gkyl_array_release(a_tar);
+    gkyl_array_release(a_tar_ho);
+  }
+
+  gkyl_array_release(a_do);
+  gkyl_array_release(a_do_ho);
+}
+
+void test_array_copy_range_to_range_diff_range_dim_ho() {
+  test_array_copy_range_to_range_diff_range_dim(false);
+}
+
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -1852,6 +1936,9 @@ void test_array_shiftc_range_dev() {
   test_array_shiftc_range(true);
 }
 
+void test_array_copy_range_to_range_diff_range_dim_dev() {
+  test_array_copy_range_to_range_diff_range_dim(true);
+}
 #endif
 
 TEST_LIST = {
@@ -1877,6 +1964,7 @@ TEST_LIST = {
   { "array_flip_copy_buffer_fn", test_array_flip_copy_buffer_fn },
   { "array_copy_range", test_array_copy_range},
   { "array_copy_split", test_array_copy_split },
+  { "array_copy_range_to_range_diff_range_dim", test_array_copy_range_to_range_diff_range_dim_ho},
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_clear", test_cu_array_clear},
   { "cu_array_clear_range", test_cu_array_clear_range},
@@ -1898,6 +1986,7 @@ TEST_LIST = {
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },
   { "cu_array_copy_range", test_cu_array_copy_range },
+  { "cu_array_copy_range_to_range_diff_range_dim", test_array_copy_range_to_range_diff_range_dim_dev},
 #endif
   { NULL, NULL },
 };
