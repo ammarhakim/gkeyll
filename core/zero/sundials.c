@@ -669,6 +669,14 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   // Attach the error function.
   flag = ARKodeWFtolerances(gksun->arkode_mem, gksun->snvec_efun_cell_norm_func);
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
+
+  // Set pre/post processing methods in arkode mem.
+  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
+  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
+  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 }
 
 static void
