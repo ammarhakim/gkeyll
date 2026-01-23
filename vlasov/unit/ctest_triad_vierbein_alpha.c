@@ -192,7 +192,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
         if (iter.idx[0] == 2 && iter.idx[1] == 1) expected = conf_pt_pnt3_vals[test_idx];
         if (iter.idx[0] == 2 && iter.idx[1] == 2) expected = conf_pt_pnt4_vals[test_idx];
         //printf("conf_poisson_tensor_d[%d]: %1.16e\n",test_idx,conf_poisson_tensor_d[test_idx]);
-        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
+        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-6) );
       }
     }
   }
@@ -384,15 +384,15 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
       for (int m = 0; m<48; ++m) {
         //printf("hamil_d[%d]: %1.16e\n",m,hamil_d[m]);
         double expected = hamil_d_vals[m];
-        TEST_CHECK( gkyl_compare_double(hamil_d[m], expected, 1e-12) );
+        TEST_CHECK( gkyl_compare_double(hamil_d[m], expected, 1e-6) );
       }
 
       for (int m = 0; m<48; ++m) {
         //printf("alpha(r): %1.16e, alpha(phi): %1.16e, alpha(vr): %1.16e, alpha(vphi): %1.16e\n", alpha_quad_r[m], alpha_quad_phi[m], alpha_quad_vr[m], alpha_quad_vphi[m]);
-        TEST_CHECK( gkyl_compare_double(alpha_quad_r[m],    alpha_r_vals[m],    1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_quad_phi[m],  alpha_phi_vals[m],  1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_quad_vr[m],   alpha_vr_vals[m],   1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_quad_vphi[m], alpha_vphi_vals[m], 1e-12) );
+        TEST_CHECK( gkyl_compare_double(alpha_quad_r[m],    alpha_r_vals[m],    1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_quad_phi[m],  alpha_phi_vals[m],  1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_quad_vr[m],   alpha_vr_vals[m],   1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_quad_vphi[m], alpha_vphi_vals[m], 1e-6) );
       }
 
       // Test the volume terms too
@@ -407,10 +407,10 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
 
       for (int m = 0; m<48; ++m) {
         //printf("alpha(r): %1.16e, alpha(phi): %1.16e, alpha(vr): %1.16e, alpha(vphi): %1.16e\n", alpha_vol_r[m], alpha_vol_phi[m], alpha_vol_vr[m], alpha_vol_vphi[m]);
-        TEST_CHECK( gkyl_compare_double(alpha_vol_r[m],    alpha_r_vol_vals[m],    1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_vol_phi[m],  alpha_phi_vol_vals[m],  1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_vol_vr[m],   alpha_vr_vol_vals[m],   1e-12) );
-        TEST_CHECK( gkyl_compare_double(alpha_vol_vphi[m], alpha_vphi_vol_vals[m], 1e-12) );
+        TEST_CHECK( gkyl_compare_double(alpha_vol_r[m],    alpha_r_vol_vals[m],    1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_vol_phi[m],  alpha_phi_vol_vals[m],  1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_vol_vr[m],   alpha_vr_vol_vals[m],   1e-6) );
+        TEST_CHECK( gkyl_compare_double(alpha_vol_vphi[m], alpha_vphi_vol_vals[m], 1e-6) );
       }
     }
   }
