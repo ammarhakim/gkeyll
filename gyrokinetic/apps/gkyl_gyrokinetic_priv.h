@@ -1060,7 +1060,8 @@ struct gk_species {
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
   void (*calc_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
-  void (*calc_int_mom_dt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
+  void (*calc_int_mom_dt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *fdot_int_mom);
 
   // Quantities used for FLR model:
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
@@ -3199,11 +3200,13 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks);
  *
  * @param app gyrokinetic app object.
  * @param gks Species object.
+ * @param fin Current distribution of charged species.
  * @param dt Time step.
  * @param fdot_int_mom Integrated moment divided by dt (not yet reduced over comm).
  */
 void
-gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
+gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *fdot_int_mom);
 
 /**
  * Delete resources used in species.
@@ -4092,6 +4095,48 @@ void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  */
 void gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st); 
+
+/**
+ * Perform some operations at the beginning of an RK stage.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @param stage_idx RK stage index.
+ * @param num_stages Number of RK stages.
+ */
+void
+gyrokinetic_pre_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
+ * Perform some operations at the end of an RK stage.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @param stage_idx RK stage index.
+ * @param num_stages Number of RK stages.
+ */
+void
+gyrokinetic_post_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
+ * Perform some operations at the end of a failed RK stage.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @param stage_idx RK stage index.
+ * @param num_stages Number of RK stages.
+ */
+void
+gyrokinetic_post_process_failed_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
 
 /**
  * Take time-step using the RK3 method. Also sets the status object

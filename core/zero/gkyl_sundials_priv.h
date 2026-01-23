@@ -57,6 +57,9 @@ struct gkyl_sundials
                           sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
   int (*cfl_stable_dt_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
   int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
+  int (*pre_process_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_failed_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
 };
 
 /**

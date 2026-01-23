@@ -800,6 +800,36 @@ gyrokinetic_sundials_error_weight_range(void *ctx, const struct gkyl_array *xarr
   return 0;
 }
 
+static void
+gyrokinetic_pre_process_rk_stage_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen, int stage_idx, int num_stages)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_pre_process_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+}
+
+static void
+gyrokinetic_post_process_rk_stage_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen, int stage_idx, int num_stages)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+}
+
+static void
+gyrokinetic_post_process_failed_rk_stage_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen, int stage_idx, int num_stages)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_failed_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+}
+
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -952,6 +982,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_app_ctx.dfdt_sts_func = gyrokinetic_dfdt_sts_generic;
     app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
+    app->sundials_app_ctx.pre_process_rk_stage_func = gyrokinetic_pre_process_rk_stage_generic;
+    app->sundials_app_ctx.post_process_rk_stage_func = gyrokinetic_post_process_rk_stage_generic;
+    app->sundials_app_ctx.post_process_failed_rk_stage_func = gyrokinetic_post_process_failed_rk_stage_generic;
 
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,

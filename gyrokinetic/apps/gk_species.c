@@ -459,25 +459,28 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 }
 
 static void
-gk_species_calc_int_mom_dt_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+gk_species_calc_int_mom_dt_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *fdot_int_mom)
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
   // Need to do it after the fields are updated.
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
+  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, fin); 
   gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
-gk_species_calc_int_mom_dt_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+gk_species_calc_int_mom_dt_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *fdot_int_mom)
 {
 }
 
 void
-gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *fdot_int_mom)
 {
-  gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
+  gks->calc_int_mom_dt_func(app, gks, fin, dt, fdot_int_mom);
 }
 
 static void

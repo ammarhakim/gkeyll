@@ -15,7 +15,7 @@ then
     echo "Downloading SUNDIALS .."
     # delete old checkout and builds
     rm -rf sundials
-    git clone https://github.com/LLNL/sundials
+    git clone --branch=feature/fes-get-stage-index https://github.com/LLNL/sundials
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]

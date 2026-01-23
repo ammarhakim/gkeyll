@@ -26,6 +26,7 @@ enum gkyl_sundials_rk_method {
 struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
   void *fdot_args_ptr; // Arguments to df/dt calculation.
+  void *arkode_mem; // Memory for ARKODE.
   // Function that computes df/dt.
   double (*dfdt_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that computes df/dt due to operators stepped with STS.
@@ -35,6 +36,15 @@ struct gkyl_sundials_app_ctx {
   // Function that computes weight for the error norm.
   int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr,
     struct gkyl_array *wgt, struct gkyl_range *local_range);
+  // Operations performed at the beginning of an RK stage.
+  void (*pre_process_rk_stage_func)(void *app_gen, double tcurr, double dt,
+    void *fdot_args_gen, int stage_idx, int num_stages);
+  // Operations performed at the end of an RK stage.
+  void (*post_process_rk_stage_func)(void* app_gen, double tcurr, double dt,
+    void *fdot_args, int stage_idx, int num_stages);
+  // Operations performed at the end of a failed RK stage.
+  void (*post_process_failed_rk_stage_func)(void* app_gen, double tcurr, double dt,
+    void *fdot_args, int stage_idx, int num_stages);
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
   double dt_global; // Reduction of dt_local over all MPI processes.

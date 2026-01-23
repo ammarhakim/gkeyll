@@ -569,6 +569,7 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   sundials_check_flag((void*)gksun->arkode_mem, "ERKStepCreate", 0);
 
   // Set routines.
+  inp->app_ctx->arkode_mem = gksun->arkode_mem;
   flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
@@ -614,6 +615,14 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   flag = ERKStepSetTable(gksun->arkode_mem, B_ssp33);
   sundials_check_flag(&flag, "ERKStepSetTable", 1);
 
+  // Set pre/post processing methods in arkode mem.
+  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
+  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
+  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
+
   // Free the Butcher tableau.
   ARKodeButcherTable_Free(B_ssp33);
 }
@@ -637,6 +646,7 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0);
 
   // Set user data (app pointer).
+  inp->app_ctx->arkode_mem = gksun->arkode_mem;
   flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
@@ -698,6 +708,7 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSTS", 0);
 
   // Set user data (app pointer).
+  inp->app_ctx->arkode_mem = gksun->arkode_mem;
   flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
