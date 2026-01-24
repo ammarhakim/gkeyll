@@ -573,10 +573,6 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
-  // Specify tolerances.
-  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
-  sundials_check_flag(&flag, "ARKodeSStolerances", 1);
-
   // Set the initial step size.
   sunrealtype dt_stab = 0.1; // Recalculated and passed with _reset method.
   flag = ARKodeSetInitStep(gksun->arkode_mem, dt_stab);
@@ -774,7 +770,8 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
 {
   // Set default values if user didn't provide a value.
-  if (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE)
+  if ( (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE) ||
+       ((inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3) && (inp->num_stages == 3)) )
     inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
   
   if (inp->max_steps == 0)
@@ -794,6 +791,7 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
     if (inp->num_stages == 3) {
       // Gkeyll's native 3rd order 3-stage SSP RK, without embedding,
       // adapting dt using Gkeyll's CFL constraint.
+      inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
       gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
     }
     else {

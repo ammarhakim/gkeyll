@@ -764,7 +764,6 @@ gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, stru
 struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
-  app->stat.nup += 1;
   struct gkyl_update_status st = { .success = true };
 
   double t_curr = app->tcurr;
