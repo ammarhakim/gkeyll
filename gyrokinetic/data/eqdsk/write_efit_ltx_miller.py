@@ -130,7 +130,10 @@ Zgrid = np.linspace(ZMIN,ZMAX,NH)
 grid_r, grid_z = np.meshgrid(Rgrid,Zgrid)
 flat_points = np.stack((Rm,Zm), axis = -1).reshape(-1, 2)
 flat_psi = psi_plot.flatten()
-psiRZ = griddata(flat_points, psi_plot.flatten(), (grid_r, grid_z), method='cubic').T
+psiRZ = griddata(flat_points, psi_plot.flatten(), (grid_r, grid_z), method='cubic')
+nan_mask = np.isnan(psiRZ)
+psiRZ[nan_mask] = griddata(flat_points, flat_psi, (grid_r[nan_mask], grid_z[nan_mask]), method='nearest')
+psiRZ = psiRZ.T
 
 fig, ax = plt.subplots()
 cax = ax.contour(Rgrid,Zgrid, psiRZ.T, cmap = "inferno")
