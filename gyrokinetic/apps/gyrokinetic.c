@@ -332,6 +332,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
+    .sync_numerical_shift = gk->geometry.sync_numerical_shift,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -456,7 +457,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     int par_dir = app->cdim-1;
     struct gkyl_array *delta_ts = app->gk_geom->geo_surf[par_dir].deltats;
     gkyl_array_copy_range_to_range(delta_ts, delta_ts,
-      &app->upper_skin[d], &app->upper_ghost[d]);
+      &app->upper_skin[par_dir], &app->upper_ghost[par_dir]);
     int shift_periodic_dirs[] = {par_dir};
     int shift_num_periodic_dirs = 1;
     gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, shift_num_periodic_dirs,

@@ -833,16 +833,21 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
         mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, deltats, deltats);
     }
-  }
-  // Accumulate the appropriate shift
-  for (int b=0; b<mbapp->num_local_blocks; ++b) {
-    int dir =2;
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-    struct gkyl_array *buffer = mkarr(sbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
-    gkyl_array_copy(buffer, sbapp->gk_geom->geo_surf[dir].deltats);
-    gkyl_array_accumulate_range(sbapp->gk_geom->geo_surf[dir].deltats, -1.0, buffer, &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
-    gkyl_array_accumulate_range(sbapp->gk_geom->geo_surf[dir].deltats, -1.0, buffer, &asbpp->lower_skin[d], &sbapp->lower_ghost[d]);
-    gkyl_array_release(buffer);
+    // Accumulate the appropriate shift
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      int par_dir = cdim-1;
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      struct gkyl_array *delta_ts = sbapp->gk_geom->geo_surf[par_dir].deltats;
+      struct gkyl_array *buffer = mkarr(sbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
+
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->upper_skin[par_dir], &sbapp->upper_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->upper_skin[par_dir]);
+
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->lower_skin[par_dir], &sbapp->lower_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->lower_skin[par_dir]);
+
+      gkyl_array_release(buffer);
+    }
   }
 
   // Sync the effective diffusivity of the anomalous diffusion operator.
