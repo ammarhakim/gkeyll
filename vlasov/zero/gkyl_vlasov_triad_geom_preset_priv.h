@@ -52,6 +52,29 @@ eval_annulus_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, doub
 }
 
 void
+eval_ks_rphi_hamil_1x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+
+  // Grab the geometry
+  const struct vm_geom *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+  
+  double r = xn[0];
+
+  double pr_hat = xn[1];
+  double pphi_hat = xn[2];
+
+  // Build the Hamiltonian for Kerr-Schild in 2D (Assumes theta = pi/2)
+  double rho_sq = r * r ;
+  double H = (1.0/ sqrt(1 + 2*M*r/rho_sq)) * (
+        sqrt(1 + pr_hat * pr_hat + pphi_hat * pphi_hat) 
+        - (2*M*r/rho_sq) * pr_hat );
+
+  fout[0] = H;
+}
+
+void
 eval_ks_rphi_hamil_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
@@ -360,15 +383,15 @@ typedef struct { evalf_t kernels[3]; } vierbein_kern_list;
 typedef struct { evalf_t kernels[3]; } vierbein_gradient_kern_list;
 
 static const hamil_kern_list ks_rphi_hamil_list[] = {
-  { NULL },
-  { eval_ks_rphi_hamil_2v },
-  { NULL }
+  { NULL, NULL, NULL },
+  { eval_ks_rphi_hamil_1x2v, eval_ks_rphi_hamil_2v, NULL },
+  { NULL, NULL, NULL }
 };
 
 static const hamil_kern_list ks_hamil_3v_list[] = {
-  { NULL },
-  { NULL },
-  { eval_ks_hamil_3v }
+  { NULL, NULL, NULL },
+  { NULL, NULL, NULL },
+  { NULL, NULL, eval_ks_hamil_3v }
 };
 
 static const vierbein_kern_list annulus_vierbein_list[] = {
@@ -462,14 +485,14 @@ choose_vierbein_gradient_kern(enum gkyl_triad_preset_geom_type type, int vdim)
 }
 
 static evalf_t
-choose_hamil_kern(enum gkyl_triad_preset_geom_type type, int vdim)
+choose_hamil_kern(enum gkyl_triad_preset_geom_type type, int cdim, int vdim)
 {
   switch(type) {
     case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
-      return ks_rphi_hamil_list[vdim-1].kernels[0];
+      return ks_rphi_hamil_list[vdim-1].kernels[cdim-1];
       break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
-      return ks_hamil_3v_list[vdim-1].kernels[0];
+      return ks_hamil_3v_list[vdim-1].kernels[cdim-1];
       break;
     default:
       assert(false);

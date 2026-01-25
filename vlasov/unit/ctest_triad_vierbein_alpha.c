@@ -342,7 +342,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
   struct gkyl_array *hamil = mkarr(false, basis.num_basis, local_ext.volume);
 
   // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
-  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, gkyl_vlasov_triad_preset_hamil(vdim,GKYL_TRIAD_GR_KERR_SCHILD_RPHI), &geom);
+  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, GKYL_TRIAD_GR_KERR_SCHILD_RPHI), &geom);
   gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &local_ext, hamil);
   gkyl_eval_on_nodes_release(hamil_proj);
 

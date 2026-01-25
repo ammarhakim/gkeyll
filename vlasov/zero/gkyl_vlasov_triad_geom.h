@@ -53,6 +53,8 @@ void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct
 /**
  * Preset function for the triad hamil 
  *
+ * @param cdim Number of configuration space dimenions
+ * @param vdim Number of velocity space dimenions
  * @param preset_geom_type Preset geometry type
  */
-evalf_t gkyl_vlasov_triad_preset_hamil(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+evalf_t gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);

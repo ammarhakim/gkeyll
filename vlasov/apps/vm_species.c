@@ -133,7 +133,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
 
     // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
-    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(vdim,vms->info.triad_preset_geom_type), vms->geom);
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->info.triad_preset_geom_type), vms->geom);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->hamil, vms->hamil_host);
