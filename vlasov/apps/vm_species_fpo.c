@@ -14,7 +14,9 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   // initialize surface basis for potentials on velocity space edges
   if (app->poly_order == 1) {
-    gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim-1);
+    // JMR 1/25/26: Polynomial order 1 not supported for the time being.
+    // The p=1 kernels in vlasov/ker/fpo use pure p=1 Serendipity, not hybrid
+    gkyl_exit("p=1 Serendipity not supported for the FPO! Use p=2 instead.");
   }
   else {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);

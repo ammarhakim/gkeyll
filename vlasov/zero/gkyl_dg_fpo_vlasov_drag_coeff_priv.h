@@ -28,7 +28,7 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx_kernels[]
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vx_ser_p1_invx, fpo_drag_coeff_1x3v_vx_ser_p1_lovx, fpo_drag_coeff_1x3v_vx_ser_p1_upvx},
-    {NULL, NULL, NULL},
+    {fpo_drag_coeff_1x3v_vx_ser_p2_invx, fpo_drag_coeff_1x3v_vx_ser_p2_lovx, fpo_drag_coeff_1x3v_vx_ser_p2_upvx},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},
@@ -42,7 +42,7 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy_kernels[]
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vy_ser_p1_invy, fpo_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_drag_coeff_1x3v_vy_ser_p1_upvy},
-    {NULL, NULL, NULL},
+    {fpo_drag_coeff_1x3v_vy_ser_p2_invy, fpo_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_drag_coeff_1x3v_vy_ser_p2_upvy},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},
@@ -56,7 +56,7 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz_kernels[]
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vz_ser_p1_invz, fpo_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_drag_coeff_1x3v_vz_ser_p1_upvz},
-    {NULL, NULL, NULL},
+    {fpo_drag_coeff_1x3v_vz_ser_p2_invz, fpo_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_drag_coeff_1x3v_vz_ser_p2_upvz},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},
@@ -71,7 +71,7 @@ static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vx_k
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_upvx},
-    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vx_ser_p2_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_upvx},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},
@@ -85,7 +85,7 @@ static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vy_k
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_upvy},
-    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vy_ser_p2_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_upvy},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},
@@ -99,7 +99,7 @@ static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vz_k
   {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_upvz},
-    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vz_ser_p2_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_upvz},
   }},
   {{ // 2x3v
     {NULL, NULL, NULL},

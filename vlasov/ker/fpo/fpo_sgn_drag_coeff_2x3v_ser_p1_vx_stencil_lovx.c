@@ -24,26 +24,6 @@ GKYL_CU_DH void fpo_sgn_drag_coeff_2x3v_vx_ser_p1_lovx(const double *drag_coeff_
   sgn_alpha_surf[13] = 0.0;
   sgn_alpha_surf[14] = 0.0;
   sgn_alpha_surf[15] = 0.0;
-  sgn_alpha_surf[16] = 0.0;
-  sgn_alpha_surf[17] = 0.0;
-  sgn_alpha_surf[18] = 0.0;
-  sgn_alpha_surf[19] = 0.0;
-  sgn_alpha_surf[20] = 0.0;
-  sgn_alpha_surf[21] = 0.0;
-  sgn_alpha_surf[22] = 0.0;
-  sgn_alpha_surf[23] = 0.0;
-  sgn_alpha_surf[24] = 0.0;
-  sgn_alpha_surf[25] = 0.0;
-  sgn_alpha_surf[26] = 0.0;
-  sgn_alpha_surf[27] = 0.0;
-  sgn_alpha_surf[28] = 0.0;
-  sgn_alpha_surf[29] = 0.0;
-  sgn_alpha_surf[30] = 0.0;
-  sgn_alpha_surf[31] = 0.0;
-  sgn_alpha_surf[32] = 0.0;
-  sgn_alpha_surf[33] = 0.0;
-  sgn_alpha_surf[34] = 0.0;
-  sgn_alpha_surf[35] = 0.0;
   int const_sgn_alpha_surf = 0; 
   *const_sgn_drag_coeff_surf = const_sgn_alpha_surf; 
 } 
