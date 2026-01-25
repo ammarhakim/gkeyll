@@ -4,6 +4,7 @@
 void
 gk_species_source_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // Empty.
 }
 
 void
@@ -45,6 +46,7 @@ gk_species_source_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *
 void
 gk_species_source_write_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // Empty.
 }
 
 void
@@ -104,6 +106,7 @@ gk_species_source_write_mom_init_only(gkyl_gyrokinetic_app* app, struct gk_speci
 void
 gk_species_source_calc_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
+  // Empty.
 }
 
 void
@@ -152,6 +155,7 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
 void
 gk_species_source_write_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
+  // empty
 }
 
 void
@@ -211,7 +215,9 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 static void 
 gk_species_source_adapt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm)
-{}
+{
+  // Empty.
+}
 
 static void
 gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s, 

@@ -9,19 +9,10 @@
 typedef void (*gyrokinetic_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
   const double *moms, const double *boundary_corrections, const double *nu);
 
-typedef void (*gyrokinetic_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene,
+typedef void (*gyrokinetic_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *alpha_E,
   const double m_self, const double *moms_self, const double *prim_moms_self,
   const double m_other, const double *moms_other, const double *prim_moms_other,
   const double *boundary_corrections, const double *nu);
-
-// The cv_index[cd].vdim[vd] is used to index the various list of
-// kernels below
-static struct { int vdim[3]; } cv_index[] = {
-  {-1, -1, -1}, // 0x makes no sense
-  {-1,  0,  1}, // 1x kernel indices
-  {-1, -1,  2}, // 2x kernel indices
-  {-1, -1,  3}, // 3x kernel indices  
-};
 
 // for use in kernel tables
 typedef struct { gyrokinetic_self_prim_t kernels[3]; } gkyl_prim_lbo_gyrokinetic_kern_list;
@@ -81,13 +72,21 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs,
-  const int *idx, const double *greene,
+  const int *idx, const double *alpha_E,
   const double m_self, const double *moms_self, const double *prim_moms_self,
   const double m_other, const double *moms_other, const double *prim_moms_other,
   const double *boundary_corrections, const double *nu)
 {
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic = container_of(prim, struct prim_lbo_type_gyrokinetic, prim);
 
-  return prim_gyrokinetic->cross_prim(A, rhs, greene, m_self, moms_self, prim_moms_self,
+  return prim_gyrokinetic->cross_prim(A, rhs, alpha_E, m_self, moms_self, prim_moms_self,
     m_other, moms_other, prim_moms_other, boundary_corrections, nu);
 }
+
+#ifdef GKYL_HAVE_CUDA
+
+struct gkyl_prim_lbo_type*
+gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis);
+
+#endif

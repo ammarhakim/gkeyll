@@ -1,6 +1,7 @@
 #include <gkyl_array.h>
 #include <gkyl_util.h>
 #include <acutest.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_proj_on_basis.h>
@@ -12,9 +13,10 @@
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
-mkarr(long nc, long size)
+mkarr(bool use_gpu, long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -79,16 +81,22 @@ test_1x(int poly_order, bool use_gpu)
 
   // Create density and v_t^2 arrays.
   struct gkyl_array *m0s, *vtsqs, *m0r, *vtsqr;
-  m0s = mkarr(basis.num_basis, local_ext.volume);
-  vtsqs = mkarr(basis.num_basis, local_ext.volume);
-  m0r = mkarr(basis.num_basis, local_ext.volume);
-  vtsqr = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *m0s_cu, *vtsqs_cu, *m0r_cu, *vtsqr_cu;
+  m0s = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqs = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  m0r = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqr = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *m0s_ho, *vtsqs_ho, *m0r_ho, *vtsqr_ho;
   if (use_gpu) { // Create device copies
-    m0s_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqs_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    m0r_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqr_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    m0s_ho   = mkarr(false, m0s->ncomp, m0s->size);
+    vtsqs_ho = mkarr(false, vtsqs->ncomp, vtsqs->size);
+    m0r_ho   = mkarr(false, m0r->ncomp, m0r->size);
+    vtsqr_ho = mkarr(false, vtsqr->ncomp, vtsqr->size);
+  }
+  else {
+    m0s_ho   = gkyl_array_acquire(m0s  );
+    vtsqs_ho = gkyl_array_acquire(vtsqs);
+    m0r_ho   = gkyl_array_acquire(m0r  );
+    vtsqr_ho = gkyl_array_acquire(vtsqr);
   }
 
   gkyl_proj_on_basis *proj_m0s = gkyl_proj_on_basis_new(&grid, &basis,
@@ -100,48 +108,50 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis *proj_vtsqr = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_vtsqr_1x, NULL);
 
-  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s);
-  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs);
-  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r);
-  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr);
+  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs_ho);
+  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr_ho);
 
-  if (use_gpu) {
-    // Copy host array to device.
-    gkyl_array_copy(m0s_cu , m0s );
-    gkyl_array_copy(vtsqs_cu, vtsqs);
-    gkyl_array_copy(m0r_cu , m0r );
-    gkyl_array_copy(vtsqr_cu, vtsqr);
-  }
+  // Copy host array to device.
+  gkyl_array_copy(m0s, m0s_ho);
+  gkyl_array_copy(vtsqs, vtsqs_ho);
+  gkyl_array_copy(m0r, m0r_ho);
+  gkyl_array_copy(vtsqr, vtsqr_ho);
+
+  // Package moments into a Maxwellian moments array (u =0);
+  struct gkyl_array *moms_s = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_s, 1.0, m0s, 0);
+  gkyl_array_set_offset(moms_s, 1.0, vtsqs, 2*basis.num_basis);
+  struct gkyl_array *moms_r = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_r, 1.0, m0r, 0);
+  gkyl_array_set_offset(moms_r, 1.0, vtsqr, 2*basis.num_basis);
 
   // Create collision frequency array.
-  struct gkyl_array *nu, *nu_cu;
-  nu = mkarr(basis.num_basis, local_ext.volume);
-  if (use_gpu)  // create device copy.
-    nu_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *nu, *nu_ho;
+  nu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  nu_ho = use_gpu? mkarr(false, nu->ncomp, nu->size)
+                 : gkyl_array_acquire(nu);
 
   // Create Spitzer collision frequency updater.
   double nufrac = 1., epsilon_0 = 1., hbar = 1.;
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
-  if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
-    gkyl_array_copy(nu, nu_cu);
-  } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
-  }
+  gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, moms_s, 0., moms_r, 0., norm_nu, nu);
+  gkyl_array_copy(nu_ho, nu);
 
   // Project expected collision frequency and compare.
-  struct gkyl_array *nuA;
-  nuA = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *nuA_ho;
+  nuA_ho = mkarr(false, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_nu = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_nu_1x, NULL);
-  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA);
+  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA_ho);
 
   for (int k=0; k<cells[0]; k++) {
     int idx[] = {k+1};
     long linidx = gkyl_range_idx(&local, idx);
-    const double *nu_p = gkyl_array_cfetch(nu, linidx);
-    const double *nuA_p = gkyl_array_cfetch(nuA, linidx);
+    const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
+    const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
     for (int m=0; m<basis.num_basis; m++) {
       TEST_CHECK( gkyl_compare(nuA_p[m], nu_p[m], 1e-10) );
       TEST_MSG("Expected: %.13e in cell (%d)", nuA_p[m], idx[0]);
@@ -149,12 +159,17 @@ test_1x(int poly_order, bool use_gpu)
     }
   }
 
-  gkyl_array_release(m0s); gkyl_array_release(vtsqs); gkyl_array_release(m0r); gkyl_array_release(vtsqr);
-  gkyl_array_release(nu); gkyl_array_release(nuA);
-  if (use_gpu) {
-    gkyl_array_release(m0s_cu); gkyl_array_release(vtsqs_cu); gkyl_array_release(m0r_cu); gkyl_array_release(vtsqr_cu);
-    gkyl_array_release(nu_cu);
-  }
+  gkyl_array_release(m0s);
+  gkyl_array_release(vtsqs);
+  gkyl_array_release(m0r);
+  gkyl_array_release(vtsqr);
+  gkyl_array_release(nu);
+  gkyl_array_release(m0s_ho);
+  gkyl_array_release(vtsqs_ho);
+  gkyl_array_release(m0r_ho);
+  gkyl_array_release(vtsqr_ho);
+  gkyl_array_release(moms_s);
+  gkyl_array_release(moms_r);
 
   gkyl_proj_on_basis_release(proj_m0s);
   gkyl_proj_on_basis_release(proj_vtsqs);
@@ -226,16 +241,22 @@ test_2x(int poly_order, bool use_gpu)
 
   // Create density and v_t^2 arrays.
   struct gkyl_array *m0s, *vtsqs, *m0r, *vtsqr;
-  m0s = mkarr(basis.num_basis, local_ext.volume);
-  vtsqs = mkarr(basis.num_basis, local_ext.volume);
-  m0r = mkarr(basis.num_basis, local_ext.volume);
-  vtsqr = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *m0s_cu, *vtsqs_cu, *m0r_cu, *vtsqr_cu;
+  m0s = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqs = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  m0r = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqr = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *m0s_ho, *vtsqs_ho, *m0r_ho, *vtsqr_ho;
   if (use_gpu) { // Create device copies
-    m0s_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqs_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    m0r_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqr_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    m0s_ho   = mkarr(false, m0s->ncomp, m0s->size);
+    vtsqs_ho = mkarr(false, vtsqs->ncomp, vtsqs->size);
+    m0r_ho   = mkarr(false, m0r->ncomp, m0r->size);
+    vtsqr_ho = mkarr(false, vtsqr->ncomp, vtsqr->size);
+  }
+  else {
+    m0s_ho   = gkyl_array_acquire(m0s  );
+    vtsqs_ho = gkyl_array_acquire(vtsqs);
+    m0r_ho   = gkyl_array_acquire(m0r  );
+    vtsqr_ho = gkyl_array_acquire(vtsqr);
   }
 
   gkyl_proj_on_basis *proj_m0s = gkyl_proj_on_basis_new(&grid, &basis,
@@ -247,49 +268,51 @@ test_2x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis *proj_vtsqr = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_vtsqr_2x, NULL);
 
-  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s);
-  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs);
-  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r);
-  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr);
+  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs_ho);
+  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr_ho);
 
-  if (use_gpu) {
-    // Copy host array to device.
-    gkyl_array_copy(m0s_cu , m0s );
-    gkyl_array_copy(vtsqs_cu, vtsqs);
-    gkyl_array_copy(m0r_cu , m0r );
-    gkyl_array_copy(vtsqr_cu, vtsqr);
-  }
+  // Copy host array to device.
+  gkyl_array_copy(m0s, m0s_ho);
+  gkyl_array_copy(vtsqs, vtsqs_ho);
+  gkyl_array_copy(m0r, m0r_ho);
+  gkyl_array_copy(vtsqr, vtsqr_ho);
+
+  // Package moments into a Maxwellian moments array (u =0);
+  struct gkyl_array *moms_s = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_s, 1.0, m0s, 0);
+  gkyl_array_set_offset(moms_s, 1.0, vtsqs, 2*basis.num_basis);
+  struct gkyl_array *moms_r = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_r, 1.0, m0r, 0);
+  gkyl_array_set_offset(moms_r, 1.0, vtsqr, 2*basis.num_basis);
 
   // Create collision frequency array.
-  struct gkyl_array *nu, *nu_cu;
-  nu = mkarr(basis.num_basis, local_ext.volume);
-  if (use_gpu)  // create device copy.
-    nu_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *nu, *nu_ho;
+  nu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  nu_ho = use_gpu? mkarr(false, nu->ncomp, nu->size)
+                 : gkyl_array_acquire(nu);
 
   // Create Spitzer collision frequency updater.
   double nufrac = 1., epsilon_0 = 1., hbar = 1.;
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
-  if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
-    gkyl_array_copy(nu, nu_cu);
-  } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
-  }
+  gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, moms_s, 0., moms_r, 0., norm_nu, nu);
+  gkyl_array_copy(nu_ho, nu);
 
   // Project expected collision frequency and compare.
-  struct gkyl_array *nuA;
-  nuA = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *nuA_ho;
+  nuA_ho = mkarr(false, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_nu = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_nu_2x, NULL);
-  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA);
+  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA_ho);
 
   for (int j=0; j<cells[0]; j++) {
     for (int k=0; k<cells[1]; k++) {
       int idx[] = {j+1,k+1};
       long linidx = gkyl_range_idx(&local, idx);
-      const double *nu_p = gkyl_array_cfetch(nu, linidx);
-      const double *nuA_p = gkyl_array_cfetch(nuA, linidx);
+      const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
+      const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
       for (int m=0; m<basis.num_basis; m++) {
         TEST_CHECK( gkyl_compare(nuA_p[m], nu_p[m], 1e-6) );
         TEST_MSG("Expected: %.13e in cell (%d)", nuA_p[m], idx[0]);
@@ -298,12 +321,17 @@ test_2x(int poly_order, bool use_gpu)
     }
   }
 
-  gkyl_array_release(m0s); gkyl_array_release(vtsqs); gkyl_array_release(m0r); gkyl_array_release(vtsqr);
-  gkyl_array_release(nu); gkyl_array_release(nuA);
-  if (use_gpu) {
-    gkyl_array_release(m0s_cu); gkyl_array_release(vtsqs_cu); gkyl_array_release(m0r_cu); gkyl_array_release(vtsqr_cu);
-    gkyl_array_release(nu_cu);
-  }
+  gkyl_array_release(m0s);
+  gkyl_array_release(vtsqs);
+  gkyl_array_release(m0r);
+  gkyl_array_release(vtsqr);
+  gkyl_array_release(nu);
+  gkyl_array_release(m0s_ho);
+  gkyl_array_release(vtsqs_ho);
+  gkyl_array_release(m0r_ho);
+  gkyl_array_release(vtsqr_ho);
+  gkyl_array_release(moms_s);
+  gkyl_array_release(moms_r);
 
   gkyl_proj_on_basis_release(proj_m0s);
   gkyl_proj_on_basis_release(proj_vtsqs);
@@ -375,16 +403,22 @@ test_3x(int poly_order, bool use_gpu)
 
   // Create density and v_t^2 arrays.
   struct gkyl_array *m0s, *vtsqs, *m0r, *vtsqr;
-  m0s = mkarr(basis.num_basis, local_ext.volume);
-  vtsqs = mkarr(basis.num_basis, local_ext.volume);
-  m0r = mkarr(basis.num_basis, local_ext.volume);
-  vtsqr = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *m0s_cu, *vtsqs_cu, *m0r_cu, *vtsqr_cu;
+  m0s = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqs = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  m0r = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsqr = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *m0s_ho, *vtsqs_ho, *m0r_ho, *vtsqr_ho;
   if (use_gpu) { // Create device copies
-    m0s_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqs_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    m0r_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    vtsqr_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    m0s_ho   = mkarr(false, m0s->ncomp, m0s->size);
+    vtsqs_ho = mkarr(false, vtsqs->ncomp, vtsqs->size);
+    m0r_ho   = mkarr(false, m0r->ncomp, m0r->size);
+    vtsqr_ho = mkarr(false, vtsqr->ncomp, vtsqr->size);
+  }
+  else {
+    m0s_ho   = gkyl_array_acquire(m0s  );
+    vtsqs_ho = gkyl_array_acquire(vtsqs);
+    m0r_ho   = gkyl_array_acquire(m0r  );
+    vtsqr_ho = gkyl_array_acquire(vtsqr);
   }
 
   gkyl_proj_on_basis *proj_m0s = gkyl_proj_on_basis_new(&grid, &basis,
@@ -396,50 +430,52 @@ test_3x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis *proj_vtsqr = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_vtsqr_3x, NULL);
 
-  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s);
-  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs);
-  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r);
-  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr);
+  gkyl_proj_on_basis_advance(proj_m0s, 0.0, &local, m0s_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqs, 0.0, &local, vtsqs_ho);
+  gkyl_proj_on_basis_advance(proj_m0r, 0.0, &local, m0r_ho);
+  gkyl_proj_on_basis_advance(proj_vtsqr, 0.0, &local, vtsqr_ho);
 
-  if (use_gpu) {
-    // Copy host array to device.
-    gkyl_array_copy(m0s_cu , m0s );
-    gkyl_array_copy(vtsqs_cu, vtsqs);
-    gkyl_array_copy(m0r_cu , m0r );
-    gkyl_array_copy(vtsqr_cu, vtsqr);
-  }
+  // Copy host array to device.
+  gkyl_array_copy(m0s, m0s_ho);
+  gkyl_array_copy(vtsqs, vtsqs_ho);
+  gkyl_array_copy(m0r, m0r_ho);
+  gkyl_array_copy(vtsqr, vtsqr_ho);
+
+  // Package moments into a Maxwellian moments array (u =0);
+  struct gkyl_array *moms_s = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_s, 1.0, m0s, 0);
+  gkyl_array_set_offset(moms_s, 1.0, vtsqs, 2*basis.num_basis);
+  struct gkyl_array *moms_r = mkarr(use_gpu, 3*basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_r, 1.0, m0r, 0);
+  gkyl_array_set_offset(moms_r, 1.0, vtsqr, 2*basis.num_basis);
 
   // Create collision frequency array.
-  struct gkyl_array *nu, *nu_cu;
-  nu = mkarr(basis.num_basis, local_ext.volume);
-  if (use_gpu)  // create device copy.
-    nu_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *nu, *nu_ho;
+  nu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  nu_ho = use_gpu? mkarr(false, nu->ncomp, nu->size)
+                 : gkyl_array_acquire(nu);
 
   // Create Spitzer collision frequency updater.
   double nufrac = 1., epsilon_0 = 1., hbar = 1.;
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
-  if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
-    gkyl_array_copy(nu, nu_cu);
-  } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
-  }
+  gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, moms_s, 0., moms_r, 0., norm_nu, nu);
+  gkyl_array_copy(nu_ho, nu);
 
   // Project expected collision frequency and compare.
-  struct gkyl_array *nuA;
-  nuA = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *nuA_ho;
+  nuA_ho = mkarr(false, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_nu = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_nu_3x, NULL);
-  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA);
+  gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA_ho);
 
   for (int i=0; i<cells[0]; i++) {
     for (int j=0; j<cells[1]; j++) {
       for (int k=0; k<cells[2]; k++) {
         int idx[] = {i+1,j+1,k+1};
         long linidx = gkyl_range_idx(&local, idx);
-        const double *nu_p = gkyl_array_cfetch(nu, linidx);
-        const double *nuA_p = gkyl_array_cfetch(nuA, linidx);
+        const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
+        const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(nuA_p[m], nu_p[m], 1e-4) );
           TEST_MSG("Expected: %.13e in cell (%d)", nuA_p[m], idx[0]);
@@ -449,12 +485,17 @@ test_3x(int poly_order, bool use_gpu)
     }
   }
 
-  gkyl_array_release(m0s); gkyl_array_release(vtsqs); gkyl_array_release(m0r); gkyl_array_release(vtsqr);
-  gkyl_array_release(nu); gkyl_array_release(nuA);
-  if (use_gpu) {
-    gkyl_array_release(m0s_cu); gkyl_array_release(vtsqs_cu); gkyl_array_release(m0r_cu); gkyl_array_release(vtsqr_cu);
-    gkyl_array_release(nu_cu);
-  }
+  gkyl_array_release(m0s);
+  gkyl_array_release(vtsqs);
+  gkyl_array_release(m0r);
+  gkyl_array_release(vtsqr);
+  gkyl_array_release(nu);
+  gkyl_array_release(m0s_ho);
+  gkyl_array_release(vtsqs_ho);
+  gkyl_array_release(m0r_ho);
+  gkyl_array_release(vtsqr_ho);
+  gkyl_array_release(moms_s);
+  gkyl_array_release(moms_r);
 
   gkyl_proj_on_basis_release(proj_m0s);
   gkyl_proj_on_basis_release(proj_vtsqs);
