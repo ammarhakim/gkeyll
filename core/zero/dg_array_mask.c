@@ -19,8 +19,12 @@ gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
   if (mask->local_max_arr)
     gkyl_array_release(mask->local_max_arr);
   
-  if (mask->global_max)
-    gkyl_free(mask->global_max);
+  if (mask->global_max) {
+    if (GKYL_IS_CU_ALLOC(mask->flags))
+      gkyl_cu_free(mask->global_max);
+    else
+      gkyl_free(mask->global_max);
+  }
   
   if (GKYL_IS_CU_ALLOC(mask->flags))
     gkyl_cu_free(mask->on_dev);

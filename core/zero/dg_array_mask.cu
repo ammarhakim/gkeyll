@@ -268,9 +268,10 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
   if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
     gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
-    double global_max_c0 = mask->global_max[0];
+    // Copy result from device to host
+    double global_max_c0;
+    gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
     double threshold = mask->frac_threshold * global_max_c0;
-    mask->val_threshold = threshold;
     
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD) {
       gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
