@@ -1,4 +1,4 @@
-#include "gkyl_fpo_vlasov_kernels.h" 
+#include <gkyl_fpo_vlasov_kernels.h> 
 #include <math.h> 
  
 void fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_lovx_lovy(const double *dxv, const double *gamma, const double* fpo_g_stencil[9], const double* fpo_g_surf_stencil[9], const double* fpo_dgdv_surf, double *diff_coeff) { 

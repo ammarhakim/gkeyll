@@ -27,16 +27,40 @@ GKYL_CU_DH void mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p1(const double *dra
   const double* az_corr = &drag_diff_coeff_corrs[4]; 
   const double* D_corr = &drag_diff_coeff_corrs[6]; 
  
+  ax[0] += 2.8284271247461907*ax_corr[0]; 
+  ax[1] += 2.8284271247461907*ax_corr[1]; 
  
+  ay[0] += 2.8284271247461907*ay_corr[0]; 
+  ay[1] += 2.8284271247461907*ay_corr[1]; 
  
+  az[0] += 2.8284271247461907*az_corr[0]; 
+  az[1] += 2.8284271247461907*az_corr[1]; 
  
+  Dxx[0] += 2.8284271247461907*D_corr[0]; 
+  Dxx[1] += 2.8284271247461907*D_corr[1]; 
  
+  Dyy[0] += 2.8284271247461907*D_corr[0]; 
+  Dyy[1] += 2.8284271247461907*D_corr[1]; 
  
+  Dzz[0] += 2.8284271247461907*D_corr[0]; 
+  Dzz[1] += 2.8284271247461907*D_corr[1]; 
  
+  ax_surf[0] += 2.0*ax_corr[0]; 
+  ax_surf[1] += 2.0*ax_corr[1]; 
  
+  ay_surf[0] += 2.0*ay_corr[0]; 
+  ay_surf[1] += 2.0*ay_corr[1]; 
  
+  az_surf[0] += 2.0*az_corr[0]; 
+  az_surf[1] += 2.0*az_corr[1]; 
  
+  Dxx_surf[0] += 2.0*D_corr[0]; 
+  Dxx_surf[1] += 2.0*D_corr[1]; 
  
+  Dyy_surf[0] += 2.0*D_corr[0]; 
+  Dyy_surf[1] += 2.0*D_corr[1]; 
  
+  Dzz_surf[0] += 2.0*D_corr[0]; 
+  Dzz_surf[1] += 2.0*D_corr[1]; 
 } 
 

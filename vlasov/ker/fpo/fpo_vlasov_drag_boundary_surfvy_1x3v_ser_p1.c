@@ -87,6 +87,14 @@ GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1(const double* dxv,
 
   } 
   double GhatR[8] = {0.0}; 
+  GhatR[0] = 0.3535533905932737*(drag_coeff_surf_Edge[7]*fUp_R[7]+drag_coeff_surf_Edge[6]*fUp_R[6]+drag_coeff_surf_Edge[5]*fUp_R[5]+drag_coeff_surf_Edge[4]*fUp_R[4]+drag_coeff_surf_Edge[3]*fUp_R[3]+drag_coeff_surf_Edge[2]*fUp_R[2]+drag_coeff_surf_Edge[1]*fUp_R[1]+drag_coeff_surf_Edge[0]*fUp_R[0]); 
+  GhatR[1] = 0.3535533905932737*(drag_coeff_surf_Edge[6]*fUp_R[7]+fUp_R[6]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[3]*fUp_R[5]+fUp_R[3]*drag_coeff_surf_Edge[5]+drag_coeff_surf_Edge[2]*fUp_R[4]+fUp_R[2]*drag_coeff_surf_Edge[4]+drag_coeff_surf_Edge[0]*fUp_R[1]+fUp_R[0]*drag_coeff_surf_Edge[1]); 
+  GhatR[2] = 0.3535533905932737*(drag_coeff_surf_Edge[5]*fUp_R[7]+fUp_R[5]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[3]*fUp_R[6]+fUp_R[3]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[1]*fUp_R[4]+fUp_R[1]*drag_coeff_surf_Edge[4]+drag_coeff_surf_Edge[0]*fUp_R[2]+fUp_R[0]*drag_coeff_surf_Edge[2]); 
+  GhatR[3] = 0.3535533905932737*(drag_coeff_surf_Edge[4]*fUp_R[7]+fUp_R[4]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[2]*fUp_R[6]+fUp_R[2]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[1]*fUp_R[5]+fUp_R[1]*drag_coeff_surf_Edge[5]+drag_coeff_surf_Edge[0]*fUp_R[3]+fUp_R[0]*drag_coeff_surf_Edge[3]); 
+  GhatR[4] = 0.3535533905932737*(drag_coeff_surf_Edge[3]*fUp_R[7]+fUp_R[3]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[5]*fUp_R[6]+fUp_R[5]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[0]*fUp_R[4]+fUp_R[0]*drag_coeff_surf_Edge[4]+drag_coeff_surf_Edge[1]*fUp_R[2]+fUp_R[1]*drag_coeff_surf_Edge[2]); 
+  GhatR[5] = 0.3535533905932737*(drag_coeff_surf_Edge[2]*fUp_R[7]+fUp_R[2]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[4]*fUp_R[6]+fUp_R[4]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[0]*fUp_R[5]+fUp_R[0]*drag_coeff_surf_Edge[5]+drag_coeff_surf_Edge[1]*fUp_R[3]+fUp_R[1]*drag_coeff_surf_Edge[3]); 
+  GhatR[6] = 0.3535533905932737*(drag_coeff_surf_Edge[1]*fUp_R[7]+fUp_R[1]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[0]*fUp_R[6]+fUp_R[0]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[4]*fUp_R[5]+fUp_R[4]*drag_coeff_surf_Edge[5]+drag_coeff_surf_Edge[2]*fUp_R[3]+fUp_R[2]*drag_coeff_surf_Edge[3]); 
+  GhatR[7] = 0.3535533905932737*(drag_coeff_surf_Edge[0]*fUp_R[7]+fUp_R[0]*drag_coeff_surf_Edge[7]+drag_coeff_surf_Edge[1]*fUp_R[6]+fUp_R[1]*drag_coeff_surf_Edge[6]+drag_coeff_surf_Edge[2]*fUp_R[5]+fUp_R[2]*drag_coeff_surf_Edge[5]+drag_coeff_surf_Edge[3]*fUp_R[4]+fUp_R[3]*drag_coeff_surf_Edge[4]); 
 
   out[0] += -(0.35355339059327373*GhatR[0]*dv_inv); 
   out[1] += -(0.35355339059327373*GhatR[1]*dv_inv); 
@@ -174,6 +182,14 @@ GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1(const double* dxv,
 
   } 
   double GhatL[8] = {0.0}; 
+  GhatL[0] = 0.3535533905932737*(drag_coeff_surf_Skin[7]*fUp_L[7]+drag_coeff_surf_Skin[6]*fUp_L[6]+drag_coeff_surf_Skin[5]*fUp_L[5]+drag_coeff_surf_Skin[4]*fUp_L[4]+drag_coeff_surf_Skin[3]*fUp_L[3]+drag_coeff_surf_Skin[2]*fUp_L[2]+drag_coeff_surf_Skin[1]*fUp_L[1]+drag_coeff_surf_Skin[0]*fUp_L[0]); 
+  GhatL[1] = 0.3535533905932737*(drag_coeff_surf_Skin[6]*fUp_L[7]+fUp_L[6]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[3]*fUp_L[5]+fUp_L[3]*drag_coeff_surf_Skin[5]+drag_coeff_surf_Skin[2]*fUp_L[4]+fUp_L[2]*drag_coeff_surf_Skin[4]+drag_coeff_surf_Skin[0]*fUp_L[1]+fUp_L[0]*drag_coeff_surf_Skin[1]); 
+  GhatL[2] = 0.3535533905932737*(drag_coeff_surf_Skin[5]*fUp_L[7]+fUp_L[5]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[3]*fUp_L[6]+fUp_L[3]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[1]*fUp_L[4]+fUp_L[1]*drag_coeff_surf_Skin[4]+drag_coeff_surf_Skin[0]*fUp_L[2]+fUp_L[0]*drag_coeff_surf_Skin[2]); 
+  GhatL[3] = 0.3535533905932737*(drag_coeff_surf_Skin[4]*fUp_L[7]+fUp_L[4]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[2]*fUp_L[6]+fUp_L[2]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[1]*fUp_L[5]+fUp_L[1]*drag_coeff_surf_Skin[5]+drag_coeff_surf_Skin[0]*fUp_L[3]+fUp_L[0]*drag_coeff_surf_Skin[3]); 
+  GhatL[4] = 0.3535533905932737*(drag_coeff_surf_Skin[3]*fUp_L[7]+fUp_L[3]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[5]*fUp_L[6]+fUp_L[5]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[0]*fUp_L[4]+fUp_L[0]*drag_coeff_surf_Skin[4]+drag_coeff_surf_Skin[1]*fUp_L[2]+fUp_L[1]*drag_coeff_surf_Skin[2]); 
+  GhatL[5] = 0.3535533905932737*(drag_coeff_surf_Skin[2]*fUp_L[7]+fUp_L[2]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[4]*fUp_L[6]+fUp_L[4]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[0]*fUp_L[5]+fUp_L[0]*drag_coeff_surf_Skin[5]+drag_coeff_surf_Skin[1]*fUp_L[3]+fUp_L[1]*drag_coeff_surf_Skin[3]); 
+  GhatL[6] = 0.3535533905932737*(drag_coeff_surf_Skin[1]*fUp_L[7]+fUp_L[1]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[0]*fUp_L[6]+fUp_L[0]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[4]*fUp_L[5]+fUp_L[4]*drag_coeff_surf_Skin[5]+drag_coeff_surf_Skin[2]*fUp_L[3]+fUp_L[2]*drag_coeff_surf_Skin[3]); 
+  GhatL[7] = 0.3535533905932737*(drag_coeff_surf_Skin[0]*fUp_L[7]+fUp_L[0]*drag_coeff_surf_Skin[7]+drag_coeff_surf_Skin[1]*fUp_L[6]+fUp_L[1]*drag_coeff_surf_Skin[6]+drag_coeff_surf_Skin[2]*fUp_L[5]+fUp_L[2]*drag_coeff_surf_Skin[5]+drag_coeff_surf_Skin[3]*fUp_L[4]+fUp_L[3]*drag_coeff_surf_Skin[4]); 
 
   out[0] += 0.35355339059327373*GhatL[0]*dv_inv; 
   out[1] += 0.35355339059327373*GhatL[1]*dv_inv; 
