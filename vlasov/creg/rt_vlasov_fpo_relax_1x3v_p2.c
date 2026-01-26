@@ -389,7 +389,7 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_FPO_COLLISIONS,
       .self_nu = evalGamma,
       .ctx = &ctx,
     },
