@@ -450,8 +450,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gk_dg_geom_release(gk_dg_geom_dev);
   }
 
-  gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
-
   // Sync the numerical shift if requested.
   if (geometry_inp.sync_numerical_shift) {
     int par_dir = app->cdim-1;
@@ -472,6 +470,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &app->lower_skin[par_dir]);
     gkyl_array_release(buffer);
   }
+
+  gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

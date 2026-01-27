@@ -262,11 +262,11 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
     else{
       if (Z<actx->zmaxis) {
-        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) ;
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo) ;
         phi_ref  = -actx->phi_right;
       }
       else {
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo) ;
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) ;
         phi_ref  = actx->phi_right;
       }
     }
@@ -290,12 +290,12 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
   ival = ival*fpol;
 
-  while(ival < -M_PI){
-    ival +=2*M_PI;
-  }
-  while(ival > M_PI){
-    ival -=2*M_PI;
-  }
+  //while(ival < -M_PI){
+  //  ival +=2*M_PI;
+  //}
+  //while(ival > M_PI){
+  //  ival -=2*M_PI;
+  //}
   return alpha_curr + ival + phi_ref;
 }
 

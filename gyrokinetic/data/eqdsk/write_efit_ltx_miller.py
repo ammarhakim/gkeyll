@@ -11,6 +11,10 @@ from datetime import date
 from typing import Any, Generator, Iterable, List, TextIO, Union
 from scipy.interpolate import griddata
 
+import math
+from scipy.integrate import quad
+
+
 
 #Geometry and magnetic field.
 R_axis     = 0.406051632        # [m]
@@ -68,15 +72,49 @@ def integrand(t, r):
 
 def dPsidr_f(r, theta):
   integral, _ = integrate.quad(integrand, 0., 2.*np.pi, args=(r), epsabs=1.e-8)
-  return B0*R_axis/(2.*np.pi*qprofile(r))*integral
+  return B_axis*R_axis/(2.*np.pi*qprofile(r))*integral
 
 def Bphi_f(R):
-    return B0*R0/R
+    return B_axis*R_axis/R
 
 def psi_fi(r,theta):
     psi_i,_ = integrate.quad(dPsidr_f, 0, r, args=(theta), epsabs=1.e-8)
     return psi_i
 
+# Some functions for calculating an analytical shift
+import math
+from scipy.integrate import quad
+
+def alpha(r, theta, phi):
+    # Wrap theta to the range [-pi, pi]
+    # This replaces the while loops in the C code
+    twrap = (theta + math.pi) % (2 * math.pi) - math.pi
+
+    # Define the integrand locally
+    # In Python, we can access 'r' from the outer scope
+    def integrand_wrapper(t):
+        return integrand(t, r)
+
+    # Perform the double exponential integration
+    # integral.res in C is equivalent to the first element of the quad return tuple
+    if twrap > 0:
+        res, err = quad(integrand_wrapper, 0, twrap, epsabs=1e-10)
+    else:
+        # Note: quad(f, twrap, 0) naturally handles the sign 
+        # but we follow the C logic for exact parity
+        res, err = quad(integrand_wrapper, twrap, 0, epsabs=1e-10)
+        res = -res
+
+    return phi - (B_axis * R_axis * res) / dPsidr_f(r, theta)
+
+def shift_lo_i(r):
+  return -r0/q0*alpha(r, -np.pi, 0.0);
+
+def shift_lo_angle_i(r):
+  return -alpha(r, -np.pi, 0.0);
+
+def shift_lo_angle_i_basic(r):
+  return -2*np.pi*qprofile(r)
 
 
 
@@ -147,7 +185,7 @@ plt.show()
 
 #PSI quantities
 PSIGRID = np.linspace(SIMAG, SIBRY,NPSI)
-FPOL = np.repeat(B_axis, NPSI)
+FPOL = np.repeat(B_axis*R_axis, NPSI)
 FFPRIM = np.repeat(0.0, NPSI)
 PPRIME = np.repeat(-1e-6,NPSI)
 PRES = integrate.cumulative_trapezoid(PPRIME,PSIGRID,initial=0)
