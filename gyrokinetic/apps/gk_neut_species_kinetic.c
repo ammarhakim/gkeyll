@@ -700,8 +700,10 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     .default_value = true,
     .val_threshold = s->info.skip_cell.threshold,
     .frac_threshold = s->info.skip_cell.frac_threshold,
-    .phase_rng = s->local_ext,
-    .config_rng = app->local_ext,
+    .phase_rng = s->local,
+    .phase_rng_ext = s->local_ext,
+    .config_rng = app->local,
+    .config_rng_ext = app->local_ext,
     .vel_rng = s->local_ext_vel,
     .use_gpu = app->use_gpu
   });

@@ -15,7 +15,9 @@ struct gkyl_dg_array_mask {
   double val_threshold; // Threshold for marking cells as masked.
   double frac_threshold; // Fractional threshold of the array to use for masking.
   struct gkyl_range phase_rng; // Phase-space range.
+  struct gkyl_range phase_rng_ext; // Extended phase-space range.
   struct gkyl_range conf_rng; // Configuration-space range.
+  struct gkyl_range conf_rng_ext; // Extended configuration-space range.
   struct gkyl_range vel_rng; // Velocity-space range.
   bool use_gpu; // Flag indicating GPU usage.
   

@@ -45,7 +45,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
     mask->mask = mask_array->on_dev;
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
              mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
-      mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng.volume);
+      mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng_ext.volume);
     }
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
         mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
@@ -288,7 +288,7 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
     
     // Phase 1: Find max in velocity space for each configuration cell
-    int conf_nblocks = (mask->conf_rng.volume + nthreads - 1) / nthreads;
+    int conf_nblocks = mask->conf_rng.nblocks;
     gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
       mask->conf_rng, mask->vel_rng, mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
     
