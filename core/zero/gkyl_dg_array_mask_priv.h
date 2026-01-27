@@ -19,6 +19,9 @@ struct gkyl_dg_array_mask {
   struct gkyl_range vel_rng; // Velocity-space range.
   bool use_gpu; // Flag indicating GPU usage.
   
+  struct gkyl_array *local_max_arr; // Pre-allocated config-space array for spatial fractional masks.
+  double *global_max; // Pre-allocated array for global reduction results (fractional threshold masks).
+  
   uint32_t flags;
   struct gkyl_dg_array_mask *on_dev; // Pointer to device object.
   

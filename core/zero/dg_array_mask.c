@@ -16,6 +16,16 @@ gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
   if (mask->mask)
     gkyl_array_release(mask->mask);
   
+  if (mask->local_max_arr)
+    gkyl_array_release(mask->local_max_arr);
+  
+  if (mask->global_max) {
+    if (GKYL_IS_CU_ALLOC(mask->flags))
+      gkyl_cu_free(mask->global_max);
+    else
+      gkyl_free(mask->global_max);
+  }
+  
   if (GKYL_IS_CU_ALLOC(mask->flags))
     gkyl_cu_free(mask->on_dev);
   
@@ -28,9 +38,12 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   struct gkyl_dg_array_mask *mask = gkyl_malloc(sizeof(*mask));
 
   mask->type = mask_inp.type;
+  mask->default_value = mask_inp.default_value;
   mask->use_gpu = mask_inp.use_gpu;
   mask->val_threshold = 0.0;
   mask->mask = NULL;
+  mask->local_max_arr = NULL;
+  mask->global_max = NULL;
   mask->flags = 0;
   GKYL_CLEAR_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
@@ -44,6 +57,8 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
       // Threshold will be set during advance based on global max value.
       mask->frac_threshold = mask_inp.frac_threshold;
+      // Pre-allocate array for global reduction
+      mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask_inp.phase_rng.ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
       // Threshold will be set during advance based on global max value.
@@ -112,10 +127,8 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
              mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD) {
 
     // First find the global max value of the 0th component over configuration space
-    double *arr_red_max = gkyl_malloc(sizeof(double)*arr_to_mask->ncomp);
-    gkyl_array_reduce(arr_red_max, arr_to_mask, GKYL_MAX);
-    double global_max_c0 = arr_red_max[0];
-    gkyl_free(arr_red_max);
+    gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
+    double global_max_c0 = mask->global_max[0];
     mask->val_threshold = mask->frac_threshold * global_max_c0;
 
     struct gkyl_range_iter iter;
