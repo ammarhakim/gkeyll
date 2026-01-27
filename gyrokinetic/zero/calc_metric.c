@@ -119,8 +119,8 @@ static inline void
 check_parallel(double *v1, double *v2, bool exit_at_check) {
   // Check v1 and v2 are parallel by checking that:
   //   |v1 x v2 | < eps 
-  //   v1 . v2 >= 0
-  const double eps = 1e-12;
+  //   |v1 . v2 - 1| < eps
+  const double eps = 1e-4;
 
   double cx = v1[1]*v2[2] - v1[2]*v2[1];
   double cy = v1[2]*v2[0] - v1[0]*v2[2];
@@ -129,7 +129,7 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
 
   double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-  if (c_mag < eps && dot >= 0)
+  if (c_mag < eps && fabs(dot-1.0) < eps)
     return;
   else {
     fprintf(stderr, "calc_metric.c: B and mapc2p are inconsistent (hat{b} and e_3 are not parallel).\n");
