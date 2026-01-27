@@ -66,6 +66,7 @@ static const struct gkyl_str_int_pair triad_geom_type[] = {
   { "Annulus", GKYL_TRIAD_ANNULUS },
   { "Cylindrical_rz", GKYL_TRIAD_CYLINDRICAL_RZ },
   { "GR_KS_rphi", GKYL_TRIAD_GR_KERR_SCHILD_RPHI },
+  { "GR_KS_rtheta", GKYL_TRIAD_GR_KERR_SCHILD_RTHETA },
   { "GR_KS_3V", GKYL_TRIAD_GR_KERR_SCHILD_3V },
   { 0, 0 }
 };
