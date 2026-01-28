@@ -15,18 +15,18 @@ struct sheath_ctx
   double q0;
   double chargeElc; // electron charge
   double massElc;   // electron mass
-  double chargeIon; // ion charge
-  double massIon;   // ion mass
   double n0;
-  double Te; // electron to ion temperature ratio
-  double Ti;
+  double Te;  // electron to ion temperature ratio
   double vte; // electron thermal velocity
-  double vti; // ion thermal velocity
+  double uex; // electron drift velocity in x
+  double uey; // electron drift velocity in y
+  double uez; // electron drift velocity in z
   double lambda_D;
   double Lx; // size of the box
-  double Ls;
   double omega_pe;
   double phi;
+  double E0;
+  double tau;
   double deltahat_ts;
   double Ehat_ts;
   double t1;
@@ -41,9 +41,16 @@ struct sheath_ctx
   double p;
   double e1;
   double e2;
+  double vxmin;
+  double vxmax;
+  double vymin;
+  double vymax;
+  double vzmin;
+  double vzmax;
   int Nx;
   int Nvx;
   int Nvy;
+  int Nvz;
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int num_emission_species;
   double t_end;          // Final simulation time.
@@ -58,59 +65,15 @@ static inline double sq(double x) { return x * x; }
 void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2];
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double vt = app->vte;
+  double ux = app->uex;
+  double uy = app->uey;
+  double uz = app->uez;
   double n = app->n0;
-  double vsq = sq(vx) + sq(vy);
-  double fv = n / (2.0 * M_PI * sq(vt)) * (exp(-vsq / (2 * sq(vt))));
+  double vsq = sq(vx - ux) + sq(vy - uy) + sq(vz - uz);
+  double fv = n / pow((2.0 * M_PI * vt * vt), 1.5) * exp(-vsq / (2 * vt * vt));
   fout[0] = fv;
-}
-
-void evalDistFuncElcSource(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2];
-  double vt = app->vte;
-  double Ls = app->Ls;
-  double vsq = sq(vx) + sq(vy);
-  double fv = 1.0 / (2.0 * M_PI * sq(vt)) * (exp(-vsq / (2 * sq(vt))));
-  if (fabs(x) < Ls)
-  {
-    fout[0] = (Ls - fabs(x)) / Ls * fv;
-  }
-  else
-  {
-    fout[0] = 0.0;
-  }
-}
-
-void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2];
-  double vt = app->vti;
-  double n = app->n0;
-  double vsq = sq(vx) + sq(vy);
-  double fv = n / (2.0 * M_PI * sq(vt)) * (exp(-vsq / (2 * sq(vt))));
-  fout[0] = fv;
-}
-
-void evalDistFuncIonSource(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2];
-  double vt = app->vti;
-  double Ls = app->Ls;
-  double vsq = sq(vx) + sq(vy);
-  double fv = 1.0 / (2.0 * M_PI * sq(vt)) * (exp(-vsq / (2 * sq(vt))));
-  if (fabs(x) < Ls)
-  {
-    fout[0] = (Ls - fabs(x)) / Ls * fv;
-  }
-  else
-  {
-    fout[0] = 0.0;
-  }
 }
 
 void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -118,42 +81,56 @@ void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  fout[0] = 0.0, fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0, fout[4] = 0.0, fout[5] = 0.0;
-  fout[6] = 0.0, fout[7] = 0.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 struct sheath_ctx
 create_ctx(void)
 {
-  int cdim = 1, vdim = 2; // Dimensionality.
+  int cdim = 1, vdim = 3; // Dimensionality.
 
-  double epsilon0 = 8.854e-12;
-  double mu0 = 1.257e-6;
+  double epsilon0 = 8.85418782e-12;
+  double mu0 = 1.25663706e-6;
 
-  double massElc = 9.109e-31;
-  double massIon = 1836.153 * massElc;
-  double q0 = 1.602e-19;
+  double massElc = 9.1093837e-31;
+  double q0 = 1.60217663e-19;
 
   double n0 = 1.0e17;
-  double Te0 = 10.0 * q0;
-  double Ti0 = 10.0 * q0;
+  double Te0 = 0.01 * q0;
 
   double vte0 = sqrt(Te0 / massElc);
-  double vti0 = sqrt(Ti0 / massIon);
 
+  double theta = 0.0; // Angle in degrees [0 <= theta <~= 84]
+  double u = sqrt((2 * 275.625 * q0) / massElc);
+  double uex = u * cos(theta * M_PI / 180.0); // electron drift velocity in x
+  double uey = u * sin(theta * M_PI / 180.0); // electron drift velocity in y
+  double uez = 0.0; // electron drift velocity in z
   double omega_pe = sqrt(n0 * q0 * q0 / (epsilon0 * massElc));
   double lambda_D = sqrt(epsilon0 * Te0 / (n0 * q0 * q0));
 
   double Lx = 128.0 * lambda_D;
-  double Ls = 100.0 * lambda_D;
 
-  int Nx = 128;
-  int Nvx = 32;
-  int Nvy = 32;
-
+  double vxmin = -1.5*u;  // [m/s]
+  double vxmax = -vxmin;  // [m/s]
+  double vymin = vxmin;  // [m/s]
+  double vymax = -vymin;  // [m/s]
+  double vzmin = vxmin;  // [m/s]
+  double vzmax = -vzmin;  // [m/s]
+  int Nx = 1;
+  int Nvx = 128;
+  int Nvy = 128;
+  int Nvz = 128;
   // SEE parameters
   double phi = 4.68;
+  double E0 = 1.97;
+  double tau = 0.88;
   double deltahat_ts = 1.885;
   double Ehat_ts = 276.8;
   double t1 = 0.66;
@@ -169,8 +146,8 @@ create_ctx(void)
   double e1 = 0.26;
   double e2 = 2.0;
 
-  double t_end = 10.0 / omega_pe; // Final simulation time.
-  int num_frames = 1;             // Number of output frames.
+  double t_end = 1.0 / omega_pe; // Final simulation time.
+  int num_frames = 1;            // Number of output frames.
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20;      // Maximum allowable number of consecutive small time-steps.
@@ -183,18 +160,18 @@ create_ctx(void)
       .q0 = q0,
       .chargeElc = -q0,
       .massElc = massElc,
-      .chargeIon = q0,
-      .massIon = massIon,
       .n0 = n0,
       .Te = Te0,
-      .Ti = Ti0,
       .vte = vte0,
-      .vti = vti0,
+      .uex = uex,
+      .uey = uey,
+      .uez = uez,
       .lambda_D = lambda_D,
       .Lx = Lx,
-      .Ls = Ls,
       .omega_pe = omega_pe,
       .phi = phi,
+      .E0 = E0,
+      .tau = tau,
       .deltahat_ts = deltahat_ts,
       .Ehat_ts = Ehat_ts,
       .t1 = t1,
@@ -209,10 +186,17 @@ create_ctx(void)
       .p = p,
       .e1 = e1,
       .e2 = e2,
+      .vxmin = vxmin,
+      .vxmax = vxmax,
+      .vymin = vymin,
+      .vymax = vymax,
+      .vzmin = vzmin,
+      .vzmax = vzmax,
       .Nx = Nx,
       .Nvx = Nvx,
       .Nvy = Nvy,
-      .cells = {Nx, Nvx, Nvy},
+      .Nvz = Nvz,
+      .cells = {Nx, Nvx, Nvy, Nvz},
       .num_emission_species = 1,
       .t_end = t_end,
       .num_frames = num_frames,
@@ -283,38 +267,26 @@ int main(int argc, char **argv)
   char in_species[1][128] = {"elc"};
   // struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
   struct gkyl_emission_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_emission_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu);
+  spectrum_model[0] = gkyl_emission_spectrum_gaussian_new(ctx.q0, ctx.E0, ctx.tau, app_args.use_gpu);
   struct gkyl_emission_yield_model *yield_model[1];
   yield_model[0] = gkyl_emission_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu);
   struct gkyl_emission_elastic_model *elastic_model = gkyl_emission_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, ctx.e1, ctx.e2, app_args.use_gpu);
-  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species);
+  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, false, spectrum_model, yield_model, elastic_model, in_species);
 
   // electrons
   struct gkyl_vlasov_species elc = {
       .name = "elc",
       .charge = ctx.chargeElc,
       .mass = ctx.massElc,
-      .lower = {-4.0 * ctx.vte, -4.0 * ctx.vte},
-      .upper = {4.0 * ctx.vte, 4.0 * ctx.vte},
-      .cells = {cells_v[0], cells_v[1]},
+      .lower = {ctx.vxmin, ctx.vymin, ctx.vzmin},
+      .upper = {ctx.vxmax, ctx.vymax, ctx.vzmax},
+      .cells = {cells_v[0], cells_v[1], cells_v[2]},
 
       .num_init = 1,
       .projection[0] = {
           .proj_id = GKYL_PROJ_FUNC,
           .func = evalDistFuncElc,
           .ctx_func = &ctx,
-      },
-
-      .source = {
-          .source_id = GKYL_BFLUX_SOURCE,
-          .source_length = ctx.Ls,
-          .source_species = "ion",
-          .num_sources = 1,
-          .projection[0] = {
-              .proj_id = GKYL_PROJ_FUNC,
-              .func = evalDistFuncElcSource,
-              .ctx_func = &ctx,
-          },
       },
 
       .bcx = {
@@ -327,49 +299,8 @@ int main(int argc, char **argv)
           },
       },
 
-      .num_diag_moments = 3,
-      .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
-  };
-
-  // ions
-  struct gkyl_vlasov_species ion = {
-      .name = "ion",
-      .charge = ctx.chargeIon,
-      .mass = ctx.massIon,
-      .lower = {-4.0 * ctx.vti, -4.0 * ctx.vti},
-      .upper = {4.0 * ctx.vti, 4.0 * ctx.vti},
-      .cells = {cells_v[0], cells_v[1]},
-
-      .num_init = 1,
-      .projection[0] = {
-          .proj_id = GKYL_PROJ_FUNC,
-          .func = evalDistFuncIon,
-          .ctx_func = &ctx,
-      },
-
-      .source = {
-          .source_id = GKYL_BFLUX_SOURCE,
-          .source_length = ctx.Ls,
-          .source_species = "ion",
-          .num_sources = 1,
-          .projection[0] = {
-              .proj_id = GKYL_PROJ_FUNC,
-              .func = evalDistFuncIonSource,
-              .ctx_func = &ctx,
-          },
-      },
-
-      .bcx = {
-          .lower = {
-              .type = GKYL_SPECIES_REFLECT,
-          },
-          .upper = {
-              .type = GKYL_SPECIES_ABSORB,
-          },
-      },
-
-      .num_diag_moments = 3,
-      .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
+      .num_diag_moments = 1,
+      .diag_moments = {GKYL_F_MOMENT_M1},
   };
 
   // Field.
@@ -384,7 +315,7 @@ int main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm app_inp = {
-      .name = "vp_SEE_1x2v_p2",
+      .name = "vp_SEE_1x3v_beam_0",
 
       .cdim = ctx.cdim,
       .vdim = ctx.vdim,
@@ -397,8 +328,8 @@ int main(int argc, char **argv)
       .num_periodic_dir = 0,
       .periodic_dirs = {},
 
-      .num_species = 2,
-      .species = {elc, ion},
+      .num_species = 1,
+      .species = {elc},
       .field = field,
       .is_electrostatic = true,
 

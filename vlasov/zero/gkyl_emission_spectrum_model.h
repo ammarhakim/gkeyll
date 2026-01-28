@@ -3,6 +3,7 @@
 #include <math.h>
 #include <gkyl_alloc.h>
 #include <gkyl_ref_count.h>
+#include <assert.h>
 
 // Object type
 struct gkyl_emission_spectrum_model;
@@ -187,15 +188,19 @@ gkyl_emission_spectrum_chung_everhart_norm(double *out,
   double charge = spectrum->charge;
   double phi = model->phi;
 
-  if (vdim == 2)
-  {
-    out[0] = 4.0*sqrt(2.0)*effective_delta*flux[0]*pow(phi, 1.5)*pow(mass/fabs(charge), 1.5)/M_PI;
+  switch(vdim){
+    case 1:
+      out[0] = 6.0*effective_delta*flux[0]*pow(phi, 2.0)*pow(mass/fabs(charge), 1.0);
+      break;
+    case 2:
+      out[0] = 4.0*sqrt(2.0)*effective_delta*flux[0]*pow(phi, 1.5)*pow(mass/fabs(charge), 1.5)/(M_PI);
+      break;
+    case 3:
+      out[0] = 3.0*effective_delta*flux[0]*pow(phi, 1.0)*pow(mass/fabs(charge), 2.0)/(2.0*M_PI);
+    default:
+      assert(false);
+      break;
   }
-  else
-  {
-    out[0] = 6.0*effective_delta*flux[0]*phi*phi*mass/fabs(charge);
-  }
-  
 }
 
 // Gaussian normalization factors
@@ -213,15 +218,20 @@ gkyl_emission_spectrum_gaussian_norm(double *out,
   double E_0 = model->E_0;
   double tau = model->tau;
 
-  if (vdim == 2)
-  {
-    out[0] = effective_delta*flux[0]*pow(mass, 1.5)/(4.0*sqrt(M_PI)*pow(E_0*fabs(charge), 1.5)*tau*exp(9.0*tau*tau/8.0));
+  switch(vdim){
+    case 1:
+      out[0] = effective_delta*flux[0]*pow(mass, 1.0)/(sqrt(2.0*M_PI)*pow(E_0*fabs(charge), 1.0)*tau*exp(pow(tau, 2.0)/2.0));
+      break;
+    case 2:
+      out[0] = effective_delta*flux[0]*pow(mass, 1.5)/(4.0*sqrt(M_PI)*pow(E_0*fabs(charge), 1.5)*tau*exp(9.0*pow(tau, 2.0)/8.0));
+      break;
+    case 3:
+      out[0] = effective_delta*flux[0]*pow(mass, 2.0)/(2.0*M_PI*sqrt(2.0*M_PI)*pow(E_0*fabs(charge), 2.0)*tau*exp(2.0*pow(tau, 2.0)));
+      break;
+    default:
+      assert(false);
+      break;
   }
-  else
-  {
-    out[0] = effective_delta*flux[0]*mass/(sqrt(2.0*M_PI)*E_0*tau*exp(tau*tau/2.0)*fabs(charge));
-  }
-  
 }
 
 // Maxwellian normalization factor */
