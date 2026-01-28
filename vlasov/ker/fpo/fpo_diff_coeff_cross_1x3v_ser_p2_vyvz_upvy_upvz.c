@@ -20,7 +20,7 @@ void fpo_diff_coeff_cross_1x3v_vyvz_ser_p2_upvy_upvz(const double *dxv, const do
   double surft2_lo[20] = {0.0}; 
   double surft2_up[20] = {0.0}; 
   double vol[48] = {0.0}; 
-  double *out = &diff_coeff[0]; 
+  double *out = &diff_coeff[240]; 
 
   const double* GBL = fpo_g_stencil[0]; 
   const double* GCL = fpo_g_stencil[1]; 
@@ -28,7 +28,6 @@ void fpo_diff_coeff_cross_1x3v_vyvz_ser_p2_upvy_upvz(const double *dxv, const do
   const double* GBC = fpo_g_stencil[3]; 
   const double* GCC = fpo_g_stencil[4]; 
   const double* G_surf_CC_vy = &fpo_g_surf_stencil[4][20]; 
-  const double* G_surf_CC_vz = &fpo_g_surf_stencil[4][40]; 
   const double* GTC = fpo_g_stencil[5]; 
   const double* GBR = fpo_g_stencil[6]; 
   const double* GCR = fpo_g_stencil[7]; 
