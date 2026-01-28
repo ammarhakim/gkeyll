@@ -7,11 +7,11 @@ GKYL_CU_DH void mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p1(const double *dra
  
   // Index into drag and diffusion coefficients. 
   double *ax = &drag_coeff[0]; 
-  double *ay = &drag_coeff[40]; 
-  double *az = &drag_coeff[80]; 
+  double *ay = &drag_coeff[16]; 
+  double *az = &drag_coeff[32]; 
   double *Dxx = &diff_coeff[0]; 
-  double *Dyy = &diff_coeff[160]; 
-  double *Dzz = &diff_coeff[320]; 
+  double *Dyy = &diff_coeff[64]; 
+  double *Dzz = &diff_coeff[128]; 
  
   // Index into surface expansions. 
   double *ax_surf = &drag_coeff_surf[0]; 

@@ -19,7 +19,7 @@ void fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_upvz(const double *dxv, const do
   double surft1_up[8] = {0.0}; 
   double surft2_lo[8] = {0.0}; 
   double surft2_up[8] = {0.0}; 
-  double vol[40] = {0.0}; 
+  double vol[16] = {0.0}; 
   double *out = &diff_coeff[0]; 
 
   const double* GBL = fpo_g_stencil[0]; 
@@ -69,16 +69,6 @@ void fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_upvz(const double *dxv, const do
   vol[13] = 3.0*GCC[1]; 
   vol[14] = 3.0*GCC[2]; 
   vol[15] = 3.0*GCC[5]; 
-  vol[22] = 3.0*GCC[16]; 
-  vol[23] = 3.0*GCC[17]; 
-  vol[27] = 6.7082039324993685*GCC[3]; 
-  vol[29] = 6.708203932499369*GCC[6]; 
-  vol[30] = 6.708203932499369*GCC[7]; 
-  vol[31] = 6.7082039324993685*GCC[11]; 
-  vol[35] = 6.7082039324993685*GCC[4]; 
-  vol[37] = 6.708203932499369*GCC[8]; 
-  vol[38] = 6.708203932499369*GCC[9]; 
-  vol[39] = 6.7082039324993685*GCC[12]; 
 
   out[0] = (vol[0]+0.7071067811865475*surft1_up[0]-0.7071067811865475*surft1_lo[0])*dv1_sq*gamma_avg; 
   out[1] = (vol[1]+0.7071067811865475*surft1_up[1]-0.7071067811865475*surft1_lo[1])*dv1_sq*gamma_avg; 
@@ -96,28 +86,4 @@ void fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_upvz(const double *dxv, const do
   out[13] = (vol[13]+1.224744871391589*(surft1_up[5]+surft1_lo[5])-2.1213203435596424*(surft2_up[1]+surft2_lo[1]))*dv1_sq*gamma_avg; 
   out[14] = (vol[14]+1.224744871391589*(surft1_up[6]+surft1_lo[6])-2.1213203435596424*(surft2_up[2]+surft2_lo[2]))*dv1_sq*gamma_avg; 
   out[15] = (vol[15]+1.224744871391589*(surft1_up[7]+surft1_lo[7])-2.1213203435596424*(surft2_up[4]+surft2_lo[4]))*dv1_sq*gamma_avg; 
-  out[16] = vol[16]*dv1_sq*gamma_avg; 
-  out[17] = vol[17]*dv1_sq*gamma_avg; 
-  out[18] = vol[18]*dv1_sq*gamma_avg; 
-  out[19] = vol[19]*dv1_sq*gamma_avg; 
-  out[20] = vol[20]*dv1_sq*gamma_avg; 
-  out[21] = vol[21]*dv1_sq*gamma_avg; 
-  out[22] = vol[22]*dv1_sq*gamma_avg; 
-  out[23] = vol[23]*dv1_sq*gamma_avg; 
-  out[24] = vol[24]*dv1_sq*gamma_avg; 
-  out[25] = vol[25]*dv1_sq*gamma_avg; 
-  out[26] = vol[26]*dv1_sq*gamma_avg; 
-  out[27] = (vol[27]-2.7386127875258306*surft2_up[0]+2.7386127875258306*surft2_lo[0])*dv1_sq*gamma_avg; 
-  out[28] = vol[28]*dv1_sq*gamma_avg; 
-  out[29] = (vol[29]-2.7386127875258306*surft2_up[1]+2.7386127875258306*surft2_lo[1])*dv1_sq*gamma_avg; 
-  out[30] = (vol[30]-2.7386127875258306*surft2_up[2]+2.7386127875258306*surft2_lo[2])*dv1_sq*gamma_avg; 
-  out[31] = (vol[31]-2.7386127875258306*surft2_up[4]+2.7386127875258306*surft2_lo[4])*dv1_sq*gamma_avg; 
-  out[32] = (vol[32]-2.7386127875258306*surft2_up[3]+2.7386127875258306*surft2_lo[3]+1.5811388300841895*surft1_up[0]-1.5811388300841895*surft1_lo[0])*dv1_sq*gamma_avg; 
-  out[33] = (vol[33]-2.7386127875258306*surft2_up[5]+2.7386127875258306*surft2_lo[5]+1.5811388300841898*surft1_up[1]-1.5811388300841898*surft1_lo[1])*dv1_sq*gamma_avg; 
-  out[34] = (vol[34]-2.7386127875258306*surft2_up[6]+2.7386127875258306*surft2_lo[6]+1.5811388300841898*surft1_up[2]-1.5811388300841898*surft1_lo[2])*dv1_sq*gamma_avg; 
-  out[35] = (vol[35]-4.743416490252569*(surft2_up[3]+surft2_lo[3])+1.5811388300841898*surft1_up[3]-1.5811388300841898*surft1_lo[3])*dv1_sq*gamma_avg; 
-  out[36] = (vol[36]-2.7386127875258306*surft2_up[7]+2.7386127875258306*surft2_lo[7]+1.5811388300841895*surft1_up[4]-1.5811388300841895*surft1_lo[4])*dv1_sq*gamma_avg; 
-  out[37] = (vol[37]-4.743416490252569*(surft2_up[5]+surft2_lo[5])+1.5811388300841895*surft1_up[5]-1.5811388300841895*surft1_lo[5])*dv1_sq*gamma_avg; 
-  out[38] = (vol[38]-4.743416490252569*(surft2_up[6]+surft2_lo[6])+1.5811388300841895*surft1_up[6]-1.5811388300841895*surft1_lo[6])*dv1_sq*gamma_avg; 
-  out[39] = (vol[39]-4.743416490252569*(surft2_up[7]+surft2_lo[7])+1.5811388300841898*surft1_up[7]-1.5811388300841898*surft1_lo[7])*dv1_sq*gamma_avg; 
 } 

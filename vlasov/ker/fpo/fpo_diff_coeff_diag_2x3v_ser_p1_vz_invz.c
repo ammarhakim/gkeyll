@@ -17,7 +17,7 @@ GKYL_CU_DH void fpo_diff_coeff_diag_2x3v_vz_ser_p1_invz(const double *dxv, const
   
   const double* d2G_surf_C = &fpo_d2gdv2_surf[32]; 
   
-  double *out = &diff_coeff[640]; 
+  double *out = &diff_coeff[256]; 
   
   out[0] = 0.5625*(G_R[0]*dv1_sq*gamma_avg+G_L[0]*dv1_sq*gamma_avg)-0.5412658773652741*G_R[5]*dv1_sq*gamma_avg+0.5412658773652741*G_L[5]*dv1_sq*gamma_avg-1.125*G_C[0]*dv1_sq*gamma_avg; 
   out[1] = 0.5625*(G_R[1]*dv1_sq*gamma_avg+G_L[1]*dv1_sq*gamma_avg)-0.5412658773652741*G_R[12]*dv1_sq*gamma_avg+0.5412658773652741*G_L[12]*dv1_sq*gamma_avg-1.125*G_C[1]*dv1_sq*gamma_avg; 
@@ -51,21 +51,5 @@ GKYL_CU_DH void fpo_diff_coeff_diag_2x3v_vz_ser_p1_invz(const double *dxv, const
   out[29] = -(0.4375*(G_R[29]*dv1_sq*gamma_avg+G_L[29]*dv1_sq*gamma_avg))-2.875*G_C[29]*dv1_sq*gamma_avg+0.5412658773652741*G_R[18]*dv1_sq*gamma_avg-0.5412658773652741*G_L[18]*dv1_sq*gamma_avg; 
   out[30] = -(0.4375*(G_R[30]*dv1_sq*gamma_avg+G_L[30]*dv1_sq*gamma_avg))-2.875*G_C[30]*dv1_sq*gamma_avg+0.5412658773652741*G_R[19]*dv1_sq*gamma_avg-0.5412658773652741*G_L[19]*dv1_sq*gamma_avg; 
   out[31] = -(0.4375*(G_R[31]*dv1_sq*gamma_avg+G_L[31]*dv1_sq*gamma_avg))-2.875*G_C[31]*dv1_sq*gamma_avg+0.5412658773652741*G_R[26]*dv1_sq*gamma_avg-0.5412658773652741*G_L[26]*dv1_sq*gamma_avg; 
-  out[64] = -(0.4192627457812106*(G_R[0]*dv1_sq*gamma_avg+G_L[0]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[5]*dv1_sq*gamma_avg-0.7261843774138906*G_L[5]*dv1_sq*gamma_avg+0.8385254915624212*G_C[0]*dv1_sq*gamma_avg; 
-  out[65] = -(0.41926274578121053*(G_R[1]*dv1_sq*gamma_avg+G_L[1]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[12]*dv1_sq*gamma_avg-0.7261843774138907*G_L[12]*dv1_sq*gamma_avg+0.8385254915624211*G_C[1]*dv1_sq*gamma_avg; 
-  out[66] = -(0.41926274578121053*(G_R[2]*dv1_sq*gamma_avg+G_L[2]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[13]*dv1_sq*gamma_avg-0.7261843774138907*G_L[13]*dv1_sq*gamma_avg+0.8385254915624211*G_C[2]*dv1_sq*gamma_avg; 
-  out[67] = -(0.41926274578121053*(G_R[3]*dv1_sq*gamma_avg+G_L[3]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[14]*dv1_sq*gamma_avg-0.7261843774138907*G_L[14]*dv1_sq*gamma_avg+0.8385254915624211*G_C[3]*dv1_sq*gamma_avg; 
-  out[68] = -(0.41926274578121053*(G_R[4]*dv1_sq*gamma_avg+G_L[4]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[15]*dv1_sq*gamma_avg-0.7261843774138907*G_L[15]*dv1_sq*gamma_avg+0.8385254915624211*G_C[4]*dv1_sq*gamma_avg; 
-  out[69] = -(0.4192627457812106*(G_R[6]*dv1_sq*gamma_avg+G_L[6]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[20]*dv1_sq*gamma_avg-0.7261843774138906*G_L[20]*dv1_sq*gamma_avg+0.8385254915624212*G_C[6]*dv1_sq*gamma_avg; 
-  out[70] = -(0.4192627457812106*(G_R[7]*dv1_sq*gamma_avg+G_L[7]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[21]*dv1_sq*gamma_avg-0.7261843774138906*G_L[21]*dv1_sq*gamma_avg+0.8385254915624212*G_C[7]*dv1_sq*gamma_avg; 
-  out[71] = -(0.4192627457812106*(G_R[8]*dv1_sq*gamma_avg+G_L[8]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[22]*dv1_sq*gamma_avg-0.7261843774138906*G_L[22]*dv1_sq*gamma_avg+0.8385254915624212*G_C[8]*dv1_sq*gamma_avg; 
-  out[72] = -(0.4192627457812106*(G_R[9]*dv1_sq*gamma_avg+G_L[9]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[23]*dv1_sq*gamma_avg-0.7261843774138906*G_L[23]*dv1_sq*gamma_avg+0.8385254915624212*G_C[9]*dv1_sq*gamma_avg; 
-  out[73] = -(0.4192627457812106*(G_R[10]*dv1_sq*gamma_avg+G_L[10]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[24]*dv1_sq*gamma_avg-0.7261843774138906*G_L[24]*dv1_sq*gamma_avg+0.8385254915624212*G_C[10]*dv1_sq*gamma_avg; 
-  out[74] = -(0.4192627457812106*(G_R[11]*dv1_sq*gamma_avg+G_L[11]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[25]*dv1_sq*gamma_avg-0.7261843774138906*G_L[25]*dv1_sq*gamma_avg+0.8385254915624212*G_C[11]*dv1_sq*gamma_avg; 
-  out[75] = -(0.41926274578121053*(G_R[16]*dv1_sq*gamma_avg+G_L[16]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[27]*dv1_sq*gamma_avg-0.7261843774138907*G_L[27]*dv1_sq*gamma_avg+0.8385254915624211*G_C[16]*dv1_sq*gamma_avg; 
-  out[76] = -(0.41926274578121053*(G_R[17]*dv1_sq*gamma_avg+G_L[17]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[28]*dv1_sq*gamma_avg-0.7261843774138907*G_L[28]*dv1_sq*gamma_avg+0.8385254915624211*G_C[17]*dv1_sq*gamma_avg; 
-  out[77] = -(0.41926274578121053*(G_R[18]*dv1_sq*gamma_avg+G_L[18]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[29]*dv1_sq*gamma_avg-0.7261843774138907*G_L[29]*dv1_sq*gamma_avg+0.8385254915624211*G_C[18]*dv1_sq*gamma_avg; 
-  out[78] = -(0.41926274578121053*(G_R[19]*dv1_sq*gamma_avg+G_L[19]*dv1_sq*gamma_avg))+0.7261843774138907*G_R[30]*dv1_sq*gamma_avg-0.7261843774138907*G_L[30]*dv1_sq*gamma_avg+0.8385254915624211*G_C[19]*dv1_sq*gamma_avg; 
-  out[79] = -(0.4192627457812106*(G_R[26]*dv1_sq*gamma_avg+G_L[26]*dv1_sq*gamma_avg))+0.7261843774138906*G_R[31]*dv1_sq*gamma_avg-0.7261843774138906*G_L[31]*dv1_sq*gamma_avg+0.8385254915624212*G_C[26]*dv1_sq*gamma_avg; 
 } 
 

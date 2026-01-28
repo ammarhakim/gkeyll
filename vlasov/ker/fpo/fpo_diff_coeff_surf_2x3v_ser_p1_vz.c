@@ -9,8 +9,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vzvx evaluated at vz boundary. 
-  D_L = &diff_coeff_L[480]; 
-  D_C = &diff_coeff_C[480]; 
+  D_L = &diff_coeff_L[192]; 
+  D_C = &diff_coeff_C[192]; 
   D_surf_out = &diff_coeff_surf_C[192]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
@@ -32,8 +32,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vxvz evaluated at vz boundary. 
-  D_L = &diff_coeff_L[160]; 
-  D_C = &diff_coeff_C[160]; 
+  D_L = &diff_coeff_L[64]; 
+  D_C = &diff_coeff_C[64]; 
   D_surf_out = &diff_coeff_surf_C[80]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
@@ -55,8 +55,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vzvy evaluated at vz boundary. 
-  D_L = &diff_coeff_L[560]; 
-  D_C = &diff_coeff_C[560]; 
+  D_L = &diff_coeff_L[224]; 
+  D_C = &diff_coeff_C[224]; 
   D_surf_out = &diff_coeff_surf_C[224]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
@@ -78,8 +78,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vyvz evaluated at vz boundary. 
-  D_L = &diff_coeff_L[400]; 
-  D_C = &diff_coeff_C[400]; 
+  D_L = &diff_coeff_L[160]; 
+  D_C = &diff_coeff_C[160]; 
   D_surf_out = &diff_coeff_surf_C[176]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
@@ -101,8 +101,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vzvz evaluated at vz boundary. 
-  D_L = &diff_coeff_L[640]; 
-  D_C = &diff_coeff_C[640]; 
+  D_L = &diff_coeff_L[256]; 
+  D_C = &diff_coeff_C[256]; 
   D_surf_out = &diff_coeff_surf_C[256]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
@@ -124,8 +124,8 @@ GKYL_CU_DH void fpo_diff_coeff_surf_2x3v_vz_ser_p1(const double *diff_coeff_L, c
 
 
   // D_vzvz evaluated at vz boundary. 
-  D_L = &diff_coeff_L[640]; 
-  D_C = &diff_coeff_C[640]; 
+  D_L = &diff_coeff_L[256]; 
+  D_C = &diff_coeff_C[256]; 
   D_surf_out = &diff_coeff_surf_C[272]; 
 
   D_surf_out[0] = 0.408248290463863*D_L[5]-0.408248290463863*D_C[5]+0.3535533905932737*(D_L[0]+D_C[0]); 
