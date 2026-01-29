@@ -683,9 +683,9 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
   } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC_SPATIAL) {
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC_SPATIAL) {
+  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC_CONF) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL;
   } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC) {
     skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;

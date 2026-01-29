@@ -321,8 +321,8 @@ enum gkyl_gyrokinetic_skip_cell_type {
   GKYL_GK_SKIP_CELL_ABOVE, // Skip cells where |JBf| > threshold.
   GKYL_GK_SKIP_CELL_BELOW_FRAC, // Skip cells where |JBf| < threshold * max|JBf|. JBf is the distribution function output from simulations.
   GKYL_GK_SKIP_CELL_ABOVE_FRAC, // Skip cells where |JBf| > threshold * max|JBf|.
-  GKYL_GK_SKIP_CELL_BELOW_FRAC_SPATIAL, // Skip cells where |JBf| < threshold * max|JBf(x)|. JBf is the distribution function output from simulations.
-  GKYL_GK_SKIP_CELL_ABOVE_FRAC_SPATIAL // Skip cells where |JBf| > threshold * max|JBf(x)|.
+  GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF, // Skip cells where |JBf| < threshold * max|JBf(x)|. JBf is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_ABOVE_FRAC_CONF // Skip cells where |JBf| > threshold * max|JBf(x)|.
 };
 struct gkyl_gyrokinetic_skip_cell {
   enum gkyl_gyrokinetic_skip_cell_type type; // Type of masking operation to put on the phase space cell updates.

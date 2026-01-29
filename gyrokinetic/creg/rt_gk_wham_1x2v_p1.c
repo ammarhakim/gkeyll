@@ -659,7 +659,7 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .skip_cell = {
-      .type = GKYL_GK_SKIP_CELL_BELOW_FRAC_SPATIAL,
+      .type = GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF,
       .threshold = 1e-4,
     },
 
