@@ -319,9 +319,9 @@ enum gkyl_gyrokinetic_skip_cell_type {
   GKYL_GK_SKIP_CELL_NONE = 0, // No skipping of cells.
   GKYL_GK_SKIP_CELL_BELOW, // Skip cells where |J_tot f| < threshold. J_tot f is the distribution function output from simulations.
   GKYL_GK_SKIP_CELL_ABOVE, // Skip cells where |J_tot f| > threshold.
-  GKYL_GK_SKIP_CELL_BELOW_FRAC, // Skip cells where |J_tot f| < threshold * max|J_tot f|. J_tot f is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_BELOW_FRAC, // Skip cells where |J_tot f| < threshold * max|J_tot f|. J_tot f is the distribution function output from simulations. Uses a global maximum of J_tot f.
   GKYL_GK_SKIP_CELL_ABOVE_FRAC, // Skip cells where |J_tot f| > threshold * max|J_tot f|.
-  GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF, // Skip cells where |J_tot f| < threshold * max|J_tot f(x)|. J_tot f is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF, // Skip cells where |J_tot f| < threshold * max|J_tot f(x)|. J_tot f is the distribution function output from simulations. This uses a spatially dependent mask which find the local maximum of J_tot f at each configuration space cell and applies the mask as a fraction of that.
   GKYL_GK_SKIP_CELL_ABOVE_FRAC_CONF // Skip cells where |J_tot f| > threshold * max|J_tot f(x)|.
 };
 struct gkyl_gyrokinetic_skip_cell {
