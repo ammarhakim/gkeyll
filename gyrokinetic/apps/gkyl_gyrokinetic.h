@@ -326,8 +326,7 @@ enum gkyl_gyrokinetic_skip_cell_type {
 };
 struct gkyl_gyrokinetic_skip_cell {
   enum gkyl_gyrokinetic_skip_cell_type type; // Type of masking operation to put on the phase space cell updates.
-  double threshold; // Skips cells where |JBf| < threshold. JBf is the distribution function output from simulations.
-  double frac_threshold; // Fractional threshold for skipping cells based on max|JBf|. JBf is the distribution function output from simulations.
+  double threshold; // Threshold for skipping cells. Absolute value for *_THRESHOLD types, fraction (0-1) for *_FRAC_THRESHOLD types.
 };
 
 enum gkyl_gyrokinetic_damping_type {

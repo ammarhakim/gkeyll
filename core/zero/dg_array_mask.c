@@ -162,7 +162,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->type = mask_inp.type;
   mask->default_value = mask_inp.default_value;
   mask->use_gpu = mask_inp.use_gpu;
-  mask->val_threshold = 0.0;
+  mask->threshold = 0.0;
   mask->mask = NULL;
   mask->local_max_arr = NULL;
   mask->global_max = NULL;
@@ -174,17 +174,17 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
-        mask->val_threshold = mask_inp.val_threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
+        mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
       // Threshold will be set during advance based on global max value.
-      mask->frac_threshold = mask_inp.frac_threshold;
+      mask->threshold = mask_inp.threshold;
       // Pre-allocate array for global reduction
       mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask_inp.phase_rng_ext.ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
       // Threshold will be set during advance based on global max value.
-      mask->frac_threshold = mask_inp.frac_threshold;
+      mask->threshold = mask_inp.threshold;
     }
     
     // Initialize the mask array on host.
@@ -227,21 +227,21 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 
   // Apply mask based on type using static helper functions
   if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD) {
-    apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->val_threshold);
+    apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->threshold);
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
-    apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->val_threshold);
+    apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->threshold);
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
            mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
     // Find global max and compute threshold
     gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
-    double threshold = mask->frac_threshold * mask->global_max[0];
+    double frac_threshold = mask->threshold * mask->global_max[0];
     
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD) {
-      apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, threshold);
+      apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, frac_threshold);
     } else {
-      apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, threshold);
+      apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, frac_threshold);
     }
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
@@ -256,14 +256,14 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
         &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx);
       
       // Compute threshold and apply mask for this config cell
-      double threshold = mask->frac_threshold * local_max;
+      double frac_threshold = mask->threshold * local_max;
       
       if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
         apply_spatial_mask_less_than(mask->mask, arr_to_mask,
-          &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx, threshold);
+          &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx, frac_threshold);
       } else {
         apply_spatial_mask_greater_than(mask->mask, arr_to_mask,
-          &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx, threshold);
+          &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx, frac_threshold);
       }
     }
   }

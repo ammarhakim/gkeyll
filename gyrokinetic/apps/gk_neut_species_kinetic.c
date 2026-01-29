@@ -698,8 +698,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
     .type = skip_cell_mask_type,
     .default_value = true,
-    .val_threshold = s->info.skip_cell.threshold,
-    .frac_threshold = s->info.skip_cell.frac_threshold,
+    .threshold = s->info.skip_cell.threshold,
     .phase_rng = s->local,
     .phase_rng_ext = s->local_ext,
     .config_rng = app->local,

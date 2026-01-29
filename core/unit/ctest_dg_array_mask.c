@@ -30,7 +30,7 @@ void test_mask_new(bool use_gpu)
   
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = 1e-10,
+    .threshold = 1e-10,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -69,7 +69,7 @@ void test_mask_none_type(bool use_gpu)
 
   TEST_CHECK( mask->type == GKYL_DG_ARRAY_MASK_NONE );
   TEST_CHECK( mask->use_gpu == use_gpu );
-  TEST_CHECK( mask->val_threshold == 0.0 );
+  TEST_CHECK( mask->threshold == 0.0 );
 
   gkyl_dg_array_mask_release(mask);
 }
@@ -84,7 +84,7 @@ void test_mask_advance_threshold(bool use_gpu)
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -138,7 +138,7 @@ void test_mask_advance_all_below(bool use_gpu)
   double threshold = 10.0;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -181,7 +181,7 @@ void test_mask_advance_all_above(bool use_gpu)
   double threshold = 1e-15;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -224,7 +224,7 @@ void test_mask_advance_negative_values(bool use_gpu)
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -277,7 +277,7 @@ void test_mask_advance_greater_than_threshold(bool use_gpu)
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -330,7 +330,7 @@ void test_mask_advance_greater_than_all_above(bool use_gpu)
   double threshold = 1e-15;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -373,7 +373,7 @@ void test_mask_advance_greater_than_all_below(bool use_gpu)
   double threshold = 10.0;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -416,7 +416,7 @@ void test_mask_advance_greater_than_negative_values(bool use_gpu)
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -469,7 +469,7 @@ void test_mask_eval(bool use_gpu)
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -540,7 +540,7 @@ void test_mask_scale_by_cell(bool use_gpu)
   
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = 0.5,
+    .threshold = 0.5,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -610,7 +610,7 @@ void test_mask_acquire_release(bool use_gpu)
   
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = 1.0,
+    .threshold = 1.0,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -638,7 +638,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   double threshold = 1.0;
   struct gkyl_dg_array_mask_inp mask_inp1d = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range1d,
     .phase_rng_ext = range1d,
     .use_gpu = use_gpu
@@ -646,7 +646,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   
   struct gkyl_dg_array_mask *mask1d = gkyl_dg_array_mask_new(mask_inp1d);
   double expected1d = threshold * sqrt(2.0);
-  TEST_CHECK( gkyl_compare(mask1d->val_threshold, expected1d, 1e-14) );
+  TEST_CHECK( gkyl_compare(mask1d->threshold, expected1d, 1e-14) );
   gkyl_dg_array_mask_release(mask1d);
   
   // Test 2D
@@ -656,7 +656,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   
   struct gkyl_dg_array_mask_inp mask_inp2d = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range2d,
     .phase_rng_ext = range2d,
     .use_gpu = use_gpu
@@ -664,7 +664,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   
   struct gkyl_dg_array_mask *mask2d = gkyl_dg_array_mask_new(mask_inp2d);
   double expected2d = threshold * pow(sqrt(2.0), 2);
-  TEST_CHECK( gkyl_compare(mask2d->val_threshold, expected2d, 1e-14) );
+  TEST_CHECK( gkyl_compare(mask2d->threshold, expected2d, 1e-14) );
   gkyl_dg_array_mask_release(mask2d);
   
   // Test 3D
@@ -674,7 +674,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   
   struct gkyl_dg_array_mask_inp mask_inp3d = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = range3d,
     .phase_rng_ext = range3d,
     .use_gpu = use_gpu
@@ -682,7 +682,7 @@ void test_mask_threshold_scaling(bool use_gpu)
   
   struct gkyl_dg_array_mask *mask3d = gkyl_dg_array_mask_new(mask_inp3d);
   double expected3d = threshold * pow(sqrt(2.0), 3);
-  TEST_CHECK( gkyl_compare(mask3d->val_threshold, expected3d, 1e-14) );
+  TEST_CHECK( gkyl_compare(mask3d->threshold, expected3d, 1e-14) );
   gkyl_dg_array_mask_release(mask3d);
 }
 
@@ -696,7 +696,7 @@ void test_mask_advance_frac_threshold(bool use_gpu)
   double frac_threshold = 0.5; // 50% of max value
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -749,7 +749,7 @@ void test_mask_advance_frac_threshold_greater(bool use_gpu)
   double frac_threshold = 0.3; // 30% of max value
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = range,
     .phase_rng_ext = range,
     .use_gpu = use_gpu
@@ -809,7 +809,7 @@ void test_mask_advance_frac_threshold_spatial(bool use_gpu)
   double frac_threshold = 0.5; // 50% of local max
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = phase_rng,
     .phase_rng_ext = phase_rng,
     .config_rng = conf_rng,
@@ -903,7 +903,7 @@ void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
   double frac_threshold = 0.6; // 60% of local max
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = phase_rng,
     .phase_rng_ext = phase_rng,
     .config_rng = conf_rng,
@@ -987,7 +987,7 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
   double threshold = 0.5;
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD,
-    .val_threshold = threshold,
+    .threshold = threshold,
     .phase_rng = local,
     .phase_rng_ext = local_ext,
     .use_gpu = use_gpu
@@ -1078,7 +1078,7 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
   double frac_threshold = 0.5; // 50% of max value
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = local,
     .phase_rng_ext = local_ext,
     .use_gpu = use_gpu
@@ -1216,7 +1216,7 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   double frac_threshold = 0.5; // 50% of local max
   struct gkyl_dg_array_mask_inp mask_inp = {
     .type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL,
-    .frac_threshold = frac_threshold,
+    .threshold = frac_threshold,
     .phase_rng = phase_local,
     .phase_rng_ext = phase_local_ext,
     .config_rng = conf_local,
