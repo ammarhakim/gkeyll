@@ -317,12 +317,12 @@ struct gkyl_gyrokinetic_positivity {
 
 enum gkyl_gyrokinetic_skip_cell_type {
   GKYL_GK_SKIP_CELL_NONE = 0, // No skipping of cells.
-  GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD, // Skip cells where |JBf| < threshold. JBf is the distribution function output from simulations.
-  GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD, // Skip cells where |JBf| > threshold.
-  GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD, // Skip cells where |JBf| < threshold * max|JBf|. JBf is the distribution function output from simulations.
-  GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD, // Skip cells where |JBf| > threshold * max|JBf|.
-  GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD_SPATIAL, // Skip cells where |JBf| < threshold * max|JBf(x)|. JBf is the distribution function output from simulations.
-  GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD_SPATIAL // Skip cells where |JBf| > threshold * max|JBf(x)|.
+  GKYL_GK_SKIP_CELL_BELOW, // Skip cells where |JBf| < threshold. JBf is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_ABOVE, // Skip cells where |JBf| > threshold.
+  GKYL_GK_SKIP_CELL_BELOW_FRAC, // Skip cells where |JBf| < threshold * max|JBf|. JBf is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_ABOVE_FRAC, // Skip cells where |JBf| > threshold * max|JBf|.
+  GKYL_GK_SKIP_CELL_BELOW_FRAC_SPATIAL, // Skip cells where |JBf| < threshold * max|JBf(x)|. JBf is the distribution function output from simulations.
+  GKYL_GK_SKIP_CELL_ABOVE_FRAC_SPATIAL // Skip cells where |JBf| > threshold * max|JBf(x)|.
 };
 struct gkyl_gyrokinetic_skip_cell {
   enum gkyl_gyrokinetic_skip_cell_type type; // Type of masking operation to put on the phase space cell updates.
