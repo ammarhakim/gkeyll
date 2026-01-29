@@ -163,9 +163,9 @@ double dPsidr(double r, double theta, void *ctx)
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
   double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R0 = app->R0;
   double R = R_rtheta(r,0.0,ctx);
-  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
+  return ( B0*R0/(2.*M_PI*qprofile(R)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -185,9 +185,9 @@ double alpha(double r, double theta, double phi, void *ctx)
   }
 
   double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R0 = app->R0;
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
+  return phi - B0*R0*integral.res/dPsidr(r,theta,ctx);
 }
 
 double Bphi(double R, void *ctx)
@@ -417,8 +417,8 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
-  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
   fout[2] = B_z;
 }
 
