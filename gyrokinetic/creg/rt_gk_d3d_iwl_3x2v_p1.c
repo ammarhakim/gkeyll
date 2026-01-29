@@ -156,6 +156,16 @@ double integrand(double t, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
+
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -163,10 +173,10 @@ double dPsidr(double r, double theta, void *ctx)
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
-  double B0 = app->B0;
-  double R0 = app->R0;
-  double R = R_rtheta(r,0.0,ctx);
-  return ( B0*R0/(2.*M_PI*qprofile(R)))*integral.res;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
+  double R_omp = R_rtheta(r,0.0,ctx);
+  return ( R*Bt/(2.*M_PI*qprofile(R_omp)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -185,20 +195,12 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R0 = app->R0;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R0*integral.res/dPsidr(r,theta,ctx);
+  return phi - R*Bt*integral.res/dPsidr(r,theta,ctx);
 }
 
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
-}
 double gradr(double r, double theta, void *ctx)
 {
   return (R_rtheta(r,theta,ctx)/Jr(r,theta,ctx))*sqrt(pow(dRdtheta(r,theta,ctx),2) + pow(dZdtheta(r,theta,ctx),2));
