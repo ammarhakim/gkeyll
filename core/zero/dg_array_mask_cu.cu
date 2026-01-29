@@ -22,7 +22,9 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->frac_threshold = mask_ho->frac_threshold;
   mask->use_gpu = mask_ho->use_gpu;
   mask->phase_rng = mask_ho->phase_rng;
+  mask->phase_rng_ext = mask_ho->phase_rng_ext;
   mask->conf_rng = mask_ho->conf_rng;
+  mask->conf_rng_ext = mask_ho->conf_rng_ext;
   mask->vel_rng = mask_ho->vel_rng;
   mask->mask = NULL;
   mask->local_max_arr = NULL;
