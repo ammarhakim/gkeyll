@@ -28,6 +28,7 @@ struct gk_app_ctx {
   double kappa;     // Elongation (=1 for no elongation).
   double delta;     // Triangularity (=0 for no triangularity).
   double q0;        // Magnetic safety factor in the center of domain.
+  double Cy;        // Prefactor in binormal coordinate.
 
   double x_LCFS;    // Radial location of the last closed flux surface.
 
@@ -160,7 +161,6 @@ double dPsidr(double r, double theta, void *ctx)
 
   double B0 = app->B0;
   double R0 = app->R0;
-  double R_axis = app->R_axis;
   double R = R_rtheta(r,0.0,ctx);
   return ( B0*R0/(2.*M_PI*qprofile(R)))*integral.res;
 }
@@ -183,7 +183,6 @@ double alpha(double r, double theta, double phi, void *ctx)
 
   double B0 = app->B0;
   double R0 = app->R0;
-  double R_axis = app->R_axis;
 
   return phi - B0*R0*integral.res/dPsidr(r,theta,ctx);
 }
@@ -342,8 +341,7 @@ diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
 
   double x = xc[0], y = xc[1], z = xc[2];
@@ -353,7 +351,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = Z_rtheta(r, z, ctx);
-  double phi = y + alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -364,9 +362,8 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
-  double r0 = app->r0;
-  double q0 = app->q0;
 
   double x = xc[0], y = xc[1], z = xc[2];
   double r = r_x(x,a_mid);
@@ -378,7 +375,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = y + alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
@@ -427,6 +424,7 @@ create_ctx(void)
   double x_LCFS    = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
 
   double q0        = qprofile(R0);    // Magnetic safety factor in the center of domain.
+  double Cy        = 1; // Normalization in binormal coordinate.
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
@@ -490,6 +488,7 @@ create_ctx(void)
     .kappa  = kappa ,
     .delta  = delta ,
     .q0     = q0    ,
+    .Cy     = Cy    ,
     .Lx     = Lx    ,
     .Lz     = Lz    ,
     .x_min = x_min,  .x_max = x_max,

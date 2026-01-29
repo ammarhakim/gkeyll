@@ -28,6 +28,7 @@ struct gk_app_ctx {
   double kappa; // Elongation (=1 for no elongation).
   double delta; // Triangularity (=0 for no triangularity).
   double q0; // Magnetic safety factor in the center of domain.
+  double Cy; // Prefactor in binormal coordinate.
 
   double x_LCFS; // Radial location of the last closed flux surface.
   double x_inner; // Domain size inside the separatrix.
@@ -338,8 +339,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   double x = xc[0], y = xc[1], z = xc[2];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
   double x_inner = app->x_inner;
 
@@ -348,7 +348,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = Z_rtheta(r, z, ctx);
-  double phi = q0/r0*y + alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -400,8 +400,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double x_inner = app->x_inner;
   double r = r_x(x,a_mid,x_inner);
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
@@ -412,7 +411,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = q0/r0*y + alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
@@ -427,14 +426,15 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double x = xc[0];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
   double a_mid = app->a_mid;
-  double Lz = app->Lz;
   double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
   double r = r_x(x,a_mid,x_inner);
 
-  fout[0] = -r0/q0*alpha(r, -Lz/2, 0.0, ctx);
+  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -442,14 +442,15 @@ void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double x = xc[0];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
   double a_mid = app->a_mid;
-  double Lz = app->Lz;
   double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
   double r = r_x(x,a_mid,x_inner);
 
-  fout[0] = -r0/q0*alpha(r, Lz/2, 0.0, ctx);
+  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
 
 struct gk_app_ctx
@@ -478,7 +479,7 @@ create_ctx(void)
 
   // Minor radius at outboard midplane [m]. Redefine it with
   // Shafranov shift, to ensure LCFS radial location.
-  double a_mid = a_shift<1e-13? R_LCFSmid-R_axis :
+  double a_mid = fabs(a_shift)<1e-13? R_LCFSmid-R_axis :
     R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
 
   double r0 = R0-R_axis; // Minor radius of the simulation box [m].
@@ -513,6 +514,7 @@ create_ctx(void)
   double z_max = Lz/2.;
 
   double q0 = qprofile(R0); // Magnetic safety factor in the center of domain.
+  double Cy = r0/q0; // Normalization in binormal coordinate.
 
   double nu_frac = 0.1;
 
@@ -563,6 +565,7 @@ create_ctx(void)
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
+    .Cy = Cy,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
