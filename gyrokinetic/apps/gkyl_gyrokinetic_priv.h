@@ -118,7 +118,8 @@ enum gk_extra_meta_type {
 };
 
 struct gyrokinetic_output_meta_geo {
-  int geqdsk_sign_convention; // sign convention for geqdsk
+  enum gkyl_geometry_id geometry_id; // Geometry type.
+  int geqdsk_sign_convention; // Sign convention for geqdsk.
 };
 
 // struct for holding moment correction inputs

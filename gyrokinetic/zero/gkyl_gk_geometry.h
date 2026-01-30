@@ -157,6 +157,8 @@ struct gk_geom_int {
 };
 
 struct gk_geometry {
+  enum gkyl_geometry_id geometry_id;
+
   // Objects for mapc2p and finite differences array.
   struct gkyl_range local;
   struct gkyl_range local_ext;

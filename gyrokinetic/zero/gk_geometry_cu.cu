@@ -416,6 +416,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;

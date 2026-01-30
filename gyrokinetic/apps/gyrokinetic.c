@@ -88,13 +88,21 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type e
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
-  mpack_write_cstr(&writer, "Git_commit_hash");
+  mpack_write_cstr(&writer, "changeset");
   mpack_write_cstr(&writer, GIT_COMMIT_ID);
 
+  const char* build_date = GKYL_BUILD_DATE;
+  mpack_write_cstr(&writer, "builddate");
+  mpack_write_cstr(&writer, GKYL_BUILD_DATE);
+
   if (extra_meta_type == GKYL_GK_META_GEO) {
-      struct gyrokinetic_output_meta_geo *extram = extra_meta;
+    struct gyrokinetic_output_meta_geo *extram = extra_meta;
+    mpack_write_cstr(&writer, "geometry_type");
+    mpack_write_i64(&writer, extram->geometry_id);
+    if (extram->geometry_id == GKYL_GEOMETRY_TOKAMAK || extram->geometry_id == GKYL_GEOMETRY_MIRROR) {
       mpack_write_cstr(&writer, "geqdsk_sign_convention");
       mpack_write_i64(&writer, extram->geqdsk_sign_convention);
+    }
   }
 
   mpack_complete_map(&writer);
@@ -145,9 +153,13 @@ gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_m
     MPACK_FREE(basis_type);
 
     if (extra_meta_type == GKYL_GK_META_GEO) {
-          struct gyrokinetic_output_meta_geo *extram = extra_meta;
-          mpack_node_t geo_node = mpack_node_map_cstr(root, "geqdsk_sign_convention");
-          extram->geqdsk_sign_convention = mpack_node_i64(geo_node);
+      struct gyrokinetic_output_meta_geo *extram = extra_meta;
+      mpack_node_t geo_type = mpack_node_map_cstr(root, "geometry_type");
+      extram->geometry_id = mpack_node_i64(geo_type);
+      if (extram->geometry_id == GKYL_GEOMETRY_TOKAMAK || extram->geometry_id == GKYL_GEOMETRY_MIRROR) {
+        mpack_node_t geo_conv = mpack_node_map_cstr(root, "geqdsk_sign_convention");
+        extram->geqdsk_sign_convention = mpack_node_i64(geo_conv);
+      }
     }
 
     mpack_tree_destroy(&tree);
@@ -373,13 +385,14 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     case GKYL_GEOMETRY_FROMFILE:
       gk_geom_3d = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, false);
       break;
-    case GKYL_TOKAMAK:
+    case GKYL_GEOMETRY_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geometry_inp);
       break;
-    case GKYL_MIRROR:
+    case GKYL_GEOMETRY_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
       break;
-    case GKYL_MAPC2P:
+    case GKYL_GEOMETRY_MAPC2P:
+    case GKYL_GEOMETRY_NONE:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
       break;
   }
@@ -1077,16 +1090,22 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geometry_inp *geometry_inp)
 {
+  // Geometry metadata.
+  struct gyrokinetic_output_meta_geo meta_geo = {
+    .geometry_id = app->gk_geom->geometry_id,
+  };
+  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK || app->gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR) {
+    // Metadata specific to sims using numerical geometry.
+    meta_geo.geqdsk_sign_convention = app->gk_geom->geqdsk_sign_convention;
+  }
+
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = 0,
       .stime = 0,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
     }, 
-    GKYL_GK_META_GEO, 
-    &(struct gyrokinetic_output_meta_geo) {
-      .geqdsk_sign_convention = app->gk_geom->geqdsk_sign_convention
-    }
+    GKYL_GK_META_GEO, &meta_geo 
   );
 
   // Gather geo into a global array
@@ -1100,7 +1119,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn", mt);
   if (app->cdim < 3) {
-    if (geometry_inp->geometry_id == GKYL_MIRROR || geometry_inp->geometry_id == GKYL_TOKAMAK)
+    if (geometry_inp->geometry_id == GKYL_GEOMETRY_MIRROR || geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2p_deflated, arr_hocdim, "mapc2p_deflated", mt);  
     gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2nu_pos_deflated, arr_hocdim, "mc2nu_pos_deflated", mt);  
   }

@@ -3,7 +3,8 @@
 # Type "make help" to see help for this Makefile
 
 # determine date of build
-BUILD_DATE := $(shell date)
+BUILD_DATE := $(shell date +"%Y-%m-%d %H:%M:%S %Z")
+BUILD_DATE_STR := "$(BUILD_DATE)"
 GIT_TIP := $(shell git describe --abbrev=12 --always --dirty=+)
 
 # Build directory
@@ -14,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 

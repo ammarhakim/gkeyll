@@ -26,6 +26,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -364,6 +365,7 @@ struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
