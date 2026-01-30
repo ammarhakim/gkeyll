@@ -33,6 +33,9 @@ struct gkyl_dg_array_mask_inp {
 
 /**
  * Create a new mask object.
+ * A mask is an object that applies a conditional to an input array.
+ * The conditional is specified by the type parameter in the input structure.
+ * The mask itself is 1 for true and -1 for false.
  *
  * @param mask_inp Input parameters for mask.
  * @return New mask object.
@@ -69,9 +72,9 @@ bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
 bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
 
 /**
- * mask = mask * arr_to_multiply
  * Scale the dg_array_mask by an array, modifying the mask.
- *`
+ * mask = mask * arr_to_multiply
+ *
  * @param mask Mask object.
  * @param arr_to_multiply Array to be multiplied by the mask.
  */
@@ -81,10 +84,7 @@ gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct g
 
 /**
  * Acquire a reference to the mask object.
- * 
- * @param mask Mask object to acquire.
  */
-
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask);
 
