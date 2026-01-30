@@ -290,17 +290,14 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     }
     
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
+        mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
         mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask->mask_rng->ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
-      // Threshold will be set during advance based on global max value.
       mask->threshold = mask_inp.threshold;
-      // Pre-allocate array for global reduction
-      mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask->mask_rng_ext->ndim);
+      mask->global_max = (double*) gkyl_malloc(sizeof(double)); // Pre-allocate array for global reduction
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
-      // Threshold will be set during advance based on global max value.
       mask->threshold = mask_inp.threshold;
     }
     
