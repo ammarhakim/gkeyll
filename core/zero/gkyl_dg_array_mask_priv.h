@@ -13,6 +13,8 @@ struct gkyl_dg_array_mask {
   bool default_value; // Default value for mask (true/false) if no masking is applied. Defaults to false.
   struct gkyl_array *mask; // Mask array (1.0 is true, -1.0 is false).
   double threshold; // Threshold for marking cells as masked. Scaled absolute value for *_THRESHOLD types, fraction for *_FRAC_THRESHOLD types.
+  struct gkyl_range mask_rng; // Range over which mask is applied (phase_rng for kinetic, conf_rng for fluid).
+  struct gkyl_range mask_rng_ext; // Extended range for mask allocation.
   struct gkyl_range phase_rng; // Phase-space range.
   struct gkyl_range phase_rng_ext; // Extended phase-space range.
   struct gkyl_range conf_rng; // Configuration-space range.
@@ -56,7 +58,7 @@ gkyl_dg_array_mask_eval_idx_ker(struct gkyl_dg_array_mask *mask, const int* idx)
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
     return mask->default_value;
   }
-  long linidx = gkyl_range_idx(&mask->phase_rng, idx);
+  long linidx = gkyl_range_idx(&mask->mask_rng, idx);
   const double *mask_c = (const double *) gkyl_array_cfetch(mask->mask, linidx);
   return *mask_c > 0; // Returns true if the mask is true.
 }
