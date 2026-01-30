@@ -1391,11 +1391,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .type = update_cell_mask_type,
     .default_value = true,
     .threshold = gks->info.skip_cell.threshold,
-    .conf_rng = app->local,
-    .conf_rng_ext = app->local_ext,
-    .phase_rng = gks->local,
-    .phase_rng_ext = gks->local_ext,
-    .vel_rng = gks->local_ext_vel,
+    .conf_rng = &app->local,
+    .conf_rng_ext = &app->local_ext,
+    .phase_rng = &gks->local,
+    .phase_rng_ext = &gks->local_ext,
+    .vel_rng = &gks->local_ext_vel,
     .use_gpu = app->use_gpu
   });
 

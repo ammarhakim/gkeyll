@@ -172,7 +172,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->on_dev = mask; // CPU mask points to itself
 
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
-    // Store all ranges from input.
+    // Store all ranges from input as pointers.
     mask->phase_rng = mask_inp.phase_rng;
     mask->phase_rng_ext = mask_inp.phase_rng_ext;
     mask->conf_rng = mask_inp.conf_rng;
@@ -180,8 +180,8 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     mask->vel_rng = mask_inp.vel_rng;
     
     // Determine mask range: use phase_rng for kinetic species, conf_rng for fluid species.
-    // A zero-volume phase_rng indicates a fluid species.
-    bool is_kinetic = (mask_inp.phase_rng.volume > 0);
+    // A NULL or zero-volume phase_rng indicates a fluid species.
+    bool is_kinetic = (mask_inp.phase_rng && mask_inp.phase_rng->volume > 0);
     if (is_kinetic) {
       mask->mask_rng = mask_inp.phase_rng;
       mask->mask_rng_ext = mask_inp.phase_rng_ext;
@@ -192,13 +192,13 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
-        mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask->mask_rng.ndim);
+        mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask->mask_rng->ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
       // Threshold will be set during advance based on global max value.
       mask->threshold = mask_inp.threshold;
       // Pre-allocate array for global reduction
-      mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask->mask_rng_ext.ndim);
+      mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask->mask_rng_ext->ndim);
     } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
                mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
       // Threshold will be set during advance based on global max value.
@@ -206,7 +206,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     }
     
     // Initialize the mask array on host.
-    mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask->mask_rng_ext.volume);
+    mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask->mask_rng_ext->volume);
     gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.
   }
 
@@ -240,10 +240,10 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 
   // Apply mask based on type using static helper functions
   if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS) {
-    apply_mask_less_than(mask->mask, arr_to_mask, &mask->mask_rng, mask->threshold);
+    apply_mask_less_than(mask->mask, arr_to_mask, mask->mask_rng, mask->threshold);
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
-    apply_mask_greater_than(mask->mask, arr_to_mask, &mask->mask_rng, mask->threshold);
+    apply_mask_greater_than(mask->mask, arr_to_mask, mask->mask_rng, mask->threshold);
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
            mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
@@ -252,9 +252,9 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
     double frac_threshold = mask->threshold * mask->global_max[0];
     
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC) {
-      apply_mask_less_than(mask->mask, arr_to_mask, &mask->mask_rng, frac_threshold);
+      apply_mask_less_than(mask->mask, arr_to_mask, mask->mask_rng, frac_threshold);
     } else {
-      apply_mask_greater_than(mask->mask, arr_to_mask, &mask->mask_rng, frac_threshold);
+      apply_mask_greater_than(mask->mask, arr_to_mask, mask->mask_rng, frac_threshold);
     }
   }
   else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
@@ -262,22 +262,22 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
     // For each config cell, find local max in velocity space and apply mask.
     // Note: _FRAC_CONF types are only valid for kinetic species (phase_rng must have volume).
     struct gkyl_range_iter iter_conf;
-    gkyl_range_iter_init(&iter_conf, &mask->conf_rng);
+    gkyl_range_iter_init(&iter_conf, mask->conf_rng);
 
     while (gkyl_range_iter_next(&iter_conf)) {
       // Find max in velocity space for this configuration cell
       double local_max = find_local_max_in_vel_space(arr_to_mask,
-        &mask->conf_rng, &mask->vel_rng, &mask->mask_rng, iter_conf.idx);
+        mask->conf_rng, mask->vel_rng, mask->mask_rng, iter_conf.idx);
       
       // Compute threshold and apply mask for this config cell
       double frac_threshold = mask->threshold * local_max;
       
       if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF) {
         apply_spatial_mask_less_than(mask->mask, arr_to_mask,
-          &mask->conf_rng, &mask->vel_rng, &mask->mask_rng, iter_conf.idx, frac_threshold);
+          mask->conf_rng, mask->vel_rng, mask->mask_rng, iter_conf.idx, frac_threshold);
       } else {
         apply_spatial_mask_greater_than(mask->mask, arr_to_mask,
-          &mask->conf_rng, &mask->vel_rng, &mask->mask_rng, iter_conf.idx, frac_threshold);
+          mask->conf_rng, mask->vel_rng, mask->mask_rng, iter_conf.idx, frac_threshold);
       }
     }
   }
