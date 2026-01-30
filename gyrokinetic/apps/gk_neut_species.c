@@ -72,6 +72,12 @@ gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *o
 }
 
 void
+gk_neut_species_update_cell_mask(struct gk_neut_species *species, const struct gkyl_array *fin)
+{
+  gkyl_dg_array_mask_advance(species->update_cell, fin);
+}
+
+void
 gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
 {
   species->bc_func(app, species, f);

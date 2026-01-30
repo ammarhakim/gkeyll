@@ -812,8 +812,8 @@ void test_mask_advance_frac_threshold_spatial(bool use_gpu)
     .threshold = frac_threshold,
     .phase_rng = phase_rng,
     .phase_rng_ext = phase_rng,
-    .config_rng = conf_rng,
-    .config_rng_ext = conf_rng,
+    .conf_rng = conf_rng,
+    .conf_rng_ext = conf_rng,
     .vel_rng = vel_rng,
     .use_gpu = use_gpu
   };
@@ -906,8 +906,8 @@ void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
     .threshold = frac_threshold,
     .phase_rng = phase_rng,
     .phase_rng_ext = phase_rng,
-    .config_rng = conf_rng,
-    .config_rng_ext = conf_rng,
+    .conf_rng = conf_rng,
+    .conf_rng_ext = conf_rng,
     .vel_rng = vel_rng,
     .use_gpu = use_gpu
   };
@@ -1219,8 +1219,8 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
     .threshold = frac_threshold,
     .phase_rng = phase_local,
     .phase_rng_ext = phase_local_ext,
-    .config_rng = conf_local,
-    .config_rng_ext = conf_local_ext,
+    .conf_rng = conf_local,
+    .conf_rng_ext = conf_local_ext,
     .vel_rng = vel_local,
     .use_gpu = use_gpu
   };

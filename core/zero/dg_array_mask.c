@@ -190,8 +190,8 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     // Initialize the mask array on host.
     mask->phase_rng = mask_inp.phase_rng;
     mask->phase_rng_ext = mask_inp.phase_rng_ext;
-    mask->conf_rng = mask_inp.config_rng;
-    mask->conf_rng_ext = mask_inp.config_rng_ext;
+    mask->conf_rng = mask_inp.conf_rng;
+    mask->conf_rng_ext = mask_inp.conf_rng_ext;
     mask->vel_rng = mask_inp.vel_rng;
     mask->mask = gkyl_array_new(GKYL_DOUBLE, 1, mask_inp.phase_rng_ext.volume);
     gkyl_array_clear(mask->mask, -1.0); // Initialize all cells to false for safety.

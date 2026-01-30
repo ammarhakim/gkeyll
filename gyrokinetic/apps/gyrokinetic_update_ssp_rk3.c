@@ -70,7 +70,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f;
           bflux_out[i] = gks->bflux.f1;
-          gkyl_dg_array_mask_advance(gks->update_cell, gks->f);
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
@@ -79,8 +78,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           // Boundary fluxes.
           bflux_in_neut[i] = gkns->bflux.f;
           bflux_out_neut[i] = gkns->bflux.f1;
-          gkyl_dg_array_mask_advance(gkns->update_cell, gkns->f);
         }
+
+        // Update cell masks based on the input distribution functions.
+        gyrokinetic_update_cell_mask(app, fin, fin_neut);
 
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];

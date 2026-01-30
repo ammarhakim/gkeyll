@@ -173,7 +173,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     gkcls->flux_func = gk_species_collisionless_flux_enabled;
     gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
     if (gkcls->write_diagnostics) {
-      gkcls->flux_surf_ho = mkarr(false, flux_surf_sz, gks->local_ext.volume);
+      gkcls->flux_surf_ho = mkarr(false, gkcls->flux_surf->ncomp, gkcls->flux_surf->size);
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
   }
