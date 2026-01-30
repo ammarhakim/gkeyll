@@ -44,13 +44,13 @@ struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp);
 
 /**
- * Update the mask array.
+ * Compute the appropriate mask given the input array.
  *
  * @param mask Mask updater.
- * @param arr_to_mask Array which the mask is applied on top of.
+ * @param arr_in Array which the mask is applied on top of.
  */
 void
-gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
+gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
 /**
  * Evaluate if the conditional mask is true at a given cell.
