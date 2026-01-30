@@ -264,29 +264,23 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS:
       mask->advance_func = advance_less_than;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER:
       mask->advance_func = advance_greater_than;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
       mask->advance_func = advance_less_than_frac;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
       mask->advance_func = advance_greater_than_frac;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func = advance_less_than_frac_conf;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
       mask->advance_func = advance_greater_than_frac_conf;
-      mask->scale_by_cell_func = scale_by_cell_active;
       break;
-    default:
+      default:
       mask->advance_func = advance_none;
       mask->scale_by_cell_func = scale_by_cell_none;
       break;
@@ -311,6 +305,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
       mask->mask_rng_ext = mask_inp.conf_rng_ext;
     }
     
+    mask->scale_by_cell_func = scale_by_cell_active;
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS ||
         mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
         mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask->mask_rng->ndim);
