@@ -79,17 +79,18 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
     const double *fIn_g = gkyl_array_cfetch(fIn, linidx_g);
     double *fluxOut_g = gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (!gkyl_dg_array_mask_eval(up->update_cell, linidx_g) &&
-        !gkyl_dg_array_mask_eval(up->update_cell, linidx_s)) {
-      for (int d=0; d<fluxOut->ncomp; ++d) {
-        fluxOut_g[d] = 0.0;
-      }
-    }
-    else {
-      for (int i=0; i<up->num_eqns; i++)
+    if (gkyl_dg_array_mask_eval(up->update_cell, linidx_g) ||
+        gkyl_dg_array_mask_eval(up->update_cell, linidx_s)) {
+      for (int i=0; i<up->num_eqns; i++) {
         up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
           up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
           fIn_s, fIn_g, fluxOut_g);
+      }
+    }
+    else {
+      for (int d=0; d<fluxOut->ncomp; ++d) {
+        fluxOut_g[d] = 0.0;
+      }
     }
   }
 

@@ -66,26 +66,27 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_vol_1x1v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_vol_1x1v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -95,26 +96,27 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -124,26 +126,27 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -153,26 +156,27 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 // Volume kernel list.
@@ -199,26 +203,27 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_no_by_vol_2x2v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_no_by_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -228,26 +233,27 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
+    int vel_idx[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+    long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+    long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+    long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+    return dg_gyrokinetic_no_by_vol_3x2v_ser_p1(xc, dx,
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+      gyrokinetic->charge, gyrokinetic->mass,
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+      qIn, qRhsOut);
+  }
+  else {
     return 0.;
   }
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return dg_gyrokinetic_no_by_vol_3x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
 }
 
 // Volume kernel list.
@@ -382,36 +388,34 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxL) && 
-      !gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxC) && 
-      !gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxR)) {
-    return 0.;
-  }
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxL) ||
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxC) ||
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxR)) {
+    // Only in x,y,z,vpar directions.
+    if (dir <= gyrokinetic->cdim) {
+      int vel_idxL[2], vel_idxC[2], vel_idxR[2];
+      for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
+        vel_idxL[d-gyrokinetic->cdim] = idxL[d];
+        vel_idxC[d-gyrokinetic->cdim] = idxC[d];
+        vel_idxR[d-gyrokinetic->cdim] = idxR[d];
+      }
+      long vidxL = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxL);
+      long vidxC = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxC);
+      long vidxR = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxR);
 
-  // Only in x,y,z,vpar directions.
-  if (dir <= gyrokinetic->cdim) {
-    int vel_idxL[2], vel_idxC[2], vel_idxR[2];
-    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
-      vel_idxL[d-gyrokinetic->cdim] = idxL[d];
-      vel_idxC[d-gyrokinetic->cdim] = idxC[d];
-      vel_idxR[d-gyrokinetic->cdim] = idxR[d];
+      // Each cell owns the *lower* edge surface alpha
+      // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
+      // and fetch alpha_surf in right cell for upper edge
+      long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
+      long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
+      return gyrokinetic->surf[dir](xcC, dxC, 
+        (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
+        (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
+        (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxR),
+        (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxC), 
+        (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxR), 
+        qRhsOut);
     }
-    long vidxL = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxL);
-    long vidxC = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxC);
-    long vidxR = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxR);
-
-    // Each cell owns the *lower* edge surface alpha
-    // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
-    // and fetch alpha_surf in right cell for upper edge
-    long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
-    long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
-    return gyrokinetic->surf[dir](xcC, dxC, 
-      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxR),
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxC), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxR), 
-      qRhsOut);
   }
   return 0.;
 }
@@ -427,30 +431,28 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (!gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxSkin) && 
-      !gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxEdge)) {
-    return 0.;
-  }
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxSkin) || 
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxEdge)) {
+    // Only in x,y,z,vpar directions.
+    if (dir <= gyrokinetic->cdim) {
+      int vel_idxEdge[2], vel_idxSkin[2];
+      for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
+        vel_idxEdge[d-gyrokinetic->cdim] = idxEdge[d];
+        vel_idxSkin[d-gyrokinetic->cdim] = idxSkin[d];
+      }
+      long vidxEdge = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxEdge);
+      long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxSkin);
 
-  // Only in x,y,z,vpar directions.
-  if (dir <= gyrokinetic->cdim) {
-    int vel_idxEdge[2], vel_idxSkin[2];
-    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
-      vel_idxEdge[d-gyrokinetic->cdim] = idxEdge[d];
-      vel_idxSkin[d-gyrokinetic->cdim] = idxSkin[d];
+      // Each cell owns the *lower* edge surface alpha
+      long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
+      long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
+      return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
+        (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
+        (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
+        (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxEdge), 
+        (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxSkin), 
+        edge, qRhsOut);
     }
-    long vidxEdge = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxEdge);
-    long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxSkin);
-
-    // Each cell owns the *lower* edge surface alpha
-    long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
-    long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
-    return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxEdge), 
-      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxSkin), 
-      edge, qRhsOut);
   }
   return 0.;
 }
