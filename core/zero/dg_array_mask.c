@@ -44,7 +44,7 @@ apply_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *ar
   }
 }
 
-// Find max value in velocity space for a given config cell
+// Find max value in velocity space for a given configuration space cell
 static double
 find_local_max_in_vel_space(const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -76,7 +76,7 @@ find_local_max_in_vel_space(const struct gkyl_array *arr_in,
   return local_max;
 }
 
-// Apply spatial fractional mask (less-than) for a given config cell
+// Apply spatial fractional mask (less-than) for a given configuration space cell
 static void
 apply_conf_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -103,7 +103,7 @@ apply_conf_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *
   }
 }
 
-// Apply spatial fractional mask (greater-than) for a given config cell
+// Apply spatial fractional mask (greater-than) for a given configuration space cell
 static void
 apply_conf_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -130,28 +130,23 @@ apply_conf_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_arra
   }
 }
 
-// Static advance function: no-op for NONE type
 static void
 advance_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
-  // Do nothing for NONE type
 }
 
-// Static advance function: less-than threshold
 static void
 advance_less_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
   apply_mask_less_than(mask->mask_arr, arr_in, mask->mask_rng, mask->threshold);
 }
 
-// Static advance function: greater-than threshold
 static void
 advance_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
   apply_mask_greater_than(mask->mask_arr, arr_in, mask->mask_rng, mask->threshold);
 }
 
-// Static advance function: less-than fractional threshold
 static void
 advance_less_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
@@ -160,7 +155,6 @@ advance_less_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array 
   apply_mask_less_than(mask->mask_arr, arr_in, mask->mask_rng, frac_threshold);
 }
 
-// Static advance function: greater-than fractional threshold
 static void
 advance_greater_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
@@ -169,7 +163,6 @@ advance_greater_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_arr
   apply_mask_greater_than(mask->mask_arr, arr_in, mask->mask_rng, frac_threshold);
 }
 
-// Static advance function: less-than fractional threshold per config cell
 static void
 advance_less_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
@@ -185,7 +178,6 @@ advance_less_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gkyl_a
   }
 }
 
-// Static advance function: greater-than fractional threshold per config cell
 static void
 advance_greater_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
@@ -201,14 +193,11 @@ advance_greater_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gky
   }
 }
 
-// Static scale_by_cell function: no-op for NONE type
 static void
 scale_by_cell_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
-  // Do nothing for NONE type
 }
 
-// Static scale_by_cell function: applies scaling for active mask types
 static void
 scale_by_cell_active(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
@@ -343,15 +332,12 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
     return;
   }
 #endif
-
-  // Call the function pointer set at init time
   mask->advance_func(mask, arr_in);
 }
 
 void
 gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
-  // Call the function pointer set at init time
   mask->scale_by_cell_func(mask, arr_to_multiply);
 }
 
