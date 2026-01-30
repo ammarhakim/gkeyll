@@ -248,9 +248,9 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->default_value = mask_inp.default_value;
   mask->use_gpu = mask_inp.use_gpu;
   mask->threshold = 0.0;
-  mask->mask = NULL;
-  mask->local_max_arr = NULL;
-  mask->global_max = NULL;
+  mask->mask = 0;
+  mask->local_max_arr = 0;
+  mask->global_max = 0;
   mask->flags = 0;
   GKYL_CLEAR_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);

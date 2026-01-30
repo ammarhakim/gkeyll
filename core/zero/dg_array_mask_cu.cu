@@ -27,9 +27,9 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->vel_rng = mask_ho->vel_rng;
   mask->mask_rng = mask_ho->mask_rng;
   mask->mask_rng_ext = mask_ho->mask_rng_ext;
-  mask->mask = NULL;
-  mask->local_max_arr = NULL;
-  mask->global_max = NULL;
+  mask->mask = 0;
+  mask->local_max_arr = 0;
+  mask->global_max = 0;
 
   mask->flags = 0;
   GKYL_SET_CU_ALLOC(mask->flags);
