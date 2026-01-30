@@ -41,9 +41,9 @@ void test_mask_new(bool use_gpu)
   TEST_CHECK( mask != NULL );
   TEST_CHECK( mask->type == GKYL_DG_ARRAY_MASK_C0_LESS );
   TEST_CHECK( mask->use_gpu == use_gpu );
-  TEST_CHECK( mask->mask != NULL );
-  TEST_CHECK( mask->mask->size == range.volume );
-  TEST_CHECK( mask->mask->ncomp == 1 );
+  TEST_CHECK( mask->mask_arr != NULL );
+  TEST_CHECK( mask->mask_arr->size == range.volume );
+  TEST_CHECK( mask->mask_arr->ncomp == 1 );
   
   // Check that mask is initialized to -1.0 (false)
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
@@ -996,7 +996,7 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Verify mask array has extended range size
-  TEST_CHECK( mask->mask->size == local_ext.volume );
+  TEST_CHECK( mask->mask_arr->size == local_ext.volume );
 
   // Create test array on extended range with varying values
   struct gkyl_array *arr_ho = mkarr(false, 1, local_ext.volume);
@@ -1087,7 +1087,7 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Verify mask array has extended range size
-  TEST_CHECK( mask->mask->size == local_ext.volume );
+  TEST_CHECK( mask->mask_arr->size == local_ext.volume );
 
   // Create test array with known max value
   // Put max in interior, smaller values in ghost cells
@@ -1228,7 +1228,7 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Verify mask array has extended range size
-  TEST_CHECK( mask->mask->size == phase_local_ext.volume );
+  TEST_CHECK( mask->mask_arr->size == phase_local_ext.volume );
 
   // Create test array with spatially-varying max values
   struct gkyl_array *arr_ho = mkarr(false, 1, phase_local_ext.volume);
