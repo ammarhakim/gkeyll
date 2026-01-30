@@ -172,17 +172,17 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->on_dev = mask; // CPU mask points to itself
 
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS ||
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
         mask->threshold = mask_inp.threshold * pow(sqrt(2.0), mask_inp.phase_rng.ndim);
-    } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
-               mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
+    } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
+               mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
       // Threshold will be set during advance based on global max value.
       mask->threshold = mask_inp.threshold;
       // Pre-allocate array for global reduction
       mask->global_max = (double*) gkyl_malloc(sizeof(double) * mask_inp.phase_rng_ext.ndim);
-    } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
-               mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
+    } else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
+               mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
       // Threshold will be set during advance based on global max value.
       mask->threshold = mask_inp.threshold;
     }
@@ -226,26 +226,26 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 #endif
 
   // Apply mask based on type using static helper functions
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD) {
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS) {
     apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->threshold);
   }
-  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
     apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, mask->threshold);
   }
-  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
-           mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
+  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
+           mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
     // Find global max and compute threshold
     gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
     double frac_threshold = mask->threshold * mask->global_max[0];
     
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD) {
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC) {
       apply_mask_less_than(mask->mask, arr_to_mask, &mask->phase_rng, frac_threshold);
     } else {
       apply_mask_greater_than(mask->mask, arr_to_mask, &mask->phase_rng, frac_threshold);
     }
   }
-  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
-           mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
+  else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
+           mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
     // For each config cell, find local max in velocity space and apply mask
     struct gkyl_range_iter iter_conf;
     gkyl_range_iter_init(&iter_conf, &mask->conf_rng);
@@ -258,7 +258,7 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
       // Compute threshold and apply mask for this config cell
       double frac_threshold = mask->threshold * local_max;
       
-      if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
+      if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF) {
         apply_spatial_mask_less_than(mask->mask, arr_to_mask,
           &mask->conf_rng, &mask->vel_rng, &mask->phase_rng, iter_conf.idx, frac_threshold);
       } else {

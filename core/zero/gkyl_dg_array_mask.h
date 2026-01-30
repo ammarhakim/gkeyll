@@ -10,12 +10,12 @@ typedef struct gkyl_dg_array_mask gkyl_dg_array_mask;
 
 enum gkyl_dg_array_mask_types {
   GKYL_DG_ARRAY_MASK_NONE = 0, // No mask applied.
-  GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
-  GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD, // Mask applied based on the 0th component of the array.
-  GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
-  GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
-  GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
-  GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_LESS, // Mask applied based on the 0th component of the array.
+  GKYL_DG_ARRAY_MASK_C0_LESS_FRAC, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_GREATER, // Mask applied based on the 0th component of the array.
+  GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF, // Applies the mask based on the 0th component of the input array, which is spatially dependent.
 };
 
 // Input structure for creating a mask object.
