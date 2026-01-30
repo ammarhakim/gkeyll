@@ -8,7 +8,7 @@
 #include <gkyl_dg_array_mask.h>
 #include <gkyl_dg_array_mask_priv.h>
 
-// Static helper: Apply less-than threshold mask over phase range
+// Apply less-than threshold mask over phase range
 static void
 apply_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_to_mask,
   const struct gkyl_range *phase_rng, double threshold)
@@ -26,7 +26,7 @@ apply_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_t
   }
 }
 
-// Static helper: Apply greater-than threshold mask over phase range
+// Apply greater-than threshold mask over phase range
 static void
 apply_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_to_mask,
   const struct gkyl_range *phase_rng, double threshold)
@@ -44,7 +44,7 @@ apply_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *ar
   }
 }
 
-// Static helper: Find max value in velocity space for a given config cell
+// Find max value in velocity space for a given config cell
 static double
 find_local_max_in_vel_space(const struct gkyl_array *arr_to_mask,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -76,7 +76,7 @@ find_local_max_in_vel_space(const struct gkyl_array *arr_to_mask,
   return local_max;
 }
 
-// Static helper: Apply spatial fractional mask (less-than) for a given config cell
+// Apply spatial fractional mask (less-than) for a given config cell
 static void
 apply_spatial_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_to_mask,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -103,7 +103,7 @@ apply_spatial_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_arra
   }
 }
 
-// Static helper: Apply spatial fractional mask (greater-than) for a given config cell
+// Apply spatial fractional mask (greater-than) for a given config cell
 static void
 apply_spatial_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_to_mask,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
@@ -325,7 +325,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     
     // Initialize the mask array on host.
     mask->mask_arr = gkyl_array_new(GKYL_DOUBLE, 1, mask->mask_rng_ext->volume);
-    gkyl_array_clear(mask->mask_arr, -1.0); // Initialize all cells to false for safety.
+    gkyl_array_clear(mask->mask_arr, mask->default_value ? 1.0 : -1.0); // Initialize all cells to false for safety.
   }
 
   struct gkyl_dg_array_mask *mask_out = mask;
