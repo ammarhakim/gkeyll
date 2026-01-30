@@ -151,7 +151,7 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
         double m0ratio = m0phase_in_c[0]/m0phase_out_c[0];
 
         for (unsigned int k=0; k<distf->ncomp; ++k)
-	  distf_c[k] *= m0ratio;
+          distf_c[k] *= m0ratio;
 
         // Add contribution from this phase-space cell to the new number density.
         for (unsigned int k = 0; k < m0->ncomp; ++k)
@@ -237,11 +237,13 @@ gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
           m0_c[k] = delta_m0_c[k];
           delta_m0_c[k] = 0.0;
         }
-      } else {
+      } 
+      else {
         for (int k = 0; k < m0->ncomp; k++)
           delta_m0_c[k] = m0_c[k] - delta_m0_c[k];
       }
-    } else {
+    }
+    else {
       for (int k = 0; k < m0->ncomp; k++)
         delta_m0_c[k] = 0.0;
     }
