@@ -231,20 +231,18 @@ gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
     double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
 
     if (shiftedf_c[0]) {
-      double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
+      double *m0_c = (double *)gkyl_array_fetch(m0, clinidx);
       if (kers->is_m0_positive(delta_m0_c)) {
-	for (int k=0; k<m0->ncomp; k++) {
+        for (int k = 0; k < m0->ncomp; k++) {
           m0_c[k] = delta_m0_c[k];
           delta_m0_c[k] = 0.0;
-	}
-      }
-      else {
-	for (int k=0; k<m0->ncomp; k++)
+        }
+      } else {
+        for (int k = 0; k < m0->ncomp; k++)
           delta_m0_c[k] = m0_c[k] - delta_m0_c[k];
       }
-    }
-    else {
-      for (int k=0; k<m0->ncomp; k++)
+    } else {
+      for (int k = 0; k < m0->ncomp; k++)
         delta_m0_c[k] = 0.0;
     }
   }
