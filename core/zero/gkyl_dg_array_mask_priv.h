@@ -9,31 +9,31 @@
  * Skip cell object definition.
  */
 struct gkyl_dg_array_mask {
-  enum gkyl_dg_array_mask_types type; // Type of mask operation.
-  bool default_value; // Default value for mask (true/false) if no masking is applied. Defaults to false.
-  struct gkyl_array *mask_arr; // Mask array (1.0 is true, -1.0 is false).
-  double threshold; // Threshold for marking cells as masked. Scaled absolute value for *_THRESHOLD types, fraction for *_FRAC_THRESHOLD types.
-  const struct gkyl_range *mask_rng; // Pointer to range over which mask is applied (phase_rng for kinetic, conf_rng for fluid).
-  const struct gkyl_range *mask_rng_ext; // Pointer to extended range for mask allocation.
-  const struct gkyl_range *phase_rng; // Phase-space range.
+  enum gkyl_dg_array_mask_types type;     // Type of mask operation.
+  bool default_value;                     // Default value for mask (true/false) if no masking is applied. Defaults to false (-1.0).
+  struct gkyl_array *mask_arr;            // Mask array (1.0 is true, -1.0 is false).
+  double threshold;                       // Threshold for marking cells as masked. Scaled absolute value for *_THRESHOLD types, fraction for *_FRAC_THRESHOLD types.
+  const struct gkyl_range *mask_rng;      // Pointer to range over which mask is applied (phase_rng for kinetic, conf_rng for fluid).
+  const struct gkyl_range *mask_rng_ext;  // Pointer to extended range for mask allocation.
+  const struct gkyl_range *phase_rng;     // Phase-space range.
   const struct gkyl_range *phase_rng_ext; // Extended phase-space range.
-  const struct gkyl_range *conf_rng; // Configuration-space range.
-  const struct gkyl_range *conf_rng_ext; // Extended configuration-space range.
-  const struct gkyl_range *vel_rng; // Velocity-space range.
-  bool use_gpu; // Flag indicating GPU usage.
-  
+  const struct gkyl_range *conf_rng;      // Configuration-space range.
+  const struct gkyl_range *conf_rng_ext;  // Extended configuration-space range.
+  const struct gkyl_range *vel_rng;       // Velocity-space range.
+  bool use_gpu;                           // Flag indicating GPU usage.
+
   struct gkyl_array *local_max_arr; // Pre-allocated config-space array for spatial fractional masks.
-  double *global_max; // Pre-allocated array for global reduction results (fractional threshold masks).
+  double *global_max;               // Pre-allocated array for global reduction results (fractional threshold masks).
 
   // Function pointer for advance method, set at init time based on mask type.
   void (*advance_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
 
   // Function pointer for scale_by_cell method, set at init time based on mask type.
   void (*scale_by_cell_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply);
-  
+
   uint32_t flags;
   struct gkyl_dg_array_mask *on_dev; // Pointer to device object.
-  
+
   struct gkyl_ref_count ref_count; // Reference counter.
 };
 
