@@ -30,6 +30,10 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->mask_arr = 0;
   mask->local_max_arr = 0;
   mask->global_max = 0;
+  
+  // Copy host function pointers (used for CPU-side dispatch)
+  mask->advance_func = mask_ho->advance_func;
+  mask->scale_by_cell_func = mask_ho->scale_by_cell_func;
 
   mask->flags = 0;
   GKYL_SET_CU_ALLOC(mask->flags);
