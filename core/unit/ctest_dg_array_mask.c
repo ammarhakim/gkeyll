@@ -47,7 +47,7 @@ void test_mask_new(bool use_gpu)
   
   // Check that mask is initialized to -1.0 (false)
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
 
   for (unsigned i = 0; i < range.volume; ++i) {
@@ -93,7 +93,8 @@ void test_mask_advance_threshold(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array on host with varying values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   for (unsigned i = 0; i < range.volume; ++i) {
     // Values alternate above and below threshold
     double *arr_d = gkyl_array_fetch(arr_ho, i);
@@ -101,13 +102,12 @@ void test_mask_advance_threshold(bool use_gpu)
   }
   
   // Copy to device if needed and run advance
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Check mask values
@@ -147,16 +147,15 @@ void test_mask_advance_all_below(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with all values below threshold
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr_ho, 1e-12);
-  
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_clear(arr_ho, 1e-12);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
 
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // All cells should be masked (1.0)
@@ -190,16 +189,15 @@ void test_mask_advance_all_above(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with all values above threshold
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr_ho, 100.0);
-  
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_clear(arr_ho, 100.0);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // No cells should be masked (-1.0)
@@ -233,20 +231,19 @@ void test_mask_advance_negative_values(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with negative and positive values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   double vals[] = {0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0};
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Check mask values (uses fabs, so negative values treated as positive)
@@ -286,20 +283,19 @@ void test_mask_advance_greater_than_threshold(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with varying values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   for (unsigned i = 0; i < range.volume; ++i) {
     // Values alternate above and below threshold
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = (i % 2 == 0) ? 0.1 : 1.0;
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Check mask values (opposite of LESS_THAN)
@@ -339,16 +335,15 @@ void test_mask_advance_greater_than_all_above(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with all values above threshold
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr_ho, 100.0);
-  
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_clear(arr_ho, 100.0);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // All cells should be masked (1.0) since values > threshold
@@ -382,16 +377,15 @@ void test_mask_advance_greater_than_all_below(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with all values below threshold
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
-  gkyl_array_clear(arr_ho, 1e-12);
-  
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_clear(arr_ho, 1e-12);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // No cells should be masked (-1.0) since values < threshold
@@ -425,20 +419,19 @@ void test_mask_advance_greater_than_negative_values(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with negative and positive values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   double vals[] = {0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0};
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Check mask values (uses fabs, so negative values treated as positive)
@@ -478,23 +471,15 @@ void test_mask_eval(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Use advance to set mask values via a test array
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   // Set up values so that mask will be: true, false, true, false, true, false
   double *arr_d;
-  arr_d = gkyl_array_fetch(arr_ho, 0);
-  arr_d[0] = 0.1;   // below threshold -> true
-  arr_d = gkyl_array_fetch(arr_ho, 1);
-  arr_d[0] = 1.0;   // above threshold -> false
-  arr_d = gkyl_array_fetch(arr_ho, 2);
-  arr_d[0] = 0.2;   // below threshold -> true
-  arr_d = gkyl_array_fetch(arr_ho, 3);
-  arr_d[0] = 2.0;   // above threshold -> false
-  arr_d = gkyl_array_fetch(arr_ho, 4);
-  arr_d[0] = 0.3;   // below threshold -> true
-  arr_d = gkyl_array_fetch(arr_ho, 5);
-  arr_d[0] = 5.0;   // above threshold -> false
-
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  double vals[] = {0.1, 1.0, 0.2, 2.0, 0.3, 5.0};
+  for (int i = 0; i < 6; i++) {
+    arr_d = gkyl_array_fetch(arr_ho, i);
+    arr_d[0] = vals[i];
+  }
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
@@ -550,19 +535,18 @@ void test_mask_scale_by_cell(bool use_gpu)
   
   // Set mask values
   // Create an array with alternating 1.0 and -1.0, then use mask_advance to set mask values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = (i % 2 == 0) ? 0.0 : 1.0; // 0.0 will be masked (mask=1.0), 1.0 will not (mask=-1.0)
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Save original mask values
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_orig_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_orig_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_orig_ho, mask_arr);
   double mask_orig[range.volume];
   for (unsigned i = 0; i < range.volume; ++i) {
@@ -583,7 +567,7 @@ void test_mask_scale_by_cell(bool use_gpu)
   gkyl_dg_array_mask_scale_by_cell(mask, arr);
   
   // Copy mask back to host for verification
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Check results: mask should be multiplied by arr values
@@ -705,20 +689,19 @@ void test_mask_advance_frac_threshold(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with known max value
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   double max_val = 10.0;
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = (i + 1) * 1.0; // Values from 1.0 to 10.0
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Expected threshold is 50% of max (10.0) = 5.0
@@ -758,21 +741,20 @@ void test_mask_advance_frac_threshold_greater(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array with varying values
-  struct gkyl_array *arr_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   double vals[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
   double max_val = 8.0;
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
   }
-  
-  struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, range.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Expected threshold is 30% of max (8.0) = 2.4
@@ -822,7 +804,8 @@ void test_mask_advance_frac_threshold_spatial(bool use_gpu)
   
   // Create test array with spatially-varying max values
   // For each config cell, create a different max value in velocity space
-  struct gkyl_array *arr_ho = mkarr(false, 1, phase_rng.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   
   struct gkyl_range_iter iter_conf, iter_vel;
   gkyl_range_iter_init(&iter_conf, &conf_rng);
@@ -847,13 +830,12 @@ void test_mask_advance_frac_threshold_spatial(bool use_gpu)
     }
   }
   
-  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, phase_rng.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Verify: each config cell should have threshold = 50% of its local max
@@ -915,7 +897,8 @@ void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
   
   // Create test array: config cell 0 has max=10, config cell 1 has max=20
-  struct gkyl_array *arr_ho = mkarr(false, 1, phase_rng.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   
   for (int ic = 0; ic < 2; ic++) {
     double local_max = (ic + 1) * 10.0;
@@ -928,13 +911,12 @@ void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
     }
   }
   
-  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_rng.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
   
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, phase_rng.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
   
   // Verify GREATER_THAN logic with spatially-dependent thresholds
@@ -999,7 +981,8 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
   TEST_CHECK( mask->mask_arr->size == local_ext.volume );
 
   // Create test array on extended range with varying values
-  struct gkyl_array *arr_ho = mkarr(false, 1, local_ext.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, local_ext.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local_ext);
   while (gkyl_range_iter_next(&iter)) {
@@ -1009,13 +992,12 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
     arr_d[0] = (iter.idx[0] % 2 == 0) ? 0.0 : 10.0;
   }
 
-  struct gkyl_array *arr = mkarr(use_gpu, 1, local_ext.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
 
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, local_ext.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
 
   // Check mask values only on interior (local) range
@@ -1091,7 +1073,8 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
 
   // Create test array with known max value
   // Put max in interior, smaller values in ghost cells
-  struct gkyl_array *arr_ho = mkarr(false, 1, local_ext.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, local_ext.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   double max_val = 10.0;
 
   struct gkyl_range_iter iter;
@@ -1110,13 +1093,12 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
     }
   }
 
-  struct gkyl_array *arr = mkarr(use_gpu, 1, local_ext.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
 
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, local_ext.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
 
   // Expected threshold is 50% of max (10.0) = 5.0
@@ -1231,7 +1213,8 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   TEST_CHECK( mask->mask_arr->size == phase_local_ext.volume );
 
   // Create test array with spatially-varying max values
-  struct gkyl_array *arr_ho = mkarr(false, 1, phase_local_ext.volume);
+  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_local_ext.volume);
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
 
   struct gkyl_range_iter iter_conf, iter_vel;
   gkyl_range_iter_init(&iter_conf, &conf_local_ext);
@@ -1252,13 +1235,12 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
     }
   }
 
-  struct gkyl_array *arr = mkarr(use_gpu, 1, phase_local_ext.volume);
   gkyl_array_copy(arr, arr_ho);
   gkyl_dg_array_mask_advance(mask, arr);
 
   // Copy mask back to host for verification
   const struct gkyl_array *mask_arr = gkyl_dg_array_mask_get_mask(mask);
-  struct gkyl_array *mask_ho = mkarr(false, 1, phase_local_ext.volume);
+  struct gkyl_array *mask_ho = mkarr(false, mask_arr->ncomp, mask_arr->size);
   gkyl_array_copy(mask_ho, mask_arr);
 
   // Verify: each config cell should have threshold = 50% of its local max
