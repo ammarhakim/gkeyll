@@ -27,6 +27,9 @@ struct gkyl_dg_array_mask {
 
   // Function pointer for advance method, set at init time based on mask type.
   void (*advance_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
+
+  // Function pointer for scale_by_cell method, set at init time based on mask type.
+  void (*scale_by_cell_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply);
   
   uint32_t flags;
   struct gkyl_dg_array_mask *on_dev; // Pointer to device object.

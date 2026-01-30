@@ -201,6 +201,20 @@ advance_greater_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gky
   }
 }
 
+// Static scale_by_cell function: no-op for NONE type
+static void
+scale_by_cell_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
+{
+  // Do nothing for NONE type
+}
+
+// Static scale_by_cell function: applies scaling for active mask types
+static void
+scale_by_cell_active(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
+{
+  gkyl_array_scale_by_cell(mask->mask, arr_to_multiply);
+}
+
 void
 gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
 {
@@ -242,31 +256,39 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
   mask->on_dev = mask; // CPU mask points to itself
 
-  // Set advance function pointer based on mask type (evaluated once here, not in advance)
+  // Set function pointers based on mask type (evaluated once here, not in advance)
   switch (mask->type) {
     case GKYL_DG_ARRAY_MASK_NONE:
       mask->advance_func = advance_none;
+      mask->scale_by_cell_func = scale_by_cell_none;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS:
       mask->advance_func = advance_less_than;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER:
       mask->advance_func = advance_greater_than;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
       mask->advance_func = advance_less_than_frac;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
       mask->advance_func = advance_greater_than_frac;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func = advance_less_than_frac_conf;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
       mask->advance_func = advance_greater_than_frac_conf;
+      mask->scale_by_cell_func = scale_by_cell_active;
       break;
     default:
       mask->advance_func = advance_none;
+      mask->scale_by_cell_func = scale_by_cell_none;
       break;
   }
 
@@ -334,10 +356,8 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 void
 gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply)
 {
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return;
-  }
-  gkyl_array_scale_by_cell(mask->mask, arr_to_multiply);
+  // Call the function pointer set at init time
+  mask->scale_by_cell_func(mask, arr_to_multiply);
 }
 
 struct gkyl_dg_array_mask*
