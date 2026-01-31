@@ -1387,7 +1387,8 @@ struct gkyl_gyrokinetic_app {
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
-  struct gkyl_gyrokinetic_stat stat; // statistics
+  struct gkyl_gyrokinetic_stat stat; // Statistics.
+  struct gkyl_msgpack_data* base_meta; // Default metadata for I/O.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time

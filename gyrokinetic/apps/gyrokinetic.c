@@ -126,6 +126,59 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt)
   gkyl_free(mt);
 }
 
+struct gkyl_msgpack_data*
+gyrokinetic_default_array_meta_new(struct gkyl_gyrokinetic_app *app)
+{
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+  
+  mpack_write_cstr(&writer, "time");
+  mpack_write_double(&writer, 0.0);
+
+  mpack_write_cstr(&writer, "frame");
+  mpack_write_i64(&writer, 0);
+
+  mpack_write_cstr(&writer, "polyOrder");
+  mpack_write_i64(&writer, app->basis.poly_order);
+
+  mpack_write_cstr(&writer, "basisType");
+  mpack_write_cstr(&writer, app->basis.id);
+
+  mpack_write_cstr(&writer, "changeset");
+  mpack_write_cstr(&writer, GIT_COMMIT_ID);
+
+  const char* build_date = GKYL_BUILD_DATE;
+  mpack_write_cstr(&writer, "builddate");
+  mpack_write_cstr(&writer, GKYL_BUILD_DATE);
+
+  mpack_write_cstr(&writer, "geometry_type");
+  mpack_write_i64(&writer, app->gk_geom->geometry_id);
+  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK || app->gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR) {
+    mpack_write_cstr(&writer, "geqdsk_sign_convention");
+    mpack_write_i64(&writer, app->gk_geom->geqdsk_sign_convention);
+  }
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+//  mt->meta_sz = mpack_writer_buffer_used(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;
+}
+
 struct gyrokinetic_output_meta
 gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta)
 {
@@ -461,6 +514,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     app->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom_dev);
     gkyl_gk_dg_geom_release(gk_dg_geom_dev);
   }
+
+  // Allocate default metadata for I/O.
+  app->base_meta = gyrokinetic_default_array_meta_new(app);
 
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
@@ -1090,23 +1146,7 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geometry_inp *geometry_inp)
 {
-  // Geometry metadata.
-  struct gyrokinetic_output_meta_geo meta_geo = {
-    .geometry_id = app->gk_geom->geometry_id,
-  };
-  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK || app->gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR) {
-    // Metadata specific to sims using numerical geometry.
-    meta_geo.geqdsk_sign_convention = app->gk_geom->geqdsk_sign_convention;
-  }
-
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = 0,
-      .stime = 0,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, 
-    GKYL_GK_META_GEO, &meta_geo 
-  );
+  struct gkyl_msgpack_data *mt = app->base_meta; // Metadata.
 
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
@@ -1215,8 +1255,91 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gkyl_array_release(arr_surf_ho6);
   gkyl_array_release(arr_surf_ho9);
   gkyl_array_release(arr_surf_ho18);
+}
 
-  gk_array_meta_release(mt);
+static void
+mp_copy_value(mpack_reader_t* reader, mpack_writer_t* writer) {
+  // Copy values of a node in mpack.
+  mpack_tag_t tag = mpack_read_tag(reader);
+
+  switch (tag.type) {
+    case mpack_type_bool:
+      mpack_write_bool(writer, tag.v.b);
+      break;
+    case mpack_type_int:
+      mpack_write_int(writer, tag.v.i);
+      break;
+    case mpack_type_uint:
+      mpack_write_uint(writer, tag.v.u);
+      break;
+    case mpack_type_float:
+      mpack_write_double(writer, tag.v.f); // floats go as double
+      break;
+    case mpack_type_str: {
+      char strbuf[256];
+      mpack_read_cstr(reader, strbuf, sizeof(strbuf), tag.v.l);
+      mpack_write_cstr(writer, strbuf);
+      break;
+    }
+    default:
+      // For simplicity we skip other types.
+      mpack_discard(reader);
+      break;
+  }
+}
+
+void
+gkyl_gyrokinetic_app_update_meta_time_frame(struct gkyl_msgpack_data *mt, double tm, int frame)
+{
+  // Update the time and frame in the given mpack metadata.
+  char *meta_buffer = gkyl_malloc(mt->meta_sz);
+  mpack_reader_t mp_reader;
+  mpack_writer_t mp_writer;
+  mpack_reader_init_data(&mp_reader, mt->meta, mt->meta_sz);
+  mpack_writer_init(&mp_writer, meta_buffer, mt->meta_sz);
+  // Expect a map at the root
+  mpack_tag_t mp_tag = mpack_read_tag(&mp_reader);
+  if (mp_tag.type != mpack_type_map) {
+    fprintf(stderr, "mpack: Expected map at root.\n");
+    assert(false);
+  }
+
+  uint32_t mp_count = mp_tag.v.n;
+  mpack_start_map(&mp_writer, mp_count);
+  for (uint32_t i=0; i<mp_count; i++) {
+    mpack_tag_t mp_kv_tag = mpack_read_tag(&mp_reader);
+    size_t key_len = mp_kv_tag.v.l;
+    char key[64];
+    mpack_read_cstr(&mp_reader, key, sizeof(key), key_len);
+    mpack_write_cstr(&mp_writer, key);
+
+    if (strcmp(key, "frame") == 0) {
+      // Update frame.
+      mpack_discard(&mp_reader);
+      mpack_write_i64(&mp_writer, frame);
+    }
+    else if (strcmp(key, "time") == 0) {
+      // Update frame.
+      mpack_discard(&mp_reader);
+      mpack_write_double(&mp_writer, tm);
+    } else {
+      // Copy default value.
+      mp_copy_value(&mp_reader, &mp_writer);
+    }
+  }
+
+  mpack_finish_map(&mp_writer);
+
+  if (mpack_reader_destroy(&mp_reader) != mpack_ok) {
+    fprintf(stderr, "Error reading MessagePack\n");
+    assert(false);
+  }
+  if (mpack_writer_destroy(&mp_writer) != mpack_ok) {
+    fprintf(stderr, "Error writing modified MessagePack\n");
+    assert(false);
+  }
+  MPACK_FREE(mt->meta);
+  mt->meta = meta_buffer;
 }
 
 //
@@ -1232,13 +1355,9 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
     }
 
-    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = app->basis.id
-      }, GKYL_GK_META_NONE, 0
-    );
+    // Update metadata time and frame.
+    struct gkyl_msgpack_data *mt = app->base_meta;
+    gkyl_gyrokinetic_app_update_meta_time_frame(mt, tm, frame);
 
     const char *fmt = "%s-field_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -1246,8 +1365,6 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
-
-    gk_array_meta_release(mt);
 
     app->stat.field_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_field_io += 1;
@@ -3076,6 +3193,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   }
 
   gkyl_dynvec_release(app->dts);
+
+  gk_array_meta_release(app->base_meta);
 
   gkyl_free(app);
 }
