@@ -29,6 +29,7 @@
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
+#include <gkyl_dg_array_mask.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_gk_neut_hamil.h>
@@ -836,47 +837,25 @@ struct gk_fdot_multiplier {
   double *bmag_max; // Maximum magnetic field amplitude.
   double *bmag_max_coord; // Location of bmag_max.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
-  // Functions chosen at runtime.
-  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
-  void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
-  void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
-};
 
-struct gk_time_dilation {
-  enum gkyl_gyrokinetic_time_dilation_type type; // Type of multiplicative function term.
-  bool write_diagnostics; // Whether to write diagnostics out.
-  bool evolve; // Whether the multiplicative function is time dependent.
-  struct gkyl_array *multiplier; // Multiplier field.
-  struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
-  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
-
-  // Time dilation CFL dt floor parameters.
-  bool cfl_dt_min_omegaH; // Use omega_H based CFL dt flooring.
+  // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
+  double f_threshold; // Threshold for mask-based time dilation.
 
-  // Time dilation mask parameters.
-  double time_dilation_f_threshold; // Threshold for mask-based time dilation.
-  double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
-  bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.
+  // Time dilation mask object.
   struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
-
-  // Boolean flags for runtime decisions.
-  bool enable_cfl_dt_floor; // Whether CFL dt floor is enabled.
-  bool enable_mask_based_omega; // Whether mask-based omega is enabled.
 
   // Scratch arrays for time dilation computation.
   double *omega_max_local_cu; // GPU scratch space for reduce operation.
 
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
-  void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_time_dilation *time_dilation, const struct gkyl_array *f, const struct gkyl_array *cflrate);
-  void (*mul_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-      struct gk_time_dilation *time_dilation, struct gkyl_array *f);
-  void (*div_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_time_dilation *time_dilation, struct gkyl_array *f);
+  void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
+    struct gkyl_array *cflrate);
+  void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
+    struct gkyl_array *cflrate);
 };
 
 struct gk_heating {
@@ -1052,8 +1031,6 @@ struct gk_species {
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
   struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
-
-  struct gk_time_dilation time_dilation; // Function multiplying/dividing f in RHS.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -2879,18 +2856,28 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
 void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdmul);
 
 /**
+ * Apply initial condition for fdot multiplier (computes static mask if evolve=false).
+ *
+ * @param app Gyrokinetic app.
+ * @param gks Species.
+ * @param fdmul Fdot multiplier struct.
+ * @param f Distribution function (initial condition).
+ */
+void gk_species_fdot_multiplier_apply_ic(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *f);
+
+/**
  * Multiply the CFL rate.
  *
  * @param app gyrokinetic app object.
  * @param gks Species object.
  * @param fdmul Species df/dt multiplier object.
  * @param phi Current electrostatic potential.
- * @param fin Current distribution function.
- * @param f_buffer Phase-space buffer.
+ * @param f Current distribution function.
  * @param out CFL rate to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Multiply df/dt.
@@ -2899,12 +2886,11 @@ void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, con
  * @param gks Species object.
  * @param fdmul Species df/dt multiplier object.
  * @param phi Current electrostatic potential.
- * @param fin Current distribution function.
- * @param f_buffer Phase-space buffer.
+ * @param f Current distribution function.
  * @param out df/dt to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Write damping diagnostics.
@@ -2935,70 +2921,6 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
  */
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
-
-/** gk_species_time_dilation API */
-
-/**
- * Initialize species f multiplier object. This object multiplies/divides f
- * at the beginning/end of the RHS evaluation.
- *
- * @param app gyrokinetic app object.
- * @param gks Species object.
- * @param fmul Species f multiplier object.
- */
-void gk_species_time_dilation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_time_dilation *fmul);
-
-/**
- * Compute the time dilation multiplier and apply it to cflrate.
- *
- * @param app gyrokinetic app object.
- * @param gks Species object.
- * @param fmul Species time dilation object.
- * @param f Distribution function to use in computing the multiplier.
- * @param cflrate CFL rate array to multiply.
- */
-void gk_species_time_dilation_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_time_dilation *fmul, const struct gkyl_array *f, const struct gkyl_array *cflrate);
-
-/**
- * Divide f by the multiplier (called at beginning of RHS).
- *
- * @param app gyrokinetic app object.
- * @param gks Species object.
- * @param fmul Species f multiplier object.
- * @param f Distribution function to divide.
- */
-void gk_species_time_dilation_div(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_time_dilation *fmul, struct gkyl_array *f);
-
-/**
- * Multiply f by the multiplier (called at end of RHS).
- *
- * @param app gyrokinetic app object.
- * @param gks Species object.
- * @param fmul Species f multiplier object.
- * @param f Distribution function to multiply.
- */
-void gk_species_time_dilation_mul(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_time_dilation *fmul, struct gkyl_array *f);
-
-/**
- * Write f multiplier diagnostics.
- *
- * @param app gyrokinetic app object.
- * @param gks Pointer to species.
- * @param tm Time for diagnostic.
- * @param frame Output frame.
- */
-void gk_species_time_dilation_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
-
-/**
- * Release species f multiplier object.
- *
- * @param app gyrokinetic app object.
- * @param fmul Species f multiplier object.
- */
-void gk_species_time_dilation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_time_dilation *fmul);
 
 /** gk_anomalous_diff API */
 

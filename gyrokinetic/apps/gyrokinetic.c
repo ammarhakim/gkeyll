@@ -997,6 +997,12 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
+
+  // Apply fdot multiplier ICs (computes static mask if evolve=false).
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_fdot_multiplier_apply_ic(app, gks, &gks->fdot_mult, gks->f);
+  }
 }
 
 void
@@ -1509,16 +1515,6 @@ gkyl_gyrokinetic_app_write_species_fdot_multiplier(gkyl_gyrokinetic_app* app, in
 }
 
 //
-// ............. time dilation outputs ............... //
-//
-void
-gkyl_gyrokinetic_app_write_species_time_dilation(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
-{
-  struct gk_species *gks = &app->species[sidx];
-  gk_species_time_dilation_write(app, gks, tm, frame);
-}
-
-//
 // ............. Heating outputs ............... //
 // 
 void
@@ -1687,8 +1683,6 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species_damping(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_fdot_multiplier(app, sidx, tm, frame);
-
-  gkyl_gyrokinetic_app_write_species_time_dilation(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
 
@@ -1880,13 +1874,6 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 {
   double dtmin = DBL_MAX;
 
-  // Divide g by a factor. f = g/beta. With time dilation, g is the input.
-  // Discards the const modifyier. I'm not sure how to overcome this
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    gk_species_time_dilation_div(app, gks, &gks->time_dilation, fin[i]);
-  }
-
   // Compute moments needed by various modules.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
@@ -1948,15 +1935,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Multiply dfdt (fout) by a factor.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fout[i]);
-  }
-
-  // Multiply f and dfdt by a factor. g = f*beta. Output g and dg/dt.
-  // Discards the const modifyier. I'm not sure how to overcome this
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    gk_species_time_dilation_mul(app, gks, &gks->time_dilation, fin[i]);
-    gk_species_time_dilation_mul(app, gks, &gks->time_dilation, fout[i]);
+    gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fin[i], fout[i]);
   }
 
   struct timespec wtm = gkyl_wall_clock();

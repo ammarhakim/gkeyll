@@ -348,39 +348,34 @@ struct gkyl_gyrokinetic_damping {
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
 };
 
+// Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
 enum gkyl_gyrokinetic_fdot_multiplier_type {
-  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,
-  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
-  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Dilates time.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time.
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold.
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask.
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max
 };
 
+// Input parameters for the df/dt multiplier.
 struct gkyl_gyrokinetic_fdot_multiplier {
-  enum gkyl_gyrokinetic_fdot_multiplier_type type;
-  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
-  void *profile_ctx; // Context for profile function.
-  bool cellwise_const; // Whether the multiplier has a single value per cell.
-  bool write_diagnostics; // Whether to output diagnostics.
-};
+  enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplier (see enum comments above).
 
-// Multiplier applied to f at the beginning and end of gyrokinetic_rhs.
-enum gkyl_gyrokinetic_time_dilation_type {
-  GKYL_GK_F_MULTIPLIER_NONE = 0,
-  GKYL_GK_F_MULTIPLIER_USER_INPUT,
-  GKYL_GK_CFL_DRIVEN_TIME_DILATION,
-};
+  // For USER_INPUT type: function pointer defining M(z).
+  void (*profile)(double t, const double *xn, double *fout, void *ctx);
+  void *profile_ctx;
 
-struct gkyl_gyrokinetic_time_dilation {
-  enum gkyl_gyrokinetic_time_dilation_type type;
-  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply/divide f by.
-  void *profile_ctx; // Context for profile function.
-  bool write_diagnostics; // Whether to output diagnostics.
-  // Time dilation CFL dt floor parameters (for GKYL_GK_CFL_DRIVEN_TIME_DILATION).
-  bool cfl_dt_min_omegaH; // Use omega_H based CFL dt flooring.
-  double cfl_dt_min_value; // User-specified minimum dt value.
-  // Time dilation mask parameters (for GKYL_GK_CFL_DRIVEN_TIME_DILATION).
-  double time_dilation_f_threshold; // Threshold for mask-based time dilation.
-  double time_dilation_f_frac; // Fractional threshold for mask-based time dilation.
-  bool time_dilation_spatial_frac; // Whether to use spatial fractional threshold.
+  bool cellwise_const;    // If true, multiplier is constant within each cell (p=0 basis).
+  bool write_diagnostics; // If true, write multiplier array to file.
+  bool evolve;            // If true, mask is recomputed each step; if false, mask is fixed from init.
+
+  // Parameters for time dilation types (FIXED_DT, MASK_F_*):
+  double cfl_dt_min_value;        // For FIXED_DT: the minimum allowed dt value.
+  double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
+                                  // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
 };
 
 // Parameters for gk species.
@@ -407,9 +402,6 @@ struct gkyl_gyrokinetic_species {
 
   // Phase-space field multiplying df/dt.
   struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
-
-  // Phase-space field multiplying/dividing f in RHS.
-  struct gkyl_gyrokinetic_time_dilation time_dilation;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -613,7 +605,6 @@ struct gkyl_gyrokinetic_stat {
   double species_coll_tm; // total time for collision updater (excluded moments)
   double species_damp_tm; // Time to accumulate species damping onto RHS.
   double species_fdot_mult_tm; // Time spent on the df/dt multiplier.
-  double species_f_mult_tm; // Time spent on the f multiplier.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator

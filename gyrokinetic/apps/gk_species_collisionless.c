@@ -144,7 +144,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
-    for (int d=0; d<cdim; d++) {
+    for (int d=0; d<app->cdim; d++) {
       bctype_conf[d] = gks->lower_bc[d].type;
       bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
     }
