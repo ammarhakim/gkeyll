@@ -999,6 +999,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   }
 
   // Apply fdot multiplier ICs (computes static mask if evolve=false).
+  // Internally computes gk_species_rhs
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_fdot_multiplier_apply_ic(app, gks, &gks->fdot_mult, gks->f);
