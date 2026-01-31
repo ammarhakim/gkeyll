@@ -18,15 +18,18 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   struct gkyl_dg_array_mask *mask = (struct gkyl_dg_array_mask *) gkyl_malloc(sizeof(*mask));
 
   mask->type = mask_ho->type;
-  mask->val_threshold = mask_ho->val_threshold;
-  mask->frac_threshold = mask_ho->frac_threshold;
+  mask->threshold = mask_ho->threshold;
   mask->use_gpu = mask_ho->use_gpu;
   mask->phase_rng = mask_ho->phase_rng;
+  mask->phase_rng_ext = mask_ho->phase_rng_ext;
   mask->conf_rng = mask_ho->conf_rng;
+  mask->conf_rng_ext = mask_ho->conf_rng_ext;
   mask->vel_rng = mask_ho->vel_rng;
-  mask->mask = NULL;
-  mask->local_max_arr = NULL;
-  mask->global_max = NULL;
+  mask->mask_rng = mask_ho->mask_rng;
+  mask->mask_rng_ext = mask_ho->mask_rng_ext;
+  mask->mask_arr = 0;
+  mask->local_max_arr = 0;
+  mask->global_max = 0;
 
   mask->flags = 0;
   GKYL_SET_CU_ALLOC(mask->flags);
@@ -40,15 +43,15 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
     mask->on_dev = mask_cu;
   }
   else {
-    struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask->ncomp, mask_ho->mask->size);
-    gkyl_array_copy(mask_array, mask_ho->mask);
-    mask->mask = mask_array->on_dev;
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
-             mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
-      mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng.volume);
+    struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask_arr->ncomp, mask_ho->mask_arr->size);
+    gkyl_array_copy(mask_array, mask_ho->mask_arr);
+    mask->mask_arr = mask_array->on_dev;
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
+             mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
+      mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng_ext->volume);
     }
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
-        mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
+        mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
       mask->global_max = (double*) gkyl_cu_malloc(sizeof(double));
     }
 
@@ -58,7 +61,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
     mask->on_dev = mask_cu;
     
     // The returned object should store host pointer to gkyl_array.
-    mask->mask = mask_array;
+    mask->mask_arr = mask_array;
   }
   
   return mask;
@@ -248,60 +251,60 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
     return;
   }
   
-  int nblocks = mask->mask->nblocks;
-  int nthreads = mask->mask->nthreads;
+  int nblocks = mask->mask_arr->nblocks;
+  int nthreads = mask->mask_arr->nthreads;
   
   // Simple threshold masks - launch specialized kernel directly
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD) {
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS) {
     gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
-      mask->phase_rng, arr_to_mask->on_dev, mask->mask->on_dev, mask->val_threshold);
+      *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
     return;
   }
   
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD) {
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
     gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
-      mask->phase_rng, arr_to_mask->on_dev, mask->mask->on_dev, mask->val_threshold);
+      *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
     return;
   }
   
   // Global fractional threshold masks - compute max, then launch kernel
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD) {
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
     gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
     // Copy result from device to host
     double global_max_c0;
     gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    double threshold = mask->frac_threshold * global_max_c0;
-    
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD) {
+    double frac_threshold = mask->threshold * global_max_c0;
+
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC) {
       gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
-        mask->phase_rng, arr_to_mask->on_dev, mask->mask->on_dev, threshold);
+        *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
     } else {
       gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
-        mask->phase_rng, arr_to_mask->on_dev, mask->mask->on_dev, threshold);
+        *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
     }
     return;
   }
   
   // Spatial fractional threshold masks - two-phase GPU approach
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
-    
+  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
+
     // Phase 1: Find max in velocity space for each configuration cell
-    int conf_nblocks = (mask->conf_rng.volume + nthreads - 1) / nthreads;
+    int conf_nblocks = mask->conf_rng->nblocks;
     gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
-      mask->conf_rng, mask->vel_rng, mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
+      *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
     
     // Phase 2: Apply mask based on local thresholds
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
+    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF) {
       gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(
-        mask->conf_rng, mask->vel_rng, mask->phase_rng, arr_to_mask->on_dev,
-        mask->mask->on_dev, mask->local_max_arr->on_dev, mask->frac_threshold);
+        *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
+        mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
     }
     else {
       gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(
-        mask->conf_rng, mask->vel_rng, mask->phase_rng, arr_to_mask->on_dev,
-        mask->mask->on_dev, mask->local_max_arr->on_dev, mask->frac_threshold);
+        *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
+        mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
     }
     
     return;

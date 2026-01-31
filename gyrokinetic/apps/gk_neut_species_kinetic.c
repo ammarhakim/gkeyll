@@ -1,3 +1,4 @@
+#include <gkyl_dg_array_mask_gyrokinetic.h>
 #include <gkyl_gk_neut_species_priv.h>
 
 static double
@@ -678,31 +679,18 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
-  enum gkyl_dg_array_mask_types skip_cell_mask_type;
-  if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_THRESHOLD) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_THRESHOLD;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_THRESHOLD) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_THRESHOLD;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD_SPATIAL) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD_SPATIAL;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD_SPATIAL) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD_SPATIAL;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_LESS_THAN_FRAC_THRESHOLD) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER_THAN_FRAC_THRESHOLD;
-  } else if (s->info.skip_cell.type == GKYL_GK_SKIP_CELL_JBf_GREATER_THAN_FRAC_THRESHOLD) {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_C0_LESS_THAN_FRAC_THRESHOLD;
-  } else {
-    skip_cell_mask_type = GKYL_DG_ARRAY_MASK_NONE;
-  }
+  enum gkyl_dg_array_mask_types update_cell_mask_type =
+    gkyl_gk_skip_cell_to_mask_type(s->info.skip_cell.type);
 
   s->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
-    .type = skip_cell_mask_type,
+    .type = update_cell_mask_type,
     .default_value = true,
-    .val_threshold = s->info.skip_cell.threshold,
-    .frac_threshold = s->info.skip_cell.frac_threshold,
-    .phase_rng = s->local_ext,
-    .config_rng = app->local_ext,
-    .vel_rng = s->local_ext_vel,
+    .threshold = s->info.skip_cell.threshold,
+    .conf_rng = &app->local,
+    .conf_rng_ext = &app->local_ext,
+    .phase_rng = &s->local,
+    .phase_rng_ext = &s->local_ext,
+    .vel_rng = &s->local_ext_vel,
     .use_gpu = app->use_gpu
   });
 
