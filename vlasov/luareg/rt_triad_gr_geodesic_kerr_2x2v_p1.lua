@@ -14,13 +14,13 @@ nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
 Nr = 96 --64 -- Cell count (configuration space: radial direction).
-Ntheta = 48 -- 32 -- Cell count (configuration space: radial direction).
-Nvr = 94 -- 24 -- Cell count (velocity space: radial direction).
-Nvtheta = 64 --56 -- Cell count (velocity space: angular direction).
+Ntheta = 64 -- 32 -- Cell count (configuration space: radial direction).
+Nvr = 200 -- 24 -- Cell count (velocity space: radial direction).
+Nvtheta = 86 --56 -- Cell count (velocity space: angular direction).
 Lr = 7.5 -- Domain size (configuration space: radial direction).
 Ltheta = 2 * math.pi -- Domain size (configuration space: radial direction).
-vr_max = 0.4 * vt -- Domain boundary (velocity space: radial direction).
-vtheta_max = 0.4 * vt -- Domain boundary (velocity space: angular direction).
+vr_max = 1.0 * vt -- Domain boundary (velocity space: radial direction).
+vtheta_max = 0.6 * vt -- Domain boundary (velocity space: angular direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -35,7 +35,7 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 massBH = 1.0 -- Mass of the Kerr-Schild black hole
-spinBH = 0.0 -- Spin parameter, a = J/M, of the Kerr-Schild black hole
+spinBH = 0.8 -- Spin parameter, a = J/M, of the Kerr-Schild black hole
 
 vlasovApp = Vlasov.App.new {
 
@@ -46,7 +46,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.5 , 1.0 * math.pi/4.0 },
+  lower = { 1.5 , 0.0 },
   upper = { 1.5 + Lr, 3.0 * math.pi/4.0 },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
@@ -105,9 +105,9 @@ vlasovApp = Vlasov.App.new {
 
           -- Peak location (at the geodesic we aim to follow)
           local r0 = 8.0
-          local phi0 = 3.14159/2.0
-          local pr0 = 0.0 -- -0.342762596284762
-          local pphi0 = 0.0 -- -0.163322023271852
+          local phi0 = math.pi/2
+          local pr0 = -0.342762596284762
+          local pphi0 = -0.163322023271852
 
           -- Initial Gaussian bump in phase-space with a small thermal spread
           local f = math.exp( - (r - r0) * (r - r0) / (2 * sigma_r) ) *
