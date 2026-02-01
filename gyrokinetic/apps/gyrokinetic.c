@@ -465,23 +465,21 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   // Basic metadata for I/O.
   const char* build_id = GIT_COMMIT_ID;
   const char* build_date = GKYL_BUILD_DATE;
-  app->io_meta_basic_len = 4;
-  app->io_meta_basic = gkyl_msgpack_map_elem_clone(app->io_meta_basic_len,
-    (struct gkyl_msgpack_map_elem []) {
-      { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
-      { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
-      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
-      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
-    }
-  );
+  struct gkyl_msgpack_map_elem io_meta_basic[] = {
+   { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+   { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+   { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+   { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  app->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+  app->io_meta_basic = gkyl_msgpack_map_elem_clone(app->io_meta_basic_len, io_meta_basic);
   // Metadata for GK app.
-  app->io_meta_len = 2;
-  app->io_meta = gkyl_msgpack_map_elem_clone(app->io_meta_len,
-    (struct gkyl_msgpack_map_elem []) {
-      { .key = "polyOrder", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
-      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
-    }
-  );
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
+  };
+  app->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  app->io_meta = gkyl_msgpack_map_elem_clone(app->io_meta_len, io_meta);
 
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
@@ -1111,10 +1109,10 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geometry_inp *geometry_inp)
 {
-  // Metadata from app and geo object.
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(3,
-    (int[]){app->io_meta_basic_len,app->io_meta_len,app->gk_geom->io_meta_len},
-    (const struct gkyl_msgpack_map_elem*[]){app->io_meta_basic,app->io_meta,app->gk_geom->io_meta});
+  // Package metadata.
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
@@ -1240,12 +1238,12 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
     }
 
-    // Metadata from app and geo object.
+    // Package metadata.
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-    struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(3,
-      (int[]){app->io_meta_basic_len,app->io_meta_len,app->gk_geom->io_meta_len},
-      (const struct gkyl_msgpack_map_elem*[]){app->io_meta_basic,app->io_meta,app->gk_geom->io_meta});
+    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+    struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-field_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -2730,9 +2728,9 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_header_release(&hdr);
   }
 
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2p        , arr_ho3, "mapc2p");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos   , arr_ho3, "mc2nu_pos");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.bmag        , arr_ho1, "bmag_corn");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz");

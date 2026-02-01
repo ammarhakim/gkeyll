@@ -80,21 +80,19 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 
   // Store metadata for I/O.
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
-    up->io_meta_len = 2;
-    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len,
-      (struct gkyl_msgpack_map_elem []) {
-        { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
-        { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
-      }
-    );
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
   }
   else {
-    up->io_meta_len = 1;
-    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len,
-      (struct gkyl_msgpack_map_elem []) {
-        { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
-      }
-    );
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
   }
 
   up->flags = 0;
@@ -531,6 +529,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     }
   }
 
+  // Copy metadata.
+  up->io_meta = gkyl_msgpack_map_elem_clone(up_3d->io_meta_len, up_3d->io_meta);
+  up->io_meta_len = up_3d->io_meta_len;
+ 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

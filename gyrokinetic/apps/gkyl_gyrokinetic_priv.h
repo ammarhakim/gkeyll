@@ -946,6 +946,9 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
+
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
@@ -1089,6 +1092,9 @@ struct gk_neut_species {
 
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
+
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
