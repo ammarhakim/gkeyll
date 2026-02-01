@@ -78,6 +78,25 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     gk_geometry_surf_alloc_nodal(up, dir);
   }
 
+  // Store metadata for I/O.
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
+    up->io_meta_len = 2;
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len,
+      (struct gkyl_msgpack_map_elem []) {
+        { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+        { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+      }
+    );
+  }
+  else {
+    up->io_meta_len = 1;
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len,
+      (struct gkyl_msgpack_map_elem []) {
+        { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      }
+    );
+  }
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -579,6 +598,8 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gk_geometry_int_release_nodal(up);
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_release_nodal(up, dir);
+
+  gkyl_msgpack_map_elem_release(up->io_meta_len, up->io_meta); 
 
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 

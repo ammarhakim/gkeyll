@@ -414,6 +414,14 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
       geometry_inp->c2p_ctx, geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   }
 
+  // Store metadata for I/O.
+  up->io_meta_len = 1;
+  up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+    }
+  );
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

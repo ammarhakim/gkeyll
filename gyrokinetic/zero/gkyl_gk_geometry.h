@@ -190,6 +190,9 @@ struct gk_geometry {
                  // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // Pointer to itself or device object.

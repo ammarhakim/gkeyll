@@ -1387,10 +1387,15 @@ struct gkyl_gyrokinetic_app {
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
-  struct gkyl_gyrokinetic_stat stat; // statistics
+  struct gkyl_gyrokinetic_stat stat; // Statistics.
+
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
 
   gkyl_dynvec dts; // Record time step over time.
-  bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
+  bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
 };
 
 /** gkyl_gyrokinetic_app private API */

@@ -11,6 +11,7 @@
 #include <gkyl_alloc.h>
 
 #include <mpack.h>
+#include <assert.h>
 
 int
 gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def)
@@ -221,6 +222,90 @@ gkyl_load_file(const char *fname, int64_t *sz)
   return buff;
 }
 
+struct gkyl_msgpack_map_elem *
+gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in)
+{
+  struct gkyl_msgpack_map_elem *elist_out = gkyl_malloc(nvals*sizeof(struct gkyl_msgpack_map_elem));
+
+  for (int i=0; i<nvals; ++i) {
+    // Copy key name.
+    size_t key_len = strlen(elist_in[i].key) + 1;
+    elist_out[i].key = malloc(key_len * sizeof(char));
+    strcpy(elist_out[i].key, elist_in[i].key);
+
+    // Copy type.
+    elist_out[i].elem_type = elist_in[i].elem_type;
+
+    // Copy value.
+    switch (elist_in[i].elem_type) {
+      case GKYL_MP_BOOL:
+        elist_out[i].bval = elist_in[i].bval;
+        break;
+
+      case GKYL_MP_UNSIGNED_INT:
+        elist_out[i].uval = elist_in[i].uval;
+        break;
+
+      case GKYL_MP_INT:
+        elist_out[i].ival = elist_in[i].ival;
+        break;
+
+      case GKYL_MP_FLOAT:
+        elist_out[i].fval = elist_in[i].fval;
+        break;
+
+      case GKYL_MP_DOUBLE:
+        elist_out[i].dval = elist_in[i].dval;
+        break;
+
+      case GKYL_MP_STRING:
+        key_len = strlen(elist_in[i].cval) + 1;
+        elist_out[i].cval = malloc(key_len * sizeof(char));
+        strcpy(elist_out[i].cval, elist_in[i].cval);
+        break;
+    }
+  }
+
+  return elist_out;
+}
+
+void
+gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key, double value)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_DOUBLE);
+      elist[i].dval = value;
+    }
+  }
+}
+
+void
+gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key, unsigned int value)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_UNSIGNED_INT);
+      elist[i].uval = value;
+    }
+  }
+}
+
+void
+gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
+{
+  for (int i=0; i<nvals; ++i) {
+    gkyl_free(elist_in[i].key);
+
+    if (elist_in[i].elem_type == GKYL_MP_STRING)
+      gkyl_free(elist_in[i].cval);
+  }
+
+  gkyl_free(elist_in);
+}
+
 struct gkyl_msgpack_data *
 gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 {
@@ -236,8 +321,20 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
     mpack_write_cstr(&writer, elist[i].key);
 
     switch (elist[i].elem_type) {
+      case GKYL_MP_BOOL:
+        mpack_write_bool(&writer, elist[i].bval);
+        break;
+
+      case GKYL_MP_UNSIGNED_INT:
+        mpack_write_u64(&writer, elist[i].uval);
+        break;
+
       case GKYL_MP_INT:
         mpack_write_i64(&writer, elist[i].ival);
+        break;
+
+      case GKYL_MP_FLOAT:
+        mpack_write_float(&writer, elist[i].fval);
         break;
 
       case GKYL_MP_DOUBLE:
@@ -261,6 +358,166 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
   }
 
   return mdata;
+}
+
+struct gkyl_msgpack_data *
+gkyl_msgpack_create_union(int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union)
+{
+  struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
+  mdata->meta_sz = 0;
+  mdata->meta = 0;
+
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
+
+  mpack_build_map(&writer);  
+
+  for (int j=0; j<numlist_union; ++j) {
+
+    int nvals = nvals_union[j];
+    const struct gkyl_msgpack_map_elem *elist = elist_union[j];
+
+    for (int i=0; i<nvals; ++i) {
+      mpack_write_cstr(&writer, elist[i].key);
+  
+      switch (elist[i].elem_type) {
+        case GKYL_MP_BOOL:
+          mpack_write_bool(&writer, elist[i].bval);
+          break;
+  
+        case GKYL_MP_UNSIGNED_INT:
+          mpack_write_u64(&writer, elist[i].uval);
+          break;
+  
+        case GKYL_MP_INT:
+          mpack_write_i64(&writer, elist[i].ival);
+          break;
+  
+        case GKYL_MP_FLOAT:
+          mpack_write_float(&writer, elist[i].fval);
+          break;
+  
+        case GKYL_MP_DOUBLE:
+          mpack_write_double(&writer, elist[i].dval);
+          break;
+  
+        case GKYL_MP_STRING:
+          mpack_write_cstr(&writer, elist[i].cval);
+          break;
+      }
+    }
+  }
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    MPACK_FREE(mdata->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mdata);
+    mdata = 0;
+  }
+
+  return mdata;
+}
+
+static void
+msgpack_copy_value(mpack_reader_t* r, mpack_writer_t* w)
+{
+  // Copy the current entry at the top of the reader stack into the writer
+  // stack. If it's a map (most cases in Gkeyll so far), loop over the
+  // elements.
+  mpack_tag_t tag = mpack_read_tag(r);
+
+  switch (mpack_tag_type(&tag)) {
+    case mpack_type_nil:
+      mpack_write_nil(w);
+      break;
+    case mpack_type_bool:
+      mpack_write_bool(w, mpack_tag_bool_value(&tag));
+      break;
+    case mpack_type_int:
+      mpack_write_int(w, mpack_tag_int_value(&tag));
+      break;
+    case mpack_type_uint:
+      mpack_write_uint(w, mpack_tag_uint_value(&tag));
+      break;
+    case mpack_type_float:
+      mpack_write_float(w, mpack_tag_float_value(&tag));
+      break;
+    case mpack_type_double:
+      mpack_write_double(w, mpack_tag_double_value(&tag));
+      break;
+    case mpack_type_str: {
+      uint32_t len = mpack_tag_str_length(&tag);
+      mpack_start_str(w, len);
+
+      char buffer[64];
+      uint32_t remaining = len;
+      while (remaining > 0) {
+        uint32_t chunk = remaining > sizeof(buffer)? sizeof(buffer) : remaining;
+        mpack_read_bytes(r, buffer, chunk);
+        mpack_write_bytes(w, buffer, chunk);
+        remaining -= chunk;
+      }
+
+      mpack_done_str(r);
+      mpack_finish_str(w);
+      break;
+    }
+    case mpack_type_map: {
+      uint32_t count = mpack_tag_map_count(&tag);
+      mpack_start_map(w, count);
+      for (uint32_t i=0; i<count; i++) {
+        msgpack_copy_value(r, w); // Copy key.
+        msgpack_copy_value(r, w); // Copy value.
+      }
+      mpack_done_map(r);
+      mpack_finish_map(w);
+      break;
+    }
+    case mpack_type_array: {
+      uint32_t count = mpack_tag_array_count(&tag);
+      mpack_start_array(w, count);
+      for (uint32_t i=0; i<count; i++) {
+        msgpack_copy_value(r, w);
+      }
+      mpack_done_array(r);
+      mpack_finish_array(w);
+      break;
+    }
+    default:
+      assert(false); // NYI.
+      break;
+  }
+}
+
+struct gkyl_msgpack_data *
+gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
+{
+  struct gkyl_msgpack_data *mdata_out = gkyl_malloc(sizeof *mdata_out);
+  mdata_out->meta_sz = 0;
+  mdata_out->meta = 0;
+
+  mpack_reader_t reader;
+  mpack_reader_init_data(&reader, mdata_in->meta, mdata_in->meta_sz);
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mdata_out->meta, &mdata_out->meta_sz);
+
+  msgpack_copy_value(&reader, &writer);
+
+  // Check copy was successful.
+  if (
+      (mpack_reader_destroy(&reader) != mpack_ok || mpack_writer_destroy(&writer) != mpack_ok) ||
+      (!(mdata_in->meta_sz == mdata_out->meta_sz && memcmp(mdata_in->meta, mdata_out->meta, mdata_in->meta_sz) == 0))
+     ) {
+    fprintf(stderr, "gkyl_msgpack_clone: error copying MessagePack.\n");
+    MPACK_FREE(mdata_out->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mdata_out);
+    mdata_out = 0;
+  }
+
+  return mdata_out;
 }
 
 void

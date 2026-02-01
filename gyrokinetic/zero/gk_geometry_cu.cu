@@ -414,7 +414,7 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
 struct gk_geometry* 
 gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
 {
-  struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
+  struct gk_geometry *up = (struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
@@ -677,6 +677,10 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     up->geo_surf[dir].lenr_nodal = geo_surf_dev[dir]->lenr_nodal;
     gkyl_free(geo_surf_dev[dir]);
   }
+
+  // Copy metadata.
+  up->io_meta = gkyl_msgpack_clone(geo_host->io_meta);
+  up->io_meta_len = geo_host->io_meta_len;
  
   return up;
 }
