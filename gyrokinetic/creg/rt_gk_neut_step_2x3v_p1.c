@@ -334,11 +334,11 @@ main(int argc, char **argv)
   // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
+    .vdim = ctx.vdim+1,
     .lower = { -ctx.vpar_max_D0*2.3, -ctx.vpar_max_D0*25.1, -ctx.vpar_max_D0*9.0},
     .upper = { ctx.vpar_max_D0*2.3, ctx.vpar_max_D0*25.1, ctx.vpar_max_D0*9.0 },
     .cells = { 24,24,24 },
     .is_static = false,
-    .enforce_positivity = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -349,6 +349,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = evalTempD0Init,      
       //.correct_all_moms = true,
+    },
+
+    .collisionless = {
+      .type = GKYL_GK_COLLISIONLESS_NEUTRAL,
     },
 
     .source = { 
@@ -365,12 +369,17 @@ main(int argc, char **argv)
        }, 
     }, 
 
-    //.collisions =  { 
-    //  .collision_id = GKYL_BGK_COLLISIONS, 
-    //  .self_nu = evalNuD0, 
-    //  .ctx = &ctx, 
-    //  //.is_implicit = true, 
-    //}, 
+//    .collisions =  { 
+//      .collision_id = GKYL_BGK_COLLISIONS, 
+//      .self_nu = evalNuD0, 
+//      .ctx = &ctx, 
+//      //.is_implicit = true, 
+//    }, 
+
+//    .positivity = {
+//      .type = GKYL_GK_POSITIVITY_SHIFT,
+//      .write_diagnostics = true,
+//    },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -417,7 +426,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_neut_step_2x3v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },
@@ -453,7 +462,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = gk,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = 1,
@@ -463,7 +472,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

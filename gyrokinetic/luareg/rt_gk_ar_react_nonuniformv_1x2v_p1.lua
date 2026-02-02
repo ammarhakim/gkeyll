@@ -219,8 +219,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -272,8 +272,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -358,8 +358,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?
@@ -444,8 +444,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.SpeciesBc.bcZeroFlux },
-      { dir = 0, edge = 1, type = G0.SpeciesBc.bcZeroFlux },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesZeroFlux },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesZeroFlux },
     },
 
     evolve = true, -- Evolve species?

@@ -49,6 +49,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
+  vlasov->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;

@@ -63,6 +63,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->eqn.num_equations = 1;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
+  vlasov->eqn.boundary_diag_term = boundary_diag;
 
   const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;

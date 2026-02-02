@@ -178,7 +178,15 @@ int gkyl_range_is_sub_range(const struct gkyl_range *rng);
  * @param rng Range obkect
  * @return 1 if true, 0 otherwise
  */
-int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx);
+GKYL_CU_DH
+static inline int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
+{
+  for (int i=0; i<rng->ndim; ++i) {
+    if ( (idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i]) )
+      return 0;
+  }
+  return 1;
+}
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully

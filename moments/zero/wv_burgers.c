@@ -294,5 +294,7 @@ gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp* inp)
   burgers->eqn.ref_count = gkyl_ref_count_init(gkyl_burgers_free);
   burgers->eqn.on_dev = &burgers->eqn; // On the CPU, the equation object points to itself.
 
+  burgers->eqn.embed_geo = NULL;
+
   return &burgers->eqn;
 }

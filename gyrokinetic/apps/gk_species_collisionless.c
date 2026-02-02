@@ -5,7 +5,7 @@ static void
 gk_species_collisionless_flux_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin)
 {
-  // do nothing.
+  // Do nothing.
 }
 
 static void
@@ -40,13 +40,31 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
+  gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
+
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_species_collisionless_fdot_scaling_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
+{
+  // Do nothing.
+}
+
+static void
+gk_species_collisionless_fdot_scaling_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng)
+{
+  gkyl_array_scale_range(rhs, gkcls->scale_fac, rng);
+  gkyl_array_scale_range(cflrate, gkcls->scale_fac, rng);
 }
 
 static void
 gk_species_collisionless_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_collisionless *gkcls, double tm, int frame)
 {
+  // Do nothing.
 }
 
 static void
@@ -71,7 +89,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
 
   if (gkcls->collisionless_id) {
 
-    int cdim = app->cdim, vdim = app->vdim;
+    int cdim = app->cdim, vdim = gks->info.vdim;
     int pdim = cdim+vdim;
 
     // Determine which directions are zero-flux. By default
@@ -133,7 +151,14 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gks->info.skip_cell_threshold, gkcls->collisionless_id, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
-    // Methods chosen at runtime.
+    gkcls->scale_fac = -1.0; // Not used if scale_factor in input file is not given.
+    gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
+    if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
+      gkcls->scale_fac = gks->info.collisionless.scale_factor;
+      gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
+    }
+
+    // Other methods chosen at runtime.
     gkcls->flux_func = gk_species_collisionless_flux_enabled;
     gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
     if (gkcls->write_diagnostics) {
@@ -177,5 +202,19 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
 
     if (gkcls->write_diagnostics) {
     }
+  }
+}
+
+void
+gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_collisionless *gkcls, struct gkyl_gyrokinetic_collisionless gkcls_inp)
+{
+  gkcls->scale_fac = 0.0;
+  gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
+  if (1.0e-16 < fabs(gkcls_inp.scale_factor)) {
+    gks->info.collisionless.scale_factor = gkcls_inp.scale_factor;
+
+    gkcls->scale_fac = gkcls_inp.scale_factor;
+    gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_enabled;
   }
 }

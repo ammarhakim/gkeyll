@@ -369,6 +369,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
     .lower = { -1.0, 0.0 },
     .upper = { 1.0, 1.0 },
     .cells = { cells_v[0], cells_v[1] },
@@ -409,6 +410,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .vdim = ctx.vdim,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
@@ -457,7 +459,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_lbo_relax_bimaxwellian_nonuniformv_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = ctx.cdim,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly, 0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -493,7 +495,7 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .timing = {
+    .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
@@ -503,7 +505,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
