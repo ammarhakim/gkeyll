@@ -28,6 +28,14 @@ jobs:
     - name: Test core-check
       run: .github/workflows/make-check.sh core 8
     
+    # Moments module
+    - name: Build moments-unit
+      run: .github/scripts/make-module.sh moments unit 8
+    - name: Build moments-regression
+      run: .github/scripts/make-module.sh moments regression 8
+    - name: Test moments-check
+      run: .github/workflows/make-check.sh moments 8
+      
     # Vlasov module
     - name: Build vlasov-unit
       run: .github/scripts/make-module.sh vlasov unit 8
@@ -43,14 +51,6 @@ jobs:
       run: .github/scripts/make-module.sh gyrokinetic regression 8
     - name: Test gyrokinetic-check
       run: .github/workflows/make-check.sh gyrokinetic 8
-    
-    # Moments module
-    - name: Build moments-unit
-      run: .github/scripts/make-module.sh moments unit 8
-    - name: Build moments-regression
-      run: .github/scripts/make-module.sh moments regression 8
-    - name: Test moments-check
-      run: .github/workflows/make-check.sh moments 8
     
     # PKPM module
     - name: Build pkpm-unit
