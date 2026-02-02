@@ -222,6 +222,20 @@ gkyl_load_file(const char *fname, int64_t *sz)
   return buff;
 }
 
+bool
+gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist,
+  const char *key)
+{
+  bool has_key = false;
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      has_key = true;
+      break;
+    }
+  }
+  return has_key;
+}
+
 struct gkyl_msgpack_map_elem *
 gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in)
 {
@@ -230,7 +244,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
   for (int i=0; i<nvals; ++i) {
     // Copy key name.
     size_t key_len = strlen(elist_in[i].key) + 1;
-    elist_out[i].key = malloc(key_len);
+    elist_out[i].key = gkyl_malloc(key_len);
     strcpy(elist_out[i].key, elist_in[i].key);
 
     // Copy type.
@@ -260,10 +274,73 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
 
       case GKYL_MP_STRING:
         key_len = strlen(elist_in[i].cval) + 1;
-        elist_out[i].cval = malloc(key_len);
+        elist_out[i].cval = gkyl_malloc(key_len);
         strcpy(elist_out[i].cval, elist_in[i].cval);
         break;
     }
+  }
+
+  return elist_out;
+}
+
+struct gkyl_msgpack_map_elem *
+gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
+  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len)
+{
+  int nvals_tot = 0; // Total number of elements.
+  for (int j=0; j<numlist_union; ++j)
+    nvals_tot += nvals_union[j];
+
+  assert(nvals_tot > 0);
+
+  elist_out_len[0] = nvals_tot;
+  struct gkyl_msgpack_map_elem *elist_out = gkyl_malloc(elist_out_len[0]*sizeof(struct gkyl_msgpack_map_elem));
+
+  int eidx = 0;
+  for (int j=0; j<numlist_union; ++j) {
+
+    int nvals_curr = nvals_union[j];
+    const struct gkyl_msgpack_map_elem *elist_curr = elist_union[j];
+
+    for (int i=0; i<nvals_curr; ++i) {
+      // Copy key name.
+      size_t key_len = strlen(elist_curr[i].key) + 1;
+      elist_out[eidx].key = gkyl_malloc(key_len);
+      strcpy(elist_out[eidx].key, elist_curr[i].key);
+
+      // Copy type.
+      elist_out[eidx].elem_type = elist_curr[i].elem_type;
+
+      // Copy value.
+      switch (elist_curr[i].elem_type) {
+        case GKYL_MP_BOOL:
+          elist_out[eidx].bval = elist_curr[i].bval;
+          break;
+
+        case GKYL_MP_UNSIGNED_INT:
+          elist_out[eidx].uval = elist_curr[i].uval;
+          break;
+
+        case GKYL_MP_INT:
+          elist_out[eidx].ival = elist_curr[i].ival;
+          break;
+
+        case GKYL_MP_FLOAT:
+          elist_out[eidx].fval = elist_curr[i].fval;
+          break;
+
+        case GKYL_MP_DOUBLE:
+          elist_out[eidx].dval = elist_curr[i].dval;
+          break;
+
+        case GKYL_MP_STRING:
+          key_len = strlen(elist_curr[i].cval) + 1;
+          elist_out[eidx].cval = gkyl_malloc(key_len);
+          strcpy(elist_out[eidx].cval, elist_curr[i].cval);
+          break;
+      }
+    }
+    eidx += 1;
   }
 
   return elist_out;
@@ -277,6 +354,7 @@ gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *elist,
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_DOUBLE);
       elist[i].dval = value;
+      break;
     }
   }
 }
@@ -289,6 +367,7 @@ gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_UNSIGNED_INT);
       elist[i].uval = value;
+      break;
     }
   }
 }
@@ -340,6 +419,7 @@ gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *el
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_STRING);
       gkyl_free(elist[i].cval);
+      break;
     }
   }
 }
