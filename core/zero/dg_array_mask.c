@@ -285,7 +285,9 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     
     // Determine mask range: use phase_rng for kinetic species, conf_rng for fluid species.
     // A NULL or zero-volume phase_rng indicates a fluid species.
-    bool is_kinetic = (mask_inp.phase_rng && mask_inp.phase_rng->volume > 0);
+    int vdim = mask_inp.phase_rng->ndim - mask_inp.conf_rng->ndim;
+    bool is_kinetic = (vdim > 0);
+
     if (is_kinetic) {
       mask->mask_rng = mask_inp.phase_rng;
       mask->mask_rng_ext = mask_inp.phase_rng_ext;
