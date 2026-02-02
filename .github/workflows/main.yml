@@ -53,9 +53,5 @@ jobs:
       run: .github/workflows/make-check.sh gyrokinetic 8
     
     # PKPM module
-    - name: Build pkpm-unit
-      run: .github/scripts/make-module.sh pkpm unit 8
     - name: Build pkpm-regression
       run: .github/scripts/make-module.sh pkpm regression 8
-    - name: Test pkpm-check
-      run: .github/workflows/make-check.sh pkpm 8

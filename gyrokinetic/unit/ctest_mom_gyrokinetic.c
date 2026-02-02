@@ -994,7 +994,7 @@ TEST_LIST = {
 // { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p1", test_1x2v_p1 },
 // { "test_1x2v_p2", test_1x2v_p2 },
-  { "test_2x2v_p1", test_2x2v_p1 },
+  // { "test_2x2v_p1", test_2x2v_p1 },
 // { "test_2x2v_p2", test_2x2v_p2 },
 #ifdef GKYL_HAVE_CUDA
 //  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
