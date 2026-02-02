@@ -1,4 +1,4 @@
-name: Mac Build
+name: Self-Hosted Build
 
 on:
   push:
@@ -9,50 +9,53 @@ on:
 
 jobs:
   build:
-    if: github.event.pull_request.draft == false
-    runs-on: macos-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v2
-    - name: install-superlu
-      run: cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
-    - name: make
-      run: make -j
-    - name: make regression
-      run: make -j regression
-    - name: make check
-      run: make -j check
-
-#  To whoever wants to fix this: put the following in a file named linux-build.yml
-# name: Linux Build
-
-# on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main ]
-    # types: [opened, synchronize, reopened, ready_for_review]
-
-# jobs:
-#   build:
-
-#     runs-on: ubuntu-latest
-
-#     steps:
-#     - uses: actions/checkout@v2
-#     - name: install-openblas
-#       run: sudo apt-get install libopenblas-dev
-#     - name: where-openblas
-#       run: dpkg -L libopenblas-pthread-dev
-#     - name: install-lapacke
-#       run: sudo apt-get install liblapacke-dev
-#     - name: where-liblapacke-dev
-#       run: dpkg -L liblapacke-dev    
-#     - name: install-deps
-#       run: cd install-deps; ./mkdeps.sh --build-superlu=yes; cd ..
-    # - name: make
-    #   run: make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
-    # - name: make check
-    #   run: make CC=clang check -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a"
-    # - name: make regression
-    #   run: make -j regression
+    
+    - name: Configure
+      run: |
+        ./machines/configure.linux.cpu.sh
+        chmod +x .github/scripts/make-module.sh
+        chmod +x .github/workflows/make-check.sh
+    
+    # Core module
+    - name: Build core-unit
+      run: .github/scripts/make-module.sh core unit 8
+    - name: Build core-regression
+      run: .github/scripts/make-module.sh core regression 8
+    - name: Test core-check
+      run: .github/workflows/make-check.sh core 8
+    
+    # Vlasov module
+    - name: Build vlasov-unit
+      run: .github/scripts/make-module.sh vlasov unit 8
+    - name: Build vlasov-regression
+      run: .github/scripts/make-module.sh vlasov regression 8
+    - name: Test vlasov-check
+      run: .github/workflows/make-check.sh vlasov 8
+    
+    # Gyrokinetic module
+    - name: Build gyrokinetic-unit
+      run: .github/scripts/make-module.sh gyrokinetic unit 8
+    - name: Build gyrokinetic-regression
+      run: .github/scripts/make-module.sh gyrokinetic regression 8
+    - name: Test gyrokinetic-check
+      run: .github/workflows/make-check.sh gyrokinetic 8
+    
+    # Moments module
+    - name: Build moments-unit
+      run: .github/scripts/make-module.sh moments unit 8
+    - name: Build moments-regression
+      run: .github/scripts/make-module.sh moments regression 8
+    - name: Test moments-check
+      run: .github/workflows/make-check.sh moments 8
+    
+    # PKPM module
+    - name: Build pkpm-unit
+      run: .github/scripts/make-module.sh pkpm unit 8
+    - name: Build pkpm-regression
+      run: .github/scripts/make-module.sh pkpm regression 8
+    - name: Test pkpm-check
+      run: .github/workflows/make-check.sh pkpm 8
