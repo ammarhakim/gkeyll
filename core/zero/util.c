@@ -230,7 +230,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
   for (int i=0; i<nvals; ++i) {
     // Copy key name.
     size_t key_len = strlen(elist_in[i].key) + 1;
-    elist_out[i].key = malloc(key_len * sizeof(char));
+    elist_out[i].key = malloc(key_len);
     strcpy(elist_out[i].key, elist_in[i].key);
 
     // Copy type.
@@ -260,7 +260,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
 
       case GKYL_MP_STRING:
         key_len = strlen(elist_in[i].cval) + 1;
-        elist_out[i].cval = malloc(key_len * sizeof(char));
+        elist_out[i].cval = malloc(key_len);
         strcpy(elist_out[i].cval, elist_in[i].cval);
         break;
     }
@@ -291,6 +291,32 @@ gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
       elist[i].uval = value;
     }
   }
+}
+
+double
+gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_DOUBLE);
+      return elist[i].dval;
+    }
+  }
+  return 0;
+}
+
+unsigned int
+gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_UNSIGNED_INT);
+      return elist[i].uval;
+    }
+  }
+  return 9999;
 }
 
 void
@@ -518,6 +544,49 @@ gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
   }
 
   return mdata_out;
+}
+
+void
+gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data* mpack_in, int nvals,
+  struct gkyl_msgpack_map_elem *elist)
+{
+  mpack_tree_t tree;
+  mpack_tree_init_data(&tree, mpack_in->meta, mpack_in->meta_sz);
+  mpack_tree_parse(&tree);
+  mpack_node_t root = mpack_tree_root(&tree);
+
+  for (int i=0; i<nvals; ++i) {
+    mpack_node_t node = mpack_node_map_cstr(root, elist[i].key);
+  
+    switch (elist[i].elem_type) {
+      case GKYL_MP_BOOL:
+        elist[i].bval = mpack_node_bool(node);
+        break;
+  
+      case GKYL_MP_UNSIGNED_INT:
+        elist[i].uval = mpack_node_uint(node);
+        break;
+  
+      case GKYL_MP_INT:
+        elist[i].ival = mpack_node_int(node);
+        break;
+  
+      case GKYL_MP_FLOAT:
+        elist[i].fval = mpack_node_float(node);
+        break;
+  
+      case GKYL_MP_DOUBLE:
+        elist[i].dval = mpack_node_double(node);
+        break;
+  
+      case GKYL_MP_STRING:
+        elist[i].cval = gkyl_malloc(mpack_node_strlen(node)+1);
+        strcpy(elist[i].cval, mpack_node_str(node));
+        break;
+    }
+  }
+
+  mpack_tree_destroy(&tree);
 }
 
 void

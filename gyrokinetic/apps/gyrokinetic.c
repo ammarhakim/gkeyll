@@ -82,10 +82,10 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type e
   mpack_write_cstr(&writer, "frame");
   mpack_write_i64(&writer, meta.frame);
 
-  mpack_write_cstr(&writer, "polyOrder");
+  mpack_write_cstr(&writer, "poly_order");
   mpack_write_i64(&writer, meta.poly_order);
 
-  mpack_write_cstr(&writer, "basisType");
+  mpack_write_cstr(&writer, "basis_type");
   mpack_write_cstr(&writer, meta.basis_type);
 
   mpack_write_cstr(&writer, "changeset");
@@ -143,10 +143,10 @@ gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_m
     mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
     meta.frame = mpack_node_i64(fr_node);
 
-    mpack_node_t po_node = mpack_node_map_cstr(root, "polyOrder");
+    mpack_node_t po_node = mpack_node_map_cstr(root, "poly_order");
     meta.poly_order = mpack_node_i64(po_node);
 
-    mpack_node_t bt_node = mpack_node_map_cstr(root, "basisType");
+    mpack_node_t bt_node = mpack_node_map_cstr(root, "basis_type");
     char *basis_type = mpack_node_cstr_alloc(bt_node, 64);
     strcpy(meta.basis_type_nm, basis_type);
     meta.basis_type = meta.basis_type_nm;
@@ -397,8 +397,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
       break;
   }
 
-  // Deflate geometry if necessary.
   if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
+    // Deflate geometry if necessary.
     if (app->cdim < 3)
       app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
     else
@@ -2638,15 +2638,18 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
         rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
 
-    struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
-          .meta = hdr.meta,
-          .meta_sz = hdr.meta_size
-        }, GKYL_GK_META_NONE, 0 
-      );
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
 
-    rstat.frame = meta.frame;
-    rstat.stime = meta.stime;
+    rstat.frame = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "frame");
+    rstat.stime = gkyl_msgpack_map_elem_get_double(elem_list_len, elem_list, "time");
 
     gkyl_grid_sub_array_header_release(&hdr);
   }
@@ -2718,15 +2721,35 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 
     int status = gkyl_grid_sub_array_header_read_fp(&app->grid, &hdr, fp);
 
-    struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
+    // Read geometry ID from header.
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
+    app->gk_geom->geometry_id = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "geometry_type");
+
+    if ((app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) || (app->gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR)) {
+      // Read other metadata for numerical equilibrium from header.
+      struct gkyl_msgpack_map_elem elem_list_numeq[] = {
+        { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      };
+      int elem_list_numeq_len = sizeof(elem_list)/sizeof(elem_list[0]);
+      gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }, GKYL_GK_META_GEO, &extra_meta
-      );
-    app->gk_geom->geqdsk_sign_convention = extra_meta.geqdsk_sign_convention;
+        }, elem_list_numeq_len, elem_list_numeq);
+      app->gk_geom->geqdsk_sign_convention = gkyl_msgpack_map_elem_get_uint(elem_list_numeq_len,
+        elem_list_numeq, "geqdsk_sign_convention");
+    }
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
+
+  gkyl_gk_geometry_reset_io_meta(app->gk_geom); // Update metadata inside geo object.
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos");
