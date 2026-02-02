@@ -1,4 +1,4 @@
-name: Self-Hosted CPU Build
+name: Self-Hosted GPU Build
 
 on:
   push:
@@ -18,44 +18,48 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Configure
+      - name: Configure for GPU
         run: |
-          ./machines/configure.linux.cpu.sh
+          ./machines/configure.linux.gpu.sh
           chmod +x .github/scripts/make-module.sh
           chmod +x .github/workflows/make-check.sh
 
       # Core module
-      - name: Build core-unit
+      - name: Build core-unit (GPU)
         run: .github/scripts/make-module.sh core unit 8
-      - name: Build core-regression
+      - name: Build core-regression (GPU)
         run: .github/scripts/make-module.sh core regression 8
-      - name: Test core-check
+      - name: Test core-check (GPU)
         run: .github/workflows/make-check.sh core 8
 
       # Moments module
-      - name: Build moments-unit
+      - name: Build moments-unit (GPU)
         run: .github/scripts/make-module.sh moments unit 8
-      - name: Build moments-regression
+      - name: Build moments-regression (GPU)
         run: .github/scripts/make-module.sh moments regression 8
-      - name: Test moments-check
+      - name: Test moments-check (GPU)
         run: .github/workflows/make-check.sh moments 8
 
       # Vlasov module
-      - name: Build vlasov-unit
+      - name: Build vlasov-unit (GPU)
         run: .github/scripts/make-module.sh vlasov unit 8
-      - name: Build vlasov-regression
+      - name: Build vlasov-regression (GPU)
         run: .github/scripts/make-module.sh vlasov regression 8
-      - name: Test vlasov-check
+      - name: Test vlasov-check (GPU)
         run: .github/workflows/make-check.sh vlasov 8
 
       # Gyrokinetic module
-      - name: Build gyrokinetic-unit
+      - name: Build gyrokinetic-unit (GPU)
         run: .github/scripts/make-module.sh gyrokinetic unit 8
-      - name: Build gyrokinetic-regression
+      - name: Build gyrokinetic-regression (GPU)
         run: .github/scripts/make-module.sh gyrokinetic regression 8
-      - name: Test gyrokinetic-check
+      - name: Test gyrokinetic-check (GPU)
         run: .github/workflows/make-check.sh gyrokinetic 8
 
       # PKPM module
-      - name: Build pkpm-regression
+      - name: Build pkpm-unit (GPU)
+        run: .github/scripts/make-module.sh pkpm unit 8
+      - name: Build pkpm-regression (GPU)
         run: .github/scripts/make-module.sh pkpm regression 8
+      - name: Test pkpm-check (GPU)
+        run: .github/workflows/make-check.sh pkpm 8
