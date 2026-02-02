@@ -109,6 +109,14 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gk_geometry_surf_calc_expansions(up, dir, up->nrange_surf[dir]);
 
+  // Store metadata for I/O.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+    { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+  };
+  up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
