@@ -63,108 +63,12 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
-// returned gkyl_array_meta must be freed using gk_array_meta_release
-struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta)
-{
-  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
-
-  mt->meta_sz = 0;
-  mpack_writer_t writer;
-  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
-
-  // add some data to mpack
-  mpack_build_map(&writer);
-  
-  mpack_write_cstr(&writer, "time");
-  mpack_write_double(&writer, meta.stime);
-
-  mpack_write_cstr(&writer, "frame");
-  mpack_write_i64(&writer, meta.frame);
-
-  mpack_write_cstr(&writer, "poly_order");
-  mpack_write_i64(&writer, meta.poly_order);
-
-  mpack_write_cstr(&writer, "basis_type");
-  mpack_write_cstr(&writer, meta.basis_type);
-
-  mpack_write_cstr(&writer, "changeset");
-  mpack_write_cstr(&writer, GIT_COMMIT_ID);
-
-  const char* build_date = GKYL_BUILD_DATE;
-  mpack_write_cstr(&writer, "builddate");
-  mpack_write_cstr(&writer, GKYL_BUILD_DATE);
-
-  if (extra_meta_type == GKYL_GK_META_GEO) {
-    struct gyrokinetic_output_meta_geo *extram = extra_meta;
-    mpack_write_cstr(&writer, "geometry_type");
-    mpack_write_i64(&writer, extram->geometry_id);
-    if (extram->geometry_id == GKYL_GEOMETRY_TOKAMAK || extram->geometry_id == GKYL_GEOMETRY_MIRROR) {
-      mpack_write_cstr(&writer, "geqdsk_sign_convention");
-      mpack_write_i64(&writer, extram->geqdsk_sign_convention);
-    }
-  }
-
-  mpack_complete_map(&writer);
-
-  int status = mpack_writer_destroy(&writer);
-
-  if (status != mpack_ok) {
-    free(mt->meta); // we need to use free here as mpack does its own malloc
-    gkyl_free(mt);
-    mt = 0;
-  }
-
-  return mt;
-}
-
 void
 gk_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
   gkyl_free(mt);
-}
-
-struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta)
-{
-  struct gyrokinetic_output_meta meta = { .frame = 0, .stime = 0.0 };
-
-  if (mt->meta_sz > 0) {
-    mpack_tree_t tree;
-    mpack_tree_init_data(&tree, mt->meta, mt->meta_sz);
-    mpack_tree_parse(&tree);
-    mpack_node_t root = mpack_tree_root(&tree);
-
-    mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
-    meta.stime = mpack_node_double(tm_node);
-
-    mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
-    meta.frame = mpack_node_i64(fr_node);
-
-    mpack_node_t po_node = mpack_node_map_cstr(root, "poly_order");
-    meta.poly_order = mpack_node_i64(po_node);
-
-    mpack_node_t bt_node = mpack_node_map_cstr(root, "basis_type");
-    char *basis_type = mpack_node_cstr_alloc(bt_node, 64);
-    strcpy(meta.basis_type_nm, basis_type);
-    meta.basis_type = meta.basis_type_nm;
-    MPACK_FREE(basis_type);
-
-    if (extra_meta_type == GKYL_GK_META_GEO) {
-      struct gyrokinetic_output_meta_geo *extram = extra_meta;
-      mpack_node_t geo_type = mpack_node_map_cstr(root, "geometry_type");
-      extram->geometry_id = mpack_node_i64(geo_type);
-      if (extram->geometry_id == GKYL_GEOMETRY_TOKAMAK || extram->geometry_id == GKYL_GEOMETRY_MIRROR) {
-        mpack_node_t geo_conv = mpack_node_map_cstr(root, "geqdsk_sign_convention");
-        extram->geqdsk_sign_convention = mpack_node_i64(geo_conv);
-      }
-    }
-
-    mpack_tree_destroy(&tree);
-  }
-  return meta;
 }
 
 gkyl_gyrokinetic_app*
@@ -2625,7 +2529,7 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app)
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = { .io_status = 0 };
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
   
   FILE *fp = 0;
   with_file(fp, fname, "r") {
@@ -2714,7 +2618,6 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 
   cstr fileNm = cstr_from_fmt("%s-%s.gkyl", app->name, "jacobgeo");
   struct gkyl_array_header_info hdr;
-  struct gyrokinetic_output_meta_geo extra_meta;
 
   FILE *fp;
   with_file(fp, fileNm.str, "r") {

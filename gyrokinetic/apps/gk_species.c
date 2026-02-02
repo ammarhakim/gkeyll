@@ -350,7 +350,7 @@ static void
 gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  // DG metadata for crlrate.
+  // DG metadata for cflrate.
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
@@ -1068,14 +1068,20 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       }
     }
 
-    struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
-          .meta = hdr.meta,
-          .meta_sz = hdr.meta_size
-        }, GKYL_GK_META_NONE, 0
-      );
-    assert(strcmp(gks->basis.id, meta.basis_type_nm) == 0);
-    assert(poly_order == meta.poly_order);
+    // Read basis info from header, check its consistency.
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
+    assert(strcmp(gks->basis.id, gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
+    assert(poly_order == gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "poly_order"));
+    gkyl_msgpack_map_elem_release_string(elem_list_len, elem_list, "basis_type");
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
 

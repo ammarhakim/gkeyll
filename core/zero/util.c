@@ -316,7 +316,32 @@ gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
       return elist[i].uval;
     }
   }
-  return 9999;
+  return 0;
+}
+
+char *
+gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_STRING);
+      return elist[i].cval;
+    }
+  }
+  return 0;
+}
+
+void
+gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key)
+{
+  for (int i=0; i<nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_STRING);
+      gkyl_free(elist[i].cval);
+    }
+  }
 }
 
 void

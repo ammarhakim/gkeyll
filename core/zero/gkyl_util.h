@@ -532,6 +532,27 @@ unsigned int gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_e
   const char *key);
 
 /**
+ * Fetch the pointer to the string value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @return Pointer to string value of the specified element.
+ */
+char* gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Free the memory allocated to store a string in an element of the given list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element whose string value to release.
+ */
+void gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
  * Release list of MessagePack map elements.
  *
  * @param nvals number of elements in elist_in.
@@ -570,7 +591,7 @@ struct gkyl_msgpack_data* gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
 /**
  * Read a MessagePack for the elements in an element list.
  * NOTE: if one of the elements read is a string, its memory must be
- * freed when done using it (e.g. with gkyl_free).
+ * freed when done using it (e.g. with gkyl_msgpack_map_elem_release_string);
  * 
  * @param mpack_in MessagePack to read.
  * @param nvals Number of values in element list elist.

@@ -101,27 +101,6 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in Gyrokinetic app.
 
-// Meta-data for IO
-struct gyrokinetic_output_meta {
-  int frame; // frame number
-  double stime; // output time
-  int poly_order; // polynomial order
-  const char *basis_type; // name of basis functions
-  char basis_type_nm[64]; // used during read
-};
-
-enum gk_extra_meta_type {
-  GKYL_GK_META_NONE = 0,
-  GKYL_GK_META_GEO,
-  GKYL_GK_META_SOURCE,
-  GKYL_GK_META_RECYCLING,
-};
-
-struct gyrokinetic_output_meta_geo {
-  enum gkyl_geometry_id geometry_id; // Geometry type.
-  int geqdsk_sign_convention; // Sign convention for geqdsk.
-};
-
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -274,6 +253,11 @@ struct gk_rad_drag {
   gkyl_dynvec integ_diag; // Integrated moments in time.
   bool is_first_integ_write_call; // Whether dynvec is being written for the 1st time.
   
+  struct gkyl_msgpack_map_elem* io_meta_surfmu; // Metadata for I/O of mu surf array.
+  int io_meta_surfmu_len; // Number of elements in io_meta_surfmu.
+  struct gkyl_msgpack_map_elem* io_meta_surfvpar; // Metadata for I/O of vpar surf array.
+  int io_meta_surfvpar_len; // Number of elements in io_meta_surfvpar.
+
   // Methods chosen at runtime:
   void (*moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
@@ -1423,18 +1407,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
   }
   return out;
 }
- 
-/**
- * Create a new array metadata object. It must be freed using
- * gk_array_meta_release.
- *
- * @param meta Gyrokinetic metadata object.
- * @param extra_meta_type Extra Gyrokinetic metadata type.
- * @param extra_meta Extra Gyrokinetic metadata.
- * @return Array metadata object.
- */
-struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Free memory for array metadata object.
@@ -1443,17 +1415,6 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type e
  */
 void
 gk_array_meta_release(struct gkyl_msgpack_data *mt);
-
-/**
- * Return the metadata for outputing gyrokinetic data.
- *
- * @param mt Array metadata object.
- * @param extra_meta_type Extra Gyrokinetic metadata type.
- * @param extra_meta Extra Gyrokinetic metadata.
- * @return A gyrokinetic metadata object.
- */
-struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
