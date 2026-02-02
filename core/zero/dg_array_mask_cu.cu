@@ -128,7 +128,7 @@ gkyl_dg_array_mask_find_local_max_kernel(struct gkyl_range conf_rng, struct gkyl
     if (gkyl_range_contains_idx(&conf_rng, conf_idx)) {
       double local_max = -DBL_MAX;
       
-      // Iterate over velocity space for this config cell
+      // Iterate over velocity space for this configuration cell
       for (unsigned long vel_tid = 0; vel_tid < vel_rng.volume; vel_tid++) {
         int vel_idx[GKYL_MAX_DIM];
         gkyl_sub_range_inv_idx(&vel_rng, vel_tid, vel_idx);
@@ -176,7 +176,7 @@ gkyl_dg_array_mask_spatial_frac_less_than_kernel(struct gkyl_range conf_rng,
       const double *local_max_c = (const double*) gkyl_array_cfetch(local_max_arr, conf_linidx);
       double local_threshold = frac_threshold * local_max_c[0];
       
-      // Apply mask to all velocity cells in this config cell
+      // Apply mask to all velocity cells in this configuration cell
       for (unsigned long vel_tid = 0; vel_tid < vel_rng.volume; vel_tid++) {
         int vel_idx[GKYL_MAX_DIM];
         gkyl_sub_range_inv_idx(&vel_rng, vel_tid, vel_idx);
@@ -218,7 +218,7 @@ gkyl_dg_array_mask_spatial_frac_greater_than_kernel(struct gkyl_range conf_rng,
       const double *local_max_c = (const double*) gkyl_array_cfetch(local_max_arr, conf_linidx);
       double local_threshold = frac_threshold * local_max_c[0];
       
-      // Apply mask to all velocity cells in this config cell
+      // Apply mask to all velocity cells in this configuration cell
       for (unsigned long vel_tid = 0; vel_tid < vel_rng.volume; vel_tid++) {
         int vel_idx[GKYL_MAX_DIM];
         gkyl_sub_range_inv_idx(&vel_rng, vel_tid, vel_idx);
