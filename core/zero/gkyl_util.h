@@ -477,15 +477,40 @@ struct gkyl_msgpack_map_elem {
 };
 
 /**
+ * Check if element list contains the element with name "key".
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to look for.
+ * @return True is list has this element key, false otherwise.
+ */
+bool
+gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
  * Allocate a new list of MessagePack map elements by cloning
  * another one.
  *
  * @param nvals number of elements in elist_in.
  * @param elist_in List of elements to put in MessagePack.
- * @return New msgpack_data object. Free with gkyl_msgpack_map_elem_release.
+ * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
  */
 struct gkyl_msgpack_map_elem* gkyl_msgpack_map_elem_clone(int nvals,
   const struct gkyl_msgpack_map_elem *elist_in);
+
+/**
+ * Allocate a new list of MessagePack map elements out of the union of one or
+ * more map elem lists.
+ *
+ * @param numlist_union Number of lists.
+ * @param nvals_union Number of values in the elist array, one for each list.
+ * @param elist_union List of elements to insert into map, for each list.
+ * @param elist_out_len Length of the map elem list produced.
+ * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
+ */
+struct gkyl_msgpack_map_elem* gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
+  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len);
 
 /**
  * Update the type double value of an element in an element list.
@@ -572,9 +597,9 @@ struct gkyl_msgpack_data* gkyl_msgpack_create(int nvals, const struct gkyl_msgpa
 /**
  * Create a new msgpack data from union of a numlist lists of map elements.
  *
- * @param numlist Number of lists.
- * @param nvals Number of values in the elist array, one for each list.
- * @param elist List of elements to insert into map, for each list.
+ * @param numlist_union Number of lists.
+ * @param nvals_union Number of values in the elist array, one for each list.
+ * @param elist_union List of elements to insert into map, for each list.
  * @return New msgpack_data object. Free using the release method
  */
 struct gkyl_msgpack_data* gkyl_msgpack_create_union(int numlist_union,
