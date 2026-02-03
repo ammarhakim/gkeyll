@@ -98,6 +98,7 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     eirene->bgk_src[i].coupling_time = eirene->info.coupling_time;
+    eirene->bgk_src[i].damping_factor = eirene->info.damping_factor;
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);

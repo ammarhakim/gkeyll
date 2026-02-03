@@ -853,11 +853,13 @@ struct gk_source_bgk {
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
   struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
+  struct gkyl_array *Jrate_cap; // Max value for Jrate_mom.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
   double *volint_local, *volint_global; // Local and global volume integrals.
   struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
   struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
   double coupling_time; // Coupling time for external heating model
+  double damping_factor; // Damping factor used to prevent negative densities
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.

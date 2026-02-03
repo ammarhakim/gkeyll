@@ -71,10 +71,14 @@ gk_species_source_bgk_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+  // Set a cap
+  gkyl_array_set_offset(src->Jrate_cap, src->damping_factor, species->lte.moms.marr, 0*app->basis.num_basis);
 
   // Divide M0dot by the rate and add M0
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M0dot, 0, src->rate, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 0*app->basis.num_basis);
+  // Apply a cap so we don't drive the density negative
+  gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 0*app->basis.num_basis);
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
@@ -154,6 +158,8 @@ gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *s
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+  // Set a cap
+  gkyl_array_set_offset(src->Jrate_cap, src->damping_factor*species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
 
   // Translate M2dot into a temperature, add on T, then divide by mass to get vtsq
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
@@ -161,6 +167,9 @@ gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *s
   gkyl_array_scale(src->Jrate_mom, species->info.mass/2.0);
   gkyl_array_scale(src->Jrate_mom, 2.0/3.0);
   gkyl_array_accumulate_offset(src->Jrate_mom, species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
+  // Apply the cap so we don't drive the density negative
+  gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
+  // Translate T to vtsq
   gkyl_array_scale(src->Jrate_mom, 1/species->info.mass);
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 2*app->basis.num_basis);
@@ -402,6 +411,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     src->Jrate_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
     // Rate times a velocity moment.
     src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    src->Jrate_cap = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // BGK operator.
     src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
@@ -462,6 +472,7 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(src->Jrate);
     gkyl_array_release(src->Jrate_fmax);
     gkyl_array_release(src->Jrate_mom);
+    gkyl_array_release(src->Jrate_cap);
 
     gkyl_array_release(src->M0dot);
     gkyl_array_release(src->M1dot);

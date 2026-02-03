@@ -163,6 +163,9 @@ struct gkyl_gyrokinetic_source_bgk {
   double power; // Desired heating power (sets T_Q(t)).
   double coupling_time; // Coupling time for external source model
                         // nu(x) = 1/coupling time
+  double damping_factor; // For external source model
+                         // n_s = max(n_s, damping factor*n)
+                         // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -525,6 +528,7 @@ struct gkyl_gyrokinetic_eirene {
   char input_data_path[128]; // Path to EIRENE data
   char output_data_path[128]; // Path to EIRENE data
   double coupling_time; // Coupling time
+  double damping_factor; // Damping Factor
   int num_coupling_species; // number of species to couple
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
