@@ -13,15 +13,15 @@ enum gkyl_gyrokinetic_skip_cell_type {
 };
 
 /**
- * Translate gyrokinetic skip cell type to DG array mask type.
- *
- * This function centralizes the translation from the gyrokinetic-specific
- * enum (used in simulation input) to the generic DG array mask type
- * (used internally by the mask updater).
- *
- * @param gk_type Gyrokinetic skip cell type from simulation input.
- * @return Corresponding DG array mask type.
- */
+  * Translate gyrokinetic skip cell type to DG array mask type.
+  *
+  * This function centralizes the translation from the gyrokinetic-specific
+  * enum (used in simulation input) to the generic DG array mask type
+  * (used internally by the mask updater).
+  *
+  * @param gk_type Gyrokinetic skip cell type from simulation input.
+  * @return Corresponding DG array mask type.
+  */
 static inline enum gkyl_dg_array_mask_types
 gkyl_gk_skip_cell_to_mask_type(enum gkyl_gyrokinetic_skip_cell_type gk_type)
 {
