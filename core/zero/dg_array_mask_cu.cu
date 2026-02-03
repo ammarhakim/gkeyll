@@ -315,6 +315,11 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       break;
   }
 
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
+    mask->eval_idx_func = eval_idx_ker_disabled;
+  else
+    mask->eval_idx_func = eval_idx_ker_enabled;
+
   // For NONE type, don't allocate mask array
   if (mask->type==GKYL_DG_ARRAY_MASK_NONE) {
     // Initialize the device object.

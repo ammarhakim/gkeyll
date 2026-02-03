@@ -63,16 +63,6 @@ gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
 void
 gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
-/**
- * Evaluate if the conditional mask is true at a given cell.
- *
- * @param mask Mask object.
- * @param idx Linear index of the cell to evaluate.
- * @return True if the mask is true at the cell, false otherwise.
- */
-bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
-
-
 /** 
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
  *

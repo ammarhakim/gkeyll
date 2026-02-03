@@ -30,6 +30,9 @@ struct gkyl_dg_array_mask {
 
   // Function pointer for advance method (GPU), set at init time based on mask type.
   void (*advance_func_cu)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
+  
+  // Function that evaluates the mask.
+  bool (*eval_idx_func)(struct gkyl_dg_array_mask *mask, const int *idx);
 
   // Function pointer for scale_by_cell method, set at init time based on mask type.
   void (*scale_by_cell_func)(struct gkyl_dg_array_mask *mask,
@@ -50,23 +53,16 @@ struct gkyl_dg_array_mask {
 void gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_DH
-static inline bool
-gkyl_dg_array_mask_eval_ker(struct gkyl_dg_array_mask *mask, long lidx)
+static bool
+eval_idx_ker_disabled(struct gkyl_dg_array_mask *mask, const int *idx)
 {
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return mask->default_value;
-  }
-  const double *mask_c = (const double *)gkyl_array_cfetch(mask->mask_arr, lidx);
-  return *mask_c > 0; // Returns true if the mask is true.
+  return mask->default_value;
 }
 
 GKYL_CU_DH
-static inline bool
-gkyl_dg_array_mask_eval_idx_ker(struct gkyl_dg_array_mask *mask, const int *idx)
+static bool
+eval_idx_ker_enabled(struct gkyl_dg_array_mask *mask, const int *idx)
 {
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return mask->default_value;
-  }
   long linidx = gkyl_range_idx(mask->mask_rng, idx);
   const double *mask_c = (const double *)gkyl_array_cfetch(mask->mask_arr, linidx);
   return *mask_c > 0; // Returns true if the mask is true.

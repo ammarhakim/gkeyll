@@ -64,7 +64,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
     int vel_idx[2];
     for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -96,7 +96,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
     int vel_idx[2];
     for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -128,7 +128,7 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
     int vel_idx[2];
     for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -160,7 +160,7 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idx)) {
     int vel_idx[2];
     for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -258,9 +258,9 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxL) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxC) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxR)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxL) ||
+      gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxC) ||
+      gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxR)) {
     long cidx = gkyl_range_idx(&lbo->conf_range, idxC);
     const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
     const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -305,8 +305,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxEdge) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxSkin)) {
+  if (gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxEdge) ||
+      gkyl_dg_array_mask_eval_idx(lbo->update_cell, idxSkin)) {
     long cidx = gkyl_range_idx(&lbo->conf_range, idxSkin);
     const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
     const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx); 

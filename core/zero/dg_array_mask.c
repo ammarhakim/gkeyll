@@ -291,6 +291,11 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     default:
       break;
   }
+
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
+    mask->eval_idx_func = eval_idx_ker_disabled;
+  else
+    mask->eval_idx_func = eval_idx_ker_enabled;
     
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
     // Store all ranges from input as pointers.
@@ -366,15 +371,9 @@ gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
 }
 
 bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx)
-{
-  return gkyl_dg_array_mask_eval_ker(mask, lidx);
-}
-
-bool
 gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx)
 {
-  return gkyl_dg_array_mask_eval_idx_ker(mask, idx);
+  return mask->eval_idx_func(mask, idx);
 }
 
 struct gkyl_dg_array_mask *

@@ -135,9 +135,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxL) ||
-      gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxC) ||
-      gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxR)) {
+  if (gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxL) ||
+      gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxC) ||
+      gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxR)) {
     if (dir == 0) {
       gkad->surf(xcC, dxC, _cfnu(idxL), _cfnu(idxC), _cfnu(idxR), _cfJacInv(idxL), _cfJacInv(idxC), _cfJacInv(idxR), qInL, qInC, qInR, qRhsOut);
     }
@@ -152,8 +152,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
   
-  if (gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxEdge) ||
-      gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin)) {
+  if (gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxEdge) ||
+      gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin)) {
     if (dir == 0) {
       if (edge == -1) {
         gkad->boundary_surf[0](xcSkin, dxSkin, _cfnu(idxEdge), _cfnu(idxSkin), _cfJacInv(idxEdge), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
@@ -176,8 +176,8 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct gk_anomalous_diffusion* gkad = container_of(eqn, struct gk_anomalous_diffusion, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxSkin) ||
-      gkyl_dg_array_mask_eval_idx_ker(gkad->update_cell, idxGhost)) {
+  if (gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxSkin) ||
+      gkyl_dg_array_mask_eval_idx(gkad->update_cell, idxGhost)) {
     if (dir == 0) {
       if (edge == -1) {
         gkad->boundary_diag[0](xcSkin, dxSkin, _cfnu(idxSkin), _cfnu(idxGhost), _cfJacInv(idxSkin), _cfJacInv(idxGhost), edge, qInSkin, qInGhost, qRhsGhost);
