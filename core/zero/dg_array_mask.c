@@ -11,13 +11,13 @@
 // Apply less-than threshold mask over phase range
 static void
 apply_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
-  const struct gkyl_range *phase_rng, double threshold)
+  const struct gkyl_range *mask_rng, double threshold)
 {
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, phase_rng);
+  gkyl_range_iter_init(&iter, mask_rng);
 
   while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(phase_rng, iter.idx);
+    long linidx = gkyl_range_idx(mask_rng, iter.idx);
     const double *arr_c = gkyl_array_cfetch(arr_in, linidx);
     double *mask_c = gkyl_array_fetch(mask_arr, linidx);
 
@@ -29,13 +29,13 @@ apply_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_i
 // Apply greater-than threshold mask over phase range
 static void
 apply_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
-  const struct gkyl_range *phase_rng, double threshold)
+  const struct gkyl_range *mask_rng, double threshold)
 {
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, phase_rng);
+  gkyl_range_iter_init(&iter, mask_rng);
 
   while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(phase_rng, iter.idx);
+    long linidx = gkyl_range_idx(mask_rng, iter.idx);
     const double *arr_c = gkyl_array_cfetch(arr_in, linidx);
     double *mask_c = gkyl_array_fetch(mask_arr, linidx);
 
@@ -48,7 +48,7 @@ apply_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *ar
 static double
 find_local_max_in_vel_space(const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
-  const struct gkyl_range *phase_rng, const int *conf_idx)
+  const struct gkyl_range *mask_rng, const int *conf_idx)
 {
   double local_max = -DBL_MAX;
 
@@ -64,7 +64,7 @@ find_local_max_in_vel_space(const struct gkyl_array *arr_in,
       pidx[conf_rng->ndim + d] = iter_vel.idx[d];
     }
 
-    long linidx_phase = gkyl_range_idx(phase_rng, pidx);
+    long linidx_phase = gkyl_range_idx(mask_rng, pidx);
     const double *arr_c = gkyl_array_cfetch(arr_in, linidx_phase);
     double abs_val = fabs(arr_c[0]);
 
@@ -80,7 +80,7 @@ find_local_max_in_vel_space(const struct gkyl_array *arr_in,
 static void
 apply_conf_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
-  const struct gkyl_range *phase_rng, const int *conf_idx, double threshold)
+  const struct gkyl_range *mask_rng, const int *conf_idx, double threshold)
 {
   struct gkyl_range_iter iter_vel;
   gkyl_range_iter_init(&iter_vel, vel_rng);
@@ -94,7 +94,7 @@ apply_conf_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *
       pidx[conf_rng->ndim + d] = iter_vel.idx[d];
     }
 
-    long linidx_phase = gkyl_range_idx(phase_rng, pidx);
+    long linidx_phase = gkyl_range_idx(mask_rng, pidx);
     const double *arr_c = gkyl_array_cfetch(arr_in, linidx_phase);
     double *mask_c = gkyl_array_fetch(mask_arr, linidx_phase);
 
@@ -107,7 +107,7 @@ apply_conf_mask_less_than(struct gkyl_array *mask_arr, const struct gkyl_array *
 static void
 apply_conf_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_array *arr_in,
   const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng,
-  const struct gkyl_range *phase_rng, const int *conf_idx, double threshold)
+  const struct gkyl_range *mask_rng, const int *conf_idx, double threshold)
 {
   struct gkyl_range_iter iter_vel;
   gkyl_range_iter_init(&iter_vel, vel_rng);
@@ -121,7 +121,7 @@ apply_conf_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_arra
       pidx[conf_rng->ndim + d] = iter_vel.idx[d];
     }
 
-    long linidx_phase = gkyl_range_idx(phase_rng, pidx);
+    long linidx_phase = gkyl_range_idx(mask_rng, pidx);
     const double *arr_c = gkyl_array_cfetch(arr_in, linidx_phase);
     double *mask_c = gkyl_array_fetch(mask_arr, linidx_phase);
 
@@ -283,8 +283,6 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
     // Store all ranges from input as pointers.
-    mask->phase_rng = mask_inp.phase_rng;
-    mask->phase_rng_ext = mask_inp.phase_rng_ext;
     mask->vel_rng = mask_inp.vel_rng;
     mask->conf_rng = mask_inp.conf_rng;
     mask->conf_rng_ext = mask_inp.conf_rng_ext;

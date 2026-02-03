@@ -15,8 +15,6 @@ struct gkyl_dg_array_mask {
   double threshold;                       // Threshold for marking cells as masked. Scaled absolute value for *_THRESHOLD types, fraction for *_FRAC_THRESHOLD types.
   const struct gkyl_range *mask_rng;      // Pointer to range over which mask is applied (phase_rng for kinetic, conf_rng for fluid).
   const struct gkyl_range *mask_rng_ext;  // Pointer to extended range for mask allocation.
-  const struct gkyl_range *phase_rng;     // Phase-space range.
-  const struct gkyl_range *phase_rng_ext; // Extended phase-space range.
   const struct gkyl_range *conf_rng;      // Configuration-space range.
   const struct gkyl_range *conf_rng_ext;  // Extended configuration-space range.
   const struct gkyl_range *vel_rng;       // Velocity-space range.
