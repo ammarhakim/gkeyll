@@ -25,8 +25,11 @@ struct gkyl_dg_array_mask {
   struct gkyl_array *local_max_arr; // Pre-allocated config-space array for spatial fractional masks.
   double *global_max;               // Pre-allocated array for global reduction results (fractional threshold masks).
 
-  // Function pointer for advance method, set at init time based on mask type.
+  // Function pointer for advance method (CPU), set at init time based on mask type.
   void (*advance_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
+
+  // Function pointer for advance method (GPU), set at init time based on mask type.
+  void (*advance_func_cu)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
 
   // Function pointer for scale_by_cell method, set at init time based on mask type.
   void (*scale_by_cell_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply);

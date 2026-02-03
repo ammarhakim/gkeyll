@@ -241,15 +241,18 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->local_max_arr = 0;
   mask->global_max = 0;
   mask->flags = 0;
+  mask->advance_func_cu = 0; // GPU function pointer, set in cu_dev_new
   GKYL_CLEAR_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
   mask->on_dev = mask; // CPU mask points to itself
 
+  // Initialize function pointers to defaults
+  mask->advance_func = advance_none;
+  mask->scale_by_cell_func = scale_by_cell_none;
+
   // Set function pointers based on mask type (evaluated once here, not in advance)
   switch (mask->type) {
     case GKYL_DG_ARRAY_MASK_NONE:
-      mask->advance_func = advance_none;
-      mask->scale_by_cell_func = scale_by_cell_none;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS:
       mask->advance_func = advance_less_than;
@@ -269,9 +272,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
       mask->advance_func = advance_greater_than_frac_conf;
       break;
-      default:
-      mask->advance_func = advance_none;
-      mask->scale_by_cell_func = scale_by_cell_none;
+    default:
       break;
   }
 
@@ -279,16 +280,10 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     // Store all ranges from input as pointers.
     mask->phase_rng = mask_inp.phase_rng;
     mask->phase_rng_ext = mask_inp.phase_rng_ext;
-    mask->conf_rng = mask_inp.conf_rng;
-    mask->conf_rng_ext = mask_inp.conf_rng_ext;
     mask->vel_rng = mask_inp.vel_rng;
     
     // Determine mask range: use phase_rng for kinetic species, conf_rng for fluid species.
-    // A NULL or zero-volume phase_rng indicates a fluid species.
-    int vdim = mask_inp.phase_rng->ndim - mask_inp.conf_rng->ndim;
-    bool is_kinetic = (vdim > 0);
-
-    if (is_kinetic) {
+    if (mask_inp.phase_rng != 0) {
       mask->mask_rng = mask_inp.phase_rng;
       mask->mask_rng_ext = mask_inp.phase_rng_ext;
     } else {

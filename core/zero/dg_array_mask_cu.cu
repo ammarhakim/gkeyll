@@ -35,6 +35,34 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   GKYL_SET_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
 
+  // Set GPU advance function pointer based on mask type
+  switch (mask->type) {
+    case GKYL_DG_ARRAY_MASK_NONE:
+      mask->advance_func_cu = advance_cu_none;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS:
+      mask->advance_func_cu = advance_cu_less_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER:
+      mask->advance_func_cu = advance_cu_greater_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
+      mask->advance_func_cu = advance_cu_less_than_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
+      mask->advance_func_cu = advance_cu_greater_than_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
+      mask->advance_func_cu = advance_cu_less_than_frac_conf;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
+      mask->advance_func_cu = advance_cu_greater_than_frac_conf;
+      break;
+    default:
+      mask->advance_func_cu = advance_cu_none;
+      break;
+  }
+
   // For NONE type, don't allocate mask array
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
     // Initialize the device object.
@@ -242,73 +270,102 @@ gkyl_dg_array_mask_spatial_frac_greater_than_kernel(struct gkyl_range conf_rng,
   }
 }
 
+// Static host functions that launch the appropriate CUDA kernels.
+// These are assigned to the advance_func_cu function pointer at init time.
+
+static void
+advance_cu_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  // Do nothing for NONE type
+}
+
+static void
+advance_cu_less_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nblocks = mask->mask_arr->nblocks;
+  int nthreads = mask->mask_arr->nthreads;
+  gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
+    *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
+}
+
+static void
+advance_cu_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nblocks = mask->mask_arr->nblocks;
+  int nthreads = mask->mask_arr->nthreads;
+  gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
+    *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
+}
+
+static void
+advance_cu_less_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nblocks = mask->mask_arr->nblocks;
+  int nthreads = mask->mask_arr->nthreads;
+  
+  gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
+  // Copy result from device to host
+  double global_max_c0;
+  gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  double frac_threshold = mask->threshold * global_max_c0;
+  
+  gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
+    *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
+}
+
+static void
+advance_cu_greater_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nblocks = mask->mask_arr->nblocks;
+  int nthreads = mask->mask_arr->nthreads;
+  
+  gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
+  // Copy result from device to host
+  double global_max_c0;
+  gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  double frac_threshold = mask->threshold * global_max_c0;
+  
+  gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
+    *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
+}
+
+static void
+advance_cu_less_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nthreads = mask->mask_arr->nthreads;
+  int conf_nblocks = mask->conf_rng->nblocks;
+  
+  // Phase 1: Find max in velocity space for each configuration cell
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
+    *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
+  
+  // Phase 2: Apply mask based on local thresholds
+  gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(
+    *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
+    mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
+}
+
+static void
+advance_cu_greater_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
+{
+  int nthreads = mask->mask_arr->nthreads;
+  int conf_nblocks = mask->conf_rng->nblocks;
+  
+  // Phase 1: Find max in velocity space for each configuration cell
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
+    *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
+  
+  // Phase 2: Apply mask based on local thresholds
+  gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(
+    *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
+    mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
+}
+
 // Host function to launch CUDA kernel.
 void
 gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
 {
-  // Do nothing for NONE type
-  if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
-    return;
-  }
-  
-  int nblocks = mask->mask_arr->nblocks;
-  int nthreads = mask->mask_arr->nthreads;
-  
-  // Simple threshold masks - launch specialized kernel directly
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS) {
-    gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
-      *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
-    return;
-  }
-  
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER) {
-    gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
-      *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold);
-    return;
-  }
-  
-  // Global fractional threshold masks - compute max, then launch kernel
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
-    gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
-    // Copy result from device to host
-    double global_max_c0;
-    gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    double frac_threshold = mask->threshold * global_max_c0;
-
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC) {
-      gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
-        *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
-    } else {
-      gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
-        *mask->phase_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
-    }
-    return;
-  }
-  
-  // Spatial fractional threshold masks - two-phase GPU approach
-  if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {
-
-    // Phase 1: Find max in velocity space for each configuration cell
-    int conf_nblocks = mask->conf_rng->nblocks;
-    gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
-      *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
-    
-    // Phase 2: Apply mask based on local thresholds
-    if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF) {
-      gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(
-        *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
-        mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
-    }
-    else {
-      gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(
-        *mask->conf_rng, *mask->vel_rng, *mask->phase_rng, arr_to_mask->on_dev,
-        mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
-    }
-    
-    return;
-  }
+  mask->advance_func_cu(mask, arr_to_mask);
 }
 
 #endif
