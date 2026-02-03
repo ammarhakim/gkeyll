@@ -257,28 +257,28 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
 
   // Set function pointers based on mask type (evaluated once here, not in advance)
   switch (mask->type) {
-  case GKYL_DG_ARRAY_MASK_NONE:
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS:
-    mask->advance_func = advance_less_than;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER:
-    mask->advance_func = advance_greater_than;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
-    mask->advance_func = advance_less_than_frac;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
-    mask->advance_func = advance_greater_than_frac;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
-    mask->advance_func = advance_less_than_frac_conf;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
-    mask->advance_func = advance_greater_than_frac_conf;
-    break;
-  default:
-    break;
+    case GKYL_DG_ARRAY_MASK_NONE:
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS:
+      mask->advance_func = advance_less_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER:
+      mask->advance_func = advance_greater_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
+      mask->advance_func = advance_less_than_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
+      mask->advance_func = advance_greater_than_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
+      mask->advance_func = advance_less_than_frac_conf;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
+      mask->advance_func = advance_greater_than_frac_conf;
+      break;
+    default:
+      break;
   }
     
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
