@@ -115,14 +115,15 @@ void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
 
       struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
-      gkyl_msgpack_map_elem_release(up->io_meta_len, up->io_meta); 
+      int io_meta_buffer_len = up->io_meta_len;
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
 
-      int io_meta_list_len[] = {io_meta_new_len, up->io_meta_len};
+      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
       const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
       up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
         io_meta_list_len, io_meta_list, &up->io_meta_len);
 
-      gkyl_msgpack_map_elem_release(up->io_meta_len, io_meta_buffer); 
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
     }
   }
 }

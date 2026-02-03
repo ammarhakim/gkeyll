@@ -277,6 +277,10 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
         elist_out[i].cval = gkyl_malloc(key_len);
         strcpy(elist_out[i].cval, elist_in[i].cval);
         break;
+
+      default:
+        assert(false); // NYI.
+        break;
     }
   }
 
@@ -304,8 +308,8 @@ gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
 
     for (int i=0; i<nvals_curr; ++i) {
       // Copy key name.
-      size_t key_len = strlen(elist_curr[i].key) + 1;
-      elist_out[eidx].key = gkyl_malloc(key_len);
+      size_t slen = strlen(elist_curr[i].key) + 1;
+      elist_out[eidx].key = gkyl_malloc(slen);
       strcpy(elist_out[eidx].key, elist_curr[i].key);
 
       // Copy type.
@@ -334,13 +338,18 @@ gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
           break;
 
         case GKYL_MP_STRING:
-          key_len = strlen(elist_curr[i].cval) + 1;
-          elist_out[eidx].cval = gkyl_malloc(key_len);
+          slen = strlen(elist_curr[i].cval) + 1;
+          elist_out[eidx].cval = gkyl_malloc(slen);
           strcpy(elist_out[eidx].cval, elist_curr[i].cval);
           break;
+
+	default:
+	  assert(false); // NYI.
+          break;
       }
+
+      eidx++;
     }
-    eidx += 1;
   }
 
   return elist_out;
@@ -475,6 +484,10 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
       case GKYL_MP_STRING:
         mpack_write_cstr(&writer, elist[i].cval);
         break;
+
+      default:
+        assert(false); // NYI.
+        break;
     }
   }
 
@@ -534,6 +547,10 @@ gkyl_msgpack_create_union(int numlist_union, int *nvals_union, const struct gkyl
   
         case GKYL_MP_STRING:
           mpack_write_cstr(&writer, elist[i].cval);
+          break;
+
+        default:
+          assert(false); // NYI.
           break;
       }
     }
@@ -687,6 +704,10 @@ gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data* mpack_in, int nvals,
       case GKYL_MP_STRING:
         elist[i].cval = gkyl_malloc(mpack_node_strlen(node)+1);
         strcpy(elist[i].cval, mpack_node_str(node));
+        break;
+
+      default:
+        assert(false); // NYI.
         break;
     }
   }
