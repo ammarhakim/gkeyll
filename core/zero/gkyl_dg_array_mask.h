@@ -43,6 +43,17 @@ struct gkyl_dg_array_mask_inp {
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp);
 
+
+/**
+ * Compute the appropriate threshold for fractional threshold masks.
+ *
+ * @param mask Mask updater.
+ * @param global_max Global maximum value from input array.
+ */
+void
+gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
+  const double global_max);
+
 /**
  * Compute the appropriate mask given the input array.
  *

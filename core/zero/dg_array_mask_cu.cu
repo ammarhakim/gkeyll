@@ -216,38 +216,6 @@ advance_cu_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array
 }
 
 static void
-advance_cu_less_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
-{
-  int nblocks = mask->mask_arr->nblocks;
-  int nthreads = mask->mask_arr->nthreads;
-
-  gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
-  // Copy result from device to host
-  double global_max_c0;
-  gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  double frac_threshold = mask->threshold * global_max_c0;
-
-  gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
-  *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
-}
-
-static void
-advance_cu_greater_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
-{
-  int nblocks = mask->mask_arr->nblocks;
-  int nthreads = mask->mask_arr->nthreads;
-
-  gkyl_array_reduce(mask->global_max, arr_to_mask, GKYL_MAX);
-  // Copy result from device to host
-  double global_max_c0;
-  gkyl_cu_memcpy(&global_max_c0, mask->global_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  double frac_threshold = mask->threshold * global_max_c0;
-
-  gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
-  *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, frac_threshold);
-}
-
-static void
 advance_cu_less_than_frac_conf(struct gkyl_dg_array_mask *mask,
   const struct gkyl_array *arr_to_mask)
 {
@@ -299,6 +267,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
 
   mask->type = mask_ho->type;
   mask->threshold = mask_ho->threshold;
+  mask->frac_threshold = mask_ho->frac_threshold;
   mask->use_gpu = mask_ho->use_gpu;
   mask->conf_rng = mask_ho->conf_rng;
   mask->conf_rng_ext = mask_ho->conf_rng_ext;
@@ -311,6 +280,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   
   // Copy host function pointers (used for CPU-side dispatch)
   mask->advance_func = mask_ho->advance_func;
+  mask->advance_threshold_func = mask_ho->advance_threshold_func;
   mask->scale_by_cell_func = mask_ho->scale_by_cell_func;
 
   mask->flags = 0;
@@ -329,10 +299,10 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       mask->advance_func_cu = advance_cu_greater_than;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
-      mask->advance_func_cu = advance_cu_less_than_frac;
+      mask->advance_func_cu = advance_cu_less_than;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
-      mask->advance_func_cu = advance_cu_greater_than_frac;
+      mask->advance_func_cu = advance_cu_greater_than;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func_cu = advance_cu_less_than_frac_conf;

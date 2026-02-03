@@ -13,6 +13,7 @@ struct gkyl_dg_array_mask {
   bool default_value;                     // Default value for mask (true/false) if no masking is applied. Defaults to false (-1.0).
   struct gkyl_array *mask_arr;            // Mask array (1.0 is true, -1.0 is false).
   double threshold;                       // Threshold for marking cells as masked. Scaled absolute value for *_THRESHOLD types, fraction for *_FRAC_THRESHOLD types.
+  double frac_threshold;                  // Fractional threshold, which is 0-1 for global fraction mask.
   const struct gkyl_range *mask_rng;      // Pointer to range over which mask is applied (phase_rng for kinetic, conf_rng for fluid).
   const struct gkyl_range *mask_rng_ext;  // Pointer to extended range for mask allocation.
   const struct gkyl_range *conf_rng;      // Configuration-space range.
@@ -25,6 +26,7 @@ struct gkyl_dg_array_mask {
 
   // Function pointer for advance method (CPU), set at init time based on mask type.
   void (*advance_func)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
+  void (*advance_threshold_func)(struct gkyl_dg_array_mask *mask, const double global_max);
 
   // Function pointer for advance method (GPU), set at init time based on mask type.
   void (*advance_func_cu)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);

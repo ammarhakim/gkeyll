@@ -131,6 +131,24 @@ apply_conf_mask_greater_than(struct gkyl_array *mask_arr, const struct gkyl_arra
 }
 
 static void
+advance_threshold_none(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+}
+
+static void
+advance_threshold_frac(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+  mask->threshold = mask->frac_threshold * global_max;
+}
+
+void
+gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
+  const double global_max)
+{
+  mask->advance_threshold_func(mask, global_max);
+}
+
+static void
 advance_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
 }
@@ -145,22 +163,6 @@ static void
 advance_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
   apply_mask_greater_than(mask->mask_arr, arr_in, mask->mask_rng, mask->threshold);
-}
-
-static void
-advance_less_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
-{
-  gkyl_array_reduce(mask->global_max, arr_in, GKYL_MAX);
-  double frac_threshold = mask->threshold * mask->global_max[0];
-  apply_mask_less_than(mask->mask_arr, arr_in, mask->mask_rng, frac_threshold);
-}
-
-static void
-advance_greater_than_frac(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
-{
-  gkyl_array_reduce(mask->global_max, arr_in, GKYL_MAX);
-  double frac_threshold = mask->threshold * mask->global_max[0];
-  apply_mask_greater_than(mask->mask_arr, arr_in, mask->mask_rng, frac_threshold);
 }
 
 static void
@@ -242,9 +244,15 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->default_value = mask_inp.default_value;
   mask->use_gpu = mask_inp.use_gpu;
   mask->threshold = 0.0;
+  mask->frac_threshold = 0.0;
   mask->mask_arr = 0;
   mask->local_max_arr = 0;
   mask->global_max = 0;
+  mask->mask_rng = 0;
+  mask->mask_rng_ext = 0;
+  mask->conf_rng = 0;
+  mask->conf_rng_ext = 0;
+  mask->vel_rng = 0;
   mask->flags = 0;
   mask->advance_func_cu = 0; // GPU function pointer, set in cu_dev_new
   GKYL_CLEAR_CU_ALLOC(mask->flags);
@@ -253,6 +261,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
 
   // Initialize function pointers to defaults
   mask->advance_func = advance_none;
+  mask->advance_threshold_func = advance_threshold_none;
   mask->scale_by_cell_func = scale_by_cell_none;
 
   // Set function pointers based on mask type (evaluated once here, not in advance)
@@ -266,10 +275,12 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
       mask->advance_func = advance_greater_than;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
-      mask->advance_func = advance_less_than_frac;
+      mask->advance_func = advance_less_than;
+      mask->advance_threshold_func = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
-      mask->advance_func = advance_greater_than_frac;
+      mask->advance_func = advance_greater_than;
+      mask->advance_threshold_func = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func = advance_less_than_frac_conf;
@@ -304,7 +315,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     }
     else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
-      mask->threshold = mask_inp.threshold;
+      mask->frac_threshold = mask_inp.threshold;
       mask->global_max = (double *)gkyl_malloc(sizeof(double)); // Pre-allocate array for global reduction
     }
     else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||

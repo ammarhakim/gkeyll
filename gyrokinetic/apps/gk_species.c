@@ -1817,7 +1817,18 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 void
 gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin)
 {
+  if ()
+  // Find the global maximum of fin
+  double *global_max = gkyl_malloc(sizeof(double) * fin->ncomp);
+  double *local_max = gkyl_malloc(sizeof(double) * fin->ncomp);
+  gkyl_array_reduce(local_max, fin, GKYL_MAX);
+  gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, local_max, global_max);
+  gkyl_dg_array_mask_advance_threshold(species->update_cell, global_max[0]);
+
   gkyl_dg_array_mask_advance(species->update_cell, fin);
+
+  gkyl_free(local_max);
+  gkyl_free(global_max);
 }
 
 void

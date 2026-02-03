@@ -74,6 +74,12 @@ gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *o
 void
 gk_neut_species_update_cell_mask(struct gk_neut_species *species, const struct gkyl_array *fin)
 {
+  // Find the global maximum of fin
+  double global_max, local_max;
+  gkyl_array_reduce(&local_max, fin, GKYL_MAX);
+  gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, &local_max, &global_max);
+  gkyl_dg_array_mask_advance_threshold(species->update_cell, global_max);
+
   gkyl_dg_array_mask_advance(species->update_cell, fin);
 }
 
