@@ -85,71 +85,71 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   }
 
   switch (pmap_info.id) {
-  case GKYL_PMAP_USER_INPUT:
-    for (int i = 0; i < 3; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->maps[i] = pmap_info.maps[i];
-        gpm->ctxs[i] = pmap_info.ctxs[i];
+    case GKYL_PMAP_USER_INPUT:
+      for (int i = 0; i < 3; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->maps[i] = pmap_info.maps[i];
+          gpm->ctxs[i] = pmap_info.ctxs[i];
+        }
       }
-    }
 
-  case GKYL_PMAP_USER_INPUT_W_DERIVATIVE:
-    for (int i = 0; i < 3; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->maps[i] = pmap_info.maps[i];
-        gpm->map_derivs[i] = pmap_info.map_derivs[i];
-        gpm->ctxs[i] = pmap_info.ctxs[i];
+    case GKYL_PMAP_USER_INPUT_W_DERIVATIVE:
+      for (int i = 0; i < 3; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->maps[i] = pmap_info.maps[i];
+          gpm->map_derivs[i] = pmap_info.map_derivs[i];
+          gpm->ctxs[i] = pmap_info.ctxs[i];
+        }
       }
-    }
 
-  case GKYL_PMAP_CONSTANT_DB_POLYNOMIAL:
+    case GKYL_PMAP_CONSTANT_DB_POLYNOMIAL:
 
-    for (int i = 0; i < 2; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
-        gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+      for (int i = 0; i < 2; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
       }
-    }
-    gpm->constB_ctx->map_strength = pmap_info.map_strength;
+      gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
-  case GKYL_PMAP_CONSTANT_DB_NUMERIC:
+    case GKYL_PMAP_CONSTANT_DB_NUMERIC:
 
-    for (int i = 0; i < 2; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
-        gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+      for (int i = 0; i < 2; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
       }
-    }
-    gpm->constB_ctx->map_strength = pmap_info.map_strength;
+      gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
-    if (pmap_info.maximum_slope_at_min_B == 0.) {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;
-    }
-    else {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
-    }
-    gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
-
-    if (pmap_info.maximum_slope_at_max_B == 0.) {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;
-    }
-    else {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
-    }
-    gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
-    gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
-    gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
-
-  case GKYL_PMAP_XPT_COMPRESSION:
-
-    for (int i = 0; i < 2; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
-        gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+      if (pmap_info.maximum_slope_at_min_B == 0.) {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;
       }
-    }
-    gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
-    gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
+      else {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
+      }
+      gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
+
+      if (pmap_info.maximum_slope_at_max_B == 0.) {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;
+      }
+      else {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
+      }
+      gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
+      gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
+      gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
+
+    case GKYL_PMAP_XPT_COMPRESSION:
+
+      for (int i = 0; i < 2; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
+      }
+      gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
+      gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
   }
 
   gpm->grid = grid;
