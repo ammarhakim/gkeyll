@@ -286,6 +286,8 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     mask->phase_rng = mask_inp.phase_rng;
     mask->phase_rng_ext = mask_inp.phase_rng_ext;
     mask->vel_rng = mask_inp.vel_rng;
+    mask->conf_rng = mask_inp.conf_rng;
+    mask->conf_rng_ext = mask_inp.conf_rng_ext;
 
     // Determine mask range: use phase_rng for kinetic species, conf_rng for fluid species.
     if (mask_inp.phase_rng != 0) {
