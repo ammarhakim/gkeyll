@@ -102,13 +102,14 @@ gk_heating_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gkyl_array *arrout, struct gkyl_array *arrout_host)
 {
   // Write out a conf-space array.
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = stime,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
   // Construct the file handles for collision frequency and primitive moments.
   const char *fmt = "%s-%s_%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, file_suffix, frame);
