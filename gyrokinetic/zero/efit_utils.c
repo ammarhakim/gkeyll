@@ -1,5 +1,6 @@
 #include <gkyl_efit_priv.h>
 #include <float.h>
+#include <string.h>
 
 static double
 eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f )
@@ -207,3 +208,23 @@ find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt)
   return num_xpts;
 }
 
+
+void 
+get_stripped_filename(const char *filepath, char *out_buffer) {
+    // 1. Find the last slash to skip the path
+    const char *last_slash = strrchr(filepath, '/');
+    const char *filename_start = (last_slash) ? last_slash + 1 : filepath;
+
+    // 2. Find the last dot to identify the extension
+    const char *last_dot = strrchr(filename_start, '.');
+
+    if (!last_dot || last_dot == filename_start) {
+        // No extension found, just copy the whole filename
+        strcpy(out_buffer, filename_start);
+    } else {
+        // Calculate length of the name without extension
+        size_t len = last_dot - filename_start;
+        strncpy(out_buffer, filename_start, len);
+        out_buffer[len] = '\0'; // Null terminate!
+    }
+}

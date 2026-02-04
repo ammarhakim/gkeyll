@@ -10,3 +10,4 @@ find_xpts(gkyl_efit* up, double *Rxpt, double *Zxpt);
 int 
 find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt);
 
+void get_stripped_filename(const char *filepath, char *out_buffer);

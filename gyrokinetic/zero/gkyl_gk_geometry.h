@@ -358,6 +358,14 @@ struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, st
  */
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 
+
+/**
+ * Write psi(R,Z)
+* @param geometry_inp Geometry input struct.
+* @param mt_efit efit metadata
+ */
+void gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_data* mt_efit);
+
 /**
  * Reset the metadata values with corresponding values in GK geometry object
  * (they may have been updated).

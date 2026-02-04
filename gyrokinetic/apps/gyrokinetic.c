@@ -1018,6 +1018,12 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+    gkyl_gk_geometry_write_efit(geometry_inp, mt);
+
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_hocdim = mkarr(false, app->cdim*app->basis.num_basis, app->local_ext.volume);
@@ -1089,8 +1095,6 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   struct gkyl_array *mc2p_global_ho = mkarr(false, mc2p_global->ncomp, mc2p_global->size);
   gkyl_array_copy(mc2p_global_ho, mc2p_global);
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
     // Create Nodal Range and Grid and Write Nodal Coordinates
     struct gkyl_range nrange;
