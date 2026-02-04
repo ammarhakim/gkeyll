@@ -158,6 +158,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = damp->bmag_max,
+        .bmag_max_loc = damp->bmag_max_coord,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .num_quad = num_quad,
