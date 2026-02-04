@@ -1,7 +1,32 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-// initialize species moment object
+static void
+gk_species_moment_diag_jacobgeo_div_disabled(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *out)
+{
+  // Do nothing.
+}
+
+static void
+gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *out)
+{
+  // Only divide the first component of the marr array.
+  gkyl_dg_div_op_range(sm->mem_geo, app->basis, 0, out, 0, sm->marr, 0, 
+    app->gk_geom->geo_int.jacobgeo, &app->local);  
+}
+
+static void
+gk_species_moment_diag_jacobgeo_div_enabled_all_comp(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *out)
+{
+  // Only divide the first component of the marr array.
+  for (int k=0; k<sm->num_mom; k++)
+    gkyl_dg_div_op_range(sm->mem_geo, app->basis, k, out, k, sm->marr, 0, 
+      app->gk_geom->geo_int.jacobgeo, &app->local);  
+}
+
 void
 gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
@@ -9,6 +34,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   sm->is_integrated = is_integrated;
   sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
   sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
+  sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_disabled;
 
   if (sm->is_integrated) {
     // Create moment operator.
@@ -47,6 +73,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       else {
         sm->num_mom = 4; // (n, u_par, T_par/m, T_perp/m)
       }  
+      sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_enabled_1st_comp;
     }
     else {
       sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->basis, 
@@ -54,6 +81,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu);    
 
       sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
+      sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_enabled_all_comp;
     }
 
     // Allocate arrays to hold moments.
@@ -95,6 +123,13 @@ gk_species_moment_calc(const struct gk_species_moment *sm,
         &phase_rng, &conf_rng, fin, sm->marr);
     }
   }
+}
+
+void
+gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *out)
+{
+  sm->diag_jacobgeo_div_func(app, sm, out);
 }
 
 void
