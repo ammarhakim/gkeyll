@@ -66,6 +66,11 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
 /** 
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
  *
+ * Note that this method is intended for use outside of a loop over the grid or
+ * outside a device kernel. If you need to do this inside a grid loop/device
+ * kernel, you must use gkyl_dg_array_mask_eval_idx_ker defined in the private
+ * header.
+ *
  * @param mask Mask object.
  * @param idx Multi-dimensional index array.
  * @param val Value of the mask at the given index.
