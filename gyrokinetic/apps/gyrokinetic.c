@@ -1021,8 +1021,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK)
-    gkyl_gk_geometry_write_efit(geometry_inp, mt);
+  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+    gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
 
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
