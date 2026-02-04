@@ -537,7 +537,11 @@ void test_mask_eval(bool use_gpu)
   bool mask_cond_ref[] = {true, false, true, false, true, false};
   for (int i=0; i<shape[0]; i++) {
     gkyl_dg_array_mask_eval_idx(mask, &i, mask_cond);
-    gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    if (use_gpu)
+      gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    else
+      memcpy(mask_cond_ho, mask_cond, sizeof(bool));
+
     TEST_CHECK(mask_cond_ho[0] == mask_cond_ref[i]);
     TEST_MSG("Got %d at i=%d. Expected %d\n",mask_cond_ho[0], i, mask_cond_ref[i]);
   }
@@ -573,7 +577,11 @@ void test_mask_eval_none_type(bool use_gpu)
   int idx[] = {0, 1, 2, 3, 100};
   for (int i=0; i<5; i++) {
     gkyl_dg_array_mask_eval_idx(mask, &idx[i], mask_cond);
-    gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    if (use_gpu)
+      gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    else
+      memcpy(mask_cond_ho, mask_cond, sizeof(bool));
+
     TEST_CHECK(mask_cond_ho[0] == mask_cond_ref[i]);
     TEST_MSG("Got %d at idx=%d. Expected %d\n",mask_cond_ho[0], idx[i], mask_cond_ref[i]);
   }
