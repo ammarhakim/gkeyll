@@ -68,9 +68,9 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  *
  * @param mask Mask object.
  * @param idx Multi-dimensional index array.
- * @return True if the mask is true at the index, false otherwise.
+ * @param val Value of the mask at the given index.
  */
-bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
+void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx, bool *val);
 
 /**
  * Scale the dg_array_mask by an array, modifying the mask.
@@ -82,13 +82,11 @@ bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx
 void
 gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
-
 /**
  * Acquire a reference to the mask object.
  */
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask);
-
 
 /**
  * Get the underlying mask array.
@@ -106,7 +104,6 @@ gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask);
  */
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask);
-
 
 /**
  * Release memory associated with mask object.

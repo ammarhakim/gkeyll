@@ -1817,7 +1817,6 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 void
 gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin)
 {
-  if ()
   // Find the global maximum of fin
   double *global_max = gkyl_malloc(sizeof(double) * fin->ncomp);
   double *local_max = gkyl_malloc(sizeof(double) * fin->ncomp);

@@ -513,7 +513,7 @@ void test_mask_eval(bool use_gpu)
   // Set up values so that mask will be: true, false, true, false, true, false
   double *arr_d;
   double vals[] = { 0.1, 1.0, 0.2, 2.0, 0.3, 5.0 };
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < shape[0]; i++) {
     arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
   }
@@ -527,12 +527,26 @@ void test_mask_eval(bool use_gpu)
   // Test eval function
   // This part does not work on the GPU because the boolean is evaluated and
   // returned on the GPU, but needs a host evaluation for the TEST_CHECK
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 0) == true);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 1) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 2) == true);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 3) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 4) == true);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 5) == false);
+  bool *mask_cond_ho, *mask_cond;
+  mask_cond_ho = gkyl_malloc(sizeof(bool));
+  if (use_gpu)
+    mask_cond = gkyl_cu_malloc(sizeof(bool));
+  else
+    mask_cond = gkyl_malloc(sizeof(bool));
+
+  bool mask_cond_ref[] = {true, false, true, false, true, false};
+  for (int i=0; i<shape[0]; i++) {
+    gkyl_dg_array_mask_eval_idx(mask, &i, mask_cond);
+    gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    TEST_CHECK(mask_cond_ho[0] == mask_cond_ref[i]);
+    TEST_MSG("Got %d at i=%d. Expected %d\n",mask_cond_ho[0], i, mask_cond_ref[i]);
+  }
+
+  gkyl_free(mask_cond_ho);
+  if (use_gpu)
+    gkyl_cu_free(mask_cond);
+  else
+    gkyl_free(mask_cond);
 
   gkyl_array_release(arr_ho);
   gkyl_array_release(arr);
@@ -548,11 +562,27 @@ void test_mask_eval_none_type(bool use_gpu)
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // For NONE type, eval should always return false regardless of index
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 0) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 1) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 2) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 3) == false);
-  TEST_CHECK(gkyl_dg_array_mask_eval(mask, 100) == false);   // Even invalid indices should be safe
+  bool *mask_cond_ho, *mask_cond;
+  mask_cond_ho = gkyl_malloc(sizeof(bool));
+  if (use_gpu)
+    mask_cond = gkyl_cu_malloc(sizeof(bool));
+  else
+    mask_cond = gkyl_malloc(sizeof(bool));
+
+  bool mask_cond_ref[] = {false, false, false, false, false};
+  int idx[] = {0, 1, 2, 3, 100};
+  for (int i=0; i<5; i++) {
+    gkyl_dg_array_mask_eval_idx(mask, &idx[i], mask_cond);
+    gkyl_cu_memcpy(mask_cond_ho, mask_cond, sizeof(bool), GKYL_CU_MEMCPY_D2H);
+    TEST_CHECK(mask_cond_ho[0] == mask_cond_ref[i]);
+    TEST_MSG("Got %d at idx=%d. Expected %d\n",mask_cond_ho[0], idx[i], mask_cond_ref[i]);
+  }
+
+  gkyl_free(mask_cond_ho);
+  if (use_gpu)
+    gkyl_cu_free(mask_cond);
+  else
+    gkyl_free(mask_cond);
 
   gkyl_dg_array_mask_release(mask);
 }
@@ -1101,11 +1131,8 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
       const double *arr_d = gkyl_array_cfetch(arr_ho, lidx);
       bool expected_mask = fabs(arr_d[0]) < expected_threshold;
 
-      // Test eval with linear index
-      TEST_CHECK(gkyl_dg_array_mask_eval(mask, lidx) == expected_mask);
-
       // Test eval_idx with multi-dimensional index
-      TEST_CHECK(gkyl_dg_array_mask_eval_idx(mask, iter.idx) == expected_mask);
+      TEST_CHECK(gkyl_dg_array_mask_eval_idx_ker(mask, iter.idx) == expected_mask);
     }
   }
 
@@ -1210,11 +1237,8 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
       const double *arr_d = gkyl_array_cfetch(arr_ho, lidx);
       bool expected_mask = fabs(arr_d[0]) < expected_threshold;
 
-      // Test eval with linear index
-      TEST_CHECK(gkyl_dg_array_mask_eval(mask, lidx) == expected_mask);
-
       // Test eval_idx with multi-dimensional index
-      TEST_CHECK(gkyl_dg_array_mask_eval_idx(mask, iter.idx) == expected_mask);
+      TEST_CHECK(gkyl_dg_array_mask_eval_idx_ker(mask, iter.idx) == expected_mask);
     }
   }
 
@@ -1373,11 +1397,8 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
         const double *arr_d = gkyl_array_cfetch(arr_ho, phase_idx);
         bool expected_mask = fabs(arr_d[0]) < expected_threshold;
 
-        // Test eval with linear index
-        TEST_CHECK(gkyl_dg_array_mask_eval(mask, phase_idx) == expected_mask);
-
         // Test eval_idx with multi-dimensional index
-        TEST_CHECK(gkyl_dg_array_mask_eval_idx(mask, pidx) == expected_mask);
+        TEST_CHECK(gkyl_dg_array_mask_eval_idx_ker(mask, pidx) == expected_mask);
       }
     }
   }

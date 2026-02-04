@@ -1,6 +1,7 @@
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_priv.h>
 #include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <float.h>
@@ -120,7 +121,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 
       // Shift f if needed.
       bool shifted_node = false;
-      if (gkyl_dg_array_mask_eval(up->update_cell, plinidx)) {
+      if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, vel_iter.idx)) {
         // Divide by jacobtot and jacobvel so that we are shifting just f.
         up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
         for (int k=0; k<distf->ncomp; k++)

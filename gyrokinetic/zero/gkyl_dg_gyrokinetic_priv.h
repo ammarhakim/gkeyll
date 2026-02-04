@@ -66,7 +66,7 @@ kernel_dg_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
   
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -96,7 +96,7 @@ kernel_dg_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -126,7 +126,7 @@ kernel_dg_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -156,7 +156,7 @@ kernel_dg_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -203,7 +203,7 @@ kernel_dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -233,7 +233,7 @@ kernel_dg_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idx)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idx)) {
     int vel_idx[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -388,9 +388,9 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxL) ||
-      gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxC) ||
-      gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxR)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxL) ||
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxC) ||
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxR)) {
     // Only in x,y,z,vpar directions.
     if (dir <= gyrokinetic->cdim) {
       int vel_idxL[2], vel_idxC[2], vel_idxR[2];
@@ -431,8 +431,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxSkin) || 
-      gkyl_dg_array_mask_eval_idx(gyrokinetic->update_cell, idxEdge)) {
+  if (gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxSkin) || 
+      gkyl_dg_array_mask_eval_idx_ker(gyrokinetic->update_cell, idxEdge)) {
     // Only in x,y,z,vpar directions.
     if (dir <= gyrokinetic->cdim) {
       int vel_idxEdge[2], vel_idxSkin[2];
