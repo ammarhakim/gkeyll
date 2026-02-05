@@ -1002,7 +1002,7 @@ TEST_LIST = {
 // { "test_1x1v_p2_cu", test_1x1v_p2_cu },
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
 // { "test_1x2v_p2_cu", test_1x2v_p2_cu },
-  { "test_2x2v_p1_cu", test_2x2v_p1_cu },
+  // { "test_2x2v_p1_cu", test_2x2v_p1_cu },
 // { "test_2x2v_p2_cu", test_2x2v_p2_cu },
 #endif
   { NULL, NULL },

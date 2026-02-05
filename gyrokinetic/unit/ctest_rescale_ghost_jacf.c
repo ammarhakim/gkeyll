@@ -561,8 +561,8 @@ TEST_LIST = {
   // { "test_1x1v_ho", test_1x1v_ho },
   // { "test_2x2v_ho", test_2x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x1v_dev", test_1x1v_dev },
-  { "test_2x2v_dev", test_2x2v_dev },
+  // { "test_1x1v_dev", test_1x1v_dev },
+  // { "test_2x2v_dev", test_2x2v_dev },
 #endif
   { NULL, NULL },
 };

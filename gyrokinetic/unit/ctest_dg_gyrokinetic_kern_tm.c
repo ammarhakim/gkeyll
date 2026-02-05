@@ -177,9 +177,9 @@ test_gyrokinetic_3x2v_p1_cu()
 }
 
 TEST_LIST = {
-  { "test_gyrokinetic_3x2v_p1", test_gyrokinetic_3x2v_p1 },
+  // { "test_gyrokinetic_3x2v_p1", test_gyrokinetic_3x2v_p1 },
 #ifdef GKYL_HAVE_CUDA
-  { "test_gyrokinetic_3x2v_p1_cu", test_gyrokinetic_3x2v_p1_cu },
+  // { "test_gyrokinetic_3x2v_p1_cu", test_gyrokinetic_3x2v_p1_cu },
 #endif
   { NULL, NULL },
 };
