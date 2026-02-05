@@ -34,6 +34,7 @@ echo "========================================"
 
 # Run make and capture output silently (only save to log)
 # Don't exit on error yet - we want to check the log first
+MODULE_UPPER=$(echo "$MODULE" | tr '[:lower:]' '[:upper:]')
 if ! make -j"${JOBS}" "${MODULE}-${TARGET}" > "$BUILD_LOG" 2>&1; then
     # Build failed - show the errors
     echo ""
@@ -41,7 +42,7 @@ if ! make -j"${JOBS}" "${MODULE}-${TARGET}" > "$BUILD_LOG" 2>&1; then
     
     # Try to extract specific error lines
     if grep -E "(error:|undefined reference|fatal error)" "$BUILD_LOG" > "$ERRORS_LOG" 2>/dev/null; then
-        echo "=== COMPILER ERRORS IN ${MODULE^^} ==="
+        echo "=== COMPILER ERRORS IN ${MODULE_UPPER} ==="
         cat "$ERRORS_LOG"
         echo "================================="
     else
@@ -58,7 +59,7 @@ fi
 if grep -E "warning:" "$BUILD_LOG" > "$WARNINGS_LOG" 2>/dev/null; then
     echo ""
     echo "::warning::Compiler warnings found in ${MODULE} module"
-    echo "=== COMPILER WARNINGS IN ${MODULE^^} ==="
+    echo "=== COMPILER WARNINGS IN ${MODULE_UPPER} ==="
     cat "$WARNINGS_LOG"
     echo "================================="
 fi
