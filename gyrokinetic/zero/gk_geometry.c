@@ -13,7 +13,6 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <assert.h>
 #include <float.h>
-#include <mpack.h>
 
 
 struct gk_geometry*
@@ -591,8 +590,7 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gk
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
 
-  MPACK_FREE(mt->meta);
-  gkyl_free(mt);
+  gkyl_msgpack_data_release(mt);
 }
 
 void
