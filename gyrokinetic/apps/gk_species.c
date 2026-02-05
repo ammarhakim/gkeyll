@@ -334,7 +334,7 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   }
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->f_host, fileNm);
     
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
@@ -372,7 +372,7 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
     gks->cflrate_ho, fileNm);
 
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
@@ -424,7 +424,7 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 
   app->stat.n_diag += 1;
 }

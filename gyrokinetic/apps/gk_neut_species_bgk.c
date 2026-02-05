@@ -96,7 +96,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkns->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 

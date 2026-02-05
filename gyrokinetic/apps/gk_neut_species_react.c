@@ -246,7 +246,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
   }
   app->stat.n_neut_diag_io += 1;
   
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 

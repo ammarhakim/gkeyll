@@ -95,7 +95,7 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
     gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, mt, gkns->src.source_host, fileNm);
     app->stat.n_neut_io += 1;
 
-    gk_array_meta_release(mt);   
+    gkyl_msgpack_data_release(mt);   
     app->stat.neut_species_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 }
@@ -141,7 +141,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
       app->stat.n_neut_diag_io += 1;
     }
-    gk_array_meta_release(mt); 
+    gkyl_msgpack_data_release(mt); 
 
     app->stat.n_neut_diag += 1;
   }

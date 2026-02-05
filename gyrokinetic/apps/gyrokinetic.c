@@ -63,14 +63,6 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt)
-{
-  if (!mt) return;
-  MPACK_FREE(mt->meta);
-  gkyl_free(mt);
-}
-
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
@@ -1117,7 +1109,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
     gkyl_grid_sub_array_write(&ngrid, &nrange, mt_nodes,  mc2p_nodal, fileNm);
 
-    gk_array_meta_release(mt_nodes);
+    gkyl_msgpack_data_release(mt_nodes);
     gkyl_nodal_ops_release(n2m);
     gkyl_array_release(mc2p_nodal);
   }
@@ -1136,7 +1128,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gkyl_array_release(arr_surf_ho9);
   gkyl_array_release(arr_surf_ho18);
 
-  gk_array_meta_release(mt);
+  gkyl_msgpack_data_release(mt);
 }
 
 //
@@ -1166,7 +1158,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-    gk_array_meta_release(mt);
+    gkyl_msgpack_data_release(mt);
 
     app->stat.field_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_field_io += 1;
