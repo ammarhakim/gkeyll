@@ -26,22 +26,20 @@ gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct 
 void
 gk_eirene_read(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
 {
-  struct gkyl_range nrange;
-  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
-  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+  struct gkyl_array* nnodal = mkarr(false, 1, app->gk_geom->nrange_int.volume);
 
   FILE *ptr = fopen(fileNm.str,"r");
   size_t status;
 
-  int nr = gkyl_range_shape(&nrange, 0);
-  int nz = gkyl_range_shape(&nrange, 1);
+  int nr = gkyl_range_shape(&app->gk_geom->nrange_int, 0);
+  int nz = gkyl_range_shape(&app->gk_geom->nrange_int, 1);
   int idx[2];
 
   for(int ir = 0; ir < nr; ir++){
     idx[0] = ir;
     for(int iz = 0; iz < nz; iz++){
       idx[1] = iz;
-      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&app->gk_geom->nrange_int, idx));
       status = fscanf(ptr,"%lf", nnodal_n);
     }
   }
@@ -49,7 +47,7 @@ gk_eirene_read(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fi
   fclose(ptr);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
-  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &app->gk_geom->nrange_int, &app->local, 1, nnodal, out, true);
   gkyl_array_release(nnodal);
 }
 

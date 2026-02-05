@@ -8,6 +8,7 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_priv.h>
 #include <assert.h>
 }
 
@@ -422,6 +423,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+  gk_geometry_set_nodal_ranges(up) ;
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
     up->num_surf_basis = up->surf_basis.num_basis;
