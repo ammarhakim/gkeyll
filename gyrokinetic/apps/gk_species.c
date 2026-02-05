@@ -1919,7 +1919,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gk_species_bgk_release(app, &gks->bgk);
 
-  gk_species_source_bgk_release(app, &s->bgk_src);
+  gk_species_source_bgk_release(app, &gks->bgk_src);
 
   gk_species_positivity_release(app, &gks->positivity);
 
