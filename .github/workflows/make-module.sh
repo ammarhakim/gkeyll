@@ -67,3 +67,9 @@ fi
 echo "========================================"
 echo "${MODULE} ${TARGET} build completed successfully"
 echo "========================================"
+
+# Remove only if variables are set and non-empty
+# I'm suspicious that we might exceed our CI storage limits if we do not delete these files
+for log in "$BUILD_LOG" "$WARNINGS_LOG" "$ERRORS_LOG"; do
+    [[ -n "$log" ]] && rm -f "$log"
+done

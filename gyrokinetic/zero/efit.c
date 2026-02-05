@@ -45,7 +45,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // If the first 48 characters of the eqdsk file contain a newline, then the EQDSK file lacks a header.
   if(strchr(header,'\n')!=NULL)
   {
-      fprintf(stderr, "Warning: %s likely lacks a header on the first line and may not be parsed correctly. Parsed dimensions are (nr=%s,nz=%s)\n", up->filepath, up->nr, up->nz);
+      fprintf(stderr, "Warning: %s likely lacks a header on the first line and may not be parsed correctly. Parsed dimensions are (nr=%d,nz=%d)\n", up->filepath, up->nr, up->nz);
   }
   
   // Read the non-array parameters, all are doubles:

@@ -271,10 +271,10 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
     if (fdmul->write_diagnostics)
       gkyl_array_release(fdmul->multiplier_host);
 
-    if (fdmul->type == GKYL_GK_DAMPING_USER_INPUT) {
+    if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
       // Nothing to release.
     }
-    else if (fdmul->type == GKYL_GK_DAMPING_LOSS_CONE) {
+    else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
       if (app->use_gpu) {
         gkyl_cu_free(fdmul->bmag_max);
         gkyl_cu_free(fdmul->bmag_max_coord);
