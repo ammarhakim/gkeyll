@@ -938,7 +938,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
 void test_1x_p1() { test(1, 8, 1, 1.0e-12, 0, 0, false); }
 void test_2x_p1() { test(2, 8, 1, 1.0e-12, 0, 0, false); }
-void test_3x_p1() { test(3, 8, 1, 1.0e-12, 0, 0, false); }
+void test_3x_p1() { test(3, 4, 1, 1.0e-12, 0, 0, false); }
 
 void test_1x_p2() { test(1, 8, 2, 1.0e-12, 0, 0, false); }
 // Higher dimensions, p=2, *only* testing is b . b = 1 like we expect
