@@ -2,11 +2,11 @@ name: Mac Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-    
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,38 +17,38 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: install-superlu
-      run: |
-        cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
-        chmod +x .github/workflows/make-module.sh
-        chmod +x .github/workflows/make-check.sh
+      - name: install-superlu
+        run: |
+          cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
+          chmod +x .github/workflows/make-module.sh
+          chmod +x .github/workflows/make-check.sh
 
-    # Core module
-    - name: Build core-unit
-      run: .github/workflows/make-module.sh core unit 3
-    - name: Build core-regression
-      run: .github/workflows/make-module.sh core regression 3
+      # Core module
+      - name: Build core-unit
+        run: .github/workflows/make-module.sh core unit 3
+      - name: Build core-regression
+        run: .github/workflows/make-module.sh core regression 3
 
-    # Moments module
-    - name: Build moments-unit
-      run: .github/workflows/make-module.sh moments unit 3
-    - name: Build moments-regression
-      run: .github/workflows/make-module.sh moments regression 3
+      # Moments module
+      - name: Build moments-unit
+        run: .github/workflows/make-module.sh moments unit 3
+      - name: Build moments-regression
+        run: .github/workflows/make-module.sh moments regression 3
 
-    # Vlasov module
-    - name: Build vlasov-unit
-      run: .github/workflows/make-module.sh vlasov unit 3
-    - name: Build vlasov-regression
-      run: .github/workflows/make-module.sh vlasov regression 3
+      # Vlasov module
+      - name: Build vlasov-unit
+        run: .github/workflows/make-module.sh vlasov unit 3
+      - name: Build vlasov-regression
+        run: .github/workflows/make-module.sh vlasov regression 3
 
-    # Gyrokinetic module
-    - name: Build gyrokinetic-unit
-      run: .github/workflows/make-module.sh gyrokinetic unit 3
-    - name: Build gyrokinetic-regression
-      run: .github/workflows/make-module.sh gyrokinetic regression 3
+      # Gyrokinetic module
+      - name: Build gyrokinetic-unit
+        run: .github/workflows/make-module.sh gyrokinetic unit 3
+      - name: Build gyrokinetic-regression
+        run: .github/workflows/make-module.sh gyrokinetic regression 3
 
-    # PKPM module
-    - name: Build pkpm-regression
-      run: .github/workflows/make-module.sh pkpm regression 3
+      # PKPM module
+      - name: Build pkpm-regression
+        run: .github/workflows/make-module.sh pkpm regression 3

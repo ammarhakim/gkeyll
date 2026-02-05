@@ -30,7 +30,7 @@ jobs:
       - name: Build core-regression
         run: .github/workflows/make-module.sh core regression 8
       - name: Test core-check
-        run: .github/workflows/workflows/make-check.sh core 8
+        run: .github/workflows/make-check.sh core 8
 
       # Moments module
       - name: Build moments-unit
