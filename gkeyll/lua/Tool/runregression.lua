@@ -16,8 +16,10 @@ if GKYL_HAVE_SQLITE3 == false then
 end
 
 local currDir = lfs.currentdir()
-if not string.match(currDir, "regression$") then
-   print("Can only run from regression source directory.")
+-- Check if we're in the gkeyll root directory (should have gyrokinetic, moments, etc.)
+local gkylRootCheck = lfs.attributes(currDir .. "/gyrokinetic")
+if not gkylRootCheck or gkylRootCheck.mode ~= "directory" then
+   print("Can only run from gkeyll root directory (where gyrokinetic/, moments/, etc. are located).")
    return 1
 end
 
@@ -119,13 +121,23 @@ local function loadConfigure(args)
       verboseLog = verboseLogger -- set verbose logger
    end
 
-   local g = loadfile("ignoretests.lua")
-   if not args.all then
+   -- Load ignore tests list (optional - file may not exist)
+   local ignoretestsPath = lfs.currentdir() .. "/ignoretests.lua"
+   local g = loadfile(ignoretestsPath)
+   if g and not args.all then
       ignoreTests = g()
+   else
+      ignoreTests = {}
    end
 
-   local m = loadfile("moat.lua")
-   moatTests = m()
+   -- Load MOAT tests list (optional - file may not exist)
+   local moatPath = lfs.currentdir() .. "/moat.lua"
+   local m = loadfile(moatPath)
+   if m then
+      moatTests = m()
+   else
+      moatTests = {}
+   end
 
    -- open connection to SQL DB
    sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
@@ -419,10 +431,21 @@ local function list_tests(args)
 	 end
       end
    else
-      for dir, fn, _ in dirtree(".") do 
-	 if (not dir:find("__needs_implementation")) then
-	    addTest(dir .. "/" .. fn) 
-	 end
+      -- Search for Lua regression tests in luareg directories of each equation model
+      local luaregDirs = {
+         "./gyrokinetic/luareg",
+         "./moments/luareg", 
+         "./vlasov/luareg",
+         "./pkpm/luareg"
+      }
+      for _, luaregDir in ipairs(luaregDirs) do
+         if lfs.attributes(luaregDir) then
+            for dir, fn, _ in dirtree(luaregDir) do 
+               if (not dir:find("__needs_implementation")) then
+                  addTest(dir .. "/" .. fn) 
+               end
+            end
+         end
       end
    end
 
@@ -448,7 +471,19 @@ local function list_unit_tests(args)
       end
    end
 
-   for dir, fn, _ in dirtree("../unit") do addTest(dir .. "/" .. fn) end
+   -- Search for unit tests in unit directories of each equation model
+   local unitDirs = {
+      "./core/unit",
+      "./gyrokinetic/unit",
+      "./moments/unit",
+      "./vlasov/unit",
+      "./pkpm/unit"
+   }
+   for _, unitDir in ipairs(unitDirs) do
+      if lfs.attributes(unitDir) then
+         for dir, fn, _ in dirtree(unitDir) do addTest(dir .. "/" .. fn) end
+      end
+   end
 
    return luaUnitTests, cxxUnitTests
 end
@@ -663,8 +698,10 @@ ensure that the results produced are correct. Obviously, others
 may not be able to determine just looking at output that the
 results make sense.
 
-The runregression tool can only be run from the gkyl/Regression
-directory in the source code repo.
+The runregression tool must be run from the gkeyll root directory
+(where gyrokinetic/, moments/, vlasov/, pkpm/ directories are located).
+Lua regression tests are found in the luareg/ subdirectory of each
+equation model (e.g., gyrokinetic/luareg/, moments/luareg/, etc.).
 
  ]]
 
