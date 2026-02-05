@@ -75,7 +75,7 @@ test_dg_gyrokinetic()
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = 0,

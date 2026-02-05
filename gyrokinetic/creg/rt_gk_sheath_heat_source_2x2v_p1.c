@@ -895,7 +895,7 @@ main(int argc, char **argv)
 //    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = { 0.0 },
 
       .mapc2p = mapc2p,

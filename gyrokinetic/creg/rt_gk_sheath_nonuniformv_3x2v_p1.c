@@ -777,7 +777,7 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = { },
 
       .mapc2p = mapc2p,
