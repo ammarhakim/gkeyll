@@ -494,9 +494,6 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
         gkyl_array_copy_range_to_range(mom_arr, mom_arr,
           bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
-        // Rescale moment by inverse of Jacobian if needed.
-        gk_species_moment_diag_jacobgeo_div(app, &bflux->moms_op[mom_idx], mom_arr, mom_arr);  // Fails using skin range here.
-
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
         gkyl_array_scale_range(mom_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
