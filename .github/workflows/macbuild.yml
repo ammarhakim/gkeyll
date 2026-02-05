@@ -20,7 +20,10 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: install-superlu
-      run: cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
+      run: |
+        cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
+        chmod +x .github/workflows/make-module.sh
+        chmod +x .github/workflows/make-check.sh
 
     # Core module
     - name: Build core-unit
