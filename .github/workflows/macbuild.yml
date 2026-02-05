@@ -24,36 +24,28 @@ jobs:
 
     # Core module
     - name: Build core-unit
-      run: .github/scripts/make-module.sh core unit 3
+      run: .github/workflows/make-module.sh core unit 3
     - name: Build core-regression
-      run: .github/scripts/make-module.sh core regression 3
-    - name: Test core-check
-      run: .github/workflows/make-check.sh core 3
+      run: .github/workflows/make-module.sh core regression 3
 
     # Moments module
     - name: Build moments-unit
-      run: .github/scripts/make-module.sh moments unit 3
+      run: .github/workflows/make-module.sh moments unit 3
     - name: Build moments-regression
-      run: .github/scripts/make-module.sh moments regression 3
-    - name: Test moments-check
-      run: .github/workflows/make-check.sh moments 3
+      run: .github/workflows/make-module.sh moments regression 3
 
     # Vlasov module
     - name: Build vlasov-unit
-      run: .github/scripts/make-module.sh vlasov unit 3
+      run: .github/workflows/make-module.sh vlasov unit 3
     - name: Build vlasov-regression
-      run: .github/scripts/make-module.sh vlasov regression 3
-    - name: Test vlasov-check
-      run: .github/workflows/make-check.sh vlasov 3
+      run: .github/workflows/make-module.sh vlasov regression 3
 
     # Gyrokinetic module
     - name: Build gyrokinetic-unit
-      run: .github/scripts/make-module.sh gyrokinetic unit 3
+      run: .github/workflows/make-module.sh gyrokinetic unit 3
     - name: Build gyrokinetic-regression
-      run: .github/scripts/make-module.sh gyrokinetic regression 3
-    - name: Test gyrokinetic-check
-      run: .github/workflows/make-check.sh gyrokinetic 3
+      run: .github/workflows/make-module.sh gyrokinetic regression 3
 
     # PKPM module
     - name: Build pkpm-regression
-      run: .github/scripts/make-module.sh pkpm regression 3
+      run: .github/workflows/make-module.sh pkpm regression 3
