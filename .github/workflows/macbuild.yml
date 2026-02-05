@@ -2,10 +2,10 @@ name: Mac Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, ci-local-host ]
   pull_request:
-    branches: [ main ]
-    types: [opened, synchronize, reopened, ready_for_review, enqueued, closed]
+    branches: [ main, ci-local-host ]
+    types: [opened, synchronize, reopened, ready_for_review]
     
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
