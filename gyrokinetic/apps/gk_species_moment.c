@@ -3,27 +3,27 @@
 
 static void
 gk_species_moment_diag_jacobgeo_div_disabled(const struct gkyl_gyrokinetic_app *app,
-  struct gk_species_moment *sm, struct gkyl_array *out)
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
 {
   // Do nothing.
 }
 
 static void
 gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(const struct gkyl_gyrokinetic_app *app,
-  struct gk_species_moment *sm, struct gkyl_array *out)
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
 {
-  // Only divide the first component of the marr array.
-  gkyl_dg_div_op_range(sm->mem_geo, app->basis, 0, out, 0, sm->marr, 0, 
+  // Only divide the first component.
+  gkyl_dg_div_op_range(sm->mem_geo, app->basis, 0, mom_out, 0, Jmom_in, 0, 
     app->gk_geom->geo_int.jacobgeo, &app->local);  
 }
 
 static void
 gk_species_moment_diag_jacobgeo_div_enabled_all_comp(const struct gkyl_gyrokinetic_app *app,
-  struct gk_species_moment *sm, struct gkyl_array *out)
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
 {
-  // Only divide the first component of the marr array.
+  // Divide all components.
   for (int k=0; k<sm->num_mom; k++)
-    gkyl_dg_div_op_range(sm->mem_geo, app->basis, k, out, k, sm->marr, 0, 
+    gkyl_dg_div_op_range(sm->mem_geo, app->basis, k, mom_out, k, Jmom_in, 0, 
       app->gk_geom->geo_int.jacobgeo, &app->local);  
 }
 
@@ -127,9 +127,9 @@ gk_species_moment_calc(const struct gk_species_moment *sm,
 
 void
 gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
-  struct gk_species_moment *sm, struct gkyl_array *out)
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
 {
-  sm->diag_jacobgeo_div_func(app, sm, out);
+  sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
 }
 
 void
