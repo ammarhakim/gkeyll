@@ -1,0 +1,59 @@
+name: Mac Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review]
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event.pull_request.draft == false
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install-superlu
+      run: cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
+
+    # Core module
+    - name: Build core-unit
+      run: .github/scripts/make-module.sh core unit 3
+    - name: Build core-regression
+      run: .github/scripts/make-module.sh core regression 3
+    - name: Test core-check
+      run: .github/workflows/make-check.sh core 3
+
+    # Moments module
+    - name: Build moments-unit
+      run: .github/scripts/make-module.sh moments unit 3
+    - name: Build moments-regression
+      run: .github/scripts/make-module.sh moments regression 3
+    - name: Test moments-check
+      run: .github/workflows/make-check.sh moments 3
+
+    # Vlasov module
+    - name: Build vlasov-unit
+      run: .github/scripts/make-module.sh vlasov unit 3
+    - name: Build vlasov-regression
+      run: .github/scripts/make-module.sh vlasov regression 3
+    - name: Test vlasov-check
+      run: .github/workflows/make-check.sh vlasov 3
+
+    # Gyrokinetic module
+    - name: Build gyrokinetic-unit
+      run: .github/scripts/make-module.sh gyrokinetic unit 3
+    - name: Build gyrokinetic-regression
+      run: .github/scripts/make-module.sh gyrokinetic regression 3
+    - name: Test gyrokinetic-check
+      run: .github/workflows/make-check.sh gyrokinetic 3
+
+    # PKPM module
+    - name: Build pkpm-regression
+      run: .github/scripts/make-module.sh pkpm regression 3
