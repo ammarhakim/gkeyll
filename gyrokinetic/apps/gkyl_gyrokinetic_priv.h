@@ -165,6 +165,8 @@ struct gk_species_moment {
   void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
     const struct gkyl_range conf_rng, const struct gkyl_array *fin);
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
+  void (*diag_jacobgeo_div_func)(const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm,
+    struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 };
 
 // Forward declare species struct.
@@ -1540,6 +1542,19 @@ void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 void gk_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
+
+/**
+ * Divide the moment by the configuration-space Jacobian for diagnostic
+ * purposes. Not all components of the diagnostic moment are divided, depending
+ * on the type.
+ * 
+ * @param app Gyrokinetic app object.
+ * @param sm Species moment object.
+ * @param Jmom_in Moment(s) to be divided by J.
+ * @param mom_out Array in which to place the output.
+ */
+void gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 
 /**
  * Release species moment object.

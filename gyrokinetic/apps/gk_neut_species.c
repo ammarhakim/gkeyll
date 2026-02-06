@@ -231,12 +231,8 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     gk_neut_species_moment_calc(&gkns->moms[m], gkns->local, app->local, gkns->f);
     app->stat.n_neut_mom += 1;
 
-    // Rescale moment by inverse of Jacobian. 
-    // For LTE (Maxwellian) moments, we only need to re-scale
-    // the density (the 0th component).
-    gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
-      0, gkns->moms[m].marr, 0, gkns->moms[m].marr, 0, 
-      app->gk_geom->geo_int.jacobgeo, &app->local);      
+    // Rescale moment by inverse of Jacobian if necessary. 
+    gk_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
     app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
