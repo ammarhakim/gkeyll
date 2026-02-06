@@ -150,6 +150,8 @@ test_ltx_miller()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+  gkyl_position_map_release(pmap);
 }
 
 

@@ -806,6 +806,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
@@ -1601,6 +1602,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);

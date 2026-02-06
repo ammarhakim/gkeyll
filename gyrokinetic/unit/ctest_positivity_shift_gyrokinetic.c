@@ -283,6 +283,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(deltaf);
   gkyl_array_release(intmom_grid);
   gkyl_array_release(ps_intmom_grid);
   gkyl_array_release(ps_delta_m0);
@@ -300,6 +301,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_gyrokinetic_release(pos_shift);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void test_1x2v_ho()

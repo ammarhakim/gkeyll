@@ -157,6 +157,7 @@ test_elliptical()
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -607,6 +608,7 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 

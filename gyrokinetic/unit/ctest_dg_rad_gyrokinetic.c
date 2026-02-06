@@ -437,6 +437,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   }
 
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -779,6 +780,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   }
 
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 

@@ -326,6 +326,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -584,6 +585,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -844,6 +846,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
