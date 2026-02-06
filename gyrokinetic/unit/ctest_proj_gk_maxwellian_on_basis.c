@@ -9,6 +9,7 @@
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -165,14 +166,17 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   if (use_gpu)  // create device copy.
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = 0 ,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -393,14 +397,16 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   } else {
     prim_moms = prim_moms_ho;
   }
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx =0 ,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,

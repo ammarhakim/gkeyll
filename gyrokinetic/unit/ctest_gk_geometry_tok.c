@@ -18,6 +18,7 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -122,6 +123,7 @@ test_elliptical()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
@@ -135,9 +137,10 @@ test_elliptical()
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -251,6 +254,8 @@ test_3x_p1_straight_cylinder()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
@@ -268,9 +273,10 @@ test_3x_p1_straight_cylinder()
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_TOKAMAK,
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
