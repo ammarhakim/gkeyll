@@ -850,7 +850,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
   // Initialize GK geometry.
   int cdim = confBasis.ndim;
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0, 0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
     .bfield_func = cdim==1? eval_bfield_1x : (cdim==2? eval_bfield_2x : eval_bfield_3x),  .bfield_ctx = bfield_ctx,
     .basis = confBasis,  .grid = confGrid,

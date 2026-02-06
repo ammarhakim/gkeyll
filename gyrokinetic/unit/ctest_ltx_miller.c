@@ -126,7 +126,7 @@ test_ltx_miller()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
     .position_map = pmap,

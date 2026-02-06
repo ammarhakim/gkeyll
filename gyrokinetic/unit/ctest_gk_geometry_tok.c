@@ -137,7 +137,7 @@ test_elliptical()
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -273,7 +273,7 @@ test_3x_p1_straight_cylinder()
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_TOKAMAK,
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
     .position_map = pmap,

@@ -554,7 +554,7 @@ main(int argc, char **argv)
     .cfl_frac = 0.03,
 
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
