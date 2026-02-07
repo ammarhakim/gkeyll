@@ -79,6 +79,10 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
+  // Ensure these are always initialized even if X-point detection returns 0.
+  up->psisep = up->sibry;
+  up->psisep_cubic = up->sibry;
+
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -371,7 +375,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
-    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+     printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
@@ -381,7 +385,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
-    //  printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
+     printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
   }
 
   return up;
