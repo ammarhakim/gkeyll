@@ -29,8 +29,7 @@ in various solvers.
 -- add flags and options
 parser:option("-e --examples", "Fetch example input file (nstxu_DN, asdex, step)")
 parser:option("-i --input", "Input file")
-parser:option("-n --name", "Application name (used for app_inp.name)")
-parser:option("-t --template", "Print blank template (blankSN or blankDN)")
+parser:option("-t --template", "Print blank template (SN or DN)")
 
 -- parse command line parameters
 local args = parser:parse(GKYL_COMMANDS_L)
