@@ -311,6 +311,19 @@ gk_species_copy_range_static(struct gkyl_array *out,
   // do nothing
 }
 
+static void gk_species_update_cell_mask_allreduce(struct gk_species *species, const struct gkyl_array *fin)
+{
+  gkyl_array_reduce(species->local_max_f, fin, GKYL_MAX);
+  gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, species->local_max_f, species->global_max_f);
+  gkyl_dg_array_mask_advance_threshold(species->update_cell, species->global_max_f[0]);
+  gkyl_dg_array_mask_advance(species->update_cell, fin);
+}
+
+static void gk_species_update_cell_mask_advance(struct gk_species *species, const struct gkyl_array *fin)
+{
+  gkyl_dg_array_mask_advance(species->update_cell, fin);
+}
+
 static void
 gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
@@ -1398,8 +1411,15 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .vel_rng = &gks->local_ext_vel,
     .use_gpu = app->use_gpu
   });
-  gks->global_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
   gks->local_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
+  gks->global_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
+  if ( s->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
+    s->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC ) {
+    gks->update_cell_mask_func = gk_species_update_cell_mask_allreduce
+  }
+  else {
+    gks->update_cell_mask_func = gk_species_update_cell_mask_advance;
+  }
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
@@ -1819,18 +1839,7 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 void
 gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin)
 {
-  // Find the global maximum of fin
-  if (species->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
-      species->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC) {
-    gkyl_array_reduce(species->local_max_f, fin, GKYL_MAX);
-    gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, species->local_max_f, species->global_max_f);
-    gkyl_dg_array_mask_advance_threshold(species->update_cell, species->global_max_f[0]);
-
-    gkyl_dg_array_mask_advance(species->update_cell, fin);
-  } 
-  else {
-    gkyl_dg_array_mask_advance(species->update_cell, fin);
-  }
+  species->update_cell_mask_func(species, fin);
 }
 
 void
