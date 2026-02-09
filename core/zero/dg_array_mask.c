@@ -219,15 +219,6 @@ gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(mask->local_max_arr);
   }
 
-  if (mask->global_max) {
-    if (GKYL_IS_CU_ALLOC(mask->flags)) {
-      gkyl_cu_free(mask->global_max);
-    }
-    else {
-      gkyl_free(mask->global_max);
-    }
-  }
-
   if (GKYL_IS_CU_ALLOC(mask->flags)) {
     gkyl_cu_free(mask->on_dev);
   }
@@ -247,7 +238,6 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->frac_threshold = 0.0;
   mask->mask_arr = 0;
   mask->local_max_arr = 0;
-  mask->global_max = 0;
   mask->mask_rng = 0;
   mask->mask_rng_ext = 0;
   mask->mask_rng_ndim = 0;
@@ -323,7 +313,6 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
       mask->frac_threshold = mask_inp.threshold;
-      mask->global_max = (double *)gkyl_malloc(sizeof(double)); // Pre-allocate array for global reduction
     }
     else if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF) {

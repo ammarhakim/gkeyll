@@ -304,7 +304,6 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->mask_rng_ndim = mask_ho->mask_rng_ndim;
   mask->mask_arr = 0;
   mask->local_max_arr = 0;
-  mask->global_max = 0;
 
   // Copy host function pointers (used for CPU-side dispatch)
   mask->advance_func = mask_ho->advance_func;
@@ -366,7 +365,6 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
     }
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
       mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
-      mask->global_max = (double *)gkyl_cu_malloc(sizeof(double));
     }
 
     // Initialize the device object.
