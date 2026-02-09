@@ -1398,6 +1398,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .vel_rng = &gks->local_ext_vel,
     .use_gpu = app->use_gpu
   });
+  gks->global_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
+  gks->local_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
@@ -1818,16 +1820,17 @@ void
 gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin)
 {
   // Find the global maximum of fin
-  double *global_max = gkyl_malloc(sizeof(double) * fin->ncomp);
-  double *local_max = gkyl_malloc(sizeof(double) * fin->ncomp);
-  gkyl_array_reduce(local_max, fin, GKYL_MAX);
-  gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, local_max, global_max);
-  gkyl_dg_array_mask_advance_threshold(species->update_cell, global_max[0]);
+  if (species->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
+      species->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC) {
+    gkyl_array_reduce(species->local_max_f, fin, GKYL_MAX);
+    gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, species->local_max_f, species->global_max_f);
+    gkyl_dg_array_mask_advance_threshold(species->update_cell, species->global_max_f[0]);
 
-  gkyl_dg_array_mask_advance(species->update_cell, fin);
-
-  gkyl_free(local_max);
-  gkyl_free(global_max);
+    gkyl_dg_array_mask_advance(species->update_cell, fin);
+  } 
+  else {
+    gkyl_dg_array_mask_advance(species->update_cell, fin);
+  }
 }
 
 void
@@ -1910,6 +1913,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_velocity_map_release(s->vel_map);
 
   gkyl_dg_array_mask_release(s->update_cell);
+  gkyl_free(s->local_max_f);
+  gkyl_free(s->global_max_f);
 
   gk_species_collisionless_release(app, &s->collisionless);
 

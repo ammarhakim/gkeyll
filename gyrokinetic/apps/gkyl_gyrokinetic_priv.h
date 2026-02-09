@@ -947,6 +947,8 @@ struct gk_species {
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_dg_array_mask *update_cell; // Object to skip cells in updates.
+  double *global_max_f; // Global maximum of f for array mask applications. Maximum of local_max_f
+  double *local_max_f; // Local maximum of f for array mask applications.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
