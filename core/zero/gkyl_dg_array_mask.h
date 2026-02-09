@@ -43,7 +43,6 @@ struct gkyl_dg_array_mask_inp {
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp);
 
-
 /**
  * Compute the appropriate threshold for fractional threshold masks.
  *
@@ -63,7 +62,7 @@ gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
 void
 gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
-/** 
+/**
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
  *
  * Note that this method is intended for use outside of a loop over the grid or
@@ -75,7 +74,7 @@ gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_ar
  * @param idx Multi-dimensional index array.
  * @param val Value of the mask at the given index.
  */
-void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx, bool *val);
+void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, bool *val);
 
 /**
  * Scale the dg_array_mask by an array, modifying the mask.

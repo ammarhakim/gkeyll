@@ -235,7 +235,7 @@ gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
   gkyl_free(mask);
 }
 
-struct gkyl_dg_array_mask *
+struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
 {
   struct gkyl_dg_array_mask *mask = gkyl_malloc(sizeof(*mask));
@@ -297,7 +297,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     mask->eval_idx_func = eval_idx_ker_disabled;
   else
     mask->eval_idx_func = eval_idx_ker_enabled;
-    
+
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
     // Store all ranges from input as pointers.
     mask->vel_rng = mask_inp.vel_rng;
@@ -365,7 +365,7 @@ gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask,
   mask->scale_by_cell_func(mask, arr_to_multiply);
 }
 
-struct gkyl_dg_array_mask *
+struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
 {
   gkyl_ref_count_inc(&mask->ref_count);
@@ -385,13 +385,13 @@ gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, boo
   val[0] = mask->eval_idx_func(mask, idx);
 }
 
-struct gkyl_dg_array_mask *
+struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask)
 {
   return mask->on_dev;
 }
 
-const struct gkyl_array *
+const struct gkyl_array*
 gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask)
 {
   return mask->mask_arr;
