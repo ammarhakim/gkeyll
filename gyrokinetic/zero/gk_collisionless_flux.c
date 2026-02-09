@@ -9,6 +9,7 @@
 #include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_gk_collisionless_flux_priv.h>
 #include <gkyl_dg_array_mask.h>
+#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_util.h>
 
 gkyl_gk_collisionless_flux*
@@ -144,8 +145,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         cfl_temp = up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       }
-      if (gkyl_dg_array_mask_eval(up->update_cell, locL) && 
-          gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
+      if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) && 
+          gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
         cflrate_d[0] += cfl_temp;
       }
 
@@ -174,8 +175,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
         cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
-      if (gkyl_dg_array_mask_eval(up->update_cell, locL) && 
-          gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
+      if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) && 
+          gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
           cflrate_ext_d[0] += cfl_temp;
         }
       }  
@@ -222,8 +223,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     cfl_temp += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
 
-    if (gkyl_dg_array_mask_eval(up->update_cell, locL) &&
-        gkyl_dg_array_mask_eval(up->update_cell, loc_phase)) {
+    if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) &&
+        gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
       cflrate_d[0] += cfl_temp;
     }
   }

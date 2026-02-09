@@ -250,6 +250,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
   mask->global_max = 0;
   mask->mask_rng = 0;
   mask->mask_rng_ext = 0;
+  mask->mask_rng_ndim = 0;
   mask->conf_rng = 0;
   mask->conf_rng_ext = 0;
   mask->vel_rng = 0;
@@ -291,6 +292,11 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     default:
       break;
   }
+
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
+    mask->eval_idx_func = eval_idx_ker_disabled;
+  else
+    mask->eval_idx_func = eval_idx_ker_enabled;
     
   if (mask->type != GKYL_DG_ARRAY_MASK_NONE) {
     // Store all ranges from input as pointers.
@@ -307,6 +313,7 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
       mask->mask_rng = mask_inp.conf_rng;
       mask->mask_rng_ext = mask_inp.conf_rng_ext;
     }
+    mask->mask_rng_ndim = mask->mask_rng->ndim;
 
     mask->scale_by_cell_func = scale_by_cell_active;
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS ||
@@ -365,16 +372,17 @@ gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
   return (struct gkyl_dg_array_mask *)mask;
 }
 
-bool
-gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx)
+void
+gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, bool *val)
 {
-  return gkyl_dg_array_mask_eval_ker(mask, lidx);
-}
+#ifdef GKYL_HAVE_CUDA
+  if (mask->use_gpu) {
+    gkyl_dg_array_mask_eval_idx_cu(mask, idx, val);
+    return;
+  }
+#endif
 
-bool
-gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx)
-{
-  return gkyl_dg_array_mask_eval_idx_ker(mask, idx);
+  val[0] = mask->eval_idx_func(mask, idx);
 }
 
 struct gkyl_dg_array_mask *

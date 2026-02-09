@@ -125,7 +125,7 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
       
     // Shift f if needed.
     bool shifted_node = false;
-    if (gkyl_dg_array_mask_eval_ker(update_cell, plinidx)) {
+    if (gkyl_dg_array_mask_eval_idx_ker(update_cell, pidx)) {
       // Divide by jacobtot and jacobvel so that we are shifting just f.
       kers->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
       for (int k=0; k<distf->ncomp; k++)

@@ -10,8 +10,6 @@ extern "C" {
 #include <float.h>
 }
 
-#ifdef GKYL_HAVE_CUDA
-
 // CUDA kernel for LESS_THAN_THRESHOLD masks
 __global__ void
 gkyl_dg_array_mask_less_than_kernel(struct gkyl_range mask_rng,
@@ -258,7 +256,35 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
   mask->advance_func_cu(mask, arr_to_mask);
 }
 
-#endif
+struct dg_array_mask_idx {
+  int idx[GKYL_MAX_DIM]; // Index.
+};
+
+__global__ static void
+gkyl_dg_array_mask_eval_idx_kernel(struct gkyl_dg_array_mask *mask,
+  struct dg_array_mask_idx idx_struct, bool *val)
+{
+  val[0] = mask->eval_idx_func(mask, idx_struct.idx);
+}
+
+void
+gkyl_dg_array_mask_eval_idx_cu(struct gkyl_dg_array_mask *mask, const int *idx, bool *val)
+{
+  struct dg_array_mask_idx idx_struct = {};
+  for (int d=0; d<mask->mask_rng_ndim; d++)
+    idx_struct.idx[d] = idx[d];
+
+  gkyl_dg_array_mask_eval_idx_kernel<<<1,1>>>(mask->on_dev, idx_struct, val);
+}
+
+__global__ static void
+gkyl_dg_array_mask_set_dev_func_ptr(struct gkyl_dg_array_mask *mask, enum gkyl_dg_array_mask_types)
+{
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
+    mask->eval_idx_func = eval_idx_ker_disabled;
+  else
+    mask->eval_idx_func = eval_idx_ker_enabled;
+}
 
 struct gkyl_dg_array_mask *
 gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
@@ -274,6 +300,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->vel_rng = mask_ho->vel_rng;
   mask->mask_rng = mask_ho->mask_rng;
   mask->mask_rng_ext = mask_ho->mask_rng_ext;
+  mask->mask_rng_ndim = mask_ho->mask_rng_ndim;
   mask->mask_arr = 0;
   mask->local_max_arr = 0;
   mask->global_max = 0;
@@ -315,7 +342,11 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       break;
   }
 
-  // For NONE type, don't allocate mask array
+  if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
+    mask->eval_idx_func = eval_idx_ker_disabled;
+  else
+    mask->eval_idx_func = eval_idx_ker_enabled;
+
   if (mask->type==GKYL_DG_ARRAY_MASK_NONE) {
     // Initialize the device object.
     struct gkyl_dg_array_mask *mask_cu =
@@ -325,7 +356,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   }
   else {
     struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask_arr->ncomp,
-        mask_ho->mask_arr->size);
+      mask_ho->mask_arr->size);
     gkyl_array_copy(mask_array, mask_ho->mask_arr);
     mask->mask_arr = mask_array->on_dev;
     if (mask->type==GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
@@ -347,5 +378,8 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
     mask->mask_arr = mask_array;
   }
 
+  gkyl_dg_array_mask_set_dev_func_ptr<<<1,1>>>(mask->on_dev, mask->type);
+
+  // For NONE type, don't allocate mask array
   return mask;
 }
