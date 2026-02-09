@@ -167,7 +167,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
     .bfield_func = eval_bfield_1x,  .bfield_ctx = &proj_ctx,
     .basis = confBasis,  .grid = confGrid,

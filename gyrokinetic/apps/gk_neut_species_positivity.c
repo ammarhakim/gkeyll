@@ -14,10 +14,8 @@ gkns_pos_deltaf_moms_calc(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkn
 {
   gk_neut_species_moment_calc(&pos->moms, gkns->local, app->local, pos->fbuffer_ptr);
 
-  // Rescale moment by inverse of Jacobian.
-  gkyl_dg_div_op_range(pos->moms.mem_geo, app->basis, 
-    0, pos->moms.marr, 0, pos->moms.marr, 0, 
-    app->gk_geom->geo_int.jacobgeo, &app->local);  
+  // Rescale moment by inverse of Jacobian if needed.
+  gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
 }
 
 static void
@@ -32,13 +30,12 @@ static void
 gkns_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_positivity *pos, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();
   // We placed the change in f in fbuffer_ptr.
@@ -48,10 +45,12 @@ gkns_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *
   if (app->use_gpu)
     gkyl_array_copy(pos->moms.marr_host, pos->moms.marr);
 
-  const char *fmt = "%s-%s_positivity_FourMoments_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, frame);
+  const char *fmt = "%s-%s_positivity_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -202,7 +201,7 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
-      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0, false);
+      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
 
       // Integrated moments of delta f.
       gk_neut_species_moment_init(app, gkns, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);

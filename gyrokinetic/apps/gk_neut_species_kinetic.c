@@ -189,6 +189,7 @@ static void
 gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for kinetic neutral species.
+  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
 
   gkyl_array_release(ns->f);
   if (ns->info.init_from_file.type == 0) {
@@ -437,14 +438,20 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app, struc
       }
     }
 
-    struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
-          .meta = hdr.meta,
-          .meta_sz = hdr.meta_size
-        }, GKYL_GK_META_NONE, 0
-      );
-    assert(strcmp(s->basis.id, meta.basis_type_nm) == 0);
-    assert(poly_order == meta.poly_order);
+    // Read basis info from header, check its consistency.
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
+    assert(strcmp(s->basis.id, gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
+    assert(poly_order == gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "poly_order"));
+    gkyl_msgpack_map_elem_release_string(elem_list_len, elem_list, "basis_type");
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
 
@@ -724,6 +731,14 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
       s->upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
     }
   }
+
+  // Metadata for gk_neut_species app.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id }
+  };
+  s->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  s->io_meta = gkyl_msgpack_map_elem_clone(s->io_meta_len, io_meta);
 
   // Allocate distribution function array for initialization and I/O.
   s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);

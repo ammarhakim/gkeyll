@@ -104,7 +104,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
       gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->B)
     );
     
-    if (fl_coord == GKYL_MIRROR_GRID_GEN_PSI_CART_Z)
+    if (fl_coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z)
       TEST_CHECK( gkyl_compare_double(Bmag*g->Jc/sqrt(g33), 1.0, 1e-14) );
 
     // check B only points in the parallel direction
@@ -155,25 +155,25 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
 static void
 test_wham_no_axis_psi(void)
 {
-  test_wham(false, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
 test_wham_with_axis_psi(void)
 {
-  test_wham(true, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
 test_wham_no_axis_sqrt_psi(void)
 {
-  test_wham(false, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 static void
 test_wham_with_axis_sqrt_psi(void)
 {
-  test_wham(true, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 static void
@@ -290,7 +290,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     );
 
     if (r>0) {
-      if (fl_coord == GKYL_MIRROR_GRID_GEN_PSI_CART_Z) {
+      if (fl_coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z) {
         // g00
         TEST_CHECK ( gkyl_compare_double(1/(SQ(r)*SQ(1+SQ(z))), g00, 1e-14) );
         // g01
@@ -309,7 +309,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
         );
     }
       
-      if (fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+      if (fl_coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
         double psil = 0.5*SQ(r)*(1+SQ(z));
         
         // g00
@@ -357,25 +357,25 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 static void
 test_quad_geom_no_axis_psi(void)
 {
-  test_quad_geom(false, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
 test_quad_geom_with_axis_psi(void)
 {
-  test_quad_geom(true, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
 test_quad_geom_no_axis_sqrt_psi(void)
 {
-  test_quad_geom(false, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 static void
 test_quad_geom_with_axis_sqrt_psi(void)
 {
-  test_quad_geom(true, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 TEST_LIST = {
