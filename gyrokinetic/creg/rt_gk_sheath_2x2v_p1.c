@@ -636,13 +636,13 @@ main(int argc, char **argv)
         .ctx_upar = &ctx,
       }, 
 
-//      .diagnostics = {
-//        .num_diag_moments = 5,
-//        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
-//        .num_integrated_diag_moments = 1,
-//        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-////        .time_integrated = true,
-//      }
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
     
     .anomalous_diffusion = {
@@ -663,15 +663,15 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//    .time_rate_diagnostics = true,
-//
-//    .boundary_flux_diagnostics = {
-//      .num_diag_moments = 1,
-//      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//      .num_integrated_diag_moments = 1,
-//      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-////      .time_integrated = true,
-//    },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Ions.
@@ -723,13 +723,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
-//      .diagnostics = {
-//        .num_diag_moments = 5,
-//        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
-//        .num_integrated_diag_moments = 1,
-//        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-////        .time_integrated = true,
-//      }
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
 
     .anomalous_diffusion = {
@@ -750,15 +750,15 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//    .time_rate_diagnostics = true,
-//
-//    .boundary_flux_diagnostics = {
-//      .num_diag_moments = 1,
-//      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//      .num_integrated_diag_moments = 1,
-//      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-////      .time_integrated = true,
-//    },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // Field.
@@ -768,7 +768,7 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
 
-//    .time_rate_diagnostics = true,
+    .time_rate_diagnostics = true,
   };
 
   // Gyrokinetic app.
@@ -785,18 +785,18 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 //    .cfl_frac_omegaH = 1e10,
 
-    .sundials_stepper = {
-      .enable = true,
-//      .relative_tolerance = 1e-5,
-//      .absolute_tolerance = 1e-12,
-//      .max_steps = 100000,
-      .num_stages = 3,
-      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
-//      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
-//      .max_num_stages = 10,
-//      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
-//      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
-    },
+//    .sundials_stepper = {
+//      .enable = true,
+////      .relative_tolerance = 1e-5,
+////      .absolute_tolerance = 1e-12,
+////      .max_steps = 100000,
+//      .num_stages = 3,
+//      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
+////      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
+////      .max_num_stages = 10,
+////      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+////      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
+//    },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,

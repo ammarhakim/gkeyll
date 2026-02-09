@@ -438,6 +438,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
+  double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
+
   struct gkyl_gyrokinetic_ic_import init_from_file;
   
   // Initial conditions using projection routine.

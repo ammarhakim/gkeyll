@@ -503,6 +503,7 @@ struct gk_boundary_fluxes {
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
+  struct gkyl_array **f_copy; // Copy of f.
   struct gk_species_moment *moms_op; // Moments calculator.
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
@@ -1119,6 +1120,13 @@ struct gk_neut_species {
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
+  // Core and SOL ranges for IWL sims.
+  struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+  struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
+  struct gkyl_range lower_skin_par_core, lower_ghost_par_core;
+  struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
+  struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
+  struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
