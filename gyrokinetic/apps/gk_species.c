@@ -1411,11 +1411,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .vel_rng = &gks->local_ext_vel,
     .use_gpu = app->use_gpu
   });
-  gks->local_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
-  gks->global_max_f = gkyl_malloc(sizeof(double) * fin->ncomp);
-  if ( s->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
-    s->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC ) {
-    gks->update_cell_mask_func = gk_species_update_cell_mask_allreduce
+  gks->local_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
+  gks->global_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
+  if ( gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
+    gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC ) {
+    gks->update_cell_mask_func = gk_species_update_cell_mask_allreduce;
   }
   else {
     gks->update_cell_mask_func = gk_species_update_cell_mask_advance;
