@@ -1744,6 +1744,64 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 }
 
+int
+gk_species_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  int num_nvec = 0;
+  if (!gks->info.is_static) {
+    gks->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, gks->f, gks->comm, &gks->local, false);
+    num_nvec++;
+
+    num_nvec += gk_species_bflux_sundials_nvec_new(app, gks, &gks->bflux);
+  }
+  return num_nvec;
+}
+
+int
+gk_species_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off) 
+{
+  struct gk_species *gks = &app->species[sidx];
+
+  int num_nvec = 0;
+  if (!gks->info.is_static) {
+    struct gkyl_gyrokinetic_fdot_args *fdot_args = &app->fdot_args;
+
+    snvec_arr[*snvec_arr_off] = gks->sundials_nvec;
+    fdot_args->offset_distf_charged[sidx] = *snvec_arr_off;
+    fdot_args->num_arr_distf_charged[sidx] = 1;
+    (*snvec_arr_off)++;
+    num_nvec++;
+
+    fdot_args->offset_bflux_charged[sidx] = *snvec_arr_off;
+    fdot_args->num_arr_bflux_charged[sidx] = gk_species_bflux_sundials_nvec_pack(app, sidx, &gks->bflux, snvec_arr, snvec_arr_off);
+    num_nvec += fdot_args->num_arr_bflux_charged[sidx];
+  }
+  return num_nvec;
+}
+
+void
+gk_species_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  if (!gks->info.is_static) {
+    snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials, gks->lte.f_lte, gks->comm, &gks->local, false);
+    (*snvec_arr_off)++;
+
+    gk_species_bflux_sundials_nvec_new_pack_buff(app, gks, &gks->bflux, snvec_arr, snvec_arr_off);
+  }
+}
+
+void
+gk_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  if (!gks->info.is_static) {
+    gkyl_sundials_nvec_release(gks->sundials_nvec);
+
+    gk_species_bflux_sundials_nvec_release(app, gks, &gks->bflux);
+  }
+}
+
 void
 gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0)
 {

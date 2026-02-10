@@ -13,6 +13,64 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
 }
 
+int
+gk_neut_species_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+{
+  int num_nvec = 0;
+  if (!ns->info.is_static) {
+    ns->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, ns->f, ns->comm, &ns->local, false);
+    num_nvec++;
+
+    num_nvec += gk_neut_species_bflux_sundials_nvec_new(app, ns, &ns->bflux);
+  }
+  return num_nvec;
+}
+
+int
+gk_neut_species_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  struct gk_neut_species *ns = &app->neut_species[sidx];
+
+  int num_nvec = 0;
+  if (!ns->info.is_static) {
+    struct gkyl_gyrokinetic_fdot_args *fdot_args = &app->fdot_args;
+
+    snvec_arr[*snvec_arr_off] = ns->sundials_nvec;
+    fdot_args->offset_distf_neut[sidx] = *snvec_arr_off;
+    fdot_args->num_arr_distf_neut[sidx] = 1;
+    (*snvec_arr_off)++;
+    num_nvec++;
+
+    fdot_args->offset_bflux_neut[sidx] = *snvec_arr_off;
+    fdot_args->num_arr_bflux_neut[sidx] = gk_neut_species_bflux_sundials_nvec_pack(app, sidx, &ns->bflux, snvec_arr, snvec_arr_off);
+    num_nvec += fdot_args->num_arr_bflux_neut[sidx];
+  }
+  return num_nvec;
+}
+
+void
+gk_neut_species_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  if (!ns->info.is_static) {
+    snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials, ns->lte.f_lte, ns->comm, &ns->local, false);
+    (*snvec_arr_off)++;
+
+    gk_neut_species_bflux_sundials_nvec_new_pack_buff(app, ns, &ns->bflux, snvec_arr, snvec_arr_off);
+  }
+}
+
+void
+gk_neut_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+{
+  if (!ns->info.is_static) {
+    gkyl_sundials_nvec_release(ns->sundials_nvec);
+
+    gk_neut_species_bflux_sundials_nvec_release(app, ns, &ns->bflux);
+  }
+}
+
 void
 gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
 {

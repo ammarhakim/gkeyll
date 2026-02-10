@@ -80,6 +80,7 @@ snvec_clone_empty(N_Vector nvin)
   content->arr         = NULL;
   content->comm        = NULL;
   content->local_range = NULL;
+  content->is_passive  = SUNFALSE;
   content->red_mem     = NULL;
 
   return nvout;
@@ -110,6 +111,7 @@ snvec_clone(N_Vector nvin)
   NV_CONTENT_GKZ(nvout)->use_gpu     = NV_CONTENT_GKZ(nvin)->use_gpu;
   NV_CONTENT_GKZ(nvout)->comm        = NV_CONTENT_GKZ(nvin)->comm;
   NV_CONTENT_GKZ(nvout)->local_range = NV_CONTENT_GKZ(nvin)->local_range;
+  NV_CONTENT_GKZ(nvout)->is_passive  = NV_CONTENT_GKZ(nvin)->is_passive;
   NV_CONTENT_GKZ(nvout)->red_mem     = NV_CONTENT_GKZ(nvin)->red_mem;
   NV_CONTENT_GKZ(nvout)->own_vector  = SUNTRUE;
 
@@ -320,6 +322,10 @@ snvec_add_const(N_Vector u, sunrealtype x, N_Vector v)
 static sunrealtype
 snvec_dot_product(N_Vector x, N_Vector y)
 {
+  bool is_passive = NV_CONTENT_GKZ(x)->is_passive;
+  if (is_passive)
+    return 0.0;
+
   struct gkyl_array *x_arr = NV_CONTENT_GKZ(x)->arr;
   struct gkyl_array *y_arr = NV_CONTENT_GKZ(y)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(y)->comm;
@@ -353,6 +359,10 @@ snvec_dot_product(N_Vector x, N_Vector y)
 static sunrealtype
 snvec_abs_max_norm(N_Vector u)
 {
+  bool is_passive = NV_CONTENT_GKZ(u)->is_passive;
+  if (is_passive)
+    return 0.0;
+
   struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(u)->comm;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
@@ -397,6 +407,10 @@ snvec_abs_max_norm(N_Vector u)
 static sunrealtype
 snvec_wrms_norm(N_Vector nvx, N_Vector nvwgt)
 {
+  bool is_passive = NV_CONTENT_GKZ(nvx)->is_passive;
+  if (is_passive)
+    return 0.0;
+
   struct gkyl_array *nvx_arr = NV_CONTENT_GKZ(nvx)->arr;
   struct gkyl_array *nvwgt_arr = NV_CONTENT_GKZ(nvwgt)->arr;
   struct gkyl_comm *comm = NV_CONTENT_GKZ(nvwgt)->comm;
@@ -483,6 +497,7 @@ snvec_new_empty(SUNContext sunctx)
   content->arr         = 0;
   content->comm        = 0;
   content->local_range = 0;
+  content->is_passive  = SUNFALSE;
   content->red_mem     = 0;
 
   return nvec;
@@ -863,7 +878,7 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
 
 struct gkyl_sundials_nvec*
 gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
-  struct gkyl_comm *comm, struct gkyl_range *local_range)
+  struct gkyl_comm *comm, struct gkyl_range *local_range, bool is_passive)
 {
   struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
 
@@ -893,6 +908,7 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
   NV_CONTENT_GKZ(nvout)->comm = comm;
   NV_CONTENT_GKZ(nvout)->local_range = local_range;
+  NV_CONTENT_GKZ(nvout)->is_passive = is_passive;
   NV_CONTENT_GKZ(nvout)->arr = arr;
   NV_CONTENT_GKZ(nvout)->red_mem = &gsnv->red_mem;
 
@@ -952,6 +968,12 @@ gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
   return gsmanynv;
 }
 
+int 
+gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun, struct gkyl_sundials_nvec* gsmanynv)
+{
+  return N_VGetNumSubvectors_ManyVector(gsmanynv->nvec);
+}
+
 void
 gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
 {
@@ -990,7 +1012,7 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
 
 struct gkyl_sundials_nvec*
 gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
-  struct gkyl_comm *comm, struct gkyl_range *local_range)
+  struct gkyl_comm *comm, struct gkyl_range *local_range, bool is_passive)
 {
   // Do nothing.
 }
@@ -1012,6 +1034,13 @@ gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
   struct gkyl_sundials_nvec *gsnv_arr[])
 {
   // Do nothing.
+}
+
+
+int 
+gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun, struct gkyl_sundials_nvec* gsmanynv)
+{
+  return 0;
 }
 
 void

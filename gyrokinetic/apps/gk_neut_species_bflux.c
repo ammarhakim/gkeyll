@@ -972,6 +972,68 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
 
 }
 
+int
+gk_neut_species_bflux_sundials_nvec_new(gkyl_gyrokinetic_app *app, void *gkns, struct gk_boundary_fluxes *bflux)
+{
+  int num_nvec = 0;
+  if (bflux->num_boundaries > 0) {
+    bflux->sundials_nvec = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_sundials_nvec *));
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      for (int m=0; m<bflux->num_calc_moms; m++) {
+        bflux->sundials_nvec[b*bflux->num_calc_moms+m] = gkyl_sundials_nvec_new(app->gk_sundials,
+          bflux->f[b*bflux->num_calc_moms+m], app->comm, &app->local, true);
+        num_nvec++;
+      }
+    }
+  }
+  return num_nvec;
+}
+
+int
+gk_neut_species_bflux_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx, struct gk_boundary_fluxes *bflux,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  int num_nvec = 0;
+  if (bflux->num_boundaries > 0) {
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      for (int m=0; m<bflux->num_calc_moms; m++) {
+        snvec_arr[*snvec_arr_off] = bflux->sundials_nvec[b*bflux->num_calc_moms+m];
+        (*snvec_arr_off)++;
+        num_nvec++;
+      }
+    }
+  }
+  return num_nvec;
+}
+
+void
+gk_neut_species_bflux_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, void *gkns, struct gk_boundary_fluxes *bflux,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  if (bflux->num_boundaries > 0) {
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      for (int m=0; m<bflux->num_calc_moms; m++) {
+        snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials,
+          bflux->fnew[b*bflux->num_calc_moms+m], app->comm, &app->local, true);
+        (*snvec_arr_off)++;
+      }
+    }
+  }
+}
+
+void
+gk_neut_species_bflux_sundials_nvec_release(gkyl_gyrokinetic_app *app, void *gkns, struct gk_boundary_fluxes *bflux)
+{
+  if (bflux->num_boundaries > 0) {
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      for (int m=0; m<bflux->num_calc_moms; m++) {
+        gkyl_sundials_nvec_release(bflux->sundials_nvec[b*bflux->num_calc_moms+m]);
+      }
+    }
+    gkyl_free(bflux->sundials_nvec);
+  }
+}
+
 void
 gk_neut_species_bflux_read_voltime_integrated_mom(gkyl_gyrokinetic_app *app,
   void *species, struct gk_boundary_fluxes *bflux)

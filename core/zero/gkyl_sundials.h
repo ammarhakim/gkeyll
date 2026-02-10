@@ -136,10 +136,13 @@ typedef struct gkyl_sundials_nvec gkyl_sundials_nvec; // Sundials nvector.
  * @param arr Gkeyll array to wrap.
  * @param comm Gkeyll communicator object.
  * @param local_range Local range to loop over arr.
+ * @param is_passive Whether this is a passively evolved quantity, i.e. not
+ *        included in dt or error norm calculations.
  * @return A new NVECTOR.
  */
 struct gkyl_sundials_nvec* gkyl_sundials_nvec_new(struct gkyl_sundials *gksun,
-  struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range);
+  struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range,
+  bool is_passive);
 
 /**
  * Fetch the Gkeyll array wrapped by an NVECTOR.
@@ -167,6 +170,16 @@ void gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *nvin);
  */
 struct gkyl_sundials_nvec* gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun,
   int num_nvector, struct gkyl_sundials_nvec* gsnv_arr[]);
+
+/**
+ * Return the number of sub-vectors in a Sundials ManyNVector object.
+ *
+ * @param gksun SUNDIALS object.
+ * @param gsmanynv A Gkeyll-Sundials ManyNVector.
+ * @return Number of subvectors.
+ */
+int gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_nvec* gsmanynv);
 
 /**
  * Destroy SUNDIALS ManyNVECTOR.

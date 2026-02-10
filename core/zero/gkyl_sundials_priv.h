@@ -32,6 +32,8 @@ struct _N_VectorContent_Gkeyll
   struct gkyl_comm *comm; // Communicator.
   struct gkyl_range *local_range; // Local range.
   struct gkyl_sundials_reduce_mem *red_mem; // Memory for reductions.
+  bool is_passive; // Whether the quantity wrapped is passively evolved, i.e.
+                   // not included in the calculation of dt or error norms.
 };
 
 typedef struct _N_VectorContent_Gkeyll* N_VectorContent_Gkeyll;

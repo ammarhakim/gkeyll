@@ -40,6 +40,141 @@ snvec_efun_cell_norm_gyrokinetic(N_Vector manyx, N_Vector manyw, void *ctx)
   return flag;
 }
 
+static inline void
+unpack_manynvec_gyrokinetic_distf(struct gkyl_array **distf, int num_species,
+  N_Vector manynvec, int manynvec_offset, int num_nvec)
+{
+  for (int i=0; i<num_species; ++i)
+    distf[i] = smanynvec_get_array(manynvec, manynvec_offset);
+}
+
+static inline void
+unpack_manynvec_gyrokinetic_bflux(struct gkyl_array ***bflux, int num_species,
+  N_Vector manynvec, int manynvec_offset, int num_nvec)
+{
+  for (int i=0; i<num_species; ++i) {
+    struct gkyl_array **bflux_s = bflux[i];
+    for (int j=0; j<num_nvec; ++j)
+      bflux_s[j] = smanynvec_get_array(manynvec, manynvec_offset+j);
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_charged_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_species; ++i) {
+    fdot_args->fin[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_charged[i]);
+
+    struct gkyl_array **bflux_s = fdot_args->bflux_in[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_charged[i]; ++j) {
+      int off = fdot_args->offset_bflux_charged[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_neut_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_neut_species; ++i) {
+    fdot_args->fin_neut[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_neut[i]);
+
+    struct gkyl_array **bflux_s = fdot_args->bflux_in_neut[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_neut[i]; ++j) {
+      int off = fdot_args->offset_bflux_neut[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_charged_out(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_species; ++i) {
+    fdot_args->fout[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_charged[i]);
+
+    struct gkyl_array **bflux_s = fdot_args->bflux_out[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_charged[i]; ++j) {
+      int off = fdot_args->offset_bflux_charged[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_neut_out(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_neut_species; ++i) {
+    fdot_args->fout_neut[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_neut[i]);
+
+    struct gkyl_array **bflux_s = fdot_args->bflux_out_neut[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_neut[i]; ++j) {
+      int off = fdot_args->offset_bflux_neut[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_charged(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_in, N_Vector manynvec_out)
+{
+  for (int i=0; i<fdot_args->num_species; ++i) {
+    fdot_args->fin[i] = smanynvec_get_array(manynvec_in, fdot_args->offset_distf_charged[i]);
+    fdot_args->fout[i] = smanynvec_get_array(manynvec_out, fdot_args->offset_distf_charged[i]);
+
+    struct gkyl_array **bflux_in_s = fdot_args->bflux_in[i];
+    struct gkyl_array **bflux_out_s = fdot_args->bflux_out[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_charged[i]; ++j) {
+      int off = fdot_args->offset_bflux_charged[i];
+      bflux_in_s[j] = smanynvec_get_array(manynvec_in, off+j);
+      bflux_out_s[j] = smanynvec_get_array(manynvec_out, off+j);
+    }
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_neut(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_in, N_Vector manynvec_out)
+{
+  for (int i=0; i<fdot_args->num_neut_species; ++i) {
+    fdot_args->fin_neut[i] = smanynvec_get_array(manynvec_in, fdot_args->offset_distf_neut[i]);
+    fdot_args->fout_neut[i] = smanynvec_get_array(manynvec_out, fdot_args->offset_distf_neut[i]);
+
+    struct gkyl_array **bflux_in_s = fdot_args->bflux_in_neut[i];
+    struct gkyl_array **bflux_out_s = fdot_args->bflux_out_neut[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_neut[i]; ++j) {
+      int off = fdot_args->offset_bflux_neut[i];
+      bflux_in_s[j] = smanynvec_get_array(manynvec_in, off+j);
+      bflux_out_s[j] = smanynvec_get_array(manynvec_out, off+j);
+    }
+  }
+}
+
+static inline void
+unpack_manynvec_gyrokinetic_in(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_in)
+{
+  unpack_manynvec_gyrokinetic_charged_in(fdot_args, manynvec_in);
+  unpack_manynvec_gyrokinetic_neut_in(fdot_args, manynvec_in);
+}
+
+static inline void
+unpack_manynvec_gyrokinetic_out(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_out)
+{
+  unpack_manynvec_gyrokinetic_charged_out(fdot_args, manynvec_out);
+  unpack_manynvec_gyrokinetic_neut_out(fdot_args, manynvec_out);
+}
+
+static inline void
+unpack_manynvec_gyrokinetic(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_in, N_Vector manynvec_out)
+{
+  unpack_manynvec_gyrokinetic_charged(fdot_args, manynvec_in, manynvec_out);
+  unpack_manynvec_gyrokinetic_neut(fdot_args, manynvec_in, manynvec_out);
+}
+
 /**
  * Compute the RHS function df/dt.
  *
@@ -55,21 +190,8 @@ dfdt_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
 
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
   // Distribute state vector as Gkeyll expects.
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-    fout[i] = smanynvec_get_array(manynvec_ydot, i);
-  }
+  unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
@@ -93,21 +215,8 @@ dfdt_sts_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
 
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
   // Distribute state vector as Gkeyll expects.
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-    fout[i] = smanynvec_get_array(manynvec_ydot, i);
-  }
+  unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
@@ -137,21 +246,7 @@ sts_dom_eig_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynv
 
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-    fout[i] = smanynvec_get_array(manynvec_ydot, i);
-  }
+  unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
 
   // Call the Gkeyll function that computes df/dt due to the operator stepped
   // with STS and compute it slocal CFL constrained dt.
@@ -204,30 +299,15 @@ pre_process_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void* 
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
-  // Distribute state vector as Gkeyll expects.
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_in = fdot_args->bflux_in;
-  struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fin[i] = smanynvec_get_array(manynvec_y, i);
-  }
-
   int stage_idx, num_stages;
   double dt;
   int flag = 0;
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
 
   app_ctx->pre_process_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
 
@@ -247,30 +327,20 @@ post_process_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void*
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
-  // Distribute state vector as Gkeyll expects.
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_in = fdot_args->bflux_in;
-  struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fout[i] = smanynvec_get_array(manynvec_y, i);
-  }
-
   int stage_idx, num_stages;
   double dt;
   int flag = 0;
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+  unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_y);
+  if (stage_idx == 0) {
+    N_Vector manynvec_yin;
+    flag = ARKodeGetCurrentState(app_ctx->arkode_mem, &manynvec_yin);
+    unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_yin);
+  }
 
   app_ctx->post_process_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
 
@@ -290,30 +360,15 @@ post_process_failed_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
-  // Distribute state vector as Gkeyll expects.
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  const struct gkyl_array **fin = fdot_args->fin;
-  const struct gkyl_array **fin_neut = fdot_args->fin_neut;
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_in = fdot_args->bflux_in;
-  struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  for (int i=0; i<ns_charged; ++i) {
-    fout[i] = smanynvec_get_array(manynvec_y, i);
-  }
-
   int stage_idx, num_stages;
   double dt;
   int flag = 0;
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
 
   app_ctx->post_process_failed_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
 

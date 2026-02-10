@@ -504,6 +504,7 @@ struct gk_boundary_fluxes {
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
   struct gkyl_array **f_copy; // Copy of f.
+  struct gkyl_sundials_nvec **sundials_nvec; // Sundials Nvector wrap of f.
   struct gk_species_moment *moms_op; // Moments calculator.
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
@@ -2218,6 +2219,47 @@ void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
   struct gkyl_phase_diagnostics_inp add_moms_inp);
 
 /**
+ * Allocate charged species Sundials NVectors to step boundary fluxes.
+ * Returns the number of nvectors allocated.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Species object. 
+ * @param bflux Species boundary flux object.
+ * @return number of nvectors allocated.
+ */
+int gk_species_bflux_sundials_nvec_new(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux);
+
+/**
+ * Pack charged species boundary flux SUNDIALS NVectors into given array.
+ * Increment array offset if nvectors were added to array.
+ * Returns the number of nvectors packed.
+ *
+ * @param app gyrokinetic app object.
+ * @param sidx Index of charged species in species array.
+ * @param bflux Species boundary flux object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ * @param Number of NVectors packed.
+ */
+int gk_species_bflux_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx, struct gk_boundary_fluxes *bflux,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Allocate new charged species boundary flux SUNDIALS NVectors using temporary
+ * buffers and pack them into given array. Increment array offset if nvectors
+ * were added to array.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Charged species object.
+ * @param bflux Species boundary flux object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ */
+void gk_species_bflux_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux, struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
  * In case time-integrated volume-integrated boundary flux diagnostics are
  * requested, read the final volume-time integrated diagnostics from the previous simulation.
  *
@@ -2430,14 +2472,24 @@ gk_species_bflux_write_mom(gkyl_gyrokinetic_app *app, void *species,
   struct gk_boundary_fluxes *bflux, double tm, int frame);
 
 /**
- * Release species boundary flux object.
+ * Release charged species boundary flux object.
  *
  * @param app Gyrokinetic app object.
- * @param species Species object.
+ * @param species Charged species object.
  * @param bflux Species boundary flux object to release.
  */
 void gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *species, 
   const struct gk_boundary_fluxes *bflux);
+
+/**
+ * Delete Sundials NVectors to step charged species boundary fluxes.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Charged species object. 
+ * @param bflux Species boundary flux object.
+ */
+void gk_species_bflux_sundials_nvec_release(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux);
 
 /** gk_neut_species_boundary_fluxes API */
 
@@ -2453,6 +2505,47 @@ void gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void
 void gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
   struct gk_boundary_fluxes *bflux, enum gkyl_species_bflux_type bflux_type,
   struct gkyl_phase_diagnostics_inp add_moms_inp);
+
+/**
+ * Allocate neutral species Sundials NVectors to step boundary fluxes.
+ * Returns the number of nvectors allocated.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Neutral species object. 
+ * @param bflux Species boundary flux object.
+ * @return number of nvectors allocated.
+ */
+int gk_neut_species_bflux_sundials_nvec_new(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux);
+
+/**
+ * Pack neutral species boundary flux SUNDIALS NVectors into given array.
+ * Increment array offset if nvectors were added to array.
+ * Returns the number of nvectors packed.
+ *
+ * @param app gyrokinetic app object.
+ * @param sidx Index of neutral species in neut_species array.
+ * @param bflux Species boundary flux object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ * @param Number of NVectors packed.
+ */
+int gk_neut_species_bflux_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx, struct gk_boundary_fluxes *bflux,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Allocate new neutral species boundary flux SUNDIALS NVectors using temporary
+ * buffers and pack them into given array. Increment array offset if nvectors
+ * were added to array.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Charged species object.
+ * @param bflux Species boundary flux object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ */
+void gk_neut_species_bflux_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux, struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
 
 /**
  * In case time-integrated volume-integrated boundary flux diagnostics are
@@ -2675,6 +2768,16 @@ gk_neut_species_bflux_write_mom(gkyl_gyrokinetic_app *app, void *species,
  */
 void gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *species, 
   const struct gk_boundary_fluxes *bflux);
+
+/**
+ * Delete Sundials NVectors to step neutral species boundary fluxes.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Species object. 
+ * @param bflux Species boundary flux object.
+ */
+void gk_neut_species_bflux_sundials_nvec_release(gkyl_gyrokinetic_app *app, void *gks,
+  struct gk_boundary_fluxes *bflux);
 
 /** gk_species_projection API */
 
@@ -3018,6 +3121,43 @@ void gk_species_heating_release(const struct gkyl_gyrokinetic_app *app, const st
 void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
+ * Allocate the SUNDIALS NVector for a given charged species.
+ * Return the number of vectors allocated.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Charged species object.
+ * @return number of nvectors allocated.
+ */
+int gk_species_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+
+/**
+ * Pack charged species SUNDIALS NVectors into given array. Increment array
+ * offset if nvectors were added to array.
+ * Returns the number of nvectors packed.
+ *
+ * @param app gyrokinetic app object.
+ * @param sidx Index of charged species in species array.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ * @param Number of NVectors packed.
+ */
+int gk_species_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Allocate new charged species SUNDIALS NVectors using temporary buffers and
+ * pack them into given array. Increment array offset if nvectors were added
+ * to array.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Charged species object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ */
+void gk_species_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
  * Compute species initial conditions.
  *
  * @param app gyrokinetic app object.
@@ -3223,6 +3363,14 @@ gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks,
  * @param species Species object to delete.
  */
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/**
+ * Delete SUNDIALS NVector for a given charged species.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Charged species object.
+ */
+void gk_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
 /** gk_neut_species_moment API */
 
@@ -3752,6 +3900,43 @@ void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, cons
 void gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
 
 /**
+ * Allocate the SUNDIALS NVector for a given neutral species.
+ * Return the number of vectors allocated.
+ *
+ * @param app gyrokinetic app object.
+ * @param ns Neutral species object.
+ * @return number of nvectors allocated.
+ */
+int gk_neut_species_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns);
+
+/**
+ * Pack neutral species SUNDIALS NVectors into given array. Increment array
+ * offset if nvectors were added to array.
+ * Returns the number of nvectors packed.
+ *
+ * @param app gyrokinetic app object.
+ * @param sidx Index of neutral species in neut_species array.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ * @param Number of NVectors packed.
+ */
+int gk_neut_species_sundials_nvec_pack(gkyl_gyrokinetic_app *app, int sidx,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Allocate new neutral species SUNDIALS NVectors using temporary buffers and
+ * pack them into given array. Increment array offset if nvectors were added
+ * to array.
+ *
+ * @param app gyrokinetic app object.
+ * @param ns Neutral species object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ */
+void gk_neut_species_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
  * Compute neutral species initial conditions.
  *
  * @param app gyrokinetic app object.
@@ -3906,6 +4091,16 @@ void gk_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_n
  * @param species Neutral species object to delete.
  */
 void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+
+/**
+ * Delete SUNDIALS NVector for a given neutral species.
+ *
+ * @param app gyrokinetic app object.
+ * @param ns Neutral species object.
+ */
+void gk_neut_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns);
+
+/** gk_neut_species_moment API */
 
 /** gk_field API */
 

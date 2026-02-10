@@ -111,14 +111,11 @@ gyrokinetic_post_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcur
   const struct gkyl_array **fin = fdot_args->fin;
   struct gkyl_array **fout = fdot_args->fout;
   struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_in = fdot_args->bflux_in;
   struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
   struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
 
   int ns_charged = app->num_species;
   int ns_neut = app->num_neut_species;
-
 
   // Divide new bflux by 1/dt (since forward Euler multiplied by dt).
   struct timespec wst = gkyl_wall_clock();
@@ -173,7 +170,6 @@ gyrokinetic_post_process_rk_stage_final(gkyl_gyrokinetic_app* app, double tcurr,
   struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
   // Operations at the end of the last RK stage.
-  const struct gkyl_array **fin = fdot_args->fin;
   struct gkyl_array **fout = fdot_args->fout;
   struct gkyl_array **fout_neut = fdot_args->fout_neut;
   struct gkyl_array ***bflux_out = fdot_args->bflux_out;
