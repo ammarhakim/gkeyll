@@ -67,9 +67,7 @@ gyrokinetic_pre_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcurr
   // Operations at the beginning of the first RK stage.
   // NOTE: do not use dt here because its size is not yet determined.
   struct gkyl_array ***bflux_in = fdot_args->bflux_in;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
   struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
 
   int ns_charged = app->num_species;
   int ns_neut = app->num_neut_species;
@@ -86,13 +84,11 @@ gyrokinetic_pre_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcurr
     struct gk_species *gks = &app->species[i];
     gk_species_bflux_copy(app, &gks->bflux, gks->bflux.f_copy, bflux_in[i]);
     gk_species_bflux_clear(app, &gks->bflux, bflux_in[i], 0.0);
-    gk_species_bflux_clear(app, &gks->bflux, bflux_out[i], 0.0);
   }
   for (int i=0; i<ns_neut; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gk_species_bflux_copy(app, &gkns->bflux, gkns->bflux.f_copy, bflux_in_neut[i]);
     gk_neut_species_bflux_clear(app, &gkns->bflux, bflux_in_neut[i], 0.0);
-    gk_neut_species_bflux_clear(app, &gkns->bflux, bflux_out_neut[i], 0.0);
   }
 }
 
