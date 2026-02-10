@@ -24,7 +24,6 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm {
  * @param conf_range Conf-space range object.
  * @param bc_x_lower Boundary condition at lower x boundary.
  * @param bc_x_upper Boundary condition at upper x boundary.
- * @param update_cell Object for skipping cells during diffusion.
  * @param nu Diffusivity.
  * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
  * @param use_gpu Whether to run on host or device.
@@ -32,7 +31,7 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm {
  */
 struct gkyl_dg_updater_gk_anomalous_diffusion* gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, struct gkyl_dg_array_mask *update_cell,
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
   const struct gkyl_array *nu, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
 
 /**

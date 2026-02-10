@@ -4,8 +4,6 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_array_mask.h>
-#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_boundary_flux_priv.h>
 }
@@ -13,7 +11,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, struct gkyl_dg_array_mask *update_cell)
+  int num_eqns, const struct gkyl_dg_eqn **eqns)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -24,10 +22,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->ghost_r = *ghost_r;
   up->use_gpu = true;
 
-  // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *update_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
-  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(update_cell_ho);
-  
+  // Acquire pointers to on_dev objects so memcpy below copies those too.  
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
@@ -46,9 +41,6 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   struct gkyl_boundary_flux *up_cu = (struct gkyl_boundary_flux*) gkyl_cu_malloc(sizeof(struct gkyl_boundary_flux));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_boundary_flux), GKYL_CU_MEMCPY_H2D);
   up->on_dev = up_cu;
-
-  // Updater should store host pointers.
-  up->update_cell = update_cell_ho;
 
   gkyl_free(eqns_ho_dev);
 
@@ -80,18 +72,10 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
     double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx_g) ||
-        gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx_s)) {
-      for (int i=0; i<up->num_eqns; i++) {
-        up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fs_c, fg_c, fluxOut_g);
-      }
-    }
-    else {
-      for (int d=0; d<fluxOut->ncomp; ++d) {
-        fluxOut_g[d] = 0.0;
-      }
+    for (int i=0; i<up->num_eqns; i++) {
+      up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
+        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+        fs_c, fg_c, fluxOut_g);
     }
   }
 }

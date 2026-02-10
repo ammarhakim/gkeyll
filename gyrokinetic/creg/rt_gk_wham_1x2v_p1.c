@@ -575,10 +575,6 @@ int main(int argc, char **argv)
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
-    .skip_cell = {
-      .type = GKYL_GK_SKIP_CELL_BELOW,
-      .threshold = 1e-16,
-    },
 
     .polarization_density = ctx.n0,
 
@@ -658,10 +654,6 @@ int main(int argc, char **argv)
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
-    .skip_cell = {
-      .type = GKYL_GK_SKIP_CELL_BELOW_FRAC_CONF,
-      .threshold = 1e-4,
-    },
 
     .polarization_density = ctx.n0,
 

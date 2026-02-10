@@ -80,9 +80,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.f1;
         }
 
-        // Update cell masks based on the input distribution functions.
-        gyrokinetic_update_cell_mask(app, fin, fin_neut);
-
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
           // Adapt sources.

@@ -19,7 +19,6 @@ gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
     gkyl_cu_free(diffusion);
   }
   struct gk_anomalous_diffusion *diffusion = container_of(base, struct gk_anomalous_diffusion, eqn);
-  gkyl_dg_array_mask_release(diffusion->update_cell);
   gkyl_free(diffusion);
 }
 
@@ -40,12 +39,11 @@ gkyl_gk_anomalous_diffusion_set_auxfields(const struct gkyl_dg_eqn *eqn, struct 
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  struct gkyl_dg_array_mask *update_cell, bool use_gpu)
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper, update_cell);
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper);
 #endif
   
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
@@ -54,8 +52,6 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   int vdim = basis->ndim - cdim;
   int pdim = cdim + vdim;
   int poly_order = cbasis->poly_order;
-
-  diffusion->update_cell = gkyl_dg_array_mask_acquire(update_cell);
 
   const gkyl_gk_anomalous_diffusion_vol_kern_list *vol_kernels;
   const gkyl_gk_anomalous_diffusion_surf_kern_list *surfx_kernels;

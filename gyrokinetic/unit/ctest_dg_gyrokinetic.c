@@ -106,10 +106,8 @@ test_dg_gyrokinetic()
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, phaseGrid, velGrid,
     phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_dg_array_mask *update_cell = gkyl_dg_array_mask_new((struct gkyl_dg_array_mask_inp) { });
-
   struct gkyl_dg_eqn* eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, 
-    charge, mass, update_cell, 0, gk_geom, gvm, false);
+    charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK( eqn->num_equations == 1 );
 

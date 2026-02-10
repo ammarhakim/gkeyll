@@ -38,10 +38,6 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     bflux_out_neut[i] = gkns->bflux.f;
   }
 
-  // Update cell masks based on the input distribution functions.
-  gyrokinetic_update_cell_mask(app, (const struct gkyl_array **) fin,
-    (const struct gkyl_array **) fin_neut);
-
   // Compute df/dt from implicit terms.
   gyrokinetic_rhs_implicit(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, &st);
 

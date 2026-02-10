@@ -1,4 +1,3 @@
-#include <gkyl_dg_array_mask_gyrokinetic.h>
 #include <gkyl_gk_neut_species_priv.h>
 
 static double
@@ -203,8 +202,6 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   }
 
   gkyl_velocity_map_release(ns->vel_map);
-
-  gkyl_dg_array_mask_release(ns->update_cell);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &ns->m0);
@@ -685,21 +682,6 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
-
-  enum gkyl_dg_array_mask_types update_cell_mask_type =
-    gkyl_gk_skip_cell_to_mask_type(s->info.skip_cell.type);
-
-  s->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
-    .type = update_cell_mask_type,
-    .default_value = true,
-    .threshold = s->info.skip_cell.threshold,
-    .conf_rng = &app->local,
-    .conf_rng_ext = &app->local_ext,
-    .phase_rng = &s->local,
-    .phase_rng_ext = &s->local_ext,
-    .vel_rng = &s->local_ext_vel,
-    .use_gpu = app->use_gpu
-  });
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.

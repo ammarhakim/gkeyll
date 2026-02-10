@@ -2,7 +2,6 @@
 #include <gkyl_app.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_dg_array_mask_gyrokinetic.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -309,19 +308,6 @@ gk_species_copy_range_static(struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   // do nothing
-}
-
-static void gk_species_update_cell_mask_allreduce(struct gk_species *species, const struct gkyl_array *fin)
-{
-  gkyl_array_reduce(species->local_max_f, fin, GKYL_MAX);
-  gkyl_comm_allreduce(species->comm, GKYL_DOUBLE, GKYL_MAX, 1, species->local_max_f, species->global_max_f);
-  gkyl_dg_array_mask_advance_threshold(species->update_cell, species->global_max_f[0]);
-  gkyl_dg_array_mask_advance(species->update_cell, fin);
-}
-
-static void gk_species_update_cell_mask_advance(struct gk_species *species, const struct gkyl_array *fin)
-{
-  gkyl_dg_array_mask_advance(species->update_cell, fin);
 }
 
 static void
@@ -1246,7 +1232,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
     struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
-      gks->basis, gks->grid, gks->info.mass, gks->update_cell, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
       gks->f, gks->m0.marr, gks->m0.marr);
@@ -1404,30 +1390,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
   
-  enum gkyl_dg_array_mask_types update_cell_mask_type =
-    gkyl_gk_skip_cell_to_mask_type(gks->info.skip_cell.type);
-
-  gks->update_cell = gkyl_dg_array_mask_new( (struct gkyl_dg_array_mask_inp) {
-    .type = update_cell_mask_type,
-    .default_value = true,
-    .threshold = gks->info.skip_cell.threshold,
-    .conf_rng = &app->local,
-    .conf_rng_ext = &app->local_ext,
-    .phase_rng = &gks->local,
-    .phase_rng_ext = &gks->local_ext,
-    .vel_rng = &gks->local_ext_vel,
-    .use_gpu = app->use_gpu
-  });
-  gks->local_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
-  gks->global_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
-  if ( gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_ABOVE_FRAC ||
-    gks->info.skip_cell.type == GKYL_GK_SKIP_CELL_BELOW_FRAC ) {
-    gks->update_cell_mask_func = gk_species_update_cell_mask_allreduce;
-  }
-  else {
-    gks->update_cell_mask_func = gk_species_update_cell_mask_advance;
-  }
-
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
   gks->num_periodic_dir = app->num_periodic_dir;
@@ -1852,12 +1814,6 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 }
 
 void
-gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin)
-{
-  species->update_cell_mask_func(species, fin);
-}
-
-void
 gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {
   species->bc_func(app, species, f);
@@ -1937,10 +1893,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   }
 
   gkyl_velocity_map_release(gks->vel_map);
-
-  gkyl_dg_array_mask_release(gks->update_cell);
-  gkyl_free(gks->local_max_f);
-  gkyl_free(gks->global_max_f);
 
   gk_species_collisionless_release(app, &gks->collisionless);
 
