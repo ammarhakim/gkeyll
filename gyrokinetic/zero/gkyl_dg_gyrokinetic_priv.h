@@ -380,6 +380,7 @@ surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxR), 
       qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
@@ -413,6 +414,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.flux_surf, pidxSkin), 
       edge, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D

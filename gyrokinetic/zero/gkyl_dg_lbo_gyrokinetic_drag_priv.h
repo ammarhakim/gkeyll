@@ -80,8 +80,9 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -110,8 +111,9 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -140,8 +142,9 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -170,8 +173,9 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 // Volume kernel list

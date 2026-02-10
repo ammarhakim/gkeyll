@@ -82,8 +82,9 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -112,8 +113,9 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -122,7 +124,7 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
-
+  
   int vel_idx[2];
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -142,8 +144,9 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -172,8 +175,9 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 // Volume kernel list
