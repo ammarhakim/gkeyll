@@ -40,9 +40,9 @@ static const struct gkyl_str_int_pair parproj_type[] = {
 
 // Gyrokinetic geometry type -> enum map.
 static const struct gkyl_str_int_pair geometry_type[] = {
-  { "Tokamak", GKYL_TOKAMAK },
-  { "Mirror", GKYL_MIRROR },
-  { "MapC2P", GKYL_MAPC2P },
+  { "Tokamak", GKYL_GEOMETRY_TOKAMAK },
+  { "Mirror", GKYL_GEOMETRY_MIRROR },
+  { "MapC2P", GKYL_GEOMETRY_MAPC2P },
   { "FromFile", GKYL_GEOMETRY_FROMFILE },
   { 0, 0 }
 };

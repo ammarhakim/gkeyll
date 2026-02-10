@@ -627,7 +627,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .c2p_ctx = 0,
     .mapc2p = mapc2p,
     .bfield_ctx = &proj_ctx,
@@ -1375,7 +1375,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .c2p_ctx = 0,
     .mapc2p = mapc2p,
     .bfield_ctx = &proj_ctx,

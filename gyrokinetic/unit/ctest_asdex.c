@@ -183,7 +183,7 @@ test_fixed_z()
     .zmin_right = -1.3,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
@@ -252,7 +252,7 @@ test_shaped_plate()
     .zmin_right = -1.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
@@ -322,7 +322,7 @@ test_lower()
 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
@@ -392,7 +392,7 @@ test_middle()
 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
@@ -462,7 +462,7 @@ test_upper()
 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,

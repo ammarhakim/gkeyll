@@ -356,6 +356,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
   up->local_ext = geometry_inp->geo_local_ext;
@@ -417,6 +418,13 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_mapc2p_advance_surface(up, dir, &up->nrange_surf[dir], up->dzc, geometry_inp->mapc2p, 
       geometry_inp->c2p_ctx, geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   }
+
+  // Store metadata for I/O.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+  };
+  up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
