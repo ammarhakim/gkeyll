@@ -8,8 +8,8 @@ GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(const double *vmap,
   // out: output increment.
 
   double alphavpar[6] = {0.}; 
-  alphavpar[0] = -((1.4142135623730951*apardot[0]*q_)/m_); 
-  alphavpar[1] = -((1.4142135623730951*apardot[1]*q_)/m_); 
+  alphavpar[0] = -((1.1547005383792517*apardot[0]*q_)/(vmap[1]*m_)); 
+  alphavpar[1] = -((1.1547005383792517*apardot[1]*q_)/(vmap[1]*m_)); 
 
 
   out[2] += 0.8660254037844386*(alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
