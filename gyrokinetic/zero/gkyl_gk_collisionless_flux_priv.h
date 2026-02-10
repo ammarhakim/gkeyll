@@ -283,12 +283,12 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
 GKYL_CU_D
 static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[] = {
   {
-  .kernels_list = {
-    { NULL, NULL, NULL }, // 0
-    { NULL, NULL, NULL }, // 1
-    { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
-    { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
-    },
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+      },
   },
   {
     .kernels_list = {
