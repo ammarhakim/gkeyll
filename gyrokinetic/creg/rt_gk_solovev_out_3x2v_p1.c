@@ -532,7 +532,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },

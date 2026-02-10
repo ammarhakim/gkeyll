@@ -44,6 +44,16 @@ struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp);
 
 /**
+ * Compute the appropriate threshold for fractional threshold masks.
+ *
+ * @param mask Mask updater.
+ * @param global_max Global maximum value from input array.
+ */
+void
+gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
+  const double global_max);
+
+/**
  * Compute the appropriate mask given the input array.
  *
  * @param mask Mask updater.
@@ -53,23 +63,18 @@ void
 gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
 /**
- * Evaluate if the conditional mask is true at a given cell.
- *
- * @param mask Mask object.
- * @param idx Linear index of the cell to evaluate.
- * @return True if the mask is true at the cell, false otherwise.
- */
-bool gkyl_dg_array_mask_eval(struct gkyl_dg_array_mask *mask, long lidx);
-
-
-/** 
  * Evaluate if the conditional mask is true at a given multi-dimensional index.
+ *
+ * Note that this method is intended for use outside of a loop over the grid or
+ * outside a device kernel. If you need to do this inside a grid loop/device
+ * kernel, you must use gkyl_dg_array_mask_eval_idx_ker defined in the private
+ * header.
  *
  * @param mask Mask object.
  * @param idx Multi-dimensional index array.
- * @return True if the mask is true at the index, false otherwise.
+ * @param val Value of the mask at the given index.
  */
-bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx);
+void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, bool *val);
 
 /**
  * Scale the dg_array_mask by an array, modifying the mask.
@@ -81,13 +86,11 @@ bool gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int* idx
 void
 gkyl_dg_array_mask_scale_by_cell(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
 
-
 /**
  * Acquire a reference to the mask object.
  */
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask);
-
 
 /**
  * Get the underlying mask array.
@@ -105,7 +108,6 @@ gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask);
  */
 struct gkyl_dg_array_mask*
 gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask);
-
 
 /**
  * Release memory associated with mask object.
