@@ -8,25 +8,6 @@
 #include <gkyl_sundials_priv.h>
 #include <gkyl_sundials_gyrokinetic.h>
 
-static inline void
-unpack_manynvec_gyrokinetic_distf(struct gkyl_array **distf, int num_species,
-  N_Vector manynvec, int manynvec_offset, int num_nvec)
-{
-  for (int i=0; i<num_species; ++i)
-    distf[i] = smanynvec_get_array(manynvec, manynvec_offset);
-}
-
-static inline void
-unpack_manynvec_gyrokinetic_bflux(struct gkyl_array ***bflux, int num_species,
-  N_Vector manynvec, int manynvec_offset, int num_nvec)
-{
-  for (int i=0; i<num_species; ++i) {
-    struct gkyl_array **bflux_s = bflux[i];
-    for (int j=0; j<num_nvec; ++j)
-      bflux_s[j] = smanynvec_get_array(manynvec, manynvec_offset+j);
-  }
-}
-
 static void
 unpack_manynvec_gyrokinetic_charged_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
 {

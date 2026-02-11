@@ -1041,6 +1041,18 @@ gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
   // Do nothing.
 }
 
+long
+gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+}
+
+long
+gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+}
+
 void
 gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
 {
