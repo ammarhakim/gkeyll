@@ -282,6 +282,8 @@ struct gkyl_moment_app {
   double tcurr; // current time
   double cfl; // CFL number
 
+  struct gkyl_gr_spacetime *spacetime;
+
   enum gkyl_moment_scheme scheme_type; // scheme to use
   enum gkyl_wave_split_type split_type; // edge splitting to use  
   // 

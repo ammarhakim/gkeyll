@@ -82,4 +82,6 @@ struct gkyl_moment_em_coupling {
   
   bool has_gr_mhd_sources; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+
+  struct gkyl_gr_spacetime *spacetime;
 };

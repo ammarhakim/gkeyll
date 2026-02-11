@@ -186,6 +186,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.spacetime = app->spacetime;
+
   // save the use-rel bool
   src_inp.use_rel = use_rel;
 
@@ -371,6 +373,16 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       fluids, app_accels, pr_rhs_const, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
+  }
+  bool dynamic;
+  dynamic = true;
+  if (dynamic) {
+    gkyl_moment_em_coupling_explicit_advance_spacetime(src->slvr, tcurr, dt, &app->local,
+      fluids, app_accels, pr_rhs_const, 
+      app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
+      app->field.app_current2, app->field.ext_em, 
+      nT_sources, app->field.app_current_proj,nstrang,
+      app->spacetime);
   }
 
   for (int i=0; i<app->num_species; ++i) {

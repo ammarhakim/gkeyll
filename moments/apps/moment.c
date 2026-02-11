@@ -178,6 +178,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   }
   // Initialize a (potentially null) field object for safety.
   moment_field_init(mom, &mom->field, app, &app->field);
+  app->spacetime = mom->spacetime;
 
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;

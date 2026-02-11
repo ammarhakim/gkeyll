@@ -27,6 +27,8 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     }
   }
 
+  mom_em->spacetime=inp.spacetime;
+  
   mom_em->static_field = inp.static_field; 
   mom_em->t_ramp_E = inp.t_ramp_E;
   if (mom_em->t_ramp_E != 0.0) {
@@ -175,6 +177,44 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
   const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang)
+{
+  int nfluids = mom_em->nfluids;
+  double *fluid_s[GKYL_MAX_SPECIES];
+  const double *app_accel_s[GKYL_MAX_SPECIES];
+  const double *p_rhs_s[GKYL_MAX_SPECIES];
+  const double *nT_sources_s[GKYL_MAX_SPECIES];
+
+  double dt_local = 2.0 * dt;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long cell_idx = gkyl_range_idx(update_range, iter.idx);
+
+    for (int i = 0; i < nfluids; i++) {
+      fluid_s[i] = gkyl_array_fetch(fluid[i], cell_idx);
+      app_accel_s[i] = gkyl_array_cfetch(app_accel[i], cell_idx);
+    }
+
+    double *em_arr = em ? em_arr = gkyl_array_fetch(em, cell_idx) : 0;
+    const double *app_current_arr = app_current ? gkyl_array_cfetch(app_current, cell_idx) : 0;
+    const double *app_current1_arr = app_current1 ? gkyl_array_cfetch(app_current1, cell_idx) : 0;
+    const double *app_current2_arr = app_current2 ? gkyl_array_cfetch(app_current2, cell_idx) : 0;
+    const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
+
+    if (mom_em->use_rel) {
+      explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
+        ext_em_arr, nstrang);
+    }
+  }
+}
+
+void
+gkyl_moment_em_coupling_explicit_advance_spacetime(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
+  const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang, const struct gkyl_gr_spacetime *spacetime)
 {
   int nfluids = mom_em->nfluids;
   double *fluid_s[GKYL_MAX_SPECIES];
