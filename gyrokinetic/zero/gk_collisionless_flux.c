@@ -117,7 +117,6 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
-    double cfl_temp = 0.0;
 
     for (int dir = 0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(pdim, idx, idxL);
@@ -135,14 +134,13 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
       if (idx[dir] == phase_range->lower[dir]) {
         // Lower domain/block boundary.
-        cfl_temp = up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
-        cfl_temp = up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       }
-      cflrate_d[0] += cfl_temp;
 
       // Upper domain/block boundary.
       // If the phase space index is at the local configuration space upper value, we
@@ -167,10 +165,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_ext_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
-
-        cflrate_ext_d[0] += cfl_temp;
       }  
     }
   }
@@ -194,7 +190,6 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
-    double cfl_temp = 0.0;
 
     int dir=cdim;
     gkyl_copy_int_arr(pdim, idx, idxL);
@@ -211,11 +206,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
-
-    cfl_temp += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
+    cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
-
-    cflrate_d[0] += cfl_temp;
   }
 }
 
