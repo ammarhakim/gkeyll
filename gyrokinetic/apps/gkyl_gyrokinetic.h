@@ -568,13 +568,15 @@ struct gkyl_gk {
 
 // Simulation statistics
 struct gkyl_gyrokinetic_stat {
-  bool use_gpu; // did this sim use GPU?
+  bool use_gpu; // Cid this sim use GPU?
   
-  long nup; // calls to update
-  long nfeuler; // calls to forward-Euler method
+  long nup; // Calls to update.
+  long nfeuler; // Calls to forward-Euler method.
+  long nfdot; // Calls to df/dt.
     
-  long nstage_2_fail; // number of failed RK stage-2s
-  long nstage_3_fail; // number of failed RK stage-3s
+  long nstage_2_fail; // Number of failed RK stage-2s
+  long nstage_3_fail; // Number of failed RK stage-3s
+  long dt_error_adapt_fail; // Number of failed error checks to adapt dt.
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure

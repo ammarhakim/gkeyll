@@ -2373,6 +2373,14 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
     + stat->neut_species_diag_calc_tm + stat->neut_species_diag_io_tm + stat->field_io_tm + stat->field_diag_calc_tm
     + stat->field_diag_io_tm + stat->app_io_tm;
 
+  if (app->use_sundials) {
+    long num_failures = gkyl_sundials_get_num_error_test_failures(app->gk_sundials);
+    app->stat.dt_error_adapt_fail = num_failures;
+
+    long num_fdot_evals = gkyl_sundials_get_num_rhs_evals(app->gk_sundials);
+    app->stat.nfdot = num_fdot_evals;
+  }
+
   return *stat;
 }
 

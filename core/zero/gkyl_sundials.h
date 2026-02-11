@@ -118,6 +118,22 @@ int gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   struct gkyl_sundials_nvec *gsnv, double *t_curr);
 
 /**
+ * Fetch the number of error test_failures so far.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Number of failures.
+ */
+long gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch the number of evaluatons of the RHS (i.e. df/dt) function.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Number of RHS evaluations.
+ */
+long gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun);
+
+/**
  * Free resources associates with a SUNDIALS object.
  *
  * @param gksun SUNDIALS object to be freed.

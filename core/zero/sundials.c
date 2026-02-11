@@ -870,6 +870,24 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   return flag;
 }
 
+long
+gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
+{
+  long num_fail;
+  int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem, &num_fail); 
+  sundials_check_flag(&flag, "ARKodeGetNumErrTestFails", 1);
+  return num_fail;
+}
+
+long
+gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
+{
+  long num_evals;
+  int flag = ARKodeGetNumRhsEvals(gksun->arkode_mem, 0, &num_evals); 
+  sundials_check_flag(&flag, "ARKodeGetNumRhsEvals", 1);
+  return num_evals;
+}
+
 void
 gkyl_sundials_release(struct gkyl_sundials *gksun)
 {
