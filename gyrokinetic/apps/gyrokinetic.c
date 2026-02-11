@@ -1981,6 +1981,12 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
     gk_species_add_apardot_rhs(app, gk_s, fin[i], fout[i], bflux_out[i]);
+  }
+
+  // Update boundary fluxes and compute CFL condition.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    // gk_species_update_bflux(app, gk_s, fin[i], fout[i], bflux_out[i]);
     double dt1 = gk_species_get_cfl(app, gk_s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }

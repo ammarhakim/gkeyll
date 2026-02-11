@@ -259,7 +259,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
 
   up->charge = charge;
   up->mass = mass;
-  int em = (type == GKYL_GK_COLLISIONLESS_EM || type == GKYL_GK_COLLISIONLESS_EM_BPERP) ? 1 : 0;
+  int em = ((type == GKYL_GK_COLLISIONLESS_EM) || (type == GKYL_GK_COLLISIONLESS_EM_BPERP)) ? 1 : 0;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);

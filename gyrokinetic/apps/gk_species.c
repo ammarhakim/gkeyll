@@ -981,7 +981,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
-  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM || gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)
+  if ((gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) || (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP))
     gks->add_apardot_rhs_func = gk_species_add_apardot_dynamic;
   else
     gks->add_apardot_rhs_func = gk_species_rhs_static;

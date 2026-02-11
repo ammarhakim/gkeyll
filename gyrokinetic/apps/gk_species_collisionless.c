@@ -177,7 +177,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
     // Electromagnetic set up.
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM || gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
+    if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
       only_apardot = true;
       // Create a special flux operator that only adds the AparDot contribution.
       gkcls->add_apardot_surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
@@ -231,7 +231,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM || gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
+    if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
       gkyl_gk_collisionless_flux_release(gkcls->add_apardot_surf_flux_op);
       gkyl_dg_updater_gyrokinetic_release(gkcls->add_apardot_slvr);
     }

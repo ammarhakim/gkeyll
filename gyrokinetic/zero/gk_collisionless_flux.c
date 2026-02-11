@@ -51,7 +51,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
-    int em = (type == GKYL_GK_COLLISIONLESS_EM || type == GKYL_GK_COLLISIONLESS_EM_BPERP) ? 1 : 0;
+    int em = ((type == GKYL_GK_COLLISIONLESS_EM) || (type == GKYL_GK_COLLISIONLESS_EM_BPERP)) ? 1 : 0;
     if (no_by) {
       for (int d=0; d<cdim; ++d) {
         // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
