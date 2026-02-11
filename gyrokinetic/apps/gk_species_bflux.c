@@ -996,7 +996,7 @@ gk_species_bflux_sundials_nvec_new(gkyl_gyrokinetic_app *app, void *gks, struct 
     for (int b=0; b<bflux->num_boundaries; ++b) {
       for (int m=0; m<bflux->num_calc_moms; m++) {
         bflux->sundials_nvec[b*bflux->num_calc_moms+m] = gkyl_sundials_nvec_new(app->gk_sundials,
-          bflux->f[b*bflux->num_calc_moms+m], app->comm, &app->local, true);
+          bflux->f[b*bflux->num_calc_moms+m], app->comm, bflux->boundaries_conf_ghost[b], true);
         num_nvec++;
       }
     }
@@ -1029,7 +1029,7 @@ gk_species_bflux_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, void *gk
     for (int b=0; b<bflux->num_boundaries; ++b) {
       for (int m=0; m<bflux->num_calc_moms; m++) {
         snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials,
-          bflux->fnew[b*bflux->num_calc_moms+m], app->comm, &app->local, true);
+          bflux->fnew[b*bflux->num_calc_moms+m], app->comm, bflux->boundaries_conf_ghost[b], true);
         (*snvec_arr_off)++;
       }
     }

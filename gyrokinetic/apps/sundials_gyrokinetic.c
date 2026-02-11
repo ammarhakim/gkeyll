@@ -27,8 +27,19 @@ snvec_efun_cell_norm_gyrokinetic(N_Vector manyx, N_Vector manyw, void *ctx)
 
   int flag = 0;
   for (int i=0; i<ns_charged; i++) {
-    N_Vector x = N_VGetSubvector_ManyVector(manyx, i);
-    N_Vector w = N_VGetSubvector_ManyVector(manyw, i);
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_charged[i]);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_charged[i]);
+    struct gkyl_array *x_arr = snvec_get_array(x);
+    struct gkyl_array *w_arr = snvec_get_array(w);
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+    // Call the Gkeyll function that computes the error weight.
+    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  }
+
+  for (int i=0; i<ns_neut; i++) {
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_neut[i]);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_neut[i]);
     struct gkyl_array *x_arr = snvec_get_array(x);
     struct gkyl_array *w_arr = snvec_get_array(w);
     struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
