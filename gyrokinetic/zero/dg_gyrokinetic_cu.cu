@@ -94,7 +94,8 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
   }
 
-  gyrokinetic->vol_add_apar_term = collless_type == GKYL_GK_COLLISIONLESS_EM || GKYL_GK_COLLISIONLESS_EM_BPERP ? 
+  gyrokinetic->vol_add_apar_term = 
+    ((collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP)) ? 
     vol_add_apar_kernels[cv_index].kernels[poly_order] : dg_gyrokinetic_vol_return_zero;
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
