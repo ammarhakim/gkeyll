@@ -795,7 +795,7 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 
   struct timespec wst = gkyl_wall_clock();
 
-  double t_new;
+  double t_new = -1.0;
   gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_mnvec, &t_new);
 
   app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);

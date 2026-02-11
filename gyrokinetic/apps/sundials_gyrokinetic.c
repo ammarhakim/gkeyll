@@ -8,49 +8,6 @@
 #include <gkyl_sundials_priv.h>
 #include <gkyl_sundials_gyrokinetic.h>
 
-/**
- * Error weight function for error norm of y_{n-1}.
- *
- * @param x ManyNvector y_{n-1} whose norm appears in the weight.
- * @param w ManyNvector weight to be computed.
- * @param ctx App-specific context.
- * @return Sucess (=0) flag.
- */
-static int
-snvec_efun_cell_norm_gyrokinetic(N_Vector manyx, N_Vector manyw, void *ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  int ns_charged = fdot_args->num_species;
-  int ns_neut = fdot_args->num_neut_species;
-
-  int flag = 0;
-  for (int i=0; i<ns_charged; i++) {
-    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_charged[i]);
-    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_charged[i]);
-    struct gkyl_array *x_arr = snvec_get_array(x);
-    struct gkyl_array *w_arr = snvec_get_array(w);
-    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
-
-    // Call the Gkeyll function that computes the error weight.
-    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
-  }
-
-  for (int i=0; i<ns_neut; i++) {
-    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_neut[i]);
-    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_neut[i]);
-    struct gkyl_array *x_arr = snvec_get_array(x);
-    struct gkyl_array *w_arr = snvec_get_array(w);
-    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
-
-    // Call the Gkeyll function that computes the error weight.
-    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
-  }
-
-  return flag;
-}
-
 static inline void
 unpack_manynvec_gyrokinetic_distf(struct gkyl_array **distf, int num_species,
   N_Vector manynvec, int manynvec_offset, int num_nvec)
@@ -184,6 +141,49 @@ unpack_manynvec_gyrokinetic(struct gkyl_gyrokinetic_fdot_args *fdot_args,
 {
   unpack_manynvec_gyrokinetic_charged(fdot_args, manynvec_in, manynvec_out);
   unpack_manynvec_gyrokinetic_neut(fdot_args, manynvec_in, manynvec_out);
+}
+
+/**
+ * Error weight function for error norm of y_{n-1}.
+ *
+ * @param x ManyNvector y_{n-1} whose norm appears in the weight.
+ * @param w ManyNvector weight to be computed.
+ * @param ctx App-specific context.
+ * @return Sucess (=0) flag.
+ */
+static int
+snvec_efun_cell_norm_gyrokinetic(N_Vector manyx, N_Vector manyw, void *ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+
+  int ns_charged = fdot_args->num_species;
+  int ns_neut = fdot_args->num_neut_species;
+
+  int flag = 0;
+  for (int i=0; i<ns_charged; i++) {
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_charged[i]);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_charged[i]);
+    struct gkyl_array *x_arr = snvec_get_array(x);
+    struct gkyl_array *w_arr = snvec_get_array(w);
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+    // Call the Gkeyll function that computes the error weight.
+    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  }
+
+  for (int i=0; i<ns_neut; i++) {
+    N_Vector x = N_VGetSubvector_ManyVector(manyx, fdot_args->offset_distf_neut[i]);
+    N_Vector w = N_VGetSubvector_ManyVector(manyw, fdot_args->offset_distf_neut[i]);
+    struct gkyl_array *x_arr = snvec_get_array(x);
+    struct gkyl_array *w_arr = snvec_get_array(w);
+    struct gkyl_range *local_range = NV_CONTENT_GKZ(w)->local_range;
+
+    // Call the Gkeyll function that computes the error weight.
+    flag = flag || app_ctx->error_wgt_func(app_ctx->app_ptr, x_arr, w_arr, local_range);
+  }
+
+  return flag;
 }
 
 /**
