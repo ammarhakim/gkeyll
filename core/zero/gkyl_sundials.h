@@ -36,12 +36,18 @@ struct gkyl_sundials_app_ctx {
   // Function that computes weight for the error norm.
   int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr,
     struct gkyl_array *wgt, struct gkyl_range *local_range);
+  // Operations performed at the beginning of a step.
+  void (*pre_process_step_func)(void *app_gen, double tcurr, double dt,
+    void *fdot_args_gen);
   // Operations performed at the beginning of an RK stage.
   void (*pre_process_rk_stage_func)(void *app_gen, double tcurr, double dt,
     void *fdot_args_gen, int stage_idx, int num_stages);
   // Operations performed at the end of an RK stage.
   void (*post_process_rk_stage_func)(void* app_gen, double tcurr, double dt,
     void *fdot_args, int stage_idx, int num_stages);
+  // Operations performed at the end of a step.
+  void (*post_process_step_func)(void *app_gen, double tcurr, double dt,
+    void *fdot_args_gen);
   // Operations performed at the end of a failed RK stage.
   void (*post_process_failed_rk_stage_func)(void* app_gen, double tcurr, double dt,
     void *fdot_args, int stage_idx, int num_stages);

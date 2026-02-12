@@ -279,6 +279,31 @@ cfl_stable_dt_gyrokinetic(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_o
 }
 
 /**
+ * Pre-process a step.
+ *
+ * @param t_curr Current simulation time.
+ * @param manynvec_y State vector.
+ * @param ctx App-specific context.
+ * @return Sucess (=0) flag.
+ */
+static int
+pre_process_step_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  double dt;
+  int flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
+
+  app_ctx->pre_process_step_func(app_ctx->app_ptr, t_curr, dt, fdot_args);
+
+  return 0;
+};
+
+/**
  * Pre-process an RK stage.
  *
  * @param t_curr Current simulation time.
@@ -297,12 +322,15 @@ pre_process_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void* 
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
 
+  // We only pre-process the first stage, which needs to zero out the boundary fluxes the step starts with.
+  N_Vector manynvec_yin;
+  flag = ARKodeGetLastState(app_ctx->arkode_mem, &manynvec_yin);
+
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
+  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_yin);
 
   app_ctx->pre_process_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
-
   return 0;
 };
 
@@ -335,6 +363,31 @@ post_process_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void*
   }
 
   app_ctx->post_process_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
+
+  return 0;
+};
+
+/**
+ * Post-process a step.
+ *
+ * @param t_curr Current simulation time.
+ * @param manynvec_y State vector.
+ * @param ctx App-specific context.
+ * @return Sucess (=0) flag.
+ */
+static int
+post_process_step_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+{
+  struct gkyl_sundials_app_ctx *app_ctx = ctx;
+
+  double dt;
+  int flag = ARKodeGetCurrentStep(app_ctx->arkode_mem, &dt);
+
+  // Distribute state vector as Gkeyll expects.
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
+  unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_y);
+
+  app_ctx->post_process_step_func(app_ctx->app_ptr, t_curr, dt, fdot_args);
 
   return 0;
 };
@@ -375,8 +428,10 @@ gkyl_sundials_gyrokinetic_assign_methods(struct gkyl_sundials *gksun)
   gksun->sts_dom_eig_func = sts_dom_eig_gyrokinetic;
   gksun->cfl_stable_dt_func = cfl_stable_dt_gyrokinetic;
   gksun->snvec_efun_cell_norm_func = snvec_efun_cell_norm_gyrokinetic;
+  gksun->pre_process_step_func = pre_process_step_gyrokinetic;
   gksun->pre_process_rk_stage_func = pre_process_rk_stage_gyrokinetic;
   gksun->post_process_rk_stage_func = post_process_rk_stage_gyrokinetic;
+  gksun->post_process_step_func = post_process_step_gyrokinetic;
   gksun->post_process_failed_rk_stage_func = post_process_failed_rk_stage_gyrokinetic;
 }
 

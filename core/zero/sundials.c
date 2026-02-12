@@ -627,10 +627,14 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ERKStepSetTable", 1);
 
   // Set pre/post processing methods in arkode mem.
+  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem, gksun->pre_process_step_func);
+  sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
   flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
   flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
+  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem, gksun->post_process_step_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
   flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 
@@ -682,10 +686,14 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
 
   // Set pre/post processing methods in arkode mem.
+  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem, gksun->pre_process_step_func);
+  sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
   flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
   flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
+  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem, gksun->post_process_step_func);
+  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
   flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 }

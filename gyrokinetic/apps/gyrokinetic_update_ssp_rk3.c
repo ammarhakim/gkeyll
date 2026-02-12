@@ -60,11 +60,11 @@ gyrokinetic_bflux_scale(gkyl_gyrokinetic_app* app, struct gkyl_array ***bflux, s
   }
 }
 
-static void
-gyrokinetic_pre_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+void
+gyrokinetic_pre_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
-  // Operations at the beginning of the first RK stage.
+  // Operations at the beginning of a step.
   // NOTE: do not use dt here because its size is not yet determined.
   struct gkyl_array ***bflux_in = fdot_args->bflux_in;
   struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
@@ -78,16 +78,37 @@ gyrokinetic_pre_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcurr
     gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_in, tcurr);
   }
 
-  // Clear input boundary fluxes so we compute fluxes through the boundary in one step.
-  // Before that copy them a buffer in case a later stage fails.
+  // Copy boundary fluxes to a buffer in case a later stage fails (used to
+  // recompute e.g. Boltzmann elc fields) .
   for (int i=0; i<ns_charged; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_bflux_copy(app, &gks->bflux, gks->bflux.f_copy, bflux_in[i]);
-    gk_species_bflux_clear(app, &gks->bflux, bflux_in[i], 0.0);
   }
   for (int i=0; i<ns_neut; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gk_species_bflux_copy(app, &gkns->bflux, gkns->bflux.f_copy, bflux_in_neut[i]);
+  }
+}
+
+static void
+gyrokinetic_pre_process_rk_stage_initial(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args)
+{
+  // Operations at the beginning of the first RK stage.
+  // NOTE: do not use dt here because its size is not yet determined.
+  struct gkyl_array ***bflux_in = fdot_args->bflux_in;
+  struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
+
+  int ns_charged = app->num_species;
+  int ns_neut = app->num_neut_species;
+
+  // Clear input boundary fluxes so we compute fluxes through the boundary in one step.
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_bflux_clear(app, &gks->bflux, bflux_in[i], 0.0);
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
     gk_neut_species_bflux_clear(app, &gkns->bflux, bflux_in_neut[i], 0.0);
   }
 }
@@ -224,7 +245,6 @@ gyrokinetic_post_process_rk_stage_final(gkyl_gyrokinetic_app* app, double tcurr,
 
   // Compute field energy divided by dt for energy balance diagnostics.
   gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_new);
-
 }
 
 void
@@ -244,6 +264,13 @@ gyrokinetic_post_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, doubl
     // Other RK stages.
     gyrokinetic_post_process_rk_stage_intermediate(app, tcurr, dt, fdot_args);
   }
+}
+
+void
+gyrokinetic_post_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args)
+{
+  // Operations at the end of the step.
 }
 
 void
@@ -300,6 +327,20 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   enum { RK_STAGE_1 = 0, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1; // Time-stepper state.
 
   double tcurr = app->tcurr, dt = dt0;
+
+  // Pre-process step.
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    fin[i] = gks->f;
+    bflux_in[i] = gks->bflux.f;
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    fin_neut[i] = gkns->f;
+    bflux_in_neut[i] = gkns->bflux.f;
+  }
+  gyrokinetic_pre_process_step(app, tcurr, dt, fdot_args);
+
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
@@ -494,6 +535,19 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         break;
     }
   }
+
+  // Post-process step.
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    fout[i] = gks->f;
+    bflux_out[i] = gks->bflux.f;
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    fout_neut[i] = gkns->f;
+    bflux_out_neut[i] = gkns->bflux.f;
+  }
+  gyrokinetic_post_process_step(app, tcurr, dt, fdot_args);
 
   return st;
 }

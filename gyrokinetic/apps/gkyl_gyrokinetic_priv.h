@@ -4300,6 +4300,18 @@ void gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt
   struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st); 
 
 /**
+ * Perform some operations at the beginning of a step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_pre_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
  * Perform some operations at the beginning of an RK stage.
  *
  * @param app Gyrokinetic app.
@@ -4326,6 +4338,18 @@ gyrokinetic_pre_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double
 void
 gyrokinetic_post_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
+ * Perform some operations at the end of a step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_post_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
  * Perform some operations at the end of a failed RK stage.
