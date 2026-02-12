@@ -947,10 +947,6 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_dg_array_mask *update_cell; // Object to skip cells in updates.
-  double *global_max_f; // Global maximum of f for array mask applications. Maximum of local_max_f
-  double *local_max_f; // Local maximum of f for array mask applications.
-
   struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
   int io_meta_len; // Number of elements in io_meta.
 
@@ -1065,7 +1061,6 @@ struct gk_species {
   void (*calc_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
   void (*calc_int_mom_dt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
-  void (*update_cell_mask_func) (struct gk_species *species, const struct gkyl_array *fin);
 
   // Quantities used for FLR model:
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
@@ -1151,8 +1146,6 @@ struct gk_neut_species {
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
-
-  struct gkyl_dg_array_mask *update_cell; // Object to skip cells in updates.
         
   union {
     // Kinetic neutrals ............................................ //
@@ -3096,15 +3089,6 @@ void gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
- * Update the cell mask for a charged species based on the input distribution function.
- * The mask determines which cells to skip during the time step.
- *
- * @param species Pointer to species.
- * @param fin Input distribution function.
- */
-void gk_species_update_cell_mask(struct gk_species *species, const struct gkyl_array *fin);
-
-/**
  * Apply the positivity shift (to enforce f>=0) to a charged species.
  *
  * @param app Gyrokinetic app object.
@@ -3844,15 +3828,6 @@ void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_arr
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
- * Update the cell mask for a neutral species based on the input distribution function.
- * The mask determines which cells to skip during the time step.
- *
- * @param species Pointer to species.
- * @param fin Input distribution function.
- */
-void gk_neut_species_update_cell_mask(struct gk_neut_species *species, const struct gkyl_array *fin);
-
-/**
  * Apply the positivity shift (to enforce f>=0) to a neutral species.
  *
  * @param app Gyrokinetic app object.
@@ -4011,17 +3986,6 @@ void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
  */
 void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
-
-/**
- * Update the cell mask for all species based on the input distribution functions.
- * The mask determines which cells to skip during the time step.
- *
- * @param app Gyrokinetic app.
- * @param fin Input array of charged-species distribution functions.
- * @param fin_neut Input array of neutral-species distribution functions.
- */
-void gyrokinetic_update_cell_mask(gkyl_gyrokinetic_app* app,
-  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time

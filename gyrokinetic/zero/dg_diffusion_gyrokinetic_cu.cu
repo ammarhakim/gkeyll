@@ -6,7 +6,6 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_diffusion_gyrokinetic.h>    
 #include <gkyl_dg_diffusion_gyrokinetic_priv.h>
-#include <gkyl_dg_array_mask.h>
 }
 
 #include <cassert>
@@ -93,18 +92,13 @@ dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffus
 
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, struct gkyl_dg_array_mask *update_cell)
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_gyrokinetic* diffusion = (struct dg_diffusion_gyrokinetic*) gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
-
-
-  // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *update_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
-  diffusion->update_cell = gkyl_dg_array_mask_get_dev_ptr(update_cell_ho);
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;
@@ -122,9 +116,6 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
   struct dg_diffusion_gyrokinetic* diffusion_cu = (struct dg_diffusion_gyrokinetic*) gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);
   dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
-
-  // Updater should store host pointers.
-  diffusion->update_cell = update_cell_ho;
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

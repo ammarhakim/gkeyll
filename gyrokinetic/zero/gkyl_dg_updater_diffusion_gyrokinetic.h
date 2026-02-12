@@ -5,7 +5,6 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_dg_array_mask.h>
 
 // Object type
 typedef struct gkyl_dg_updater_diffusion_gyrokinetic gkyl_dg_updater_diffusion_gyrokinetic;
@@ -26,7 +25,6 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  * @param diff_order Diffusion order.
  * @param diff_range Range object to index the diffusion coefficient.
  * @param is_zero_flux_bc True for boundaries with zero flux BCs.
- * @param update_cell Object for skipping cells during diffusion.
  * @param coeff Diffusion coefficient/tensor.
  * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
  * @param use_gpu Whether to run on host or device.
@@ -34,7 +32,7 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  */
 struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, struct gkyl_dg_array_mask *update_cell,
+  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc,
   const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv, bool use_gpu);
 
 /**

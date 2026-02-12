@@ -12,8 +12,6 @@ extern "C" {
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_gk_collisionless_flux_priv.h>
-#include <gkyl_dg_array_mask.h>
-#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_util.h>
 }
 
@@ -55,7 +53,6 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
     double* flux_surf_d = (double*) gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
-    double cfl_temp = 0.0;
 
     for (int dir = 0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(pdim, idx, idxL);
@@ -73,17 +70,12 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
       if (idx[dir] == phase_range.lower[dir]) {
         // Lower domain/block boundary.
-        cfl_temp = up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
-        cfl_temp = up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
-      }
-
-      if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) && 
-          gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
-        cflrate_d[0] += cfl_temp;
       }
 
       // If the phase space index is at the local configuration space upper value, we
@@ -108,13 +100,8 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
         double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cfl_temp = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        cflrate_ext_d[0] = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
-
-        if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) && 
-            gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
-          cflrate_ext_d[0] = cfl_temp;
-        } 
       }  
     }
   }
@@ -160,7 +147,6 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
 
     double* flux_surf_d = (double*) gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
-    double cfl_temp = 0.0;
 
     int dir = cdim;
     gkyl_copy_int_arr(pdim, idx, idxL);
@@ -178,15 +164,10 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
 
-    cfl_temp += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
+    cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
       vpL, vpR,
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
-
-    if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idxL) &&
-        gkyl_dg_array_mask_eval_idx_ker(up->update_cell, idx)) {
-      cflrate_d[0] += cfl_temp;
-    }
   }
 }
 
@@ -249,7 +230,7 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, struct gkyl_dg_array_mask *update_cell,
+  const double charge, const double mass,
   enum gkyl_gk_collisionless_type type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
@@ -269,13 +250,11 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->mass = mass;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gkyl_dg_array_mask *update_cell_ho = gkyl_dg_array_mask_acquire(update_cell);
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_dg_geom *dg_geom_ho = gkyl_dg_geom_acquire(dg_geom);
   struct gkyl_gk_dg_geom *gk_dg_geom_ho = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   
-  up->update_cell = gkyl_dg_array_mask_get_dev_ptr(update_cell_ho);
   up->gk_geom = geom_ho->on_dev;
   up->dg_geom = dg_geom_ho->on_dev;
   up->gk_dg_geom = gk_dg_geom_ho->on_dev;
@@ -299,7 +278,6 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->update_cell = update_cell_ho;
   up->gk_geom = geom_ho; 
   up->dg_geom = dg_geom_ho; 
   up->gk_dg_geom = gk_dg_geom_ho; 

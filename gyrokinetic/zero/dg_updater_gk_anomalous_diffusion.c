@@ -8,7 +8,6 @@
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion_priv.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 struct gkyl_dg_eqn*
@@ -20,7 +19,7 @@ gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(const struct gkyl_dg_updater_
 struct gkyl_dg_updater_gk_anomalous_diffusion*
 gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, struct gkyl_dg_array_mask *update_cell,
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
   const struct gkyl_array *nu, const struct gkyl_array *jacobgeo_inv, bool use_gpu)
 {
   struct gkyl_dg_updater_gk_anomalous_diffusion *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gk_anomalous_diffusion));
@@ -43,7 +42,7 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
   // ELSE:       local       local       yes
 
   up->dgeqn = gkyl_gk_anomalous_diffusion_new(basis, cbasis,
-    conf_range, bc_x_lower, bc_x_upper, update_cell, up->use_gpu);
+    conf_range, bc_x_lower, bc_x_upper, up->use_gpu);
 
   gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn,
     (struct gkyl_gk_anomalous_diffusion_auxfields) {.nu = nu, .jacobgeo_inv = jacobgeo_inv });

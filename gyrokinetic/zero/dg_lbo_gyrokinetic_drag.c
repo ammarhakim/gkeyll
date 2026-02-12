@@ -7,7 +7,6 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_lbo_gyrokinetic_drag.h>
 #include <gkyl_dg_lbo_gyrokinetic_drag_priv.h>
-#include <gkyl_dg_array_mask.h>
 #include <gkyl_util.h>
 
 void
@@ -17,7 +16,6 @@ gkyl_lbo_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(base, struct dg_lbo_gyrokinetic_drag, eqn);
   gkyl_gk_geometry_release(lbo->gk_geom);
   gkyl_velocity_map_release(lbo->vel_map);
-  gkyl_dg_array_mask_release(lbo->update_cell);
 
   if (GKYL_IS_CU_ALLOC(lbo->eqn.flags))
     gkyl_cu_free(lbo->eqn.on_dev);
@@ -47,13 +45,13 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range,  const struct gkyl_rect_grid *pgrid,
-  double mass, struct gkyl_dg_array_mask *update_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
   bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis,
-      conf_range, pgrid, mass, update_cell, gk_geom, vel_map);
+      conf_range, pgrid, mass, gk_geom, vel_map);
 #endif
   struct dg_lbo_gyrokinetic_drag* lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
 
@@ -107,7 +105,6 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo->conf_range = *conf_range;
   lbo->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   lbo->vel_map = gkyl_velocity_map_acquire(vel_map);
-  lbo->update_cell = gkyl_dg_array_mask_acquire(update_cell);
   
   lbo->auxfields.nuSum = 0;
   lbo->auxfields.nuPrimMomsSum = 0;

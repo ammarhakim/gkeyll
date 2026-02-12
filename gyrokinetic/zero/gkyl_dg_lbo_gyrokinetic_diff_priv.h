@@ -4,8 +4,6 @@
 // Not for direct use in user code.
 
 #include <gkyl_gk_geometry.h>
-#include <gkyl_dg_array_mask.h>
-#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_lbo_gyrokinetic_kernels.h>
 
 // Types for various kernels
@@ -46,7 +44,6 @@ struct dg_lbo_gyrokinetic_diff {
   lbo_gyrokinetic_diff_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
-  struct gkyl_dg_array_mask *update_cell; // Object to skip cells based on criteria.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxfields; // Auxiliary fields.
@@ -66,29 +63,28 @@ kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
-    int vel_idx[2];
-    for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
-    long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-    long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
+  long cidx = gkyl_range_idx(&lbo->conf_range, idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.)) {
-      return lbo_gyrokinetic_diff_vol_1x1v_ser_p1(dx, 
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-    }
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.)) {
+    return lbo_gyrokinetic_diff_vol_1x1v_ser_p1(dx, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -98,29 +94,28 @@ kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
-    int vel_idx[2];
-    for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
-    long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-    long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
+  long cidx = gkyl_range_idx(&lbo->conf_range, idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.)) {
-      return lbo_gyrokinetic_diff_vol_1x2v_ser_p1(dx, 
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-    }
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.)) {
+    return lbo_gyrokinetic_diff_vol_1x2v_ser_p1(dx, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -129,30 +124,29 @@ kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
+  
+  int vel_idx[2];
+  for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
-    int vel_idx[2];
-    for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
+  long cidx = gkyl_range_idx(&lbo->conf_range, idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
-    long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-    long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
-
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.)) {
-      return lbo_gyrokinetic_diff_vol_2x2v_ser_p1(dx, 
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-    }
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.)) {
+    return lbo_gyrokinetic_diff_vol_2x2v_ser_p1(dx, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 GKYL_CU_DH
@@ -162,29 +156,28 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idx)) {
-    int vel_idx[2];
-    for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
-    long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-    long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
+  long cidx = gkyl_range_idx(&lbo->conf_range, idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.)) {
-      return lbo_gyrokinetic_diff_vol_3x2v_ser_p1(dx, 
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-    }
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.)) {
+    return lbo_gyrokinetic_diff_vol_3x2v_ser_p1(dx, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
   }
-  return 0.;
 }
 
 // Volume kernel list
@@ -300,46 +293,42 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxL) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxC) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxR)) {
-    long cidx = gkyl_range_idx(&lbo->conf_range, idxC);
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((dir >= lbo->cdim) &&
-        (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.))
-    {
-      int vel_idxL[2], vel_idxC[2], vel_idxR[2];
-      for (int d=lbo->cdim; d<lbo->pdim; d++) {
-        vel_idxL[d-lbo->cdim] = idxL[d];
-        vel_idxC[d-lbo->cdim] = idxC[d];
-        vel_idxR[d-lbo->cdim] = idxR[d];
-      }
-      long vidxL = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxL);
-      long vidxC = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxC);
-      long vidxR = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxR);
-
-      long pidxL = gkyl_range_idx(&lbo->vel_map->local, idxL);
-      long pidxC = gkyl_range_idx(&lbo->vel_map->local, idxC);
-      long pidxR = gkyl_range_idx(&lbo->vel_map->local, idxR);
-
-      return lbo->surf[dir-lbo->cdim](dxC,
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxL),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxC),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxR),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxC),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxL),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxC),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxR),
-        lbo->mass,
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
+  long cidx = gkyl_range_idx(&lbo->conf_range, idxC);
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((dir >= lbo->cdim) &&
+      (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.))
+  {
+    int vel_idxL[2], vel_idxC[2], vel_idxR[2];
+    for (int d=lbo->cdim; d<lbo->pdim; d++) {
+      vel_idxL[d-lbo->cdim] = idxL[d];
+      vel_idxC[d-lbo->cdim] = idxC[d];
+      vel_idxR[d-lbo->cdim] = idxR[d];
     }
+    long vidxL = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxL);
+    long vidxC = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxC);
+    long vidxR = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxR);
+
+    long pidxL = gkyl_range_idx(&lbo->vel_map->local, idxL);
+    long pidxC = gkyl_range_idx(&lbo->vel_map->local, idxC);
+    long pidxR = gkyl_range_idx(&lbo->vel_map->local, idxR);
+
+    return lbo->surf[dir-lbo->cdim](dxC,
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxL),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxC),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxR),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxC),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxL),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxC),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxR),
+      lbo->mass,
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
   return 0.;
 }
@@ -354,39 +343,36 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 {
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
 
-  if (gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxEdge) ||
-      gkyl_dg_array_mask_eval_idx_ker(lbo->update_cell, idxSkin)) {
-    long cidx = gkyl_range_idx(&lbo->conf_range, idxSkin);
-    const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
-    const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
-    const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
-    const double* nuUSum_p    = nuPrimMomsSum_p;
-    const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
-    if ((dir >= lbo->cdim) &&
-        (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
-        (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
-        (m2self_p[0]>0.))
-    {
-      int vel_idxEdge[2], vel_idxSkin[2];
-      for (int d=lbo->cdim; d<lbo->pdim; d++) {
-        vel_idxEdge[d-lbo->cdim] = idxEdge[d];
-        vel_idxSkin[d-lbo->cdim] = idxSkin[d];
-      }
-      long vidxEdge = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxEdge);
-      long vidxSkin = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxSkin);
-
-      long pidxEdge = gkyl_range_idx(&lbo->vel_map->local, idxEdge);
-      long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
-
-      return lbo->boundary_surf[dir-lbo->cdim](dxSkin, 
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxEdge),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxSkin),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxSkin),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxEdge),
-        (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxSkin), lbo->mass,
-        (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
-        nuSum_p, nuPrimMomsSum_p, edge, qInEdge, qInSkin, qRhsOut);
+  long cidx = gkyl_range_idx(&lbo->conf_range, idxSkin);
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo->auxfields.m2self, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo->num_cbasis];
+  if ((dir >= lbo->cdim) &&
+      (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
+      (m2self_p[0]>0.))
+  {
+    int vel_idxEdge[2], vel_idxSkin[2];
+    for (int d=lbo->cdim; d<lbo->pdim; d++) {
+      vel_idxEdge[d-lbo->cdim] = idxEdge[d];
+      vel_idxSkin[d-lbo->cdim] = idxSkin[d];
     }
+    long vidxEdge = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxEdge);
+    long vidxSkin = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxSkin);
+
+    long pidxEdge = gkyl_range_idx(&lbo->vel_map->local, idxEdge);
+    long pidxSkin = gkyl_range_idx(&lbo->vel_map->local, idxSkin);
+
+    return lbo->boundary_surf[dir-lbo->cdim](dxSkin, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxEdge),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxSkin),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxSkin),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxEdge),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->jacobvel, pidxSkin), lbo->mass,
+      (const double*) gkyl_array_cfetch(lbo->gk_geom->geo_int.bmag_inv, cidx), 
+      nuSum_p, nuPrimMomsSum_p, edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;
 }
@@ -398,7 +384,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, struct gkyl_dg_array_mask *update_cell, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the diffusion flux term.

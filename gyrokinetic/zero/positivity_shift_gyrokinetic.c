@@ -1,14 +1,12 @@
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_priv.h>
-#include <gkyl_dg_array_mask.h>
-#include <gkyl_dg_array_mask_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <float.h>
 
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, struct gkyl_dg_array_mask *update_cell,
+  struct gkyl_rect_grid grid, double mass,
   const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
@@ -25,7 +23,6 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
 
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-  up->update_cell = gkyl_dg_array_mask_acquire(update_cell);
   up->use_gpu = use_gpu;
   up->cellav_fac = 1./pow(sqrt(2.),pbasis.ndim);
 
@@ -121,19 +118,17 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 
       // Shift f if needed.
       bool shifted_node = false;
-      if (gkyl_dg_array_mask_eval_idx_ker(up->update_cell, vel_iter.idx)) {
-        // Divide by jacobtot and jacobvel so that we are shifting just f.
-        up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
-        for (int k=0; k<distf->ncomp; k++)
-          distf_c[k] /= jacobvel_c[0];
-        // Shift f to enforce positivity if needed.
-        shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
-        // Multiply by jacobtot and jacobvel to compute M0.
-        up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
-        for (int k=0; k<distf->ncomp; k++)
-          distf_c[k] *= jacobvel_c[0];
-      }
 
+      // Divide by jacobtot and jacobvel so that we are shifting just f.
+      up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
+      for (int k=0; k<distf->ncomp; k++)
+        distf_c[k] /= jacobvel_c[0];
+      // Shift f to enforce positivity if needed.
+      shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
+      // Multiply by jacobtot and jacobvel to compute M0.
+      up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
+      for (int k=0; k<distf->ncomp; k++)
+        distf_c[k] *= jacobvel_c[0];
 
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
@@ -280,7 +275,6 @@ gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic* up)
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_velocity_map_release(up->vel_map);
-  gkyl_dg_array_mask_release(up->update_cell);
   if (!up->use_gpu) {
     gkyl_free(up->ffloor);
     gkyl_free(up->kernels);

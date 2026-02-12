@@ -806,18 +806,6 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   app->stat.bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void
-gyrokinetic_update_cell_mask(gkyl_gyrokinetic_app* app,
-  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
-{
-  for (int i=0; i<app->num_species; ++i) {
-    gk_species_update_cell_mask(&app->species[i], fin[i]);
-  }
-  for (int i=0; i<app->num_neut_species; ++i) {
-    gk_neut_species_update_cell_mask(&app->neut_species[i], fin_neut[i]);
-  }
-}
-
 struct gk_species *
 gk_find_species(const gkyl_gyrokinetic_app *app, const char *nm)
 {
