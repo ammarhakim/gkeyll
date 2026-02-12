@@ -157,6 +157,8 @@ struct gk_geom_int {
 };
 
 struct gk_geometry {
+  enum gkyl_geometry_id geometry_id;
+
   // Objects for mapc2p and finite differences array.
   struct gkyl_range local;
   struct gkyl_range local_ext;
@@ -187,6 +189,9 @@ struct gk_geometry {
                  // location of the LCFS. For numerical IWL, it may be stored
                  // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -309,9 +314,9 @@ double gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op o
  * and the location of the extrema.
  * Only to be used during initialization because it allocates memory.
  *
- *  @param up gk_geometry object.
- *  @param op Operation to perform (GKYL_MAX or GKYL_MIN).
- *  @param op Coordinate where extrema occurs.
+ * @param up gk_geometry object.
+ * @param op Operation to perform (GKYL_MAX or GKYL_MIN).
+ * @param op Coordinate where extrema occurs.
  */
 double gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry* up, enum gkyl_array_op op, double *coord);
 
@@ -338,20 +343,28 @@ gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_
 /**
  * Deflate geometry to lower dimensionality.
  *
- * param up_3d 3d geometry object to deflate
- * param grid deflated grid
- * param local deflated local range
- * param local_ext deflated local extended range
- * param basis deflated basis
- * param use_gpu whether or not to use gpu
+ * @param up_3d 3d geometry object to deflate
+ * @param grid deflated grid
+ * @param local deflated local range
+ * @param local_ext deflated local extended range
+ * @param basis deflated basis
+ * @param use_gpu whether or not to use gpu
  */
 struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Populate nodal arrays from modal geometry
- * param gk_geom geometry object to deflate
+ * @param gk_geom geometry object to deflate
  */
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
+
+/**
+ * Reset the metadata values with corresponding values in GK geometry object
+ * (they may have been updated).
+ *
+ * @param up GK geometry object.
+ */
+void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up);
 
 /**
  * Acquire pointer to gk geometry object. The pointer must be released

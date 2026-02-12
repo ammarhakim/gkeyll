@@ -631,7 +631,7 @@ int main(int argc, char **argv)
     },
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
