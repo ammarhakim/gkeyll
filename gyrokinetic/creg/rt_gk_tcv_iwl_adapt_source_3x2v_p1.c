@@ -14,34 +14,34 @@
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
-    int cdim, vdim;
-    // Geometry and magnetic field parameters
-    double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Bref, x_LCFS;
-    // Plasma parameters
-    int num_species;
-    double me, qe, mi, qi, n0, Te0, Ti0;
-    // Collision parameters
-    double nuFrac, nuElc, nuIon;
-    // Source parameters
-    int num_sources;
-    bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
-    double center_srcCORE[3], sigma_srcCORE[3];
-    double energy_srcCORE, particle_srcCORE;
-    double floor_srcCORE;
-    bool adapt_energy_srcRECY, adapt_particle_srcRECY;
-    double center_srcRECY[3], sigma_srcRECY[3];
-    double energy_srcRECY, particle_srcRECY;
-    double floor_srcRECY;
-    // Grid parameters
-    double Lx, Ly, Lz;
-    double x_min, x_max, y_min, y_max, z_min, z_max;
-    int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
-    int cells[GKYL_MAX_DIM], poly_order;
-    double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
-    // Simulation control parameters
-    double final_time, write_phase_freq;
-    int num_frames, int_diag_calc_num, num_failures_max;
-    double dt_failure_tol;
+  int cdim, vdim;
+  // Geometry and magnetic field parameters
+  double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Bref, x_LCFS;
+  // Plasma parameters
+  int num_species;
+  double me, qe, mi, qi, n0, Te0, Ti0;
+  // Collision parameters
+  double nuFrac, nuElc, nuIon;
+  // Source parameters
+  int num_sources;
+  bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
+  double center_srcCORE[3], sigma_srcCORE[3];
+  double energy_srcCORE, particle_srcCORE;
+  double floor_srcCORE;
+  bool adapt_energy_srcRECY, adapt_particle_srcRECY;
+  double center_srcRECY[3], sigma_srcRECY[3];
+  double energy_srcRECY, particle_srcRECY;
+  double floor_srcRECY;
+  // Grid parameters
+  double Lx, Ly, Lz;
+  double x_min, x_max, y_min, y_max, z_min, z_max;
+  int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
+  int cells[GKYL_MAX_DIM], poly_order;
+  double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
+  // Simulation control parameters
+  double final_time, write_phase_freq;
+  int num_frames, int_diag_calc_num, num_failures_max;
+  double dt_failure_tol;
 };
 
 // Geometry related functions 
@@ -823,6 +823,19 @@ main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
+    .sundials_stepper = {
+      .enable = true,
+      .relative_tolerance = 1e-5,
+      .absolute_tolerance = 1e-12,
+//      .max_steps = 100000,
+      .num_stages = 3,
+      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3,
+//      .rk_method = GKYL_SUNDIALS_LSRK_METHOD_RKC_2,
+//      .max_num_stages = 10,
+//      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+//      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
+    },
 
     .geometry = geometry,
 
