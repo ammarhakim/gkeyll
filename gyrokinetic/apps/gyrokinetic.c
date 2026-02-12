@@ -2169,7 +2169,6 @@ gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyroki
 
     // Elastic collisions.
     gk_species_lbo_cross_moms(app, gk_s, &gk_s->lbo, fin[i]);        
-    gk_species_bgk_cross_moms(app, gk_s, &gk_s->bgk, fin[i]);        
   }
 
   // Compute df/dt (not including sources).
@@ -3264,6 +3263,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
   }
+  app->tcurr = rstat.stime;
 
   // Apply ICs that depend on other species.
   for (int i=0; i<app->num_neut_species; ++i)
@@ -3299,7 +3299,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // Compute the field.
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
-      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf, bflux);
+      gyrokinetic_calc_field(app, app->tcurr, (const struct gkyl_array **) distf, bflux);
     }
     else {
       // Read the t=0 field.
