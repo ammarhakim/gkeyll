@@ -898,7 +898,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   gyrokinetic_fdot_args_alloc(&app->fdot_args, app);
 
   app->use_sundials = false;
-  if (!gk->sundials_stepper.enable) {
+  if (gk->sundials_stepper.rk_method == GKYL_SUNDIALS_METHOD_NONE) {
     // Use implicit BGK collisions if specified
     bool has_implicit_coll_scheme = false;
     for (int i=0; i<ns_charged; ++i){
@@ -1191,7 +1191,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     int snvec_arr_off = 0;
     int ns_charged = app->num_species;
     int ns_neut = app->num_neut_species;
-    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    if (app->sundials_stepper_inp.rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
       // Create a temporary ManyNvector with buffers to store dy/dt
       // Total number of Nvectors, i.e. quantities stepped in time.
       for (int i=0; i<ns_charged; ++i) {
@@ -1208,7 +1208,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
     gkyl_sundials_arkode_reset(app->gk_sundials, t0, app->sundials_mnvec, mnvec_buff);
 
-    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    if (app->sundials_stepper_inp.rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
       for (int i=0; i<tot_num_vecs; ++i) {
         gkyl_sundials_nvec_release(snvec_arr[i]);
       }
@@ -3339,7 +3339,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     int snvec_arr_off = 0;
     int ns_charged = app->num_species;
     int ns_neut = app->num_neut_species;
-    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    if (app->sundials_stepper_inp.rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
       // Create a temporary ManyNvector with buffers to store dy/dt
       // Total number of Nvectors, i.e. quantities stepped in time.
       for (int i=0; i<ns_charged; ++i) {
@@ -3356,7 +3356,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
     gkyl_sundials_arkode_reset(app->gk_sundials, rstat.stime, app->sundials_mnvec, mnvec_buff);
 
-    if (app->sundials_stepper_inp.rk_method == GKYL_RK_METHOD_SSP_3_3) {
+    if (app->sundials_stepper_inp.rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
       for (int i=0; i<tot_num_vecs; ++i) {
         gkyl_sundials_nvec_release(snvec_arr[i]);
       }

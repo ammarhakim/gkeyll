@@ -540,22 +540,22 @@ static ARKODE_LSRKMethodType
 translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
 {
   switch (gk_rk_method) {
-    case GKYL_RK_METHOD_SSP_3_3:
+    case GKYL_SUNDIALS_METHOD_RK_SSP_3_3:
       assert(false); // Shouldn't be necessary.
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2: // Optimal 2nd order s-stage SSP RK method.
+    case GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2: // Optimal 2nd order s-stage SSP RK method.
       return ARKODE_LSRK_SSP_S_2;
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3: // Optimal 3rd order s-stage SSP RK method.
+    case GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3: // Optimal 3rd order s-stage SSP RK method.
       return ARKODE_LSRK_SSP_S_3;
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4: // Optimal 4th order 10-stage SSP RK method.
+    case GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4: // Optimal 4th order 10-stage SSP RK method.
       return ARKODE_LSRK_SSP_10_4;
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
+    case GKYL_SUNDIALS_METHOD_LSRK_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
       return ARKODE_LSRK_RKC_2;
       break;
-    case GKYL_SUNDIALS_LSRK_METHOD_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
+    case GKYL_SUNDIALS_METHOD_LSRK_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
       return ARKODE_LSRK_RKL_2;
       break;
     default:
@@ -794,8 +794,8 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
 {
   // Set default values if user didn't provide a value.
   if ( (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE) ||
-       ((inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3) && (inp->num_stages == 3)) )
-    inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
+       ((inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) && (inp->num_stages == 3)) )
+    inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
   
   if (inp->max_steps == 0)
     inp->max_steps = 100000;
@@ -804,17 +804,17 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   gksun->stepper_inp = inp; // Store stepper inputs.
   gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
 
-  if (inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+  if (inp->rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
     // Gkeyll's native 3rd order 3-stage SSP RK.
     gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
   }
-  else if ( (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2) ||
-            (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3) ||
-            (inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4) ) {
+  else if ( (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
+            (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
+            (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4) ) {
     if (inp->num_stages == 3) {
       // Gkeyll's native 3rd order 3-stage SSP RK, without embedding,
       // adapting dt using Gkeyll's CFL constraint.
-      inp->rk_method = GKYL_RK_METHOD_SSP_3_3;
+      inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
       gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
     }
     else {
@@ -840,7 +840,7 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
-  if (gksun->stepper_inp->rk_method == GKYL_RK_METHOD_SSP_3_3) {
+  if (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
     // Estimate the CFL stable dt.
     // Create a temporary NVector.
     N_Vector manynvbuff = gsmanynv_buff->nvec;
@@ -854,8 +854,8 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
     flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
     sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
   }
-  else if ( (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKC_2) ||
-            (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_LSRK_METHOD_RKL_2) ) {
+  else if ( (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
+            (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_RKL_2) ) {
     if ( !(gksun->stepper_inp->dee_by_gkeyll) ) {
       // Pass ICs to the eigenvalue estimate.
       flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);

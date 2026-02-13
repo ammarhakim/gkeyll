@@ -12,13 +12,13 @@
 
 // Time stepping method options.
 enum gkyl_sundials_rk_method {
-  GKYL_SUNDIALS_METHOD_NONE = 0,
-  GKYL_RK_METHOD_SSP_3_3, // Gkeyll's native 3rd order 3-stage SSP RK method.
-  GKYL_SUNDIALS_LSRK_METHOD_SSP_S_2, // Optimal 2nd order SSP RK method s stages (>=2).
-  GKYL_SUNDIALS_LSRK_METHOD_SSP_S_3, // Optimal 3rd order s-stage SSP RK method.
-  GKYL_SUNDIALS_LSRK_METHOD_SSP_10_4, // Optimal 4th order 10-stage SSP RK method.
-  GKYL_SUNDIALS_LSRK_METHOD_RKC_2, // 2nd order Runge-Kutta-Chebyshev (RKC).
-  GKYL_SUNDIALS_LSRK_METHOD_RKL_2, // 2nd order Runge-Kutta-Legendre (RKL).
+  GKYL_SUNDIALS_METHOD_NONE          = 0,
+  GKYL_SUNDIALS_METHOD_RK_SSP_3_3    = 1 << 0, // Gkeyll's native 3rd order 3-stage SSP RK method.
+  GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2  = 1 << 1, // Optimal 2nd order SSP RK method s stages (>=2).
+  GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3  = 1 << 2, // Optimal 3rd order s-stage SSP RK method.
+  GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4 = 1 << 3, // Optimal 4th order 10-stage SSP RK method.
+  GKYL_SUNDIALS_METHOD_LSRK_RKC_2    = 1 << 4, // 2nd order Runge-Kutta-Chebyshev (RKC).
+  GKYL_SUNDIALS_METHOD_LSRK_RKL_2    = 1 << 5, // 2nd order Runge-Kutta-Legendre (RKL).
 };
 
 // Context for functions that are app-specific and/or
@@ -63,7 +63,7 @@ struct gkyl_sundials_stepper_inp {
   long max_steps; // Maximum number of steps (default: 1e5).
   unsigned int num_stages; // Number of stages in a step, for methods with fixed number of stages.
   unsigned int max_num_stages; // Maximum number of stages, for methods with adaptive number of stages (default: 200).
-  enum gkyl_sundials_rk_method rk_method; // Time stepping method (default: GKYL_RK_METHOD_SSP_3_3).
+  enum gkyl_sundials_rk_method rk_method; // Time stepping method (default: GKYL_SUNDIALS_METHOD_RK_SSP_3_3).
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.

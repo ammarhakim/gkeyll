@@ -518,7 +518,6 @@ struct gkyl_gyrokinetic_field {
 
 // Sundials inputs specified in input file.
 struct gkyl_sundials_inp {
-  bool enable; // Whether to step the solution forward with  SUNDIALS.
   double relative_tolerance; // Relative tolerance.
   double absolute_tolerance; // Absolute tolerance.
   long max_steps; // Maximum number of steps.
