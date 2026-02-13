@@ -25,22 +25,21 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 
 static void
 gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
 }
 
 static void
 gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
 
   gkcls->flux_func(app, species, gkcls, fin);
 
-  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, fin, cflrate, rhs);
 
-  gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
+  gkcls->fdot_scaling(app, species, gkcls, rhs, cflrate, &species->local);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -175,10 +174,10 @@ gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *spec
 }
 
 void
-gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  gkcls->rhs_func(app, species, gkcls, fin, rhs);
+  gkcls->rhs_func(app, species, gkcls, fin, rhs, cflrate);
 }
 
 void

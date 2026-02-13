@@ -145,15 +145,15 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
 }
 
 static void
-gks_react_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_react_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Do nothing.
 }
 
 void
-gks_react_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_react_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<react->num_react; ++i) {
@@ -528,10 +528,10 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
 }
 
 void
-gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  react->rhs_func(app, s, react, fin, rhs);
+  react->rhs_func(app, s, react, fin, rhs, cflrate);
 }
 
 void

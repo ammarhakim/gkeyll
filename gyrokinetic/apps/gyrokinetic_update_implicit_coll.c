@@ -45,12 +45,24 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   // Apply boundary conditions and copy solution.
   gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
 
+  // Copy the solution back into the main array.
   for (int i=0; i<ns_charged; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_copy_range(gks, fin[i], fout[i], &gks->local_ext);
+    fin[i] = gks->f1;
+    fout[i] = gks->f;
   }
   for (int i=0; i<ns_neut; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
-    gk_neut_species_copy_range(gkns, fin_neut[i], fout_neut[i], &gkns->local_ext);
+    fin_neut[i] = gkns->f1;
+    fout_neut[i] = gkns->f;
+  }
+
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_copy_range(gks, fout[i], fin[i], &gks->local_ext);
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_copy_range(gkns, fout_neut[i], fin_neut[i], &gkns->local_ext);
   };
 }

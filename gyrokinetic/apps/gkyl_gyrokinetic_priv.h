@@ -265,8 +265,8 @@ struct gk_rad_drag {
   // Methods chosen at runtime:
   void (*moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-    struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_drag_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_emissivity_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
@@ -308,8 +308,8 @@ struct gk_collisionless {
 
     };
   };
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*fdot_scaling)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
@@ -370,8 +370,8 @@ struct gk_lbo_collisions {
     struct gk_lbo_collisions *lbo, int coll_idx);
   void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_lbo_collisions *lbo);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
 
@@ -420,10 +420,10 @@ struct gk_bgk_collisions {
     struct gk_bgk_collisions *bgk, int coll_idx);
   void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_bgk_collisions *bgk, int coll_idx);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
-  void (*rhs_func_implicit)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+  void (*rhs_func_implicit)(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   // For neutral species (will hopefully remove when we unify species types).
   void (*moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns,
@@ -451,8 +451,8 @@ struct gk_anomalous_diff {
   struct gkyl_array *diffD; // Diffusivity.
   struct gkyl_dg_updater_gk_anomalous_diffusion *slvr; // Anomalous diffusion equation solver.
   // Methods chosen at runtime.
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_anomalous_diff *gkad, double tm, int frame);
 };
@@ -644,8 +644,8 @@ struct gk_react {
   // Methods chosen at runtime:
   void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *s,
-    struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_react *react,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
     int ridx, double tm, int frame);
   // Neutral methods (MF 2025/10/28: to get rid of by unifying species types).
@@ -853,8 +853,8 @@ struct gk_heating {
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   bool is_first_diag_dynvec_write_call; // Whether dynvec is being written for the first time.
   // Methods chosen at runtime.
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_heating *src,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_heating *src, double tm, int frame);
 };
@@ -943,6 +943,8 @@ struct gk_species {
   struct gkyl_sundials_nvec *sundials_nvec; // Sundials Nvector wrap of f.
 
   struct gkyl_array *cflrate; // CFL rate in each cell.
+  struct gkyl_array *cflrate_ssprk; // CFL rate in each cell for terms stepped with SSP-RK.
+  struct gkyl_array *cflrate_sts; // CFL rate in each cell for terms stepped with STS.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
@@ -1779,9 +1781,10 @@ void gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species 
  * @param gkcls Species collisionless object.
  * @param fin Input distribution function.
  * @param rhs collisionless contribution to df/dt.
+ * @param cflrate CFL frequency.
  */
-void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write out diagnostics from the collisionless terms.
@@ -1901,9 +1904,10 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_specie
  * @param rad Species radiation drag object
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
+ * @param cflrate CFL frequency.
  */
-void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write species radiation drag.
@@ -2003,9 +2007,10 @@ void gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_specie
  * @param lbo Pointer to LBO.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from LBO.
+ * @param cflrate CFL frequency.
  */
-void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write moments from LBO object.
@@ -2084,9 +2089,10 @@ void gk_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct 
  * @param bgk Pointer to BGK.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from BGK.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Compute RHS from BGK collisions (implicit integrator).
@@ -2097,9 +2103,10 @@ void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
  * @param fin Input distribution function.
  * @param dt Time step.
  * @param rhs On output, the RHS from BGK.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+void gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write moments from BGK object.
@@ -2166,9 +2173,10 @@ void gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_spec
  * @param react Pointer to react
  * @param fin Input distribution function
  * @param rhs On output, the RHS from react (df/dt)
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write reaction rate.
@@ -3029,9 +3037,10 @@ void gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_
  * @param gkad Species anomalous diffusion object.
  * @param fin Input distribution function.
  * @param rhs Anomalous diffusion contribution to df/dt.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_species_anomalous_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_anomalous_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write out diagnostics from the anomalous diffusion term.
@@ -3073,9 +3082,10 @@ void gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species
  * @param src Pointer to source.
  * @param fin Input distribution function.
  * @param rhs Heating contribution to df/dt.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_heating *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write out diagnostics from the heating source.

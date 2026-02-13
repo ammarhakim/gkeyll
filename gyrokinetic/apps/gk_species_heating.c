@@ -17,14 +17,15 @@ gk_heating_volume_integrate(gkyl_gyrokinetic_app *app, struct gk_heating *src, c
 }
 
 static void
-gk_species_heating_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_heating_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_heating *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
+  // Do nothing.
 }
 
 static void
-gk_species_heating_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_heating_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_heating *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -55,7 +56,7 @@ gk_species_heating_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *spe
 
   // Assemble the BGK-like term and add it to rhs.
   gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, cflrate);
 
   app->stat.species_heat_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -218,10 +219,10 @@ gk_species_heating_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 }
 
 void
-gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_heating *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_heating_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_heating *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  src->rhs_func(app, species, src, fin, rhs);
+  src->rhs_func(app, species, src, fin, rhs, cflrate);
 }
 
 void

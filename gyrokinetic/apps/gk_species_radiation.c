@@ -51,21 +51,21 @@ gks_rad_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species
 }
 
 static void
-gks_rad_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_rad_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Do nothing.
 }
 
 static void
-gks_rad_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_rad_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
   
   // Accumulate update due to collisions onto rhs.
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
-    fin, species->cflrate, rhs);
+    fin, cflrate, rhs);
   
   app->stat.species_rad_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -615,10 +615,10 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 }
 
 void
-gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  rad->rhs_func(app, species, rad, fin, rhs);
+  rad->rhs_func(app, species, rad, fin, rhs, cflrate);
 }
 
 void

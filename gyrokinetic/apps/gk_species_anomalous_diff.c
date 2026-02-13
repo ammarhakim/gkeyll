@@ -2,19 +2,19 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 static void
-gk_species_anomalous_diff_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_anomalous_diff_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
 }
 
 static void
-gk_species_anomalous_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_anomalous_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
 
   gkyl_dg_updater_gk_anomalous_diffusion_advance(gkad->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+    fin, cflrate, rhs);
 
   app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -167,10 +167,10 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 }
 
 void
-gk_species_anomalous_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_anomalous_diff *gkad, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_anomalous_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  gkad->rhs_func(app, species, gkad, fin, rhs);
+  gkad->rhs_func(app, species, gkad, fin, rhs, cflrate);
 }
 
 void
