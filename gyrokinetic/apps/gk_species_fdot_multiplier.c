@@ -238,7 +238,6 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 {
   fdmul->type = gks->info.time_rate_multiplier.type;
   fdmul->write_diagnostics = gks->info.time_rate_multiplier.write_diagnostics;
-  fdmul->evolve = gks->info.time_rate_multiplier.evolve;
 
   // Default function pointers.
   fdmul->write_func = gk_species_fdot_multiplier_write_disabled;

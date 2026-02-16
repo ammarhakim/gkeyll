@@ -816,7 +816,6 @@ struct gk_damping {
 struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
   bool write_diagnostics; // Whether to write diagnostics out.
-  bool evolve; // Whether the multiplicative function is time dependent.
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
