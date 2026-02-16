@@ -734,6 +734,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     // Full phase space grid.
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
   }
+  gks->dt_omegaH = DBL_MIN;
 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
