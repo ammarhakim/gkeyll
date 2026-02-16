@@ -614,7 +614,7 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-9;
+  double t_end = 4.0e-8;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -755,6 +755,7 @@ int main(int argc, char **argv)
       .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
       .cellwise_const = true,
       .write_diagnostics = true,
+      .time_dilation_scale_const = 0.05,
     },
     .write_omega_cfl = true,
 

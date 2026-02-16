@@ -828,6 +828,7 @@ struct gk_fdot_multiplier {
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
   double f_threshold; // Threshold for mask-based time dilation.
+  double time_dilation_scale_const;
 
   // Time dilation mask object.
   struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
@@ -1075,6 +1076,7 @@ struct gk_species {
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
 
   double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
+  double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *m0_max; // Maximum number density in this MPI process.
 };

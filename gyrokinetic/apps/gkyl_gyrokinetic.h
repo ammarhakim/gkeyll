@@ -361,6 +361,7 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
   double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
     // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
+  double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
 };
 
 // Parameters for gk species.

@@ -64,8 +64,9 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
     }
     m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
   
-    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
-  
+    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf
+      * gks->time_dilation_scale_const;
+
     return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
   }
   else {
@@ -735,6 +736,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
   }
   gks->dt_omegaH = DBL_MIN;
+  gks->time_dilation_scale_const = gks->info.time_rate_multiplier.time_dilation_scale_const ?
+    gks->info.time_rate_multiplier.time_dilation_scale_const : 1.0;
 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);

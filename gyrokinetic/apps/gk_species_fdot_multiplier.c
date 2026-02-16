@@ -108,6 +108,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_omegaH(gkyl_gyrokinetic_
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
+  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -126,6 +127,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_user_specified(gkyl_gyro
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
+  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -173,6 +175,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
+  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -207,6 +210,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_local(gkyl_gyrokinet
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
+  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -455,7 +459,6 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
     }
   }
 }
-
 
 void
 gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,
