@@ -139,15 +139,15 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   // Compute local max f. If using GPU, copy to CPU for reduction
   if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
-    gkyl_array_reduce(fdmul->local_max_f_cu, fin, GKYL_MAX);
+    gkyl_array_reduce(fdmul->local_max_f_cu, f, GKYL_MAX);
     gkyl_cu_memcpy(fdmul->local_max_f, fdmul->local_max_f_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
 #endif
   }
   else {
-    gkyl_array_reduce(fdmul->local_max_f, fin, GKYL_MAX);
+    gkyl_array_reduce(fdmul->local_max_f, f, GKYL_MAX);
   }
   // Find the global maximum of f and set the mask threshold
-  gkyl_comm_allreduce_host(fdmul->comm, GKYL_DOUBLE, GKYL_MAX, app->basis.num_basis,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->basis.num_basis,
     fdmul->local_max_f, fdmul->global_max_f);
   gkyl_dg_array_mask_advance_threshold(fdmul->cfl_mask, fdmul->global_max_f[0]);
 
@@ -456,33 +456,6 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
   }
 }
 
-// Compute the initial static mask for time dilation (called after species IC and field are set).
-// This function computes the CFL rate via a full RHS call (which internally computes the multiplier),
-// and then switches to the static advance function for subsequent time steps.
-void
-gk_species_fdot_multiplier_apply_ic(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *f)
-{
-  // Only compute initial mask for time dilation types with evolve=false.
-  bool is_time_dilation_type = (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT) ||
-    (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH) ||
-    (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD) ||
-    (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL) ||
-    (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL);
-
-  if (!fdmul->evolve && is_time_dilation_type) {
-    // Compute the full RHS to get an accurate CFL rate from all terms.
-    // The RHS internally calls gk_species_fdot_multiplier_advance_times_cfl,
-    // which will compute the multiplier since the function pointer is currently
-    // set to the evolving version (gk_species_fdot_multiplier_advance_time_dilation_cfl).
-    // Use f1 as scratch for rhs output, and bflux.f for boundary flux moments.
-    gk_species_rhs(app, gks, f, gks->f1, gks->bflux.f);
-
-    // Switch to the static advance function for subsequent time steps.
-    // The multiplier was already computed inside gk_species_rhs.
-    fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
-  }
-}
 
 void
 gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,

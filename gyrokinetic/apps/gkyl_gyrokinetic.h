@@ -338,11 +338,11 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Dilates time.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time.
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold.
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask.
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
 // Input parameters for the df/dt multiplier.
@@ -358,9 +358,9 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   bool evolve;            // If true, mask is recomputed each step; if false, mask is fixed from init.
 
   // Parameters for time dilation types (FIXED_DT, MASK_F_*):
-  double cfl_dt_min_value;        // For FIXED_DT: the minimum allowed dt value.
+  double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
   double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
-                                  // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
+    // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
 };
 
 // Parameters for gk species.

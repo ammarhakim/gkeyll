@@ -570,6 +570,13 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
       .write_diagnostics = true,
     },
+    
+    .time_rate_multiplier = {
+      .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL,
+      .f_threshold = 1e-9,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,

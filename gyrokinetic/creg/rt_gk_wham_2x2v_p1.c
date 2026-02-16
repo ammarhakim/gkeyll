@@ -526,7 +526,7 @@ create_ctx(void)
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 1.5e-10;
+  double t_end = 1.5e-8;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -657,6 +657,13 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
+    
+    .time_rate_multiplier = {
+      .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,
+      .cfl_dt_min_value = 1e-9,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
 
     .projection = elc_ic,
 
@@ -727,6 +734,13 @@ int main(int argc, char **argv)
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
+    },
+
+    .time_rate_multiplier = {
+      .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,
+      .cfl_dt_min_value = 1e-9,
+      .cellwise_const = true,
+      .write_diagnostics = true,
     },
 
     .projection = ion_ic,

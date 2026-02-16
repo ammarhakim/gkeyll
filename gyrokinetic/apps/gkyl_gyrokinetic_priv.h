@@ -2843,17 +2843,6 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
 void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdmul);
 
 /**
- * Apply initial condition for fdot multiplier (computes static mask if evolve=false).
- *
- * @param app Gyrokinetic app.
- * @param gks Species.
- * @param fdmul Fdot multiplier struct.
- * @param f Distribution function (initial condition).
- */
-void gk_species_fdot_multiplier_apply_ic(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *f);
-
-/**
  * Multiply the CFL rate.
  *
  * @param app gyrokinetic app object.
