@@ -834,6 +834,9 @@ struct gk_fdot_multiplier {
 
   // Scratch arrays for time dilation computation.
   double *omega_max_local_cu; // GPU scratch space for reduce operation.
+  double *global_max_f; // Allreduced global maximum across all processes
+  double *local_max_f; // Process specific maximum
+  double *local_max_f_cu; // GPU scratch space for reduce operation.
 
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
