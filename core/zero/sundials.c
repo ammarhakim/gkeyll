@@ -530,6 +530,37 @@ gkyl_sundials_new(bool use_gpu)
 }
 
 /**
+ * Check if rk_method equals:
+ *   - opt_A if opt_B=0.
+ *   - opt_B if opt_A=0.
+ *   - opt_A | opt_B.
+ *
+ * @param rk_method Input method option(s).
+ * @param opt_A First option to check for.
+ * @param opt_B Second option to check for.
+ * @return Whether input method meets desired condition.
+ */
+bool
+gkyl_sundials_check_rk_method(enum gkyl_sundials_rk_method rk_method,
+  enum gkyl_sundials_rk_method opt_A, enum gkyl_sundials_rk_method opt_B) {
+  bool out;
+  if (opt_A == 0) {
+    out = rk_method & opt_B;
+  }
+  else if (opt_B == 0) {
+    out = rk_method & opt_A;
+  }
+  else if ((opt_A != 0) && (opt_B != 0)) {
+    out = (rk_method & (opt_A | opt_B)) == (opt_A | opt_B);
+  }
+  else {
+    printf("sundials.c gkyl_sundials_check_rk_method: cannot pass 0 for both opt_A and opt_B.\n");
+    assert(false);
+  }
+  return out;
+}
+
+/**
  * Translate the enum used to indicate LSRK method in Gkeyll,
  * to the LSRK method types in SUNDIALS.
  *
@@ -537,31 +568,23 @@ gkyl_sundials_new(bool use_gpu)
  * @return SUNDIALS LSRK method flag.
  */
 static ARKODE_LSRKMethodType
-translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
+gs_translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
 {
-  switch (gk_rk_method) {
-    case GKYL_SUNDIALS_METHOD_RK_SSP_3_3:
-      assert(false); // Shouldn't be necessary.
-      break;
-    case GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2: // Optimal 2nd order s-stage SSP RK method.
-      return ARKODE_LSRK_SSP_S_2;
-      break;
-    case GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3: // Optimal 3rd order s-stage SSP RK method.
-      return ARKODE_LSRK_SSP_S_3;
-      break;
-    case GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4: // Optimal 4th order 10-stage SSP RK method.
-      return ARKODE_LSRK_SSP_10_4;
-      break;
-    case GKYL_SUNDIALS_METHOD_LSRK_RKC_2: // 2nd order Runge-Kutta-Chebyshev (RKC).
-      return ARKODE_LSRK_RKC_2;
-      break;
-    case GKYL_SUNDIALS_METHOD_LSRK_RKL_2: // 2nd order Runge-Kutta-Legendre (RKL).
-      return ARKODE_LSRK_RKL_2;
-      break;
-    default:
-      assert(false);
-      break;
-  }
+  if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2))
+    return ARKODE_LSRK_SSP_S_2; // Optimal 2nd order s-stage SSP RK method.
+  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3))
+    return ARKODE_LSRK_SSP_S_3; // Optimal 3rd order s-stage SSP RK method.
+  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4))
+    return ARKODE_LSRK_SSP_10_4; // Optimal 4th order 10-stage SSP RK method.
+  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
+    return ARKODE_LSRK_RKC_2; // 2nd order Runge-Kutta-Chebyshev (RKC).
+  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2))
+    return ARKODE_LSRK_RKL_2; // 2nd order Runge-Kutta-Legendre (RKL).
+  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3))
+    assert(false); // Shouldn't be necessary.
+  else 
+    assert(false);
+
   return 0;
 }
 
@@ -573,36 +596,38 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
   if (nvin == 0) {
-    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_ssp_rk33: Error, gsnv has null N_Vector.\n");
     assert(false);
   }
 
   // Call ERKStepCreate to initialize the ARK timestepper module and
   // specify the right-hand side function in y'=f(t,y), the initial time
   // T0, and the initial dependent variable vector y.
-  gksun->arkode_mem = ERKStepCreate(gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
-  sundials_check_flag((void*)gksun->arkode_mem, "ERKStepCreate", 0);
+  gksun->arkode_mem_ssprk = ERKStepCreate(gksun->has_sts? gksun->dfdt_ssprk_func : gksun->dfdt_func,
+    inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem_ssprk, "ERKStepCreate", 0);
 
   // Set routines.
-  inp->app_ctx->arkode_mem = gksun->arkode_mem;
-  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
+  inp->app_ctx->arkode_mem_ssprk = gksun->arkode_mem_ssprk;
+  flag = ARKodeSetUserData(gksun->arkode_mem_ssprk, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
   // Set the initial step size.
   sunrealtype dt_stab = 0.1; // Recalculated and passed with _reset method.
-  flag = ARKodeSetInitStep(gksun->arkode_mem, dt_stab);
+  flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_stab);
   sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
 
   // Set CFL stable time step size function.
-  flag = ARKodeSetStabilityFn(gksun->arkode_mem, gksun->cfl_stable_dt_func, inp->app_ctx);
+  flag = ARKodeSetStabilityFn(gksun->arkode_mem_ssprk,
+    gksun->has_sts? gksun->cfl_stable_dt_ssprk_func : gksun->cfl_stable_dt_func, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetStabilityFn", 1);
 
   // Set CFL safety factor one to ensure exact use of the stable time step size.
-  flag = ARKodeSetCFLFraction(gksun->arkode_mem, SUN_RCONST(1.0));
+  flag = ARKodeSetCFLFraction(gksun->arkode_mem_ssprk, SUN_RCONST(1.0));
   sundials_check_flag(&flag, "ARKodeSetCFLFraction", 1);
 
   // Specify max number of steps allowed.
-  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem_ssprk, inp->max_steps);
   sundials_check_flag(&flag, "ARKodeSetMaxNumSteps", 1);
 
   // Insert the SSP33 Butcher tableau
@@ -623,19 +648,19 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   B_ssp33->d[1]    = SUN_RCONST(1.0/6.0);
   B_ssp33->d[2]    = SUN_RCONST(2.0/3.0);
 
-  flag = ERKStepSetTable(gksun->arkode_mem, B_ssp33);
+  flag = ERKStepSetTable(gksun->arkode_mem_ssprk, B_ssp33);
   sundials_check_flag(&flag, "ERKStepSetTable", 1);
 
   // Set pre/post processing methods in arkode mem.
-  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem, gksun->pre_process_step_func);
+  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
+  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
-  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
+  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem_ssprk, gksun->post_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
-  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem, gksun->post_process_step_func);
+  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
+  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem_ssprk, gksun->post_process_failed_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 
   // Free the Butcher tableau.
@@ -650,51 +675,52 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
   if (nvin == 0) {
-    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_ssp_rk: Error, gsnv has null N_Vector.\n");
     assert(false);
   }
 
   // Call LSRKStepCreateSSP to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSSP(gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
-  sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSSP", 0);
+  gksun->arkode_mem_ssprk = LSRKStepCreateSSP(gksun->has_sts? gksun->dfdt_ssprk_func : gksun->dfdt_func,
+    inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem_ssprk, "LSRKStepCreateSSP", 0);
 
   // Set user data (app pointer).
-  inp->app_ctx->arkode_mem = gksun->arkode_mem;
-  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
+  inp->app_ctx->arkode_mem_ssprk = gksun->arkode_mem_ssprk;
+  flag = ARKodeSetUserData(gksun->arkode_mem_ssprk, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
   // Specify tolerances.
-  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
+  flag = ARKodeSStolerances(gksun->arkode_mem_ssprk, inp->rel_tol, inp->abs_tol);
   sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
   // Specify max number of steps allowed.
-  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem_ssprk, inp->max_steps);
   sundials_check_flag(&flag, "ARKodeSetMaxNumSteps", 1);
 
   // Specify the SSP method.
-  flag = LSRKStepSetSSPMethod(gksun->arkode_mem, translate_gk_to_sundials_rk_method(inp->rk_method));
+  flag = LSRKStepSetSSPMethod(gksun->arkode_mem_ssprk, gs_translate_gk_to_sundials_rk_method(inp->rk_method));
   sundials_check_flag(&flag, "LSRKStepSetSSPMethod", 1);
 
   // Specify the number of SSP stages.
-  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem, inp->num_stages);
+  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem_ssprk, inp->num_stages);
   sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
 
   // Attach the error function.
-  flag = ARKodeWFtolerances(gksun->arkode_mem, gksun->snvec_efun_cell_norm_func);
+  flag = ARKodeWFtolerances(gksun->arkode_mem_ssprk, gksun->snvec_efun_cell_norm_func);
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
 
   // Set pre/post processing methods in arkode mem.
-  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem, gksun->pre_process_step_func);
+  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem, gksun->pre_process_rk_stage_func);
+  flag = ARKodeSetPreprocessRHSFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPreprocessRHSFn", 1);
-  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem, gksun->post_process_rk_stage_func);
+  flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem_ssprk, gksun->post_process_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
-  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem, gksun->post_process_step_func);
+  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem, gksun->post_process_failed_rk_stage_func);
+  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem_ssprk, gksun->post_process_failed_rk_stage_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 }
 
@@ -724,29 +750,29 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   int flag;
   N_Vector nvin = inp->gsnv->nvec;
   if (nvin == 0) {
-    fprintf(stderr, "\nError: gsnv has null N_Vector.\n");
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_sts: Error, gsnv has null N_Vector.\n");
     assert(false);
   }
 
   // Call LSRKStepCreateSTS to initialize the ARK timestepper module and
   // specify the right-hand side function in dfdt, the initial time
   // t_curr, and the initial dependent variable vector nvin.
-  gksun->arkode_mem = LSRKStepCreateSTS(gksun->dfdt_sts_func, inp->t_curr, nvin, nvin->sunctx);
-  sundials_check_flag((void*)gksun->arkode_mem, "LSRKStepCreateSTS", 0);
+  gksun->arkode_mem_sts = LSRKStepCreateSTS(gksun->has_ssprk? gksun->dfdt_sts_func : gksun->dfdt_func, inp->t_curr, nvin, nvin->sunctx);
+  sundials_check_flag((void*)gksun->arkode_mem_sts, "LSRKStepCreateSTS", 0);
 
   // Set user data (app pointer).
-  inp->app_ctx->arkode_mem = gksun->arkode_mem;
-  flag = ARKodeSetUserData(gksun->arkode_mem, inp->app_ctx);
+  inp->app_ctx->arkode_mem_sts = gksun->arkode_mem_sts;
+  flag = ARKodeSetUserData(gksun->arkode_mem_sts, inp->app_ctx);
   sundials_check_flag(&flag, "ARKodeSetUserData", 1);
 
   // Specify tolerances.
-  flag = ARKodeSStolerances(gksun->arkode_mem, inp->rel_tol, inp->abs_tol);
+  flag = ARKodeSStolerances(gksun->arkode_mem_sts, inp->rel_tol, inp->abs_tol);
   sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
   gksun->dom_eig_est = 0;
   if (inp->dee_by_gkeyll) {
     // Gkeyll estimates the dominant eigenvalue.
-    flag = LSRKStepSetDomEigFn(gksun->arkode_mem, gksun->sts_dom_eig_func);
+    flag = LSRKStepSetDomEigFn(gksun->arkode_mem_sts, gksun->has_ssprk? gksun->gk_dom_eig_sts_func : gksun->gk_dom_eig_func);
     sundials_check_flag(&flag, "LSRKStepSetDomEigFn", 1);
   }
   else {
@@ -755,47 +781,52 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
       inp->dee_rel_tol, nvin->sunctx);
     sundials_check_flag(&flag, "SUNDomEigEstimator_Power", 0);
   
-    flag = LSRKStepSetDomEigEstimator(gksun->arkode_mem, gksun->dom_eig_est);
+    flag = LSRKStepSetDomEigEstimator(gksun->arkode_mem_sts, gksun->dom_eig_est);
     sundials_check_flag(&flag, "LSRKStepSetDomEigEstimator", 1);
   
-    flag = LSRKStepSetNumDomEigEstInitPreprocessIters(gksun->arkode_mem, inp->dee_num_init_warmups);
+    flag = LSRKStepSetNumDomEigEstInitPreprocessIters(gksun->arkode_mem_sts, inp->dee_num_init_warmups);
     sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstInitPreprocessIters", 1);
   
-    flag = LSRKStepSetNumDomEigEstPreprocessIters(gksun->arkode_mem, inp->dee_num_succ_warmups);
+    flag = LSRKStepSetNumDomEigEstPreprocessIters(gksun->arkode_mem_sts, inp->dee_num_succ_warmups);
     sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstPreprocessIters", 1);
   }
 
   // Specify after how many successful steps dom_eig is recomputed.
   // Note that nsteps = 0 refers to constant dominant eigenvalue.
-  flag = LSRKStepSetDomEigFrequency(gksun->arkode_mem, inp->dee_frequency);
+  flag = LSRKStepSetDomEigFrequency(gksun->arkode_mem_sts, inp->dee_frequency);
   sundials_check_flag(&flag, "LSRKStepSetDomEigFrequency", 1);
 
   // Specify max number of stages allowed.
-  flag = LSRKStepSetMaxNumStages(gksun->arkode_mem, inp->max_num_stages);
+  flag = LSRKStepSetMaxNumStages(gksun->arkode_mem_sts, inp->max_num_stages);
   sundials_check_flag(&flag, "LSRKStepSetMaxNumStages", 1);
 
   // Specify max number of steps allowed.
-  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem, inp->max_steps);
+  flag = ARKodeSetMaxNumSteps(gksun->arkode_mem_sts, inp->max_steps);
   sundials_check_flag(&flag, "LSRKStepSetMaxNumStages", 1);
 
   // Specify safety factor for user provided dom_eig.
-  flag = LSRKStepSetDomEigSafetyFactor(gksun->arkode_mem, inp->dee_safety_fac);
+  flag = LSRKStepSetDomEigSafetyFactor(gksun->arkode_mem_sts, inp->dee_safety_fac);
   sundials_check_flag(&flag, "LSRKStepSetDomEigSafetyFactor", 1);
 
   // Specify the STS method.
-  flag = LSRKStepSetSTSMethod(gksun->arkode_mem, translate_gk_to_sundials_rk_method(inp->rk_method));
+  flag = LSRKStepSetSTSMethod(gksun->arkode_mem_sts, gs_translate_gk_to_sundials_rk_method(inp->rk_method));
   sundials_check_flag(&flag, "LSRKStepSetSTSMethod", 1);
 }
-
 
 void
 gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   struct gkyl_sundials_stepper_inp *inp)
 {
   // Set default values if user didn't provide a value.
-  if ( (inp->rk_method == GKYL_SUNDIALS_METHOD_NONE) ||
-       ((inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) && (inp->num_stages == 3)) )
-    inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
+  bool is_lsrk_ssp_s_3 = gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3);
+  if ( is_lsrk_ssp_s_3 && (inp->num_stages == 3) ) {
+    if (gkyl_sundials_check_rk_method(inp->rk_method, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
+      inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKC_2;
+    else if (gkyl_sundials_check_rk_method(inp->rk_method, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3, GKYL_SUNDIALS_METHOD_LSRK_RKL_2))
+      inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2;
+    else
+      inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
+  }
   
   if (inp->max_steps == 0)
     inp->max_steps = 100000;
@@ -804,13 +835,20 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   gksun->stepper_inp = inp; // Store stepper inputs.
   gksun->app_ctx = inp->app_ctx; // Copy pointer to app pointer.
 
-  if (inp->rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
+  gksun->has_ssprk = gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3) ||
+                     gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
+                     gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
+                     gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4);
+  gksun->has_sts = gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
+                   gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2);
+
+  if (gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
     // Gkeyll's native 3rd order 3-stage SSP RK.
     gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
   }
-  else if ( (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
-            (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
-            (inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4) ) {
+  else if ( gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
+            gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
+            gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4) ) {
     if (inp->num_stages == 3) {
       // Gkeyll's native 3rd order 3-stage SSP RK, without embedding,
       // adapting dt using Gkeyll's CFL constraint.
@@ -822,9 +860,38 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
       gkyl_sundials_stepper_init_ssp_rk(gksun, inp);
     }
   }
-  else {
+
+  if ( gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
+       gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2) ) {
     // Super time stepping.
     gkyl_sundials_stepper_init_sts(gksun, inp);
+  }
+
+  gksun->is_opsplit = false;
+  if (gksun->has_ssprk && gksun->has_sts) {
+    // Create operator splitting integrator.
+    gksun->is_opsplit = true;
+    int flag;
+    flag = ARKodeCreateSUNStepper(gksun->arkode_mem_ssprk, &gksun->stepper_ssprk);
+    sundials_check_flag(&flag, "ARKodeCreateSUNStepper", 1);
+
+    flag = ARKodeCreateSUNStepper(gksun->arkode_mem_sts, &gksun->stepper_sts);
+    sundials_check_flag(&flag, "ARKodeCreateSUNStepper", 1);
+
+    SUNStepper steppers[] = {gksun->stepper_ssprk, gksun->stepper_sts};
+    int num_partitions = sizeof(steppers)/sizeof(steppers[0]);
+
+    N_Vector nvin = inp->gsnv->nvec;
+    if (nvin == 0) {
+      fprintf(stderr, "\ngkyl_sundials_stepper_init: Error, gsnv has null N_Vector.\n");
+      assert(false);
+    }
+
+    gksun->arkode_mem_opsplit = SplittingStepCreate(steppers, num_partitions, inp->t_curr, nvin, nvin->sunctx);
+    sundials_check_flag(gksun->arkode_mem_opsplit, "SplittingStepCreate", 0);
+  }
+  else {
+    gksun->arkode_mem_opsplit = gksun->has_ssprk? gksun->arkode_mem_ssprk : gksun->arkode_mem_sts;
   }
 
 }
@@ -837,25 +904,42 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
 
   int flag;
 
-  flag = ARKodeReset(gksun->arkode_mem, time, manynvin);
+  flag = ARKodeReset(gksun->arkode_mem_opsplit, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
-  if (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_RK_SSP_3_3) {
-    // Estimate the CFL stable dt.
-    // Create a temporary NVector.
-    N_Vector manynvbuff = gsmanynv_buff->nvec;
+  if (gksun->has_ssprk) {
+    if (gksun->is_opsplit || gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
+      // Estimate the CFL stable dt.
+      // Create a temporary NVector.
+      N_Vector manynvbuff = gsmanynv_buff->nvec;
   
-    // Compute dt.
-    double dt_init;
-    flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
-    flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
+      // Compute dt.
+      double dt_init;
+      if (gksun->has_sts) {
+        flag = gksun->dfdt_ssprk_func(time, manynvin, manynvbuff, gksun->app_ctx);
+      }
+      else {
+        flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
+      }
 
-    // Set the initial step size.
-    flag = ARKodeSetInitStep(gksun->arkode_mem, dt_init);
-    sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
+      if (gksun->is_opsplit) {
+        flag = gksun->cfl_stable_dt_ssprk_func(manynvin, time, &dt_init, gksun->app_ctx);
+        gkyl_sundials_set_op_split_step(gksun, dt_init);
+
+      }
+      else
+        flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
+
+      if (gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
+        // Set the initial step size.
+        flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_init);
+        sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
+      }
+    }
   }
-  else if ( (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
-            (gksun->stepper_inp->rk_method == GKYL_SUNDIALS_METHOD_LSRK_RKL_2) ) {
+
+  if ( gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
+       gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2) ) {
     if ( !(gksun->stepper_inp->dee_by_gkeyll) ) {
       // Pass ICs to the eigenvalue estimate.
       flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
@@ -865,6 +949,13 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
 
 }
 
+void
+gkyl_sundials_set_op_split_step(struct gkyl_sundials *gksun, double dt)
+{
+  int flag = ARKodeSetFixedStep(gksun->arkode_mem_opsplit, dt);
+  sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
+}
+
 int
 gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   struct gkyl_sundials_nvec *gsnv, double *t_curr)
@@ -872,7 +963,7 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   N_Vector nvin = gsnv->nvec;
 
   // Call integrator to evolve the solution to time t_new.
-  int flag = ARKodeEvolve(gksun->arkode_mem, t_new, nvin, t_curr, ARK_ONE_STEP);
+  int flag = ARKodeEvolve(gksun->arkode_mem_opsplit, t_new, nvin, t_curr, ARK_ONE_STEP);
   sundials_check_flag(&flag, "ARKodeEvolve", 1);
 
   return flag;
@@ -882,7 +973,7 @@ long
 gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
 {
   long num_fail;
-  int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem, &num_fail); 
+  int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem_opsplit, &num_fail); 
   sundials_check_flag(&flag, "ARKodeGetNumErrTestFails", 1);
   return num_fail;
 }
@@ -890,15 +981,64 @@ gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
 long
 gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
 {
-  long num_evals;
-  int flag = ARKodeGetNumRhsEvals(gksun->arkode_mem, 0, &num_evals); 
-  sundials_check_flag(&flag, "ARKodeGetNumRhsEvals", 1);
+  long num_evals = 0;
+  if (gksun->has_ssprk) {
+    long num_evals_ssprk = 0;
+    int flag = ARKodeGetNumRhsEvals(gksun->arkode_mem_ssprk, 0, &num_evals_ssprk);
+    sundials_check_flag(&flag, "ARKodeGetNumRhsEvals", 1);
+    num_evals += num_evals_ssprk;
+  }
+
+  if (gksun->has_sts) {
+    long num_evals_sts = 0;
+    int flag = ARKodeGetNumRhsEvals(gksun->arkode_mem_sts, 0, &num_evals_sts); 
+    sundials_check_flag(&flag, "ARKodeGetNumRhsEvals", 1);
+    num_evals += num_evals_sts;
+  }
+
   return num_evals;
+}
+
+bool
+gkyl_sundials_use_operator_split(struct gkyl_sundials *gksun)
+{
+  return gksun->is_opsplit;
+}
+
+bool
+gkyl_sundials_operator_split_in_method(enum gkyl_sundials_rk_method rk_method)
+{
+  bool has_ssprk = gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3) ||
+                   gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
+                   gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
+                   gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4);
+  bool has_sts = gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
+                 gkyl_sundials_check_rk_method(rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2);
+
+  bool is_opsplit = false;
+  if (has_ssprk && has_sts)
+    is_opsplit = true;
+
+  return is_opsplit;
 }
 
 void
 gkyl_sundials_release(struct gkyl_sundials *gksun)
 {
+  if (gksun->has_ssprk)
+    ARKodeFree(&gksun->arkode_mem_ssprk);
+
+  if (gksun->has_sts)
+    ARKodeFree(&gksun->arkode_mem_sts);
+
+  if (gksun->is_opsplit) {
+    SUNStepper_Destroy(&gksun->stepper_ssprk);
+    SUNStepper_Destroy(&gksun->stepper_sts);
+    ARKodeFree(&gksun->arkode_mem_opsplit);
+  }
+
+  SUNContext_Free(&gksun->sunctx);
+
   gkyl_free(gksun);
 }
 
@@ -1014,6 +1154,7 @@ struct gkyl_sundials*
 gkyl_sundials_new(int ncomp, bool use_gpu)
 {
   fprintf(stderr, "\nGkeyll was not built with SUNDIALS. Use Gkeyll-native steppers or build Gkeyll with SUNDIALS.\n");
+  return 0;
 }
 
 void
@@ -1028,6 +1169,7 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   struct gkyl_sundials_nvec *gsnv, double t_curr)
 {
   // Do nothing.
+  return 0;
 }
 
 void
@@ -1041,24 +1183,43 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
   struct gkyl_comm *comm, struct gkyl_range *local_range, bool is_passive)
 {
   // Do nothing.
+  return 0;
 }
 
 struct gkyl_array*
 gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
 {
   // Do nothing.
+  return 0;
 }
 
 long
 gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
 {
   // Do nothing.
+  return 0;
 }
 
 long
 gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
 {
   // Do nothing.
+  return 0;
+}
+
+
+bool
+gkyl_sundials_use_operator_split(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return false;
+}
+
+bool
+gkyl_sundials_operator_split_in_method(enum gkyl_sundials_rk_method rk_method)
+{
+  // Do nothing.
+  return false;
 }
 
 void
@@ -1072,12 +1233,14 @@ gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
   struct gkyl_sundials_nvec *gsnv_arr[])
 {
   // Do nothing.
+  return 0;
 }
 
 
 int 
 gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun, struct gkyl_sundials_nvec* gsmanynv)
 {
+  // Do nothing.
   return 0;
 }
 

@@ -199,6 +199,10 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  if (inp->app_inp.sundials_stepper.rk_method != GKYL_SUNDIALS_METHOD_NONE) {
+    // Sundials interprets dt as the period between frames.
+    dt = (t_end - t_curr)/num_frames;
+  }
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = time_stepping.dt_failure_tol;

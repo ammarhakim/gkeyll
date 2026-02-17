@@ -13,6 +13,7 @@
 #include <arkode/arkode_lsrkstep.h> // Access to LSRKStep.
 #include <arkode/arkode_erkstep.h> // Access to ERKStep.
 #include <sundomeigest/sundomeigest_power.h> // Power iteration dominant eigen value estimator.
+#include <arkode/arkode_splittingstep.h> // Operator splitting.
 
 // Give access to the Gkeyll vector from within the NVECTOR.
 #define NV_CONTENT_GKZ(v) ((N_VectorContent_Gkeyll)(v->content))
@@ -49,15 +50,26 @@ struct gkyl_sundials
   struct gkyl_sundials_stepper_inp *stepper_inp; // SUNDIALS stepper inputs.
   SUNContext sunctx; // Sundials context.
   bool use_gpu; // Whether to run on GPU.
-  void *arkode_mem; // Memory for ARKODE.
+  bool has_ssprk; // Whether stepper has SSP-RK.
+  bool has_sts; // Whether stepper has STS.
+  void *arkode_mem_ssprk; // Memory for ARKODE SSP-RK stepper.
+  void *arkode_mem_sts; // Memory for ARKODE STS stepper.
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.
   SUNDomEigEstimator dom_eig_est; // Dominant eigenvalue estimator.
+  bool is_opsplit; // Whether we are using an operator split approach.
+  SUNStepper stepper_ssprk, stepper_sts; // Steppers for operator splitting.
+  void *arkode_mem_opsplit; // Memory for operator splotting.
   // Methods assigned by specific apps.
   int (*dfdt_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
+  int (*dfdt_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
   int (*dfdt_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
-  int (*sts_dom_eig_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
-                          sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
+  int (*gk_dom_eig_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
+    sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
+  int (*gk_dom_eig_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
+    sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
   int (*cfl_stable_dt_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
+  int (*cfl_stable_dt_ssprk_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
+  int (*cfl_stable_dt_sts_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
   int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
   int (*pre_process_step_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
   int (*post_process_step_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);

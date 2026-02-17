@@ -315,8 +315,8 @@ struct gk_collisionless {
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_collisionless *gkcls, double tm, int frame);
   // Methods for neutral species.
-  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_diags_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
     struct gk_collisionless *gkcls, double tm, int frame);
 };
@@ -438,10 +438,10 @@ struct gk_bgk_collisions {
     struct gk_bgk_collisions *bgk, int coll_idx);
   void (*cross_moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns,
     struct gk_bgk_collisions *bgk, int coll_idx);
-  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
-  void (*rhs_func_implicit_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+  void (*rhs_func_implicit_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_mom_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
 };
 
@@ -651,8 +651,8 @@ struct gk_react {
   // Neutral methods (MF 2025/10/28: to get rid of by unifying species types).
   void (*cross_moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
     struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-    struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
   void (*write_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
     int ridx, double tm, int frame);
 };
@@ -1034,6 +1034,8 @@ struct gk_species {
   // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  double (*rhs_ssprk_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_sts_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -1097,6 +1099,8 @@ struct gk_neut_species {
   struct gkyl_sundials_nvec *sundials_nvec; // Sundials Nvector wrap of f.
 
   struct gkyl_array *cflrate; // CFL rate in each cell.
+  struct gkyl_array *cflrate_ssprk; // CFL rate in each cell for terms stepped with SSP-RK.
+  struct gkyl_array *cflrate_sts; // CFL rate in each cell for terms stepped with STS.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
 
   struct gk_species_moment *moms; // Compute diagnostic moments.
@@ -1195,6 +1199,10 @@ struct gk_neut_species {
 
   // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  double (*rhs_ssprk_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  double (*rhs_sts_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
@@ -1848,9 +1856,10 @@ void gk_neut_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_neu
  * @param gkcls Species collisionless object.
  * @param fin Input distribution function.
  * @param rhs collisionless contribution to df/dt.
+ * @param cflrate CFL frequency.
  */
 void gk_neut_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write out diagnostics from the collisionless terms.
@@ -3188,6 +3197,19 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
+ * Compute dfdt for a given gk species due to terms stepped with SSP-RK.
+ *
+ * @param app gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the species object.
+ * @param bflux_moms Output boundary flux moments.
+ * @return Maximum stable time-step.
+ */
+double gk_species_rhs_ssprk(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+
+/**
  * Compute dfdt for a given gk species due to terms stepped with STS.
  *
  * @param app gyrokinetic app object.
@@ -3515,9 +3537,10 @@ void gk_neut_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const st
  * @param bgk Pointer to BGK.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from BGK.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Compute RHS from BGK collisions (implicit integrator).
@@ -3528,9 +3551,10 @@ void gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *
  * @param fin Input distribution function.
  * @param dt Time step.
  * @param rhs On output, the RHS from BGK.
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_neut_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs);
+void gk_neut_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write moments from BGK object.
@@ -3642,10 +3666,8 @@ void gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct g
  * @param fin Input distribution functions (size: num_species).
  * @param fin_neut Input neutral distribution functions (size: num_neut_species).
  */
-void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
-  const struct gk_neut_species *species,
-  struct gk_react *react,
-  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from reactions for neutrals
@@ -3656,10 +3678,10 @@ void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
  * @param react Pointer to react.
  * @param fin Input neutral distribution function.
  * @param rhs On output, the neutral RHS from react (df/dt).
+ * @param cflrate CFL frequency in phase space.
  */
-void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
-  struct gk_neut_species *s, struct gk_react *react,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write neutral reaction rate.
@@ -3671,8 +3693,8 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
  * @param tm Simulation time.
  * @param frame Simulation output frame.
  */
-void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
-  int ridx, double tm, int frame);
+void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
+  struct gk_react *gkr, int ridx, double tm, int frame);
 
 /**
  * Release neutral species react object.
@@ -3967,6 +3989,32 @@ double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *sp
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
+ * Compute dfdt for a given neutral species due to terms stepped with SSP-RK.
+ *
+ * @param app gyrokinetic app object.
+ * @param species Pointer to neutral species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the neutral species object (df/dt).
+ * @param bflux_moms Output boundary flux moments.
+ * @return Maximum stable time-step.
+ */
+double gk_neut_species_rhs_ssprk(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+
+/**
+ * Compute dfdt for a given neutral species due to terms stepped with STS.
+ *
+ * @param app gyrokinetic app object.
+ * @param species Pointer to neutral species.
+ * @param fin Input distribution function.
+ * @param rhs On output, the RHS from the neutral species object (df/dt).
+ * @param bflux_moms Output boundary flux moments.
+ * @return Maximum stable time-step.
+ */
+double gk_neut_species_rhs_sts(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+
+/**
  * Compute the *implicit* RHS from neutral species distribution function.
  *
  * @param app gyrokinetic app object.
@@ -4220,6 +4268,18 @@ gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokineti
 
 /**
  * Compute the RHS of the gyrokinetic equation (df/dt) due to terms stepped
+ * with SSP-RK.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @return Minimum stable time step.
+ */
+double
+gyrokinetic_dfdt_ssprk(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Compute the RHS of the gyrokinetic equation (df/dt) due to terms stepped
  * with STS.
  *
  * @param app Gyrokinetic app.
@@ -4241,6 +4301,23 @@ gyrokinetic_dfdt_sts(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_gyroki
  */
 double
 gyrokinetic_dfdt_generic(void *app_gen, double tcurr, void *fdot_args_gen);
+
+/**
+ * Compute the RHS of the gyrokinetic equation due to operators stepped with
+ * SSP-rk, passing the app as void.
+ *
+ * @param ctx Gyrokinetic app (as a void*).
+ * @param tcurr Current simulation time.
+ * @param fin Input array of charged-species distribution functions.
+ * @param fout Output array of charged-species distribution functions.
+ * @param bflux_out Output array of charged-species boundary fluxes.
+ * @param fin_neut Input array of neutral-species distribution functions.
+ * @param fout_neut Output array of neutral-species distribution functions.
+ * @param bflux_out_neut Output array of neutral-species boundary fluxes.
+ * @return Minimum stable dt in local MPI process.
+ */
+double
+gyrokinetic_dfdt_ssprk_generic(void *app_gen, double tcurr, void *fdot_args_gen);
 
 /**
  * Compute the RHS of the gyrokinetic equation due to operators stepped with

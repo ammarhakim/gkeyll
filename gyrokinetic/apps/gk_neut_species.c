@@ -97,6 +97,22 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
 }
 
 double
+gk_neut_species_rhs_ssprk(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms) 
+{
+  // Compute the RHS for species update due to terms stepped with SSP-RK, returning maximum stable time-step.
+  return species->rhs_ssprk_func(app, species, fin, rhs, bflux_moms);
+}
+
+double
+gk_neut_species_rhs_sts(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms) 
+{
+  // Compute the RHS for species update due to terms stepped with STS, returning maximum stable time-step.
+  return species->rhs_sts_func(app, species, fin, rhs, bflux_moms);
+}
+
+double
 gk_neut_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
 {

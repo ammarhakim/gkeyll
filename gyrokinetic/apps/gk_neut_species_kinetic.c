@@ -1,73 +1,109 @@
 #include <gkyl_gk_neut_species_priv.h>
 
-static double
-gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+static inline void
+gk_neut_species_kinetic_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
 {
-  double omega_cfl = 1/DBL_MAX;   
-  gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
-  
+  // Time rate of change of the distribution due to terms stepped with SSP-RK.
+
   // Collisionless terms.
-  gk_neut_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs);
+  gk_neut_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs, cflrate);
 
   // Elastic collisions.
-  gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs, cflrate);
 
   // Reactions with charged species.
-  gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
+  gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs, cflrate);
   
   // Compute and store (in the ghost cell of rhs) the boundary fluxes.
   gk_neut_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute diagnostic moments of the boundary fluxes.
   gk_neut_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+}
+
+static inline void
+gk_neut_species_kinetic_dfdt_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
+{
+  // Time rate of change of the distribution due to terms stepped with STS.
+}
+
+static double
+gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct gkyl_array *cflrate = species->cflrate;
+
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
   
-  app->stat.n_neut_species_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+  // Compute df/dt by terms that can be stepped with SSP-RK.
+  gk_neut_species_kinetic_dfdt_ssprk_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
   
-  double omega_cfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omega_cfl_ho[0] = species->omega_cfl[0];
-  }
-  omega_cfl = omega_cfl_ho[0];
+  // Compute df/dt by terms that can be stepped with STS.
+  gk_neut_species_kinetic_dfdt_sts_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
+
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+
+  return dt_out;
+}
+
+static double
+gk_neut_species_kinetic_rhs_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct gkyl_array *cflrate = species->cflrate_ssprk;
+
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
   
-  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return app->cfl/omega_cfl;
+  // Compute df/dt by terms that can be stepped with SSP-RK.
+  gk_neut_species_kinetic_dfdt_ssprk_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
+  
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+
+  return dt_out;
+}
+
+static double
+gk_neut_species_kinetic_rhs_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct gkyl_array *cflrate = species->cflrate_sts;
+
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+  
+  // Compute df/dt by terms that can be stepped with STS.
+  gk_neut_species_kinetic_dfdt_sts_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
+
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+
+  return dt_out;
 }
 
 static double
 gk_neut_species_kinetic_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
 { 
-  double omega_cfl = 1/DBL_MAX;
-  gkyl_array_clear(species->cflrate, 0.0);
+  struct gkyl_array *cflrate = species->cflrate;
+
+  gkyl_array_clear(cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
   // Compute implicit update and update rhs to new time step.
-  gk_neut_species_bgk_rhs_implicit(app, species, &species->bgk, fin, dt, rhs);
+  gk_neut_species_bgk_rhs_implicit(app, species, &species->bgk, fin, dt, rhs, cflrate);
 
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
   
-  app->stat.n_neut_species_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
-  
-  double omega_cfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omega_cfl_ho[0] = species->omega_cfl[0];
-  }
-  omega_cfl = omega_cfl_ho[0];
-  
-  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return app->cfl/omega_cfl;
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+
+  return dt_out;
 }
 
 static void
@@ -136,7 +172,10 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
 
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
+
   gkyl_array_release(s->cflrate);
+  gkyl_array_release(s->cflrate_ssprk);
+  gkyl_array_release(s->cflrate_sts);
   
   if (app->use_gpu)
     gkyl_cu_free(s->omega_cfl);
@@ -248,6 +287,14 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   
   // Allocate cflrate (scalar array).
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
+  if (gkyl_sundials_operator_split_in_method(gk->sundials_stepper.rk_method)) {
+    s->cflrate_ssprk = mkarr(app->use_gpu, s->cflrate->ncomp, s->cflrate->size);
+    s->cflrate_sts = mkarr(app->use_gpu, s->cflrate->ncomp, s->cflrate->size);
+  }
+  else {
+    s->cflrate_ssprk = gkyl_array_acquire(s->cflrate);
+    s->cflrate_sts = gkyl_array_acquire(s->cflrate);
+  }
 
   if (app->use_gpu) {
     s->omega_cfl = gkyl_cu_malloc(sizeof(double));
@@ -336,6 +383,8 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
 
   // Set function pointers
   s->rhs_func = gk_neut_species_kinetic_rhs_dynamic;
+  s->rhs_ssprk_func = gk_neut_species_kinetic_rhs_ssprk_dynamic;
+  s->rhs_sts_func = gk_neut_species_kinetic_rhs_sts_dynamic;
   s->rhs_implicit_func = gk_neut_species_kinetic_rhs_implicit_dynamic;
   s->bc_func = gk_neut_species_kinetic_apply_bc_dynamic;
   s->release_func = gk_neut_species_kinetic_release;
@@ -359,6 +408,8 @@ gk_neut_species_kinetic_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
 
   // Set function pointers
   s->rhs_func = gk_neut_species_rhs_static;
+  s->rhs_ssprk_func = gk_neut_species_rhs_static;
+  s->rhs_sts_func = gk_neut_species_rhs_static;
   s->rhs_implicit_func = gk_neut_species_rhs_implicit_static;
   s->bc_func = gk_neut_species_apply_bc_static;
   s->release_func = gk_neut_species_kinetic_release;

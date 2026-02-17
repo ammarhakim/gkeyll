@@ -26,9 +26,12 @@ enum gkyl_sundials_rk_method {
 struct gkyl_sundials_app_ctx {
   void *app_ptr; // Gkeyll app.
   void *fdot_args_ptr; // Arguments to df/dt calculation.
-  void *arkode_mem; // Memory for ARKODE.
+  void *arkode_mem_ssprk; // Memory for ARKODE SSP-RK stepper.
+  void *arkode_mem_sts; // Memory for ARKODE STS stepper.
   // Function that computes df/dt.
   double (*dfdt_func)(void *app_gen, double t_curr, void *fdot_args_gen);
+  // Function that computes df/dt due to operators stepped with SSP-RK.
+  double (*dfdt_ssprk_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that computes df/dt due to operators stepped with STS.
   double (*dfdt_sts_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that reduces a local dt across MPI processes.
@@ -53,6 +56,7 @@ struct gkyl_sundials_app_ctx {
     void *fdot_args, int stage_idx, int num_stages);
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
+  double dt_local_ssprk, dt_local_sts; // dt_local for SSP-RK and STS components.
   double dt_global; // Reduction of dt_local over all MPI processes.
 };
 
@@ -92,6 +96,20 @@ typedef struct gkyl_sundials gkyl_sundials; // Sundials object.
 struct gkyl_sundials* gkyl_sundials_new(bool use_gpu);
 
 /**
+ * Check if rk_method equals:
+ *   - opt_A if opt_B=0.
+ *   - opt_B if opt_A=0.
+ *   - opt_A | opt_B.
+ *
+ * @param rk_method Input method option(s).
+ * @param opt_A First option to check for.
+ * @param opt_B Second option to check for.
+ * @return Whether input method meets desired condition.
+ */
+bool gkyl_sundials_check_rk_method(enum gkyl_sundials_rk_method rk_method,
+  enum gkyl_sundials_rk_method opt_A, enum gkyl_sundials_rk_method opt_B);
+
+/**
  * Initialize the SUNDIALS time stepper.
  *
  * @param gksun SUNDIALS object.
@@ -110,6 +128,15 @@ void gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
  */
 void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   struct gkyl_sundials_nvec *gsmanynv, struct gkyl_sundials_nvec *gsmanynv_buff);
+
+/**
+ * Disable adaptive time stepping for operator split stepper (note, interior
+ * steppers like STS and SSP-RK may still use adaptivity) and set the fixed time step.
+ *
+ * @param gksun SUNDIALS object.
+ * @param dt Time step size.
+ */
+void gkyl_sundials_set_op_split_step(struct gkyl_sundials *gksun, double dt);
 
 /**
  * Evolve the solution contained in a given Nvector from
@@ -138,6 +165,23 @@ long gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun);
  * @return Number of RHS evaluations.
  */
 long gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun);
+
+/**
+ * Check if sundials is using an operator split approach (e.g. combining SSP-RK
+ * and STS).
+ *
+ * @param gksun SUNDIALS object.
+ * @return If using operator split.
+ */
+bool gkyl_sundials_use_operator_split(struct gkyl_sundials *gksun);
+
+/**
+ * Check if rk_method requires operator splitting.
+ *
+ * @param rk_method Method enum to be checked.
+ * @return If using operator split.
+ */
+bool gkyl_sundials_operator_split_in_method(enum gkyl_sundials_rk_method rk_method);
 
 /**
  * Free resources associates with a SUNDIALS object.
