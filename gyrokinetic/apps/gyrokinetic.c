@@ -1950,14 +1950,13 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_recycle_react_scale_cross_moms(app, gk_ns, &gk_ns->rrs, fin, fin_neut);
   }
 
-  // Compute df/dt^* for Ohm's law.
+  // Compute Apardot (solves Ohm's law using the previously built df/dt^*).
+  // Compute df/dt^* (ES + Apar)
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
     gk_species_rhs_star(app, gk_s, fin[i], fout[i], bflux_out[i]);
     gk_species_update_bflux(app, gk_s, fin[i], fout[i], bflux_out[i]);
   }
-
-  // Compute Apardot (solves Ohm's law using the previously built df/dt^*).
   gk_field_em_rhs(app, app->field, fin, fout);
   // Update aparout.
   gk_field_em_copy_range(app->field, aparout, app->field->apardot, &app->local_ext);
