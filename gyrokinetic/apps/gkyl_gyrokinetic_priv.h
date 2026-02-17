@@ -296,12 +296,14 @@ struct gk_collisionless {
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
       struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
-  struct gkyl_gk_collisionless_flux *add_apardot_surf_flux_op; // Updater to add Apardot terms to fluxes.
+      struct gkyl_gk_collisionless_flux *surf_flux_em_star_op; // EM collisionless fluxes without Apardot contribution.
       gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
-  gkyl_dg_updater_gyrokinetic *add_apardot_slvr; // Solver to add Apardot terms to RHS.
+      gkyl_dg_updater_gyrokinetic *slvr_em_star; // EM without Apardot contribution.
 
       // Methods chosen at runtime.
       void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+        struct gk_collisionless *gkcls, const struct gkyl_array *fin);
+      void (*flux_func_star)(gkyl_gyrokinetic_app *app, struct gk_species *species,
         struct gk_collisionless *gkcls, const struct gkyl_array *fin);
     };
     // Neutral (Vlasov) species ............................................ //
@@ -321,7 +323,7 @@ struct gk_collisionless {
   };
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
-  void (*add_apardot_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  void (*rhs_star_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*fdot_scaling)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng);
@@ -1037,10 +1039,11 @@ struct gk_species {
 
   struct gk_positivity positivity; // Positivity enforcing operator.
 
-  // Pointer to various functions selected at runtime.
+  // Pointer to full RHS (ES + [Apar + Apardot]).
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
-  void (*add_apardot_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  // Pointer to RHS star function (ES + [Apar]).
+  void (*rhs_star_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   void (*bflux_update)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
@@ -1821,27 +1824,15 @@ void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * @brief Add Apardot electromagnetic contribution to the collisionless RHS.
- * 
+ * Compute RHS star (ES + Aparallel).
+ *
  * @param app Gyrokinetic app object.
- * @param species Pointer to species.
+ * @param gks Pointer to species.
  * @param gkcls Species collisionless object.
  * @param fin Input distribution function.
- * @param rhs On output, the RHS from collisionless terms including EM contribution.
+ * @param rhs collisionless contribution to df/dt.
  */
-void gk_species_collisionless_add_apardot_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
-
-/**
- * @brief Add Apardot electromagnetic contribution to the collisionless RHS.
- * 
- * @param app Gyrokinetic app object.
- * @param species Pointer to species.
- * @param gkcls Species collisionless object.
- * @param fin Input distribution function.
- * @param rhs On output, the RHS from collisionless terms including EM contribution.
- */
-void gk_species_collisionless_add_apardot_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+void gk_species_collisionless_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
@@ -3099,16 +3090,15 @@ void gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
- * Add the Apardot electromagnetic part of the RHS from species distribution function
+ * Compute RHS star (ES + Apar) from species distribution function.
  *
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from the species object.
  * @param bflux_moms Output boundary flux moments.
- * @return Maximum stable time-step.
  */
-void gk_species_add_apardot_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+void gk_species_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**

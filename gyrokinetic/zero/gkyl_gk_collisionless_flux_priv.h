@@ -14,14 +14,14 @@ typedef double (*gk_collisionless_flux_surf_t)(const double *w, const double *dx
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
   const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phi,
-  const double *apar, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
+  const double *apar, const double *apardot, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
 
 typedef double (*gk_collisionless_flux_surfvpar_t)( 
   const double *w, const double *dxv, 
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-  const double *bmag, const double *phi, const double *apar,
+  const double *bmag, const double *phi, const double *apar, const double *apardot,
   const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -53,7 +53,6 @@ struct gkyl_gk_collisionless_flux {
   
   double charge, mass;
   bool is_em; // Whether it is electromagnetic.
-  bool only_apardot; // Whether it is meant to only add Apardot terms.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct.
   const struct gkyl_dg_geom *dg_geom; // Pointer to vol dg geometry struct.
   const struct gkyl_gk_dg_geom *gk_dg_geom; // Pointer to vol gk dg geometry struct.
@@ -79,10 +78,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -100,10 +107,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_edge_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_edge_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_edge_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -123,8 +138,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -144,8 +167,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_edge_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_edge_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_edge_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_edge_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -166,7 +197,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -187,7 +226,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_edge_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_edge_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_edge_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -205,10 +252,18 @@ static const gkyl_gk_collisionless_flux_surfvpar_kern_table ser_gk_collisionless
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_surfvpar_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_surfvpar_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfvpar_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_surfvpar_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_surfvpar_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_surfvpar_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_surfvpar_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_surfvpar_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_surfvpar_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_surfvpar_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -229,10 +284,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -250,10 +313,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list= {
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list= {
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -273,8 +344,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -294,8 +373,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -316,7 +403,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -337,7 +432,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -359,10 +462,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_no_by_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -380,10 +491,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_edge_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_edge_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -403,8 +522,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -424,8 +551,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_edge_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_edge_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -446,8 +581,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_surfz_3x2v_ser_p1, NULL }, // 3
     },  
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_surfz_3x2v_ser_p1, NULL }, // 3
+    },
   }
 };
 
@@ -467,7 +610,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_edge_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_edge_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -485,10 +636,18 @@ static const gkyl_gk_collisionless_flux_surfvpar_kern_table ser_gk_collisionless
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_surfvpar_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_surfvpar_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_surfvpar_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_surfvpar_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -509,10 +668,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -530,10 +697,18 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
   },
   {
     .kernels_list = {
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
-      { NULL, gk_em_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+      { NULL, gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -553,8 +728,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -574,8 +757,16 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
     .kernels_list = {
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -596,7 +787,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -617,7 +816,15 @@ static const gkyl_gk_collisionless_flux_surf_kern_table ser_gk_collisionless_flu
       { NULL, NULL, NULL }, // 0
       { NULL, NULL, NULL }, // 1
       { NULL, NULL, NULL }, // 2
-      { NULL, gk_em_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+      { NULL, gk_collisionless_flux_em_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+    },
+  },
+  {
+    .kernels_list = {
+      { NULL, NULL, NULL }, // 0
+      { NULL, NULL, NULL }, // 1
+      { NULL, NULL, NULL }, // 2
+      { NULL, gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
     },
   }
 };
@@ -738,25 +945,6 @@ static gk_collisionless_flux_surfvpar_t
 choose_gk_collisionless_flux_no_by_surf_vpar_kern(int em, int cdim, int vdim, int poly_order)
 {
   return ser_gk_collisionless_flux_no_by_surfvpar_kernels[em].kernels_list[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-}
-
-
-//
-// Electromagnetic serendipity surface kernels.
-// Parallel electric field term.
-GKYL_CU_D
-static const gkyl_gk_collisionless_flux_surfvpar_kern_list ser_gk_collisionless_flux_add_apardot_surfvpar_kernels[] = {
-  { NULL, gk_em_collisionless_flux_add_apardot_surfvpar_1x1v_ser_p1, NULL }, // 0
-  { NULL, gk_em_collisionless_flux_add_apardot_surfvpar_1x2v_ser_p1, NULL }, // 1
-  { NULL, gk_em_collisionless_flux_add_apardot_surfvpar_2x2v_ser_p1, NULL }, // 2
-  { NULL, gk_em_collisionless_flux_add_apardot_surfvpar_3x2v_ser_p1, NULL }, // 3
-};
-
-GKYL_CU_D
-static gk_collisionless_flux_surfvpar_t
-choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(int cdim, int vdim, int poly_order)
-{
-  return ser_gk_collisionless_flux_add_apardot_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
 #ifdef GKYL_HAVE_CUDA

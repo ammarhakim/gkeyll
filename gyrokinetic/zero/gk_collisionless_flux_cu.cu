@@ -18,7 +18,8 @@ __global__ void
 gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *apar, const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
+  const struct gkyl_array *apar, const struct gkyl_array *apardot,
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 { 
   int pdim = up->pdim;
   int cdim = up->cdim;
@@ -48,6 +49,7 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
     const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
     const double *apar_d = (const double*) gkyl_array_cfetch(apar, loc_conf);
+    const double *apardot_d = (const double*) gkyl_array_cfetch(apardot, loc_conf);
     const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -71,11 +73,11 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
       if (idx[dir] == phase_range.lower[dir]) {
         // Lower domain/block boundary.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, apardot_d, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
         cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, apardot_d, fL, fR, flux_surf_d);
       }
 
       // If the phase space index is at the local configuration space upper value, we
@@ -101,7 +103,7 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
         double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
 
         cflrate_ext_d[0] = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, fL, fR, flux_surf_ext_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, apar_d, apardot_d, fL, fR, flux_surf_ext_d);
       }  
     }
   }
@@ -111,8 +113,8 @@ __global__ void
 gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_flux *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, struct gkyl_range vpar_range,
-  const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *fin, 
-  struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
+  const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot,
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 { 
   int pdim = up->pdim;
   int cdim = up->cdim;
@@ -143,6 +145,7 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
     const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
     const double *apar_d = (const double*) gkyl_array_cfetch(apar, loc_conf);
+    const double *apardot_d = (const double*) gkyl_array_cfetch(apardot, loc_conf);
     const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -168,7 +171,7 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
     cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
       vpL, vpR,
       vmap_d, vmapSq_d, up->charge, up->mass,
-      dgv, gkdgv, bmag_d, phi_d, apar_d,  fL, fR, flux_surf_d);
+      dgv, gkdgv, bmag_d, phi_d, apar_d, apardot_d, fL, fR, flux_surf_d);
   }
 }
 
@@ -176,10 +179,10 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(struct gkyl_gk_collisionless_
 void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *apar, const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
+  const struct gkyl_array *apar, const struct gkyl_array *apardot, const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
 {
   gkyl_gk_collisionless_flux_surf_conf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
-    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, apar->on_dev, fin->on_dev,
+    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, apar->on_dev, apardot->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 
   struct gkyl_range vpar_range;
@@ -192,7 +195,7 @@ void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
   sublower[up->cdim] += 1;
   gkyl_sub_range_init(&vpar_range, phase_ext_range, sublower, subupper);
   gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
-    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range, phi->on_dev, apar->on_dev, fin->on_dev,
+    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range, phi->on_dev, apar->on_dev, apardot->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 
 }

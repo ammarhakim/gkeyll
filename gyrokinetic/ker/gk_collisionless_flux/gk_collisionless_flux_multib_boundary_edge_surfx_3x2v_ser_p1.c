@@ -4,7 +4,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1(
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
     const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, 
-    const double *phi, const double *apar,
+    const double *phi, const double *apar, const double *apardot,
     const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
@@ -19,6 +19,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1(
   // jacobgeo_rat_surfR: Ratio of surface conf-space Jacobians in right cell.
   // phi: electrostatic potential.
   // apar: parallel component of vector potential.
+  // apardot: time derivative of parallel component of vector potential.
   // JfL: distribution times total jacobian in left cell.
   // JfR: distribution times total jacobian in right cell.
   // flux_surf: output surface phase space flux in each direction (cdim + 1 components).

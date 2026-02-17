@@ -8,1224 +8,1155 @@
 EXTERN_C_BEG
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_edge_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_collisionless_flux_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_edge_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_collisionless_flux_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_surfvpar_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_collisionless_flux_no_by_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_1x1v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfvpar_1x1v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_1x1v_ser_p2(
+GKYL_CU_DH double gk_collisionless_flux_em_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfvpar_1x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_1x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_1x2v_ser_p2(
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_2x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfvpar_2x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_no_by_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_2x2v_ser_p2(
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x1v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfvpar_1x1v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfvpar_2x2v_ser_p2(
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfx_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfvpar_1x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_surfvpar_3x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
-  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfx_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfy_2x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfvpar_2x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_1x1v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_multib_boundary_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_1x1v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_1x2v_ser_p1(
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfx_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfy_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfz_3x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+    const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+    double* GKYL_RESTRICT flux_surf); 
+GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfvpar_3x2v_ser_p1(
   const double *w, const double *dxv,
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_1x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_2x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_2x2v_ser_p2(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
-  double* GKYL_RESTRICT flux_surf); 
-
-GKYL_CU_DH double gk_em_collisionless_flux_add_apardot_surfvpar_3x2v_ser_p1(
-  const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
-  const double *bmag, const double *phi, const double *apardot, const double *JfL, const double *JfR,
+  const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surf_return_zero(
@@ -1233,7 +1164,7 @@ GKYL_CU_DH double gk_collisionless_flux_surf_return_zero(
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
   const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *JfL, const double *JfR,
+  const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf);
 
 EXTERN_C_END

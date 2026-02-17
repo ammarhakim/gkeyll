@@ -83,20 +83,26 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       assert(false);
       break;    
   }  
+  
+  gyrokinetic->eqn.vol_term = kernel_dg_gyrokinetic_vol;
 
   if (no_by) {
-    gyrokinetic->eqn.vol_term = vol_no_by_kernels[cv_index].kernels[poly_order];
+    gyrokinetic->vol_es_term = CK(vol_no_by_kernels,cdim,vdim,poly_order);
   }
   else {
-    if (only_apardot)
-      gyrokinetic->eqn.vol_term = vol_add_apardot_kernels[cv_index].kernels[poly_order];
-    else
-      gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
+    gyrokinetic->vol_es_term = CK(vol_kernels,cdim,vdim,poly_order);
   }
 
-  gyrokinetic->vol_add_apar_term = 
-    ((collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP)) ? 
-    vol_add_apar_kernels[cv_index].kernels[poly_order] : dg_gyrokinetic_vol_return_zero;
+  // Setup electromagnetic terms if needed.
+  bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP);
+  gyrokinetic->vol_add_apar_term = dg_gyrokinetic_add_apar_vol_return_zero;
+  gyrokinetic->vol_add_apardot_term = dg_gyrokinetic_add_apardot_vol_return_zero;
+  if (is_em) {
+    gyrokinetic->vol_add_apar_term = CK(vol_add_apar_kernels,cdim,vdim,poly_order);
+    // Apardot is removed if we want to compute RHS star (ES + Apardot).
+    if (em_star)
+      gyrokinetic->vol_add_apardot_term = CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+  }
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)
@@ -118,7 +124,7 @@ struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, double skip_cell_threshold, enum gkyl_gk_collisionless_type collless_type,
-  const bool no_by, const bool only_apardot, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
+  const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
 
