@@ -67,6 +67,7 @@ gk_species_collisionless_rhs_star_enabled(gkyl_gyrokinetic_app *app, struct gk_s
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_em_star, &species->local, 
     fin, species->cflrate, rhs);
 
+  // AH Note: I'm not sure we need this here.
   gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
