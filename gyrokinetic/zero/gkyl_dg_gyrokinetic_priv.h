@@ -59,9 +59,9 @@ struct dg_gyrokinetic {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Config-space dimensions.
   int pdim; // Phase-space dimensions.
-  dg_gyrokinetic_vol_es_t vol_es_term; // Electrostatic contribution to volume term.
-  dg_gyrokinetic_vol_add_apar_t vol_add_apar_term; // Additional volume term for Apar contribution.
-  dg_gyrokinetic_vol_add_apardot_t vol_add_apardot_term; // Additional volume term for Apar contribution.
+  dg_gyrokinetic_vol_es_t vol_es_kernel; // Electrostatic contribution to volume term.
+  dg_gyrokinetic_vol_add_apar_t vol_add_apar_kernel; // Additional volume term for Apar contribution.
+  dg_gyrokinetic_vol_add_apardot_t vol_add_apardot_kernel; // Additional volume term for Apar contribution.
   dg_gyrokinetic_surf_t surf[4]; // Surface terms.
   dg_gyrokinetic_boundary_surf_t boundary_surf[4]; // Surface terms for velocity boundary.
   struct gkyl_range conf_range; // Configuration space range.
@@ -97,31 +97,28 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
   long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   double cfl = 0.0;
-  cfl = gyrokinetic->vol_es_term(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
-    qIn, qRhsOut);
-  cfl += gyrokinetic->vol_add_apar_term(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.b_i, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    qIn, qRhsOut);
-  cfl += gyrokinetic->vol_add_apardot_term(
-    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
-    qIn, qRhsOut);
+
+  const double *phi = (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx);
+  const double *apar = (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx);
+  const double *apardot = (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx);
+  const double *vm = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx);
+  const double *vm_sq = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx);
+  const double *bmag = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx);
+  const double *jacobtot_inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.jacobtot_inv, cidx);
+  const double *b_i = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.b_i, cidx);
+  const double *dualcurlbhatoverB = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx);
+  const double *rtg33inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx);
+  const double *bioverJB = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx);
+  
+  // Electrostatic contribution to volume term.
+  cfl = gyrokinetic->vol_es_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
+    bmag, phi, dualcurlbhatoverB, rtg33inv, bioverJB, qIn, qRhsOut);
+  // Add Apar contribution to volume term if needed.
+  cfl += gyrokinetic->vol_add_apar_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
+    bmag, jacobtot_inv, b_i, phi, apar, qIn, qRhsOut);
+  // Add Apardot contribution to volume term if needed.
+  cfl += gyrokinetic->vol_add_apardot_kernel( vm, gyrokinetic->charge, gyrokinetic->mass, 
+    apardot, qIn, qRhsOut);
   return cfl;
 }
 
@@ -175,8 +172,8 @@ static const gkyl_dg_gyrokinetic_vol_es_kern_list ser_no_by_vol_es_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_vol_add_apar_kern_list ser_add_apar_vol_kernels[] = {
   // 1x kernels
-  { NULL, dg_gyrokinetic_add_apar_vol_return_zero, NULL }, // 0
-  { NULL, dg_gyrokinetic_add_apar_vol_return_zero, NULL }, // 1
+  { NULL, dg_gyrokinetic_add_apar_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, dg_gyrokinetic_add_apar_vol_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
   { NULL, dg_gyrokinetic_add_apar_vol_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
