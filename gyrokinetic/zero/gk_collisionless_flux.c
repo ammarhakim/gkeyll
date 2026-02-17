@@ -20,7 +20,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_gk_collisionless_flux_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, type, no_by, only_apardot, em_star, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
+      charge, mass, type, no_by, em_star, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
 #endif     
 
   gkyl_gk_collisionless_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_flux));

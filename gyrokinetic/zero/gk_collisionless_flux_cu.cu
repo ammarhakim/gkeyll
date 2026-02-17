@@ -205,39 +205,31 @@ void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
 __global__ static void 
 gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up, 
   bool em, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type, 
-  bool no_by, bool only_apardot,
+  bool no_by, bool em_star,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
 {
-  if (only_apardot){
-    // If we only add Apardot terms to the flux, the only non zero kernel is the vpar one.
+  // Choose appropriate kernels.
+  em = em_star ? 2 : em; // If em_star is true, use EM kernels without Apardot contribution.
+  if (no_by) {
     for (int d=0; d<cdim; ++d) {
-      up->flux_surf[d] = gk_collisionless_flux_surf_return_zero;
-      up->flux_surf_edge_lo[d] = gk_collisionless_flux_surf_return_zero;
-      up->flux_surf_edge_up[d] = gk_collisionless_flux_surf_return_zero;
+      // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+      up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim,
+        poly_order, bctype_conf[d]);
+      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(em, d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
     }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_add_apardot_surf_vpar_kern(cdim, vdim, poly_order);
-  } else {
-    if (no_by) {
-      for (int d=0; d<cdim; ++d) {
-        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(em, d, cdim, vdim,
-          poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(em, d, cdim, vdim,
-          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
-      }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(em, cdim, vdim, poly_order);
-    } else { // The Apar term is included in the kernels. If we are ES, Apar=0.
-      for (int d=0; d<cdim; ++d) {
-        // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-        up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-        up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim,
-          poly_order, bctype_conf[d]);
-        up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(em, d, cdim, vdim,
-          poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
-      }
-      up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(em, cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(em, cdim, vdim, poly_order);
+  } else { // The Apar term is included in the kernels. If we are ES, Apar=0.
+    for (int d=0; d<cdim; ++d) {
+      // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
+      up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(em, d, cdim, vdim,
+        poly_order, bctype_conf[d]);
+      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(em, d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
     }
+    up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(em, cdim, vdim, poly_order);
   }
 }
 
@@ -245,7 +237,7 @@ gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type type, 
-  const bool no_by, const bool only_apardot,
+  const bool no_by, const bool em_star,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
@@ -284,7 +276,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_gk_collisionless_flux *up_cu = (struct gkyl_gk_collisionless_flux*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_collisionless_flux), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, em, cdim, vdim, poly_order, type, no_by, only_apardot, bctype_conf_dev);
+  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, em, cdim, vdim, poly_order, type, no_by, em_star, bctype_conf_dev);
 
   gkyl_cu_free(bctype_conf_dev);
 

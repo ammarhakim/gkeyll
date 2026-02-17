@@ -38,7 +38,7 @@ gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 __global__ static void 
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type, 
-  bool no_by, bool only_apardot)
+  bool no_by, bool em_star)
 {
   gyrokinetic->auxfields.flux_surf = 0; 
   gyrokinetic->auxfields.phi = 0; 
@@ -49,9 +49,9 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
-  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
+  const gkyl_dg_gyrokinetic_vol_es_kern_list *vol_kernels, *vol_no_by_kernels;
   const gkyl_dg_gyrokinetic_vol_add_apar_kern_list *vol_add_apar_kernels;
-  const gkyl_dg_gyrokinetic_vol_kern_list *vol_add_apardot_kernels;
+  const gkyl_dg_gyrokinetic_vol_add_apardot_kern_list *vol_add_apardot_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
@@ -63,7 +63,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
+      vol_kernels = ser_vol_es_kernels;
       vol_add_apar_kernels = ser_add_apar_vol_kernels;
       vol_add_apardot_kernels = ser_add_apardot_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
@@ -75,7 +75,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
-      vol_no_by_kernels = ser_no_by_vol_kernels;
+      vol_no_by_kernels = ser_no_by_vol_es_kernels;
       
       break;
 
@@ -87,10 +87,10 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->eqn.vol_term = kernel_dg_gyrokinetic_vol;
 
   if (no_by) {
-    gyrokinetic->vol_es_kernel = CK(vol_no_by_kernels,cdim,vdim,poly_order);
+    gyrokinetic->vol_es_kernel = vol_no_by_kernels[cv_index].kernels[poly_order];
   }
   else {
-    gyrokinetic->vol_es_kernel = CK(vol_kernels,cdim,vdim,poly_order);
+    gyrokinetic->vol_es_kernel = vol_kernels[cv_index].kernels[poly_order];
   }
 
   // Setup electromagnetic terms if needed.
@@ -98,10 +98,10 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_return_zero;
   gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_return_zero;
   if (is_em) {
-    gyrokinetic->vol_add_apar_kernel = CK(vol_add_apar_kernels,cdim,vdim,poly_order);
+    gyrokinetic->vol_add_apar_kernel = vol_add_apar_kernels[cv_index].kernels[poly_order];
     // Apardot is removed if we want to compute RHS star (ES + Apardot).
-    if (em_star)
-      gyrokinetic->vol_add_apardot_kernel = CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+    gyrokinetic->vol_add_apardot_kernel = em_star ?
+      dg_gyrokinetic_add_apardot_vol_return_zero : vol_add_apardot_kernels[cv_index].kernels[poly_order];
   }
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
@@ -162,7 +162,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
   dg_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
-    cdim, vdim, poly_order, collless_type, no_by, only_apardot);
+    cdim, vdim, poly_order, collless_type, no_by, em_star);
 
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;

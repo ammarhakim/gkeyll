@@ -955,7 +955,7 @@ choose_gk_collisionless_flux_no_by_surf_vpar_kern(int em, int cdim, int vdim, in
 struct gkyl_gk_collisionless_flux* 
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, enum gkyl_gk_collisionless_type type, const bool no_by, const bool only_apardot,
+  double charge, double mass, enum gkyl_gk_collisionless_type type, const bool no_by, const bool em_star,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf);
@@ -965,6 +965,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
  */
 void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *apar, const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, 
+  const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot, 
+  const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
 #endif
