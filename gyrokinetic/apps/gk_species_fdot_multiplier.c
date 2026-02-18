@@ -138,18 +138,9 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute local max f. If using GPU, copy to CPU for reduction
-  if (app->use_gpu) {
-#ifdef GKYL_HAVE_CUDA
-    gkyl_array_reduce(fdmul->local_max_f_cu, f, GKYL_MAX);
-    gkyl_cu_memcpy(fdmul->local_max_f, fdmul->local_max_f_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-#endif
-  }
-  else {
-    gkyl_array_reduce(fdmul->local_max_f, f, GKYL_MAX);
-  }
-  // Find the global maximum of f and set the mask threshold
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->basis.num_basis,
+  // Compute local max f
+  gkyl_array_reduce(fdmul->local_max_f, f, GKYL_MAX);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, app->basis.num_basis,
     fdmul->local_max_f, fdmul->global_max_f);
   gkyl_dg_array_mask_advance_threshold(fdmul->cfl_mask, fdmul->global_max_f[0]);
 
@@ -260,8 +251,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
     // Allocate multiplier array.
     fdmul->multiplier = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
     fdmul->multiplier_host = app->use_gpu? mkarr(false, fdmul->multiplier->ncomp,
-      fdmul->multiplier->size)
-                                         : gkyl_array_acquire(fdmul->multiplier);
+      fdmul->multiplier->size) : gkyl_array_acquire(fdmul->multiplier);
 
     // Context for c2p function passed to proj_on_basis.
     fdmul->proj_on_basis_c2p_ctx.cdim = app->cdim;
@@ -394,11 +384,14 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
         fdmul->omega_max_local_cu = (double *)gkyl_cu_malloc(sizeof(double));
-        fdmul->local_max_f_cu = (double *)gkyl_cu_malloc(sizeof(double) * gks->basis.num_basis);
+        fdmul->local_max_f = (double *)gkyl_cu_malloc(sizeof(double) * gks->basis.num_basis);
+        fdmul->global_max_f = (double *)gkyl_cu_malloc(sizeof(double) * gks->basis.num_basis);
 #endif
       }
-      fdmul->local_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
-      fdmul->global_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
+      else {
+        fdmul->local_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
+        fdmul->global_max_f = gkyl_malloc(sizeof(double) * gks->basis.num_basis);
+      }
 
       enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
       switch (fdmul->type) {
@@ -530,8 +523,10 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
         gkyl_cu_free(fdmul->local_max_f_cu);
 #endif
       }
-      gkyl_free(fdmul->local_max_f);
-      gkyl_free(fdmul->global_max_f);
+      else {
+        gkyl_free(fdmul->local_max_f);
+        gkyl_free(fdmul->global_max_f);
+      }
     }
   }
 }

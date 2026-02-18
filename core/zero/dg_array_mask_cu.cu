@@ -256,6 +256,29 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
   mask->advance_func_cu(mask, arr_to_mask);
 }
 
+static void
+advance_threshold_none(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+}
+
+static void
+advance_threshold_frac_kernel(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+  mask->threshold = mask->frac_threshold * global_max;
+}
+
+static void
+advance_threshold_frac(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+  advance_threshold_frac_kernel<<<1, 1>>>(mask->on_dev, global_max);
+}
+
+void
+gkyl_dg_array_mask_advance_threshold_cu(struct gkyl_dg_array_mask *mask, const double global_max)
+{
+  mask->advance_threshold_func(mask, global_max);
+}
+
 struct dg_array_mask_idx {
   int idx[GKYL_MAX_DIM]; // Index.
 };
@@ -314,6 +337,9 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   GKYL_SET_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
 
+  mask->advance_func_cu = advance_none;
+  mask->advance_threshold_func_cu = advance_threshold_none;
+
   // Set GPU advance function pointer based on mask type
   switch (mask->type) {
     case GKYL_DG_ARRAY_MASK_NONE:
@@ -327,9 +353,11 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
       mask->advance_func_cu = advance_cu_less_than;
+      mask->advance_threshold_func_cu = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
       mask->advance_func_cu = advance_cu_greater_than;
+      mask->advance_threshold_func_cu = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func_cu = advance_cu_less_than_frac_conf;
@@ -338,7 +366,6 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       mask->advance_func_cu = advance_cu_greater_than_frac_conf;
       break;
     default:
-      mask->advance_func_cu = advance_cu_none;
       break;
   }
 
@@ -364,8 +391,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng_ext->volume);
     }
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
-    }
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {}
 
     // Initialize the device object.
     struct gkyl_dg_array_mask *mask_cu =

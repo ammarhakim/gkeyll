@@ -145,6 +145,12 @@ void
 gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask,
   const double global_max)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (mask->use_gpu) {
+    gkyl_dg_array_mask_advance_threshold_cu(mask, arr_in);
+    return;
+  }
+#endif
   mask->advance_threshold_func(mask, global_max);
 }
 
