@@ -463,7 +463,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_R,
@@ -500,7 +500,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_LSN_SOL_LO,
@@ -536,7 +536,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_LSN_SOL_MID,
@@ -572,7 +572,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_LSN_SOL_UP,
@@ -608,7 +608,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_L,
@@ -645,7 +645,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE,

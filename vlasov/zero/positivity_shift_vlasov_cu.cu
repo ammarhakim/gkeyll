@@ -83,11 +83,9 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
   struct gkyl_array* GKYL_RESTRICT distf, struct gkyl_array* GKYL_RESTRICT m0, struct gkyl_array* GKYL_RESTRICT delta_m0)
 {
   int pidx[GKYL_MAX_DIM];
-   double xc[GKYL_MAX_DIM];
+  double xc[GKYL_MAX_DIM];
 
   double distf_max = -DBL_MAX;
-  int cdim = conf_range.ndim, pdim = phase_range.ndim;
-
   const int num_cbasis = 20; // MF 2024/09/03: Hardcoded to p=2 3x ser for now.
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;

@@ -455,20 +455,135 @@ struct gkyl_msgpack_data {
   char *meta; // data pointer (pointer to bytes. NOT a NULL terminated string!)
 };
 
-// Msgpack element type
-enum gkyl_msgpack_elem_type { GKYL_MP_INT, GKYL_MP_DOUBLE, GKYL_MP_STRING };
+// Msgpack element type.
+enum gkyl_msgpack_elem_type { 
+  GKYL_MP_BOOL, GKYL_MP_INT, GKYL_MP_UNSIGNED_INT,
+  GKYL_MP_FLOAT, GKYL_MP_DOUBLE, GKYL_MP_STRING,
+};
 
-// Entry type into msgpack map
+// Entry type into msgpack map.
 struct gkyl_msgpack_map_elem {
   char *key; // name of element
   enum gkyl_msgpack_elem_type elem_type; // type of element
   union {
     // depending on elem_type one of following should be set    
+    bool bval;
+    unsigned int uval;
     int ival;
+    float fval;
     double dval;
     char *cval; // null terminated string managed by caller
   };
 };
+
+/**
+ * Check if element list contains the element with name "key".
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to look for.
+ * @return True is list has this element key, false otherwise.
+ */
+bool
+gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Allocate a new list of MessagePack map elements by cloning
+ * another one.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements to put in MessagePack.
+ * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
+ */
+struct gkyl_msgpack_map_elem* gkyl_msgpack_map_elem_clone(int nvals,
+  const struct gkyl_msgpack_map_elem *elist_in);
+
+/**
+ * Allocate a new list of MessagePack map elements out of the union of one or
+ * more map elem lists.
+ *
+ * @param numlist_union Number of lists.
+ * @param nvals_union Number of values in the elist array, one for each list.
+ * @param elist_union List of elements to insert into map, for each list.
+ * @param elist_out_len Length of the map elem list produced.
+ * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
+ */
+struct gkyl_msgpack_map_elem* gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
+  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len);
+
+/**
+ * Update the type double value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @param value Value to update element with.
+ */
+void gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key, double value);
+
+/**
+ * Update the type unsigned int value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @param value Value to update element with.
+ */
+void gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key, unsigned int value);
+
+/**
+ * Fetch the type double value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @return Value of the specified element.
+ */
+double gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Fetch the type unsigned_int value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @return Value of the specified element.
+ */
+unsigned int gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Fetch the pointer to the string value of an element in an element list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element to update.
+ * @return Pointer to string value of the specified element.
+ */
+char* gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Free the memory allocated to store a string in an element of the given list.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements.
+ * @param key Name of the element whose string value to release.
+ */
+void gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+  const char *key);
+
+/**
+ * Release list of MessagePack map elements.
+ *
+ * @param nvals number of elements in elist_in.
+ * @param elist_in List of elements to put in MessagePack.
+ */
+void gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in);
 
 /**
  * Create a new msgpack data from list of map elements.
@@ -478,6 +593,37 @@ struct gkyl_msgpack_map_elem {
  * @return New msgpack_data object. Free using the release method
  */
 struct gkyl_msgpack_data* gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist);
+
+/**
+ * Create a new msgpack data from union of a numlist lists of map elements.
+ *
+ * @param numlist_union Number of lists.
+ * @param nvals_union Number of values in the elist array, one for each list.
+ * @param elist_union List of elements to insert into map, for each list.
+ * @return New msgpack_data object. Free using the release method
+ */
+struct gkyl_msgpack_data* gkyl_msgpack_create_union(int numlist_union,
+  int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union);
+
+/**
+ * Clone a msgpack.
+ *
+ * @param mdata_in MessagePack to clone.
+ * @return New msgpack_data object. Free using the release method
+ */
+struct gkyl_msgpack_data* gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in);
+
+/**
+ * Read a MessagePack for the elements in an element list.
+ * NOTE: if one of the elements read is a string, its memory must be
+ * freed when done using it (e.g. with gkyl_msgpack_map_elem_release_string);
+ * 
+ * @param mpack_in MessagePack to read.
+ * @param nvals Number of values in element list elist.
+ * @param elist Element list to populate.
+ */
+void gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data* mpack_in, int nvals,
+  struct gkyl_msgpack_map_elem *elist);
 
 /**
  * Release data created by the gkyl_msgpack_create method.

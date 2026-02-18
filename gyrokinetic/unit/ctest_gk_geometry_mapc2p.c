@@ -143,7 +143,7 @@ test_3x_p1()
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -371,7 +371,7 @@ test_3x_p1_pmap()
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude

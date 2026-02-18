@@ -26,6 +26,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -33,11 +34,6 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up) ;
-
-  if (geometry_inp ->geometry_id == GKYL_GEOMETRY_FROMFILE)
-    up->geqdsk_sign_convention = 0;
-  else
-    up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
 
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
@@ -77,12 +73,59 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     gk_geometry_surf_alloc_nodal(up, dir);
   }
 
+  // Store metadata for I/O.
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+  }
+  else {
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+  }
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
                    
   return up;
+}
+
+void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
+{
+  gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "geometry_type", up->geometry_id);
+
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
+    if (gkyl_msgpack_map_elem_has_key(up->io_meta_len, up->io_meta, "geqdsk_sign_convention")) {
+      // Element list has this key. Update its value.
+      gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "geqdsk_sign_convention", up->geqdsk_sign_convention);
+    }
+    else {
+      // Element list doesn't have this key. Create a new list with it.
+      struct gkyl_msgpack_map_elem io_meta_new[] = {
+        { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+      };
+      int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
+
+      struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
+      int io_meta_buffer_len = up->io_meta_len;
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
+
+      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
+      const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
+      up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
+        io_meta_list_len, io_meta_list, &up->io_meta_len);
+
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
+    }
+  }
 }
 
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
@@ -364,6 +407,7 @@ struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -510,6 +554,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     }
   }
 
+  // Copy metadata.
+  up->io_meta = gkyl_msgpack_map_elem_clone(up_3d->io_meta_len, up_3d->io_meta);
+  up->io_meta_len = up_3d->io_meta_len;
+ 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -577,6 +625,8 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gk_geometry_int_release_nodal(up);
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_release_nodal(up, dir);
+
+  gkyl_msgpack_map_elem_release(up->io_meta_len, up->io_meta); 
 
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
