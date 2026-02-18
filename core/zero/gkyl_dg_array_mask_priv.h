@@ -102,6 +102,17 @@ struct gkyl_dg_array_mask* gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_ma
 void gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask,
   const struct gkyl_array *arr_to_mask);
 
+
+/**
+ * CUDA device function to update the mask's threshold on GPU.
+ *
+ * @param mask dg_array_mask object.
+ * @param global_max Global maximum value used for fractional thresholding.
+ */
+void
+gkyl_dg_array_mask_advance_threshold_cu(struct gkyl_dg_array_mask *mask,
+  const double global_max);
+
 /**
  * CUDA device function to evaluate the mask at an index.
  *

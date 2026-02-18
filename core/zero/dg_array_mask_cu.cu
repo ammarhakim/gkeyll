@@ -256,12 +256,12 @@ gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask, const struct gkyl
   mask->advance_func_cu(mask, arr_to_mask);
 }
 
-static void
+__global__ void
 advance_threshold_none(struct gkyl_dg_array_mask *mask, const double global_max)
 {
 }
 
-static void
+__global__ void
 advance_threshold_frac_kernel(struct gkyl_dg_array_mask *mask, const double global_max)
 {
   mask->threshold = mask->frac_threshold * global_max;
@@ -337,7 +337,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   GKYL_SET_CU_ALLOC(mask->flags);
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
 
-  mask->advance_func_cu = advance_none;
+  mask->advance_func_cu = advance_cu_none;
   mask->advance_threshold_func_cu = advance_threshold_none;
 
   // Set GPU advance function pointer based on mask type
