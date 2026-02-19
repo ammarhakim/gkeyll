@@ -567,27 +567,6 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   return up;
 }
 
-bool gkyl_gk_geometry_check_name(char *name){
-  size_t len = strlen(name);
-  int i = len - 1;
-  int digit_count = 0;
-  while (i >= 0 && isdigit((unsigned char)name[i])) {
-    i--;
-    digit_count++;
-  }
-  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
-    const char *num_str = &name[i + 1];
-    int num = atoi(num_str);
-    if ( num == 0)
-      return true;
-    else
-      return false;
-  }
-  else {
-    return true;
-  }
-}
-
 void 
 gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len)
 {

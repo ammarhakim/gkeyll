@@ -63,6 +63,27 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
+static bool gyrokinetic_str_ends_in_b0(char *name){
+  size_t len = strlen(name);
+  int i = len - 1;
+  int digit_count = 0;
+  while (i >= 0 && isdigit((unsigned char)name[i])) {
+    i--;
+    digit_count++;
+  }
+  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
+    const char *num_str = &name[i + 1];
+    int num = atoi(num_str);
+    if ( num == 0)
+      return true;
+    else
+      return false;
+  }
+  else {
+    return true;
+  }
+}
+
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
@@ -1013,7 +1034,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK && gkyl_gk_geometry_check_name(app->name))
+  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK && gyrokinetic_str_ends_in_b0(app->name))
     gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
 
   // Gather geo into a global array
