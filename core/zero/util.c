@@ -427,7 +427,7 @@ gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *el
   for (int i=0; i<nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_STRING);
-      gkyl_free(elist[i].cval);
+      MPACK_FREE(elist[i].cval);
       break;
     }
   }
@@ -702,8 +702,7 @@ gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data* mpack_in, int nvals,
         break;
   
       case GKYL_MP_STRING:
-        elist[i].cval = gkyl_malloc(mpack_node_strlen(node)+1);
-        strcpy(elist[i].cval, mpack_node_str(node));
+        elist[i].cval = mpack_node_cstr_alloc(node, mpack_node_strlen(node)+1);
         break;
 
       default:
