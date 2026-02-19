@@ -360,6 +360,13 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 
 
 /**
+ * Returns true if name ends in _b0 or does not end in _b#
+ * Used do determine whether efit data should be written
+ * @param name name to check
+ */
+bool gkyl_gk_geometry_check_name(char *name);
+
+/**
  * Write psi(R,Z)
 * @param geometry_inp Geometry input struct.
 * @param io_meta_basic basic metadata

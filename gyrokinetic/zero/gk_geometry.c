@@ -13,6 +13,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <assert.h>
 #include <float.h>
+#include <ctype.h>
 
 
 struct gk_geometry*
@@ -566,6 +567,27 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   return up;
 }
 
+bool gkyl_gk_geometry_check_name(char *name){
+  size_t len = strlen(name);
+  int i = len - 1;
+  int digit_count = 0;
+  while (i >= 0 && isdigit((unsigned char)name[i])) {
+    i--;
+    digit_count++;
+  }
+  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
+    const char *num_str = &name[i + 1];
+    int num = atoi(num_str);
+    if ( num == 0)
+      return true;
+    else
+      return false;
+  }
+  else {
+    return true;
+  }
+}
+
 void 
 gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len)
 {
@@ -583,6 +605,15 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gk
     { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
     { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
+    { .key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
+    { .key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current},
+    { .key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis},
+    { .key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft},
+    { .key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
+    { .key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
+    { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
   };
   int io_meta_rz_len = sizeof(io_meta_rz)/sizeof(io_meta_rz[0]);
   int io_meta_len[] = {io_meta_basic_len, io_meta_rz_len};
