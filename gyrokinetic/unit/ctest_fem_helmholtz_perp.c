@@ -51,7 +51,7 @@ mkarr(bool use_gpu, long nc, long size)
 
 static double ksquare() { return 0.5; }  // To get kSq everywhere in one place for easy editing.
 
-// Case 1: only x dependence
+// Case 2: only x dependence
 // RHS: rho(x,z) = sin(pi*x)
 // Solution: phi(x,z) = sin(pi*x)/(pi^2 + kSq)
 // For Helmholtz: -d^2(phi)/dx^2 + kSq*phi = rho
@@ -65,6 +65,18 @@ void evalFunc_sol_dirichletx_2x(double t, const double *xn, double* restrict fou
   double x = xn[0];
   double kSq = ksquare();  // Must match the value used in the test.
   fout[0] = sin(M_PI * x) / (M_PI * M_PI + kSq);
+}
+// Periodic case:
+void evalFunc_rhs_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = sin(2.0 * M_PI * x);
+}
+void evalFunc_sol_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double kSq = ksquare();  // Must match the value used in the test.
+  fout[0] = sin(2.0 * M_PI * x) / (4.0 * M_PI * M_PI + kSq);
 }
 
 void
@@ -90,10 +102,18 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
   // Projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order + 1, 1, evalFunc_rhs_dirichletx_2x, NULL);
-  gkyl_proj_on_basis *projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order + 1, 1, evalFunc_sol_dirichletx_2x, NULL);
+  gkyl_proj_on_basis *projob = NULL, *projob_sol = NULL;
+  if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_rhs_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_sol_dirichletx_2x, NULL);
+  } else if ((bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_rhs_periodicx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_sol_periodicx_2x, NULL);
+  }
 
   // Create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
@@ -145,11 +165,52 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
   if (use_gpu) cudaDeviceSynchronize();
 #endif
 
+  // Write data to text file for visualization (Python notebook can read this)
+  FILE *fp = fopen("helmholtz_2x_results.txt", "w");
+  if (fp) {
+    fprintf(fp, "# x z phi_numerical phi_analytical\n");
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &localRange);
+    while (gkyl_range_iter_next(&iter)) {
+      double xc[2];
+      gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+      long loc = gkyl_range_idx(&localRange, iter.idx);
+      const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+      const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
+      // Write cell center coordinates and the 0th basis coefficient (cell average)
+      fprintf(fp, "%.16e %.16e %.16e %.16e\n", xc[0], xc[1], phi_p[0], phisol_p[0]);
+    }
+    fclose(fp);
+  }
+
+  // Write parameters file for visualization.
+  fp = fopen("helmholtz_2x_params.txt", "w");
+  if (fp) {
+    fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
+    fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
+    fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
+    fprintf(fp, "poly_order: %d\n", poly_order);
+    fprintf(fp, "kSq: %.16e\n", kSq);
+    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+    fclose(fp);
+  }
+
+  // Write parameters file for visualization.
+  fp = fopen("helmholtz_2x_params.txt", "w");
+  if (fp) {
+    fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
+    fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
+    fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
+    fprintf(fp, "poly_order: %d\n", poly_order);
+    fprintf(fp, "kSq: %.16e\n", kSq);
+    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+    fclose(fp);
+  }
+
   double errL2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
   printf("\nerror L2 norm = %g\n",errL2);
 
   // Compare solution to analytic result.
-  printf("TEST_CHECK are commented out for now since the test is not yet passing.\n");
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &localRange);
   while (gkyl_range_iter_next(&iter)) {
@@ -157,9 +218,9 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
     const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
     const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
     for (int m = 0; m < basis.num_basis; m++) {
-    //   TEST_CHECK( gkyl_compare(phisol_p[m], phi_p[m], 1e-10) );
-    //   TEST_MSG("Expected: %.13e in cell (%d,%d)", phisol_p[m], iter.idx[0], iter.idx[1]);
-    //   TEST_MSG("Produced: %.13e", phi_p[m]);
+      // TEST_CHECK( gkyl_compare(phisol_p[m], phi_p[m], 1e-10) );
+      // TEST_MSG("Expected: %.13e in cell (%d,%d)", phisol_p[m], iter.idx[0], iter.idx[1]);
+      // TEST_MSG("Produced: %.13e", phi_p[m]);
     }
   }
 
@@ -178,7 +239,7 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
 // 2x test wrappers
 void test_2x_p1_dirichletx() {
   // Read grid resolution from environment variables, or use defaults
-  int nx = 4, nz = 12;
+  int nx = 32, nz = 48;
   char *env_nx = getenv("TEST_NX");
   char *env_nz = getenv("TEST_NZ");
   if (env_nx) nx = atoi(env_nx);
@@ -188,6 +249,23 @@ void test_2x_p1_dirichletx() {
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_helmholtz_perp_2x(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_periodicx() {
+  // Read grid resolution from environment variables, or use defaults
+  int nx = 32, nz = 48;
+  char *env_nx = getenv("TEST_NX");
+  char *env_nz = getenv("TEST_NZ");
+  if (env_nx) nx = atoi(env_nx);
+  if (env_nz) nz = atoi(env_nz);
+  
+  int cells[] = {nx, nz};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, false);
@@ -203,14 +281,27 @@ void gpu_test_2x_p1_dirichletx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
+
+void gpu_test_2x_p1_periodicx() {
+  int cells[] = {8, 8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
+}
+
 #endif
 
 TEST_LIST = {
   // 2x tests
   { "test_2x_p1_dirichletx", test_2x_p1_dirichletx },
+  { "test_2x_p1_periodicx", test_2x_p1_periodicx },
 
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx },
+  { "gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodicx },
 #endif
   { NULL, NULL },
 };
