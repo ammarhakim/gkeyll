@@ -131,20 +131,13 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  double skip_cell_threshold)
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper)
 {
   struct gk_anomalous_diffusion* diffusion = (struct gk_anomalous_diffusion*) gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
-  int pdim = cdim + vdim;
   int poly_order = cbasis->poly_order;
-
-  if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
-  else
-    diffusion->skip_cell_thresh = -1.0;
 
   diffusion->conf_range = *conf_range;
 

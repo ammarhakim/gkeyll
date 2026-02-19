@@ -95,7 +95,7 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_partner[i], 1.0, gkns_partner->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the partner density
+      // Divide out the Jacobian from the partner density.
       gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
         0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 

@@ -1436,7 +1436,15 @@ gkyl_gyrokinetic_app_write_species_heating_diagnostics(gkyl_gyrokinetic_app* app
   gk_species_heating_write_diags(app, gks, &gks->heat_src, tm, frame);
 }
 
-//
+// ............. Collisionless outputs ............... //
+// 
+void
+gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_collisionless_write_diags(app, gks, &gks->collisionless, tm, frame);
+}
+
 // ............. Positivity outputs ............... //
 // 
 void
@@ -1589,6 +1597,8 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species_fdot_multiplier(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
+
+  gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(app, sidx, tm, frame);
 }
 
 void
