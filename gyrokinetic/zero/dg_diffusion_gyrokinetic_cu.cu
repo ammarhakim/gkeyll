@@ -1,4 +1,5 @@
 /* -*- c++ -*- */
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -91,18 +92,13 @@ dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffus
 
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, double skip_cell_threshold)
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_gyrokinetic* diffusion = (struct dg_diffusion_gyrokinetic*) gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
-
-  if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
-  else
-    diffusion->skip_cell_thresh = -1.0;
 
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;

@@ -283,6 +283,7 @@ struct gk_collisionless {
     // Charged (gyrokinetic) species ............................................ //
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
@@ -946,6 +947,7 @@ struct gk_species {
   struct gkyl_array *cflrate_ssprk; // CFL rate in each cell for terms stepped with SSP-RK.
   struct gkyl_array *cflrate_sts; // CFL rate in each cell for terms stepped with STS.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
