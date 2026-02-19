@@ -820,14 +820,16 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   // Set default values if user didn't provide a value.
   bool is_lsrk_ssp_s_3 = gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3);
   if ( is_lsrk_ssp_s_3 && (inp->num_stages == 3) ) {
-    if (gkyl_sundials_check_rk_method(inp->rk_method, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
+    // Use 3rd order 3-stage SSP RK, without embedding, adapting dt using Gkeyll's CFL constraint.
+    if (gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
       inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKC_2;
-    else if (gkyl_sundials_check_rk_method(inp->rk_method, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3, GKYL_SUNDIALS_METHOD_LSRK_RKL_2))
+    else if (gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2))
       inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2;
     else
       inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
   }
   
+  // Maximum number steps (not used if using ARK_ONE_STEP, unless using operator-split).
   if (inp->max_steps == 0)
     inp->max_steps = 100000;
   // Finished setting default values.
@@ -849,16 +851,8 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   else if ( gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2) ||
             gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3) ||
             gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4) ) {
-    if (inp->num_stages == 3) {
-      // Gkeyll's native 3rd order 3-stage SSP RK, without embedding,
-      // adapting dt using Gkeyll's CFL constraint.
-      inp->rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3;
-      gkyl_sundials_stepper_init_ssp_rk33(gksun, inp);
-    }
-    else {
-      // Other SSP RK methods (with embedding to adapt dt).
-      gkyl_sundials_stepper_init_ssp_rk(gksun, inp);
-    }
+    // Other SSP RK methods (with embedding to adapt dt).
+    gkyl_sundials_stepper_init_ssp_rk(gksun, inp);
   }
 
   if ( gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
@@ -907,39 +901,7 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   flag = ARKodeReset(gksun->arkode_mem_opsplit, time, manynvin);
   sundials_check_flag(&flag, "ARKodeReset", 1);
 
-  if (gksun->has_ssprk) {
-    if (gksun->is_opsplit || gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
-      // Estimate the CFL stable dt.
-      // Create a temporary NVector.
-      N_Vector manynvbuff = gsmanynv_buff->nvec;
-  
-      // Compute dt.
-      double dt_init;
-      if (gksun->has_sts) {
-        flag = gksun->dfdt_ssprk_func(time, manynvin, manynvbuff, gksun->app_ctx);
-      }
-      else {
-        flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
-      }
-
-      if (gksun->is_opsplit) {
-        flag = gksun->cfl_stable_dt_ssprk_func(manynvin, time, &dt_init, gksun->app_ctx);
-        gkyl_sundials_set_op_split_step(gksun, dt_init);
-
-      }
-      else
-        flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
-
-      if (gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
-        // Set the initial step size.
-        flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_init);
-        sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
-      }
-    }
-  }
-
-  if ( gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2) ||
-       gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2) ) {
+  if (gksun->has_sts) {
     if ( !(gksun->stepper_inp->dee_by_gkeyll) ) {
       // Pass ICs to the eigenvalue estimate.
       flag = SUNDomEigEstimator_SetInitialGuess(gksun->dom_eig_est, manynvin);
@@ -947,10 +909,42 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
     }
   }
 
+  if (gksun->has_ssprk) {
+    if (gksun->is_opsplit || gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
+      // Estimate the CFL stable dt.
+      // Use the temporary NVector.
+      N_Vector manynvbuff = gsmanynv_buff->nvec;
+  
+      // Compute dt.
+      double dt_init;
+      if (gksun->is_opsplit) {
+        double dt_ssprk;
+        flag = gksun->dfdt_ssprk_func(time, manynvin, manynvbuff, gksun->app_ctx);
+        flag = gksun->cfl_stable_dt_ssprk_func(manynvin, time, &dt_ssprk, gksun->app_ctx);
+
+        double dt_sts;
+        flag = gksun->dfdt_sts_func(time, manynvin, manynvbuff, gksun->app_ctx);
+        flag = gksun->cfl_stable_dt_sts_func(manynvin, time, &dt_sts, gksun->app_ctx);
+
+        // Set outer dt to the largest of the SSP-RK and STS dt's.
+        dt_init = GKYL_MAX2(dt_ssprk, dt_sts); 
+    printf("Init dt_ssprk=%.7e | dt_sts=%.7e\n",dt_ssprk,dt_sts);
+        gkyl_sundials_set_fixed_step(gksun, dt_init);
+      }
+      else {
+        flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
+        flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
+        // Set the initial step size.
+        flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_init);
+        sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
+      }
+    }
+  }
+
 }
 
 void
-gkyl_sundials_set_op_split_step(struct gkyl_sundials *gksun, double dt)
+gkyl_sundials_set_fixed_step(struct gkyl_sundials *gksun, double dt)
 {
   int flag = ARKodeSetFixedStep(gksun->arkode_mem_opsplit, dt);
   sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
@@ -973,8 +967,20 @@ long
 gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
 {
   long num_fail;
-  int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem_opsplit, &num_fail); 
-  sundials_check_flag(&flag, "ARKodeGetNumErrTestFails", 1);
+  if (gksun->has_ssprk) {
+    long num_fail_ssprk;
+    int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem_opsplit, &num_fail_ssprk); 
+    sundials_check_flag(&flag, "ARKodeGetNumErrTestFails", 1);
+    num_fail += num_fail_ssprk;
+  }
+
+  if (gksun->has_sts) {
+    long num_fail_sts;
+    int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem_opsplit, &num_fail_sts); 
+    sundials_check_flag(&flag, "ARKodeGetNumErrTestFails", 1);
+    num_fail += num_fail_sts;
+  }
+
   return num_fail;
 }
 
@@ -997,6 +1003,33 @@ gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
   }
 
   return num_evals;
+}
+
+double
+gkyl_sundials_get_last_dt(struct gkyl_sundials *gksun)
+{
+  double dt_out;
+  int flag = ARKodeGetLastStep(gksun->arkode_mem_opsplit, &dt_out);
+  sundials_check_flag(&flag, "ARKodeGetLastStep", 1);
+  return dt_out;
+}
+
+double
+gkyl_sundials_get_last_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  double dt_out;
+  int flag = ARKodeGetLastStep(gksun->arkode_mem_ssprk, &dt_out);
+  sundials_check_flag(&flag, "ARKodeGetLastStep", 1);
+  return dt_out;
+}
+
+double
+gkyl_sundials_get_last_dt_sts(struct gkyl_sundials *gksun)
+{
+  double dt_out;
+  int flag = ARKodeGetLastStep(gksun->arkode_mem_sts, &dt_out);
+  sundials_check_flag(&flag, "ARKodeGetLastStep", 1);
+  return dt_out;
 }
 
 bool
@@ -1207,6 +1240,26 @@ gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
   return 0;
 }
 
+double
+gkyl_sundials_get_last_dt(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_last_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_last_dt_sts(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
 
 bool
 gkyl_sundials_use_operator_split(struct gkyl_sundials *gksun)

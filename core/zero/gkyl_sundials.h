@@ -130,13 +130,13 @@ void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   struct gkyl_sundials_nvec *gsmanynv, struct gkyl_sundials_nvec *gsmanynv_buff);
 
 /**
- * Disable adaptive time stepping for operator split stepper (note, interior
- * steppers like STS and SSP-RK may still use adaptivity) and set the fixed time step.
+ * Disable adaptive time stepping (for outer stepper if using operator split)
+ * and set the fixed time step.
  *
  * @param gksun SUNDIALS object.
  * @param dt Time step size.
  */
-void gkyl_sundials_set_op_split_step(struct gkyl_sundials *gksun, double dt);
+void gkyl_sundials_set_fixed_step(struct gkyl_sundials *gksun, double dt);
 
 /**
  * Evolve the solution contained in a given Nvector from
@@ -165,6 +165,31 @@ long gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun);
  * @return Number of RHS evaluations.
  */
 long gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the time step used in the last step (of the outer stepper if
+ * using operator splitting).
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_last_dt(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the time step used in the last step of the SSP-RK stepper.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_last_dt_ssprk(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the time step used in the last step of the STS stepper.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_last_dt_sts(struct gkyl_sundials *gksun);
 
 /**
  * Check if sundials is using an operator split approach (e.g. combining SSP-RK

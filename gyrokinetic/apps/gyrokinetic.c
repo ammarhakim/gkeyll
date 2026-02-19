@@ -729,18 +729,22 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
   double t_curr = app->tcurr;
   double t_end = t_curr + dt0;
 
-  struct timespec wst = gkyl_wall_clock();
-
   double t_new = -1.0;
   gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_mnvec, &t_new);
-
-  app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
 
   st.dt_actual = t_new - t_curr;
   st.dt_suggested = dt0;
 
-  if (gkyl_sundials_use_operator_split(app->gk_sundials))
-    gkyl_sundials_set_op_split_step(app->gk_sundials, st.dt_actual);
+  if (gkyl_sundials_use_operator_split(app->gk_sundials)) {
+    gkyl_sundials_set_fixed_step(app->gk_sundials, st.dt_actual);
+//  // MF 2026/02/19: I would think setting the outer dt to the larger of dt_ssprk
+//  // and dt_sts would be the best option but it appears to be 2x slower.
+//    double dt_ssprk = gkyl_sundials_get_last_dt_ssprk(app->gk_sundials);
+//    double dt_sts = gkyl_sundials_get_last_dt_sts(app->gk_sundials);
+//    double dt_next = GKYL_MAX2(dt_ssprk, dt_sts);
+//    gkyl_sundials_set_fixed_step(app->gk_sundials, dt_next);
+//    st.dt_actual = dt_next;
+  }
 
   // Check for any CUDA errors during time step.
   if (app->use_gpu)
