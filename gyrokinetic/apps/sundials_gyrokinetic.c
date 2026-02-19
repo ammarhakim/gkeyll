@@ -9,6 +9,36 @@
 #include <gkyl_sundials_gyrokinetic.h>
 
 static void
+unpack_manynvec_gyrokinetic_distf_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_species; ++i) {
+    fdot_args->fin[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_charged[i]);
+  }
+  for (int i=0; i<fdot_args->num_neut_species; ++i) {
+    fdot_args->fin_neut[i] = smanynvec_get_array(manynvec, fdot_args->offset_distf_neut[i]);
+  }
+}
+
+static void
+unpack_manynvec_gyrokinetic_bflux_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_species; ++i) {
+    struct gkyl_array **bflux_s = fdot_args->bflux_in[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_charged[i]; ++j) {
+      int off = fdot_args->offset_bflux_charged[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+  for (int i=0; i<fdot_args->num_neut_species; ++i) {
+    struct gkyl_array **bflux_s = fdot_args->bflux_in_neut[i];
+    for (int j=0; j<fdot_args->num_arr_bflux_neut[i]; ++j) {
+      int off = fdot_args->offset_bflux_neut[i];
+      bflux_s[j] = smanynvec_get_array(manynvec, off+j);
+    }
+  }
+}
+
+static void
 unpack_manynvec_gyrokinetic_charged_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
 {
   for (int i=0; i<fdot_args->num_species; ++i) {
@@ -323,8 +353,11 @@ post_process_rk_stage_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, void*
   unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_y);
   if (stage_idx == 0) {
     N_Vector manynvec_yin;
+    flag = ARKodeGetLastState(app_ctx->arkode_mem_ssprk, &manynvec_yin);
+    unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yin);
+
     flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_yin);
-    unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_yin);
+    unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_yin);
   }
 
   app_ctx->post_process_rk_stage_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);

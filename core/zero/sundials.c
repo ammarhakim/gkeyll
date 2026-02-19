@@ -561,14 +561,14 @@ gkyl_sundials_check_rk_method(enum gkyl_sundials_rk_method rk_method,
 }
 
 /**
- * Translate the enum used to indicate LSRK method in Gkeyll,
- * to the LSRK method types in SUNDIALS.
+ * Translate the enum used to indicate LSRK SSP method in Gkeyll,
+ * to the LSRK SSP method types in SUNDIALS.
  *
  * @param gk_lsrk_method LSRK method Gkeyll enum.
  * @return SUNDIALS LSRK method flag.
  */
 static ARKODE_LSRKMethodType
-gs_translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
+gs_translate_gk_to_sundials_method_ssprk(enum gkyl_sundials_rk_method gk_rk_method)
 {
   if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_S_2))
     return ARKODE_LSRK_SSP_S_2; // Optimal 2nd order s-stage SSP RK method.
@@ -576,15 +576,31 @@ gs_translate_gk_to_sundials_rk_method(enum gkyl_sundials_rk_method gk_rk_method)
     return ARKODE_LSRK_SSP_S_3; // Optimal 3rd order s-stage SSP RK method.
   else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4))
     return ARKODE_LSRK_SSP_10_4; // Optimal 4th order 10-stage SSP RK method.
-  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
+  else {
+    fprintf(stderr, "gs_translate_gk_to_sundials_method_ssprk: wrong input\n");
+    assert(false);
+  }
+  return 0;
+}
+
+/**
+ * Translate the enum used to indicate LSRK STS method in Gkeyll,
+ * to the LSRK STS method types in SUNDIALS.
+ *
+ * @param gk_lsrk_method LSRK method Gkeyll enum.
+ * @return SUNDIALS LSRK method flag.
+ */
+static ARKODE_LSRKMethodType
+gs_translate_gk_to_sundials_method_sts(enum gkyl_sundials_rk_method gk_rk_method)
+{
+  if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKC_2))
     return ARKODE_LSRK_RKC_2; // 2nd order Runge-Kutta-Chebyshev (RKC).
   else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_RKL_2))
     return ARKODE_LSRK_RKL_2; // 2nd order Runge-Kutta-Legendre (RKL).
-  else if (gkyl_sundials_check_rk_method(gk_rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3))
-    assert(false); // Shouldn't be necessary.
-  else 
+  else { 
+    fprintf(stderr, "gs_translate_gk_to_sundials_method_sts: wrong input\n");
     assert(false);
-
+  }
   return 0;
 }
 
@@ -700,12 +716,14 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetMaxNumSteps", 1);
 
   // Specify the SSP method.
-  flag = LSRKStepSetSSPMethod(gksun->arkode_mem_ssprk, gs_translate_gk_to_sundials_rk_method(inp->rk_method));
+  flag = LSRKStepSetSSPMethod(gksun->arkode_mem_ssprk, gs_translate_gk_to_sundials_method_ssprk(inp->rk_method));
   sundials_check_flag(&flag, "LSRKStepSetSSPMethod", 1);
 
-  // Specify the number of SSP stages.
-  flag = LSRKStepSetNumSSPStages(gksun->arkode_mem_ssprk, inp->num_stages);
-  sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
+  if ( !(gkyl_sundials_check_rk_method(inp->rk_method, 0, GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4)) ) {
+    // Specify the number of SSP stages.
+    flag = LSRKStepSetNumSSPStages(gksun->arkode_mem_ssprk, inp->num_stages);
+    sundials_check_flag(&flag, "LSRKStepSetNumSSPStages", 1);
+  }
 
   // Attach the error function.
   flag = ARKodeWFtolerances(gksun->arkode_mem_ssprk, gksun->snvec_efun_cell_norm_func);
@@ -809,7 +827,7 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "LSRKStepSetDomEigSafetyFactor", 1);
 
   // Specify the STS method.
-  flag = LSRKStepSetSTSMethod(gksun->arkode_mem_sts, gs_translate_gk_to_sundials_rk_method(inp->rk_method));
+  flag = LSRKStepSetSTSMethod(gksun->arkode_mem_sts, gs_translate_gk_to_sundials_method_sts(inp->rk_method));
   sundials_check_flag(&flag, "LSRKStepSetSTSMethod", 1);
 }
 
