@@ -298,7 +298,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
       inp->conf_range_ext->volume*inp->vel_range->volume);
     up->qDphiDbmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
     up->qDphiDbmag_quad_wall = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
-    up->qDphiDbmag_tandem = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
+    up->qDphiDbmag_quad_tandem = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_conf, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
