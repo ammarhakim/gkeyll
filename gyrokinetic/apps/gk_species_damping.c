@@ -48,7 +48,7 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->damping.rate_host, fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
