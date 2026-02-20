@@ -55,6 +55,15 @@ struct gkyl_array_dg_find_peaks {
   // Internal working arrays.
   struct gkyl_array *nodes;         // Node locations in logical coords
 
+  // Working arrays for the find-peaks scan along the search direction.
+  // On CPU these are malloc'd per call; on GPU they are pre-allocated
+  // with size (num_nodes_out * total_nodes_search) so each thread
+  // can index its own contiguous slice.
+  double *search_vals;              // Nodal values along search dir
+  double *search_coords;            // Physical coordinates along search dir
+  bool *search_visited;             // Visited flags along search dir
+  int total_nodes_search;           // Number of nodes along search dir
+
   // Nodal-to-modal converter.
   struct gkyl_nodal_ops *n2m;
 

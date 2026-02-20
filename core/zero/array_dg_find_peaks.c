@@ -21,18 +21,11 @@ count_peaks_along_dir(const struct gkyl_array_dg_find_peaks *up, const struct gk
   int search_dir = up->search_dir;
   int poly_order = up->basis.poly_order;
 
-  // Get node locations.
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, up->basis.num_basis);
-  up->basis.node_list(gkyl_array_fetch(nodes, 0));
+  int total_nodes_search = up->total_nodes_search;
 
-  // Determine number of nodes along search direction.
-  int num_cells_search = up->range.upper[search_dir] - up->range.lower[search_dir] + 1;
-  int nodes_per_cell = (poly_order == 1) ? 2 : 3;
-  int total_nodes_search = (poly_order == 1) ? num_cells_search + 1 : 2*num_cells_search + 1;
-
-  // Allocate arrays to store values and coordinates along search direction.
-  double *vals = gkyl_malloc(sizeof(double) * total_nodes_search);
-  double *coords = gkyl_malloc(sizeof(double) * total_nodes_search);
+  // Use pre-allocated search buffers from the struct.
+  double *vals = up->search_vals;
+  double *coords = up->search_coords;
   for (int i = 0; i < total_nodes_search; i++) {
     vals[i] = 0.0;
     coords[i] = 0.0;
@@ -59,7 +52,7 @@ count_peaks_along_dir(const struct gkyl_array_dg_find_peaks *up, const struct gk
 
     // Evaluate at each node in this cell.
     for (int n = 0; n < up->basis.num_basis; n++) {
-      const double *nod_log = gkyl_array_cfetch(nodes, n);
+      const double *nod_log = gkyl_array_cfetch(up->nodes, n);
       
       // Determine node offset in search direction.
       int node_offset;
@@ -125,10 +118,6 @@ count_peaks_along_dir(const struct gkyl_array_dg_find_peaks *up, const struct gk
   peak_types_out[num_peaks++] = GKYL_PEAK_EDGE_HI;
 
   *num_peaks_out = num_peaks;
-
-  gkyl_free(vals);
-  gkyl_free(coords);
-  gkyl_array_release(nodes);
 }
 
 /**
@@ -143,14 +132,12 @@ find_peaks_for_preserved_node(struct gkyl_array_dg_find_peaks *up, const struct 
   int search_dir = up->search_dir;
   int poly_order = up->basis.poly_order;
 
-  // Determine number of nodes along search direction.
-  int num_cells_search = up->range.upper[search_dir] - up->range.lower[search_dir] + 1;
-  int total_nodes_search = (poly_order == 1) ? num_cells_search + 1 : 2*num_cells_search + 1;
+  int total_nodes_search = up->total_nodes_search;
 
-  // Allocate arrays to store values and coordinates along search direction.
-  double *vals = gkyl_malloc(sizeof(double) * total_nodes_search);
-  double *coords = gkyl_malloc(sizeof(double) * total_nodes_search);
-  bool *visited = gkyl_malloc(sizeof(bool) * total_nodes_search);
+  // Use pre-allocated search buffers from the struct.
+  double *vals = up->search_vals;
+  double *coords = up->search_coords;
+  bool *visited = up->search_visited;
   for (int i = 0; i < total_nodes_search; i++) {
     vals[i] = 0.0;
     coords[i] = 0.0;
@@ -323,10 +310,6 @@ find_peaks_for_preserved_node(struct gkyl_array_dg_find_peaks *up, const struct 
     val_n[0] = vals[total_nodes_search - 1];
     coord_n[0] = coords[total_nodes_search - 1];
   }
-
-  gkyl_free(vals);
-  gkyl_free(coords);
-  gkyl_free(visited);
 }
 
 /**
@@ -413,7 +396,7 @@ eval_array_at_peaks_for_preserved_node(struct gkyl_array_dg_find_peaks *up,
   }
 
   // Get the DG coefficients at this cell.
-  long linidx = gkyl_range_idx(&up->range_ext, cell_idx);
+  long linidx = gkyl_range_idx(&up->range, cell_idx);
   const double *f_d = gkyl_array_cfetch(in_ho, linidx);
 
   // Get cell center.
@@ -524,6 +507,16 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *find_pea
 
   // No device basis on CPU.
   up->out_basis_on_dev = NULL;
+
+  // Compute total_nodes_search for the struct.
+  int num_cells_search = find_peaks_inp->range->upper[find_peaks_inp->search_dir]
+    - find_peaks_inp->range->lower[find_peaks_inp->search_dir] + 1;
+  up->total_nodes_search = (poly_order == 1) ? num_cells_search + 1 : 2*num_cells_search + 1;
+
+  // Pre-allocate search-direction working buffers (reused by advance).
+  up->search_vals = gkyl_malloc(sizeof(double) * up->total_nodes_search);
+  up->search_coords = gkyl_malloc(sizeof(double) * up->total_nodes_search);
+  up->search_visited = gkyl_malloc(sizeof(bool) * up->total_nodes_search);
 
   // Count peaks at middle preserved coordinate.
   int mid_preserved_idx = 0;
@@ -790,9 +783,16 @@ gkyl_array_dg_find_peaks_free(const struct gkyl_ref_count *ref)
   gkyl_nodal_ops_release(up->n2m);
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
-    if (up->out_basis_on_dev)
-      gkyl_cart_modal_basis_release_cu(up->out_basis_on_dev);
+    gkyl_cart_modal_basis_release_cu(up->out_basis_on_dev);
+    gkyl_cu_free(up->search_vals);
+    gkyl_cu_free(up->search_coords);
+    gkyl_cu_free(up->search_visited);
     gkyl_cu_free(up->on_dev);
+  }
+  else {
+    gkyl_free(up->search_vals);
+    gkyl_free(up->search_coords);
+    gkyl_free(up->search_visited);
   }
 
   gkyl_free(up);

@@ -249,6 +249,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   }
   up->use_gpu = inp->use_gpu;
   up->bmag_max_z_scalar_gpu = NULL; // Will be set for GPU case.
+  up->bmag_max_basis_on_dev = NULL; // Will be set for GPU case.
 
   if (inp->c2p_pos_func == 0) {
     up->c2p_pos = c2p_pos_identity;
@@ -337,21 +338,32 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     
     // Allocate and set scalar bmag_max_z for GPU kernels.
     // TODO: For 2x GPU support, need to pass full arrays and do per-cell lookup.
+    // inp->bmag_max_z_coord is a GPU array, so copy to host before reading.
+    struct gkyl_array *bmag_max_z_coord_ho = gkyl_array_new(GKYL_DOUBLE,
+      inp->bmag_max_z_coord->ncomp, inp->bmag_max_z_coord->size);
+    gkyl_array_copy(bmag_max_z_coord_ho, inp->bmag_max_z_coord);
+
     double bmag_max_z_val;
     if (up->cdim == 1) {
       // 1x case: single value.
-      const double *bmag_max_z_d = gkyl_array_cfetch(inp->bmag_max_z_coord, 0);
+      const double *bmag_max_z_d = gkyl_array_cfetch(bmag_max_z_coord_ho, 0);
       bmag_max_z_val = bmag_max_z_d[0];
     } else {
       // 2x case: use the first field line's value (simplified approach).
       int psi_idx[1] = {inp->bmag_max_range->lower[0]};
       long bmag_max_z_linidx = gkyl_range_idx(inp->bmag_max_range, psi_idx);
-      const double *bmag_max_z_d = gkyl_array_cfetch(inp->bmag_max_z_coord, bmag_max_z_linidx);
+      const double *bmag_max_z_d = gkyl_array_cfetch(bmag_max_z_coord_ho, bmag_max_z_linidx);
       double xc[1] = {0.0};
       bmag_max_z_val = inp->bmag_max_basis->eval_expand(xc, bmag_max_z_d);
     }
+    gkyl_array_release(bmag_max_z_coord_ho);
     up->bmag_max_z_scalar_gpu = gkyl_cu_malloc(sizeof(double));
     gkyl_cu_memcpy(up->bmag_max_z_scalar_gpu, &bmag_max_z_val, sizeof(double), GKYL_CU_MEMCPY_H2D);
+
+    // Create a device-resident basis with device-callable function pointers
+    // for use in GPU kernels that call eval_expand.
+    up->bmag_max_basis_on_dev = gkyl_cart_modal_serendip_cu_dev_new(
+      inp->bmag_max_basis->ndim, inp->bmag_max_basis->poly_order);
   }
 #endif
 
@@ -703,6 +715,7 @@ gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up)
 
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     gkyl_cu_free(up->bmag_max_z_scalar_gpu);
+    gkyl_cu_free(up->bmag_max_basis_on_dev);
   }
 
   gkyl_free(up);

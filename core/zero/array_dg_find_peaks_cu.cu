@@ -9,10 +9,6 @@ extern "C" {
 #include <assert.h>
 }
 
-// Maximum number of nodes along the search direction.
-// For p=2: total_nodes = 2*num_cells + 1. With up to 512 cells this is 1025.
-#define MAX_SEARCH_NODES 1025
-
 /**
  * CUDA kernel: find peaks along the search direction for each preserved-direction
  * node index. One thread per preserved_node_idx.
@@ -41,10 +37,12 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
     int num_cells_search = up->range.upper[search_dir] - up->range.lower[search_dir] + 1;
     int total_nodes_search = (poly_order == 1) ? num_cells_search + 1 : 2*num_cells_search + 1;
 
-    // Thread-local storage for values, coordinates, and visited flags.
-    double vals[MAX_SEARCH_NODES];
-    double coords[MAX_SEARCH_NODES];
-    bool visited[MAX_SEARCH_NODES];
+    // Each thread gets its own contiguous slice of the pre-allocated
+    // search buffers. Offset = preserved_node_idx * total_nodes_search.
+    long buf_off = (long)preserved_node_idx * total_nodes_search;
+    double *vals = up->search_vals + buf_off;
+    double *coords = up->search_coords + buf_off;
+    bool *visited = up->search_visited + buf_off;
     for (int i = 0; i < total_nodes_search; i++) {
       vals[i] = 0.0;
       coords[i] = 0.0;
@@ -302,7 +300,7 @@ gkyl_eval_at_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
     }
 
     // Fetch DG coefficients at this cell.
-    long linidx = gkyl_range_idx(&up->range_ext, cell_idx);
+    long linidx = gkyl_range_idx(&up->range, cell_idx);
     const double *f_d = (const double *)gkyl_array_cfetch(in, linidx);
 
     // Get cell center for logical coordinate conversion.
@@ -483,6 +481,16 @@ gkyl_array_dg_find_peaks_new_cu(struct gkyl_array_dg_find_peaks *up_ho)
   else
     up->out_basis_on_dev = NULL;
 
+  // Pre-allocate search-direction working arrays on device.
+  // Each thread (one per preserved node) gets its own contiguous slice
+  // of total_nodes_search elements, so total size = num_nodes_out * total_nodes_search.
+  up->total_nodes_search = up_ho->total_nodes_search;
+  int num_nodes_out = up->out_nrange.volume;
+  long search_buf_len = (long)num_nodes_out * up->total_nodes_search;
+  up->search_vals = (double *)gkyl_cu_malloc(sizeof(double) * search_buf_len);
+  up->search_coords = (double *)gkyl_cu_malloc(sizeof(double) * search_buf_len);
+  up->search_visited = (bool *)gkyl_cu_malloc(sizeof(bool) * search_buf_len);
+
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_array_dg_find_peaks_free);
@@ -533,12 +541,19 @@ gkyl_array_dg_find_peaks_new_cu(struct gkyl_array_dg_find_peaks *up_ho)
   struct gkyl_array *ho_out_coords_nodal[GKYL_DG_FIND_PEAKS_MAX];
   struct gkyl_array *ho_out_eval_at_peaks_vals_nodal[GKYL_DG_FIND_PEAKS_MAX];
 
-  // Swap in device-callable basis function pointers for the H2D copy.
-  gkyl_cart_modal_serendip_cu_dev(&up->basis, ndim, poly_order);
-  if (out_dim == 0)
-    gkyl_cart_modal_serendip_cu_dev(&up->out_basis, 1, 0);
-  else
-    gkyl_cart_modal_serendip_cu_dev(&up->out_basis, 1, poly_order);
+  // Populate device-callable basis function pointers for the H2D copy.
+  // We allocate temporary device basis structs, initialize them with device
+  // kernels, then copy back to the host struct fields so that when the
+  // whole struct is memcpy'd H2D, it contains device-callable pointers.
+  struct gkyl_basis *tmp_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(ndim, poly_order);
+  gkyl_cu_memcpy(&up->basis, tmp_basis_dev, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_free(tmp_basis_dev);
+
+  int out_basis_dim = (out_dim == 0) ? 1 : 1;
+  int out_basis_po = (out_dim == 0) ? 0 : poly_order;
+  struct gkyl_basis *tmp_out_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(out_basis_dim, out_basis_po);
+  gkyl_cu_memcpy(&up->out_basis, tmp_out_basis_dev, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_free(tmp_out_basis_dev);
 
   // Swap nodes to its device pointer.
   up->nodes = up->nodes->on_dev;

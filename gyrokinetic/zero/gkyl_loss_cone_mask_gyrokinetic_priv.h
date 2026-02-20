@@ -53,6 +53,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
   const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate
   const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  struct gkyl_basis *bmag_max_basis_on_dev; // Device-resident basis with device-callable function pointers.
   const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
   
   // GPU helper: scalar bmag_max_z value for simple 1x cases.

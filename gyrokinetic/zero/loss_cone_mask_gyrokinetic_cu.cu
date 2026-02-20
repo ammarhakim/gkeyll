@@ -79,7 +79,7 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *u
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker<<<nblocks, nthreads>>>(up->cdim, *conf_range,
     *up->bmag_max_range, up->basis_at_ords_conf->on_dev, bmag->on_dev, bmag_peak->on_dev,
-    up->bmag_max_basis, Dbmag_quad->on_dev);
+    up->bmag_max_basis_on_dev, Dbmag_quad->on_dev);
 }
 
 static void
@@ -447,7 +447,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   // Compute qDphiDbmag at quadrature points.
   gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker<<<dimGrid_conf, dimBlock_conf>>>(
     up->cdim, *conf_range, *up->bmag_max_range, 
-    up->basis_at_ords_conf->on_dev, up->bmag_max_basis, up->charge, up->is_tandem,
+    up->basis_at_ords_conf->on_dev, up->bmag_max_basis_on_dev, up->charge, up->is_tandem,
     phi->on_dev, phi_m->on_dev, phi_tandem->on_dev,
     up->Dbmag_quad->on_dev, up->Dbmag_quad_wall->on_dev, up->Dbmag_quad_tandem->on_dev,
     up->qDphiDbmag_quad->on_dev, up->qDphiDbmag_quad_wall->on_dev, up->qDphiDbmag_quad_tandem->on_dev);
@@ -458,7 +458,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
     // Don't do quadrature.
     int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
     gkyl_loss_cone_mask_gyrokinetic_ker<<<nblocks, nthreads>>>(up->cdim, *up->grid_phase, *phase_range, *conf_range,
-      gvm->local_ext_vel, *up->bmag_max_range, up->bmag_max_basis, up->is_tandem,
+      gvm->local_ext_vel, *up->bmag_max_range, up->bmag_max_basis_on_dev, up->is_tandem,
       up->mass, up->ordinates_phase->on_dev,
       up->bmag_max_z_coord->on_dev, up->bmag_tandem_z_coord->on_dev, 
       up->qDphiDbmag_quad->on_dev, up->qDphiDbmag_quad_wall->on_dev, up->qDphiDbmag_quad_tandem->on_dev,
@@ -471,7 +471,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
     gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_quad_phase);
 
     gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock>>>(up->cdim, *up->grid_phase, *phase_range, *conf_range,
-      gvm->local_ext_vel, *up->bmag_max_range, up->bmag_max_basis, up->is_tandem,
+      gvm->local_ext_vel, *up->bmag_max_range, up->bmag_max_basis_on_dev, up->is_tandem,
       up->mass, up->norm_fac, up->ordinates_phase->on_dev,
       up->bmag_max_z_coord->on_dev, up->bmag_tandem_z_coord->on_dev,
       up->qDphiDbmag_quad->on_dev, up->qDphiDbmag_quad_wall->on_dev, up->qDphiDbmag_quad_tandem->on_dev,
