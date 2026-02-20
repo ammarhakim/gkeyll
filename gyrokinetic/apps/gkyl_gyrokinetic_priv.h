@@ -1413,14 +1413,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
 }
 
 /**
- * Free memory for array metadata object.
- *
- * @param mt Array metadata object.
- */
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt);
-
-/**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
  * geometry. This method needs to be complemented by
  * gkyl_gyrokinetic_app_new_solver below.
