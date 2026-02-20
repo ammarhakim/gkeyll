@@ -78,17 +78,16 @@ void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
+
+  struct gkyl_array *phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, phi_smooth_global);
   // Find the potential at bmag_max
-  gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi,
+  gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi_smooth_global,
     fdmul->bmag_max_peak_idx, fdmul->phi_at_bmag_max);
-  // Allgather on phi_at_bmag_max. It's not an allgather.
-  // One process has the correct one, but the others do not. Is it a bcast or a sync?
   
   if (fdmul->is_tandem) {
-    gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi,
+    gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi_smooth_global,
       fdmul->bmag_tandem_peak_idx, fdmul->phi_at_bmag_tandem);
-    // Allgather on phi_at_bmag_tandem. It's not an allgather.
-    // One process has the correct one, but the others do not. Is it a bcast or a sync?
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
       phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem, fdmul->multiplier);
   } else {
@@ -97,8 +96,9 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, con
       phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
   }
 
-  // Multiply out by the multplier.
+  // Multiply out by the multiplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
+  gkyl_array_release(phi_smooth_global);
 }
 
 void
@@ -198,8 +198,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       struct gkyl_array_dg_find_peaks_inp peak_inp = {
         .basis = &app->basis,
         .grid = &app->grid,
-        .range = &app->local,
-        .range_ext = &app->local_ext,
+        .range = &app->global,
+        .range_ext = &app->global_ext,
         .search_dir = search_dir,
         .use_gpu = app->use_gpu,
       };

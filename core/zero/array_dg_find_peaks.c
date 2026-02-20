@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_dg_find_peaks.h>
 #include <gkyl_array_dg_find_peaks_priv.h>
@@ -521,6 +522,9 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *find_pea
   // Create nodal-to-modal converter.
   up->n2m = gkyl_nodal_ops_new(&up->out_basis, &up->out_grid, false);
 
+  // No device basis on CPU.
+  up->out_basis_on_dev = NULL;
+
   // Count peaks at middle preserved coordinate.
   int mid_preserved_idx = 0;
   if (out_dim == 1) {
@@ -558,37 +562,40 @@ gkyl_array_dg_find_peaks_new(const struct gkyl_array_dg_find_peaks_inp *find_pea
     up->out_eval_at_peaks_vals_nodal[p] = NULL;
   }
 
-  // When we are on GPU, we need host duplicate arrays because this updater is only on CPU
-  up->in_ho = NULL;
-  up->out_vals_ho = NULL; 
-  if (up->use_gpu) {
-    up->in_ho = gkyl_array_new(GKYL_DOUBLE, in->ncomp, in->size);
-    up->out_vals_ho = gkyl_array_new(GKYL_DOUBLE, up->out_vals[0]->ncomp, up->out_vals[0]->size);
-  }
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->ref_count = gkyl_ref_count_init(gkyl_array_dg_find_peaks_free);
+  up->on_dev = up; // CPU object points to itself.
 
-  return up;
+  struct gkyl_array_dg_find_peaks *up_out = up;
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    up_out = gkyl_array_dg_find_peaks_new_cu(up);
+    gkyl_array_dg_find_peaks_release(up);
+  }
+#endif
+
+  return up_out;
 }
 
 void
 gkyl_array_dg_find_peaks_advance(struct gkyl_array_dg_find_peaks *up, const struct gkyl_array *in)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_dg_find_peaks_advance_cu(up, in);
+    return;
+  }
+#endif
+
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
 
-  if (up->use_gpu) {
-    gkyl_array_copy(up->in_ho, in);
-    // Find peaks for each preserved-direction node.
-    int num_nodes_out = up->out_nrange.volume;
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      find_peaks_for_preserved_node(up, up->in_ho, pres_node);
-    }
-  }
-  else {
-    // Find peaks for each preserved-direction node.
-    int num_nodes_out = up->out_nrange.volume;
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      find_peaks_for_preserved_node(up, in, pres_node);
-    }
+
+  // Find peaks for each preserved-direction node.
+  int num_nodes_out = up->out_nrange.volume;
+  for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
+    find_peaks_for_preserved_node(up, in, pres_node);
   }
 
   // Transform nodal to modal for each peak.
@@ -689,70 +696,51 @@ void
 gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *up,
   const struct gkyl_array *in_array, struct gkyl_array **out_vals)
 {
-  // Needs a GPU implementation
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_dg_find_peaks_project_on_peaks_cu(up, in_array, out_vals);
+    return;
+  }
+#endif
 
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
 
   // Evaluate the input array at peak locations for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
-  if (up->use_gpu) {
-    gkyl_array_copy(up->in_ho, in_array);
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      for (int p = 0; p < up->num_peaks; p++) {
-        eval_array_at_peaks_for_preserved_node(up, up->in_ho, pres_node, up->out_eval_at_peaks_vals_nodal, p);
-      }
+  for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
+    for (int p = 0; p < up->num_peaks; p++) {
+      eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, p);
     }
-    // Transform nodal to modal for each peak.
-    if (out_dim == 0) {
-      // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
-      for (int p = 0; p < up->num_peaks; p++) {
-        double *val_m = gkyl_array_fetch(up->out_vals_ho, 0);
-        const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[p], 0);
-        val_m[0] = val_n[0];
-        gkyl_array_copy(out_vals[p], up->out_vals_ho);
-      }
-    }
-    else {
-      // 2D -> 1D case: use nodal-to-modal transform.
-      for (int p = 0; p < up->num_peaks; p++) {
-        gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-          &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[p], up->out_vals_ho, false);
-        gkyl_array_copy(out_vals[p], up->out_vals_ho);
-      }
+  }
+  // Transform nodal to modal for each peak.
+  if (out_dim == 0) {
+    // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
+    for (int p = 0; p < up->num_peaks; p++) {
+      double *val_m = gkyl_array_fetch(out_vals[p], 0);
+      const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[p], 0);
+      val_m[0] = val_n[0];
     }
   }
   else {
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      for (int p = 0; p < up->num_peaks; p++) {
-        eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, p);
-      }
-    }
-    // Transform nodal to modal for each peak.
-    if (out_dim == 0) {
-      // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
-      for (int p = 0; p < up->num_peaks; p++) {
-        double *val_m = gkyl_array_fetch(out_vals[p], 0);
-        const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[p], 0);
-        val_m[0] = val_n[0];
-      }
-    }
-    else {
-      // 2D -> 1D case: use nodal-to-modal transform.
-      for (int p = 0; p < up->num_peaks; p++) {
-        gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-          &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[p], out_vals[p], false);
-      }
+    // 2D -> 1D case: use nodal-to-modal transform.
+    for (int p = 0; p < up->num_peaks; p++) {
+      gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
+        &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[p], out_vals[p], false);
     }
   }
-
 }
 
 void
 gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peaks *up,
   const struct gkyl_array *in_array, int peak_idx, struct gkyl_array *out_val)
 {
-  // Needs a GPU implementation
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_dg_find_peaks_project_on_peak_idx_cu(up, in_array, peak_idx, out_val);
+    return;
+  }
+#endif
 
   int ndim = up->grid.ndim;
   int out_dim = ndim - 1;
@@ -760,49 +748,37 @@ gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peaks *up
   // Evaluate the input array at peak locations for each preserved-direction node.
   int num_nodes_out = up->out_nrange.volume;
 
-  if (up->use_gpu) {
-    gkyl_array_copy(up->in_ho, in_array);
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      eval_array_at_peaks_for_preserved_node(up, up->in_ho, pres_node, up->out_eval_at_peaks_vals_nodal, peak_idx);
-    }
-    // Transform nodal to modal for each peak.
-    if (out_dim == 0) {
-      // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
-      double *val_m = gkyl_array_fetch(up->out_vals_ho, 0);
-      const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[peak_idx], 0);
-      val_m[0] = val_n[0];
-      gkyl_array_copy(out_val, up->out_vals_ho);
-    }
-    else {
-      // 2D -> 1D case: use nodal-to-modal transform.
-      gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-        &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[peak_idx], up->out_vals_ho, false);
-      gkyl_array_copy(out_val, up->out_vals_ho);
-    }
+  for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
+    eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, peak_idx);
+  }
+
+  // Transform nodal to modal for each peak.
+  if (out_dim == 0) {
+    // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
+    double *val_m = gkyl_array_fetch(out_val, 0);
+    const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[peak_idx], 0);
+    val_m[0] = val_n[0];
   }
   else {
-    for (int pres_node = 0; pres_node < num_nodes_out; pres_node++) {
-      eval_array_at_peaks_for_preserved_node(up, in_array, pres_node, up->out_eval_at_peaks_vals_nodal, peak_idx);
-    }
-
-    // Transform nodal to modal for each peak.
-    if (out_dim == 0) {
-      // 1D -> 0D case: modal = nodal (p=0 has no nodal_to_modal function).
-      double *val_m = gkyl_array_fetch(out_val, 0);
-      const double *val_n = gkyl_array_cfetch(up->out_eval_at_peaks_vals_nodal[peak_idx], 0);
-      val_m[0] = val_n[0];
-    }
-    else {
-      // 2D -> 1D case: use nodal-to-modal transform.
-      gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
-        &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[peak_idx], out_val, false);
-    }
+    // 2D -> 1D case: use nodal-to-modal transform.
+    gkyl_nodal_ops_n2m(up->n2m, &up->out_basis, &up->out_grid,
+      &up->out_nrange, &up->out_range, 1, up->out_eval_at_peaks_vals_nodal[peak_idx], out_val, false);
   }
 }
 
-void
-gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up)
+struct gkyl_array_dg_find_peaks*
+gkyl_array_dg_find_peaks_acquire(const struct gkyl_array_dg_find_peaks *up)
 {
+  gkyl_ref_count_inc(&up->ref_count);
+  return (struct gkyl_array_dg_find_peaks *)up;
+}
+
+void
+gkyl_array_dg_find_peaks_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_array_dg_find_peaks *up =
+    container_of(ref, struct gkyl_array_dg_find_peaks, ref_count);
+
   for (int p = 0; p < up->num_peaks; p++) {
     gkyl_array_release(up->out_vals[p]);
     gkyl_array_release(up->out_coords[p]);
@@ -810,11 +786,20 @@ gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up)
     gkyl_array_release(up->out_coords_nodal[p]);
     gkyl_array_release(up->out_eval_at_peaks_vals_nodal[p]);
   }
-  if (up->use_gpu) {
-    gkyl_array_release(up->in_ho);
-    gkyl_array_release(up->out_vals_ho);
-  }
   gkyl_array_release(up->nodes);
   gkyl_nodal_ops_release(up->n2m);
+
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
+    if (up->out_basis_on_dev)
+      gkyl_cart_modal_basis_release_cu(up->out_basis_on_dev);
+    gkyl_cu_free(up->on_dev);
+  }
+
   gkyl_free(up);
+}
+
+void
+gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up)
+{
+  gkyl_ref_count_dec(&up->ref_count);
 }

@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_dg_find_peaks.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_ref_count.h>
 
 // Maximum number of peaks we can handle.
 #define GKYL_DG_FIND_PEAKS_MAX 16
@@ -13,6 +14,7 @@
  * Convert logical (reference) coordinates to computational (physical) coordinates.
  * xout[d] = xc[d] + 0.5*dx[d]*eta[d]
  */
+GKYL_CU_DH
 static inline void
 dg_find_peaks_log_to_comp(int ndim, const double *eta,
   const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
@@ -50,14 +52,26 @@ struct gkyl_array_dg_find_peaks {
   struct gkyl_array *out_coords_nodal[GKYL_DG_FIND_PEAKS_MAX]; // Nodal peak coordinates
   struct gkyl_array *out_eval_at_peaks_vals_nodal[GKYL_DG_FIND_PEAKS_MAX]; // Values evaluated at peaks (nodal)
 
-  // GPU implementation specific arrays
-  struct gkyl_array *in_ho; // Host copy of input array
-  struct gkyl_array *out_vals_ho; // Host copy of output values
-
   // Internal working arrays.
   struct gkyl_array *nodes;         // Node locations in logical coords
 
   // Nodal-to-modal converter.
   struct gkyl_nodal_ops *n2m;
+
+  // Device-resident basis for passing to GPU API functions (e.g. gkyl_nodal_ops_n2m_cu).
+  // Allocated via gkyl_cart_modal_serendip_cu_dev_new; NULL on CPU.
+  struct gkyl_basis *out_basis_on_dev;
+
+  uint32_t flags;
+  struct gkyl_array_dg_find_peaks *on_dev; // Pointer to device object (if GPU).
+  struct gkyl_ref_count ref_count;         // Reference counter.
 };
+
+/**
+ * Function that actually frees memory associated with this
+ * object when the number of references has decreased to zero.
+ *
+ * @param ref Reference counter for this object.
+ */
+void gkyl_array_dg_find_peaks_free(const struct gkyl_ref_count *ref);
 

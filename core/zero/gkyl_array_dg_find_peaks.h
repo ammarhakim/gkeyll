@@ -255,3 +255,51 @@ void gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peak
  */
 void gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up);
 
+
+/**
+ * Create a new GPU peak finder updater from an already-initialized host object.
+ * Allocates GPU arrays, copies the struct to device, and returns a host-side
+ * struct with array pointers referencing device memory. Called internally by
+ * gkyl_array_dg_find_peaks_new when use_gpu is true.
+ *
+ * @param up_ho Host-side updater object (fully initialized)
+ * @return New updater pointer with GPU arrays
+ */
+struct gkyl_array_dg_find_peaks* gkyl_array_dg_find_peaks_new_cu(
+  struct gkyl_array_dg_find_peaks *up_ho);
+
+/**
+ * GPU implementation of the advance method. Launches a CUDA kernel to find
+ * peaks for each preserved-direction node, then runs nodal-to-modal transforms
+ * on device.
+ *
+ * @param up Updater object (with GPU arrays)
+ * @param in Input array (device-side DG field)
+ */
+void gkyl_array_dg_find_peaks_advance_cu(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in);
+
+/**
+ * GPU implementation of project_on_peaks. Launches a CUDA kernel to evaluate
+ * an input array at all peak locations, then runs nodal-to-modal transforms
+ * on device.
+ *
+ * @param up Updater object (with GPU arrays)
+ * @param in_array Input array (device-side DG field)
+ * @param out_vals Output: array of evaluated values for each peak (device-side)
+ */
+void gkyl_array_dg_find_peaks_project_on_peaks_cu(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in_array, struct gkyl_array **out_vals);
+
+/**
+ * GPU implementation of project_on_peak_idx. Launches a CUDA kernel to evaluate
+ * an input array at a single peak location, then runs a nodal-to-modal transform
+ * on device.
+ *
+ * @param up Updater object (with GPU arrays)
+ * @param in_array Input array (device-side DG field)
+ * @param peak_idx Index of the peak to evaluate at (0 to num_peaks-1)
+ * @param out_val Output: evaluated values at the specified peak (device-side)
+ */
+void gkyl_array_dg_find_peaks_project_on_peak_idx_cu(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in_array, int peak_idx, struct gkyl_array *out_val);
