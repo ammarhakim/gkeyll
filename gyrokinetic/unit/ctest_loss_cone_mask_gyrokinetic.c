@@ -582,7 +582,7 @@ test_1x2v_nonzero_phi_gk(int poly_order, bool use_gpu)
 
   // Initialize geometry.
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x,
     .c2p_ctx = 0,
