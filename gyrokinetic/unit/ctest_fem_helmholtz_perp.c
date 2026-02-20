@@ -39,6 +39,12 @@ static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
   return sqrt(l2[0]);
 }
 
+double poly_test_func_1x(double x, double a, double *c)
+{
+  // Function that can be used to produce homogeneous Dirichlet or Neumann
+  // boundary values depending on the choice of a and c. It assumes x \in [0,1].
+  return pow(x,2)/2.-a*pow(x,4)/12.+c[0]*x+c[1];
+}
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -49,34 +55,143 @@ mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-static double ksquare() { return 0.5; }  // To get kSq everywhere in one place for easy editing.
+static double ksquare() { return 10.5; }  // To get kSq everywhere in one place for easy editing.
 
-// Case 2: only x dependence
 // RHS: rho(x,z) = sin(pi*x)
 // Solution: phi(x,z) = sin(pi*x)/(pi^2 + kSq)
 // For Helmholtz: -d^2(phi)/dx^2 + kSq*phi = rho
 void evalFunc_rhs_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double x = xn[0];
-  fout[0] = sin(M_PI * x);
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double bmn[] = {0.2, 0.5, -0.5};
+  fout[0] = 0.;
+  for (int m=1; m<3; m++) {
+    double b = bmn[m-1];
+    double t2 = b*sin(2*M_PI*m*x);
+    fout[0] += t2;
+  }
+  double kz = 1.;
+ fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 void evalFunc_sol_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double x = xn[0];
-  double kSq = ksquare();  // Must match the value used in the test.
-  fout[0] = sin(M_PI * x) / (M_PI * M_PI + kSq);
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double bmn[] = {0.2, 0.5, -0.5};
+  fout[0] = 0.;
+  for (int m=1; m<3; m++) {
+    double b = bmn[m-1];
+    double kx = 2*M_PI*m;
+    double t2 = b*gxx*sin(kx*x)/(kx*kx - ksquare());
+    fout[0] += t2;
+  }
+  double kz = 1.;
+ fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 // Periodic case:
 void evalFunc_rhs_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double x = xn[0];
-  fout[0] = sin(2.0 * M_PI * x);
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double amn[] = {-1., -0.2, -1.1};
+  double bmn[] = {1., 0.5, -0.5};
+  fout[0] = 0.;
+  for (int m=1; m<3; m++) {
+    double a = amn[m-1];
+    double b = bmn[m-1];
+    double t1 = a*cos(2*M_PI*m*x);
+    double t2 = b*sin(2*M_PI*m*x);
+    fout[0] += t1+t2;
+  }
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 void evalFunc_sol_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double x = xn[0];
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double amn[] = {-1., -0.2, -1.1};
+  double bmn[] = {1., 0.5, -0.5};
+  fout[0] = 0.;
+  for (int m=1; m<3; m++) {
+    double a = amn[m-1];
+    double b = bmn[m-1];
+    double kx = 2*M_PI*m;
+    double t1 = a*gxx*sin(kx*x)/(kx*kx + ksquare());
+    double t2 = b*gxx*sin(kx*x)/(kx*kx + ksquare());
+    fout[0] += t1+t2;
+  }
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
+
+}
+// Solution: phi(x,z) = sin(pi*x) * (1 + kz*z)
+// with x in [0,1], z in [-pi, pi].
+// For Helmholtz: -d^2(phi)/dx^2 + kSq*phi = rho
+// => rho = pi^2 * sin(pi*x) * (1 + kz*z) + kSq * sin(pi*x) * (1 + kz*z)
+//        = (pi^2 + kSq) * sin(pi*x) * (1 + kz*z)
+// void evalFunc_sol_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+// {
+//   double x = xn[0], z = xn[1];
+//   double kz = 1.0;
+//   fout[0] = sin(M_PI * x) * (1.0 + kz * z);
+// }
+// void evalFunc_rhs_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+// {
+//   double x = xn[0], z = xn[1];
+//   double kz = 1.0;
+//   double kSq = 0.5;  // Must match the value used in the test.
+//   // RHS: (pi^2 + kSq) * sin(pi*x) * (1 + kz*z)
+//   fout[0] = (M_PI * M_PI + kSq) * sin(M_PI * x) * (1.0 + kz * z);
+// }
+
+// 3x test functions: Dirichlet in x, Dirichlet in y, z is the "parallel" direction.
+// Solution: phi(x,y,z) = sin(pi*x) * sin(pi*y) * (1 + kz*z)
+// with x,y in [0,1], z in [-pi, pi].
+// For Helmholtz: -d^2(phi)/dx^2 - d^2(phi)/dy^2 + kSq*phi = rho
+// => rho = pi^2 * sin(pi*x) * sin(pi*y) * (1 + kz*z) + pi^2 * sin(pi*x) * sin(pi*y) * (1 + kz*z) + kSq * phi
+//        = (2*pi^2 + kSq) * sin(pi*x) * sin(pi*y) * (1 + kz*z)
+void evalFunc_helmholtz_dirichletx_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double kz = 1.0;
+  fout[0] = sin(M_PI * x) * sin(M_PI * y) * (1.0 + kz * z);
+}
+void evalFunc_helmholtz_dirichletx_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double kz = 1.0;
   double kSq = ksquare();  // Must match the value used in the test.
-  fout[0] = sin(2.0 * M_PI * x) / (4.0 * M_PI * M_PI + kSq);
+  // RHS: (2*pi^2 + kSq) * sin(pi*x) * sin(pi*y) * (1 + kz*z)
+  fout[0] = (2.0 * M_PI * M_PI + kSq) * sin(M_PI * x) * sin(M_PI * y) * (1.0 + kz * z);
+}
+
+// 3x test functions: Dirichlet in x, periodic in y, z is the "parallel" direction.
+// Solution: phi(x,y,z) = sin(pi*x) * cos(2*y) * (1 + kz*z)
+// with x in [0,1], y in [-pi, pi], z in [-pi, pi].
+// For Helmholtz: -d^2(phi)/dx^2 - d^2(phi)/dy^2 + kSq*phi = rho
+// => rho = pi^2 * sin(pi*x) * cos(2*y) * (1 + kz*z) + 4 * sin(pi*x) * cos(2*y) * (1 + kz*z) + kSq * phi
+//        = (pi^2 + 4 + kSq) * sin(pi*x) * cos(2*y) * (1 + kz*z)
+void evalFunc_helmholtz_dirichletx_periodicy_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double kz = 1.0;
+  fout[0] = sin(M_PI * x) * cos(2.0 * y) * (1.0 + kz * z);
+}
+void evalFunc_helmholtz_dirichletx_periodicy_3x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double kz = 1.0;
+  double kSq = ksquare();  // Must match the value used in the test.
+  // RHS: (pi^2 + 4 + kSq) * sin(pi*x) * cos(2*y) * (1 + kz*z)
+  fout[0] = (M_PI * M_PI + 4.0 + kSq) * sin(M_PI * x) * cos(2.0 * y) * (1.0 + kz * z);
 }
 
 void
@@ -236,6 +351,181 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
   gkyl_array_release(phi_ho);
 }
 
+void
+test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double kSq = 0.5;  // Helmholtz wave number squared.
+
+  double lower[] = {0.0, 0.0, -M_PI}, upper[] = {1.0, 1.0, M_PI};
+  if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+      (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+    lower[1] = -M_PI; upper[1] = M_PI;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim - 1;
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob = NULL, *projob_sol = NULL;
+  if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+      (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_helmholtz_dirichletx_dirichlety_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2 * (poly_order + 1), 1, evalFunc_helmholtz_dirichletx_dirichlety_sol_3x, NULL);
+  } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+             (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order + 1, 1, evalFunc_helmholtz_dirichletx_periodicy_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2 * (poly_order + 1), 1, evalFunc_helmholtz_dirichletx_periodicy_sol_3x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp + (int)ceil((pow(3., dim_perp - 1) - dim_perp) / 2);
+  struct gkyl_array *eps = mkarr(use_gpu, epsnum * basis.num_basis, localRange_ext.volume);
+  // Create DG field for kSq.
+  struct gkyl_array *kSqFld = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Analytic solution.
+  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, rho->ncomp, rho->size);
+    phi_ho = mkarr(false, phi->ncomp, phi->size);
+  } else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.), dim);
+  gkyl_array_shiftc(eps, epsilon_0 * dg0norm, 0 * basis.num_basis);
+  gkyl_array_shiftc(eps, 0.0 * dg0norm, 1 * basis.num_basis);           // gxy = 0
+  gkyl_array_shiftc(eps, epsilon_0 * dg0norm, 2 * basis.num_basis);
+
+  // Project kSq onto the basis.
+  gkyl_array_shiftc(kSqFld, kSq * dg0norm, 0);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
+
+  // FEM Helmholtz solver.
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis,
+    &bcs, eps, kSqFld, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) cudaDeviceSynchronize();
+#endif
+
+  // Write data to text file for visualization (Python notebook can read this)
+  FILE *fp = fopen("helmholtz_3x_results.txt", "w");
+  if (fp) {
+    fprintf(fp, "# x y z phi_numerical phi_analytical\n");
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &localRange);
+    while (gkyl_range_iter_next(&iter)) {
+      double xc[3];
+      gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+      long loc = gkyl_range_idx(&localRange, iter.idx);
+      const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+      const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
+      // Write cell center coordinates and the 0th basis coefficient (cell average)
+      fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0], phisol_p[0]);
+    }
+    fclose(fp);
+  }
+
+  // Write parameters file for visualization.
+  fp = fopen("helmholtz_3x_params.txt", "w");
+  if (fp) {
+    fprintf(fp, "lower: %.16e %.16e %.16e\n", lower[0], lower[1], lower[2]);
+    fprintf(fp, "upper: %.16e %.16e %.16e\n", upper[0], upper[1], upper[2]);
+    fprintf(fp, "cells: %d %d %d\n", cells[0], cells[1], cells[2]);
+    fprintf(fp, "poly_order: %d\n", poly_order);
+    fprintf(fp, "kSq: %.16e\n", kSq);
+    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+    fclose(fp);
+  }
+
+  // Compare solution to analytic result.
+  if (poly_order == 1) {
+    if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+        (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
+        for (int m = 0; m < basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(phisol_p[m], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", phisol_p[m], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+               (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
+        for (int m = 0; m < basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(phisol_p[m], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", phisol_p[m], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    } else {
+      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+      TEST_MSG("This BC combination is not available");
+    }
+  } else {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This poly_order is not available");
+  }
+
+  gkyl_fem_poisson_perp_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_proj_on_basis_release(projob_sol);
+  gkyl_array_release(rho);
+  gkyl_array_release(eps);
+  gkyl_array_release(kSqFld);
+  gkyl_array_release(phi);
+  gkyl_array_release(phisol_ho);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+}
+
 // 2x test wrappers
 void test_2x_p1_dirichletx() {
   // Read grid resolution from environment variables, or use defaults
@@ -271,6 +561,52 @@ void test_2x_p1_periodicx() {
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, false);
 }
 
+
+// 3x test wrappers
+void test_3x_p1_dirichletx_dirichlety() {
+  // Read grid resolution from environment variables, or use defaults
+  int nx = 4, ny = 4, nz = 4;
+  char *env_nx = getenv("TEST_NX");
+  char *env_ny = getenv("TEST_NY");
+  char *env_nz = getenv("TEST_NZ");
+  if (env_nx) nx = atoi(env_nx);
+  if (env_ny) ny = atoi(env_ny);
+  if (env_nz) nz = atoi(env_nz);
+  
+  int cells[] = {nx, ny, nz};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_fem_helmholtz_perp_3x(1, cells, bc_tv, false);
+}
+
+void test_3x_p1_dirichletx_periodicy() {
+  // Read grid resolution from environment variables, or use defaults
+  int nx = 4, ny = 4, nz = 4;
+  char *env_nx = getenv("TEST_NX");
+  char *env_ny = getenv("TEST_NY");
+  char *env_nz = getenv("TEST_NZ");
+  if (env_nx) nx = atoi(env_nx);
+  if (env_ny) ny = atoi(env_ny);
+  if (env_nz) nz = atoi(env_nz);
+  
+  int cells[] = {nx, ny, nz};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_helmholtz_perp_3x(1, cells, bc_tv, false);
+}
+
 #ifdef GKYL_HAVE_CUDA
 void gpu_test_2x_p1_dirichletx() {
   int cells[] = {8, 8};
@@ -292,6 +628,31 @@ void gpu_test_2x_p1_periodicx() {
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
 
+void gpu_test_3x_p1_dirichletx_dirichlety() {
+  int cells[] = {4, 4, 4};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_fem_helmholtz_perp_3x(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_dirichletx_periodicy() {
+  int cells[] = {4, 4, 4};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_helmholtz_perp_3x(1, cells, bc_tv, true);
+}
 #endif
 
 TEST_LIST = {
@@ -299,9 +660,15 @@ TEST_LIST = {
   { "test_2x_p1_dirichletx", test_2x_p1_dirichletx },
   { "test_2x_p1_periodicx", test_2x_p1_periodicx },
 
+  // 3x tests
+  { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety },
+  { "test_3x_p1_dirichletx_periodicy", test_3x_p1_dirichletx_periodicy },
+
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx },
   { "gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodicx },
+  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety },
+  { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy },
 #endif
   { NULL, NULL },
 };
