@@ -204,11 +204,12 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .use_gpu = app->use_gpu,
       };
       // Pass a global bmag_int into the peak finder
-      struct gkyl_array *bmag_int_global = mkarr(false, 
-        app->gk_geom->geo_int.bmag->ncomp, app->gk_geom->geo_int.bmag->size);
+      struct gkyl_array *bmag_int_global = mkarr(app->use_gpu,
+        app->gk_geom->geo_int.bmag->ncomp, app->global_ext.volume);
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
+
       fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
-      gkyl_array_dg_find_peaks_advance(fdmul->bmag_peak_finder, app->gk_geom->geo_int.bmag);
+      gkyl_array_dg_find_peaks_advance(fdmul->bmag_peak_finder, bmag_int_global);
       gkyl_array_release(bmag_int_global);
       
       // Get the LOCAL_MAX peak (bmag maximum along z direction).
