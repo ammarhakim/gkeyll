@@ -267,7 +267,7 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
   fileNm = cstr_from_fmt("%s-%s_BGKM2dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M2dot_host, fileNm.str);
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 static void
@@ -308,7 +308,7 @@ gk_source_bgk_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_ho, fileNm);
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   gkyl_array_release(arr_ho);
 }
 
