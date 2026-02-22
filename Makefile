@@ -60,8 +60,10 @@ endif
 
 # CUDA flags
 USING_NVCC =
-NVCC_FLAGS = 
+NVCC_FLAGS =
 CUDA_LIBS =
+# Default SQL flags (nvcc block below overrides this for GPU builds)
+SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifeq ($(CC), nvcc)
 	USING_NVCC = yes
 	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
