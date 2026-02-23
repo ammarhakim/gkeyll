@@ -11,47 +11,7 @@
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_proj_on_basis.h>
-#include <mpack.h>
 #include <float.h>
-
-// Meta-data for IO
-struct test_bc_sheath_output_meta {
-  int poly_order; // polynomial order
-  const char *basis_type; // name of basis functions
-};
-
-// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
-static struct gkyl_msgpack_data*
-test_bc_sheath_array_meta_new(struct test_bc_sheath_output_meta meta)
-{
-  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
-
-  mt->meta_sz = 0;
-  mpack_writer_t writer;
-  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
-
-  // add some data to mpack
-  mpack_build_map(&writer);
-
-  mpack_write_cstr(&writer, "polyOrder");
-  mpack_write_i64(&writer, meta.poly_order);
-
-  mpack_write_cstr(&writer, "basisType");
-  mpack_write_cstr(&writer, meta.basis_type);
-
-  mpack_complete_map(&writer);
-
-  int status = mpack_writer_destroy(&writer);
-
-  if (status != mpack_ok) {
-    free(mt->meta); // we need to use free here as mpack does its own malloc
-    gkyl_free(mt);
-    mt = 0;
-  }
-
-  return mt;
-}
-
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -220,15 +180,24 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy(phiw, phiw_ho);
 
   // Write out input fields if requested.
-  struct gkyl_msgpack_data *mt = test_bc_sheath_array_meta_new( (struct test_bc_sheath_output_meta) {
-      .poly_order = poly_order,
-      .basis_type = basis.id
-    }
-  );
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id }
+  };
+  int io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create(io_meta_len, io_meta);
+
+  struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis_conf.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis_conf.id }
+  };
+  int io_meta_conf_len = sizeof(io_meta_conf)/sizeof(io_meta_conf[0]);
+  struct gkyl_msgpack_data *mt_conf = gkyl_msgpack_create(io_meta_conf_len, io_meta_conf);
+
   if (write_fields) {
     gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "bc_sheath_1x2v_distf_in.gkyl");
-    gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt, phi_ho, "bc_sheath_1x2v_phi_mpe.gkyl");
-    gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt, phiw_ho, "bc_sheath_1x2v_phi_wall.gkyl");
+    gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phi_ho, "bc_sheath_1x2v_phi_mpe.gkyl");
+    gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phiw_ho, "bc_sheath_1x2v_phi_wall.gkyl");
   }
 
   // Create the BC updater.
@@ -287,6 +256,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Clean up.
   gkyl_msgpack_data_release(mt);
+  gkyl_msgpack_data_release(mt_conf);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
   gkyl_array_release(distf_ho);
