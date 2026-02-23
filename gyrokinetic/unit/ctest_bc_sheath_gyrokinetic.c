@@ -91,14 +91,16 @@ void
 test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int dir, bool write_fields, bool use_gpu)
 {
 
-  double charge =  -1., mass = 1.;
-  double vt = 3.0; // Thermal speed.
+  double mass = 1.;
+  double vt = 5.0; // Reference thermal speed (for grid extents).
   double B0 = 1.0; // Magnetic field magnitude.
-  double upar = 0.0; // Parallel flow speed.
-  double q2Dm = 2.*charge/mass;
+  // Test parameters
+  double charge = -1.; // + or - for electrons/ions
+  double upardist = 0.0; // Parallel flow speed in distribution function.
+  double vtdist = 1.5*vt; // Thermal speed in distribution function.
   double phi_wall = 0.0; // Potential at wall.
-  double phi_mpe = -10.0; // Potential at the magnetic presheath entrance.
-
+  double phi_mpe = 10.0; // Potential at the magnetic presheath entrance.
+  
   int poly_order = 1;
   double lower[] = {-2.0, -5.0*vt, 0.}, upper[] = {2.0, 5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
   int vdim = 2;
@@ -176,9 +178,9 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0,
-    .vt = vt,
+    .vt = vtdist,
     .mass = mass,
-    .upar = upar,
+    .upar = upardist,
   };
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
@@ -216,7 +218,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
+    &basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &confLocal);
@@ -240,7 +242,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
 
-void test_bc_gksheath(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, 0, true, false); }
+void test_bc_gksheath(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, 0, true, false); }
 
 #ifdef GKYL_HAVE_CUDA
 void test_bc_gksheath_cu(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, 0, true, true); }
