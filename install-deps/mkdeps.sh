@@ -7,10 +7,10 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
-MPIFC=$PREFIX/openmpi/bin/mpifort
-MPIEXEC=$PREFIX/openmpi/bin/mpiexec
+MPICC=mpicc
+MPICXX=mpicxx
+MPIFC=mpifort
+MPIEXEC=mpiexec
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
@@ -169,6 +169,10 @@ do
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
+      MPICC=$PREFIX/openmpi/bin/mpicc
+      MPICXX=$PREFIX/openmpi/bin/mpicxx
+      MPIFC=$PREFIX/openmpi/bin/mpifort
+      MPIEXEC=$PREFIX/openmpi/bin/mpiexec
       ;;   
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -299,6 +303,11 @@ build_sundials() {
     if [ "$BUILD_SUNDIALS" = "yes" ]
     then    
 	echo "Building SUNDIALS"
+        if [ "$BUILD_OPENBLAS" = "no" ]
+        then    
+            echo "Building OpenBLAS (needed by SUNDIALS)"
+            ./build-openblas.sh
+        fi
 	./build-sundials.sh 
     fi
 }
