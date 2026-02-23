@@ -1,285 +1,336 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Query code to get information from DB created by runregression code
+-- Query the per-layer regression databases created by runregression.
+-- Updated for the hierarchical layer architecture: each layer (moments,
+-- vlasov, gyrokinetic, pkpm) now has its own SQLite database stored at
+--   gkeyll-results/<layer>/regressiondb
+-- The --layer option selects which layer's database to query.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Table structure
--- 
+-- Database schema (one file per layer, created by runregression configure):
+--
 -- table RegressionMeta (
---   guid text,
---   tstamp text,
---   GKYL_EXEC text,
---   GKYL_HG_CHANGESET text,
---   GKYL_BUILD_DATE text,
---   ntotal integer,
---   npass integer,
---   nfail integer
+--   guid               text,
+--   tstamp             text,
+--   GKYL_EXEC          text,
+--   GKYL_GIT_CHANGESET text,
+--   GKYL_BUILD_DATE    text,
+--   ntotal             integer,
+--   npass              integer,
+--   nfail              integer
 -- );
 --
 -- table RegressionData (
---   guid text,
---   name text,
---   status integer,
---   runtime real,
---   runlog text
+--   guid      text,
+--   name      text,
+--   test_type text,   -- 'lua' or 'c'
+--   status    integer,
+--   runtime   real,
+--   runlog    text
 -- );
---
 
 local argparse = require "Lib.argparse"
-local Logger = require "Lib.Logger"
-local sql = require "sqlite3"
+local Logger   = require "Lib.Logger"
+local sql      = require "sqlite3"
 
--- SQLite connection handle
+-- SQLite connection handle (opened by configure()).
 local sqlConn = nil
--- status code -> string
+
+-- Human-readable status strings for the integer status codes stored in the DB.
+-- -2 = accepted baseline was created (not a test outcome per se)
+-- -1 = skipped (e.g. parallel test not yet supported)
+--  0 = failed
+--  1 = passed
 local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
 
--- Name of configuration file
-local confFile = os.getenv("HOME") .. "/runregression.config.lua"
-
--- need to change this as it is keyed on input file name
+-- GKYL_OUT_PREFIX is required by some Lua modules at load time.
 GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
 
 local log = Logger { logToFile = true }
-local verboseLog = function (msg) end -- default no messages are written
-local verboseLogger = function (msg) log(msg) end
 
--- configure query system
+-- Path of the configuration file written by 'runregression configure'.
+local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+
+-- ---- Database connection ----------------------------------------------------
+-- Opens the correct database based on the parsed args:
+--   --db <path>    → open the specified file directly (for ad-hoc inspection)
+--   --layer <name> → derive path from the config file:
+--                    results_dir/<layer>/regressiondb
+-- Having a --layer option (rather than requiring the user to know the database
+-- path) keeps the interface consistent with how runregression names databases.
 local function configure(args)
    if args.db then
+      -- Direct path override: useful for inspecting an arbitrary DB file.
       sqlConn = sql.open(args.db)
    else
-      -- load configuration file created by regression testing system
+      if not args.layer then
+         print("ERROR: --layer <name> is required (or use --db <path> for a specific file).")
+         print("Valid layers: moments, vlasov, gyrokinetic, pkpm")
+         os.exit(1)
+      end
+
       local f = loadfile(confFile)
       if not f then
-	 log("Regression tests not configured! Run config command first\n")
-	 os.exit(1)
+         print("Regression tests not configured. Run 'runregression configure' first.")
+         os.exit(1)
       end
       local configVals = f()
-      sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
+
+      local dbPath = string.format("%s/%s/regressiondb",
+         configVals.results_dir, args.layer)
+      if not lfs.attributes(dbPath) then
+         print(string.format(
+            "Database for layer '%s' not found at:\n  %s\n"
+            .. "Run 'runregression configure' and then 'runregression run create' first.",
+            args.layer, dbPath))
+         os.exit(1)
+      end
+      sqlConn = sql.open(dbPath)
    end
 end
 
--- read metadata table 
+-- ---- Database read helpers --------------------------------------------------
+
+-- Returns all rows from RegressionMeta as a Lua list of tables.
 local function read_metatable()
    local t, nrow = sqlConn:exec("select * from RegressionMeta")
    local dbMeta = {}
    for i = 1, nrow do
       dbMeta[i] = {
-	 guid = t['guid'][i],
-	 tstamp = t['tstamp'][i],
-	 changeset = t['GKYL_HG_CHANGESET'][i],
-	 builddate = t['GKYL_BUILD_DATE'][i],
-	 ntotal = t['ntotal'][i],
-	 npass = t['npass'][i],
-	 nfail = t['nfail'][i]
+         guid      = t['guid'][i],
+         tstamp    = t['tstamp'][i],
+         changeset = t['GKYL_GIT_CHANGESET'][i],
+         builddate = t['GKYL_BUILD_DATE'][i],
+         ntotal    = t['ntotal'][i],
+         npass     = t['npass'][i],
+         nfail     = t['nfail'][i],
       }
    end
    return dbMeta
 end
 
--- get all tests with specified GUID
+-- Returns all RegressionData rows for a specific guid.
+-- Also returns the maximum name length (for column-aligned output).
 local function read_tests_with_id(guid)
    local t, nrow = sqlConn:exec(
       string.format("select * from RegressionData where guid=='%s'", guid))
    local maxNm = 0
-   dbData = {}
+   local dbData = {}
    for i = 1, nrow do
       dbData[i] = {
-	 name = t['name'][i],
-	 status = statusToString[tonumber(t['status'][i])],
-	 runtime = t['runtime'][i],
-	 runlog = t['runlog'][i],
+         name      = t['name'][i],
+         test_type = t['test_type'] and t['test_type'][i] or "?",
+         status    = statusToString[tonumber(t['status'][i])],
+         runtime   = t['runtime'][i],
+         runlog    = t['runlog'][i],
       }
       maxNm = math.max(maxNm, string.len(t['name'][i]))
    end
    return dbData, maxNm
 end
 
--- function to handle summary command
+-- ---- Command actions --------------------------------------------------------
+
+-- 'summary': prints a one-line summary for every run stored in the database.
+-- Rows are displayed in reverse insertion order (most recent run = ID 1).
 local function summary_action(args, name)
    configure(args)
-   
+
    local dbMeta = read_metatable()
-   local nrow = #dbMeta
+   local nrow   = #dbMeta
 
    local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s"
    print(string.format(fmt, "ID", "Time-Stamp", "Changeset", "Total", "Pass", "Fail"))
-   for i,d in pairs(dbMeta) do
-      print(
-	 string.format(
-	    fmt,
-	    nrow-i+1, d.tstamp, d.changeset, tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail)
-	 )
-      )
+   for i, d in pairs(dbMeta) do
+      print(string.format(fmt,
+         nrow - i + 1,
+         d.tstamp,
+         d.changeset,
+         tonumber(d.ntotal),
+         tonumber(d.npass),
+         tonumber(d.nfail)
+      ))
    end
 end
 
--- function to handle query command
+-- 'query': prints the test results for a specific run (identified by ID from
+-- the summary command). Supports filtering by pass/fail and comma-list output.
 local function query_action(args, name)
    configure(args)
-   
+
    local dbMeta = read_metatable()
-   local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
+   -- The summary command displays most-recent first (ID 1 = last row in DB),
+   -- so invert the index here to select the correct DB row.
+   local idx = #dbMeta - args.id + 1
 
    if args.net_time then
-      -- print total time to run all tests specified ID
-      local t, nrow = sqlConn:exec(
-	 string.format("select runtime from RegressionData where guid=='%s'", 
-		       dbMeta[idx].guid))
+      -- Sum wall-clock runtimes for all tests in this run.
+      local t, nrow = sqlConn:exec(string.format(
+         "select runtime from RegressionData where guid=='%s'",
+         dbMeta[idx].guid))
       local nettm = 0.0
-      for i = 1, nrow do
-	 nettm = nettm+t['runtime'][i]
-      end
+      for i = 1, nrow do nettm = nettm + t['runtime'][i] end
       print(string.format("%.4g", nettm))
-   else
-      local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
-      -- print info about all tests with specified ID
-      local function filt(status)
-	 if args.fail_only then
-	    if status == "fail" then return true else return false end
-	 end
-	 if args.pass_only then
-	    if status == "pass" then return true else return false end
-	 end	 
-	 return true
+      return
+   end
+
+   local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
+
+   -- Filtering predicate: apply --fail-only or --pass-only if requested.
+   local function shouldShow(d)
+      if args.fail_only then return d.status == "fail" end
+      if args.pass_only then return d.status == "pass" end
+      return true
+   end
+
+   if tonumber(args.test) > 0 then
+      -- Print the full run log for a single test.
+      local tidx = math.min(args.test, #dbData)
+      print("=== ")
+      print(string.format("=== Log for test %s [%s]",
+         dbData[tidx].name, dbData[tidx].test_type))
+      print("=== ")
+      print(dbData[tidx].runlog)
+   elseif args.comma_list then
+      -- Comma-separated list of matching test names.
+      for _, d in pairs(dbData) do
+         if shouldShow(d) then io.write(d.name .. ',') end
       end
-      
-      if tonumber(args.test) > 0 then
-	 local tidx = math.min(args.test, #dbData)
-	 print(string.format("=== "))
-	 print(string.format("=== Log for test %s ==", dbData[tidx].name))
-	 print(string.format("=== ")) 
-	 print(dbData[tidx].runlog)
-      else
-	 if args.comma_list then
-	    -- print pass/fail as comma seperated list (unless -f flag
-	    -- is use this list does not distinguish passed and failed
-	    -- tests)
-	    for i,d in pairs(dbData) do
-	       if filt(d.status) then
-		  io.write(d.name .. ',')
-	       end
-	    end
-	    io.write('\n')
-	 else
-	    -- print detailed complete information
-	    local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
-	    print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
-	    local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
-	    for i,d in pairs(dbData) do
-	       if filt(d.status) then
-		  print(string.format(fmt1, i, d.name, d.status, d.runtime))
-	       end
-	    end	    
-	 end
+      io.write('\n')
+   else
+      -- Tabular output with test type column.
+      local fmt  = "%-4s: %-5s %-" .. maxNm + 2 .. "s %-7s %-4s"
+      local fmt1 = "%-4s: %-5s %-" .. maxNm + 2 .. "s %-7s %.4g"
+      print(string.format(fmt, "ID", "Type", "Name", "Status", "Run-Time"))
+      for i, d in pairs(dbData) do
+         if shouldShow(d) then
+            print(string.format(fmt1,
+               i, d.test_type, d.name, d.status, d.runtime))
+         end
       end
    end
 end
 
--- function to handle delete command
+-- 'delete': removes a run's rows from both tables (identified by summary ID).
 local function delete_action(args, name)
    configure(args)
    if tonumber(args.id) < 1 then
-      print("No deletions done. Specify run ID as returned by summary command")
+      print("No deletions done. Specify a run ID as shown by the summary command.")
+      return
    end
 
    local dbMeta = read_metatable()
-   local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
-   local guid = dbMeta[idx].guid 
+   local idx  = #dbMeta - args.id + 1
+   local guid = dbMeta[idx].guid
 
-   sqlConn:exec(
-      string.format("delete from RegressionData where guid=='%s'", guid))
-   sqlConn:exec(
-      string.format("delete from RegressionMeta where guid=='%s'", guid))
+   sqlConn:exec(string.format(
+      "delete from RegressionData where guid=='%s'", guid))
+   sqlConn:exec(string.format(
+      "delete from RegressionMeta where guid=='%s'", guid))
+   print(string.format("Deleted run %d (guid=%s).", args.id, guid))
 end
 
--- function to handle history command
+-- 'history': shows the history of a single named test across all stored runs.
+-- Useful for spotting trends in run time or pass/fail transitions.
 local function history_action(args, name)
    configure(args)
-   
+
    if args.regression == nil then return end
 
+   -- Strip a leading "./" from the test name if present (for compatibility
+   -- with the old system that stored names relative to the regression dir).
    local function trimname(nm)
-      local s,e = string.find(nm, "./")
-      if s and s==1 then return string.sub(nm, e+1) end
+      local s, e = string.find(nm, "./")
+      if s and s == 1 then return string.sub(nm, e + 1) end
       return nm
    end
 
+   local tNm = trimname(args.regression)
+
    if args.time_only then
-      local tNm = trimname(args.regression)
-      local dat, nrow = sqlConn:exec(
-	 string.format("select * from RegressionData where name=='%s' and status==1", tNm)
-      )
-      
+      -- Print only runtimes for runs where the test passed.
+      local dat, nrow = sqlConn:exec(string.format(
+         "select * from RegressionData where name=='%s' and status==1", tNm))
       local fmt = "## %-20s %-4s"
       print(string.format(fmt, "Time-Stamp", "Run-Time"))
-      local fmt1 = "%.4g"
-      for i = 1,nrow do
-	 local guid = dat['guid'][i]
-	 local tstamp, changeset = sqlConn:rowexec(
-	    string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
-	 )
-	 print(string.format(fmt1, dat['runtime'][i]))
-      end      
+      for i = 1, nrow do
+         local guid = dat['guid'][i]
+         local tstamp, changeset = sqlConn:rowexec(string.format(
+            "select tstamp, GKYL_GIT_CHANGESET from RegressionMeta where guid='%s'", guid))
+         print(string.format("%.4g", dat['runtime'][i]))
+      end
    else
-      local tNm = trimname(args.regression)
-      local dat, nrow = sqlConn:exec(
-	 string.format("select * from RegressionData where name=='%s'", tNm)
-      )
-      
-      local fmt = "%-20s %-30s %-7s %-4s"
-      print(string.format(fmt, "Time-Stamp", "Changeset", "Status", "Run-Time"))
-      local fmt1 = "%-20s %-30s %-7s %.4g"
-      for i = 1,nrow do
-	 local guid = dat['guid'][i]
-	 local tstamp, changeset = sqlConn:rowexec(
-	    string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
-	 )
-	 local stat = statusToString[tonumber(dat['status'][i])]
-	 print(string.format(fmt1, tstamp, changeset, stat, dat['runtime'][i]))
+      local dat, nrow = sqlConn:exec(string.format(
+         "select * from RegressionData where name=='%s'", tNm))
+      local fmt  = "%-20s %-30s %-5s %-7s %-4s"
+      local fmt1 = "%-20s %-30s %-5s %-7s %.4g"
+      print(string.format(fmt, "Time-Stamp", "Changeset", "Type", "Status", "Run-Time"))
+      for i = 1, nrow do
+         local guid = dat['guid'][i]
+         local tstamp, changeset = sqlConn:rowexec(string.format(
+            "select tstamp, GKYL_GIT_CHANGESET from RegressionMeta where guid='%s'", guid))
+         local stat = statusToString[tonumber(dat['status'][i])]
+         local ttype = dat['test_type'] and dat['test_type'][i] or "?"
+         print(string.format(fmt1, tstamp, changeset, ttype, stat, dat['runtime'][i]))
       end
    end
-   
 end
 
--- Create CLI parser to handle commands and options
+-- ---- CLI parser -------------------------------------------------------------
+
 local parser = argparse()
    :name("queryrdb")
    :require_command(true)
    :description [[
-Query database created by runregression system to extract information
-about various tests.
-]]
-parser:option("--db", "Alternate DB to use")
+Query the per-layer regression databases created by the runregression tool.
 
--- summary command
-parser:command("summary", "Print summary of all tests")
+Each layer (moments, vlasov, gyrokinetic, pkpm) has its own SQLite database.
+Use --layer to select which layer's database to query, or --db to open an
+arbitrary database file directly.
+
+Examples:
+  gkeyll queryrdb --layer moments summary
+  gkeyll queryrdb --layer vlasov query --id 1 --fail-only
+  gkeyll queryrdb --layer gyrokinetic history -r moments/luareg/rt_gk_sheath_1x2v_p1.lua
+]]
+
+-- Global options (apply to all sub-commands).
+parser:option("--layer",
+   "Layer whose database to query (moments/vlasov/gyrokinetic/pkpm)")
+parser:option("--db",
+   "Open this specific database file instead of using --layer")
+
+-- 'summary' command.
+parser:command("summary", "Print a one-line summary of every stored run")
    :action(summary_action)
 
--- query command
-local c_query = parser:command("query", "Query individual run of regression system and print information")
+-- 'query' command.
+local c_query = parser:command("query",
+   "Print detailed results for a specific run (identified by summary ID)")
    :action(query_action)
-c_query:option("-i --id", "Print information for regression run with this ID", 1)
-c_query:flag("-f --fail-only", "Print only failed tests", false)
-c_query:flag("-p --pass-only", "Print only pass tests", false)
-c_query:flag("-l --comma-list", "Print test list as comma seperated list", false)
-c_query:option("-t --test", "Print log for specified test number", 0)
-c_query:flag("--net-time", "Print total time it took to run all tests", false)
+c_query:option("-i --id", "ID of the run to query (from summary command)", 1)
+c_query:flag("-f --fail-only", "Show only failed tests", false)
+c_query:flag("-p --pass-only", "Show only passed tests", false)
+c_query:flag("-l --comma-list", "Output test names as a comma-separated list", false)
+c_query:option("-t --test", "Print the full run log for this test number", 0)
+c_query:flag("--net-time", "Print total wall-clock time for the run", false)
 
--- delete command
-local c_delete = parser:command("delete", "Delete run data from regression system")
+-- 'delete' command.
+local c_delete = parser:command("delete",
+   "Delete a run's data from the database")
    :action(delete_action)
-c_delete:option("-i --id", "Regression run with this ID will be deleted", 0)
+c_delete:option("-i --id",
+   "ID of the run to delete (from summary command)", 0)
 
--- history command
-local c_history = parser:command("history", "Query historical data for a specific test")
+-- 'history' command.
+local c_history = parser:command("history",
+   "Show the history of a single named test across all stored runs")
    :action(history_action)
-c_history:option("-r --regression", "Print history for specific test")
-c_history:flag("--time-only ", "Print run time only (for when test passed)", false)
+c_history:option("-r --regression", "Name of the test to query history for")
+c_history:flag("--time-only", "Print only run times (for passed runs)", false)
 
--- parse command-line args (functionality encoded in command actions)
+-- ---- Parse and dispatch -----------------------------------------------------
 local _ = parser:parse(GKYL_COMMANDS_L)
