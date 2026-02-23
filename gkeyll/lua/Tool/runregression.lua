@@ -29,29 +29,16 @@ if GKYL_HAVE_SQLITE3 == false then
 end
 
 -- Minimal set of requires needed by this tool.
--- Deliberately NOT loaded (reasons below):
---   Lib.Alloc      - not needed; Zero* functions manage their own memory
---   Lib.Linalg     - not needed; used only internally by Grid.ZeroRectCart
---   DataStruct.ZeroDynVector - not needed; dynvector comparison is NYI (skip)
---
--- For file comparison (compareFiles):
---   ZeroArray    - gkyl_array_diff: numerically compare two .gkyl arrays
---   ZeroArrayRio - gkyl_grid_array_new_from_file: read a .gkyl file
---                  (Note: ZeroArrayRio now requires Grid.ZeroRectCart, not
---                   Grid.RectCart, to avoid pulling in Comm.Mpi)
---   ZeroRectCart - gkyl_rect_grid_cmp / createGridRanges: compare grids
---   ZeroUtil     - gkylFileType: detect .gkyl file type from header
+-- File comparison (compareFiles) uses the G0.Zero Lua-C API registered by
+-- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c).  The old LuaJIT
+-- FFI modules (ZeroArray, ZeroArrayRio, ZeroRectCart, ZeroUtil) are no longer
+-- needed and have been removed.
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
 local date = require "xsys.date"
 local lume = require "Lib.lume"
 local sql = require "sqlite3"
-
-local ZeroArray = require "DataStruct.ZeroArray"
-local ZeroArrayRio = require "DataStruct.ZeroArrayRio"
-local ZeroRectCart = require "Grid.ZeroRectCart"
-local ZeroUtil = require "Lib.ZeroUtil"
 
 -- GKYL_OUT_PREFIX is required by some Lua modules; set to a safe default here
 -- (each test run redirects output to its own scratch directory).
@@ -853,8 +840,8 @@ local function compareFiles(f1, f2)
       return false
    end
 
-   local f1type = ZeroUtil.gkylFileType(f1)
-   local f2type = ZeroUtil.gkylFileType(f2)
+   local f1type = G0.Zero.gkylFileType(f1)
+   local f2type = G0.Zero.gkylFileType(f2)
 
    if f1type ~= f2type then
       verboseLog(string.format(
@@ -867,27 +854,22 @@ local function compareFiles(f1, f2)
       return true
    end
 
-   -- ArrayNewFromFile may throw for non-array file types (e.g. topology/btopo files).
-   -- Guard with pcall; if it fails, skip the comparison rather than crashing.
-   local ok1, g1, a1 = pcall(ZeroArrayRio.ArrayNewFromFile, f1)
-   local ok2, g2, a2 = pcall(ZeroArrayRio.ArrayNewFromFile, f2)
-   if not ok1 or not ok2 then
+   -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
+   local g1, a1 = G0.Zero.arrayNewFromFile(f1)
+   local g2, a2 = G0.Zero.arrayNewFromFile(f2)
+   if not g1 or not g2 then
       verboseLog(string.format(
          " ... skipping %s (unsupported file format)\n", f1))
       return true
    end
 
-   if not g1 then return false end
-   if not g2 then return false end
-
-   local gridsSame = ZeroRectCart.compare(g1, g2)
-   if not gridsSame then return false end
+   if not G0.Zero.rectGridCmp(g1, g2) then return false end
 
    local nghost = { 0, 0, 0, 0, 0, 0, 0 }
-   local r1, er1 = g1:createGridRanges(nghost)
-   local r2, er2 = g2:createGridRanges(nghost)
+   local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
+   local r2, er2 = G0.Zero.createGridRanges(g2, nghost)
 
-   local diff = ZeroArray.arrayDiff(a1, a2, r1)
+   local diff = G0.Zero.arrayDiff(a1, a2, r1)
 
    if not diff.is_compatible then return false end
    if diff.max_abs_diff > 1e-12 then

@@ -52,5 +52,8 @@ return {
       "rt_gr_ultra_rel_blackhole_collapse",
       "rt_euler_multiblock",
       "rt_multib_euler_2d",
+      "rt_10m_riem_nn_closure_p1",
+      "rt_10m_ot_nn_closure",
+      "rt_10m_riem_nn_closure_p2",
    },
 }
