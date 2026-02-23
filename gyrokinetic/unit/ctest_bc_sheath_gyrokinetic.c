@@ -10,41 +10,110 @@
 #include <gkyl_basis.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_proj_on_basis.h>
+#include <mpack.h>
+
+// Meta-data for IO
+struct test_bc_sheath_output_meta {
+  int poly_order; // polynomial order
+  const char *basis_type; // name of basis functions
+};
+
+// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
+static struct gkyl_msgpack_data*
+test_bc_sheath_array_meta_new(struct test_bc_sheath_output_meta meta)
+{
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+
+  mpack_write_cstr(&writer, "polyOrder");
+  mpack_write_i64(&writer, meta.poly_order);
+
+  mpack_write_cstr(&writer, "basisType");
+  mpack_write_cstr(&writer, meta.basis_type);
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;
+}
+
+
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+struct test_sheath_ctx {
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM];
+  double upar;
+  double B0;
+  double vt;
+  double mass;
+};
 
 void
-test_bc_sheath_gyrokinetic(bool use_gpu)
+eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double vpar = xn[1];
+  double mu = xn[2];
+  struct test_sheath_ctx *pars = ctx;
+
+  double vt = pars->vt;
+  double B0 = pars->B0;
+  double m = pars->mass;
+  double upar = pars->upar;
+
+  fout[0] = exp( -(pow(vpar-upar,2) + mu*B0/m) /(2.0*pow(vt,2)) );
+}
+
+void
+test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int dir, bool write_fields, bool use_gpu)
 {
 
-  double charge = -1., mass = 1.;
+  double charge =  -1., mass = 1.;
+  double vt = 3.0; // Thermal speed.
+  double B0 = 1.0; // Magnetic field magnitude.
+  double upar = 0.0; // Parallel flow speed.
+  double q2Dm = 2.*charge/mass;
+  double phi_wall = 0.0; // Potential at wall.
+  double phi_mpe = -10.0; // Potential at the magnetic presheath entrance.
 
   int poly_order = 1;
-  double lower[] = {-2.0, -2.0, 0.}, upper[] = {2.0, 2.0, 2.0};
-  int cells[] = {6, 8, 4};
+  double lower[] = {-2.0, -5.0*vt, 0.}, upper[] = {2.0, 5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
+  int vdim = 2;
   int ndim = sizeof(lower)/sizeof(lower[0]);
-  int cdim = 1;
-  int dir = 0;
-  enum gkyl_edge_loc edge = GKYL_LOWER_EDGE;
+  int cdim = ndim - vdim;
+  double dgnorm = pow(sqrt(2.), ndim);
+  double dgnormc = pow(sqrt(2.), cdim);
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
-
-  int vdim = ndim-cdim;
-  // Grid.
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
-  // Basis functions.
-  struct gkyl_basis *basis;
-  if (poly_order == 1)  // Force gkhybrid for p=1.
-    basis = use_gpu? gkyl_cart_modal_gkhybrid_cu_dev_new(cdim, vdim)
-                   : gkyl_cart_modal_gkhybrid_new(cdim, vdim);
-  else
-    basis = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(ndim, poly_order)
-                   : gkyl_cart_modal_serendip_new(ndim, poly_order);
-
-  int ghost[] = { 1, 0, 0 };
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
   double velLower[vdim], velUpper[vdim];
   int velCells[vdim];
   for (int d=0; d<vdim; d++) {
@@ -52,8 +121,31 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
     velUpper[d] = upper[cdim+d];
     velCells[d] = cells[cdim+d];
   }
+
+  // Grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
   struct gkyl_rect_grid velGrid;
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  if (poly_order == 1) 
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis basis_conf;
+  gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
+
+  int ghost[] = { 1, 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext position-space ranges
+  gkyl_create_grid_ranges(&confGrid, ghost, &confLocal_ext, &confLocal);
+
   int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
@@ -63,36 +155,95 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, use_gpu);
 
+  // Extended grid for the distribution function, which includes ghost cells.
+  double lower_ext[ndim], upper_ext[ndim];
+  int cells_ext[ndim];
+  for (int d=0; d<ndim; d++) {
+    double dx = (upper[d]-lower[d])/cells[d];
+    lower_ext[d] = lower[d]-dx*ghost[d];
+    upper_ext[d] = upper[d]+dx*ghost[d];
+    cells_ext[d] = cells[d]+2*ghost[d];
+  }
+  struct gkyl_rect_grid grid_ext;
+  gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
+
   // Create the skin/ghost ranges.
   struct gkyl_range skin_r, ghost_r;
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
 
-  // Need the configuration space range to index into phi.
-  struct gkyl_range conf_r;
-  int rlo[cdim], rup[cdim];
-  for (int d=0; d<cdim; d++) {
-    rlo[d] = local_ext.lower[d];
-    rup[d] = local_ext.upper[d];
+  // Initialize the distribution
+  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
+  struct test_sheath_ctx proj_ctx = {
+    .B0 = B0,
+    .vt = vt,
+    .mass = mass,
+    .upar = upar,
+  };
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &grid,
+      .basis = &basis,
+      .num_ret_vals = 1,
+      .eval = eval_func_1x2v,
+      .ctx = &proj_ctx,
+    }
+  );
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
+
+  // Initialize the electrostatic potential at MPE and WALL
+  struct gkyl_array *phi = mkarr(use_gpu, basis_conf.num_basis, confLocal_ext.volume);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, basis_conf.num_basis, confLocal_ext.volume) : gkyl_array_acquire(phi);
+  gkyl_array_shiftc(phi_ho, phi_mpe * dgnormc, 0 * basis_conf.num_basis);
+  gkyl_array_copy(phi, phi_ho);
+
+  struct gkyl_array *phiw = mkarr(use_gpu, basis_conf.num_basis, confLocal_ext.volume);
+  struct gkyl_array *phiw_ho = use_gpu? mkarr(false, basis_conf.num_basis, confLocal_ext.volume) : gkyl_array_acquire(phiw);
+  gkyl_array_shiftc(phiw_ho, phi_wall * dgnormc, 0 * basis_conf.num_basis);
+  gkyl_array_copy(phiw, phiw_ho);
+
+  // Write out input fields if requested.
+  struct gkyl_msgpack_data *mt = test_bc_sheath_array_meta_new( (struct test_bc_sheath_output_meta) {
+      .poly_order = poly_order,
+      .basis_type = basis.id
+    }
+  );
+  if (write_fields) {
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_skin.gkyl");
+    gkyl_grid_sub_array_write(&confGrid, &confLocal, mt, phi_ho, "bc_sheath_1x2v_phi_mpe.gkyl");
+    gkyl_grid_sub_array_write(&confGrid, &confLocal, mt, phiw_ho, "bc_sheath_1x2v_phi_wall.gkyl");
   }
-  gkyl_range_init(&conf_r, cdim, rlo, rup);
 
-  double q2Dm = 2.*charge/mass;
-
+  // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
+    &basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
+
+  // Advance the BC updater.
+  gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &confLocal);
+
+  // Write out the distribution function after applying BC if requested.
+  if (write_fields) {
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_ghost.gkyl");
+  }
+
+  // Clean up.
+  gkyl_msgpack_data_release(mt);
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf);
+  gkyl_array_release(distf_ho);
+  gkyl_array_release(phi);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(phiw);
+  gkyl_array_release(phiw_ho);
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  if (use_gpu)
-    gkyl_cart_modal_basis_release_cu(basis);
-  else
-    gkyl_cart_modal_basis_release(basis);
 }
 
-void test_bc_gksheath(){ test_bc_sheath_gyrokinetic(false); }
+void test_bc_gksheath(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, 0, true, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_bc_gksheath_cu(){ test_bc_sheath_gyrokinetic(true); }
+void test_bc_gksheath_cu(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, 0, true, true); }
 #endif
 
 TEST_LIST = {
