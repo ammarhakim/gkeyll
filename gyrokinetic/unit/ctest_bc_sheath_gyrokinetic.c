@@ -104,12 +104,12 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
 
   double mass = 1.; // Species mass.
   double charge = -1.; // Species charge (+ or - for electrons/ions).
-  double vt = 5.0; // Reference thermal speed (for grid extents).
+  double vt = 1.0; // Reference thermal speed (for grid extents).
   double B0 = 1.0; // Magnetic field magnitude.
   double upar_distf = 0.0; // Parallel flow speed in distribution function.
   double vt_distf = 1.5*vt; // Thermal speed in distribution function.
   double phi_wall = 0.0; // Potential at wall.
-  double phi_mpe = 5.0; // Potential at the magnetic presheath entrance.
+  double phi_mpe = 1.0; // Potential at the magnetic presheath entrance.
   
   int poly_order = 1;
   double lower[] = {-2.0, -5.0*vt, 0.};
@@ -240,7 +240,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
     &basis, &upSkin_r, &upGhost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // We change the 2*q/m factor to differentiate between the upper and lower vcut.
-  double factor = 2.;
+  double factor = 3.;
   struct gkyl_bc_sheath_gyrokinetic *bcsheath_lo = gkyl_bc_sheath_gyrokinetic_new(dir, GKYL_LOWER_EDGE,
     &basis, &loSkin_r, &loGhost_r, gvm, cdim, factor*2.*charge/mass, use_gpu);
 
