@@ -98,6 +98,8 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
   - "bc_sheath_1x2v_phi_mpe.gkyl": Potential at the magnetic presheath entrance (constant everywhere).
   - "bc_sheath_1x2v_phi_wall.gkyl": Potential at the wall (constant everywhere).
   - "bc_sheath_1x2v_distf_out.gkyl": Distribution after the sheath BC has been applied.
+
+  We also apply a factor between the upper and lower sheath BC to make the output recognizable.
   */
 
   double mass = 1.; // Species mass.
@@ -107,7 +109,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
   double upar_distf = 0.0; // Parallel flow speed in distribution function.
   double vt_distf = 1.5*vt; // Thermal speed in distribution function.
   double phi_wall = 0.0; // Potential at wall.
-  double phi_mpe = 10.0; // Potential at the magnetic presheath entrance.
+  double phi_mpe = 5.0; // Potential at the magnetic presheath entrance.
   
   int poly_order = 1;
   double lower[] = {-2.0, -5.0*vt, 0.};
