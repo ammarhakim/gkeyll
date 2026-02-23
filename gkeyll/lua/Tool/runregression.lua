@@ -619,9 +619,10 @@ local function list_tests(activeLayers, args)
             local ignC = ignoreTests[layer.name] and ignoreTests[layer.name].c or {}
             if lume.find(ignC, testname) then return end
             table.insert(cTests, {
-               src   = fn,
-               layer = layer.name,
-               name  = layer.name .. "/creg/" .. testname,
+               src      = fn,
+               layer    = layer.name,
+               layer_src = layer.src,   -- source subdir name (e.g. "gyrokinetic")
+               name     = layer.name .. "/creg/" .. testname,
             })
          end
 
@@ -797,7 +798,20 @@ local function runCTest(test, timeoutSecs)
    end
    verboseLog(compileLog)
 
-   -- Step 2: run.
+   -- Step 2: symlink the layer's source subdirectory into the run dir so that
+   -- tests opening data files with paths like "gyrokinetic/data/..." can find
+   -- them relative to CWD without hardcoding the source tree location.
+   if test.layer_src then
+      local layerSrcPath = configVals.source_dir .. "/" .. test.layer_src
+      local symlinkPath  = runDir .. "/" .. test.layer_src
+      if lfs.attributes(layerSrcPath, "mode") == "directory"
+         and not lfs.attributes(symlinkPath) then
+         os.execute(string.format("ln -sf '%s' '%s' 2>/dev/null",
+            layerSrcPath, symlinkPath))
+      end
+   end
+
+   -- Step 3: run.
    local binPath  = runDir .. "/" .. testname
    local innerCmd = string.format("cd '%s' && '%s' 2>&1", runDir, binPath)
    local runCmd   = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
@@ -1030,8 +1044,19 @@ local function updateIgnoreTests(layer, newLuaPaths, newCNames)
    local ignFile = configVals.source_dir
       .. "/" .. layer.src .. "/luareg/ignoretests.lua"
 
-   -- Use the in-memory table already loaded by loadConfigure as the base.
-   local existing = ignoreTests[layer.name] or { lua = {}, c = {} }
+   -- Re-read the file from disk rather than using the in-memory table: the file
+   -- may have been edited manually after this process started, and we must not
+   -- lose those edits when writing back the updated timeout list.
+   local existing = { lua = {}, c = {} }
+   local gi = loadfile(ignFile)
+   if gi then
+      local ok, loaded = pcall(gi)
+      if ok and type(loaded) == "table" then
+         existing = loaded
+      end
+   end
+   existing.lua = existing.lua or {}
+   existing.c   = existing.c   or {}
 
    -- Merge Lua paths (avoid duplicates).
    local luaSet = {}
