@@ -230,6 +230,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
 
   // Write out the distribution function after applying BC if requested.
   if (write_fields) {
+    gkyl_array_copy(distf_ho, distf);
     gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_ghost.gkyl");
   }
 
