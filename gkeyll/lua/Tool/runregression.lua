@@ -850,7 +850,27 @@ local function compareFiles(f1, f2)
    end
 
    if f1type == "dynvector" then
-      verboseLog(" ... dynvector comparison NYI!\n")
+      local diff = G0.Zero.dynvecDiff(f1, f2)
+      if not diff.is_compatible then
+         verboseLog(string.format(
+            " ... dynvector files not compatible (size/type mismatch or read failure): %s %s\n",
+            f1, f2))
+         return false
+      end
+      if diff.max_abs_diff > 1e-12 then
+         verboseLog(string.format(
+            " ... dynvector max abs diff %g exceeds threshold\n", diff.max_abs_diff))
+         return false
+      end
+      if diff.max_abs_diff > 0 and diff.max_rel_diff > 1e-12 then
+         verboseLog(string.format(
+            " ... dynvector max rel diff %g exceeds threshold\n", diff.max_rel_diff))
+         return false
+      end
+      if diff.tm_max_abs_diff > 1e-10 then
+         verboseLog(string.format(
+            " ... dynvector timestamp max abs diff %g (informational)\n", diff.tm_max_abs_diff))
+      end
       return true
    end
 

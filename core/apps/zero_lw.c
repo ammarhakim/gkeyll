@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_lua_utils.h>
 #include <gkyl_lw_priv.h>
@@ -407,6 +408,124 @@ array_diff_lw(lua_State *L)
   return 1;
 }
 
+// Returns a Lua table with all diff fields set to zero and is_compatible=false.
+// Used as the early-exit return value whenever two dynvec files cannot be compared.
+static int
+dynvec_incompat(lua_State *L)
+{
+  lua_newtable(L);
+  lua_pushboolean(L, 0); lua_setfield(L, -2, "is_compatible");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "max_abs_diff");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "min_abs_diff");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "max_rel_diff");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "min_rel_diff");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "tm_max_abs_diff");
+  lua_pushnumber(L, 0);  lua_setfield(L, -2, "tm_min_abs_diff");
+  return 1;
+}
+
+// G0.Zero.dynvecDiff(f1, f2) -> table
+// Reads two dynvector files, compares their data payloads, and returns a
+// table with the same fields as arrayDiff plus two informational timestamp
+// fields (tm_max_abs_diff, tm_min_abs_diff).  Timestamp differences are
+// computed but do not affect is_compatible: accumulated floating-point
+// drift in t += dt is expected and platform-dependent.
+static int
+dynvec_diff_lw(lua_State *L)
+{
+  const char *f1 = luaL_checkstring(L, 1);
+  const char *f2 = luaL_checkstring(L, 2);
+
+  // Read metadata (fast: header only, no data allocation).
+  struct gkyl_dynvec_etype_ncomp enc1 = gkyl_dynvec_read_ncomp(f1);
+  struct gkyl_dynvec_etype_ncomp enc2 = gkyl_dynvec_read_ncomp(f2);
+
+  // ncomp == 0 means the file couldn't be read or has an invalid header.
+  if (enc1.ncomp == 0 || enc2.ncomp == 0) return dynvec_incompat(L);
+
+  // gkyl_array_diff only handles GKYL_DOUBLE safely.
+  if (enc1.type != GKYL_DOUBLE || enc2.type != GKYL_DOUBLE) return dynvec_incompat(L);
+
+  // Number of components must match.
+  if (enc1.ncomp != enc2.ncomp) return dynvec_incompat(L);
+
+  // Read full dynvecs.
+  gkyl_dynvec dv1 = gkyl_dynvec_new(enc1.type, enc1.ncomp);
+  gkyl_dynvec dv2 = gkyl_dynvec_new(enc2.type, enc2.ncomp);
+
+  bool ok1 = gkyl_dynvec_read(dv1, f1);
+  bool ok2 = gkyl_dynvec_read(dv2, f2);
+
+  if (!ok1 || !ok2) {
+    gkyl_dynvec_release(dv1);
+    gkyl_dynvec_release(dv2);
+    return dynvec_incompat(L);
+  }
+
+  size_t n1 = gkyl_dynvec_size(dv1);
+  size_t n2 = gkyl_dynvec_size(dv2);
+
+  // Different number of time steps -> incompatible.
+  if (n1 != n2) {
+    gkyl_dynvec_release(dv1);
+    gkyl_dynvec_release(dv2);
+    return dynvec_incompat(L);
+  }
+
+  size_t nsteps = n1;
+
+  // Allocate flat arrays for timestamps (ncomp=1) and data (ncomp=enc1.ncomp).
+  struct gkyl_array *tm1 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
+  struct gkyl_array *tm2 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
+  struct gkyl_array *da1 = gkyl_array_new(GKYL_DOUBLE, enc1.ncomp, nsteps);
+  struct gkyl_array *da2 = gkyl_array_new(GKYL_DOUBLE, enc2.ncomp, nsteps);
+
+  gkyl_dynvec_to_array(dv1, tm1, da1);
+  gkyl_dynvec_to_array(dv2, tm2, da2);
+
+  gkyl_dynvec_release(dv1);
+  gkyl_dynvec_release(dv2);
+
+  // Build a 1-D range [0, nsteps-1] for gkyl_array_diff.
+  struct gkyl_range rng;
+  int shape[1] = { (int)nsteps };
+  gkyl_range_init_from_shape(&rng, 1, shape);
+
+  struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
+  struct gkyl_array_diff tdiff = gkyl_array_diff(tm1, tm2, &rng);
+
+  gkyl_array_release(tm1);
+  gkyl_array_release(tm2);
+  gkyl_array_release(da1);
+  gkyl_array_release(da2);
+
+  lua_newtable(L);
+
+  lua_pushboolean(L, ddiff.is_compatible);
+  lua_setfield(L, -2, "is_compatible");
+
+  lua_pushnumber(L, ddiff.max_abs_diff);
+  lua_setfield(L, -2, "max_abs_diff");
+
+  lua_pushnumber(L, ddiff.min_abs_diff);
+  lua_setfield(L, -2, "min_abs_diff");
+
+  lua_pushnumber(L, ddiff.max_rel_diff);
+  lua_setfield(L, -2, "max_rel_diff");
+
+  lua_pushnumber(L, ddiff.min_rel_diff);
+  lua_setfield(L, -2, "min_rel_diff");
+
+  // Timestamp fields: informational only, never cause a test failure.
+  lua_pushnumber(L, tdiff.is_compatible ? tdiff.max_abs_diff : 0.0);
+  lua_setfield(L, -2, "tm_max_abs_diff");
+
+  lua_pushnumber(L, tdiff.is_compatible ? tdiff.min_abs_diff : 0.0);
+  lua_setfield(L, -2, "tm_min_abs_diff");
+
+  return 1;
+}
+
 // Module-level functions registered under G0.Zero
 static struct luaL_Reg zero_array_funcs[] = {
   { "gkylFileType",       gkyl_file_type_lw       },
@@ -414,6 +533,7 @@ static struct luaL_Reg zero_array_funcs[] = {
   { "rectGridCmp",        rect_grid_cmp_lw        },
   { "createGridRanges",   create_grid_ranges_lw   },
   { "arrayDiff",          array_diff_lw           },
+  { "dynvecDiff",         dynvec_diff_lw          },
   { 0, 0 }
 };
 
