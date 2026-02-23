@@ -219,7 +219,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
   gkyl_array_copy(phi, phi_ho);
 
   struct gkyl_array *phiw = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
-  struct gkyl_array *phiw_ho = use_gpu? mkarr(false, phiw_ho->ncomp, phiw_ho->size) : gkyl_array_acquire(phiw);
+  struct gkyl_array *phiw_ho = use_gpu? mkarr(false, phiw->ncomp, phiw->size) : gkyl_array_acquire(phiw);
   gkyl_array_shiftc(phiw_ho, phi_wall * dgnormc, 0 * basis_conf.num_basis);
   gkyl_array_copy(phiw, phiw_ho);
 
@@ -230,7 +230,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gp
     }
   );
   if (write_fields) {
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_skin.gkyl");
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_in.gkyl");
     gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt, phi_ho, "bc_sheath_1x2v_phi_mpe.gkyl");
     gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt, phiw_ho, "bc_sheath_1x2v_phi_wall.gkyl");
   }
