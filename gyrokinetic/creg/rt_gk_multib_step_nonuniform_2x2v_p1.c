@@ -159,7 +159,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_R,
@@ -199,7 +199,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_LO,
@@ -241,7 +241,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_MID,
@@ -283,7 +283,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_UP,
@@ -325,7 +325,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_R,
@@ -365,7 +365,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_L,
@@ -405,7 +405,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_UP,
@@ -445,7 +445,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_MID,
@@ -485,7 +485,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_IN_LO,
@@ -525,7 +525,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_L,
@@ -566,7 +566,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_R,
@@ -603,7 +603,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_L,

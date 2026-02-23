@@ -90,17 +90,26 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
     fin_neut[i] = app->neut_species[i].f;
   }
 
-  gk_species_radiation_moms(app, gks, &gks->rad, fin, fin_neut);
+  struct gk_rad_drag *rad = &gks->rad;
+  gk_species_radiation_moms(app, gks, rad, fin, fin_neut);
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
   struct timespec wtm = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
-    }, GKYL_GK_META_NONE, 0
-  );
+
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  int io_meta_surfvpar_len[] = {app->io_meta_basic_len, rad->io_meta_surfvpar_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta_surfvpar[] = {app->io_meta_basic, rad->io_meta_surfvpar, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt_surfvpar = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  int io_meta_surfmu_len[] = {app->io_meta_basic_len, rad->io_meta_surfmu_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta_surfmu[] = {app->io_meta_basic, rad->io_meta_surfmu, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt_surfmu = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Construct the file handles for vparallel and mu drag
   const char *fmt_nvnu_surf = "%s-%s_radiation_nvnu_surf_%d.gkyl";
@@ -125,20 +134,22 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
-    gkyl_array_copy(gks->rad.nvnu_surf_host, gks->rad.nvnu_surf);
-    gkyl_array_copy(gks->rad.nvnu_host, gks->rad.nvnu);
-    gkyl_array_copy(gks->rad.nvsqnu_surf_host, gks->rad.nvsqnu_surf);
-    gkyl_array_copy(gks->rad.nvsqnu_host, gks->rad.nvsqnu);
+    gkyl_array_copy(rad->nvnu_surf_host, rad->nvnu_surf);
+    gkyl_array_copy(rad->nvnu_host, rad->nvnu);
+    gkyl_array_copy(rad->nvsqnu_surf_host, rad->nvsqnu_surf);
+    gkyl_array_copy(rad->nvsqnu_host, rad->nvsqnu);
   }
 
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvnu_surf_host, fileNm_nvnu_surf);
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvnu_host, fileNm_nvnu);
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvsqnu_host, fileNm_nvsqnu);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt_surfvpar, rad->nvnu_surf_host, fileNm_nvnu_surf);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, rad->nvnu_host, fileNm_nvnu);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt_surfmu, rad->nvsqnu_surf_host, fileNm_nvsqnu_surf);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, rad->nvsqnu_host, fileNm_nvsqnu);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 4;
 
-  gk_array_meta_release(mt);   
+  gkyl_msgpack_data_release(mt);
+  gkyl_msgpack_data_release(mt_surfvpar);
+  gkyl_msgpack_data_release(mt_surfmu);
 }
 
 static void
@@ -199,13 +210,12 @@ gks_rad_write_emissivity_disabled(gkyl_gyrokinetic_app* app, struct gk_species *
 static void
 gks_rad_write_emissivity_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
   struct timespec wst = gkyl_wall_clock();
   const struct gkyl_array *fin_neut[app->num_neut_species];
@@ -258,7 +268,7 @@ gks_rad_write_emissivity_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
   app->stat.species_diag_calc_tm += (diag_calc_tm * num_charged_species) / gks->rad.num_cross_collisions;
   app->stat.neut_species_diag_calc_tm += (diag_calc_tm * num_neut_species) / gks->rad.num_cross_collisions;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 static inline void
@@ -399,9 +409,23 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       gkyl_cart_modal_gkhybrid(&surf_mu_basis, cdim, 1);   
     }
 
+    // Metadata for radiation app.
+    struct gkyl_msgpack_map_elem io_meta_surfvpar[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = surf_vpar_basis.poly_order },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = surf_vpar_basis.id }
+    };
+    rad->io_meta_surfvpar_len = sizeof(io_meta_surfvpar)/sizeof(io_meta_surfvpar[0]);
+    rad->io_meta_surfvpar = gkyl_msgpack_map_elem_clone(rad->io_meta_surfvpar_len, io_meta_surfvpar);
+    struct gkyl_msgpack_map_elem io_meta_surfmu[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = surf_mu_basis.poly_order },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = surf_mu_basis.id }
+    };
+    rad->io_meta_surfmu_len = sizeof(io_meta_surfmu)/sizeof(io_meta_surfmu[0]);
+    rad->io_meta_surfmu = gkyl_msgpack_map_elem_clone(rad->io_meta_surfmu_len, io_meta_surfmu);
+
     // Updater to compute drag coefficients.
     rad->calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->basis,
-          &s->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map, app->use_gpu);
+      &s->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map, app->use_gpu);
 
     // Fitting parameters
     double rad_fit_a[GKYL_MAX_RAD_DENSITIES], rad_fit_alpha[GKYL_MAX_RAD_DENSITIES], rad_fit_beta[GKYL_MAX_RAD_DENSITIES],
@@ -510,10 +534,10 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gkyl_radiation_read_release_fit_params(rad_data);
 
     // Total vparallel and mu radiation drag including density scaling
-    rad->nvnu_surf = mkarr(app->use_gpu, surf_vpar_basis.num_basis, s->local_ext.volume);
-    rad->nvnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    rad->nvnu_surf   = mkarr(app->use_gpu, surf_vpar_basis.num_basis, s->local_ext.volume);
+    rad->nvnu        = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     rad->nvsqnu_surf = mkarr(app->use_gpu, surf_mu_basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    rad->nvsqnu      = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
     // Allocate moments needed for temperature update.
     gk_species_moment_init(app, s, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, false);

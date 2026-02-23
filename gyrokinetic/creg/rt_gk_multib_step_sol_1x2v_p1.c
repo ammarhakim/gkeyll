@@ -89,7 +89,7 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_LO,
@@ -120,7 +120,7 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_MID,
@@ -151,7 +151,7 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_DN_SOL_OUT_UP,
