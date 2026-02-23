@@ -963,7 +963,6 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp_3x = {
-    .name = "gk_wham_2xIC_3x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.psi_min, - M_PI, ctx.z_min},
     .upper = {ctx.psi_max,   M_PI, ctx.z_max},
@@ -991,6 +990,8 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp_3x.name, sizeof(app_inp_3x.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp3x = {
     .app_inp = app_inp_3x,
     .time_stepping = {
