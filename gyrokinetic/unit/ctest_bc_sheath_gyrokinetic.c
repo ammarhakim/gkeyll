@@ -88,16 +88,25 @@ eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
 }
 
 void
-test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int dir, bool write_fields, bool use_gpu)
+test_bc_sheath_gyrokinetic_1x2v(const int *cells, bool write_fields, bool use_gpu)
 {
+  /*
+  This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
+  according to a potential drop between the magnetic presheath entrance and the wall. 
+  The folloing files are written out if requested:
+  - "bc_sheath_1x2v_distf_in.gkyl": Input distribution function.
+  - "bc_sheath_1x2v_phi_mpe.gkyl": Potential at the magnetic presheath entrance (constant everywhere).
+  - "bc_sheath_1x2v_phi_wall.gkyl": Potential at the wall (constant everywhere).
+  - "bc_sheath_1x2v_distf_out.gkyl": Distribution after the sheath BC has been applied.
+  */
 
+  // Test parameters
   double mass = 1.;
   double vt = 5.0; // Reference thermal speed (for grid extents).
   double B0 = 1.0; // Magnetic field magnitude.
-  // Test parameters
   double charge = -1.; // + or - for electrons/ions
-  double upardist = 0.0; // Parallel flow speed in distribution function.
-  double vtdist = 1.5*vt; // Thermal speed in distribution function.
+  double upars = 0.0; // Parallel flo speed in distribution function.
+  double vts = 1.5*vt; // Thermal speed in distribution function.
   double phi_wall = 0.0; // Potential at wall.
   double phi_mpe = 10.0; // Potential at the magnetic presheath entrance.
   
@@ -108,6 +117,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
   int cdim = ndim - vdim;
   double dgnorm = pow(sqrt(2.), ndim);
   double dgnormc = pow(sqrt(2.), cdim);
+  int dir = 0; // first and only configuration space direction is z
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -170,17 +180,19 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
   gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
 
   // Create the skin/ghost ranges.
-  struct gkyl_range skin_r, ghost_r;
-  gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
+  struct gkyl_range upSkin_r, upGhost_r;
+  gkyl_skin_ghost_ranges(&upSkin_r, &upGhost_r, dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+  struct gkyl_range loSkin_r, loGhost_r;
+  gkyl_skin_ghost_ranges(&loSkin_r, &loGhost_r, dir, GKYL_LOWER_EDGE, &local_ext, ghost);
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0,
-    .vt = vtdist,
+    .vt = vts,
     .mass = mass,
-    .upar = upardist,
+    .upar = upars,
   };
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
@@ -211,22 +223,30 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
     }
   );
   if (write_fields) {
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_skin.gkyl");
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_in.gkyl");
     gkyl_grid_sub_array_write(&confGrid, &confLocal, mt, phi_ho, "bc_sheath_1x2v_phi_mpe.gkyl");
     gkyl_grid_sub_array_write(&confGrid, &confLocal, mt, phiw_ho, "bc_sheath_1x2v_phi_wall.gkyl");
   }
 
-  // Create the BC updater.
-  struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+  // Create the BC updaters.
+  struct gkyl_bc_sheath_gyrokinetic *bcsheath_up = gkyl_bc_sheath_gyrokinetic_new(dir, GKYL_UPPER_EDGE,
+    &basis, &upSkin_r, &upGhost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
-  // Advance the BC updater.
-  gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &confLocal);
+  // We change the 2*q/m factor to differentiate between the upper and lower vcut.
+  double factor = 2.;
+  struct gkyl_bc_sheath_gyrokinetic *bcsheath_lo = gkyl_bc_sheath_gyrokinetic_new(dir, GKYL_LOWER_EDGE,
+    &basis, &loSkin_r, &loGhost_r, gvm, cdim, factor*2.*charge/mass, use_gpu);
+
+  // Advance the BC updaters.
+  gkyl_bc_sheath_gyrokinetic_advance(bcsheath_up, phi, phiw, distf, &confLocal);
+  gkyl_bc_sheath_gyrokinetic_advance(bcsheath_lo, phi, phiw, distf, &confLocal);
+
+  // Copy back to host.
+  gkyl_array_copy(distf_ho, distf);
 
   // Write out the distribution function after applying BC if requested.
-  if (write_fields) {
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_ghost.gkyl");
-  }
+  if (write_fields)
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "bc_sheath_1x2v_distf_out.gkyl");
 
   // Clean up.
   gkyl_msgpack_data_release(mt);
@@ -239,13 +259,14 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, int d
   gkyl_array_release(phiw_ho);
 
   gkyl_velocity_map_release(gvm);
-  gkyl_bc_sheath_gyrokinetic_release(bcsheath);
+  gkyl_bc_sheath_gyrokinetic_release(bcsheath_up);
+  gkyl_bc_sheath_gyrokinetic_release(bcsheath_lo);
 }
 
-void test_bc_gksheath(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, 0, true, false); }
+void test_bc_gksheath(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, true, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_bc_gksheath_cu(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, 0, true, true); }
+void test_bc_gksheath_cu(){ test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, true, true); }
 #endif
 
 TEST_LIST = {
