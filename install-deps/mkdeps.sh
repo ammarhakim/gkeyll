@@ -9,6 +9,8 @@ CXX=g++
 FC=gfortran
 MPICC=$PREFIX/openmpi/bin/mpicc
 MPICXX=$PREFIX/openmpi/bin/mpicxx
+MPIFC=$PREFIX/openmpi/bin/mpifort
+MPIEXEC=$PREFIX/openmpi/bin/mpiexec
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
@@ -19,6 +21,7 @@ BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
+BUILD_SUNDIALS=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -36,10 +39,11 @@ cat <<EOF
 Build GkylZero dependencies
 
 CC 
-CXX                         C and C++ compilers to use
-FC                          Fortran compiler to use (only gfortran is supported)
-MPICC                       
-MPICXX                      MPI C and C++ compilers to use
+CXX                         C and C++ compilers to use.
+FC                          Fortran compiler to use.
+MPICC                       MPI C compiler to use.
+MPICXX                      MPI C++ compiler to use.
+MPIFC                       MPI Fortran compiler to use.
 
 -h
 --help                      This help.
@@ -126,6 +130,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CXX="$value"
       ;;
+   FC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      FC="$value"
+      ;;   
    MPICC)
       [ -n "$value" ] || die "Missing value in flag $key."
       MPICC="$value"
@@ -134,10 +142,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       MPICXX="$value"
       ;;
-   FC)
+   MPIFC)
       [ -n "$value" ] || die "Missing value in flag $key."
-      FC="$value"
-      ;;   
+      MPIFC="$value"
+      ;;
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
@@ -189,9 +197,6 @@ do
    shift
 done
 
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
-
 CMAKE_SUPERLU_DIST_GPU=OFF
 # Set package options
 if [ "$BUILD_SUPERLU_DIST_GPU" = "yes" ]
@@ -214,10 +219,11 @@ GKYLSOFT=$PREFIX
 # Various compilers
 CC=$CC
 CXX=$CXX
+FC=$FC
 MPICC=$MPICC
 MPICXX=$MPICXX
+MPIFC=$MPIFC
 MPIEXEC=$MPIEXEC
-FC=gfortran
 
 # Package options
 CMAKE_SUPERLU_DIST_GPU=$CMAKE_SUPERLU_DIST_GPU

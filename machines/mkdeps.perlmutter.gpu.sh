@@ -12,7 +12,7 @@ module load cray-mpich/8.1.28
 module load cudatoolkit/12.4
 module load nccl/2.18.3-cu12
 
-: "${PREFIX:=$HOME/gkylsoft}"
+: "${PREFIX:=/pscratch/sd/m/mana/gkeyll/code/gkeyll_gpu2/gkylsoft}"
 
 cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
+./mkdeps.sh --build-openblas=no --build-superlu=no --build-cudss=no --prefix=$PREFIX --build-openmpi=no --build-luajit=no MPICC=mpicc  MPICXX=mpicxx MPIFC=mpifort --build-adas=no --build-sundials=yes
