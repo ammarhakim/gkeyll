@@ -1,8 +1,5 @@
 # -*- makefile-gmake -*-
 
-# Sqlite can't use agressive optimization flags
-SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
-
 SRC_DIRS := minus $(KERNELS_DIR) zero apps
 UNIT_DIRS := unit
 
