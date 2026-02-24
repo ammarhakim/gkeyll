@@ -355,7 +355,6 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 
   bool cellwise_const;    // If true, multiplier is constant within each cell (p=0 basis).
   bool write_diagnostics; // If true, write multiplier array to file.
-  bool evolve;            // If true, mask is recomputed each step; if false, mask is fixed from init.
 
   // Parameters for time dilation types (FIXED_DT, MASK_F_*):
   double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
