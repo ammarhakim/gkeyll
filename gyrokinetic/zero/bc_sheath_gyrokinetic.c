@@ -3,6 +3,17 @@
 #include <gkyl_alloc.h>
 #include <assert.h>
 
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
@@ -21,6 +32,10 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
+  up->alpha_mu = mkarr(use_gpu, vel_map->vmap_basis->num_basis, vel_map->local.volume);
+  // Set the alpha_mu array to 1 by default (constant vcut).
+  double dg_norm = pow(sqrt(2), vel_map->vmap_basis->ndim);
+  gkyl_array_shiftc_range(up->alpha_mu, 1.0, 0, &vel_map->local);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -83,6 +98,7 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
+    const double *alpha_mu_p = (const double*) gkyl_array_cfetch(up->alpha_mu, vel_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
 
     // Calculate reflected distribution function fhat.
@@ -91,11 +107,16 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     // 2) fhat=f (full reflection)
     // 3) fhat=c*f (partial reflection)
     double fhat[up->basis->num_basis];
-    up->kernels->reflectedf(vmap_p, up->q2Dm, phi_p, phi_wall_p, inp, fhat);
+    up->kernels->reflectedf(vmap_p, up->q2Dm, phi_p, phi_wall_p, alpha_mu_p, inp, fhat);
 
     // Reflect fhat into skin cells.
     bc_gksheath_reflect(up->dir, up->basis, up->cdim, out, fhat);
   }
+}
+
+void gkyl_bc_sheath_gyrokinetic_set_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *alpha_mu)
+{
+  gkyl_array_copy_range(up->alpha_mu, alpha_mu, &up->vel_map->local_vel);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
@@ -107,6 +128,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
   }
 #endif
   gkyl_velocity_map_release(up->vel_map);
+  gkyl_array_release(up->alpha_mu);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }

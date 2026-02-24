@@ -33,11 +33,22 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * @param up BC updater.
  * @param phi Electrostatic potential.
  * @param phi_wall Wall potential.
+ * @param alpha_mu Alpha parameter for sheath BCs.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
 void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+
+/**
+ * Set the alpha_mu array used in the sheath BC. 
+ * This is used to implement a mu-dependent vcut in the sheath BC, 
+ * where alpha_mu is the mu dependent multiplying factor in the expression for vcut.
+ * 
+ * @param up
+ * @param alpha_mu 
+ */
+void gkyl_bc_sheath_gyrokinetic_set_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *alpha_mu);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
