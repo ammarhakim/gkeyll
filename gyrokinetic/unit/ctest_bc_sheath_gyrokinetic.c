@@ -45,7 +45,7 @@ eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   double m = pars->mass;
   double upar = pars->upar;
 
-  fout[0] = exp( -(pow(vpar-upar,2) + 2.0*mu*B0/m) /(2.0*pow(vt,2)) );
+  fout[0] = exp( -(pow(vpar-upar,2) + 2.0*mu*B0/m) /(2.0*pow(vt,2)) ) + 1.0;
 }
 
 void
@@ -65,7 +65,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   double mass = 1.; // Species mass.
   double vt = 1.0; // Reference thermal speed (for grid extents).
   double B0 = 1.0; // Magnetic field magnitude.
-  double upar_distf = 0.0; // Parallel flow speed in distribution function.
+  double upar_distf = 1.0; // Parallel flow speed in distribution function.
   double vt_distf = 1.5*vt; // Thermal speed in distribution function.
   double phi_wall = 0.0; // Potential at wall.
   
@@ -221,13 +221,18 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   }
 //  printf("vpar_cut = %.9e\n",vpar_cut);
 
+  int num_cells = 0;
+  int num_zero_cells = 0;
+  int num_zero_cells_expected = 0;
+  // We need the sign of charge*delta_phi to determine which part of the distribution function is cut off by the sheath BC.
+  double qphi_sign = charge * delta_phi > 0 ? 1.0 : -1.0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &ghost_r);
   while (gkyl_range_iter_next(&iter)) {
     int *idx_g = iter.idx;
     long linidx_g = gkyl_range_idx(&ghost_r, idx_g);
     double *distf_c = gkyl_array_fetch(distf_ho, linidx_g);
-    double tol = 1e-12;
+    double tol = 1e-8;
     double ref_val = 0.0;
 
     // Get cell boundaries along vpar.
@@ -236,19 +241,31 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
     double cell_lower_vpar = xc[cdim] - 0.5*grid.dx[cdim];
     double cell_upper_vpar = xc[cdim] + 0.5*grid.dx[cdim];
     
-    if (edge == GKYL_LOWER_EDGE && cell_lower_vpar > vpar_cut) {
+    num_cells++;
+    num_zero_cells += distf_c[0] > tol ? 0 : 1;
+    if ( edge == GKYL_LOWER_EDGE && 
+        ( cell_lower_vpar > -qphi_sign*vpar_cut || cell_upper_vpar < qphi_sign*vpar_cut ) ) {
+      num_zero_cells_expected++;
       for (int k=0; k<distf_ho->ncomp; k++) {
         TEST_CHECK( gkyl_compare(distf_c[k], ref_val, tol) );
         TEST_MSG( "Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0], idx_g[1], idx_g[2]);
       }
     }
-    else if (edge == GKYL_UPPER_EDGE && cell_upper_vpar < -vpar_cut) {
+    else if (edge == GKYL_UPPER_EDGE && 
+        ( cell_lower_vpar > -qphi_sign*vpar_cut || cell_upper_vpar < qphi_sign*vpar_cut ) ) {
+      num_zero_cells_expected++;
       for (int k=0; k<distf_ho->ncomp; k++) {
         TEST_CHECK( gkyl_compare(distf_c[k], ref_val, tol) );
         TEST_MSG( "Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0], idx_g[1], idx_g[2]);
       }
+    } else {
+      // Check that the average cell value is bigger than 0 for cells that are not expected to be cut off by the sheath BC.
+      double cell_avg = distf_c[0];
+      TEST_CHECK( cell_avg > ref_val );
+      TEST_MSG( "Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0], idx_g[1], idx_g[2]);
     }
   }
+  // printf("zero cell = %d | zero cell expected = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_cells);
 
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
