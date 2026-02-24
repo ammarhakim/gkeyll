@@ -6,13 +6,14 @@
 #.  5) gcc-native/12.3                        11) cray-libsci/23.12.5 (math)
 #.  6) perftools-base/23.12.0                 12) PrgEnv-gnu/8.5.0    (cpe)
 #.Most of these are loaded by default, so we just load some extra/key ones here.
-module load PrgEnv-gnu/8.5.0
+module load PrgEnv-gnu/8.6.0
 module load craype-accel-nvidia80
-module load cray-mpich/8.1.28
-module load cudatoolkit/12.4
-module load nccl/2.18.3-cu12
+module load cray-mpich/9.0.1
+module load cudatoolkit/13.0
+module load nccl/2.29.2-cu13
+module load cray-libsci/25.09.0
 
-: "${PREFIX:=$HOME/gkylsoft}"
+: "${PREFIX:=/pscratch/sd/m/mana/gkeyll/code/gkeyll_gpu1/gkylsoft}"
 
 cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
+./mkdeps.sh --lapack-lib-name=libsci_gnu --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes

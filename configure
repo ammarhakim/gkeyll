@@ -157,6 +157,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_LIB="$value"
       ;;
+   --lapack-lib-name)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB_NAME="$value"
+      ;;
    --superlu-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       SUPERLU_INC="$value"
@@ -294,6 +298,7 @@ fi
 # Default lapack include and libraries: we prefer linking to static library
 : "${LAPACK_INC:=$PREFIX/OpenBLAS/include}"
 : "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
+: "${LAPACK_LIB_NAME=openblas}"
 
 # MPI specific paths and flags
 : "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include/}"
@@ -333,6 +338,7 @@ BUILD_APP=$APP
 # Library paths
 LAPACK_INC=$LAPACK_INC
 LAPACK_LIB=$LAPACK_LIB
+LAPACK_LIB_NAME=$LAPACK_LIB_NAME
 
 SUPERLU_INC=$SUPERLU_INC
 SUPERLU_LIB=$SUPERLU_LIB

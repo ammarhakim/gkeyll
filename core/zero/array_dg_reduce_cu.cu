@@ -75,7 +75,13 @@ dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::maximum()
+#else
+    cub::Max()
+#endif
+    );
   if (threadIdx.x < BLOCKSIZE) {
     atomicMax_double(&out[0], bResult);
   }
@@ -113,7 +119,13 @@ dg_arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, double* out,
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::maximum()
+#else
+    cub::Max()
+#endif
+    );
   if (threadIdx.x < BLOCKSIZE) {
     atomicMax_double(&out[0], bResult);
   }
@@ -169,7 +181,13 @@ dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Min());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::minimum()
+#else
+    cub::Min()
+#endif
+    );
   if (threadIdx.x < BLOCKSIZE) {
     atomicMin_double(&out[0], bResult);
   }
@@ -207,7 +225,13 @@ dg_arrayMin_range_blockRedAtomic_cub(const struct gkyl_array* inp, double* out,
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Min());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::minimum()
+#else
+    cub::Min()
+#endif
+    );
   if (threadIdx.x < BLOCKSIZE) {
     atomicMin_double(&out[0], bResult);
   }
@@ -262,7 +286,13 @@ dg_arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::std::plus()
+#else
+    cub::Sum()
+#endif
+    );
   if (threadIdx.x == 0) {
     atomicAdd(&out[0], bResult);
   }
@@ -299,7 +329,13 @@ int comp, const struct gkyl_basis *basis, struct gkyl_range range)
     }
   }
   double bResult = 0;
-  bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+  bResult = BlockReduceT(temp).Reduce(f, 
+#if CUDART_VERSION >= 12090
+    ::cuda::std::plus()
+#else
+    cub::Sum()
+#endif
+    );
   if (threadIdx.x == 0) {
     atomicAdd(&out[0], bResult);
   }

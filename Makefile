@@ -22,7 +22,8 @@ PREFIX ?= ${HOME}/gkylsoft
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
-LAPACK_LIB = -lopenblas
+LAPACK_LIB_NAME ?= openblas
+LAPACK_LIB = -l${LAPACK_LIB_NAME}
 
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
