@@ -78,27 +78,23 @@ void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
-
-  struct gkyl_array *phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, phi_smooth_global);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, fdmul->phi_smooth_global);
   // Find the potential at bmag_max
-  gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi_smooth_global,
+  gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, fdmul->phi_smooth_global,
     fdmul->bmag_max_peak_idx, fdmul->phi_at_bmag_max);
   
   if (fdmul->is_tandem) {
-    gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, phi_smooth_global,
+    gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, fdmul->phi_smooth_global,
       fdmul->bmag_tandem_peak_idx, fdmul->phi_at_bmag_tandem);
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem, fdmul->multiplier);
+      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem, fdmul->multiplier);
   } else {
-    // Project the loss cone mask using the phi_m array.
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
+      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
   }
 
   // Multiply out by the multiplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
-  gkyl_array_release(phi_smooth_global);
 }
 
 void
@@ -206,6 +202,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       // Pass a global bmag_int into the peak finder
       struct gkyl_array *bmag_int_global = mkarr(app->use_gpu,
         app->gk_geom->geo_int.bmag->ncomp, app->global_ext.volume);
+      fdmul->phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
 
       fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
@@ -366,6 +364,7 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
       gkyl_array_release(fdmul->phi_at_bmag_max);
       gkyl_array_release(fdmul->phi_at_bmag_tandem);
 
+      gkyl_array_release(fdmul->phi_smooth_global);
       gkyl_array_dg_find_peaks_release(fdmul->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
     }

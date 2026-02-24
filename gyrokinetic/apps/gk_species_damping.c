@@ -127,14 +127,16 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       struct gkyl_array_dg_find_peaks_inp peak_inp = {
         .basis = &app->basis,
         .grid = &app->grid,
-        .range = &app->local,
-        .range_ext = &app->local_ext,
+        .range = &app->global,
+        .range_ext = &app->global_ext,
         .search_dir = search_dir,
         .use_gpu = app->use_gpu,
       };
       // Pass a global bmag_int into the peak finder
-      struct gkyl_array *bmag_int_global = mkarr(false, 
-        app->gk_geom->geo_int.bmag->ncomp, app->gk_geom->geo_int.bmag->size);
+      struct gkyl_array *bmag_int_global = mkarr(app->use_gpu,
+        app->gk_geom->geo_int.bmag->ncomp, app->global_ext.volume);
+      damp->phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
       damp->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
       gkyl_array_dg_find_peaks_advance(damp->bmag_peak_finder, app->gk_geom->geo_int.bmag);
@@ -276,23 +278,19 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
       gkyl_array_accumulate(rhs, -1.0, f_buffer);
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      // Find the potential at all peak locations (including the mirror throat).
-      gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, phi,
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, damp->phi_smooth_global);
+      // Find the potential at bmag_max
+      gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
         damp->bmag_max_peak_idx, damp->phi_at_bmag_max);
-      // Allgather on phi_at_bmag_max. It's not an allgather.
-      // One process has the correct one, but the others do not. Is it a bcast or a sync?
 
       if (damp->is_tandem) {
-        gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, phi,
+        gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
           damp->bmag_tandem_peak_idx, damp->phi_at_bmag_tandem);
-        // Allgather on phi_at_bmag_tandem. It's not an allgather.
-        // One process has the correct one, but the others do not. Is it a bcast or a sync?
         gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-          phi, damp->phi_at_bmag_max, damp->phi_at_bmag_tandem, damp->rate);
+          damp->phi_smooth_global, damp->phi_at_bmag_max, damp->phi_at_bmag_tandem, damp->rate);
       } else {
-        // Project the loss cone mask using the phi_m array.
         gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-          phi, damp->phi_at_bmag_max, damp->phi_at_bmag_max, damp->rate);
+          damp->phi_smooth_global, damp->phi_at_bmag_max, damp->phi_at_bmag_max, damp->rate);
       }
 
       // Assemble the damping term -scale_prof * mask * f.
@@ -300,7 +298,6 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
       gkyl_array_scale_by_cell(f_buffer, damp->rate);
       gkyl_array_accumulate(rhs, -1.0, f_buffer);
-
     }
 
     // Add the frequency to the CFL frequency.
@@ -339,6 +336,7 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
       gkyl_array_release(damp->phi_at_bmag_max);
       gkyl_array_release(damp->phi_at_bmag_tandem);
 
+      gkyl_array_release(damp->phi_smooth_global)
       gkyl_array_dg_find_peaks_release(damp->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(damp->lcm_proj_op);
       gkyl_array_release(damp->scale_prof);

@@ -807,6 +807,7 @@ struct gk_damping {
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   struct gkyl_array_dg_find_peaks *bmag_peak_finder; // Finds peaks in bmag along parallel direction.
+  struct gkyl_array *phi_smooth_global; // Smoothed electrostatic potential on the global grid.
   // Per-field-line bmag_max arrays (pointers to arrays owned by bmag_peak_finder).
   const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
@@ -837,6 +838,7 @@ struct gk_fdot_multiplier {
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   // Updater to find bmag peaks (mirror throat location).
   struct gkyl_array_dg_find_peaks *bmag_peak_finder; // Finds peaks in bmag along parallel direction.
+  struct gkyl_array *phi_smooth_global; // Smoothed electrostatic potential on the global grid.
   // Per-field-line bmag_max arrays (pointers to arrays owned by bmag_peak_finder).
   const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
   const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
