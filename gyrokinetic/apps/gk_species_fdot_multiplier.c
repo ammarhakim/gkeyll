@@ -6,12 +6,14 @@
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 
 void
-gk_species_fdot_multiplier_write_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_fdot_multiplier_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  double tm, int frame)
 {
 }
 
 void
-gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for multiplier.
@@ -19,34 +21,38 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_sp
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
   };
-  int mpe_mult_len = sizeof(mpe_mult)/sizeof(mpe_mult[0]);
+  int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
   // Update app basic metada with time/frame.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   // Package metadata.
-  int io_meta_len[] = {app->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, mpe_mult, app->gk_geom->io_meta};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  int io_meta_len[] = { app->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, mpe_mult,
+                                                    app->gk_geom->io_meta };
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
+    io_meta_len, io_meta);
 
   // Write out the multiplicative function.
   const char *fmt = "%s-%s_fdot_multiplier_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
+  char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
 
   // Copy data from device to host before writing it out.
   if (app->use_gpu)
     gkyl_array_copy(gks->fdot_mult.multiplier_host, gks->fdot_mult.multiplier);
 
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->fdot_mult.multiplier_host, fileNm);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->fdot_mult.multiplier_host,
+    fileNm);
   app->stat.n_io += 1;
 
-  gkyl_msgpack_data_release(mt); 
+  gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
-gk_species_fdot_multiplier_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_fdot_multiplier_write_init_only(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  double tm, int frame)
 {
   gk_species_fdot_multiplier_write_enabled(app, gks, tm, frame);
   gks->fdot_mult.write_func = gk_species_fdot_multiplier_write_disabled;
@@ -61,7 +67,8 @@ gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct 
 }
 
 void
-gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, double *out)
 {
   // Multiply out by the multplier.
@@ -69,26 +76,30 @@ gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app, const 
 }
 
 void
-gk_species_fdot_multiplier_advance_omegaH_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_omegaH_disabled(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, double *out)
 {
 }
 
 void
-gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, fdmul->phi_smooth_global);
   // Find the potential at bmag_max
   gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, fdmul->phi_smooth_global,
     fdmul->bmag_max_peak_idx, fdmul->phi_at_bmag_max);
-  
+
   if (fdmul->is_tandem) {
     gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, fdmul->phi_smooth_global,
       fdmul->bmag_tandem_peak_idx, fdmul->phi_at_bmag_tandem);
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem, fdmul->multiplier);
-  } else {
+      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem,
+      fdmul->multiplier);
+  }
+  else {
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
       fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
   }
@@ -145,7 +156,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
     // Allocate multiplier array.
     fdmul->multiplier = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
-    fdmul->multiplier_host = app->use_gpu? mkarr(false, fdmul->multiplier->ncomp, fdmul->multiplier->size)
+    fdmul->multiplier_host = app->use_gpu? mkarr(false, fdmul->multiplier->ncomp,
+      fdmul->multiplier->size)
                                          : gkyl_array_acquire(fdmul->multiplier);
 
     // Context for c2p function passed to proj_on_basis.
@@ -156,17 +168,16 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
     if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
 
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-          .grid = &gks->grid,
-          .basis = &basis_mult,
-          .num_quad = basis_mult.poly_order+1,
-          .num_ret_vals = 1,
-          .eval = gks->info.time_rate_multiplier.profile,
-          .ctx = gks->info.time_rate_multiplier.profile_ctx,
-          .c2p_func = proj_on_basis_c2p_phase_func,
-          .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
-        }
-      );
+      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
+        .grid = &gks->grid,
+        .basis = &basis_mult,
+        .num_quad = basis_mult.poly_order + 1,
+        .num_ret_vals = 1,
+        .eval = gks->info.time_rate_multiplier.profile,
+        .ctx = gks->info.time_rate_multiplier.profile_ctx,
+        .c2p_func = proj_on_basis_c2p_phase_func,
+        .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
+      });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, fdmul->multiplier_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
@@ -178,15 +189,14 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         fdmul->write_func = gk_species_fdot_multiplier_write_init_only;
       else
         gkyl_array_release(fdmul->multiplier_host);
-
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
       // Available options:
-      //   A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
-      //   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_const=true. Output: ncomp=1 array.
+      // A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
+      // B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_const=true. Output: ncomp=1 array.
       enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
-      int num_quad = gks->basis.poly_order+1; // This can be p+1 or 1. Must be
-                                              // at least p+1 for Gauss-Lobatto.
+      int num_quad = gks->basis.poly_order + 1; // This can be p+1 or 1. Must be
+                                                // at least p+1 for Gauss-Lobatto.
 
       // Create peak finder for bmag to find the mirror throat.
       // Search along the parallel (z) direction, which is the last configuration space dimension.
@@ -204,36 +214,40 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         app->gk_geom->geo_int.bmag->ncomp, app->global_ext.volume);
       fdmul->phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag, bmag_int_global);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag,
+        bmag_int_global);
 
       fdmul->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
       gkyl_array_dg_find_peaks_advance(fdmul->bmag_peak_finder, bmag_int_global);
       gkyl_array_release(bmag_int_global);
-      
+
       // Get the LOCAL_MAX peak (bmag maximum along z direction).
       int num_peaks = gkyl_array_dg_find_peaks_num_peaks(fdmul->bmag_peak_finder);
-      fdmul->bmag_max_peak_idx = num_peaks-2; // Edge is num_peaks-1, so maximum is one less
-      fdmul->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
-      fdmul->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_max_peak_idx);
-      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, num_peaks-1);
-      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, num_peaks-1);
+      fdmul->bmag_max_peak_idx = num_peaks - 2; // Edge is num_peaks-1, so maximum is one less
+      fdmul->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder,
+        fdmul->bmag_max_peak_idx);
+      fdmul->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder,
+        fdmul->bmag_max_peak_idx);
+      fdmul->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder,
+        num_peaks - 1);
+      fdmul->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder,
+        num_peaks - 1);
       fdmul->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range = gkyl_array_dg_find_peaks_get_range(fdmul->bmag_peak_finder);
       fdmul->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(fdmul->bmag_peak_finder);
 
-      fdmul->phi_at_bmag_max = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
+      fdmul->phi_at_bmag_max = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis,
         fdmul->bmag_max_range_ext->volume);
-      fdmul->phi_at_bmag_tandem = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis, 
+      fdmul->phi_at_bmag_tandem = mkarr(app->use_gpu, fdmul->bmag_max_basis->num_basis,
         fdmul->bmag_max_range_ext->volume);
       // phi is defined as 0 at the wall
 
-
       bool is_symmetric, is_tandem;
       int cdim = app->cdim;
-      if (gkyl_compare_double(-app->grid.lower[cdim-1], app->grid.upper[cdim-1], 1e-12)) {
+      if (gkyl_compare_double(-app->grid.lower[cdim - 1], app->grid.upper[cdim - 1], 1e-12)) {
         is_symmetric = true;
       }
-      else if (gkyl_compare_double(app->grid.lower[cdim-1], 0.0, 1e-12)){
+      else if (gkyl_compare_double(app->grid.lower[cdim - 1], 0.0, 1e-12)) {
         is_symmetric = false;
       }
       else {
@@ -251,21 +265,24 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       }
 
       if (is_tandem) {
-        fdmul->bmag_tandem_peak_idx = num_peaks-4;
-      } else {
-        fdmul->bmag_tandem_peak_idx = num_peaks-2;
+        fdmul->bmag_tandem_peak_idx = num_peaks - 4;
       }
-      fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
-      fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder, fdmul->bmag_tandem_peak_idx);
+      else {
+        fdmul->bmag_tandem_peak_idx = num_peaks - 2;
+      }
+      fdmul->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(fdmul->bmag_peak_finder,
+        fdmul->bmag_tandem_peak_idx);
+      fdmul->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(fdmul->bmag_peak_finder,
+        fdmul->bmag_tandem_peak_idx);
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
         .phase_grid = &gks->grid,
         .conf_basis = &app->basis,
         .phase_basis = &gks->basis,
-        .conf_range =  &app->local,
+        .conf_range = &app->local,
         .conf_range_ext = &app->local_ext,
-        .vel_range = &gks->local_vel, 
+        .vel_range = &gks->local_vel,
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = fdmul->bmag_max,
@@ -286,14 +303,15 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .c2p_pos_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
       };
-      fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew( &inp_proj );
+      fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
       fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
-      } else {
+      }
+      else {
         gkyl_array_release(fdmul->multiplier_host);
       }
     }
@@ -301,7 +319,8 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 }
 
 void
-gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -311,9 +330,9 @@ gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const st
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }
 
-
 void
-gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, double *out)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -322,9 +341,10 @@ gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app, const
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }
-  
+
 void
-gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -332,17 +352,18 @@ gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const s
   fdmul->advance_times_rate_func(app, gks, fdmul, phi, out);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
-  
 }
 
 void
-gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
+  int frame)
 {
   gks->fdot_mult.write_func(app, gks, tm, frame);
 }
 
 void
-gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul)
+gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_fdot_multiplier *fdmul)
 {
   if (fdmul->type) {
     gkyl_array_release(fdmul->multiplier);
@@ -372,7 +393,7 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const
 }
 
 void
-gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp)
 {
   gk_species_fdot_multiplier_release(app, fdmul);

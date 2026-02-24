@@ -20,8 +20,9 @@ dg_find_peaks_log_to_comp(int ndim, const double *eta,
   const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
   double *GKYL_RESTRICT xout)
 {
-  for (int d = 0; d < ndim; ++d)
-    xout[d] = 0.5*dx[d]*eta[d] + xc[d];
+  for (int d = 0; d < ndim; ++d) {
+    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
 /** Internal struct for dg_find_peaks updater. */
@@ -83,4 +84,3 @@ struct gkyl_array_dg_find_peaks {
  * @param ref Reference counter for this object.
  */
 void gkyl_array_dg_find_peaks_free(const struct gkyl_ref_count *ref);
-

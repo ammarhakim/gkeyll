@@ -14,9 +14,9 @@ typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 typedef void (*loss_cone_mask_gyrokinetic_c2p_t)(const double *xcomp, double *xphys, void *ctx);
 
 // Available options:
-//   A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
-//   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=true. Output: ncomp=1 array.
-//   C) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=false. Output: ncomp=phase_basis.ncomp array.
+// A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
+// B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=true. Output: ncomp=1 array.
+// C) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=false. Output: ncomp=phase_basis.ncomp array.
 
 // Inputs packaged as a struct.
 struct gkyl_loss_cone_mask_gyrokinetic_inp {
@@ -44,7 +44,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   bool cellwise_trap_loss; // =True takes a whole cell to be either trapped or passing,
                            // so not high-order distinction within the cell is made.
   loss_cone_mask_gyrokinetic_c2p_t c2p_pos_func; // Function that transforms a set of cdim
-                                    // position-space computational coordinates to physical ones.
+  // position-space computational coordinates to physical ones.
   void *c2p_pos_func_ctx; // Context for c2p_pos_func.
   bool use_gpu; // Whether to run on GPU.
 };
@@ -61,7 +61,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic* 
+struct gkyl_loss_cone_mask_gyrokinetic*
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
@@ -85,4 +85,4 @@ void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up
  *
  * @param up Updater to delete.
  */
-void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up);
+void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up);

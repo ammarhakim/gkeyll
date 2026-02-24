@@ -17,7 +17,7 @@
 #include <stdio.h>
 
 // Helper function to create test arrays on CPU or GPU.
-static struct gkyl_array *
+static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
@@ -25,7 +25,7 @@ mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-// 1D test function with multiple peaks: f(z) = cos(2*pi*z/L) 
+// 1D test function with multiple peaks: f(z) = cos(2*pi*z/L)
 // Has maxima at z=0, z=L and minimum at z=L/2.
 static void
 test_func_1d_cos(double t, const double *xn, double *fout, void *ctx)
@@ -56,7 +56,7 @@ test_func_2d_cos(double t, const double *xn, double *fout, void *ctx)
 {
   double psi = xn[0], z = xn[1];
   double L = 2.0;
-  fout[0] = (1.0 + 0.1*psi) * cos(2.0 * M_PI * z / L);
+  fout[0] = (1.0 + 0.1 * psi) * cos(2.0 * M_PI * z / L);
 }
 
 // 2D mirror-like function: peaks at z = +/- z_m(psi).
@@ -65,7 +65,7 @@ test_func_2d_mirror(double t, const double *xn, double *fout, void *ctx)
 {
   double psi = xn[0], z = xn[1];
   double L = 2.0;
-  double B0 = 1.0 + 0.1*psi;  // Varies with psi.
+  double B0 = 1.0 + 0.1 * psi;  // Varies with psi.
   double R = 4.0;
   double sinval = sin(M_PI * z / L);
   fout[0] = B0 * (1.0 + (R - 1.0) * sinval * sinval);
@@ -112,9 +112,9 @@ void
 test_1d_find_peaks_cos(int poly_order, bool use_gpu)
 {
   // Grid: z in [-1, 1] (one period of cos(2*pi*z/2)).
-  double lower[] = {-1.0};
-  double upper[] = {1.0};
-  int cells[] = {16};
+  double lower[] = { -1.0 };
+  double upper[] = { 1.0 };
+  int cells[] = { 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
@@ -123,7 +123,7 @@ test_1d_find_peaks_cos(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
   // Ranges.
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -159,9 +159,9 @@ test_1d_find_peaks_cos(int poly_order, bool use_gpu)
     enum gkyl_peak_type type;
     double z_expected;
   } expected_peaks[] = {
-    {GKYL_PEAK_EDGE_LO,    -1.0,},
-    {GKYL_PEAK_LOCAL_MAX,   0.0,},
-    {GKYL_PEAK_EDGE_HI,     1.0,},
+    { GKYL_PEAK_EDGE_LO, -1.0, },
+    { GKYL_PEAK_LOCAL_MAX, 0.0, },
+    { GKYL_PEAK_EDGE_HI, 1.0, },
   };
 
   for (int p = 0; p < 3 && p < num_peaks; p++) {
@@ -174,10 +174,10 @@ test_1d_find_peaks_cos(int poly_order, bool use_gpu)
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(vals, vals_d);
     gkyl_array_copy(coords, coords_d);
-    
+
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
-    
+
     double z = coord[0];
     double expected_val[1];
     test_func_1d_cos(0.0, &z, expected_val, NULL);
@@ -202,9 +202,9 @@ void
 test_1d_find_peaks_mirror(int poly_order, bool use_gpu)
 {
   // Grid: z in [-1, 1].
-  double lower[] = {-1.0};
-  double upper[] = {1.0};
-  int cells[] = {16};
+  double lower[] = { -1.0 };
+  double upper[] = { 1.0 };
+  int cells[] = { 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
@@ -213,7 +213,7 @@ test_1d_find_peaks_mirror(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
   // Ranges.
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -254,10 +254,10 @@ test_1d_find_peaks_mirror(int poly_order, bool use_gpu)
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(vals, vals_d);
     gkyl_array_copy(coords, coords_d);
-    
+
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
-    
+
     // Check specific peaks.
     if (ptype == GKYL_PEAK_EDGE_LO) {
       TEST_CHECK(gkyl_compare_double(val[0], 4.0, 1e-15));
@@ -286,16 +286,16 @@ test_1d_find_peaks_mirror(int poly_order, bool use_gpu)
 void
 test_2d_find_peaks(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, -1.0};
-  double upper[] = {1.0, 1.0};
-  int cells[] = {4, 16};
+  double lower[] = { 0.0, -1.0 };
+  double upper[] = { 1.0, 1.0 };
+  int cells[] = { 4, 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -342,34 +342,36 @@ test_2d_find_peaks(int poly_order, bool use_gpu)
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(vals, vals_d);
     gkyl_array_copy(coords, coords_d);
-    
-    double xc_log[1] = {0.0};
-    
+
+    double xc_log[1] = { 0.0 };
+
     // Check first and last psi cells.
-    for (int cell_idx = out_range->lower[0]; cell_idx <= out_range->upper[0]; 
-         cell_idx += (out_range->upper[0] - out_range->lower[0])) {
-      long linidx = gkyl_range_idx(out_range, (int[]){cell_idx});
+    for (int cell_idx = out_range->lower[0]; cell_idx <= out_range->upper[0];
+      cell_idx += (out_range->upper[0] - out_range->lower[0])) {
+      long linidx = gkyl_range_idx(out_range, (int[]){ cell_idx });
       const double *val_d = gkyl_array_cfetch(vals, linidx);
       const double *coord_d = gkyl_array_cfetch(coords, linidx);
 
       double val_at_center = out_basis->eval_expand(xc_log, val_d);
       double coord_at_center = out_basis->eval_expand(xc_log, coord_d);
       double psi_phys = out_grid->lower[0] + (cell_idx - 0.5) * out_grid->dx[0];
-      
+
       // Compute expected value at detected coordinate.
-      double xn[2] = {psi_phys, coord_at_center};
+      double xn[2] = { psi_phys, coord_at_center };
       double expected_val[1];
       test_func_2d_mirror(0.0, xn, expected_val, NULL);
-      
+
       // Check value matches analytical function.
       TEST_CHECK(gkyl_compare_double(val_at_center, expected_val[0], 1e-15));
-      
+
       // Check that coordinate matches expected peak location.
       if (ptype == GKYL_PEAK_EDGE_LO) {
         TEST_CHECK(fabs(coord_at_center - (-1.0)) < 1e-15);
-      } else if (ptype == GKYL_PEAK_LOCAL_MIN) {
+      }
+      else if (ptype == GKYL_PEAK_LOCAL_MIN) {
         TEST_CHECK(fabs(coord_at_center) < 1e-15);
-      } else if (ptype == GKYL_PEAK_EDGE_HI) {
+      }
+      else if (ptype == GKYL_PEAK_EDGE_HI) {
         TEST_CHECK(fabs(coord_at_center - 1.0) < 1e-15);
       }
     }
@@ -388,16 +390,16 @@ test_2d_find_peaks(int poly_order, bool use_gpu)
 void
 test_1d_find_peaks_complex(int poly_order, bool use_gpu)
 {
-  double lower[] = {-2.0*M_PI};
-  double upper[] = {2.0*M_PI};
-  int cells[] = {64};  // Need fine resolution to capture oscillations.
+  double lower[] = { -2.0 * M_PI };
+  double upper[] = { 2.0 * M_PI };
+  int cells[] = { 64 };  // Need fine resolution to capture oscillations.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -427,7 +429,7 @@ test_1d_find_peaks_complex(int poly_order, bool use_gpu)
 
   // Check results.
   int num_peaks = gkyl_array_dg_find_peaks_num_peaks(peaks);
-  
+
   TEST_CHECK(num_peaks == 9);
 
   // Define expected peak locations and types.
@@ -435,15 +437,15 @@ test_1d_find_peaks_complex(int poly_order, bool use_gpu)
     enum gkyl_peak_type type;
     double z_expected;
   } expected_peaks[] = {
-    {GKYL_PEAK_EDGE_LO,    -2.0*M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -3.0*M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,  -M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   0.0,},
-    {GKYL_PEAK_LOCAL_MAX,   M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,   3.0*M_PI/2.0,},
-    {GKYL_PEAK_EDGE_HI,     2.0*M_PI,},
+    { GKYL_PEAK_EDGE_LO, -2.0 * M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, -M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, 0.0, },
+    { GKYL_PEAK_LOCAL_MAX, M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, 3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_EDGE_HI, 2.0 * M_PI, },
   };
 
   for (int p = 0; p < num_peaks; p++) {
@@ -456,10 +458,10 @@ test_1d_find_peaks_complex(int poly_order, bool use_gpu)
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(vals, vals_d);
     gkyl_array_copy(coords, coords_d);
-    
+
     const double *val = gkyl_array_cfetch(vals, 0);
     const double *coord = gkyl_array_cfetch(coords, 0);
-    
+
     double z = coord[0];
     double expected_val[1];
     test_func_1d_complex(0.0, &z, expected_val, NULL);
@@ -485,9 +487,9 @@ void
 test_2d_find_peaks_complex(int poly_order, bool use_gpu)
 {
   // Grid: psi in [0.5, 2.0], z in [-5, 5].
-  double lower[] = {0.5, -2.0*M_PI};
-  double upper[] = {2.0, 2.0*M_PI};
-  int cells[] = {16, 64};
+  double lower[] = { 0.5, -2.0 * M_PI };
+  double upper[] = { 2.0, 2.0 * M_PI };
+  int cells[] = { 16, 64 };
   int ndim = 2;
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -497,7 +499,7 @@ test_2d_find_peaks_complex(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Ranges.
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -538,15 +540,15 @@ test_2d_find_peaks_complex(int poly_order, bool use_gpu)
     enum gkyl_peak_type type;
     double z_expected;
   } expected_peaks[] = {
-    {GKYL_PEAK_EDGE_LO,    -2.0*M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -3.0*M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,  -M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   0.0,},
-    {GKYL_PEAK_LOCAL_MAX,   M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,   3.0*M_PI/2.0,},
-    {GKYL_PEAK_EDGE_HI,     2.0*M_PI,},
+    { GKYL_PEAK_EDGE_LO, -2.0 * M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, -M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, 0.0, },
+    { GKYL_PEAK_LOCAL_MAX, M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, 3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_EDGE_HI, 2.0 * M_PI, },
   };
 
   // Get node locations for output basis.
@@ -557,7 +559,7 @@ test_2d_find_peaks_complex(int poly_order, bool use_gpu)
   for (int p = 0; p < num_peaks; p++) {
     enum gkyl_peak_type ptype = gkyl_array_dg_find_peaks_get_type(peaks, p);
     TEST_CHECK(ptype == expected_peaks[p].type);
-    
+
     const struct gkyl_array *vals_d = gkyl_array_dg_find_peaks_acquire_vals(peaks, p);
     const struct gkyl_array *coords_d = gkyl_array_dg_find_peaks_acquire_coords(peaks, p);
 
@@ -566,34 +568,34 @@ test_2d_find_peaks_complex(int poly_order, bool use_gpu)
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(vals, vals_d);
     gkyl_array_copy(coords, coords_d);
-    
+
     // Check each psi cell.
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, out_range);
     while (gkyl_range_iter_next(&iter)) {
       long linidx = gkyl_range_idx(out_range, iter.idx);
-      
+
       const double *val_d = gkyl_array_cfetch(vals, linidx);
       const double *coord_d = gkyl_array_cfetch(coords, linidx);
-      
+
       // Get cell center for physical psi coordinate.
       double xc_out[1];
-      gkyl_rect_grid_cell_center(out_grid, (int[]){iter.idx[0]}, xc_out);
+      gkyl_rect_grid_cell_center(out_grid, (int[]){ iter.idx[0] }, xc_out);
       double psi_phys = xc_out[0];
-      
+
       // Evaluate at each nodal point in this cell.
       for (int n = 0; n < out_basis->num_basis; n++) {
         const double *nod_log = gkyl_array_cfetch(nodes, n);
         double val_at_node = out_basis->eval_expand(nod_log, val_d);
         double z_at_node = out_basis->eval_expand(nod_log, coord_d);
-        
+
         // Compute physical psi coordinate at this node.
         // dx/2 away from the center is the nodal location.
         double nod_phys[1];
-        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0]/2.0;
-        
+        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0] / 2.0;
+
         // Compute expected value at detected coordinates.
-        double xn[2] = {nod_phys[0], z_at_node};
+        double xn[2] = { nod_phys[0], z_at_node };
         double expected_val[1];
         test_func_2d_complex(0.0, xn, expected_val, NULL);
 
@@ -618,16 +620,16 @@ test_2d_find_peaks_complex(int poly_order, bool use_gpu)
 void
 test_1d_project_on_peaks(int poly_order, bool use_gpu)
 {
-  double lower[] = {-2.0*M_PI};
-  double upper[] = {2.0*M_PI};
-  int cells[] = {64};
+  double lower[] = { -2.0 * M_PI };
+  double upper[] = { 2.0 * M_PI };
+  int cells[] = { 64 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -678,19 +680,20 @@ test_1d_project_on_peaks(int poly_order, bool use_gpu)
     enum gkyl_peak_type type;
     double z_expected;
   } expected_peaks[] = {
-    {GKYL_PEAK_EDGE_LO,    -2.0*M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -3.0*M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,  -M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   0.0,},
-    {GKYL_PEAK_LOCAL_MAX,   M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,   3.0*M_PI/2.0,},
-    {GKYL_PEAK_EDGE_HI,     2.0*M_PI,},
+    { GKYL_PEAK_EDGE_LO, -2.0 * M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, -M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, 0.0, },
+    { GKYL_PEAK_LOCAL_MAX, M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, 3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_EDGE_HI, 2.0 * M_PI, },
   };
   for (int p = 0; p < num_peaks; p++) {
     // Copy back to host for verification.
-    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp, g_at_peaks[p]->size);
+    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp,
+      g_at_peaks[p]->size);
     gkyl_array_copy(g_at_peaks_ho, g_at_peaks[p]);
 
     const double *g_val = gkyl_array_cfetch(g_at_peaks_ho, 0);
@@ -716,9 +719,9 @@ test_1d_project_on_peaks(int poly_order, bool use_gpu)
 void
 test_2d_project_on_peaks(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.5, -2.0*M_PI};
-  double upper[] = {2.0, 2.0*M_PI};
-  int cells[] = {16, 64};
+  double lower[] = { 0.5, -2.0 * M_PI };
+  double upper[] = { 2.0, 2.0 * M_PI };
+  int cells[] = { 16, 64 };
   int ndim = 2;
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -726,7 +729,7 @@ test_2d_project_on_peaks(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -778,8 +781,8 @@ test_2d_project_on_peaks(int poly_order, bool use_gpu)
 
   // Define expected peak locations (same as before).
   double expected_z_peaks[] = {
-    -2.0*M_PI, -3.0*M_PI/2.0, -M_PI, -M_PI/2.0, 0.0,
-    M_PI/2.0, M_PI, 3.0*M_PI/2.0, 2.0*M_PI
+    -2.0 * M_PI, -3.0 * M_PI / 2.0, -M_PI, -M_PI / 2.0, 0.0,
+    M_PI / 2.0, M_PI, 3.0 * M_PI / 2.0, 2.0 * M_PI
   };
 
   // Get node locations for output basis.
@@ -793,33 +796,34 @@ test_2d_project_on_peaks(int poly_order, bool use_gpu)
     // Copy back to host for verification.
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(coords, coords_d);
-    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp, g_at_peaks[p]->size);
+    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp,
+      g_at_peaks[p]->size);
     gkyl_array_copy(g_at_peaks_ho, g_at_peaks[p]);
-    
+
     // Check each psi cell.
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, out_range);
     while (gkyl_range_iter_next(&iter)) {
       long linidx = gkyl_range_idx(out_range, iter.idx);
-      
+
       const double *g_val_d = gkyl_array_cfetch(g_at_peaks_ho, linidx);
       const double *coord_d = gkyl_array_cfetch(coords, linidx);
-      
+
       // Get cell center for physical psi coordinate.
       double xc_out[1];
-      gkyl_rect_grid_cell_center(out_grid, (int[]){iter.idx[0]}, xc_out);
-      
+      gkyl_rect_grid_cell_center(out_grid, (int[]){ iter.idx[0] }, xc_out);
+
       // Evaluate at each nodal point in this cell.
       for (int n = 0; n < out_basis->num_basis; n++) {
         const double *nod_log = gkyl_array_cfetch(nodes, n);
         double g_at_node = out_basis->eval_expand(nod_log, g_val_d);
         double z_at_node = out_basis->eval_expand(nod_log, coord_d);
-        
+
         // Compute physical psi coordinate at this node.
         double nod_phys[1];
-        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0]/2.0;
+        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0] / 2.0;
         double psi = nod_phys[0];
-        
+
         // Analytical value: g(psi, z) = z^2 * psi^2
         double expected = z_at_node * z_at_node * psi * psi;
         TEST_CHECK(fabs(z_at_node - expected_z_peaks[p]) < 1e-15);
@@ -843,21 +847,20 @@ test_2d_project_on_peaks(int poly_order, bool use_gpu)
   gkyl_array_dg_find_peaks_release(peaks);
 }
 
-
 // Test 1D project_on_peak_idx with complex function.
 void
 test_1d_project_on_peak_idx(int poly_order, bool use_gpu)
 {
-  double lower[] = {-2.0*M_PI};
-  double upper[] = {2.0*M_PI};
-  int cells[] = {64};
+  double lower[] = { -2.0 * M_PI };
+  double upper[] = { 2.0 * M_PI };
+  int cells[] = { 64 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -906,21 +909,22 @@ test_1d_project_on_peak_idx(int poly_order, bool use_gpu)
     enum gkyl_peak_type type;
     double z_expected;
   } expected_peaks[] = {
-    {GKYL_PEAK_EDGE_LO,    -2.0*M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -3.0*M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,  -M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,  -M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   0.0,},
-    {GKYL_PEAK_LOCAL_MAX,   M_PI/2.0,},
-    {GKYL_PEAK_LOCAL_MIN,   M_PI,},
-    {GKYL_PEAK_LOCAL_MAX,   3.0*M_PI/2.0,},
-    {GKYL_PEAK_EDGE_HI,     2.0*M_PI,},
+    { GKYL_PEAK_EDGE_LO, -2.0 * M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, -M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, -M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, 0.0, },
+    { GKYL_PEAK_LOCAL_MAX, M_PI / 2.0, },
+    { GKYL_PEAK_LOCAL_MIN, M_PI, },
+    { GKYL_PEAK_LOCAL_MAX, 3.0 * M_PI / 2.0, },
+    { GKYL_PEAK_EDGE_HI, 2.0 * M_PI, },
   };
 
   // Copy back to host for verification.
-  struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks->ncomp, g_at_peaks->size);
+  struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks->ncomp,
+    g_at_peaks->size);
   gkyl_array_copy(g_at_peaks_ho, g_at_peaks);
-  
+
   const double *g_val = gkyl_array_cfetch(g_at_peaks_ho, 0);
   double z = expected_peaks[chosen_idx].z_expected;
   double expected = z * z;
@@ -939,9 +943,9 @@ test_1d_project_on_peak_idx(int poly_order, bool use_gpu)
 void
 test_2d_project_on_peak_idx(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.5, -2.0*M_PI};
-  double upper[] = {2.0, 2.0*M_PI};
-  int cells[] = {16, 64};
+  double lower[] = { 0.5, -2.0 * M_PI };
+  double upper[] = { 2.0, 2.0 * M_PI };
+  int cells[] = { 16, 64 };
   int ndim = 2;
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -949,7 +953,7 @@ test_2d_project_on_peak_idx(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1001,8 +1005,8 @@ test_2d_project_on_peak_idx(int poly_order, bool use_gpu)
 
   // Define expected peak locations (same as before).
   double expected_z_peaks[] = {
-    -2.0*M_PI, -3.0*M_PI/2.0, -M_PI, -M_PI/2.0, 0.0,
-    M_PI/2.0, M_PI, 3.0*M_PI/2.0, 2.0*M_PI
+    -2.0 * M_PI, -3.0 * M_PI / 2.0, -M_PI, -M_PI / 2.0, 0.0,
+    M_PI / 2.0, M_PI, 3.0 * M_PI / 2.0, 2.0 * M_PI
   };
 
   // Get node locations for output basis.
@@ -1016,33 +1020,34 @@ test_2d_project_on_peak_idx(int poly_order, bool use_gpu)
     // Copy back to host for verification.
     struct gkyl_array *coords = gkyl_array_new(GKYL_DOUBLE, coords_d->ncomp, coords_d->size);
     gkyl_array_copy(coords, coords_d);
-    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp, g_at_peaks[p]->size);
+    struct gkyl_array *g_at_peaks_ho = gkyl_array_new(GKYL_DOUBLE, g_at_peaks[p]->ncomp,
+      g_at_peaks[p]->size);
     gkyl_array_copy(g_at_peaks_ho, g_at_peaks[p]);
-    
+
     // Check each psi cell.
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, out_range);
     while (gkyl_range_iter_next(&iter)) {
       long linidx = gkyl_range_idx(out_range, iter.idx);
-      
+
       const double *g_val_d = gkyl_array_cfetch(g_at_peaks_ho, linidx);
       const double *coord_d = gkyl_array_cfetch(coords, linidx);
-      
+
       // Get cell center for physical psi coordinate.
       double xc_out[1];
-      gkyl_rect_grid_cell_center(out_grid, (int[]){iter.idx[0]}, xc_out);
-      
+      gkyl_rect_grid_cell_center(out_grid, (int[]){ iter.idx[0] }, xc_out);
+
       // Evaluate at each nodal point in this cell.
       for (int n = 0; n < out_basis->num_basis; n++) {
         const double *nod_log = gkyl_array_cfetch(nodes, n);
         double g_at_node = out_basis->eval_expand(nod_log, g_val_d);
         double z_at_node = out_basis->eval_expand(nod_log, coord_d);
-        
+
         // Compute physical psi coordinate at this node.
         double nod_phys[1];
-        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0]/2.0;
+        nod_phys[0] = xc_out[0] + nod_log[0] * out_grid->dx[0] / 2.0;
         double psi = nod_phys[0];
-        
+
         // Analytical value: g(psi, z) = z^2 * psi^2
         double expected = z_at_node * z_at_node * psi * psi;
         TEST_CHECK(fabs(z_at_node - expected_z_peaks[p]) < 1e-15);
@@ -1067,51 +1072,121 @@ test_2d_project_on_peak_idx(int poly_order, bool use_gpu)
 }
 
 // CPU test wrappers
-void test_1d_cos_p1_ho() { test_1d_find_peaks_cos(1, false); }
-void test_1d_mirror_p1_ho() { test_1d_find_peaks_mirror(1, false); }
-void test_1d_complex_p1_ho() { test_1d_find_peaks_complex(1, false); }
-void test_2d_p1_ho() { test_2d_find_peaks(1, false); }
-void test_2d_complex_p1_ho() { test_2d_find_peaks_complex(1, false); }
-void test_1d_project_p1_ho() { test_1d_project_on_peaks(1, false); }
-void test_2d_project_p1_ho() { test_2d_project_on_peaks(1, false); }
-void test_1d_project_idx_p1_ho() { test_1d_project_on_peak_idx(1, false); }
-void test_2d_project_idx_p1_ho() { test_2d_project_on_peak_idx(1, false); }
+void test_1d_cos_p1_ho()
+{
+  test_1d_find_peaks_cos(1, false);
+}
+
+void test_1d_mirror_p1_ho()
+{
+  test_1d_find_peaks_mirror(1, false);
+}
+
+void test_1d_complex_p1_ho()
+{
+  test_1d_find_peaks_complex(1, false);
+}
+
+void test_2d_p1_ho()
+{
+  test_2d_find_peaks(1, false);
+}
+
+void test_2d_complex_p1_ho()
+{
+  test_2d_find_peaks_complex(1, false);
+}
+
+void test_1d_project_p1_ho()
+{
+  test_1d_project_on_peaks(1, false);
+}
+
+void test_2d_project_p1_ho()
+{
+  test_2d_project_on_peaks(1, false);
+}
+
+void test_1d_project_idx_p1_ho()
+{
+  test_1d_project_on_peak_idx(1, false);
+}
+
+void test_2d_project_idx_p1_ho()
+{
+  test_2d_project_on_peak_idx(1, false);
+}
 
 #ifdef GKYL_HAVE_CUDA
 
 // GPU test wrappers
-void test_1d_cos_p1_dev() { test_1d_find_peaks_cos(1, true); }
-void test_1d_mirror_p1_dev() { test_1d_find_peaks_mirror(1, true); }
-void test_1d_complex_p1_dev() { test_1d_find_peaks_complex(1, true); }
-void test_2d_p1_dev() { test_2d_find_peaks(1, true); }
-void test_2d_complex_p1_dev() { test_2d_find_peaks_complex(1, true); }
-void test_1d_project_p1_dev() { test_1d_project_on_peaks(1, true); }
-void test_2d_project_p1_dev() { test_2d_project_on_peaks(1, true); }
-void test_1d_project_idx_p1_dev() { test_1d_project_on_peak_idx(1, true); }
-void test_2d_project_idx_p1_dev() { test_2d_project_on_peak_idx(1, true); }
+void test_1d_cos_p1_dev()
+{
+  test_1d_find_peaks_cos(1, true);
+}
+
+void test_1d_mirror_p1_dev()
+{
+  test_1d_find_peaks_mirror(1, true);
+}
+
+void test_1d_complex_p1_dev()
+{
+  test_1d_find_peaks_complex(1, true);
+}
+
+void test_2d_p1_dev()
+{
+  test_2d_find_peaks(1, true);
+}
+
+void test_2d_complex_p1_dev()
+{
+  test_2d_find_peaks_complex(1, true);
+}
+
+void test_1d_project_p1_dev()
+{
+  test_1d_project_on_peaks(1, true);
+}
+
+void test_2d_project_p1_dev()
+{
+  test_2d_project_on_peaks(1, true);
+}
+
+void test_1d_project_idx_p1_dev()
+{
+  test_1d_project_on_peak_idx(1, true);
+}
+
+void test_2d_project_idx_p1_dev()
+{
+  test_2d_project_on_peak_idx(1, true);
+}
 
 #endif
 
 TEST_LIST = {
-  {"test_1d_cos_p1", test_1d_cos_p1_ho},
-  {"test_1d_mirror_p1", test_1d_mirror_p1_ho},
-  {"test_1d_complex_p1", test_1d_complex_p1_ho},
-  {"test_2d_p1", test_2d_p1_ho},
-  {"test_2d_complex_p1", test_2d_complex_p1_ho},
-  {"test_1d_project_p1", test_1d_project_p1_ho},
-  {"test_2d_project_p1", test_2d_project_p1_ho},
-  {"test_1d_project_idx_p1", test_1d_project_idx_p1_ho},
-  {"test_2d_project_idx_p1", test_2d_project_idx_p1_ho},
+  { "test_1d_cos_p1", test_1d_cos_p1_ho },
+  { "test_1d_mirror_p1", test_1d_mirror_p1_ho },
+  { "test_1d_complex_p1", test_1d_complex_p1_ho },
+  { "test_2d_p1", test_2d_p1_ho },
+  { "test_2d_complex_p1", test_2d_complex_p1_ho },
+  { "test_1d_project_p1", test_1d_project_p1_ho },
+  { "test_2d_project_p1", test_2d_project_p1_ho },
+  { "test_1d_project_idx_p1", test_1d_project_idx_p1_ho },
+  { "test_2d_project_idx_p1", test_2d_project_idx_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_1d_cos_p1_gpu", test_1d_cos_p1_dev},
-  {"test_1d_mirror_p1_gpu", test_1d_mirror_p1_dev},
-  {"test_1d_complex_p1_gpu", test_1d_complex_p1_dev},
-  {"test_2d_p1_gpu", test_2d_p1_dev},
-  {"test_2d_complex_p1_gpu", test_2d_complex_p1_dev},
-  {"test_1d_project_p1_gpu", test_1d_project_p1_dev},
-  {"test_2d_project_p1_gpu", test_2d_project_p1_dev},
-  {"test_1d_project_idx_p1_gpu", test_1d_project_idx_p1_dev},
-  {"test_2d_project_idx_p1_gpu", test_2d_project_idx_p1_dev},
+  { "test_1d_cos_p1_gpu", test_1d_cos_p1_dev },
+  { "test_1d_mirror_p1_gpu", test_1d_mirror_p1_dev },
+  { "test_1d_complex_p1_gpu", test_1d_complex_p1_dev },
+  { "test_2d_p1_gpu", test_2d_p1_dev },
+  { "test_2d_complex_p1_gpu", test_2d_complex_p1_dev },
+  { "test_1d_project_p1_gpu", test_1d_project_p1_dev },
+  { "test_2d_project_p1_gpu", test_2d_project_p1_dev },
+  { "test_1d_project_idx_p1_gpu", test_1d_project_idx_p1_dev },
+  { "test_2d_project_idx_p1_gpu", test_2d_project_idx_p1_dev },
 #endif
-  {NULL, NULL},
+  { NULL, NULL },
 };

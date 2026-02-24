@@ -24,18 +24,17 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
   const struct gkyl_array *in, int num_nodes_out)
 {
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < num_nodes_out; tid += blockDim.x * gridDim.x)
-  {
+    tid < num_nodes_out; tid += blockDim.x * gridDim.x) {
     int preserved_node_idx = (int)tid;
 
     int ndim = up->grid.ndim;
     int search_dir = up->search_dir;
-    int poly_order = up->basis.poly_order;
     int num_basis = up->basis.num_basis;
 
     // Number of cells and nodes along the search direction.
     int num_cells_search = up->range.upper[search_dir] - up->range.lower[search_dir] + 1;
-    int total_nodes_search = (poly_order == 1) ? num_cells_search + 1 : 2*num_cells_search + 1;
+
+    int total_nodes_search = num_cells_search + 1;
 
     // Each thread gets its own contiguous slice of the pre-allocated
     // search buffers. Offset = preserved_node_idx * total_nodes_search.
@@ -54,8 +53,7 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
 
     // Iterate along cells in the search direction.
     for (int cell_idx = up->range.lower[search_dir];
-         cell_idx <= up->range.upper[search_dir]; cell_idx++)
-    {
+      cell_idx <= up->range.upper[search_dir]; cell_idx++) {
       // For 2D, determine which cells in the preserved direction
       // contribute to this preserved_node_idx.
       int pres_cell_start, pres_cell_end;
@@ -64,31 +62,20 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
         pres_cell_end = 0;
       }
       else {
-        if (poly_order == 1) {
-          if (preserved_node_idx == 0) {
-            pres_cell_start = up->range.lower[preserved_dir];
-            pres_cell_end = up->range.lower[preserved_dir];
-          }
-          else if (preserved_node_idx == up->out_nrange.upper[0]) {
-            pres_cell_start = up->range.upper[preserved_dir];
-            pres_cell_end = up->range.upper[preserved_dir];
-          }
-          else {
-            pres_cell_start = up->range.lower[preserved_dir] + preserved_node_idx - 1;
-            pres_cell_end = pres_cell_start + 1;
-            if (pres_cell_end > up->range.upper[preserved_dir])
-              pres_cell_end = up->range.upper[preserved_dir];
-          }
+        // Node i is shared by cells i and i+1 (0-indexed from lower).
+        // preserved_node_idx 0 is only in cell lower[preserved_dir].
+        // preserved_node_idx N is only in cell upper[preserved_dir].
+        if (preserved_node_idx == 0) {
+          pres_cell_start = up->range.lower[preserved_dir];
+          pres_cell_end = up->range.lower[preserved_dir];
         }
-        else { // poly_order == 2
-          int cell_local = preserved_node_idx / 2;
-          pres_cell_start = up->range.lower[preserved_dir] + cell_local;
-          pres_cell_end = pres_cell_start;
-          if (preserved_node_idx % 2 == 0 && preserved_node_idx > 0) {
-            pres_cell_start--;
-          }
-          if (pres_cell_start < up->range.lower[preserved_dir])
-            pres_cell_start = up->range.lower[preserved_dir];
+        else if (preserved_node_idx == up->out_nrange.upper[0]) {
+          pres_cell_start = up->range.upper[preserved_dir];
+          pres_cell_end = up->range.upper[preserved_dir];
+        }
+        else {
+          pres_cell_start = up->range.lower[preserved_dir] + preserved_node_idx - 1;
+          pres_cell_end = pres_cell_start + 1;
           if (pres_cell_end > up->range.upper[preserved_dir])
             pres_cell_end = up->range.upper[preserved_dir];
         }
@@ -117,49 +104,21 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
 
           // Check if this node belongs to our preserved_node_idx (2D only).
           if (ndim > 1) {
-            int pres_node_offset;
-            if (poly_order == 1) {
-              pres_node_offset = (nod_log[preserved_dir] < 0) ? 0 : 1;
-            }
-            else {
-              if (nod_log[preserved_dir] < -0.5)
-                pres_node_offset = 0;
-              else if (nod_log[preserved_dir] > 0.5)
-                pres_node_offset = 2;
-              else
-                pres_node_offset = 1;
-            }
+            int pres_node_offset = (nod_log[preserved_dir] < 0) ? 0 : 1;
             int pres_cell_local = pres_cell - up->range.lower[preserved_dir];
-            int this_pres_node;
-            if (poly_order == 1)
-              this_pres_node = pres_cell_local + pres_node_offset;
-            else
-              this_pres_node = 2*pres_cell_local + pres_node_offset;
+
+            int this_pres_node = pres_cell_local + pres_node_offset;
 
             if (this_pres_node != preserved_node_idx)
               continue;
           }
 
           // Determine node offset in the search direction.
-          int search_node_offset;
-          if (poly_order == 1) {
-            search_node_offset = (nod_log[search_dir] < 0) ? 0 : 1;
-          }
-          else {
-            if (nod_log[search_dir] < -0.5)
-              search_node_offset = 0;
-            else if (nod_log[search_dir] > 0.5)
-              search_node_offset = 2;
-            else
-              search_node_offset = 1;
-          }
+          int search_node_offset = (nod_log[search_dir] < 0) ? 0 : 1;
 
           int cell_local = cell_idx - up->range.lower[search_dir];
-          int search_node_idx;
-          if (poly_order == 1)
-            search_node_idx = cell_local + search_node_offset;
-          else
-            search_node_idx = 2*cell_local + search_node_offset;
+
+          int search_node_idx = cell_local + search_node_offset;
 
           if (!visited[search_node_idx]) {
             double val = up->basis.eval_expand(nod_log, f_d);
@@ -190,15 +149,15 @@ gkyl_find_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
 
     // Find local maxima and minima.
     for (int i = 1; i < total_nodes_search - 1 && peak_idx < up->num_peaks - 1; i++) {
-      double prev = vals[i-1];
+      double prev = vals[i - 1];
       double curr = vals[i];
-      double next = vals[i+1];
+      double next = vals[i + 1];
 
       bool is_max = (curr > prev && curr > next);
       bool is_min = (curr < prev && curr < next);
 
       if ((is_max && up->peak_types[peak_idx] == GKYL_PEAK_LOCAL_MAX) ||
-          (is_min && up->peak_types[peak_idx] == GKYL_PEAK_LOCAL_MIN)) {
+        (is_min && up->peak_types[peak_idx] == GKYL_PEAK_LOCAL_MIN)) {
         double *val_n = (double *)gkyl_array_fetch(up->out_vals_nodal[peak_idx],
           preserved_node_idx);
         double *coord_n = (double *)gkyl_array_fetch(up->out_coords_nodal[peak_idx],
@@ -242,15 +201,13 @@ gkyl_eval_at_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
   unsigned long total_threads = (unsigned long)num_nodes_out * num_peaks_to_eval;
 
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < total_threads; tid += blockDim.x * gridDim.x)
-  {
+    tid < total_threads; tid += blockDim.x * gridDim.x) {
     int preserved_node_idx = (int)(tid / num_peaks_to_eval);
     int peak_offset = (int)(tid % num_peaks_to_eval);
     int peak_idx = peak_start + peak_offset;
 
     int ndim = up->grid.ndim;
     int search_dir = up->search_dir;
-    int poly_order = up->basis.poly_order;
     int preserved_dir = (ndim == 1) ? -1 : ((search_dir == 0) ? 1 : 0);
 
     // Get the peak coordinate found during advance.
@@ -283,18 +240,13 @@ gkyl_eval_at_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
     // For 2D: determine preserved-direction cell from preserved_node_idx.
     if (ndim > 1) {
       int pres_cell;
-      if (poly_order == 1) {
-        if (preserved_node_idx == 0) {
-          pres_cell = up->range.lower[preserved_dir];
-        }
-        else {
-          pres_cell = up->range.lower[preserved_dir] + preserved_node_idx - 1;
-          if (pres_cell > up->range.upper[preserved_dir])
-            pres_cell = up->range.upper[preserved_dir];
-        }
+      if (preserved_node_idx == 0) {
+        pres_cell = up->range.lower[preserved_dir];
       }
       else {
-        pres_cell = up->range.lower[preserved_dir] + preserved_node_idx / 2;
+        pres_cell = up->range.lower[preserved_dir] + preserved_node_idx - 1;
+        if (pres_cell > up->range.upper[preserved_dir])
+          pres_cell = up->range.upper[preserved_dir];
       }
       cell_idx[preserved_dir] = pres_cell;
     }
@@ -314,18 +266,8 @@ gkyl_eval_at_peaks_kernel(const struct gkyl_array_dg_find_peaks *up,
         nod_log[d] = 2.0 * (peak_coord_search - xc[d]) / up->grid.dx[d];
       }
       else if (ndim > 1) {
-        if (poly_order == 1) {
-          nod_log[d] = (preserved_node_idx == 0) ? -1.0 : 1.0;
-        }
-        else {
-          int pres_node_offset = preserved_node_idx % 3;
-          if (pres_node_offset == 0)
-            nod_log[d] = -1.0;
-          else if (pres_node_offset == 1)
-            nod_log[d] = 0.0;
-          else
-            nod_log[d] = 1.0;
-        }
+        // Node 0 is at left edge (-1), all others at right edge (+1).
+        nod_log[d] = (preserved_node_idx == 0) ? -1.0 : 1.0;
       }
     }
 
@@ -456,8 +398,9 @@ gkyl_array_dg_find_peaks_new_cu(struct gkyl_array_dg_find_peaks *up_ho)
   up->out_nrange = up_ho->out_nrange;
 
   up->num_peaks = up_ho->num_peaks;
-  for (int p = 0; p < GKYL_DG_FIND_PEAKS_MAX; p++)
+  for (int p = 0; p < GKYL_DG_FIND_PEAKS_MAX; p++) {
     up->peak_types[p] = up_ho->peak_types[p];
+  }
 
   int ndim = up_ho->basis.ndim;
   int poly_order = up_ho->basis.poly_order;
@@ -551,7 +494,8 @@ gkyl_array_dg_find_peaks_new_cu(struct gkyl_array_dg_find_peaks *up_ho)
 
   int out_basis_dim = (out_dim == 0) ? 1 : 1;
   int out_basis_po = (out_dim == 0) ? 0 : poly_order;
-  struct gkyl_basis *tmp_out_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(out_basis_dim, out_basis_po);
+  struct gkyl_basis *tmp_out_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(out_basis_dim,
+    out_basis_po);
   gkyl_cu_memcpy(&up->out_basis, tmp_out_basis_dev, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
   gkyl_cu_free(tmp_out_basis_dev);
 

@@ -8,22 +8,22 @@
 /**
  * Find all peaks (local maxima, local minima, and boundary values) of a DG
  * field along one direction.
- * 
+ *
  * For a 2D input array f(psi, z), finding peaks along z (dir=1) gives arrays:
  *   out_val[k](psi) = value of k-th peak along z for each psi
  *   out_coord[k](psi) = z-coordinate of k-th peak for each psi
- * 
+ *
  * For a 1D input array f(z), finding peaks along z (dir=0) gives scalars:
  *   out_val[k] = value of k-th peak
  *   out_coord[k] = z-coordinate of k-th peak
- * 
+ *
  * Peaks are detected by sampling the field at nodal points along the search
  * direction and identifying:
  *   - EDGE_LO: Value at the lower boundary of the domain
  *   - LOCAL_MAX: Points where f increases then decreases
- *   - LOCAL_MIN: Points where f decreases then increases  
+ *   - LOCAL_MIN: Points where f decreases then increases
  *   - EDGE_HI: Value at the upper boundary of the domain
- * 
+ *
  * The number of peaks is determined by scanning along the search direction
  * at a middle preserved-direction coordinate.
  */
@@ -52,7 +52,7 @@ struct gkyl_array_dg_find_peaks_inp {
  * scanning the input field along the search direction at a middle coordinate.
  * This must be called AFTER the input field is initialized, as it scans the
  * field to determine the number of peaks.
- * 
+ *
  * @param inp Input parameters
  * @param field Input field to scan for peak count determination
  * @return New updater pointer
@@ -63,15 +63,16 @@ struct gkyl_array_dg_find_peaks* gkyl_array_dg_find_peaks_new(
 /**
  * Compute the peaks. For each point along the preserved dimensions,
  * find all peaks along the search direction.
- * 
+ *
  * @param up Updater object
  * @param in Input array (N-dimensional DG field)
  */
-void gkyl_array_dg_find_peaks_advance(struct gkyl_array_dg_find_peaks *up, const struct gkyl_array *in);
+void gkyl_array_dg_find_peaks_advance(struct gkyl_array_dg_find_peaks *up,
+  const struct gkyl_array *in);
 
 /**
  * Get the number of peaks found.
- * 
+ *
  * @param up Updater object
  * @return Number of peaks
  */
@@ -79,48 +80,53 @@ int gkyl_array_dg_find_peaks_num_peaks(const struct gkyl_array_dg_find_peaks *up
 
 /**
  * Get the type of a specific peak (EDGE_LO, LOCAL_MAX, LOCAL_MIN, EDGE_HI).
- * 
+ *
  * @param up Updater object
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Type of the peak
  */
-enum gkyl_peak_type gkyl_array_dg_find_peaks_get_type(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+enum gkyl_peak_type gkyl_array_dg_find_peaks_get_type(const struct gkyl_array_dg_find_peaks *up,
+  int peak_idx);
 
 /**
  * Get the output basis ((N-1)-dimensional, or p=0 1D for 1D->0D).
- * 
+ *
  * @param up Updater object
  * @return Pointer to output basis
  */
-const struct gkyl_basis* gkyl_array_dg_find_peaks_get_basis(const struct gkyl_array_dg_find_peaks *up);
+const struct gkyl_basis* gkyl_array_dg_find_peaks_get_basis(
+  const struct gkyl_array_dg_find_peaks *up);
 
 /**
  * Get the output grid.
- * 
+ *
  * @param up Updater object
  * @return Pointer to output grid
  */
-const struct gkyl_rect_grid* gkyl_array_dg_find_peaks_get_grid(const struct gkyl_array_dg_find_peaks *up);
+const struct gkyl_rect_grid* gkyl_array_dg_find_peaks_get_grid(
+  const struct gkyl_array_dg_find_peaks *up);
 
 /**
  * Get the output range.
- * 
+ *
  * @param up Updater object
  * @return Pointer to output range
  */
-const struct gkyl_range* gkyl_array_dg_find_peaks_get_range(const struct gkyl_array_dg_find_peaks *up);
+const struct gkyl_range* gkyl_array_dg_find_peaks_get_range(
+  const struct gkyl_array_dg_find_peaks *up);
 
 /**
  * Get the output extended range.
- * 
+ *
  * @param up Updater object
  * @return Pointer to output extended range
  */
-const struct gkyl_range* gkyl_array_dg_find_peaks_get_range_ext(const struct gkyl_array_dg_find_peaks *up);
+const struct gkyl_range* gkyl_array_dg_find_peaks_get_range_ext(
+  const struct gkyl_array_dg_find_peaks *up);
 
 /**
  * Get the output nodal range.
- * 
+ *
  * @param up Updater object
  * @return Pointer to output nodal range
  */
@@ -129,61 +135,65 @@ gkyl_array_dg_find_peaks_get_nodal_range(const struct gkyl_array_dg_find_peaks *
 
 /**
  * Get the output array containing peak values for a specific peak.
- * 
+ *
  * @param up Updater object
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output values array (modal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals(
+  const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing peak values in nodal basis for a specific peak.
- * 
+ *
  * @param up Updater object
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output values array (nodal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_vals_nodal(
+  const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing coordinates of a specific peak.
- * 
+ *
  * @param up Updater object
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output coordinates array (modal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords(
+  const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Get the output array containing coordinates in nodal basis of a specific peak.
- * 
+ *
  * @param up Updater object
  * @param peak_idx Index of the peak (0 to num_peaks-1)
  * @return Pointer to output coordinates array (nodal DG expansion)
  */
-const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords_nodal(const struct gkyl_array_dg_find_peaks *up, int peak_idx);
+const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords_nodal(
+  const struct gkyl_array_dg_find_peaks *up, int peak_idx);
 
 /**
  * Project (evaluate) an arbitrary array onto the peak locations previously
  * found by gkyl_array_dg_find_peaks_advance.
- * 
+ *
  * For a 1D case with 5 peaks, this evaluates the input array at those 5 peak
  * locations and returns the values.
- * 
+ *
  * For a 2D case with peaks along lines (e.g., psi vs z with peaks in z),
  * this evaluates the input array along the contours defined by the peak
  * locations for each psi.
- * 
+ *
  * The peak locations must have been previously computed via
  * gkyl_array_dg_find_peaks_advance. This method evaluates the provided array
  * at those same locations.
- * 
+ *
  * Example usage:
  * @code
  * // 1. Find peaks in bmag along z direction
  * struct gkyl_array_dg_find_peaks *peak_finder = gkyl_array_dg_find_peaks_new(&inp, bmag);
  * gkyl_array_dg_find_peaks_advance(peak_finder, bmag);
- * 
+ *
  * // 2. Get bmag_max (LOCAL_MAX peak) location and value
  * int num_peaks = gkyl_array_dg_find_peaks_num_peaks(peak_finder);
  * int bmag_max_idx = -1;
@@ -195,17 +205,17 @@ const struct gkyl_array* gkyl_array_dg_find_peaks_acquire_coords_nodal(const str
  * }
  * const struct gkyl_array *bmag_max = gkyl_array_dg_find_peaks_acquire_vals(peak_finder, bmag_max_idx);
  * const struct gkyl_array *z_max = gkyl_array_dg_find_peaks_acquire_coords(peak_finder, bmag_max_idx);
- * 
+ *
  * // 3. Evaluate phi at the same locations where bmag has peaks
  * struct gkyl_array *phi_at_peaks[num_peaks];
  * for (int p = 0; p < num_peaks; p++) {
  *   phi_at_peaks[p] = gkyl_array_new(GKYL_DOUBLE, out_basis.num_basis, out_range_ext.volume);
  * }
  * gkyl_array_dg_find_peaks_project_on_peaks(peak_finder, phi, phi_at_peaks);
- * 
+ *
  * // 4. Now phi_at_peaks[bmag_max_idx] contains phi evaluated at the mirror throat
  * @endcode
- * 
+ *
  * @param up Updater object (must have run advance first)
  * @param in_array Array to evaluate at peak locations (same grid/basis as original field)
  * @param out_vals Output: array of evaluated values for each peak
@@ -217,28 +227,28 @@ void gkyl_array_dg_find_peaks_project_on_peaks(struct gkyl_array_dg_find_peaks *
 /**
  * Project (evaluate) an arbitrary array onto a single peak location previously
  * found by gkyl_array_dg_find_peaks_advance.
- * 
+ *
  * This is a more efficient version of gkyl_array_dg_find_peaks_project_on_peaks
  * when you only need the evaluation at one specific peak (e.g., only at the
  * mirror throat LOCAL_MAX peak).
- * 
+ *
  * Example usage:
  * @code
  * // 1. Find peaks in bmag along z direction
  * struct gkyl_array_dg_find_peaks *peak_finder = gkyl_array_dg_find_peaks_new(&inp, bmag);
  * gkyl_array_dg_find_peaks_advance(peak_finder, bmag);
- * 
+ *
  * // 2. Find the LOCAL_MAX peak index
  * int num_peaks = gkyl_array_dg_find_peaks_num_peaks(peak_finder);
  * int bmag_max_idx = num_peaks - 2; // Assuming standard ordering
- * 
+ *
  * // 3. Evaluate phi only at the mirror throat (bmag_max location)
  * struct gkyl_array *phi_m = gkyl_array_new(GKYL_DOUBLE, out_basis.num_basis, out_range_ext.volume);
  * gkyl_array_dg_find_peaks_project_on_peak_idx(peak_finder, phi, bmag_max_idx, phi_m);
- * 
+ *
  * // 4. Now phi_m contains phi evaluated at the mirror throat
  * @endcode
- * 
+ *
  * @param up Updater object (must have run advance first)
  * @param in_array Array to evaluate at peak location (same grid/basis as original field)
  * @param peak_idx Index of the peak to evaluate at (0 to num_peaks-1)
@@ -250,11 +260,10 @@ void gkyl_array_dg_find_peaks_project_on_peak_idx(struct gkyl_array_dg_find_peak
 
 /**
  * Release the updater and all internal arrays.
- * 
+ *
  * @param up Updater to delete
  */
 void gkyl_array_dg_find_peaks_release(struct gkyl_array_dg_find_peaks *up);
-
 
 /**
  * Create a new GPU peak finder updater from an already-initialized host object.
