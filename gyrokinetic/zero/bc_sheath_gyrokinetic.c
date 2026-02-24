@@ -32,10 +32,10 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-  up->alpha_mu = mkarr(use_gpu, vel_map->vmap_basis->num_basis, vel_map->local.volume);
+  up->alpha_mu = mkarr(use_gpu, vel_map->vmap_basis->num_basis, vel_map->local_vel.volume);
   // Set the alpha_mu array to 1 by default (constant vcut).
   double dg_norm = pow(sqrt(2), vel_map->vmap_basis->ndim);
-  gkyl_array_shiftc_range(up->alpha_mu, 1.0, 0, &vel_map->local);
+  gkyl_array_shiftc_range(up->alpha_mu, dg_norm, 0, &vel_map->local_vel);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -100,6 +100,8 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *alpha_mu_p = (const double*) gkyl_array_cfetch(up->alpha_mu, vel_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
+
+    // printf("alpha_mu[0] = %g, alpha_mu[1] = %g\n", alpha_mu_p[0], alpha_mu_p[1]);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
