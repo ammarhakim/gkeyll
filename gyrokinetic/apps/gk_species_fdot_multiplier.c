@@ -46,7 +46,8 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_sp
     fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt);
+  gkyl_msgpack_data_release(mt);
+
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 

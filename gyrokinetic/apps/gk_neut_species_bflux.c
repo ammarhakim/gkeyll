@@ -539,7 +539,7 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
     }
   }
 
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 }
 
 static void
