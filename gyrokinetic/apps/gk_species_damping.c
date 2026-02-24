@@ -336,7 +336,7 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
       gkyl_array_release(damp->phi_at_bmag_max);
       gkyl_array_release(damp->phi_at_bmag_tandem);
 
-      gkyl_array_release(damp->phi_smooth_global)
+      gkyl_array_release(damp->phi_smooth_global);
       gkyl_array_dg_find_peaks_release(damp->bmag_peak_finder);
       gkyl_loss_cone_mask_gyrokinetic_release(damp->lcm_proj_op);
       gkyl_array_release(damp->scale_prof);
