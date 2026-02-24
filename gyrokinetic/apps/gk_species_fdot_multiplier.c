@@ -520,7 +520,6 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
       if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
         gkyl_cu_free(fdmul->omega_max_local_cu);
-        gkyl_cu_free(fdmul->local_max_f_cu);
 #endif
       }
       else {
