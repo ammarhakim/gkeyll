@@ -171,11 +171,11 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
 void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
   struct gkyl_array *distf_ho, struct gkyl_array *phi_ho, struct gkyl_array *phiw_ho,
   struct gkyl_rect_grid grid_ext, struct gkyl_range local_ext,
-  struct gkyl_rect_grid grid_conf, struct gkyl_range local_conf, struct gkyl_basis basis, struct gkyl_basis basis_conf) {
+  struct gkyl_rect_grid grid_conf, struct gkyl_range local_conf, struct gkyl_basis *basis, struct gkyl_basis basis_conf) {
 
   struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id }
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis->poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id }
   };
   int io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create(io_meta_len, io_meta);
@@ -255,11 +255,12 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_rect_grid_init(&grid_vel, vdim, lower_vel, upper_vel, cells_vel);
 
   // Basis functions.
-  struct gkyl_basis basis;
-  if (poly_order == 1) 
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis *basis;
+  basis = use_gpu? gkyl_cart_modal_gkhybrid_cu_dev_new(cdim, vdim)
+                  : gkyl_cart_modal_gkhybrid_new(cdim, vdim);
+
+  struct gkyl_basis basis_ho;
+  gkyl_cart_modal_gkhybrid(&basis_ho, cdim, vdim);
 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
@@ -302,7 +303,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
 
   // Initialize the distribution
-  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf = mkarr(use_gpu, basis_ho.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0,
@@ -314,7 +315,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   };
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
-      .basis = &basis,
+      .basis = &basis_ho,
       .num_ret_vals = 1,
       .eval = eval_func_1x2v,
       .ctx = &proj_ctx,
@@ -337,7 +338,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -351,7 +352,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
     write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
-      grid_ext, local_ext, grid_conf, local_conf, basis, basis_conf);
+      grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -361,6 +362,10 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
+  if (use_gpu)
+    gkyl_cart_modal_basis_release_cu(basis);
+  else
+    gkyl_cart_modal_basis_release(basis);
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
@@ -423,11 +428,12 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_rect_grid_init(&grid_vel, vdim, lower_vel, upper_vel, cells_vel);
 
   // Basis functions.
-  struct gkyl_basis basis;
-  if (poly_order == 1)
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis *basis;
+  basis = use_gpu? gkyl_cart_modal_gkhybrid_cu_dev_new(cdim, vdim)
+                  : gkyl_cart_modal_gkhybrid_new(cdim, vdim);
+
+  struct gkyl_basis basis_ho;
+  gkyl_cart_modal_gkhybrid(&basis_ho, cdim, vdim);
 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
@@ -470,7 +476,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
 
   // Initialize the distribution.
-  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf = mkarr(use_gpu, basis_ho.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0,
@@ -484,7 +490,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   };
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
-      .basis = &basis,
+      .basis = &basis_ho,
       .num_ret_vals = 1,
       .eval = eval_func_2x2v,
       .ctx = &proj_ctx,
@@ -507,7 +513,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -521,7 +527,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
     write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
-      grid_ext, local_ext, grid_conf, local_conf, basis, basis_conf);
+      grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -531,6 +537,10 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
+  if (use_gpu)
+    gkyl_cart_modal_basis_release_cu(basis);
+  else
+    gkyl_cart_modal_basis_release(basis);
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
@@ -595,11 +605,12 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_rect_grid_init(&grid_vel, vdim, lower_vel, upper_vel, cells_vel);
 
   // Basis functions.
-  struct gkyl_basis basis;
-  if (poly_order == 1)
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis *basis;
+  basis = use_gpu? gkyl_cart_modal_gkhybrid_cu_dev_new(cdim, vdim)
+                  : gkyl_cart_modal_gkhybrid_new(cdim, vdim);
+
+  struct gkyl_basis basis_ho;
+  gkyl_cart_modal_gkhybrid(&basis_ho, cdim, vdim);
 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
@@ -642,7 +653,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
 
   // Initialize the distribution.
-  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf = mkarr(use_gpu, basis_ho.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0,
@@ -658,7 +669,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   };
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
-      .basis = &basis,
+      .basis = &basis_ho,
       .num_ret_vals = 1,
       .eval = eval_func_3x2v,
       .ctx = &proj_ctx,
@@ -681,7 +692,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -695,7 +706,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
     write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
-      grid_ext, local_ext, grid_conf, local_conf, basis, basis_conf);
+      grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -705,6 +716,10 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
+  if (use_gpu)
+    gkyl_cart_modal_basis_release_cu(basis);
+  else
+    gkyl_cart_modal_basis_release(basis);
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
