@@ -15,7 +15,7 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Compute Maxwellian moments (J*n, u_par, T/m).
+  // Compute Maxwellian moments (n, u_par, T/m).
   gk_neut_species_moment_calc(&gkns->lte.moms, gkns->local, app->local, fin);
   gkyl_dg_div_op_range(gkns->lte.moms.mem_geo, app->basis, 0, gkns->lte.moms.marr,
     0, gkns->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
@@ -75,13 +75,12 @@ static void
 gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
   struct timespec wtm = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum.
   const char *fmt = "%s-%s_nu_sum_%d.gkyl";
@@ -97,7 +96,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkns->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 

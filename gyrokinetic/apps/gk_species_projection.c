@@ -281,10 +281,18 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     fg_ctx.gaussian_std_dev[dir] = inp.gaussian_std_dev[dir];
     fg_ctx.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
   }
-  // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  // By default, set all directions to non-periodic.
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir)
     fg_ctx.is_dir_periodic[dir] = false;
-  fg_ctx.is_dir_periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
+
+  // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  // First recover the BCs of the last config. space dimension for this species from the user input.
+  struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_LOWER_EDGE);
+  struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_UPPER_EDGE);
+  // Apply periodicity condition if both edges are IWL.
+  fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL);
+  
+  // Set periodicity also according to the global app settings.
   for (int i=0; i < app->num_periodic_dir; ++i)
     fg_ctx.is_dir_periodic[app->periodic_dirs[i]] = true;
 
