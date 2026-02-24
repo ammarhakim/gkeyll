@@ -19,17 +19,17 @@ CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKY
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = $(PREFIX)/OpenBLAS/include
-LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
-LAPACK_LIB_NAME ?= openblas
-LAPACK_LIB = -l${LAPACK_LIB_NAME}
-
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
 
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
+LAPACK_LIB_DIR ?= $(PREFIX)/OpenBLAS/lib/
+LAPACK_LIB_NAME ?= openblas
+LAPACK_LIBS ?= -l${LAPACK_LIB_NAME}
 
 HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 
@@ -55,8 +55,9 @@ UNAME = $(shell uname)
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
 	LAPACK_LIB_DIR = .
-	LAPACK_INC = core # dummy
-	LAPACK_LIB = -framework Accelerate
+	LAPACK_INC_DIR = core # dummy
+	LAPACK_LIB_NAME = 
+	LAPACK_LIBS = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
 endif
 
@@ -69,8 +70,8 @@ ifeq ($(CC), nvcc)
 	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
-	ifdef CUDAMATH_LIBDIR
-		CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+	ifdef CUDAMATH_LIB_DIR
+		CUDA_LIBS = -L${CUDAMATH_LIB_DIR}
 	else
 		CUDA_LIBS =
 	endif

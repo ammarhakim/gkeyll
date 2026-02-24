@@ -16,4 +16,4 @@ module load cray-libsci/25.09.0
 : "${PREFIX:=/pscratch/sd/m/mana/gkeyll/code/gkeyll_gpu1/gkylsoft}"
 
 cd install-deps
-./mkdeps.sh --lapack-lib-name=libsci_gnu --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-openmpi=no --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
+./mkdeps.sh --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
