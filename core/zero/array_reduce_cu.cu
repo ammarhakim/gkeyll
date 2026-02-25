@@ -69,7 +69,7 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
     if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::maximum()
 #else
     cub::Max()
@@ -107,7 +107,7 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     if (linc < nCells) f = fptr[k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, 
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::maximum()
 #else
     cub::Max()
@@ -162,7 +162,7 @@ arrayMin_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
     if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, 
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::minimum()
 #else
     cub::Min()
@@ -200,7 +200,7 @@ arrayMin_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     if (linc < nCells) f = fptr[k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, 
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::minimum()
 #else
     cub::Min()
@@ -254,7 +254,7 @@ arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
     if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, 
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::std::plus()
 #else
     cub::Sum()
@@ -291,7 +291,7 @@ arraySum_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     if (linc < nCells) f = fptr[k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, 
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::std::plus()
 #else
     cub::Sum()

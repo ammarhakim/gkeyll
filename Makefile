@@ -65,7 +65,7 @@ endif
 USING_NVCC =
 NVCC_FLAGS = 
 CUDA_LIBS =
-ifeq ($(CC), nvcc)
+ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
 	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants

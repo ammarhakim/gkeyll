@@ -114,7 +114,7 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
   for (size_t k = 0; k < up->num_comp; ++k) {
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(outLocal[k],
-#if CUDART_VERSION >= 12090
+#if CUDART_VERSION > 12090
     ::cuda::std::plus()
 #else
     cub::Sum()
