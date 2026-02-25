@@ -49,6 +49,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
   struct gkyl_array *alpha_mu; // factor for mu dependent vcut in sheath BC.
+  struct gkyl_basis alpha_mu_basis; // Basis for alpha_mu array (gk hybrid basis in velocity space).
 };
 
 void

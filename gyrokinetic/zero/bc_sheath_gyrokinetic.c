@@ -3,6 +3,9 @@
 #include <gkyl_alloc.h>
 #include <assert.h>
 
+// To remove
+#include <gkyl_proj_on_basis.h>
+
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
 {
@@ -12,6 +15,19 @@ mkarr(bool on_gpu, long nc, long size)
   else
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
+}
+
+void
+eval_func_alpha_mu(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double vpar = xn[0], mu = xn[1];
+
+  double Lmu = 3.0; // Characteristic scale length in mu direction.
+  double alpha_mu_0 = 1.0;
+  double dg_const = pow(sqrt(2.0), 2); // Normalization constant for gyrokinetic velocity space.
+
+  double alpha_mu = alpha_mu_0 * (1 + 3*exp(-mu/Lmu));
+  fout[0] =  pow(alpha_mu, 2)/dg_const;
 }
 
 struct gkyl_bc_sheath_gyrokinetic*
@@ -32,10 +48,23 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-  up->alpha_mu = mkarr(use_gpu, vel_map->vmap_basis->num_basis, vel_map->local_vel.volume);
+
+  gkyl_cart_modal_gkhybrid(&up->alpha_mu_basis, 0, vel_map->local_vel.ndim);
+  up->alpha_mu = mkarr(use_gpu, up->alpha_mu_basis.num_basis, vel_map->local_vel.volume);
   // Set the alpha_mu array to 1 by default (constant vcut).
-  double dg_norm = pow(sqrt(2), vel_map->vmap_basis->ndim);
+  double dg_norm = pow(sqrt(2), up->alpha_mu_basis.ndim);
   gkyl_array_shiftc_range(up->alpha_mu, dg_norm, 0, &vel_map->local_vel);
+  // Test a function on alpha_mu
+  gkyl_proj_on_basis *projalphamu = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vel_map->grid_vel,
+      .basis = &up->alpha_mu_basis,
+      .num_ret_vals = 1,
+      .eval = eval_func_alpha_mu,
+      .ctx = NULL,
+    }
+  );
+  // gkyl_proj_on_basis_advance(projalphamu, 0.0, &vel_map->local_vel, up->alpha_mu);
+  gkyl_proj_on_basis_release(projalphamu);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -100,8 +129,6 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *alpha_mu_p = (const double*) gkyl_array_cfetch(up->alpha_mu, vel_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
-
-    // printf("alpha_mu[0] = %g, alpha_mu[1] = %g\n", alpha_mu_p[0], alpha_mu_p[1]);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
