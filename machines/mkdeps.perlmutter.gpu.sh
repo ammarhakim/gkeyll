@@ -8,4 +8,4 @@ module load cray-libsci/25.09.0
 : "${PREFIX:=$HOME/gkylsoft}"
 
 cd install-deps
-./mkdeps.sh --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
+./mkdeps.sh --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx
