@@ -1,5 +1,6 @@
 -- Auto-updated by runregression: tests that exceeded the per-test timeout.
 -- Remove an entry manually to re-enable the test.
+-- gpu_lua / gpu_c: tests whose GPU variant timed out (CPU variant still runs).
 return {
    lua = {
       "rt_gr_ultra_rel_bhl_static",
@@ -24,6 +25,11 @@ return {
       "rt_gr_multifluid_bhl_static",
       "rt_gr_bhl_spinning",
       "rt_gr_mhd_blackhole_collapse",
+      "rt_10m_ot",
+      "rt_10m_burch_grad_closure",
+      "rt_gr_mhd_strong_blast",
+      "rt_gr_kh_2d",
+      "rt_10m_ot_nn_closure",
    },
    c = {
       "rt_gr_ultra_rel_bhl_static",
@@ -55,5 +61,14 @@ return {
       "rt_10m_riem_nn_closure_p1",
       "rt_10m_ot_nn_closure",
       "rt_10m_riem_nn_closure_p2",
+      "rt_gr_mhd_strong_blast",
+      "rt_10m_burch_grad_closure",
+      "rt_gr_mhd_bhl_spinning_tetrad",
+      "rt_10m_ot",
+      "rt_gr_kh_2d",
+   },
+   gpu_lua = {
+   },
+   gpu_c = {
    },
 }

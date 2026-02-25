@@ -20,16 +20,22 @@
 --   GKYL_BUILD_DATE    text,
 --   ntotal             integer,
 --   npass              integer,
---   nfail              integer
+--   nfail              integer,
+--   gpu_build          integer,   -- 1=GPU build, 0=CPU-only
+--   ngpu_pass          integer,
+--   ngpu_fail          integer
 -- );
 --
 -- table RegressionData (
---   guid      text,
---   name      text,
---   test_type text,   -- 'lua' or 'c'
---   status    integer,
---   runtime   real,
---   runlog    text
+--   guid         text,
+--   name         text,
+--   test_type    text,   -- 'lua' or 'c'
+--   status       integer,
+--   runtime      real,
+--   runlog       text,
+--   gpu_status   integer,  -- 1=pass, 0=fail, -1=skip, -3=timeout, -5=crash
+--   gpu_runtime  real,
+--   cpu_gpu_diff integer   -- 1=match, 0=differ, -1=n/a
 -- );
 
 local argparse = require "Lib.argparse"
@@ -40,11 +46,12 @@ local sql      = require "sqlite3"
 local sqlConn = nil
 
 -- Human-readable status strings for the integer status codes stored in the DB.
--- -2 = accepted baseline was created (not a test outcome per se)
--- -1 = skipped (e.g. parallel test not yet supported)
---  0 = failed
---  1 = passed
-local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
+local statusToString = {
+   [-5] = "gpu_crash", [-4] = "compile_fail", [-3] = "timeout",
+   [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass",
+}
+-- Human-readable CPU-vs-GPU diff strings.
+local cpuGpuDiffToString = { [-1] = "n/a", [0] = "differ", [1] = "match" }
 
 -- GKYL_OUT_PREFIX is required by some Lua modules at load time.
 GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
@@ -107,6 +114,9 @@ local function read_metatable()
          ntotal    = t['ntotal'][i],
          npass     = t['npass'][i],
          nfail     = t['nfail'][i],
+         gpu_build = t['gpu_build'] and t['gpu_build'][i] or 0,
+         ngpu_pass = t['ngpu_pass'] and t['ngpu_pass'][i] or 0,
+         ngpu_fail = t['ngpu_fail'] and t['ngpu_fail'][i] or 0,
       }
    end
    return dbMeta
@@ -120,12 +130,17 @@ local function read_tests_with_id(guid)
    local maxNm = 0
    local dbData = {}
    for i = 1, nrow do
+      local gpuStat = t['gpu_status'] and tonumber(t['gpu_status'][i]) or -1
+      local cgDiff  = t['cpu_gpu_diff'] and tonumber(t['cpu_gpu_diff'][i]) or -1
       dbData[i] = {
-         name      = t['name'][i],
-         test_type = t['test_type'] and t['test_type'][i] or "?",
-         status    = statusToString[tonumber(t['status'][i])],
-         runtime   = t['runtime'][i],
-         runlog    = t['runlog'][i],
+         name         = t['name'][i],
+         test_type    = t['test_type'] and t['test_type'][i] or "?",
+         status       = statusToString[tonumber(t['status'][i])],
+         runtime      = t['runtime'][i],
+         runlog       = t['runlog'][i],
+         gpu_status   = statusToString[gpuStat] or "skip",
+         gpu_runtime  = t['gpu_runtime'] and t['gpu_runtime'][i] or 0,
+         cpu_gpu_diff = cpuGpuDiffToString[cgDiff] or "n/a",
       }
       maxNm = math.max(maxNm, string.len(t['name'][i]))
    end
@@ -142,17 +157,33 @@ local function summary_action(args, name)
    local dbMeta = read_metatable()
    local nrow   = #dbMeta
 
-   local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s"
-   print(string.format(fmt, "ID", "Time-Stamp", "Changeset", "Total", "Pass", "Fail"))
-   for i, d in pairs(dbMeta) do
-      print(string.format(fmt,
-         nrow - i + 1,
-         d.tstamp,
-         d.changeset,
-         tonumber(d.ntotal),
-         tonumber(d.npass),
-         tonumber(d.nfail)
-      ))
+   -- Check if any run was a GPU build; if so, show GPU columns.
+   local hasGpu = false
+   for _, d in ipairs(dbMeta) do
+      if tonumber(d.gpu_build) == 1 then hasGpu = true; break end
+   end
+
+   if hasGpu then
+      local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s %-4s %-7s %-7s"
+      print(string.format(fmt, "ID", "Time-Stamp", "Changeset",
+         "Total", "Pass", "Fail", "GPU", "GPUPass", "GPUFail"))
+      for i, d in ipairs(dbMeta) do
+         print(string.format(fmt,
+            nrow - i + 1, d.tstamp, d.changeset,
+            tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail),
+            tonumber(d.gpu_build) == 1 and "yes" or "no",
+            tonumber(d.ngpu_pass), tonumber(d.ngpu_fail)
+         ))
+      end
+   else
+      local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s"
+      print(string.format(fmt, "ID", "Time-Stamp", "Changeset", "Total", "Pass", "Fail"))
+      for i, d in ipairs(dbMeta) do
+         print(string.format(fmt,
+            nrow - i + 1, d.tstamp, d.changeset,
+            tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail)
+         ))
+      end
    end
 end
 
@@ -179,8 +210,12 @@ local function query_action(args, name)
 
    local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
 
-   -- Filtering predicate: apply --fail-only or --pass-only if requested.
+   -- Filtering predicate: apply --fail-only, --pass-only, or --gpu-fail-only.
    local function shouldShow(d)
+      if args.gpu_fail_only then
+         -- Show tests where GPU failed but CPU passed (most interesting diagnostic).
+         return d.status == "pass" and (d.gpu_status == "fail" or d.gpu_status == "gpu_crash")
+      end
       if args.fail_only then return d.status == "fail" end
       if args.pass_only then return d.status == "pass" end
       return true
@@ -201,14 +236,17 @@ local function query_action(args, name)
       end
       io.write('\n')
    else
-      -- Tabular output with test type column.
-      local fmt  = "%-4s: %-5s %-" .. maxNm + 2 .. "s %-7s %-4s"
-      local fmt1 = "%-4s: %-5s %-" .. maxNm + 2 .. "s %-7s %.4g"
-      print(string.format(fmt, "ID", "Type", "Name", "Status", "Run-Time"))
+      -- Tabular output with test type column and GPU columns.
+      local nm  = maxNm + 2
+      local fmt  = "%-4s: %-5s %-" .. nm .. "s %-7s %-9s %-10s %-9s %-7s"
+      local fmt1 = "%-4s: %-5s %-" .. nm .. "s %-7s %.4g      %-10s %.4g      %-7s"
+      print(string.format(fmt, "ID", "Type", "Name", "Status", "Run-Time",
+         "GPU-Status", "GPU-Time", "CPU=GPU"))
       for i, d in pairs(dbData) do
          if shouldShow(d) then
             print(string.format(fmt1,
-               i, d.test_type, d.name, d.status, d.runtime))
+               i, d.test_type, d.name, d.status, d.runtime,
+               d.gpu_status, d.gpu_runtime, d.cpu_gpu_diff))
          end
       end
    end
@@ -265,16 +303,24 @@ local function history_action(args, name)
    else
       local dat, nrow = sqlConn:exec(string.format(
          "select * from RegressionData where name=='%s'", tNm))
-      local fmt  = "%-20s %-30s %-5s %-7s %-4s"
-      local fmt1 = "%-20s %-30s %-5s %-7s %.4g"
-      print(string.format(fmt, "Time-Stamp", "Changeset", "Type", "Status", "Run-Time"))
+      local fmt  = "%-20s %-30s %-5s %-7s %-9s %-10s %-7s"
+      local fmt1 = "%-20s %-30s %-5s %-7s %.4g      %-10s %-7s"
+      print(string.format(fmt, "Time-Stamp", "Changeset", "Type",
+         "Status", "Run-Time", "GPU-Status", "CPU=GPU"))
       for i = 1, nrow do
          local guid = dat['guid'][i]
          local tstamp, changeset = sqlConn:rowexec(string.format(
             "select tstamp, GKYL_GIT_CHANGESET from RegressionMeta where guid='%s'", guid))
-         local stat = statusToString[tonumber(dat['status'][i])]
-         local ttype = dat['test_type'] and dat['test_type'][i] or "?"
-         print(string.format(fmt1, tstamp, changeset, ttype, stat, dat['runtime'][i]))
+         local stat    = statusToString[tonumber(dat['status'][i])]
+         local ttype   = dat['test_type'] and dat['test_type'][i] or "?"
+         local gpuStat = dat['gpu_status']
+            and (statusToString[tonumber(dat['gpu_status'][i])] or "skip")
+            or "skip"
+         local cgDiff  = dat['cpu_gpu_diff']
+            and (cpuGpuDiffToString[tonumber(dat['cpu_gpu_diff'][i])] or "n/a")
+            or "n/a"
+         print(string.format(fmt1, tstamp, changeset, ttype,
+            stat, dat['runtime'][i], gpuStat, cgDiff))
       end
    end
 end
@@ -314,6 +360,8 @@ local c_query = parser:command("query",
 c_query:option("-i --id", "ID of the run to query (from summary command)", 1)
 c_query:flag("-f --fail-only", "Show only failed tests", false)
 c_query:flag("-p --pass-only", "Show only passed tests", false)
+c_query:flag("-g --gpu-fail-only",
+   "Show only tests where GPU failed but CPU passed", false)
 c_query:flag("-l --comma-list", "Output test names as a comma-separated list", false)
 c_query:option("-t --test", "Print the full run log for this test number", 0)
 c_query:flag("--net-time", "Print total wall-clock time for the run", false)
