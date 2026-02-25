@@ -5,7 +5,7 @@ module load cudatoolkit/13.0
 module load nccl/2.29.2-cu13
 module load cray-libsci/25.09.0
 
-: "${PREFIX:=/pscratch/sd/m/mana/gkeyll/code/gkeyll_gpu1/gkylsoft}"
+: "${PREFIX:=$HOME/gkylsoft}"
 
 cd install-deps
 ./mkdeps.sh --build-superlu=yes --build-cudss=yes --prefix=$PREFIX --build-luajit=yes MPICC=mpicc  MPICXX=mpicxx --build-adas=yes
