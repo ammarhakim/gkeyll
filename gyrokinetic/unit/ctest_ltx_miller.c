@@ -108,7 +108,7 @@ test_ltx_miller()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.4,
     .rleft= 0.2,
     .rright= 0.45,
@@ -123,7 +123,7 @@ test_ltx_miller()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
     .grid = cgrid,

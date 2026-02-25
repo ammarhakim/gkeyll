@@ -21,14 +21,12 @@ struct gkyl_gk_anomalous_diffusion_auxfields {
  * @param conf_range Conf-space range object.
  * @param bc_x_lower Boundary condition at lower x boundary.
  * @param bc_x_upper Boundary condition at upper x boundary.
- * @param skip_cell_threshold Threshold which to skip cells
  * @param use_gpu Whether to run on host or device.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn* gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  double skip_cell_threshold, bool use_gpu);
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu);
 
 /**
  * Set the auxiliary fields (e.g. diffusivity).

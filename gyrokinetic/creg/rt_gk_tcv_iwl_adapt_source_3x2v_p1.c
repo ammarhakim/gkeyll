@@ -813,7 +813,7 @@ main(int argc, char **argv)
   
   // Geometry
   struct gkyl_gyrokinetic_geometry geometry = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.},
     .mapc2p = mapc2p, // mapping of cCOREutational to physical space
     .c2p_ctx = &ctx,
