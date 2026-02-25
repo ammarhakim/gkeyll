@@ -7,8 +7,8 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
+MPICC=mpicc
+MPICXX=mpicxx
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
@@ -148,6 +148,8 @@ do
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
+      MPICC=$PREFIX/openmpi/bin/mpicc
+      MPICXX=$PREFIX/openmpi/bin/mpicxx
       ;;   
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
