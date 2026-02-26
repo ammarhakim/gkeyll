@@ -45,10 +45,26 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
  * This is used to implement a mu-dependent vcut in the sheath BC, 
  * where alpha_mu is the mu dependent multiplying factor in the expression for vcut.
  * 
- * @param up
- * @param alpha_mu 
+ * @param up BC updater.
+ * @param alpha_mu The alpha_mu array to use in the sheath BC.
  */
 void gkyl_bc_sheath_gyrokinetic_set_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *alpha_mu);
+
+/**
+ * Get the alpha_mu array used in the sheath BC.
+ * 
+ * @param up BC updater.
+ * @param alpha_mu On output, the alpha_mu array used in the sheath BC.
+ */
+void gkyl_bc_sheath_gyrokinetic_get_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *alpha_mu);
+
+/**
+ * Get the basis of the alpha_mu array used in the sheath BC.
+ * 
+ * @param up BC updater.
+ * @param alpha_mu_basis On output, the basis of the alpha_mu array used in the sheath BC.
+ */
+void gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *alpha_mu_basis);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
