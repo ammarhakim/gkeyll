@@ -39,7 +39,7 @@ momentApp = Moments.App.new {
   cflFrac = cfl_frac,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x- and y-directions).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
   
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
@@ -73,7 +73,7 @@ momentApp = Moments.App.new {
       local shift_der = Minkowski.shiftVectorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
 
-      b = amp * math.sin(2.0 * pi * x)
+      local b = amp * math.sin(2.0 * pi * x)
       spatial_metric[2][2] = 1.0 + b
       spatial_metric[3][3] = 1.0 - b
 

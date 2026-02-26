@@ -39,7 +39,7 @@ momentApp = Moments.App.new {
   cflFrac = cfl_frac,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x- and y-directions).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
   
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
@@ -80,7 +80,13 @@ momentApp = Moments.App.new {
       local bssn_conformal_fact_der = Minkowski.bssnConformalFactorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local bssn_conformal_fact_der2 = Minkowski.bssnConformalFactorDer2(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
 
-      b = amp * math.sin(2.0 * pi * x)
+      local b = amp * math.sin(2.0 * pi * x)
+      conformal_spatial_det = 1.0 - (b * b)
+      conformal_fact = math.pow(conformal_spatial_det, 1.0 / 12.0)
+      conformal_fact_der[1] = ((amp * amp) * pi * math.cos(2.0 * pi * x) * math.sin(2.0 * pi * x)) / (3.0 * math.pow(1.0 - ((amp * amp) * (math.sin(2.0 * pi * x) * math.sin(2.0 * pi * x))), 11.0 / 12.0))
+      bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact)
+
+      conformal_spatial_metric[1][1] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
       conformal_spatial_metric[2][2] = (1.0 + b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
       conformal_spatial_metric[3][3] = (1.0 - b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
 
@@ -90,7 +96,7 @@ momentApp = Moments.App.new {
       conformal_spatial_metric_der[1][2][2] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
       conformal_spatial_metric_der[1][3][3] = -2.0 * amp * pi * math.cos(2.0 * pi * x)
 
-      conformal_spatial_det = 1.0 - (b * b)
+      inv_conformal_spatial_metric[1][1] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
       inv_conformal_spatial_metric[2][2] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
       inv_conformal_spatial_metric[3][3] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
 
@@ -99,7 +105,7 @@ momentApp = Moments.App.new {
           for k = 1, 3 do
             conformal_spatial_metric_der[i][j][k] = 0.5 * conformal_spatial_metric_der[i][j][k]
             conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-            conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] - (2.0 * conformal_fact_der[i] * conformal_spatial_metric[j][k]);
+            conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] - (2.0 * conformal_fact_der[i] * conformal_spatial_metric[j][k])
 
           end
 

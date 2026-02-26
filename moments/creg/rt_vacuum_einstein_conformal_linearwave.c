@@ -171,8 +171,10 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   double b = amp * sin(2.0 * pi * x);
   conformal_spatial_det = 1.0 - (b * b);
   conformal_fact = pow(conformal_spatial_det, 1.0 / 12.0);
+  conformal_fact_der[0] = ((amp * amp) * pi * cos(2.0 * pi * x) * sin(2.0 * pi * x)) / (3.0 * pow(1.0 - ((amp * amp) * (sin(2.0 * pi * x) * sin(2.0 * pi * x))), 11.0 / 12.0));
   bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact);
 
+  conformal_spatial_metric[0][0] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
   conformal_spatial_metric[1][1] = (1.0 + b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
   conformal_spatial_metric[2][2] = (1.0 - b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
@@ -182,8 +184,9 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   conformal_spatial_metric_der[0][1][1] = 2.0 * amp * pi * cos(2.0 * pi * x);
   conformal_spatial_metric_der[0][2][2] = -2.0 * amp * pi * cos(2.0 * pi * x);
 
-  inv_conformal_spatial_metric[1][1] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);;
-  inv_conformal_spatial_metric[2][2] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);;
+  inv_conformal_spatial_metric[0][0] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[1][1] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[2][2] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {

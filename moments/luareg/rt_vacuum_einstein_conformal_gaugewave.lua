@@ -105,7 +105,7 @@ momentApp = Moments.App.new {
           for k = 1, 3 do
             conformal_spatial_metric_der[i][j][k] = 0.5 * conformal_spatial_metric_der[i][j][k]
             conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-            conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] - (2.0 * conformal_fact_der[i] * conformal_spatial_metric[j][k]);
+            conformal_spatial_metric_der[i][j][k] = conformal_spatial_metric_der[i][j][k] - (2.0 * conformal_fact_der[i] * conformal_spatial_metric[j][k])
 
           end
 
