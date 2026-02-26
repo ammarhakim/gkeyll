@@ -75,6 +75,8 @@ static struct tool_description tool_list[] = {
   {"multimomlinear", "multimomlinear.lua",
    "Linear dispersion solver for multi-moment, multifluid equations"},  
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
+  {"mirrorgridgen", "mirrorgridgen.lua", "Generate grid for use in mirror simulations"},
+  {"tokagridgen", "tokagridgen.lua", "Generate grid for use in tokamak simulations"},
   {0, 0}
 };
 
