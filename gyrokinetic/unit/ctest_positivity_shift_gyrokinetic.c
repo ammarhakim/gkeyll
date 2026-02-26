@@ -166,7 +166,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
     .bfield_func = eval_bfield_1x,  .bfield_ctx = &proj_ctx,
     .basis = confBasis,  .grid = confGrid,
@@ -228,6 +228,7 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *deltaf;
   deltaf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_array_set(deltaf, -1.0, distf);
+
 
   struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
     basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu);

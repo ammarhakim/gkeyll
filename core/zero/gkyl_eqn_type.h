@@ -151,10 +151,11 @@ enum gkyl_react_self_type {
 
 // Identifiers for specific geometry types
 enum gkyl_geometry_id {
-  GKYL_TOKAMAK, // Tokamak Geometry from Efit
-  GKYL_MIRROR, // Mirror Geometry from Efit
-  GKYL_MAPC2P, // General geometry from user provided mapc2p
-  GKYL_GEOMETRY_FROMFILE, // Geometry from file
+  GKYL_GEOMETRY_NONE = 0, // No geometry, use Cartesian.
+  GKYL_GEOMETRY_TOKAMAK, // Tokamak Geometry from Efit.
+  GKYL_GEOMETRY_MIRROR, // Mirror Geometry from Efit.
+  GKYL_GEOMETRY_MAPC2P, // General geometry from user provided mapc2p.
+  GKYL_GEOMETRY_FROMFILE, // Geometry from file.
 };
 
 // type of quadrature to use
