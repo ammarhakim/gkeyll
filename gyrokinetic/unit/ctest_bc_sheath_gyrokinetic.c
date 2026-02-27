@@ -40,31 +40,31 @@ struct test_sheath_ctx {
 };
 
 void
-eval_func_alpha_mu(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_func_vcut_fact(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double vpar = xn[0], mu = xn[1];
 
   double Lmu = 1.0; // Characteristic scale length in mu direction.
-  double alpha_mu_0 = 1.0;
+  double vcut_fact_0 = 1.0;
 
-  double alpha_mu = alpha_mu_0 * (1 + exp(-mu/Lmu));
-  fout[0] =  pow(alpha_mu, 2);
+  double vcut_fact = vcut_fact_0 * (1 + exp(-mu/Lmu));
+  fout[0] =  pow(vcut_fact, 2);
 }
 
 // Build the alpha(mu) array used in the sheath BC to make the vpar cut vary with mu.
 void
-setup_alpha_mu_array(struct gkyl_array *alpha_mu, const struct gkyl_basis *basis_vel, 
+setup_vcut_fact_array(struct gkyl_array *vcut_fact, const struct gkyl_basis *basis_vel, 
   const struct gkyl_velocity_map *grid_vel)
 {  
   gkyl_proj_on_basis *projalphamu = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid_vel->grid_vel,
       .basis = basis_vel,
       .num_ret_vals = 1,
-      .eval = eval_func_alpha_mu,
+      .eval = eval_func_vcut_fact,
       .ctx = NULL,
     }
   );
-  gkyl_proj_on_basis_advance(projalphamu, 0.0, &grid_vel->local_vel, alpha_mu);
+  gkyl_proj_on_basis_advance(projalphamu, 0.0, &grid_vel->local_vel, vcut_fact);
   gkyl_proj_on_basis_release(projalphamu);
 }
 
@@ -167,21 +167,21 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
     double vr_min = fmin(fabs(cell_lower_vpar), fabs(cell_upper_vpar));
     double vr_max = fmax(fabs(cell_lower_vpar), fabs(cell_upper_vpar));
 
-    // Compute the vpar cut radius at the lower and upper mu boundaries (assumes alpha_mu is monotonic in mu).
+    // Compute the vpar cut radius at the lower and upper mu boundaries (assumes vcut_fact is monotonic in mu).
     double cell_lower_mu = xc[cdim+1] - 0.5*grid.dx[cdim+1];
     double cell_upper_mu = xc[cdim+1] + 0.5*grid.dx[cdim+1];
-    double alpha_mu_lower[1], alpha_mu_upper[1];
-    eval_func_alpha_mu(0, (double[]){xc[cdim], cell_lower_mu}, alpha_mu_lower, NULL);
-    eval_func_alpha_mu(0, (double[]){xc[cdim], cell_upper_mu}, alpha_mu_upper, NULL);
-    double vpcr_lower = sqrt(alpha_mu_lower[0]) * vpar_cut_radius;
-    double vpcr_upper = sqrt(alpha_mu_upper[0]) * vpar_cut_radius;
+    double vcut_fact_lower[1], vcut_fact_upper[1];
+    eval_func_vcut_fact(0, (double[]){xc[cdim], cell_lower_mu}, vcut_fact_lower, NULL);
+    eval_func_vcut_fact(0, (double[]){xc[cdim], cell_upper_mu}, vcut_fact_upper, NULL);
+    double vpcr_lower = sqrt(vcut_fact_lower[0]) * vpar_cut_radius;
+    double vpcr_upper = sqrt(vcut_fact_upper[0]) * vpar_cut_radius;
     double vpcr_min = fmin(vpcr_lower, vpcr_upper);
     double vpcr_max = fmax(vpcr_lower, vpcr_upper);
 
-    // print vpar cell upper and lower, vpar cut radius, and alpha_mu for upper and lower mu boundaries for debugging.
+    // print vpar cell upper and lower, vpar cut radius, and vcut_fact for upper and lower mu boundaries for debugging.
     // printf("idx_g: %d,%d,%d | cell lower vpar: %.2e | cell upper vpar: %.2e | vpcr lower: %.2e 
-    //         | vpcr upper: %.2e | alpha_mu lower: %.2e | alpha_mu upper %.2e\n", idx_g[0], idx_g[1], 
-    //         idx_g[2], cell_lower_vpar, cell_upper_vpar, vpcr_lower, vpcr_upper, alpha_mu_lower[0], alpha_mu_upper[0]);
+    //         | vpcr upper: %.2e | vcut_fact lower: %.2e | vcut_fact upper %.2e\n", idx_g[0], idx_g[1], 
+    //         idx_g[2], cell_lower_vpar, cell_upper_vpar, vpcr_lower, vpcr_upper, vcut_fact_lower[0], vcut_fact_upper[0]);
     // printf(" vr: %.2e > vpcr_max: %.2e | qphi_sign: %.2e\n", vr_min, vpcr_max, qphi_sign);
     num_cells++;
     num_zero_cells += distf_c[0] > tol ? 0 : 1;
@@ -381,15 +381,15 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis alpha_mu_basis;
-  gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(bcsheath, &alpha_mu_basis);
-  struct gkyl_array *alpha_mu = mkarr(use_gpu, alpha_mu_basis.num_basis, local_vel.volume);
-  struct gkyl_array *alpha_mu_ho = use_gpu? mkarr(false, alpha_mu->ncomp, alpha_mu->size) : gkyl_array_acquire(alpha_mu);
-  setup_alpha_mu_array(alpha_mu_ho, &alpha_mu_basis, gvm);
-  gkyl_array_copy(alpha_mu, alpha_mu_ho);
+  struct gkyl_basis vcut_fact_basis;
+  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
+  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+  gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
   // Update the BC updater with alpha(mu) array.
-  gkyl_bc_sheath_gyrokinetic_set_alpha_mu(bcsheath, alpha_mu);
+  gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -420,8 +420,8 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_array_release(alpha_mu);
-  gkyl_array_release(alpha_mu_ho);
+  gkyl_array_release(vcut_fact);
+  gkyl_array_release(vcut_fact_ho);
 }
 
 void
@@ -568,15 +568,15 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis alpha_mu_basis;
-  gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(bcsheath, &alpha_mu_basis);
-  struct gkyl_array *alpha_mu = mkarr(use_gpu, alpha_mu_basis.num_basis, local_vel.volume);
-  struct gkyl_array *alpha_mu_ho = use_gpu? mkarr(false, alpha_mu->ncomp, alpha_mu->size) : gkyl_array_acquire(alpha_mu);
-  setup_alpha_mu_array(alpha_mu_ho, &alpha_mu_basis, gvm);
-  gkyl_array_copy(alpha_mu, alpha_mu_ho);
+  struct gkyl_basis vcut_fact_basis;
+  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
+  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+  gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
   // Update the BC updater with alpha(mu) array.
-  gkyl_bc_sheath_gyrokinetic_set_alpha_mu(bcsheath, alpha_mu);
+  gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -607,8 +607,8 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_array_release(alpha_mu);
-  gkyl_array_release(alpha_mu_ho);
+  gkyl_array_release(vcut_fact);
+  gkyl_array_release(vcut_fact_ho);
 }
 
 void
@@ -759,15 +759,15 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
   // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis alpha_mu_basis;
-  gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(bcsheath, &alpha_mu_basis);
-  struct gkyl_array *alpha_mu = mkarr(use_gpu, alpha_mu_basis.num_basis, local_vel.volume);
-  struct gkyl_array *alpha_mu_ho = use_gpu? mkarr(false, alpha_mu->ncomp, alpha_mu->size) : gkyl_array_acquire(alpha_mu);
-  setup_alpha_mu_array(alpha_mu_ho, &alpha_mu_basis, gvm);
-  gkyl_array_copy(alpha_mu, alpha_mu_ho);
+  struct gkyl_basis vcut_fact_basis;
+  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
+  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+  gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
   // Update the BC updater with alpha(mu) array.
-  gkyl_bc_sheath_gyrokinetic_set_alpha_mu(bcsheath, alpha_mu);
+  gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -798,8 +798,8 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_array_release(alpha_mu);
-  gkyl_array_release(alpha_mu_ho);
+  gkyl_array_release(vcut_fact);
+  gkyl_array_release(vcut_fact_ho);
 }
 
 void test_bc_sheath_gk_1x2v_ho()
@@ -813,7 +813,7 @@ void test_bc_sheath_gk_1x2v_ho()
   // Electrons with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = -1.0;
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
   test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
 
@@ -850,7 +850,7 @@ void test_bc_sheath_gk_2x2v_ho()
   // Electrons with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = -1.0;
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
   test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
 
@@ -887,7 +887,7 @@ void test_bc_sheath_gk_3x2v_ho()
   // Electrons with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = -1.0;
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
   test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
 

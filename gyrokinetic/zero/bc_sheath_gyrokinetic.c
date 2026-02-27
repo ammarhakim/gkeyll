@@ -33,11 +33,11 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  gkyl_cart_modal_gkhybrid(&up->alpha_mu_basis, 0, vel_map->local_vel.ndim);
-  up->alpha_mu = mkarr(use_gpu, up->alpha_mu_basis.num_basis, vel_map->local_vel.volume);
-  // Set the alpha_mu array to 1 by default (constant vcut).
-  double dg_norm = pow(sqrt(2), up->alpha_mu_basis.ndim);
-  gkyl_array_shiftc_range(up->alpha_mu, dg_norm, 0, &vel_map->local_vel);
+  gkyl_cart_modal_gkhybrid(&up->vcut_fact_basis, 0, vel_map->local_vel.ndim);
+  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis.num_basis, vel_map->local_vel.volume);
+  // Set the vcut_fact array to 1 by default (constant vcut).
+  double dg_norm = pow(sqrt(2), up->vcut_fact_basis.ndim);
+  gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &vel_map->local_vel);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -100,7 +100,7 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
-    const double *alpha_mu_p = (const double*) gkyl_array_cfetch(up->alpha_mu, vel_loc);
+    const double *alpha_mu_p = (const double*) gkyl_array_cfetch(up->vcut_fact, vel_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
 
     // Calculate reflected distribution function fhat.
@@ -116,19 +116,19 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
   }
 }
 
-void gkyl_bc_sheath_gyrokinetic_set_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *alpha_mu)
+void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact)
 {
-  gkyl_array_copy_range(up->alpha_mu, alpha_mu, &up->vel_map->local_vel);
+  gkyl_array_copy_range(up->vcut_fact, vcut_fact, &up->vel_map->local_vel);
 }
 
-void gkyl_bc_sheath_gyrokinetic_get_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *alpha_mu)
+void gkyl_bc_sheath_gyrokinetic_get_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *vcut_fact)
 {
-  gkyl_array_copy_range(alpha_mu, up->alpha_mu, &up->vel_map->local_vel);
+  gkyl_array_copy_range(vcut_fact, up->vcut_fact, &up->vel_map->local_vel);
 }
 
-void gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *alpha_mu_basis)
+void gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *vcut_fact_basis)
 {
-  gkyl_cart_modal_gkhybrid(alpha_mu_basis, 0, up->vel_map->local_vel.ndim);
+  gkyl_cart_modal_gkhybrid(vcut_fact_basis, 0, up->vel_map->local_vel.ndim);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
@@ -140,7 +140,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
   }
 #endif
   gkyl_velocity_map_release(up->vel_map);
-  gkyl_array_release(up->alpha_mu);
+  gkyl_array_release(up->vcut_fact);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }

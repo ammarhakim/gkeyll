@@ -8,7 +8,7 @@
 
 // Function pointer type for sheath reflection kernels.
 typedef void (*sheath_reflectedf_t)(const double *vmap, const double q2Dm,
-  const double *phi, const double *phiWall, const double *alpha_mu, const double *f, double *fRefl);
+  const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl);
 
 typedef struct { sheath_reflectedf_t kernels[3]; } sheath_reflectedf_kern_list;  // For use in kernel tables.
 typedef struct { sheath_reflectedf_kern_list list[4]; } edged_sheath_reflectedf_kern_list;
@@ -48,8 +48,8 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
-  struct gkyl_array *alpha_mu; // factor for mu dependent vcut in sheath BC.
-  struct gkyl_basis alpha_mu_basis; // Basis for alpha_mu array (gk hybrid basis in velocity space).
+  struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
+  struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (gk hybrid basis in velocity space).
 };
 
 void
@@ -89,11 +89,11 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
  * @param up BC updater.
  * @param phi Electrostatic potential.
  * @param phi_wall Wall potential.
- * @param alpha_mu Alpha(mu) factor for mu dependent reflection.
+ * @param vcut_fact Alpha(mu) factor for mu dependent reflection.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
 void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, const struct gkyl_array *alpha_mu, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+  const struct gkyl_array *phi_wall, const struct gkyl_array *vcut_fact, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 #endif

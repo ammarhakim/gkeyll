@@ -33,7 +33,7 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * @param up BC updater.
  * @param phi Electrostatic potential.
  * @param phi_wall Wall potential.
- * @param alpha_mu Alpha parameter for sheath BCs.
+ * @param vcut_fact Alpha parameter for sheath BCs.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
@@ -41,30 +41,30 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 /**
- * Set the alpha_mu array used in the sheath BC. 
+ * Set the vcut_fact array used in the sheath BC. 
  * This is used to implement a mu-dependent vcut in the sheath BC, 
- * where alpha_mu is the mu dependent multiplying factor in the expression for vcut.
+ * where vcut_fact is the mu dependent multiplying factor in the expression for vcut.
  * 
  * @param up BC updater.
- * @param alpha_mu The alpha_mu array to use in the sheath BC.
+ * @param vcut_fact The vcut_fact array to use in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_set_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *alpha_mu);
+void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
 
 /**
- * Get the alpha_mu array used in the sheath BC.
+ * Get the vcut_fact array used in the sheath BC.
  * 
  * @param up BC updater.
- * @param alpha_mu On output, the alpha_mu array used in the sheath BC.
+ * @param vcut_fact On output, the vcut_fact array used in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_get_alpha_mu(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *alpha_mu);
+void gkyl_bc_sheath_gyrokinetic_get_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *vcut_fact);
 
 /**
- * Get the basis of the alpha_mu array used in the sheath BC.
+ * Get the basis of the vcut_fact array used in the sheath BC.
  * 
  * @param up BC updater.
- * @param alpha_mu_basis On output, the basis of the alpha_mu array used in the sheath BC.
+ * @param vcut_fact_basis On output, the basis of the vcut_fact array used in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_get_alpha_mu_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *alpha_mu_basis);
+void gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *vcut_fact_basis);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
