@@ -104,8 +104,8 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
   const double *vm = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx);
   const double *vm_sq = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx);
   const double *bmag = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx);
-  // const double *jacobtot_inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.jacobtot_inv, cidx);gk_geom->geo_int.bmag_nodal
-  const double *jacobtot_inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bmag_inv, cidx);
+  // The jacobtot_inv is not used anymore.
+  const double *jacobtot_inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.jacobtot_inv, cidx);
   const double *b_i = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.b_i, cidx);
   const double *dualcurlbhatoverB = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx);
   const double *rtg33inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx);
