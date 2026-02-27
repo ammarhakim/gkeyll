@@ -33,7 +33,11 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  gkyl_cart_modal_gkhybrid(&up->vcut_fact_basis, 0, vel_map->local_vel.ndim);
+  // Create a special phase space basis and range for the vcut_fact array.
+  // Function of perpendicular config space coordinates and magnetic moment, i.e. 
+  // [mu],[x,mu],[x,y,mu] for 1x2v, 2x2v, 3x2v respectively.
+  // gkyl_cart_modal_gkhybrid(&up->vcut_fact_basis, cdim-1, vel_map->local_vel.ndim-1);
+
   up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis.num_basis, vel_map->local_vel.volume);
   // Set the vcut_fact array to 1 by default (constant vcut).
   double dg_norm = pow(sqrt(2), up->vcut_fact_basis.ndim);

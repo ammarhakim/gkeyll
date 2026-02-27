@@ -50,6 +50,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
   struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
   struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (gk hybrid basis in velocity space).
+  struct gkyl_range vcut_fact_range; // Range for vcut_fact array.
 };
 
 void
