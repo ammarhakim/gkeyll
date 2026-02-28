@@ -185,7 +185,7 @@ gkyl_moment_em_coupling_release(gkyl_moment_em_coupling* mom_em);
 * @param spacetime
 */
 void
-gkyl_moment_em_coupling_explicit_advance_spacetime(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
+gkyl_moment_em_coupling_implicit_advance_spacetime(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array *app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
-  const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj* proj_app_curr, int nstrang, const struct gkyl_gr_spacetime *spacetime);
+  const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj* proj_app_curr, int nstrang, struct gkyl_gr_spacetime *spacetime);

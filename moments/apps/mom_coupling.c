@@ -374,10 +374,9 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
   }
-  bool dynamic;
-  dynamic = true;
-  if (dynamic) {
-    gkyl_moment_em_coupling_explicit_advance_spacetime(src->slvr, tcurr, dt, &app->local,
+  
+  if (app->num_species > 0 && app->spacetime != NULL) {
+    gkyl_moment_em_coupling_implicit_advance_spacetime(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
       app->field.app_current2, app->field.ext_em, 

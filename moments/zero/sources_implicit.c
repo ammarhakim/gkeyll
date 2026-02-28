@@ -568,6 +568,91 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
 }
 
 void
+implicit_source_coupling_update_spacetime(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
+  const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES],
+  struct gkyl_gr_spacetime *spacetime)
+{
+  
+  implicit_einstein_source_update(mom_em, t_curr, dt, fluid_s, spacetime); // for now called implicit, but now is SSP-RK3)
+
+  const struct gkyl_wv_eqn *eqn = spacetime->vacuum_einstein;
+
+  int nfluids = mom_em->nfluids;
+
+  double *einstein_f = NULL;
+  for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type == GKYL_EQN_VACUUM_EINSTEIN) {
+      einstein_f = fluid_s[i];
+      break;
+    }
+  }
+
+  if (einstein_f) {
+    for (int i = 0; i < nfluids; i++) {
+      double *f = fluid_s[i];
+      if (mom_em->param[i].type == GKYL_EQN_GR_EULER) {
+        f[5] = einstein_f[9]; // lapse
+        f[6]  = einstein_f[52]; // shift_x
+        f[7]  = einstein_f[53]; // shift_y
+        f[8]  = einstein_f[54]; // shift_z
+
+        for (int k = 0; k < 9; k++) {
+          f[9 + k] = einstein_f[0 + k]; // spatial_metric
+        }
+
+        for (int k = 0; k < 9; k++) {
+          f[18 + k] = einstein_f[10 + k]; // extrinsic_curvature
+        }
+
+        f[27] = 1.0;  // not in excision region
+
+        f[28] = einstein_f[46]; // lapse_der[0]
+        f[29] = einstein_f[47]; // lapse_der[1]
+        f[30] = einstein_f[48]; // lapse_der[2]
+
+        for (int k = 0; k < 9; k++) {
+          f[31 + k] = einstein_f[55 + k]; // shift_der
+        }
+
+        for (int k = 0; k < 27; k++) {
+          f[40 + k] = einstein_f[19 + k]; // spatial_metric_der
+        }
+      }
+      else if (mom_em->param[i].type == GKYL_EQN_GR_ULTRA_REL_EULER) {
+        f[4] = einstein_f[9]; // lapse
+        f[5]  = einstein_f[52]; // shift_x
+        f[6]  = einstein_f[53]; // shift_y
+        f[7]  = einstein_f[54]; // shift_z
+
+        for (int k = 0; k < 9; k++) {
+          f[8 + k] = einstein_f[0 + k]; // spatial_metric
+        }
+
+        for (int k = 0; k < 9; k++) {
+          f[17 + k] = einstein_f[10 + k]; // extrinsic_curvature
+        }
+
+        f[26] = 1.0;  // not in excision region
+
+        f[27] = einstein_f[46]; // lapse_der[0]
+        f[28] = einstein_f[47]; // lapse_der[1]
+        f[29] = einstein_f[48]; // lapse_der[2]
+
+        for (int k = 0; k < 9; k++) {
+          f[30 + k] = einstein_f[55 + k]; // shift_der
+        }
+
+        for (int k = 0; k < 27; k++) {
+          f[39 + k] = einstein_f[19 + k]; // spatial_metric_der
+        }
+      }
+    }
+  }
+  
+}
+
+void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
   const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES])

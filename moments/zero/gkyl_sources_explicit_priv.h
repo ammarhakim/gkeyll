@@ -241,6 +241,33 @@ void
 explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
+* Integrate the general relativistic source terms (Euler equations, general equation of state) in the multi-fluid equation system within a
+* single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param spacetime 
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param einstein_old 
+* @param fluid_old
+* @param einstein_new
+*/
+static void
+implicit_einstein_source_update_euler( const gkyl_moment_em_coupling* mom_em, struct gkyl_gr_spacetime *spacetime, double t_curr, double dt, 
+  const double *einstein_old, double *fluid_s[GKYL_MAX_SPECIES], double *einstein_new);
+
+/**
+
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+* @param spacetime
+*/
+void
+implicit_einstein_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES], struct gkyl_gr_spacetime *spacetime);
+/**
 * Integrate the electron coupling source terms in the general relativistic two-fluid equation system within a single cell, using an explicit
 * forcing solver (specifically a simple first-order forward-Euler method).
 *

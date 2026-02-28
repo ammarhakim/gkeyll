@@ -4,6 +4,9 @@
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
+#include <gkyl_wv_vacuum_einstein.h>
+#include <gkyl_wv_gr_euler_priv.h>
+#include <gkyl_wv_gr_ultra_rel_euler_priv.h>
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -767,29 +770,15 @@ void
 explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, double t_curr, const double dt,
   double* fluid_old, double* fluid_new)
 {
-  struct gkyl_gr_spacetime *spacetime = mom_em->spacetime;
-  
-  double x, y, z;
-  
-  x = fluid_old[68];
-  y = fluid_old[69];
-  z = fluid_old[70];
+  double lapse = fluid_old[5];
+  double shift_x = fluid_old[6];
+  double shift_y = fluid_old[7];
+  double shift_z = fluid_old[8];
 
-  double lapse;  
-  spacetime->lapse_function_func(spacetime, t_curr, x, y, z, &lapse);  //double lapse = fluid_old[5];
-  
-  
-  double *shift_vect, shift_x, shift_y, shift_z;
-  spacetime->shift_vector_func(spacetime, t_curr, x, y, z, &shift_vect);
-  shift_x = shift_vect[0]; shift_y = shift_vect[1]; shift_z = shift_vect[2];
-
-
-  double **spatial_metric_tensor, spatial_metric[3][3];
-  spacetime->spatial_metric_tensor_func(spacetime, t_curr, x, y, z, &spatial_metric_tensor);
-  spatial_metric[0][0] = spatial_metric_tensor[0][0]; spatial_metric[0][1] = spatial_metric_tensor[0][1]; spatial_metric[0][2] = spatial_metric_tensor[0][2];
-  spatial_metric[1][0] = spatial_metric_tensor[1][0]; spatial_metric[1][1] = spatial_metric_tensor[1][1]; spatial_metric[1][2] = spatial_metric_tensor[1][2];
-  spatial_metric[2][0] = spatial_metric_tensor[2][0]; spatial_metric[2][1] = spatial_metric_tensor[2][1]; spatial_metric[2][2] = spatial_metric_tensor[2][2];
-
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = fluid_old[9]; spatial_metric[0][1] = fluid_old[10]; spatial_metric[0][2] = fluid_old[11];
+  spatial_metric[1][0] = fluid_old[12]; spatial_metric[1][1] = fluid_old[13]; spatial_metric[1][2] = fluid_old[14];
+  spatial_metric[2][0] = fluid_old[15]; spatial_metric[2][1] = fluid_old[16]; spatial_metric[2][2] = fluid_old[17];
 
   double inv_spatial_metric[3][3];
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
@@ -840,11 +829,10 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
     }
   }
 
-  double **extrinsic_curvature_tensor, extrinsic_curvature[3][3];
-  spacetime->extrinsic_curvature_tensor_func(spacetime, t_curr, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature_tensor);
-  extrinsic_curvature[0][0] = extrinsic_curvature_tensor[0][0]; extrinsic_curvature[0][1] = extrinsic_curvature_tensor[0][1]; extrinsic_curvature[0][2] = extrinsic_curvature_tensor[0][2];
-  extrinsic_curvature[1][0] = extrinsic_curvature_tensor[1][0]; extrinsic_curvature[1][1] = extrinsic_curvature_tensor[1][1]; extrinsic_curvature[1][2] = extrinsic_curvature_tensor[1][2];
-  extrinsic_curvature[2][0] = extrinsic_curvature_tensor[2][0]; extrinsic_curvature[2][1] = extrinsic_curvature_tensor[2][1]; extrinsic_curvature[2][2] = extrinsic_curvature_tensor[2][2];
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = fluid_old[18]; extrinsic_curvature[0][1] = fluid_old[19]; extrinsic_curvature[0][2] = fluid_old[20];
+  extrinsic_curvature[1][0] = fluid_old[21]; extrinsic_curvature[1][1] = fluid_old[22]; extrinsic_curvature[1][2] = fluid_old[23];
+  extrinsic_curvature[2][0] = fluid_old[24]; extrinsic_curvature[2][1] = fluid_old[25]; extrinsic_curvature[2][2] = fluid_old[26];
 
   bool in_excision_region = false;
   if (fluid_old[27] < pow(10.0, -8.0)) {
@@ -933,32 +921,24 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
       }
     }
 
-    double *lapse_der_vec, lapse_der[3];
-    spacetime->lapse_function_der_func(spacetime, t_curr, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_vec);
-    lapse_der[0] = lapse_der_vec[0];
-    lapse_der[1] = lapse_der_vec[1];
-    lapse_der[2] = lapse_der_vec[2];
+    double lapse_der[3];
+    lapse_der[0] = fluid_old[28];
+    lapse_der[1] = fluid_old[29];
+    lapse_der[2] = fluid_old[30];
 
-    double **shift_der_vec, shift_der[3][3];
-    spacetime->shift_vector_der_func(spacetime, t_curr, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_vec);
-    shift_der[0][0] = shift_der_vec[0][0]; shift_der[0][1] = shift_der_vec[0][1]; shift_der[0][2] = shift_der_vec[0][2];
-    shift_der[1][0] = shift_der_vec[1][0]; shift_der[1][1] = shift_der_vec[1][1]; shift_der[1][2] = shift_der_vec[1][2];
-    shift_der[2][0] = shift_der_vec[2][0]; shift_der[2][1] = shift_der_vec[2][1]; shift_der[2][2] = shift_der_vec[2][2];
+    double shift_der[3][3];
+    shift_der[0][0] = fluid_old[31]; shift_der[0][1] = fluid_old[32]; shift_der[0][2] = fluid_old[33];
+    shift_der[1][0] = fluid_old[34]; shift_der[1][1] = fluid_old[35]; shift_der[1][2] = fluid_old[36];
+    shift_der[2][0] = fluid_old[37]; shift_der[2][1] = fluid_old[38]; shift_der[2][2] = fluid_old[39];
 
+    double spatial_metric_der[3][3][3];
+    spatial_metric_der[0][0][0] = fluid_old[40]; spatial_metric_der[0][0][1] = fluid_old[41]; spatial_metric_der[0][0][2] = fluid_old[42];
+    spatial_metric_der[0][1][0] = fluid_old[43]; spatial_metric_der[0][1][1] = fluid_old[44]; spatial_metric_der[0][1][2] = fluid_old[45];
+    spatial_metric_der[0][2][0] = fluid_old[46]; spatial_metric_der[0][2][1] = fluid_old[47]; spatial_metric_der[0][2][2] = fluid_old[48];
 
-    double ***spatial_metric_der_tensor, spatial_metric_der[3][3][3];
-    spacetime->spatial_metric_tensor_der_func(spacetime, t_curr, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_tensor);
-    spatial_metric_der[0][0][0] = spatial_metric_der_tensor[0][0][0]; spatial_metric_der[0][0][1] = spatial_metric_der_tensor[0][0][1]; spatial_metric_der[0][0][2] = spatial_metric_der_tensor[0][0][2];
-    spatial_metric_der[0][1][0] = spatial_metric_der_tensor[0][1][0]; spatial_metric_der[0][1][1] = spatial_metric_der_tensor[0][1][1]; spatial_metric_der[0][1][2] = spatial_metric_der_tensor[0][1][2];
-    spatial_metric_der[0][2][0] = spatial_metric_der_tensor[0][2][0]; spatial_metric_der[0][2][1] = spatial_metric_der_tensor[0][2][1]; spatial_metric_der[0][2][2] = spatial_metric_der_tensor[0][2][2];
-
-    spatial_metric_der[1][0][0] = spatial_metric_der_tensor[1][0][0]; spatial_metric_der[1][0][1] = spatial_metric_der_tensor[1][0][1]; spatial_metric_der[1][0][2] = spatial_metric_der_tensor[1][0][2];
-    spatial_metric_der[1][1][0] = spatial_metric_der_tensor[1][1][0]; spatial_metric_der[1][1][1] = spatial_metric_der_tensor[1][1][1]; spatial_metric_der[1][1][2] = spatial_metric_der_tensor[1][1][2];
-    spatial_metric_der[1][2][0] = spatial_metric_der_tensor[1][2][0]; spatial_metric_der[1][2][1] = spatial_metric_der_tensor[1][2][1]; spatial_metric_der[1][2][2] = spatial_metric_der_tensor[1][2][2];
-
-    spatial_metric_der[2][0][0] = spatial_metric_der_tensor[2][0][0]; spatial_metric_der[2][0][1] = spatial_metric_der_tensor[2][0][1]; spatial_metric_der[2][0][2] = spatial_metric_der_tensor[2][0][2];
-    spatial_metric_der[2][1][0] = spatial_metric_der_tensor[2][1][0]; spatial_metric_der[2][1][1] = spatial_metric_der_tensor[2][1][1]; spatial_metric_der[2][1][2] = spatial_metric_der_tensor[2][1][2];
-    spatial_metric_der[2][2][0] = spatial_metric_der_tensor[2][2][0]; spatial_metric_der[2][2][1] = spatial_metric_der_tensor[2][2][1]; spatial_metric_der[2][2][2] = spatial_metric_der_tensor[2][2][2];
+    spatial_metric_der[1][0][0] = fluid_old[49]; spatial_metric_der[1][0][1] = fluid_old[50]; spatial_metric_der[1][0][2] = fluid_old[51];
+    spatial_metric_der[1][1][0] = fluid_old[52]; spatial_metric_der[1][1][1] = fluid_old[53]; spatial_metric_der[1][1][2] = fluid_old[54];
+    spatial_metric_der[1][2][0] = fluid_old[55]; spatial_metric_der[1][2][1] = fluid_old[56]; spatial_metric_der[1][2][2] = fluid_old[57];
 
     double mom[3];
     mom[0] = (rho + p) * (W * W) * vx;
@@ -1004,6 +984,166 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
       fluid_new[i] = fluid_old[i];
     }
   }
+}
+
+static void
+implicit_einstein_source_update_euler( const gkyl_moment_em_coupling* mom_em, struct gkyl_gr_spacetime *spacetime, double t_curr, double dt, 
+  const double *einstein_old, double *fluid_s[GKYL_MAX_SPECIES], double *einstein_new)
+{
+  int nfluids = mom_em->nfluids;
+  for (int j = 0; j < 64; j++) {
+    einstein_new[j] = einstein_old[j];
+  }
+
+  const struct gkyl_wv_eqn *eqn = spacetime->vacuum_einstein;
+  double excision_threshold = gkyl_wv_vacuum_einstein_excision_threshold(eqn);
+
+  double lapse = einstein_old[9];
+
+  if (lapse < excision_threshold) {
+    return;  // In excision region (no source update)
+  }
+
+  double shift[3] = {einstein_old[52], einstein_old[53], einstein_old[54]};
+
+  double spatial_metric[3][3];
+  for (int i = 0; i < 3; i++){
+    for (int j = 0; j < 3; j++){
+      spatial_metric[i][j] = einstein_old[3*i + j];
+    }
+  }
+
+  double shift_lower[3] = {0.0, 0.0, 0.0};
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      shift_lower[i] += spatial_metric[i][j] * shift[j];
+    }
+  }
+
+  double beta_sq = 0.0;
+  for (int i = 0; i < 3; i++)
+    beta_sq += shift[i] * shift_lower[i];
+
+  double T_lower[4][4] = {{0.0}};
+  double T_trace = 0.0;
+  double T_0k_mixed[3] = {0.0};  // T^0_k = g_k_nu T^{0 nu}
+
+  for (int s = 0; s < nfluids; s++) {
+    double **T = gkyl_malloc(sizeof(double*[4]));
+    for (int a = 0; a < 4; a ++){
+      T[a] = gkyl_malloc(sizeof(double[4]));
+    }
+    if (mom_em->param[s].type == GKYL_EQN_GR_EULER) {
+      double gas_gamma = mom_em->gr_euler_gas_gamma;
+      gkyl_gr_euler_stress_energy_tensor(gas_gamma, fluid_s[s], &T);
+    }
+    else if (mom_em->param[s].type == GKYL_EQN_GR_ULTRA_REL_EULER) {
+      double gas_gamma = mom_em->gr_ultra_rel_gas_gamma;
+      gkyl_gr_ultra_rel_euler_stress_energy_tensor(gas_gamma, fluid_s[s], &T);
+    }
+    else {
+      for (int a = 0; a < 4; a ++) {
+        gkyl_free(T[a]);
+      }
+      gkyl_free(T);
+      continue;
+    }
+    
+    // T (4D trace) = g_mu_nu T^mu^nu
+    T_trace += (-lapse * lapse + beta_sq) * T[0][0];
+    for (int a = 0; a < 3; a++){
+      T_trace += 2.0 * shift_lower[a] * T[0][a+1];
+    }
+    for (int a = 0; a < 3; a++) {
+      for (int b = 0; b < 3; b++) {
+        T_trace += spatial_metric[a][b] * T[a+1][b+1];
+      }
+    }
+
+    // T_ij = g_i_mu g_j_nu T^mu^nu (spatial components only)
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        T_lower[i][j] += shift_lower[i] * shift_lower[j] * T[0][0];
+
+          for (int b = 0; b < 3; b++) {
+            T_lower[i][j] += shift_lower[i] * spatial_metric[j][b] * T[0][b+1];
+          }
+
+          for (int a = 0; a < 3; a++) {
+            T_lower[i][j] += spatial_metric[i][a] * shift_lower[j] * T[a+1][0];
+          }
+
+          for (int a = 0; a < 3; a++) {
+            for (int b = 0; b < 3; b++) {
+              T_lower[i][j] += spatial_metric[i][a] * spatial_metric[j][b] * T[a+1][b+1];
+            }
+          }
+      }
+    }
+
+    // T^0_k = g_k_nu T^{0 nu} = beta_k T^00 + gamma_kb T^{0b}
+    for (int k = 0; k < 3; k++) {
+      T_0k_mixed[k] += shift_lower[k] * T[0][0];
+      for (int b = 0; b < 3; b++)
+        T_0k_mixed[k] += spatial_metric[k][b] * T[0][b+1];
+    }
+
+    for (int a = 0; a < 4; a++)
+      gkyl_free(T[a]);
+    gkyl_free(T);
+  }
+
+  // First ODE, for dK_ij/dt += -8*pi*alpha*(T_ij - 0.5*gamma_ij*T) 
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double source = -8.0 * M_PI * lapse *
+        (T_lower[i][j] - 0.5 * spatial_metric[i][j] * T_trace);
+
+      einstein_new[10 + 3*i + j] += dt * source;
+    }
+  }
+
+  // Second ODE 2, for aux vec dV_k/dt += 8*pi*alpha*T^0_k
+  for (int k = 0; k < 3; k++) {
+    double source = 8.0 * M_PI * lapse * T_0k_mixed[k];
+
+    einstein_new[49 + k] += dt * source;
+  }
+
+}
+
+void
+implicit_einstein_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES], struct gkyl_gr_spacetime *spacetime)
+{
+  int nfluids = mom_em->nfluids;
+
+  for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type == GKYL_EQN_VACUUM_EINSTEIN) {
+
+      double *einstein_f = fluid_s[i];
+      double einstein_old[64], einstein_new[64], einstein_stage1[64], einstein_stage2[64];
+
+      for(int j = 0; j < 64; j++) {
+        einstein_old[j] = einstein_f[j];
+      }
+
+      implicit_einstein_source_update_euler(mom_em, spacetime, t_curr, dt, einstein_old, fluid_s, einstein_new);
+      for (int j = 0; j < 64; j ++){
+        einstein_stage1[j] = einstein_new[j];
+      }
+
+      implicit_einstein_source_update_euler(mom_em, spacetime, t_curr + dt, dt, einstein_stage1, fluid_s, einstein_new);
+      for (int j = 0; j < 64; j++) {
+        einstein_stage2[j] = 0.75 * einstein_old[j] + 0.25 * einstein_new[j];
+      }
+
+      implicit_einstein_source_update_euler(mom_em, spacetime, t_curr + 0.5 * dt, dt, einstein_stage2, fluid_s, einstein_new);
+      for (int j = 0; j < 64; j++){
+        einstein_f[j] = (1.0 / 3.0) * einstein_old[j] + (2.0 / 3.0) * einstein_new[j];
+      }
+    }
+  }
+
 }
 
 void
