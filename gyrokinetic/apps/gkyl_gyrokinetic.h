@@ -361,8 +361,6 @@ struct gkyl_gyrokinetic_species {
   bool is_static; // Set to true if species does not change in time.
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-  
-  double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
 
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;

@@ -76,7 +76,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 static void
@@ -185,7 +185,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
     eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(s->collisionless.vlasov_slvr);
 
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
-    recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, -1.0, app->use_gpu);  
+    recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, app->use_gpu);  
 
   for (int i=0; i<num_eqns; i++)
     gkyl_dg_eqn_release(eqns[i]);

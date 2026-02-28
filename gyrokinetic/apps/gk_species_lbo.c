@@ -204,7 +204,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -322,7 +322,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
     lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&gks->grid, 
       &app->basis, &gks->basis, &app->local, &drag_inp, &diff_inp, gks->info.mass, 
-      gks->info.skip_cell_threshold, app->gk_geom, gks->vel_map,  app->use_gpu);
+      app->gk_geom, gks->vel_map,  app->use_gpu);
 
     // Methods chosen at runtime.
     lbo->moms_func = gklbo_moms_enabled;

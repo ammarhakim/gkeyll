@@ -13,6 +13,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <assert.h>
 #include <float.h>
+#include <ctype.h>
 
 
 struct gk_geometry*
@@ -565,6 +566,42 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->on_dev = up; // CPU eqn obj points to itself
 
   return up;
+}
+
+void 
+gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len)
+{
+  struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
+  const char *fmt = "%s-psi.gkyl";
+  int sz = gkyl_calc_strlen(fmt, efit->name);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, efit->name);
+
+  // Set extra metadata
+  struct gkyl_msgpack_map_elem io_meta_rz[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
+    { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = efit->name},
+    { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
+    { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
+    { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
+    { .key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
+    { .key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current},
+    { .key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis},
+    { .key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft},
+    { .key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
+    { .key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
+    { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
+  };
+  int io_meta_rz_len = sizeof(io_meta_rz)/sizeof(io_meta_rz[0]);
+  int io_meta_len[] = {io_meta_basic_len, io_meta_rz_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {io_meta_basic, io_meta_rz};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
+
+  gkyl_msgpack_data_release(mt);
 }
 
 void

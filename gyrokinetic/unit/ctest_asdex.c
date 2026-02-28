@@ -173,7 +173,7 @@ test_fixed_z()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 5.0,
-    .ftype = GKYL_LSN_SOL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rclose = 2.5,
     .rright = 2.5,
     .rleft = 0.7,
@@ -240,7 +240,7 @@ test_shaped_plate()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -298,7 +298,7 @@ test_lower()
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL_LO,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -368,7 +368,7 @@ test_middle()
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL_MID,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -438,7 +438,7 @@ test_upper()
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL_UP,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,

@@ -23,6 +23,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->filepath = inp->filepath;
+  get_stripped_filename(up->filepath, up->name);
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);

@@ -281,6 +281,7 @@ struct gk_collisionless {
     // Charged (gyrokinetic) species ............................................ //
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
@@ -938,6 +939,7 @@ struct gk_species {
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
@@ -1412,14 +1414,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
   }
   return out;
 }
-
-/**
- * Free memory for array metadata object.
- *
- * @param mt Array metadata object.
- */
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

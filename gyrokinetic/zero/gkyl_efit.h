@@ -20,6 +20,7 @@ struct gkyl_efit_inp {
 
 struct gkyl_efit{
   const char* filepath;
+  char name[1024]; // name (filepath stripped of full path and extension)
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
   double rmin, rmax, zmin, zmax;

@@ -125,7 +125,7 @@ test_elliptical()
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 5.0,
-    .ftype = GKYL_DN_SOL_OUT,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
     .rclose = 6.0,
     .rright = 6.0,
     .rleft = 0.0,
