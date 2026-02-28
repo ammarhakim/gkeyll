@@ -113,7 +113,13 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
 
   for (size_t k = 0; k < up->num_comp; ++k) {
     double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(outLocal[k], cub::Sum());
+    bResult = BlockReduceT(temp).Reduce(outLocal[k],
+#if CUDART_VERSION > 12090
+    ::cuda::std::plus()
+#else
+    cub::Sum()
+#endif
+    );
     if (threadIdx.x == 0)
       atomicAdd(&out[k], bResult);
   }
