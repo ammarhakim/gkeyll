@@ -21,8 +21,8 @@ typedef double (*dg_gyrokinetic_vol_es_t)(const double *w, const double *dxv,
 
 typedef double (*dg_gyrokinetic_vol_add_apar_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
-  const double *bmag, const double *jacobtot_inv, const double *b_i, const double *phi, 
-  const double *apar, const double *fin, double* GKYL_RESTRICT out);
+  const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB, const double *b_i, 
+  const double *phi, const double *apar, const double *fin, double* GKYL_RESTRICT out); 
 
 typedef double (*dg_gyrokinetic_vol_add_apardot_t)(const double *vmap, 
   const double q_, const double m_,
@@ -99,6 +99,7 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
   const double *vm = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx);
   const double *vm_sq = (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx);
   const double *bmag = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx);
+  // The jacobtot_inv is not used anymore.
   const double *jacobtot_inv = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.jacobtot_inv, cidx);
   const double *b_i = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.b_i, cidx);
   const double *dualcurlbhatoverB = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx);
@@ -110,7 +111,7 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
     bmag, phi, dualcurlbhatoverB, rtg33inv, bioverJB, qIn, qRhsOut);
   // Add Apar contribution to volume term if needed.
   cfl += gyrokinetic->vol_add_apar_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
-    bmag, jacobtot_inv, b_i, phi, apar, qIn, qRhsOut);
+    bmag, jacobtot_inv, dualcurlbhatoverB, bioverJB, b_i, phi, apar, qIn, qRhsOut);
   // Add Apardot contribution to volume term if needed.
   cfl += gyrokinetic->vol_add_apardot_kernel( vm, gyrokinetic->charge, gyrokinetic->mass, 
     apardot, qIn, qRhsOut);
@@ -121,7 +122,7 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
 GKYL_CU_DH 
 static double 
 dg_gyrokinetic_add_apar_vol_return_zero(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
-    const double q_, const double m_, const double *bmag, const double *jacobtot_inv,
+    const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
     const double *b_i, const double *phi, const double *apar, const double *fin, double* GKYL_RESTRICT out) 
 { 
   return 0.; 
