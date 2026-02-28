@@ -240,7 +240,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,
@@ -265,7 +265,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,
@@ -291,7 +291,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,

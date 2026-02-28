@@ -1,4 +1,5 @@
 /* -*- c++ -*- */
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -123,7 +124,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, double skip_cell_threshold, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
   const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
@@ -137,16 +138,12 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gyrokinetic->charge = charge;
   gyrokinetic->mass = mass;
 
-  if (skip_cell_threshold > 0.0)
-    gyrokinetic->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
-  else
-    gyrokinetic->skip_cell_thresh = -1.0;
-
   gyrokinetic->eqn.num_equations = 1;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  
   gyrokinetic->gk_geom = geom_ho->on_dev;
   gyrokinetic->vel_map = vel_map_ho->on_dev;
 
@@ -169,7 +166,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   
   // Updater should store host pointers.
   gyrokinetic->gk_geom = geom_ho; 
-  gyrokinetic->vel_map = vel_map_ho; 
+  gyrokinetic->vel_map = vel_map_ho;
 
   return &gyrokinetic->eqn;
 }

@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <float.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -236,7 +237,8 @@ gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
 gkyl_gk_collisionless_flux*
 gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type type, 
+  const double charge, const double mass,
+  enum gkyl_gk_collisionless_type type, 
   const bool no_by, const bool em_star,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
@@ -261,6 +263,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_dg_geom *dg_geom_ho = gkyl_dg_geom_acquire(dg_geom);
   struct gkyl_gk_dg_geom *gk_dg_geom_ho = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  
   up->gk_geom = geom_ho->on_dev;
   up->dg_geom = dg_geom_ho->on_dev;
   up->gk_dg_geom = gk_dg_geom_ho->on_dev;

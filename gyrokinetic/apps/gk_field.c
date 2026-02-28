@@ -605,7 +605,7 @@ gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field, s
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = { .io_status = 2 };
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
   
   FILE *fp = 0;
   with_file(fp, fname, "r") {
@@ -618,17 +618,18 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
         rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
 
-    struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
-          .meta = hdr.meta,
-          .meta_sz = hdr.meta_size
-        }, 
-        GKYL_GK_META_NONE,
-        0
-      );
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
 
-    rstat.frame = meta.frame;
-    rstat.stime = meta.stime;
+    rstat.frame = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "frame");
+    rstat.stime = gkyl_msgpack_map_elem_get_double(elem_list_len, elem_list, "time");
 
     gkyl_grid_sub_array_header_release(&hdr);
   }
