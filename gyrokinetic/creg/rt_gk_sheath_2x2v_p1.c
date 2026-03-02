@@ -786,9 +786,10 @@ main(int argc, char **argv)
 //    .cfl_frac_omegaH = 1e10,
 
     .sundials_stepper = {
+      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
 //      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3,
-      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKC_2,
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,

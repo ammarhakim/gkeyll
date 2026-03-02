@@ -734,16 +734,18 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 
   st.dt_actual = t_new - t_curr;
   st.dt_suggested = dt0;
+//  printf("Used dt = %.7e\n",st.dt_actual);
 
   if (gkyl_sundials_use_operator_split(app->gk_sundials)) {
     gkyl_sundials_set_fixed_step(app->gk_sundials, st.dt_actual);
-//  // MF 2026/02/19: I would think setting the outer dt to the larger of dt_ssprk
-//  // and dt_sts would be the best option but it appears to be 2x slower.
-//    double dt_ssprk = gkyl_sundials_get_last_dt_ssprk(app->gk_sundials);
-//    double dt_sts = gkyl_sundials_get_last_dt_sts(app->gk_sundials);
-//    double dt_next = GKYL_MAX2(dt_ssprk, dt_sts);
-//    gkyl_sundials_set_fixed_step(app->gk_sundials, dt_next);
-//    st.dt_actual = dt_next;
+    // MF 2026/02/19: I would think setting the outer dt to the larger of dt_ssprk
+    // and dt_sts would be the best option but it appears to be 2x slower.
+    double dt_ssprk = gkyl_sundials_get_current_dt_ssprk(app->gk_sundials);
+    double dt_sts   = gkyl_sundials_get_current_dt_sts(app->gk_sundials);
+    double dt_next = GKYL_MAX2(dt_ssprk, dt_sts);
+//    printf("dt_ssprk=%.7e | dt_sts=%.7e | next outer dt=%.7e\n",dt_ssprk, dt_sts, dt_next);
+    gkyl_sundials_set_fixed_step(app->gk_sundials, dt_next);
+    st.dt_actual = dt_next;
   }
 
   // Check for any CUDA errors during time step.
@@ -1001,6 +1003,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_app_ctx.post_process_failed_rk_stage_func = gyrokinetic_post_process_failed_rk_stage_generic;
 
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
+    app->sundials_stepper_inp.opsplit_method = gk->sundials_stepper.opsplit_method,
     app->sundials_stepper_inp.rel_tol = gk->sundials_stepper.relative_tolerance,
     app->sundials_stepper_inp.abs_tol = gk->sundials_stepper.absolute_tolerance,
     app->sundials_stepper_inp.max_steps = gk->sundials_stepper.max_steps,

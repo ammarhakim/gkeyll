@@ -21,6 +21,20 @@ enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_LSRK_RKL_2    = 1 << 5, // 2nd order Runge-Kutta-Legendre (RKL).
 };
 
+// Operator splitting method, see
+//   https://sundials.readthedocs.io/en/latest/arkode/Usage/SplittingStep/SplittingStepCoefficients.html#arkode-usage-splittingstep-splittingstepcoefficients
+// for more info.
+enum gkyl_sundials_opsplit_method {
+  GKYL_SUNDIALS_OPSPLIT_METHOD_NONE = 0, // No operator splitting.
+  GKYL_SUNDIALS_OPSPLIT_METHOD_LIE_TROTTER_1_1_2, // Default.
+  GKYL_SUNDIALS_OPSPLIT_METHOD_STRANG_2_2_2,
+  GKYL_SUNDIALS_OPSPLIT_METHOD_BEST_2_2_2,
+  GKYL_SUNDIALS_OPSPLIT_METHOD_SUZUKI_3_3_2,
+  GKYL_SUNDIALS_OPSPLIT_METHOD_RUTH_3_3_2,
+  GKYL_SUNDIALS_OPSPLIT_METHOD_YOSHIDA_4_4_2,
+  GKYL_SUNDIALS_OPSPLIT_METHOD_YOSHIDA_8_6_2,
+};
+
 // Context for functions that are app-specific and/or
 // need to handle the app pointer as a void *.
 struct gkyl_sundials_app_ctx {
@@ -28,6 +42,7 @@ struct gkyl_sundials_app_ctx {
   void *fdot_args_ptr; // Arguments to df/dt calculation.
   void *arkode_mem_ssprk; // Memory for ARKODE SSP-RK stepper.
   void *arkode_mem_sts; // Memory for ARKODE STS stepper.
+  void *arkode_mem_opsplit; // Memory for ARKODE operator split stepper.
   // Function that computes df/dt.
   double (*dfdt_func)(void *app_gen, double t_curr, void *fdot_args_gen);
   // Function that computes df/dt due to operators stepped with SSP-RK.
@@ -68,6 +83,7 @@ struct gkyl_sundials_stepper_inp {
   unsigned int num_stages; // Number of stages in a step, for methods with fixed number of stages.
   unsigned int max_num_stages; // Maximum number of stages, for methods with adaptive number of stages (default: 200).
   enum gkyl_sundials_rk_method rk_method; // Time stepping method (default: GKYL_SUNDIALS_METHOD_RK_SSP_3_3).
+  enum gkyl_sundials_opsplit_method opsplit_method; // Operator split type (default: GKYL_SUNDIALS_OPSPLIT_METHOD_LIE_TROTTER_1_1_2)
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
@@ -190,6 +206,31 @@ double gkyl_sundials_get_last_dt_ssprk(struct gkyl_sundials *gksun);
  * @return Time step size.
  */
 double gkyl_sundials_get_last_dt_sts(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the current time step (of the outer stepper if
+ * using operator splitting).
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_current_dt(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the current time step in the SSP-RK stepper.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_current_dt_ssprk(struct gkyl_sundials *gksun);
+
+/**
+ * Fetch size of the current time step in the STS stepper.
+ *
+ * @param gksun SUNDIALS object.
+ * @return Time step size.
+ */
+double gkyl_sundials_get_current_dt_sts(struct gkyl_sundials *gksun);
 
 /**
  * Check if sundials is using an operator split approach (e.g. combining SSP-RK
