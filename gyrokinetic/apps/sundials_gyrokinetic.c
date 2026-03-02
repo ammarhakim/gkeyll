@@ -443,7 +443,6 @@ gk_dom_eig_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynve
 
   // Call the Gkeyll function that computes df/dt due to the operator stepped
   // with STS and compute it slocal CFL constrained dt.
-  pre_process_step_gyrokinetic(t_curr, manynvec_y, ctx); // Needed for adaptive sources.
   double dt_local = app_ctx->dfdt_func(app_ctx->app_ptr, t_curr, fdot_args);
 
   double dt_global = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
