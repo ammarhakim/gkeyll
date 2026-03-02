@@ -2,14 +2,6 @@
 
 PREFIX ?= ${HOME}/gkylsoft
 
-SUPERLU_INC_DIR ?= $(PREFIX)/superlu/include/
-ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
-else
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib/
-endif
-SUPERLU_LIB_NAME ?= superlu
-SUPERLU_LIBS ?= -l$(SUPERLU_LIB_NAME)
 
 SRC_DIRS := lua/Comm lua/Tool
 SRCS := $(shell find $(SRC_DIRS) -name "*.c")

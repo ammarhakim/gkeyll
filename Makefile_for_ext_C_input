@@ -18,12 +18,12 @@ LAPACK_LIB_DIR ?= $(PREFIX)/OpenBLAS/lib/
 LAPACK_LIB_NAME ?= openblas
 LAPACK_LIBS ?= -l${LAPACK_LIB_NAME}
 
-# SuperLU includes and librararies
+# SuperLU includes and libraries
 SUPERLU_INC_DIR ?= $(PREFIX)/superlu/include/
-ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
-else
+ifeq ($(UNAME), Darwin)
 	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib/
+else
+	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
 endif
 SUPERLU_LIB_NAME ?= superlu
 SUPERLU_LIBS ?= -l$(SUPERLU_LIB_NAME)
@@ -55,9 +55,6 @@ endif
 
 G0_LIBS = ${G0_LIB} ${CUDA_LIBS} -lm -lpthread
 G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
-
-# determine OS we are running on
-UNAME = $(shell uname)
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
