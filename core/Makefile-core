@@ -1,21 +1,10 @@
 # -*- makefile-gmake -*-
 
-# Sqlite can't use agressive optimization flags
-SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
-
 SRC_DIRS := minus $(KERNELS_DIR) zero apps
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
 
-SUPERLU_INC_DIR ?= $(PREFIX)/superlu/include/
-ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
-else
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib/
-endif
-SUPERLU_LIB_NAME ?= superlu
-SUPERLU_LIBS ?= -l$(SUPERLU_LIB_NAME)
 
 LLIB := ../$(BUILD_DIR)/core/libg0core.so
 SLLIB := 
