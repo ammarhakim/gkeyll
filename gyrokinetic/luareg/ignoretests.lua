@@ -25,9 +25,6 @@ return {
       "rt_gk_bgk_periodic_sodshock_1x2v_p1",  -- crashes compareFiles (C assertion in gkyl_aligned_free_)
    },
    c = {
-      "rt_gk_bgk_periodic_sodshock_1x2v_p1",     -- crashes compareFiles (C assertion in gkyl_aligned_free_)
-      "rt_gk_bgk_im_periodic_sodshock_1x2v_p1",  -- crashes compareFiles (C assertion in gkyl_aligned_free_)
-      "rt_gk_wham_1xIC_2x2v_p1",                 -- crashes compareFiles (C assertion in gkyl_aligned_free_)
       "rt_gk_mirror_boltz_elc_poa_1x2v_p1",
       "rt_gk_sheath_nonuniformx_3x2v_p1",
       "rt_gk_multib_step_sol_2x2v_p1",
@@ -44,7 +41,9 @@ return {
       "rt_gk_sheath_3x2v_p1",
       "rt_gk_ltx_1x2v_p1",
       "rt_gk_multib_asdex_2x2v_p1",
-      "rt_gk_bgk_periodic_sodshock_1x2v_p1",  -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_bgk_periodic_sodshock_1x2v_p1",     -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_bgk_im_periodic_sodshock_1x2v_p1",  -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_wham_1xIC_2x2v_p1",                 -- crashes compareFiles (C assertion in gkyl_aligned_free_)
    },
    gpu_lua = {
    },

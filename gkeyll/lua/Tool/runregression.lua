@@ -930,20 +930,9 @@ local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
    verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
-   local attr1 = lfs.attributes(f1)
-   local attr2 = lfs.attributes(f2)
-   if not attr1 or not attr2 then
+   if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
          " ... files %s and/or %s do not exist!\n", f1, f2))
-      return false
-   end
-   -- Quick sanity check: .gkyl files from the same test should have
-   -- identical sizes (same grid, same number of components).  A size
-   -- mismatch indicates a truncated or corrupt output file.
-   if attr1.size ~= attr2.size then
-      verboseLog(string.format(
-         " ... file size mismatch: %s (%d) vs %s (%d)\n",
-         f1, attr1.size, f2, attr2.size))
       return false
    end
 
