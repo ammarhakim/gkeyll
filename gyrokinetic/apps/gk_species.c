@@ -2040,9 +2040,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 
-  gkyl_array_release(s->gyro_apar);
-  gkyl_array_release(s->gyro_apardot);
-  gk_species_moment_release(app, &s->m1);
+  gkyl_array_release(gks->gyro_apar);
+  gkyl_array_release(gks->gyro_apardot);
+  gk_species_moment_release(app, &gks->m1);
 
-  s->release_func(app, s);
+  gks->release_func(app, gks);
 }

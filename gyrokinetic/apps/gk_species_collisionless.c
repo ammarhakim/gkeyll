@@ -206,7 +206,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
         app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
       gkcls->slvr_em_star = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
         &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-        gks->info.skip_cell_threshold, gkcls->collisionless_id, gkcls->no_by, em_star, app->gk_geom, gks->vel_map, 
+        gkcls->collisionless_id, gkcls->no_by, em_star, app->gk_geom, gks->vel_map, 
         &aux_inp, app->use_gpu);
       // Methods chosen at runtime.
       gkcls->flux_func_star = gk_species_collisionless_flux_star_enabled; // ES + Apar.
