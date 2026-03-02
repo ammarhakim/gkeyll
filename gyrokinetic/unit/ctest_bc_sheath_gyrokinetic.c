@@ -25,6 +25,7 @@ mkarr(bool use_gpu, long nc, long size)
 }
 
 struct test_sheath_ctx {
+  int cdim; // Configuration space dimension.
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM]; // Grid extents.
   int cells[GKYL_MAX_DIM]; // Number of cells.
   double upar; // Mean parallel drift speed.
@@ -39,10 +40,15 @@ struct test_sheath_ctx {
   double sigmaz; // Width of distribution in z.
 };
 
+struct eval_vcut_fact_ctx {
+  int cdim; // Configuration space dimension.
+};
+
 void
 eval_func_vcut_fact(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double vpar = xn[0], mu = xn[1];
+  struct eval_vcut_fact_ctx *pars = ctx;
+  double mu = xn[pars->cdim-1]; // Mu is the last dimension.
 
   double Lmu = 1.0; // Characteristic scale length in mu direction.
   double vcut_fact_0 = 1.0;
@@ -51,28 +57,11 @@ eval_func_vcut_fact(double t, const double *xn, double* GKYL_RESTRICT fout, void
   fout[0] =  pow(vcut_fact, 2);
 }
 
-// Build the alpha(mu) array used in the sheath BC to make the vpar cut vary with mu.
-void
-setup_vcut_fact_array(struct gkyl_array *vcut_fact, const struct gkyl_basis *basis_vel, 
-  const struct gkyl_velocity_map *grid_vel)
-{  
-  gkyl_proj_on_basis *projalphamu = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &grid_vel->grid_vel,
-      .basis = basis_vel,
-      .num_ret_vals = 1,
-      .eval = eval_func_vcut_fact,
-      .ctx = NULL,
-    }
-  );
-  gkyl_proj_on_basis_advance(projalphamu, 0.0, &grid_vel->local_vel, vcut_fact);
-  gkyl_proj_on_basis_release(projalphamu);
-}
-
 void
 eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double vpar = xn[1], mu = xn[2];
   double z = xn[0];
+  double vpar = xn[1], mu = xn[2];
 
   struct test_sheath_ctx *pars = ctx;
 
@@ -90,8 +79,8 @@ eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
 void
 eval_func_2x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double vpar = xn[2], mu = xn[3];
   double x = xn[0], z = xn[1];
+  double vpar = xn[2], mu = xn[3];
 
   struct test_sheath_ctx *pars = ctx;
 
@@ -170,9 +159,12 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
     // Compute the vpar cut radius at the lower and upper mu boundaries (assumes vcut_fact is monotonic in mu).
     double cell_lower_mu = xc[cdim+1] - 0.5*grid.dx[cdim+1];
     double cell_upper_mu = xc[cdim+1] + 0.5*grid.dx[cdim+1];
+    double vcut_coord_lower[cdim], vcut_coord_upper[cdim];
+    vcut_coord_lower[cdim-1] = cell_lower_mu;
+    vcut_coord_upper[cdim-1] = cell_upper_mu;
     double vcut_fact_lower[1], vcut_fact_upper[1];
-    eval_func_vcut_fact(0, (double[]){xc[cdim], cell_lower_mu}, vcut_fact_lower, NULL);
-    eval_func_vcut_fact(0, (double[]){xc[cdim], cell_upper_mu}, vcut_fact_upper, NULL);
+    eval_func_vcut_fact(0, vcut_coord_lower, vcut_fact_lower, &(struct eval_vcut_fact_ctx) {.cdim = cdim});
+    eval_func_vcut_fact(0, vcut_coord_upper, vcut_fact_upper, &(struct eval_vcut_fact_ctx) {.cdim = cdim});
     double vpcr_lower = sqrt(vcut_fact_lower[0]) * vpar_cut_radius;
     double vpcr_upper = sqrt(vcut_fact_upper[0]) * vpar_cut_radius;
     double vpcr_min = fmin(vpcr_lower, vpcr_upper);
@@ -203,10 +195,10 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
     }
   }
   // Uncomment for debugging.
-  // printf("\n");
-  // printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
-  //   edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
-  // printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
+  printf("\n");
+  printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
+    edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
+  printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
 }
 
 void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
@@ -380,15 +372,33 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
-  // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis vcut_fact_basis;
-  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
-  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  // Build the vcut_fact DG array to make vpar cut vary.
+  struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
+  struct gkyl_range *vcut_fact_local = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(bcsheath);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis->num_basis, vcut_fact_local->volume);
   struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
-  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+
+  struct gkyl_rect_grid vcut_grid;
+  double vcut_lower[cdim], vcut_upper[cdim];
+  for (int d=0; d<cdim-1; d++) {
+    vcut_lower[d] = lower[d];
+    vcut_upper[d] = upper[d];
+  }
+  vcut_lower[cdim-1] = lower[cdim+vdim-1];
+  vcut_upper[cdim-1] = upper[cdim+vdim-1];
+  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, cells);
+  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vcut_grid,
+      .basis = vcut_fact_basis,
+      .num_ret_vals = 1,
+      .eval = eval_func_vcut_fact,
+      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+    }
+  );
+  gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
   gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
-  // Update the BC updater with alpha(mu) array.
+  // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
@@ -420,6 +430,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
+  gkyl_proj_on_basis_release(projVcut);
   gkyl_array_release(vcut_fact);
   gkyl_array_release(vcut_fact_ho);
 }
@@ -567,15 +578,33 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
-  // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis vcut_fact_basis;
-  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
-  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  // Build the vcut_fact DG array to make vpar cut vary.
+  struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
+  struct gkyl_range *vcut_fact_local = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(bcsheath);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis->num_basis, vcut_fact_local->volume);
   struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
-  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+
+  struct gkyl_rect_grid vcut_grid;
+  double vcut_lower[cdim], vcut_upper[cdim];
+  for (int d=0; d<cdim-1; d++) {
+    vcut_lower[d] = lower[d];
+    vcut_upper[d] = upper[d];
+  }
+  vcut_lower[cdim-1] = lower[cdim+vdim-1];
+  vcut_upper[cdim-1] = upper[cdim+vdim-1];
+  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, cells);
+  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vcut_grid,
+      .basis = vcut_fact_basis,
+      .num_ret_vals = 1,
+      .eval = eval_func_vcut_fact,
+      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+    }
+  );
+  gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
   gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
-  // Update the BC updater with alpha(mu) array.
+  // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
@@ -607,6 +636,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
+  gkyl_proj_on_basis_release(projVcut);
   gkyl_array_release(vcut_fact);
   gkyl_array_release(vcut_fact_ho);
 }
@@ -758,15 +788,33 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
     basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
 
-  // Build the alpha(mu) DG array to make vpar cut vary.
-  struct gkyl_basis vcut_fact_basis;
-  gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath, &vcut_fact_basis);
-  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis.num_basis, local_vel.volume);
+  // Build the vcut_fact DG array to make vpar cut vary.
+  struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
+  struct gkyl_range *vcut_fact_local = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(bcsheath);
+  struct gkyl_array *vcut_fact = mkarr(use_gpu, vcut_fact_basis->num_basis, vcut_fact_local->volume);
   struct gkyl_array *vcut_fact_ho = use_gpu? mkarr(false, vcut_fact->ncomp, vcut_fact->size) : gkyl_array_acquire(vcut_fact);
-  setup_vcut_fact_array(vcut_fact_ho, &vcut_fact_basis, gvm);
+
+  struct gkyl_rect_grid vcut_grid;
+  double vcut_lower[cdim], vcut_upper[cdim];
+  for (int d=0; d<cdim-1; d++) {
+    vcut_lower[d] = lower[d];
+    vcut_upper[d] = upper[d];
+  }
+  vcut_lower[cdim-1] = lower[cdim+vdim-1];
+  vcut_upper[cdim-1] = upper[cdim+vdim-1];
+  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, cells);
+  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vcut_grid,
+      .basis = vcut_fact_basis,
+      .num_ret_vals = 1,
+      .eval = eval_func_vcut_fact,
+      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+    }
+  );
+  gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
   gkyl_array_copy(vcut_fact, vcut_fact_ho);
 
-  // Update the BC updater with alpha(mu) array.
+  // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
   // Advance the BC updater.
@@ -798,6 +846,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
+  gkyl_proj_on_basis_release(projVcut);
   gkyl_array_release(vcut_fact);
   gkyl_array_release(vcut_fact_ho);
 }

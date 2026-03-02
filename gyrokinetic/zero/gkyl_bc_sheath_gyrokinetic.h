@@ -54,17 +54,25 @@ void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyroki
  * Get the vcut_fact array used in the sheath BC.
  * 
  * @param up BC updater.
- * @param vcut_fact On output, the vcut_fact array used in the sheath BC.
+ * @return The vcut_fact array used in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_get_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_array *vcut_fact);
+struct gkyl_array* gkyl_bc_sheath_gyrokinetic_get_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the basis of the vcut_fact array used in the sheath BC.
  * 
  * @param up BC updater.
- * @param vcut_fact_basis On output, the basis of the vcut_fact array used in the sheath BC.
+ * @return The basis of the vcut_fact array used in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(const struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_basis *vcut_fact_basis);
+struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up);
+
+/**
+ * Get the range of the vcut_fact array used in the sheath BC.
+ * 
+ * @param up BC updater.
+ * @return The range of the vcut_fact array used in the sheath BC.
+ */
+struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
