@@ -510,7 +510,7 @@ main(int argc, char **argv)
   };
   
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_DN_SOL_OUT,    // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,    // type of geometry
     .rclose = 3.0,               // closest R to region of interest
     .rright = 3.0,               // Closest R to outboard SOL
     .rleft = 0.1,                // closest R to inboard SOL

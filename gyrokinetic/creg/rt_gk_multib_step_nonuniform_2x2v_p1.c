@@ -163,7 +163,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_R,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -203,7 +203,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_LO,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -245,7 +245,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_MID,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -287,7 +287,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_UP,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -329,7 +329,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_UP_R,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_R,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -369,7 +369,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_UP_L,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_L,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -409,7 +409,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_IN_UP,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -449,7 +449,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_IN_MID,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -489,7 +489,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_IN_LO,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -529,7 +529,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_L,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -570,7 +570,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_CORE_R,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_R,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 2.0,        // closest R to inboard SOL
@@ -607,7 +607,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_CORE_L,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L,
           .rclose = 0.0,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 2.0,        // closest R to inboard SOL
