@@ -44,7 +44,6 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
-  double skip_cell_thresh;
   int num_basis;
 };
 
@@ -1235,13 +1234,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
 
-  if (fabs(qInL[0]) < diffusion->skip_cell_thresh && fabs(qInC[0]) < diffusion->skip_cell_thresh && fabs(qInR[0]) < diffusion->skip_cell_thresh) {
-    return 0.;
-  }
-  
-  if (diffusion->diff_in_dir[dir])
+  if (diffusion->diff_in_dir[dir]) {
     diffusion->surf[dir](xcC, dxC, _cfD(idxC), _cfJacInv(idxC), qInL, qInC, qInR, qRhsOut);
-
+  }
   return 0.;  // CFL frequency computed in volume term.
 }
 
@@ -1252,12 +1247,9 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 { 
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh && fabs(qInSkin[0]) < diffusion->skip_cell_thresh) {
-    return 0.;
-  }
-  if (diffusion->diff_in_dir[dir])
+  if (diffusion->diff_in_dir[dir]) {
     diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), _cfJacInv(idxSkin), edge, qInEdge, qInSkin, qRhsOut);
-
+  }
   return 0.;  // CFL frequency computed in volume term.
 }
 
@@ -1271,12 +1263,9 @@ GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn* eqn, int dir,
   // in the ghost range (e.g. by the boundary_flux updater).
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   
-  if (fabs(qInEdge[0]) < diffusion->skip_cell_thresh) {
-    return 0.;
-  }
-  if (diffusion->diff_in_dir[dir])
+  if (diffusion->diff_in_dir[dir]) {
     diffusion->boundary_diag[dir](xcEdge, dxEdge, _cfD(idxEdge), _cfJacInv(idxEdge), edge, qInSkin, qInEdge, qRhsOut);
-
+  }
   return 0.;  // CFL frequency computed in volume term.
 }
 
@@ -1300,10 +1289,9 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count* ref);
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
  * @param diff_range Range object to index the diffusion coefficient.
- * @param skip_cell_threshold Threshold which to skip cells
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, double skip_cell_threshold);
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range);
 #endif

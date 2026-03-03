@@ -142,7 +142,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -178,7 +178,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -216,7 +216,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -254,7 +254,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -292,7 +292,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -328,7 +328,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -364,7 +364,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_upper_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -400,7 +400,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -436,7 +436,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -472,7 +472,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_lower_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -509,7 +509,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_outer },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
@@ -542,7 +542,7 @@ create_gk_block_geom(void)
       .cuts = { 1, ncuts_middle_inner },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
 //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {

@@ -101,26 +101,6 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in Gyrokinetic app.
 
-// Meta-data for IO
-struct gyrokinetic_output_meta {
-  int frame; // frame number
-  double stime; // output time
-  int poly_order; // polynomial order
-  const char *basis_type; // name of basis functions
-  char basis_type_nm[64]; // used during read
-};
-
-enum gk_extra_meta_type {
-  GKYL_GK_META_NONE = 0,
-  GKYL_GK_META_GEO,
-  GKYL_GK_META_SOURCE,
-  GKYL_GK_META_RECYCLING,
-};
-
-struct gyrokinetic_output_meta_geo {
-  int geqdsk_sign_convention; // sign convention for geqdsk
-};
-
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -185,6 +165,8 @@ struct gk_species_moment {
   void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
     const struct gkyl_range conf_rng, const struct gkyl_array *fin);
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
+  void (*diag_jacobgeo_div_func)(const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm,
+    struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 };
 
 // Forward declare species struct.
@@ -273,6 +255,11 @@ struct gk_rad_drag {
   gkyl_dynvec integ_diag; // Integrated moments in time.
   bool is_first_integ_write_call; // Whether dynvec is being written for the 1st time.
   
+  struct gkyl_msgpack_map_elem* io_meta_surfmu; // Metadata for I/O of mu surf array.
+  int io_meta_surfmu_len; // Number of elements in io_meta_surfmu.
+  struct gkyl_msgpack_map_elem* io_meta_surfvpar; // Metadata for I/O of vpar surf array.
+  int io_meta_surfvpar_len; // Number of elements in io_meta_surfvpar.
+
   // Methods chosen at runtime:
   void (*moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
@@ -294,6 +281,7 @@ struct gk_collisionless {
     // Charged (gyrokinetic) species ............................................ //
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
@@ -945,9 +933,13 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
+
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
@@ -1088,6 +1080,9 @@ struct gk_neut_species {
 
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
+
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
@@ -1386,10 +1381,15 @@ struct gkyl_gyrokinetic_app {
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
-  struct gkyl_gyrokinetic_stat stat; // statistics
+  struct gkyl_gyrokinetic_stat stat; // Statistics.
+
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
+  int io_meta_len; // Number of elements in io_meta.
 
   gkyl_dynvec dts; // Record time step over time.
-  bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
+  bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
 };
 
 /** gkyl_gyrokinetic_app private API */
@@ -1411,37 +1411,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
   }
   return out;
 }
- 
-/**
- * Create a new array metadata object. It must be freed using
- * gk_array_meta_release.
- *
- * @param meta Gyrokinetic metadata object.
- * @param extra_meta_type Extra Gyrokinetic metadata type.
- * @param extra_meta Extra Gyrokinetic metadata.
- * @return Array metadata object.
- */
-struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
-
-/**
- * Free memory for array metadata object.
- *
- * @param mt Array metadata object.
- */
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt);
-
-/**
- * Return the metadata for outputing gyrokinetic data.
- *
- * @param mt Array metadata object.
- * @param extra_meta_type Extra Gyrokinetic metadata type.
- * @param extra_meta Extra Gyrokinetic metadata.
- * @return A gyrokinetic metadata object.
- */
-struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
@@ -1567,6 +1536,19 @@ void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 void gk_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
+
+/**
+ * Divide the moment by the configuration-space Jacobian for diagnostic
+ * purposes. Not all components of the diagnostic moment are divided, depending
+ * on the type.
+ * 
+ * @param app Gyrokinetic app object.
+ * @param sm Species moment object.
+ * @param Jmom_in Moment(s) to be divided by J.
+ * @param mom_out Array in which to place the output.
+ */
+void gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 
 /**
  * Release species moment object.

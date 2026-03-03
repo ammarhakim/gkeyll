@@ -3,7 +3,8 @@
 # Type "make help" to see help for this Makefile
 
 # determine date of build
-BUILD_DATE := $(shell date)
+BUILD_DATE := $(shell date +"%Y-%m-%d %H:%M:%S %Z")
+BUILD_DATE_STR := "$(BUILD_DATE)"
 GIT_TIP := $(shell git describe --abbrev=12 --always --dirty=+)
 
 # Build directory
@@ -14,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -60,11 +61,13 @@ endif
 
 # CUDA flags
 USING_NVCC =
-NVCC_FLAGS = 
+NVCC_FLAGS =
 CUDA_LIBS =
+# Default SQL flags (nvcc block below overrides this for GPU builds)
+SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifeq ($(CC), nvcc)
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIBDIR
@@ -163,9 +166,33 @@ endif
 MKDIR_P ?= mkdir -p
 
 # At this point, export all top-level variables to sub-makes and
-# recurse downwards
+# recurse downwards.
+#
+# NOTE: We use explicit 'export' instead of .EXPORT_ALL_VARIABLES: to avoid
+# the "argument list too long" error. With .EXPORT_ALL_VARIABLES:, GNU Make
+# causes sub-makes to also export ALL their variables (including large lists
+# like SRCS, OBJS, DEPS, and MAKEFILE_LIST which can include thousands of
+# .d dependency files) to every shell command they run. This pushes the
+# environment size well over the system's ARG_MAX limit (2MB on Linux),
+# causing execve() to fail with E2BIG even for trivial commands like mkdir.
+# By explicitly exporting only the variables sub-makes actually need, we keep
+# the environment small and avoid this issue.
 
-.EXPORT_ALL_VARIABLES:
+export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
+export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
+export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
+export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
+export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
+export USING_LUA LUA_INC_DIR LUA_LIB_DIR LUA_LIBS LUA_RPATH
+export LAPACK_INC LAPACK_LIB_DIR LAPACK_LIB
+export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
+export MKDIR_P GKYL_SHARE_DIR BUILD_APP
+export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
+export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
+export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
+export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
 
 # Regression tests
 ${BUILD_DIR}/core/creg/%: core/creg/%.c ${BUILD_DIR}/core/libg0core.so

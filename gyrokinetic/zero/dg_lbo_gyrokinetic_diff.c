@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <float.h>
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
@@ -43,13 +44,13 @@ gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, double skip_cell_threshold, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
   bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range,
-      pgrid, mass, skip_cell_threshold, gk_geom, vel_map);
+      pgrid, mass, gk_geom, vel_map);
 #endif
   struct dg_lbo_gyrokinetic_diff* lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
@@ -114,11 +115,6 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   lbo->auxfields.nuSum = 0;
   lbo->auxfields.nuPrimMomsSum = 0;
   lbo->auxfields.m2self = 0;
-  
-  if (skip_cell_threshold > 0.0)
-    lbo->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
-  else
-    lbo->skip_cell_thresh = -1.0;
 
   lbo->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo->eqn.flags);
