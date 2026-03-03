@@ -23,9 +23,9 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 124 -- Cell count (configuration space: radial direction).
-Nvr = 96 -- Cell count (velocity space: radial direction).
-Nvphi = 96 --Cell count (velocity space: angular direction).
+Nr = 32 -- 124 -- Cell count (configuration space: radial direction).
+Nvr = 16 -- 96 -- Cell count (velocity space: radial direction).
+Nvphi = 16 -- 96 --Cell count (velocity space: angular direction).
 Lr = 9.5 -- Domain size (configuration space: radial direction).
 vr_max = 1.5 * vt -- Domain boundary (velocity space: radial direction).
 vphi_max = 1.5 * vt -- Domain boundary (velocity space: angular direction).
@@ -34,8 +34,8 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 300.0 -- Final simulation time.
-num_frames = 100 -- Number of output frames.
+t_end = 100.0 -- Final simulation time.
+num_frames = 1 -- 100 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -67,7 +67,7 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 4 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (phi-dir).

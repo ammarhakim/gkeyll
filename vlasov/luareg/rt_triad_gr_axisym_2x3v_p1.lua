@@ -23,11 +23,11 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 36 -- Cell count (configuration space: radial direction).
-Ntheta = 24 -- Cell count (configuration space: radial direction).
-Nvr = 24 -- Cell count (velocity space: radial direction).
-Nvtheta = 24 --Cell count (velocity space: angular direction).
-Nvphi = 24 --Cell count (velocity space: angular direction).
+Nr = 4 -- 36 -- Cell count (configuration space: radial direction).
+Ntheta = 4 -- 24 -- Cell count (configuration space: radial direction).
+Nvr = 6 -- 24 -- Cell count (velocity space: radial direction).
+Nvtheta = 6 -- 24 --Cell count (velocity space: angular direction).
+Nvphi = 6 -- 24 --Cell count (velocity space: angular direction).
 Lr = 1.5 -- Domain size (configuration space: radial direction).
 Ltheta = math.pi/2.0 -- Domain size (configuration space: radial direction).
 vr_max = 6.0 * vt -- Domain boundary (velocity space: radial direction).
@@ -39,7 +39,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 5.0 -- Final simulation time.
-num_frames = 10 -- Number of output frames.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.

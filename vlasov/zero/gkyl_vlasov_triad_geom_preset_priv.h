@@ -75,7 +75,7 @@ eval_ks_rphi_hamil_1x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_R
 }
 
 void
-eval_ks_rphi_hamil_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_ks_rphi_hamil_2x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Grab the geometry
@@ -559,7 +559,7 @@ eval_rz_cylindrical_vierbein_gradient_3v(double t, const double* GKYL_RESTRICT x
 }
 
 void
-eval_ks_hamil_3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_ks_hamil_3x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
   // Grab the geometry
@@ -591,7 +591,7 @@ typedef struct { evalf_t kernels[3]; } vierbein_gradient_kern_list;
 
 static const hamil_kern_list ks_rphi_hamil_list[] = {
   { NULL, NULL, NULL },
-  { eval_ks_rphi_hamil_1x2v, eval_ks_rphi_hamil_2v, NULL },
+  { eval_ks_rphi_hamil_1x2v, eval_ks_rphi_hamil_2x2v, NULL },
   { NULL, NULL, NULL }
 };
 
@@ -604,13 +604,13 @@ static const hamil_kern_list ks_r_hamil_list[] = {
 static const hamil_kern_list ks_rtheta_hamil_list[] = {
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
-  { NULL, eval_ks_rtheta_hamil_2x3v, eval_ks_hamil_3v }
+  { NULL, eval_ks_rtheta_hamil_2x3v, eval_ks_hamil_3x3v }
 };
 
 static const hamil_kern_list ks_hamil_3v_list[] = {
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
-  { NULL, NULL, eval_ks_hamil_3v }
+  { NULL, NULL, eval_ks_hamil_3x3v }
 };
 
 static const vierbein_kern_list annulus_vierbein_list[] = {

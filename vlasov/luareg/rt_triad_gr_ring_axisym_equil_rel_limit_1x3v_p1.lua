@@ -4,38 +4,31 @@ local Vlasov = G0.Vlasov
 mass = 1.0 -- Neutral mass.
 charge = 0.0 -- Neutral charge.
 
-nl = 1.0 -- Left number density.
-Tl = 0.1 -- Left temperature.
-V_r_drift_l = 0.0 -- Left drift velocity (radial direction).
+nl = 4.342615231e-3 -- Left number density.
+Tl = 5.6795210525 -- Left temperature.
+V_r_drift_l = 0.09286972 -- Left drift velocity (radial direction).
+V_theta_drift_l = 0.0 -- Left drift velocity (theta direction).
 V_phi_drift_l = 0.0 -- Left drift velocity (angular direction).
-
-nr = 1.0 -- Right number density.
-Tr = 0.1 -- Right temperature.
-V_r_drift_r = 0.0 -- Right drift velocity (radial direction).
-V_phi_drift_r = 0.0 -- Right drift velocity (angular direction).
-
-nb = 0.1 -- Background number density.
-Tb = 0.1 -- Background temperature.
-V_r_drift_b = 0.0 -- Background drift velocity (radial direction).
-V_phi_drift_b = 0.0 -- Background drift velocity (angular direction).
 
 vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 24 -- 128 -- Cell count (configuration space: radial direction).
-Nvr = 24 -- 128 -- Cell count (velocity space: radial direction).
-Nvphi = 24 -- 128 --Cell count (velocity space: angular direction).
-Lr = 3.0 -- Domain size (configuration space: radial direction).
-vr_max = 6.0 * vt -- Domain boundary (velocity space: radial direction).
-vphi_max = 6.0 * vt -- Domain boundary (velocity space: angular direction).
+Nr = 4 -- Cell count (configuration space: radial direction).
+Nvr = 16 -- Cell count (velocity space: radial direction).
+Nvtheta = 16 --Cell count (velocity space: theta direction).
+Nvphi = 16 --Cell count (velocity space: angular direction).
+Lr = 15.0  -- Domain size (configuration space: radial direction).
+vr_max = 75.0 * vt -- Domain boundary (velocity space: radial direction).
+vtheta_max = 75.0 * vt -- Domain boundary (velocity space: theta direction).
+vphi_max = 75.0 * vt -- Domain boundary (velocity space: angular direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.1 -- 5.0 -- Final simulation time.
-num_frames = 1 -- 10 -- Number of output frames.
+t_end = 0.1 --300.0 -- Final simulation time.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -44,9 +37,6 @@ num_failures_max = 20 -- Maximum allowable number of consecutive small time-step
 
 massBH = 0.3 -- Mass of the Kerr-Schild black hole
 spinBH = 0.0 -- Spin parameter, a = J/M, of the Kerr-Schild black hole
-
-r_inner = 0.01 -- Ring inner radius.
-r_outer = 2.5 -- Ring outer radius.
 
 vlasovApp = Vlasov.App.new {
 
@@ -57,8 +47,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.5 },
-  upper = { 0.5 + Lr },
+  lower = { 1.8 * massBH },
+  upper = { Lr  * massBH },
   cells = { Nr },
   cflFrac = cfl_frac,
 
@@ -67,7 +57,7 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 4 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (phi-dir).
@@ -89,12 +79,12 @@ vlasovApp = Vlasov.App.new {
     -- Use the vierbein inputs to contruct the Poisson Tensor
     useLo = false,
     usePresetGeom = true,
-    triadPresetGeomType = G0.TriadGeom.GR_KS_rphi,
+    triadPresetGeomType = G0.TriadGeom.GR_KS_r,
 
     -- Velocity space grid.
-    lower = { -vr_max, -vphi_max },
-    upper = { vr_max, vphi_max },
-    cells = { Nvr, Nvphi },
+    lower = { -vr_max, -vtheta_max , -vphi_max },
+    upper = { vr_max, vtheta_max, vphi_max },
+    cells = { Nvr, Nvtheta, Nvphi },
 
     -- Initial conditions.
     numInit = 1,
@@ -108,17 +98,9 @@ vlasovApp = Vlasov.App.new {
           local phi = 0.0 -- angle
 
           local n = 0.0
-          if r > r_inner and r < r_outer then
-            if phi > (math.pi) then
-              n = nl -- Fluid-stationary frame density (left ring).
-            else
-              n = nr -- Fluid-stationary frame density (right ring).
-            end
-          else
-            n = nb -- Fluid-stationary frame density (background).
-          end
+          n = nl
           
-          local metric_det = math.sqrt(r) * math.sqrt(2*massBH + r)       
+          local metric_det = r * math.sqrt(2*massBH*r + r*r)       
 
           return metric_det * n
         end,
@@ -128,15 +110,7 @@ vlasovApp = Vlasov.App.new {
           local phi = 0.0 -- angle
 
           local T = 0.0
-         if r > r_inner and r < r_outer then
-            if phi > (math.pi) then
-              T = Tl -- Fluid-stationary frame Temperature  (left ring).
-            else
-              T = Tr -- Fluid-stationary frame Temperature  (right ring).
-            end
-          else
-            T = Tb -- Fluid-stationary frame Temperature  (background).
-          end
+          T = Tl
 
           return T
         end,
@@ -146,21 +120,13 @@ vlasovApp = Vlasov.App.new {
           local phi = 0.0 -- angle
 
           local V_r_drift = 0.0
+          local V_theta_drift = 0.0
           local V_phi_drift = 0.0
-          if r > r_inner and r < r_outer then
-            if phi > (math.pi) then
-              V_r_drift = V_r_drift_l -- Fluid velocity r (left ring).
-              V_phi_drift = V_phi_drift_l ---- Fluid velocity. phi (left ring).
-            else
-              V_r_drift = V_r_drift_r -- Fluid velocity r (right ring).
-              V_phi_drift = V_phi_drift_r ---- Fluid velocity. phi (right ring).
-            end
-          else
-            V_r_drift = V_r_drift_b -- Fluid velocity r (background).
-            V_phi_drift = V_phi_drift_b ---- Fluid velocity. phi (background).
-          end
+          V_r_drift = V_r_drift_l -- Fluid velocity r (left ring).
+          V_theta_drift = V_theta_drift_l -- Fluid velocity theta (left ring).
+          V_phi_drift = V_phi_drift_l -- Fluid velocity phi (left ring).
 
-          return V_r_drift, V_phi_drift
+          return V_r_drift, V_theta_drift, V_phi_drift
         end,
 
         correctAllMoments = true,
@@ -175,7 +141,7 @@ vlasovApp = Vlasov.App.new {
         type = G0.SpeciesBc.bcAbsorb
       },
       upper = {
-        type = G0.SpeciesBc.bcCopy
+        type = G0.SpeciesBc.bcFixedFunc
       }
     },
 

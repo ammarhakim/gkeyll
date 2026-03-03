@@ -6,7 +6,7 @@ charge = 0.0 -- Neutral charge.
 
 nl = 1.10332452 -- Left number density.
 Tl = 0.01735055 -- Left temperature.
-V_r_drift_l = -0.366377244 -- Left drift velocity (radial direction).
+V_r_drift_l = -0.10847183 -- Left drift velocity (radial direction).
 V_theta_drift_l = 0.0 -- Left drift velocity (theta direction).
 V_phi_drift_l = 0.0 -- Left drift velocity (angular direction).
 
@@ -14,10 +14,10 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 16 -- Cell count (configuration space: radial direction).
-Nvr = 32 -- Cell count (velocity space: radial direction).
-Nvtheta = 32 --Cell count (velocity space: theta direction).
-Nvphi = 32 --Cell count (velocity space: angular direction).
+Nr = 4 -- Cell count (configuration space: radial direction).
+Nvr = 16 -- 32 -- Cell count (velocity space: radial direction).
+Nvtheta = 16 --Cell count (velocity space: theta direction).
+Nvphi = 16 --Cell count (velocity space: angular direction).
 Lr = 15.0  -- Domain size (configuration space: radial direction).
 vr_max = 2.0 * vt -- Domain boundary (velocity space: radial direction).
 vtheta_max = 2.0 * vt -- Domain boundary (velocity space: theta direction).
@@ -27,8 +27,8 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 300.0 -- Final simulation time.
-num_frames = 100 -- Number of output frames.
+t_end = 0.1 -- 300.0 -- Final simulation time.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
