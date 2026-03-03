@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_block_topo.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_lua_utils.h>
@@ -526,6 +527,52 @@ dynvec_diff_lw(lua_State *L)
   return 1;
 }
 
+// G0.Zero.blockTopoCmp(f1, f2) -> bool
+// Reads two block-topology files and returns true if they are identical
+// (same ndim, num_blocks, and all per-block connection entries), false
+// otherwise.  Block topology contains only integer/enum data, so this
+// is an exact equality check rather than a numerical diff.
+static int
+block_topo_cmp_lw(lua_State *L)
+{
+  const char *f1 = luaL_checkstring(L, 1);
+  const char *f2 = luaL_checkstring(L, 2);
+
+  int st1 = 0, st2 = 0;
+  struct gkyl_block_topo *bt1 = gkyl_block_topo_read(f1, &st1);
+  struct gkyl_block_topo *bt2 = gkyl_block_topo_read(f2, &st2);
+
+  if (!bt1 || !bt2) {
+    if (bt1) gkyl_block_topo_release(bt1);
+    if (bt2) gkyl_block_topo_release(bt2);
+    lua_pushboolean(L, 0);
+    return 1;
+  }
+
+  bool equal = (bt1->ndim == bt2->ndim) && (bt1->num_blocks == bt2->num_blocks);
+
+  if (equal) {
+    int ndim      = bt1->ndim;
+    int nblocks   = bt1->num_blocks;
+    for (int b = 0; b < nblocks && equal; ++b) {
+      for (int d = 0; d < ndim && equal; ++d) {
+        for (int e = 0; e < 2 && equal; ++e) {
+          struct gkyl_target_edge *c1 = &bt1->conn[b].connections[d][e];
+          struct gkyl_target_edge *c2 = &bt2->conn[b].connections[d][e];
+          if (c1->bid != c2->bid || c1->dir != c2->dir || c1->edge != c2->edge)
+            equal = false;
+        }
+      }
+    }
+  }
+
+  gkyl_block_topo_release(bt1);
+  gkyl_block_topo_release(bt2);
+
+  lua_pushboolean(L, equal ? 1 : 0);
+  return 1;
+}
+
 // Module-level functions registered under G0.Zero
 static struct luaL_Reg zero_array_funcs[] = {
   { "gkylFileType",       gkyl_file_type_lw       },
@@ -534,6 +581,7 @@ static struct luaL_Reg zero_array_funcs[] = {
   { "createGridRanges",   create_grid_ranges_lw   },
   { "arrayDiff",          array_diff_lw           },
   { "dynvecDiff",         dynvec_diff_lw          },
+  { "blockTopoCmp",       block_topo_cmp_lw       },
   { 0, 0 }
 };
 

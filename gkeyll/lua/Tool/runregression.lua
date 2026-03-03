@@ -977,6 +977,14 @@ local function compareFiles(f1, f2, absTol, relTol)
          return true
       end
 
+      if f1type == "block-topology" then
+         local equal = G0.Zero.blockTopoCmp(f1, f2)
+         if not equal then
+            verboseLog(string.format(" ... block topology mismatch: %s %s\n", f1, f2))
+         end
+         return equal
+      end
+
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
@@ -1061,10 +1069,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
    -- Walk the scratch directory and compare each .gkyl file against the accepted baseline.
    for fn in lfs.dir(runDir) do
       local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      -- Skip topology/connectivity files (e.g. _btopo.gkyl): they are not
-      -- grid+array files and cannot be compared with gkyl_array_diff.
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
+      local inScope  = isGkyl and (
          testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
       if inScope then
          count = count + 1
@@ -1101,8 +1106,7 @@ local function gpuCheck_vs_accepted(test, runDir, testType, gpuTol)
    local passed, count = true, 0
    for fn in lfs.dir(runDir) do
       local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
+      local inScope  = isGkyl and (
          testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
       if inScope then
          count = count + 1
@@ -1121,8 +1125,7 @@ local function compareCpuGpu(test, cpuDir, gpuDir, testType, gpuTol)
    local passed, count = true, 0
    for fn in lfs.dir(gpuDir) do
       local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
+      local inScope  = isGkyl and (
          testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
       if inScope then
          count = count + 1
