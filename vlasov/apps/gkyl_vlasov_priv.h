@@ -266,7 +266,8 @@ struct vm_boundary_fluxes {
   struct gkyl_array *mom_arr[2*GKYL_MAX_CDIM];
   struct gkyl_range flux_r[2*GKYL_MAX_CDIM];
   struct gkyl_range conf_r[2*GKYL_MAX_CDIM];
-  struct gkyl_dg_updater_moment *integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
+  struct gkyl_mom_type *mom_type;
+  struct gkyl_mom_calc *integ_moms[2*GKYL_MAX_CDIM];
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
@@ -299,7 +300,8 @@ struct vm_emitting_wall {
   struct gkyl_array *k[GKYL_MAX_SPECIES];
   struct vm_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
   struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
-  struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // integrated moments
+  struct gkyl_mom_type *mom_type;
+  struct gkyl_mom_calc *flux_slvr[GKYL_MAX_SPECIES]; // integrated moments
 
   struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];
   struct gkyl_range *impact_ghost_r[GKYL_MAX_SPECIES];

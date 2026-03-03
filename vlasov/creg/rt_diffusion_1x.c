@@ -86,8 +86,7 @@ main(int argc, char **argv)
   };  
 
   // VM app
-  struct gkyl_vm vm = {
-    .name = "rt-diffusion-1x",
+  struct gkyl_vm app_inp = {
 
     .cdim = 1, .vdim = 0,
     .lower = { -2 },
@@ -113,7 +112,9 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.01;

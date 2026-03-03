@@ -529,7 +529,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_LSN_SOL,                     // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,                     // type of geometry
     .rclose = 2.5,                             // closest R to region of interest
     .rright = 2.5,                             // Closest R to outboard SOL
     .rleft = 0.7,                              // closest R to inboard SOL
@@ -543,7 +543,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_bgk_asdex_2x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { 0.15, -ctx.Lz/2.0 },   // Originally 0.16
@@ -573,6 +572,8 @@ main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

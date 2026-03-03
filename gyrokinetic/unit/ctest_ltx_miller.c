@@ -108,7 +108,7 @@ test_ltx_miller()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.4,
     .rleft= 0.2,
     .rright= 0.45,
