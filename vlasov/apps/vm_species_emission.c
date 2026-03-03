@@ -57,14 +57,27 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
       app->use_gpu);
   }
 
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &app->basis,
+    .phase_basis = &vms->basis,
+    .vel_range = &vms->local_vel,
+    .use_vmap = vms->use_vmap, 
+    .vmap = vms->vmap, 
+    .jacob_vel = vms->jacob_vel, 
+    .hamil_range = &vms->hamil_range,
+    .hamil = vms->hamil,
+    .model_id = vms->model_id,
+    .mom_type = GKYL_F_MOMENT_M0M1M2, 
+    .use_gpu = app->use_gpu,
+  };
+  emit->mom_type = gkyl_int_mom_vlasov_inew(&inp_mom);
+
   // Initialize inelastic emission spectrums
   for (int i=0; i<emit->num_species; ++i) {
     emit->impact_species[i] = vm_find_species(app, emit->params->in_species[i]);
     emit->impact_grid[i] = &emit->impact_species[i]->bflux.boundary_grid[bdir];
 
-    emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->basis,
-      &vms->basis, NULL, NULL, NULL, emit->impact_species[i]->model_id, 0, GKYL_F_MOMENT_M0M1M2, true,
-      app->use_gpu);
+    emit->flux_slvr[i] = gkyl_mom_calc_new(emit->impact_grid[i], emit->mom_type, app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
     emit->impact_ghost_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_ghost[emit->dir] : &emit->impact_species[i]->upper_ghost[emit->dir];
@@ -111,7 +124,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_specie
   for (int i=0; i<emit->num_species; ++i) {
     int species_idx;
     species_idx = vm_find_species_idx(app, emit->impact_species[i]->info.name);
-    gkyl_dg_updater_moment_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
+    gkyl_mom_calc_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     
     gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_buff_r[i],
@@ -151,13 +164,14 @@ vm_species_emission_release(const struct vm_emitting_wall *emit)
     gkyl_array_release(emit->elastic_yield);
     gkyl_bc_emission_elastic_release(emit->elastic_update);
   }
+  gkyl_mom_type_release(emit->mom_type);
   for (int i=0; i<emit->num_species; ++i) {
     gkyl_array_release(emit->yield[i]);
     gkyl_array_release(emit->spectrum[i]);
     gkyl_array_release(emit->weight[i]);
     gkyl_array_release(emit->flux[i]);
     gkyl_array_release(emit->k[i]);
-    gkyl_dg_updater_moment_release(emit->flux_slvr[i]);
+    gkyl_mom_calc_release(emit->flux_slvr[i]);
     gkyl_bc_emission_spectrum_release(emit->update[i]);
   }
 }
