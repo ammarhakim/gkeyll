@@ -75,7 +75,7 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   // Version 0 format is used for rest of the header
   uint64_t real_type = gkyl_array_data_type[hdr->etype];
   fwrite(&real_type, sizeof(uint64_t), 1, fp);
-  gkyl_rect_grid_write(grid, fp);
+  gkyl_rect_grid_write(grid, 0, fp);
 
   fwrite(&hdr->esznc, sizeof(uint64_t), 1, fp);
   fwrite(&hdr->tot_cells, sizeof(uint64_t), 1, fp);
