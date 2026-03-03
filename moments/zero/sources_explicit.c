@@ -741,6 +741,10 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, doubl
   double gas_gamma = mom_em->gr_ultra_rel_gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type != GKYL_EQN_GR_ULTRA_REL_EULER) {
+      continue;
+    }
+
     double *f = fluid_s[i];
 
     double f_new[70], f_stage1[70], f_stage2[70], f_old[70];
@@ -1154,6 +1158,9 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_
   double gas_gamma = mom_em->gr_euler_gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type != GKYL_EQN_GR_EULER) {
+      continue;
+    }
     double *f = fluid_s[i];
 
     double f_new[71], f_stage1[71], f_stage2[71], f_old[71];
@@ -2511,6 +2518,9 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, do
   enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_spacetime_evolution;
 
   for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type != GKYL_EQN_VACUUM_EINSTEIN) {
+      continue;
+    }
     double *f = fluid_s[i];
 
     double f_new[64], f_stage1[64], f_stage2[64], f_old[64];
