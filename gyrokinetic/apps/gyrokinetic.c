@@ -730,22 +730,23 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
   double t_end = t_curr + dt0;
 
   double t_new = -1.0;
+//  printf("New step: t_curr=%.7e | t_end=%.7e\n", app->tcurr, t_end);
   gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_mnvec, &t_new);
 
   st.dt_actual = t_new - t_curr;
   st.dt_suggested = dt0;
-//  printf("Used dt = %.7e\n",st.dt_actual);
+//  printf("Used dt = %.7e | t_new = %.7e |",st.dt_actual, t_new);
 
   if (gkyl_sundials_use_operator_split(app->gk_sundials)) {
-    gkyl_sundials_set_fixed_step(app->gk_sundials, st.dt_actual);
+//    gkyl_sundials_set_fixed_step(app->gk_sundials, st.dt_actual);
     // MF 2026/02/19: I would think setting the outer dt to the larger of dt_ssprk
     // and dt_sts would be the best option but it appears to be 2x slower.
     double dt_ssprk = gkyl_sundials_get_current_dt_ssprk(app->gk_sundials);
     double dt_sts   = gkyl_sundials_get_current_dt_sts(app->gk_sundials);
     double dt_next = GKYL_MAX2(dt_ssprk, dt_sts);
-//    printf("dt_ssprk=%.7e | dt_sts=%.7e | next outer dt=%.7e\n",dt_ssprk, dt_sts, dt_next);
+//    printf(" dt_ssprk=%.7e | dt_sts=%.7e | next outer dt=%.7e\n",dt_ssprk, dt_sts, dt_next);
     gkyl_sundials_set_fixed_step(app->gk_sundials, dt_next);
-    st.dt_actual = dt_next;
+    st.dt_suggested = dt_next;
   }
 
   // Check for any CUDA errors during time step.
@@ -769,53 +770,123 @@ gyrokinetic_sundials_error_weight_range(void *ctx, const struct gkyl_array *xarr
 }
 
 static void
-gyrokinetic_pre_process_step_generic(void *app_gen, double tcurr, double dt,
+gyrokinetic_pre_process_step_ssprk_generic(void *app_gen, double tcurr, double dt,
   void *fdot_args_gen)
 {
   struct gkyl_gyrokinetic_app *app = app_gen;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
 
-  gyrokinetic_pre_process_step(app, tcurr, dt, fdot_args_gen);
+  gyrokinetic_pre_process_step_ssprk(app, tcurr, dt, fdot_args_gen);
 }
 
 static void
-gyrokinetic_pre_process_rk_stage_generic(void *app_gen, double tcurr, double dt,
+gyrokinetic_pre_process_rk_stage_ssprk_generic(void *app_gen, double tcurr, double dt,
   void *fdot_args_gen, int stage_idx, int num_stages)
 {
   struct gkyl_gyrokinetic_app *app = app_gen;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
 
-  gyrokinetic_pre_process_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+  gyrokinetic_pre_process_rk_stage_ssprk(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
 }
 
 static void
-gyrokinetic_post_process_rk_stage_generic(void *app_gen, double tcurr, double dt,
+gyrokinetic_post_process_rk_stage_ssprk_generic(void *app_gen, double tcurr, double dt,
   void *fdot_args_gen, int stage_idx, int num_stages)
 {
   struct gkyl_gyrokinetic_app *app = app_gen;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
 
-  gyrokinetic_post_process_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+  gyrokinetic_post_process_rk_stage_ssprk(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
 }
 
 static void
-gyrokinetic_post_process_step_generic(void *app_gen, double tcurr, double dt,
+gyrokinetic_post_process_step_ssprk_generic(void *app_gen, double tcurr, double dt,
   void *fdot_args_gen)
 {
   struct gkyl_gyrokinetic_app *app = app_gen;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
 
-  gyrokinetic_post_process_step(app, tcurr, dt, fdot_args_gen);
+  gyrokinetic_post_process_step_ssprk(app, tcurr, dt, fdot_args_gen);
 }
 
 static void
-gyrokinetic_post_process_failed_rk_stage_generic(void *app_gen, double tcurr, double dt,
+gyrokinetic_post_process_failed_step_ssprk_generic(void *app_gen,
+  double tcurr, void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_failed_step_ssprk(app, tcurr, fdot_args_gen);
+}
+
+static void
+gyrokinetic_pre_process_step_sts_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_pre_process_step_sts(app, tcurr, dt, fdot_args_gen);
+}
+
+static void
+gyrokinetic_pre_process_rk_stage_sts_generic(void *app_gen, double tcurr, double dt,
   void *fdot_args_gen, int stage_idx, int num_stages)
 {
   struct gkyl_gyrokinetic_app *app = app_gen;
   struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
 
-  gyrokinetic_post_process_failed_rk_stage(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+  gyrokinetic_pre_process_rk_stage_sts(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+}
+
+static void
+gyrokinetic_post_process_rk_stage_sts_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen, int stage_idx, int num_stages)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_rk_stage_sts(app, tcurr, dt, fdot_args_gen, stage_idx, num_stages);
+}
+
+static void
+gyrokinetic_post_process_step_sts_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_step_sts(app, tcurr, dt, fdot_args_gen);
+}
+
+static void
+gyrokinetic_post_process_failed_step_sts_generic(void *app_gen,
+  double tcurr, void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_failed_step_sts(app, tcurr, fdot_args_gen);
+}
+
+static void
+gyrokinetic_pre_process_step_opsplit_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_pre_process_step_opsplit(app, tcurr, dt, fdot_args_gen);
+}
+
+static void
+gyrokinetic_post_process_step_opsplit_generic(void *app_gen, double tcurr, double dt,
+  void *fdot_args_gen)
+{
+  struct gkyl_gyrokinetic_app *app = app_gen;
+  struct gkyl_gyrokinetic_fdot_args *fdot_args = fdot_args_gen;
+
+  gyrokinetic_post_process_step_opsplit(app, tcurr, dt, fdot_args_gen);
 }
 
 void
@@ -996,11 +1067,18 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_app_ctx.dfdt_sts_func = gyrokinetic_dfdt_sts_generic;
     app->sundials_app_ctx.reduce_dt_func = gyrokinetic_reduce_dt_generic;
     app->sundials_app_ctx.error_wgt_func = gyrokinetic_sundials_error_weight_range;
-    app->sundials_app_ctx.pre_process_step_func = gyrokinetic_pre_process_step_generic;
-    app->sundials_app_ctx.pre_process_rk_stage_func = gyrokinetic_pre_process_rk_stage_generic;
-    app->sundials_app_ctx.post_process_rk_stage_func = gyrokinetic_post_process_rk_stage_generic;
-    app->sundials_app_ctx.post_process_step_func = gyrokinetic_post_process_step_generic;
-    app->sundials_app_ctx.post_process_failed_rk_stage_func = gyrokinetic_post_process_failed_rk_stage_generic;
+    app->sundials_app_ctx.pre_process_step_ssprk_func = gyrokinetic_pre_process_step_ssprk_generic;
+    app->sundials_app_ctx.pre_process_rk_stage_ssprk_func = gyrokinetic_pre_process_rk_stage_ssprk_generic;
+    app->sundials_app_ctx.post_process_rk_stage_ssprk_func = gyrokinetic_post_process_rk_stage_ssprk_generic;
+    app->sundials_app_ctx.post_process_step_ssprk_func = gyrokinetic_post_process_step_ssprk_generic;
+    app->sundials_app_ctx.post_process_failed_step_ssprk_func = gyrokinetic_post_process_failed_step_ssprk_generic;
+    app->sundials_app_ctx.pre_process_step_sts_func = gyrokinetic_pre_process_step_sts_generic;
+    app->sundials_app_ctx.pre_process_rk_stage_sts_func = gyrokinetic_pre_process_rk_stage_sts_generic;
+    app->sundials_app_ctx.post_process_rk_stage_sts_func = gyrokinetic_post_process_rk_stage_sts_generic;
+    app->sundials_app_ctx.post_process_step_sts_func = gyrokinetic_post_process_step_sts_generic;
+    app->sundials_app_ctx.post_process_failed_step_sts_func = gyrokinetic_post_process_failed_step_sts_generic;
+    app->sundials_app_ctx.pre_process_step_opsplit_func = gyrokinetic_pre_process_step_opsplit_generic;
+    app->sundials_app_ctx.post_process_step_opsplit_func = gyrokinetic_post_process_step_opsplit_generic;
 
     app->sundials_stepper_inp.rk_method = gk->sundials_stepper.rk_method,
     app->sundials_stepper_inp.opsplit_method = gk->sundials_stepper.opsplit_method,
@@ -1057,6 +1135,21 @@ gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
 }
 
 void
+gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
+  struct gkyl_array *distf[],  struct gkyl_array *distf_neut[])
+{
+  // Apply BCs.
+  struct timespec wst = gkyl_wall_clock();
+  for (int i=0; i<app->num_species; ++i) {
+    gk_species_apply_bc(app, &app->species[i], distf[i]);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
+  }
+  app->stat.bc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
 gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[])
 {
@@ -1068,14 +1161,7 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **) distf, bflux);
 
   // Apply boundary conditions.
-  struct timespec wst = gkyl_wall_clock();
-  for (int i=0; i<app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
-  }
-  for (int i=0; i<app->num_neut_species; ++i) {
-    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-  }
-  app->stat.bc_tm += gkyl_time_diff_now_sec(wst);
+  gyrokinetic_apply_bc(app, tcurr, distf, distf_neut);
 }
 
 struct gk_species *

@@ -4246,6 +4246,17 @@ void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /**
+ * Apply boundary conditions.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param distf Array of distribution functions (for each charged species).
+ * @param distf_neut Array of distribution functions (for each neutral species).
+ */
+void gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
+  struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
+
+/**
  * Compute the gyrokinetic fields and apply boundary conditions.
  *
  * @param app Gyrokinetic app.
@@ -4377,7 +4388,7 @@ void gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt
   struct gkyl_gyrokinetic_fdot_args *fdot_args, struct gkyl_update_status *st); 
 
 /**
- * Perform some operations at the beginning of a step.
+ * Perform some operations at the beginning of an SSP-RK step.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -4385,11 +4396,11 @@ void gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt
  * @param fdot_args Arguments for df/dt calculation.
  */
 void
-gyrokinetic_pre_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+gyrokinetic_pre_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
- * Perform some operations at the beginning of an RK stage.
+ * Perform some operations at the beginning of an SSP-RK stage.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -4399,11 +4410,11 @@ gyrokinetic_pre_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  * @param num_stages Number of RK stages.
  */
 void
-gyrokinetic_pre_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+gyrokinetic_pre_process_rk_stage_ssprk(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
 
 /**
- * Perform some operations at the end of an RK stage.
+ * Perform some operations at the end of an SSP-RK stage.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -4413,11 +4424,11 @@ gyrokinetic_pre_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double
  * @param num_stages Number of RK stages.
  */
 void
-gyrokinetic_post_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+gyrokinetic_post_process_rk_stage_ssprk(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
 
 /**
- * Perform some operations at the end of a step.
+ * Perform some operations at the end of an SSP-RK step.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -4425,11 +4436,34 @@ gyrokinetic_post_process_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, doubl
  * @param fdot_args Arguments for df/dt calculation.
  */
 void
-gyrokinetic_post_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
- * Perform some operations at the end of a failed RK stage.
+ * Perform some operations at the end of a failed SSP-RK step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_post_process_failed_step_ssprk(gkyl_gyrokinetic_app* app,
+  double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Perform some operations at the beginning of an STS step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_pre_process_step_sts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Perform some operations at the beginning of an STS stage.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -4439,8 +4473,69 @@ gyrokinetic_post_process_step(gkyl_gyrokinetic_app* app, double tcurr, double dt
  * @param num_stages Number of RK stages.
  */
 void
-gyrokinetic_post_process_failed_rk_stage(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+gyrokinetic_pre_process_rk_stage_sts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
+ * Perform some operations at the end of an STS stage.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @param stage_idx RK stage index.
+ * @param num_stages Number of RK stages.
+ */
+void
+gyrokinetic_post_process_rk_stage_sts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
+ * Perform some operations at the end of an STS step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_post_process_step_sts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Perform some operations at the end of a failed STS step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_post_process_failed_step_sts(gkyl_gyrokinetic_app* app,
+  double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Perform some operations at the beginning of an operator split step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_pre_process_step_opsplit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
+
+/**
+ * Perform some operations at the end of an operator split step.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ */
+void
+gyrokinetic_post_process_step_opsplit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
  * Take time-step using the RK3 method. Also sets the status object

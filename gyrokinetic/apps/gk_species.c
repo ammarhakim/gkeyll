@@ -170,7 +170,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, dt_omegaH);
 
-//  printf("rhs dt = %.9e\n",dt_out);
+//  printf("    species rhs dt = %.9e\n",dt_out);
 
   return dt_out;
 }
@@ -197,7 +197,7 @@ gk_species_rhs_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *speci
   double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, dt_omegaH);
 
-//  printf("rhs ssprk dt = %.9e\n",dt_out);
+//  printf("    species rhs ssprk dt = %.9e\n",dt_out);
   return dt_out;
 }
 
@@ -219,7 +219,7 @@ gk_species_rhs_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species
   // CFL stable time step for this species.
   double dt_out = gk_species_omega_cfl_to_dt(app, species, cflrate);
 
-//  printf("rhs sts dt = %.9e\n",dt_out);
+//  printf("    species rhs sts dt = %.9e\n",dt_out);
   return dt_out;
 }
 

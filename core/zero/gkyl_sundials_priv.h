@@ -60,22 +60,35 @@ struct gkyl_sundials
   SUNStepper stepper_ssprk, stepper_sts; // Steppers for operator splitting.
   void *arkode_mem_opsplit; // Memory for operator splotting.
   // Methods assigned by specific apps.
+  int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
+
   int (*dfdt_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
   int (*dfdt_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
   int (*dfdt_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, void *ctx);
+
   int (*gk_dom_eig_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
     sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
   int (*gk_dom_eig_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot, sunrealtype* lambdaR,
     sunrealtype* lambdaI, void *ctx, N_Vector temp1, N_Vector temp2, N_Vector temp3);
+
   int (*cfl_stable_dt_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
   int (*cfl_stable_dt_ssprk_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
   int (*cfl_stable_dt_sts_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
-  int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
-  int (*pre_process_step_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_step_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*pre_process_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_failed_rk_stage_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+
+  int (*pre_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*pre_process_rk_stage_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_rk_stage_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_failed_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+
+  int (*pre_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*pre_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_failed_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+
+  int (*pre_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
 };
 
 /**

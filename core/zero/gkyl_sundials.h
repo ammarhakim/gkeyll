@@ -43,36 +43,32 @@ struct gkyl_sundials_app_ctx {
   void *arkode_mem_ssprk; // Memory for ARKODE SSP-RK stepper.
   void *arkode_mem_sts; // Memory for ARKODE STS stepper.
   void *arkode_mem_opsplit; // Memory for ARKODE operator split stepper.
-  // Function that computes df/dt.
+  // Function that computes weight for the error norm.
+  int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr, struct gkyl_array *wgt, struct gkyl_range *local_range);
+  // Function that computes df/dt for all operators, or for SSP-RK or STS operators separately.
   double (*dfdt_func)(void *app_gen, double t_curr, void *fdot_args_gen);
-  // Function that computes df/dt due to operators stepped with SSP-RK.
   double (*dfdt_ssprk_func)(void *app_gen, double t_curr, void *fdot_args_gen);
-  // Function that computes df/dt due to operators stepped with STS.
   double (*dfdt_sts_func)(void *app_gen, double t_curr, void *fdot_args_gen);
+  // Operations performed at the beginning/end of an outer step.
+  void (*pre_process_step_opsplit_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  void (*post_process_step_opsplit_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  // Operations performed at the beginning/end of an SSP-RK step/stage or failed step.
+  void (*pre_process_step_ssprk_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  void (*pre_process_rk_stage_ssprk_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen, int stage_idx, int num_stages);
+  void (*post_process_rk_stage_ssprk_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
+  void (*post_process_step_ssprk_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  void (*post_process_failed_step_ssprk_func)(void* app_gen, double tcurr, void *fdot_args);
+  // Operations performed at the beginning/end of an STS step/stage or failed step.
+  void (*pre_process_step_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  void (*pre_process_rk_stage_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen, int stage_idx, int num_stages);
+  void (*post_process_rk_stage_sts_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
+  void (*post_process_step_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  void (*post_process_failed_step_sts_func)(void* app_gen, double tcurr, void *fdot_args);
   // Function that reduces a local dt across MPI processes.
   double (*reduce_dt_func)(void *app_gen, double t_curr, double dt_local);
-  // Function that computes weight for the error norm.
-  int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr,
-    struct gkyl_array *wgt, struct gkyl_range *local_range);
-  // Operations performed at the beginning of a step.
-  void (*pre_process_step_func)(void *app_gen, double tcurr, double dt,
-    void *fdot_args_gen);
-  // Operations performed at the beginning of an RK stage.
-  void (*pre_process_rk_stage_func)(void *app_gen, double tcurr, double dt,
-    void *fdot_args_gen, int stage_idx, int num_stages);
-  // Operations performed at the end of an RK stage.
-  void (*post_process_rk_stage_func)(void* app_gen, double tcurr, double dt,
-    void *fdot_args, int stage_idx, int num_stages);
-  // Operations performed at the end of a step.
-  void (*post_process_step_func)(void *app_gen, double tcurr, double dt,
-    void *fdot_args_gen);
-  // Operations performed at the end of a failed RK stage.
-  void (*post_process_failed_rk_stage_func)(void* app_gen, double tcurr, double dt,
-    void *fdot_args, int stage_idx, int num_stages);
   // Objects below are private.
   double dt_local; // CFL constrained time step in local MPI process.
   double dt_local_ssprk, dt_local_sts; // dt_local for SSP-RK and STS components.
-  double dt_global; // Reduction of dt_local over all MPI processes.
 };
 
 // Sundials inputs specified in input file.
