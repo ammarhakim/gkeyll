@@ -1593,7 +1593,7 @@ local parser = argparse()
    :name("runregression")
    :require_command(true)
    :description [[
-Run Gkyl regression tests across the hierarchical layer architecture
+Run Gkeyll regression tests across the hierarchical layer architecture
 (moments -> vlasov -> gyrokinetic -> pkpm).
 
 Each layer has Lua regression tests (luareg/) and C regression tests (creg/).
