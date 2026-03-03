@@ -16,29 +16,33 @@ incr_int_array(int ndim, int fact, const int * GKYL_RESTRICT del,
 }
 
 // KB - Number of cells in the positive and negative directions
-// is assumed to be the same symmetrically, half of the cells in that dimension. Need to
-// do this more rigorously.
+// VKK - Assumes that the cells divide cleanly, asserted that total cells = cells in positive direction + cells in negative direction.
 void
-gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
+gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir, const struct gkyl_rect_grid *impact_grid,
   const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge)
 {
   int ndim = parent->ndim;
   int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
-  
-  if (edge == GKYL_LOWER_EDGE) {
-    incr_int_array(ndim, 0, nghost, parent->lower, lo);
-    incr_int_array(ndim, 0, nghost, parent->upper, up);
 
-    int nneg = (up[dir] - lo[dir] + 1)/2;
-  
+  double grid_lo = impact_grid->lower[dir]; // Get value of lower edge of grid in direction of BC
+  double grid_up = impact_grid->upper[dir]; // Get value of upper edge of grid in direction of BC
+  double grid_tot = fabs(grid_up) + fabs(grid_lo);
+
+  double lo_ratio = fabs(grid_lo) / grid_tot;
+  double up_ratio = fabs(grid_up) / grid_tot;
+
+  incr_int_array(ndim, 0, nghost, parent->lower, lo);
+  incr_int_array(ndim, 0, nghost, parent->upper, up);
+
+  int ntot = (up[dir] - lo[dir] + 1);
+  int nneg = lo_ratio*ntot;
+  int npos = up_ratio*ntot;
+
+  assert(nneg + npos == ntot); // Check that number of cells in positive and negative directions add up to total number of cells  
+  if (edge == GKYL_LOWER_EDGE) {
     up[dir] = lo[dir] + nneg;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   } else {
-    incr_int_array(ndim, 0, nghost, parent->lower, lo);
-    incr_int_array(ndim, 0, nghost, parent->upper, up);
-
-    int npos = (up[dir] - lo[dir] + 1)/2;
-    
     lo[dir] = up[dir] - npos;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   }

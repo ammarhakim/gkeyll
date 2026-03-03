@@ -124,9 +124,9 @@ create_ctx(void)
   double vzmin = vxmin;  // [m/s]
   double vzmax = -vzmin;  // [m/s]
   int Nx = 1;
-  int Nvx = 128;
-  int Nvy = 128;
-  int Nvz = 128;
+  int Nvx = 512;
+  int Nvy = 512;
+  int Nvz = 512;
   // SEE parameters
   double phi = 4.68;
   double E0 = 1.97;

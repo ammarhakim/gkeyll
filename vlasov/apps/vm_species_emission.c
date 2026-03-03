@@ -79,7 +79,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->k[i] = mkarr(app->use_gpu, app->confBasis.num_basis, emit->impact_cbuff_r[i]->volume);
 
     gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir + cdim,
-      emit->impact_buff_r[i], ghost, emit->edge);
+      emit->impact_grid[i], emit->impact_buff_r[i], ghost, emit->edge);
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
       emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
