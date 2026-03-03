@@ -1621,7 +1621,9 @@ local c_conf = parser:command("configure", "Configure regression tests")
 
 c_conf:option("-p --prefix", "Location to write gkeyll-results/ directory")
    :target("config_prefix")
-c_conf:option("-m --mpiexec", "Full path to MPI executable")
+c_conf:option("-m --mpiexec",
+   "Full path to MPI executable (stored in config but currently unused: "
+   .. "MPI-based parallel test execution is not implemented)")
    :target("config_mpiexec")
 c_conf:option("-s --source-dir",
    "Path to gkeyll source root (contains moments/, vlasov/, etc. with creg/ and luareg/ subdirs)")
@@ -1634,9 +1636,12 @@ c_conf:flag("--drop-tables",
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only",
-   "Only list this test or all tests in this directory")
+   "Only list this test or all tests in this directory. "
+   .. "Use absolute paths; relative paths bypass layer affinity detection.")
 c_list:option("-a --app",
-   "Only list tests for this app (prefix after rt_ in filename)")
+   "Filter by filename prefix: '--app euler' lists only rt_euler_*.lua files. "
+   .. "NOTE: this is NOT layer filtering. For layer filtering, insert the layer "
+   .. "name before the subcommand: 'list moments', 'list vlasov', etc.")
 c_list:flag("-m --moat", "Only list MOAT regression tests")
 c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
 c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
@@ -1646,13 +1651,21 @@ c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
 -- argparse (see the pre-processing block near the top of this file), so:
 --   gkeyll runregression run check          → all layers, check
 --   gkeyll runregression run moments check  → moments layer only, check
-local c_run = parser:command("run", "Run regression tests.")
+local c_run = parser:command("run",
+   "Run regression tests. Insert a layer name before the subcommand to restrict "
+   .. "to one layer: 'run moments check', 'run vlasov create', 'run gyrokinetic check'. "
+   .. "Without a subcommand (check/create), tests are executed but results are not "
+   .. "saved or compared.")
    :require_command(false)
    :action(run_action)
 c_run:option("-r --run-only",
-   "Only run these tests or directories (comma-separated list)")
+   "Only run these tests or directories (comma-separated list). "
+   .. "Use absolute paths; relative paths bypass layer affinity detection "
+   .. "and may add the same test once per scanned layer.")
 c_run:option("-a --app",
-   "Only run tests for this app (prefix after rt_ in filename)")
+   "Filter by filename prefix: '--app euler' runs only rt_euler_*.lua files. "
+   .. "NOTE: this is NOT layer filtering. For layer filtering, insert the layer "
+   .. "name before the subcommand: 'run moments check', 'run vlasov check', etc.")
 c_run:flag("-m --moat", "Only run MOAT regression tests")
 c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
 c_run:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
@@ -1669,8 +1682,13 @@ c_run:option("--gpu-tol",
 c_run:flag("--no-gpu",
    "Skip GPU testing even on a GPU build (run CPU tests only)")
 
-c_run:command("check",  "Check results against accepted baselines")
-c_run:command("create", "Create accepted baselines from current results")
+c_run:command("check",
+   "Run tests and compare output against accepted baselines in <prefix>/gkeyll-results/. "
+   .. "Reports pass/fail per test and writes results to the per-layer SQLite database.")
+c_run:command("create",
+   "Run tests and save output as accepted baselines in <prefix>/gkeyll-results/. "
+   .. "Overwrites any previously accepted files for tests that are run. "
+   .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
 
 -- 'listunit' command ----------------------------------------------------------
 parser:command("listunit", "List all unit tests")
