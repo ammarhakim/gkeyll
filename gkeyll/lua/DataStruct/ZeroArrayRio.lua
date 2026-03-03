@@ -13,7 +13,11 @@ local xsys = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
-local Grid = require "Grid.RectCart"
+-- Use the Zero* (Lua-C API) grid module rather than the old FFI-based
+-- Grid.RectCart, which unconditionally required Comm.Mpi and therefore
+-- broke non-MPI builds. Grid.ZeroRectCart defines struct gkyl_rect_grid
+-- which is needed by the gkyl_grid_* function declarations below.
+local ZeroRectCart = require "Grid.ZeroRectCart"
 
 _M = {}
 

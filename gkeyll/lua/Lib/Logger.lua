@@ -5,7 +5,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Mpi = require "Comm.Mpi"
+-- Only load Mpi when the executable was built with MPI support.
+-- Without MPI there is always exactly one process (rank 0), so we
+-- provide a minimal stub that satisfies the same interface.
+local Mpi
+if GKYL_HAVE_MPI then
+   Mpi = require "Comm.Mpi"
+else
+   Mpi = {
+      COMM_WORLD  = nil,
+      Comm_rank   = function(comm) return 0 end,
+   }
+end
 
 local ffi  = require "ffi"
 local xsys = require "xsys"
@@ -30,7 +41,7 @@ local function makeLogger(tbl)
    else
       fName = GKYL_OUT_PREFIX .. "_" .. writeRank .. ".log"
    end
-   
+
    local comm = tbl.comm and tbl.comm or Mpi.COMM_WORLD
    local rank = Mpi.Comm_rank(comm)
 

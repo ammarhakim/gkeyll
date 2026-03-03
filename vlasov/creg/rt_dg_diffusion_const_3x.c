@@ -283,7 +283,6 @@ for (int d = 0; d < cdim; d++) {
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "dg_diffusion_const_3x",
 
     .cdim = 3, .vdim = 0,
     .lower = { 0.0, 0.0, 0.0 },
@@ -313,6 +312,8 @@ for (int d = 0; d < cdim; d++) {
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
