@@ -24,11 +24,12 @@
 #SBATCH --mail-type=END,FAIL,REQUEUE
 
 #.Load modules (this must match those in the machines/configure script).
-module load PrgEnv-gnu/8.5.0
+module load PrgEnv-gnu/8.6.0
 module load craype-accel-nvidia80
-module load cray-mpich/8.1.28
-module load cudatoolkit/12.4
-module load nccl/2.18.3-cu12
+module load cray-mpich/9.0.1
+module load cudatoolkit/13.0
+module load nccl/2.29.2-cu13
+module load cray-libsci/25.09.0
 
 #.Disable CUDA-ware MPI, since it causes problems on Perlmutter and we use NCCL alone.
 export MPICH_GPU_SUPPORT_ENABLED=0

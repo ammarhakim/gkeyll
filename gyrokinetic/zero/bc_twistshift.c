@@ -6,6 +6,7 @@
 #include <gkyl_util.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 
 // Notes:
 //   a) Hard-coded parameters:
@@ -1977,7 +1978,18 @@ gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
   }
 }
 
-void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
+struct gkyl_array*
+gkyl_bc_twistshift_get_shift_objects(struct gkyl_bc_twistshift *up, struct gkyl_rect_grid *shear_grid,
+  struct gkyl_range *shear_r, struct gkyl_basis *shift_b)
+{
+  *shear_grid = up->shear_grid;
+  *shear_r    = up->shear_r   ;
+  *shift_b    = up->shift_b   ;
+  return gkyl_array_acquire(up->shift_dg);
+};
+
+void
+gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
   // Release memory associated with this updater.
   if (!up->use_gpu) {
     gkyl_free(up->num_do_cum);
