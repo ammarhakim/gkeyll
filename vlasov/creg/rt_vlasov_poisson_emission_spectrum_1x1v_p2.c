@@ -219,20 +219,17 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, d
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
-  if (trig_now || force_write) {
-    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
 
     gkyl_vlasov_app_write(app, t_curr, frame);
-
-    gkyl_vlasov_app_calc_mom(app);
-    gkyl_vlasov_app_write_mom(app, t_curr, frame);
-
-    gkyl_vlasov_app_calc_field_energy(app, t_curr);
     gkyl_vlasov_app_write_field_energy(app);
-
-    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
     gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
 
@@ -487,7 +484,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  double io_tm =  stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
   freeresources:
   // Free resources after simulation completion.
