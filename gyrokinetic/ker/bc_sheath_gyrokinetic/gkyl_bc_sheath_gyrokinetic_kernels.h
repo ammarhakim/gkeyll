@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_util.h>
+#include <gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h> 
 #include <math.h>
 
 // approximation for inverse Langevin function 
@@ -20,6 +21,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl); 
 GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl); 
 GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl); 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_1x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_1x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
+GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *vmap, const double *phi, const double *phi_wall, const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out) ; 
 
 EXTERN_C_END
 

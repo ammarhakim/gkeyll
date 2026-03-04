@@ -1,5 +1,6 @@
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_sheath_gyrokinetic_priv.h>
+#include <gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h>
 #include <gkyl_alloc.h>
 #include <assert.h>
 
@@ -14,10 +15,59 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
+void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
+{
+#ifdef GKYL_HAVE_CUDA
+   // Not implemented on GPU yet.
+#endif
+
+  int cidx[GKYL_MAX_CDIM]; // Configuration space index.
+  int vidx[GKYL_MAX_VDIM]; // Velocity space index.
+  int vcut_idx[GKYL_MAX_CDIM]; // Index for vcut_fact array, which is in the space of perpendicular config space coords and mu.
+
+  int pdim = up->skin_r->ndim; 
+  int vpar_dir = up->cdim;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->vcut_fact_local);
+  while (gkyl_range_iter_next(&iter)) {
+
+    // Build the indices.
+    for (int d=0; d < up->cdim-1; d++) {
+      cidx[d] = iter.idx[d];
+      vcut_idx[d] = iter.idx[d];
+    }
+    vidx[0] = 0; // vpar direction, not used in vcut_fact array.
+    vidx[1] = iter.idx[up->cdim-1]; // mu direction.
+    vcut_idx[up->cdim-1] = iter.idx[up->cdim-1];
+    // Get the linear indices to fetch from arrays.
+    long cperp_mu_loc = gkyl_range_idx(&up->vcut_fact_local, iter.idx);
+    long conf_loc = gkyl_range_idx(conf_r, iter.idx);
+    long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
+    // Fetch the values we need from the arrays.
+    const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
+    const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
+    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
+    const double *dens_e_p = (const double*) gkyl_array_cfetch(dens_e, conf_loc);
+    const double *temp_e_p = (const double*) gkyl_array_cfetch(temp_e, conf_loc);
+    const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
+    const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
+  }
+}
+
+void bc_gksheath_update_vcut_fact_surrogate_disabled(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
+{
+  return;
+}
+
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
-  int cdim, double q2Dm, bool use_gpu)
+  int cdim, double q2Dm, bool use_surrogate, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -26,12 +76,15 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->dir = dir;
   up->cdim = cdim;
   up->edge = edge;
+  up->use_surrogate = use_surrogate;
   up->use_gpu = use_gpu;
   up->q2Dm = q2Dm;
   up->basis = basis;
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
+  up->update_vcut_fact = use_surrogate ? 
+    bc_gksheath_update_vcut_fact_surrogate_enabled : bc_gksheath_update_vcut_fact_surrogate_disabled;
 
   // Create a special phase space basis and range for the vcut_fact array.
   // Function of perpendicular config space coordinates and magnetic moment, i.e. 
@@ -156,6 +209,13 @@ struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc
 struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   return &up->vcut_fact_local;
+}
+
+void gkyl_bc_gksheath_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
+{
+  return up->update_vcut_fact(up, phi, phi_wall, dens_e, temp_e, me, bimpact_angle, bmag, conf_r);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
