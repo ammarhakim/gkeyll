@@ -321,7 +321,7 @@ main(int argc, char **argv)
 
     .sundials_stepper = {
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
-      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKC_2,
+      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,
 //      .max_steps = 100000,

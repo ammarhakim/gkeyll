@@ -333,12 +333,12 @@ pre_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, 
  * Post-process a SSP-RK stage.
  *
  * @param t_curr Current simulation time.
- * @param manynvec_y State vector.
+ * @param manynvec_ycur State vector.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_ycur, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -350,14 +350,13 @@ post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y,
 
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-  unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_y);
+  unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_ycur);
   if (stage_idx == 0) {
-    N_Vector manynvec_yin;
-    flag = ARKodeGetLastState(app_ctx->arkode_mem_ssprk, &manynvec_yin);
-    unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yin);
+    N_Vector manynvec_yn;
+    flag = ARKodeGetLastState(app_ctx->arkode_mem_ssprk, &manynvec_yn);
+    unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yn);
 
-    flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_yin);
-    unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_yin);
+    unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_ycur);
   }
 
   app_ctx->post_process_rk_stage_ssprk_func(app_ctx->app_ptr, t_curr, dt, fdot_args, stage_idx, num_stages);
@@ -394,18 +393,24 @@ post_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, voi
  * Post-process a failed SSP-RK step.
  *
  * @param t_curr Current simulation time.
- * @param manynvec_y State vector.
+ * @param manynvec_yn Last accepted state vector (y_{n}, what the step started with).
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-post_process_failed_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+post_process_failed_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_yn, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
+
+  N_Vector manynvec_ycur;
+  int flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_ycur);
+  // We use yn for distf so the (f_{n+1}-f_{n})/dt diagnostic comes out right,
+  // but use ycur for the bfluxes so the boundary fluxes come out right.
+  unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yn);
+  unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_ycur);
 
   app_ctx->post_process_failed_step_ssprk_func(app_ctx->app_ptr, t_curr, fdot_args);
 

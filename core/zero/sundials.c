@@ -1053,7 +1053,7 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
 long
 gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
 {
-  long num_fail;
+  long num_fail = 0;
   if (gksun->has_ssprk) {
     long num_fail_ssprk;
     int flag = ARKodeGetNumErrTestFails(gksun->arkode_mem_opsplit, &num_fail_ssprk); 

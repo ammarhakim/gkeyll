@@ -191,35 +191,6 @@ gyrokinetic_post_process_rk_stage_final_ssprk(gkyl_gyrokinetic_app* app, double 
   double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
   // Operations at the end of the last SSP-RK stage.
-  struct gkyl_array **fout = fdot_args->fout;
-  struct gkyl_array **fout_neut = fdot_args->fout_neut;
-  struct gkyl_array ***bflux_out = fdot_args->bflux_out;
-  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
-
-  int ns_charged = app->num_species;
-  int ns_neut = app->num_neut_species;
-
-  // Divide new bflux by 1/dt (since forward Euler multiplied by dt).
-  struct timespec wst = gkyl_wall_clock();
-  gyrokinetic_bflux_scale(app, bflux_out, bflux_out_neut, 1.0/dt);
-  app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
-
-  // Compute volume- and time-integrated boundary fluxes.
-  for (int i=0; i<ns_charged; ++i) {
-    struct gk_species *gks = &app->species[i];
-    gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
-  }
-  for (int i=0; i<ns_neut; ++i) {
-    struct gk_neut_species *gkns = &app->neut_species[i];
-    gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
-  }
-
-  for (int i=0; i<ns_neut; ++i) {
-    struct gk_neut_species *gkns = &app->neut_species[i];
-    // Scale species according to balance between recycling and reactions.
-    gk_neut_species_recycle_react_scale_apply(app, gkns, &gkns->rrs, fout_neut[i], bflux_out);
-  }
-
 }
 
 void
@@ -250,9 +221,31 @@ gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr,
   struct gkyl_array **fout = fdot_args->fout;
   struct gkyl_array **fout_neut = fdot_args->fout_neut;
   struct gkyl_array ***bflux_out = fdot_args->bflux_out;
+  struct gkyl_array ***bflux_out_neut = fdot_args->bflux_out_neut;
 
   int ns_charged = app->num_species;
   int ns_neut = app->num_neut_species;
+
+  // Divide new bflux by 1/dt (since forward Euler multiplied by dt).
+  struct timespec wst = gkyl_wall_clock();
+  gyrokinetic_bflux_scale(app, bflux_out, bflux_out_neut, 1.0/dt);
+  app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
+
+  // Compute volume- and time-integrated boundary fluxes.
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
+  }
+
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    // Scale species according to balance between recycling and reactions.
+    gk_neut_species_recycle_react_scale_apply(app, gkns, &gkns->rrs, fout_neut[i], bflux_out);
+  }
 
   // Apply positivity shift if requested.
   for (int i=0; i<ns_charged; ++i) {
@@ -635,6 +628,5 @@ gyrokinetic_post_process_step_opsplit(gkyl_gyrokinetic_app* app, double tcurr,
   double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args)
 {
   // Operations at the end of the operator split step.
-  gyrokinetic_post_process_step_ssprk(app, tcurr, dt, fdot_args);
 }
 
