@@ -178,6 +178,7 @@ struct gkyl_gyrokinetic_bc {
   struct gkyl_gyrokinetic_emission_inp emission; 
   bool write_diagnostics; // Whether to output diagnostics.
   int bidx; // Block index (for multiblock solver).
+  bool use_sheath_surrogate; // Whether to use surrogate sheath BC to determine vcut (only used if type is SHEATH).
 };
 
 struct gkyl_gyrokinetic_geometry {

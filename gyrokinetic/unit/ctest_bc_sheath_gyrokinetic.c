@@ -230,7 +230,7 @@ void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
 
 void
 test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
-  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_gpu)
+  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_surrogate, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -365,7 +365,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -432,7 +432,7 @@ test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge,
 
 void
 test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
-  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_gpu)
+  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_surrogate, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -571,7 +571,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -638,7 +638,7 @@ test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge,
 
 void
 test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
-  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_gpu)
+  double charge, double phi_mpe, double upar_distf, bool write_fields, bool use_surrogate, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -781,7 +781,7 @@ test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge,
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*charge/mass, use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -851,6 +851,7 @@ void test_bc_sheath_gk_1x2v_ho()
   double phi_mpe; // Potential at the magnetic presheath entrance.
   double charge; // Species charge (+ or - for electrons/ions).
   bool write_fields;
+  bool use_surrogate = false;
 
   double upardistf = 0.0; // Parallel flow in distribution function.
 
@@ -858,29 +859,29 @@ void test_bc_sheath_gk_1x2v_ho()
   phi_mpe = 1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_1x2v((int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 }
 
 void test_bc_sheath_gk_2x2v_ho()
@@ -888,6 +889,7 @@ void test_bc_sheath_gk_2x2v_ho()
   double phi_mpe; // Potential at the magnetic presheath entrance.
   double charge; // Species charge (+ or - for electrons/ions).
   bool write_fields;
+  bool use_surrogate = false;
 
   double upardistf = -1.0; // Parallel flow in distribution function.
   
@@ -895,29 +897,29 @@ void test_bc_sheath_gk_2x2v_ho()
   phi_mpe = 1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v((int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 }
 
 void test_bc_sheath_gk_3x2v_ho()
@@ -925,6 +927,7 @@ void test_bc_sheath_gk_3x2v_ho()
   double phi_mpe; // Potential at the magnetic presheath entrance.
   double charge; // Species charge (+ or - for electrons/ions).
   bool write_fields;
+  bool use_surrogate = false;
 
   double upardistf = 1.0; // Parallel flow in distribution function.
 
@@ -932,29 +935,29 @@ void test_bc_sheath_gk_3x2v_ho()
   phi_mpe = 1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
-  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v((int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, upardistf, write_fields, use_surrogate, false);
 }
 
 #ifdef GKYL_HAVE_CUDA

@@ -20,12 +20,13 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param vel_map Velocity space mapping object.
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.
+ * @param use_surrogate Boolean to indicate whether to use surrogate model for vcut.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_gpu);
+  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate, bool use_gpu);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
@@ -73,6 +74,24 @@ struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc
  * @return The range of the vcut_fact array used in the sheath BC.
  */
 struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc_sheath_gyrokinetic *up);
+
+/**
+ * Update the vcut_fact array using a surrogate model to reflect the electrons.
+ * The surrogate depends on the potential drop, rho_e/lambda_De, and the angle of the magnetic field with respect to the wall.
+ * 
+ * @param up BC updater.
+ * @param phi Electrostatic potential at the magnetic presheath entrance (simulation boundary).
+ * @param phi_wall Electrostatic potential at the wall.
+ * @param density Electron density at the magnetic presheath entrance.
+ * @param temperature Electron temperature at the magnetic presheath entrance.
+ * @param me Electron mass.
+ * @param bmag Magnetic field strength at the magnetic presheath entrance.
+ * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
+ * @param conf_r Configuration space range (to index phi, density, temperature, bmag, and bimpact_angle).
+ */
+void gkyl_bc_gksheath_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature, const double me,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
