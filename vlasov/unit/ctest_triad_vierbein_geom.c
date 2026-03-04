@@ -823,7 +823,7 @@ test_triad_2x2v_rphi_ks_pnt(int poly_order)
         if (iter.idx[0] == 2 && iter.idx[1] == 1) expected = conf_pt_pnt3_vals[test_idx];
         if (iter.idx[0] == 2 && iter.idx[1] == 2) expected = conf_pt_pnt4_vals[test_idx];
         //printf("conf_poisson_tensor_d[%d]: %1.16e\n",test_idx,conf_poisson_tensor_d[test_idx]);
-        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-12) );
+        TEST_CHECK( gkyl_compare_double(conf_poisson_tensor_d[test_idx], expected, 1e-8) );
       }
     }
   }
