@@ -103,7 +103,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // The value 1.7 here is based on figure 2.4a in Durran's "Numerical methods
   // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
-  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.7 : gk->cfl_frac_omegaH;
+  double cfl_frac_omegaH = fabs(gk->cfl_frac_omegaH) < 1e-16 ? 1.7 : gk->cfl_frac_omegaH;
   app->cfl_omegaH = cfl_frac_omegaH;
 
 #ifdef GKYL_HAVE_CUDA
@@ -3078,6 +3078,14 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_msgpack_map_elem_release(app->io_meta_len, app->io_meta);
 
   gkyl_free(app);
+}
+
+void
+gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH)
+{
+  double new_cfl_frac_omegaH = fabs(cfl_frac_omegaH) < 1e-16 ? 1.7 : cfl_frac_omegaH;
+  app->cfl_omegaH = new_cfl_frac_omegaH;
 }
 
 void

@@ -1312,6 +1312,16 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
 
 /**
+ * Reset the CFL factor for the omega_H frequency.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param cfl_frac_omegaH New CFL factor to use for the omega_H mode.
+ */
+void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH);
+
+/**
  * Reset the df/dt multiplier operator for a given species.
  *
  * @param app App object.

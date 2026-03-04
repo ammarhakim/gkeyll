@@ -307,29 +307,29 @@ qprofile_func(void *ctx)
 
   double ival = 0;
   double phi_ref = 0.0;
-  if (actx->ftype == GKYL_CORE) {
+  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE) {
     double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo);
     double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo);
     ival = ival1 + ival2;
   }
 
-  if (actx->ftype == GKYL_IWL) {
+  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_IWL) {
     double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo);
     double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo);
     ival = ival1 + ival2;
   }
 
-  if (actx->ftype == GKYL_LSN_SOL) {
+  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
     double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_right, actx->zmax, rright, false, false, arc_memo);
     double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_left, actx->zmax, rleft, false, false, arc_memo);
     ival = ival1 + ival2;
   }
 
-  if (actx->ftype == GKYL_DN_SOL_OUT || actx->ftype == GKYL_DN_SOL_OUT_MID || actx->ftype == GKYL_DN_SOL_OUT_LO || actx->ftype == GKYL_DN_SOL_OUT_UP){
+  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP){
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
   }
 
-  if (actx->ftype == GKYL_DN_SOL_IN || actx->ftype == GKYL_DN_SOL_IN_MID || actx->ftype == GKYL_DN_SOL_IN_LO || actx->ftype == GKYL_DN_SOL_IN_UP) {
+  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO || actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP) {
     ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
   }
 
