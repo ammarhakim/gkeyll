@@ -103,8 +103,11 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
   double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
   gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
-  if (use_surrogate) assert(vdim > 1);
-
+  if (use_surrogate) {
+    assert(vdim > 1);
+    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
+  }
+  
   // Choose the kernels that does the reflection/no reflection/partial reflection, 
   // and surrogate kernels if enabled.
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
