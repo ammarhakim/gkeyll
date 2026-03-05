@@ -88,28 +88,8 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
   int vdim = skin_r->ndim - cdim;
 
-  // Choose the kernel that does the reflection/no reflection/partial
-  // reflection.
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
-    gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
-  } else {
-    up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
-    assert(up->kernels->reflectedf);
-    up->kernels_cu = up->kernels;
-  }
-#else
-  up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
-  assert(up->kernels->reflectedf);
-  up->kernels_cu = up->kernels;
-#endif
-
   // Sheath physics surrogate setup.
   up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
-  up->kernels->surrogate = NULL;
-
   // Setup vcut_fact to 1 by default.
   up->vcut_fact_basis = gkyl_cart_modal_serendip_new(cdim-1 + vdim-1, basis->poly_order);
   int lower[cdim], upper[cdim];
@@ -123,21 +103,35 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
   double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
   gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
-  // Runtime function pointers.
-  if (use_surrogate) {
-    assert(vdim > 1); // Cannot use surrogate for 1v case since there is no mu dependence.
-    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
+  if (use_surrogate) assert(vdim > 1);
+
+  // Choose the kernels that does the reflection/no reflection/partial reflection, 
+  // and surrogate kernels if enabled.
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
 #ifdef GKYL_HAVE_CUDA
-    if (use_gpu) {
-      assert(true); // Surrogate not implemented on GPU yet.
-    } else {
+  if (use_gpu) {
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
+    gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
+    if (use_surrogate)
+      gkyl_bc_gksheath_choose_surrogate_kernel_cu(basis, edge, up->kernels_cu);
+  } else {
+    up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
+    assert(up->kernels->reflectedf);
+    if (use_surrogate) {
       up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
+      assert(up->kernels->surrogate);
     }
-#else
-    up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
-#endif
-    assert(up->kernels->surrogate); // Surrogate kernel must be non-null if using surrogate.
+    up->kernels_cu = up->kernels;
   }
+#else
+  up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
+  assert(up->kernels->reflectedf);
+  if (use_surrogate) {
+    up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
+    assert(up->kernels->surrogate);
+  }
+  up->kernels_cu = up->kernels;
+#endif
 
   return up;
 }
