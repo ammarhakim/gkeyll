@@ -83,8 +83,12 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-  up->update_vcut_fact = use_surrogate ? 
-    bc_gksheath_update_vcut_fact_surrogate_enabled : bc_gksheath_update_vcut_fact_surrogate_disabled;
+
+  up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
+  if (use_surrogate) {
+    assert(up->vel_map->grid_vel.ndim > 1); // Cannot use surrogate for 1v case since there is no mu dependence.
+    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
+  }
 
   // Create a special phase space basis and range for the vcut_fact array.
   // Function of perpendicular config space coordinates and magnetic moment, i.e. 
