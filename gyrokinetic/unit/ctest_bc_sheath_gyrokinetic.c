@@ -184,16 +184,16 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
       num_uknown_cells++;
     } else {
       // These must be non zero cells that are fully within the cutoff, so we check that the average value is >0.
-      // double cell_avg = distf_c[0];
-      // TEST_CHECK( cell_avg > ref_val );
-      // TEST_MSG( "Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0], idx_g[1], idx_g[2]);
+      double cell_avg = distf_c[0];
+      TEST_CHECK( cell_avg > ref_val );
+      TEST_MSG( "Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0], idx_g[1], idx_g[2]);
     }
   }
   // Uncomment for debugging.
-  printf("\n");
-  printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
-    edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
-  printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
+  // printf("\n");
+  // printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
+  //   edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
+  // printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
 }
 
 void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
