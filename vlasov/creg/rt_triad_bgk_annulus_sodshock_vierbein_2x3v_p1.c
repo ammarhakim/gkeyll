@@ -447,6 +447,8 @@ main(int argc, char **argv)
    .num_periodic_dir = 1,
    .periodic_dirs = {1},
 
+   .geom = geom,
+
    .num_species = 1,
    .species = { neut },
 
