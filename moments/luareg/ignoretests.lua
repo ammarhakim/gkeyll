@@ -76,6 +76,7 @@ return {
       "rt_gr_ultra_rel_shock",
       "rt_gr_multifluid_brio_wu",
       "rt_gr_blackhole_spinning",
+      "rt_gr_blackhole_static",
    },
    gpu_lua = {
    },
