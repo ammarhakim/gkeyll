@@ -30,6 +30,10 @@ return {
       "rt_gr_mhd_strong_blast",
       "rt_gr_kh_2d",
       "rt_10m_ot_nn_closure",
+      "rt_10m_burch",
+      "rt_gr_wald_magnetosphere_spinning_neutronstar",
+      "rt_iso_euler_mixture_shock_bubble",
+      "rt_gr_wald_magnetosphere_static_neutronstar",
    },
    c = {
       "rt_gr_ultra_rel_bhl_static",
@@ -65,6 +69,10 @@ return {
       "rt_gr_mhd_bhl_spinning_tetrad",
       "rt_10m_ot",
       "rt_gr_kh_2d",
+      "rt_gr_mild_shock",
+      "rt_gr_bhl_spinning_tetrad",
+      "rt_gr_multifluid_brio_wu_tetrad",
+      "rt_gr_bhl_static_tetrad",
    },
    gpu_lua = {
    },

@@ -475,6 +475,24 @@ dynvec_diff_lw(lua_State *L)
 
   size_t nsteps = n1;
 
+  // Both dynvecs are empty (no time steps recorded): trivially equal.
+  // Guard required because gkyl_array_new with nelem=0 may return an array
+  // whose data pointer is NULL, which then causes gkyl_aligned_free_ to
+  // assert on the NULL pointer during gkyl_array_release.
+  if (nsteps == 0) {
+    gkyl_dynvec_release(dv1);
+    gkyl_dynvec_release(dv2);
+    lua_newtable(L);
+    lua_pushboolean(L, 1);  lua_setfield(L, -2, "is_compatible");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "max_abs_diff");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "min_abs_diff");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "max_rel_diff");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "min_rel_diff");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "tm_max_abs_diff");
+    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "tm_min_abs_diff");
+    return 1;
+  }
+
   // Allocate flat arrays for timestamps (ncomp=1) and data (ncomp=enc1.ncomp).
   struct gkyl_array *tm1 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
   struct gkyl_array *tm2 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
