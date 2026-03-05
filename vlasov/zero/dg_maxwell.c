@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order] 
 
 void 
 gkyl_maxwell_free(const struct gkyl_ref_count *ref)

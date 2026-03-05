@@ -380,7 +380,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
       nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(xcC, grid.dx, conf_poisson_tensor_d, hamil_d, alpha_quad_vr);
       nc_hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2(xcC, grid.dx, conf_poisson_tensor_d, hamil_d, alpha_quad_vphi);
 
-      printf("\n");
+      //printf("\n");
       for (int m = 0; m<48; ++m) {
         //printf("hamil_d[%d]: %1.16e\n",m,hamil_d[m]);
         double expected = hamil_d_vals[m];

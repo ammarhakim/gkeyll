@@ -77,7 +77,11 @@ vlasovApp = Vlasov.App.new {
     
     -- Black hole parameters
     massBH = massBH,
-    spinBH = spinBH
+    spinBH = spinBH,
+
+    -- Use the vierbein inputs to contruct the Poisson Tensor
+    usePresetGeom = true,
+    triadPresetGeomType = G0.TriadGeom.GR_KS_rphi
     
   },
 
@@ -85,11 +89,6 @@ vlasovApp = Vlasov.App.new {
   neut = Vlasov.Species.new {
     modelID = G0.Model.TriadGR,
     charge = charge, mass = mass,
-
-    -- Use the vierbein inputs to contruct the Poisson Tensor
-    useLo = false,
-    usePresetGeom = true,
-    triadPresetGeomType = G0.TriadGeom.GR_KS_rphi,
 
     -- Velocity space grid.
     lower = { -vr_max, -vphi_max },

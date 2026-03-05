@@ -377,6 +377,14 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Geometry 
+  struct gkyl_vlasov_geom geom = {
+
+    .use_preset_geom = true,
+    .triad_preset_geom_type = GKYL_TRIAD_CYLINDRICAL_RZ,
+
+  };
+
   // Neutral species.
   struct gkyl_vlasov_species neut = {
     .name = "neut",
@@ -385,9 +393,6 @@ main(int argc, char **argv)
     .lower = { -ctx.vr_max, -ctx.vz_max, -ctx.vtheta_max },
     .upper = { ctx.vr_max, ctx.vz_max, ctx.vtheta_max },
     .cells = { NVR, NVZ, NVTHETA },
-
-    .use_preset_geom = true,
-    .triad_preset_geom_type = GKYL_TRIAD_CYLINDRICAL_RZ,
 
     .num_init = 1, 
     .projection[0] = {

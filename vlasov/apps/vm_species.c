@@ -69,15 +69,15 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
-    inp_triad_geom.use_preset_geom = vms->info.use_preset_geom;
+    inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
     if ( (vms->info.use_vierbein) && (vms->info.vierbein) && (vms->info.vierbein_gradient) ) {
       inp_triad_geom.eval_vierbein = vms->info.vierbein;
       inp_triad_geom.eval_vierbein_gradient = vms->info.vierbein_gradient;
       inp_triad_geom.eval_vierbein_ctx = vms->info.vierbein_ctx;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->info.vierbein_gradient_ctx;
     }
-    else if (vms->info.use_preset_geom) {
-      inp_triad_geom.triad_preset_geom_type = vms->info.triad_preset_geom_type;
+    else if (vms->geom->use_preset_geom) {
+      inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
       inp_triad_geom.eval_vierbein_ctx = vms->geom;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->geom;
     }
@@ -133,7 +133,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
 
     // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
-    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->info.triad_preset_geom_type), vms->geom);
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type), vms->geom);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->hamil, vms->hamil_host);
@@ -142,9 +142,9 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
-    inp_triad_geom.use_preset_geom = vms->info.use_preset_geom;
-    if (vms->info.use_preset_geom) {
-      inp_triad_geom.triad_preset_geom_type = vms->info.triad_preset_geom_type;
+    inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
+    if (vms->geom->use_preset_geom) {
+      inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
       inp_triad_geom.eval_vierbein_ctx = vms->geom;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->geom;
     }
@@ -1451,10 +1451,6 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->use_extended_hamil_def = false; 
   if (vms->info.use_extended_hamil_def == true) {
     vms->use_extended_hamil_def = true; 
-  }
-  vms->use_preset_geom = false; 
-  if (vms->info.use_preset_geom == true) {
-    vms->use_preset_geom = true; 
   }
 
   // Copy the geometry pointer

@@ -158,6 +158,8 @@ struct vlasov_mapc2p_vel {
 struct gkyl_vlasov_geom {
 
   double spin_bh, mass_bh; // Black hole charge and mass.
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
 };
 
@@ -187,8 +189,6 @@ struct gkyl_vlasov_species {
 
   bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
   bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
-  bool use_preset_geom; // bool to determine if we are using triad input geom
-  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 

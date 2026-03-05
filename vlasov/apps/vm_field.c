@@ -79,7 +79,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // Vlasov-Maxwell doesn't presently use external potentials.
-  f->has_ext_pot = f->ext_pot_evolve = false;
+  f->has_ext_pot = f->ext_pot_evolve = false; 
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
   f->app_current = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);

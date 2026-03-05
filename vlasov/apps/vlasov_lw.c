@@ -511,8 +511,6 @@ vlasov_species_lw_new(lua_State *L)
   struct gkyl_vlasov_species vm_species = { };
 
   vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
-
-  vm_species.triad_preset_geom_type = glua_tbl_get_integer(L, "triadPresetGeomType", 0);
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -542,9 +540,6 @@ vlasov_species_lw_new(lua_State *L)
 
   bool use_vierbein = glua_tbl_get_bool(L, "useVierbein", false);
   vm_species.use_vierbein = use_vierbein;
-
-  bool use_preset_geom = glua_tbl_get_bool(L, "usePresetGeom", false);
-  vm_species.use_preset_geom = use_preset_geom;
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_species.is_static = !evolve; 
@@ -1232,7 +1227,12 @@ vlasov_geom_lw_new(lua_State *L)
   struct gkyl_vlasov_geom vm_geom = { };
 
   vm_geom.mass_bh = glua_tbl_get_number(L, "massBH", 1.0);
-  vm_geom.spin_bh = glua_tbl_get_number(L, "spinBH", 1.0);
+  vm_geom.spin_bh = glua_tbl_get_number(L, "spinBH", 0.0);
+
+  vm_geom.triad_preset_geom_type = glua_tbl_get_integer(L, "triadPresetGeomType", 0);
+
+  bool use_preset_geom = glua_tbl_get_bool(L, "usePresetGeom", false);
+  vm_geom.use_preset_geom = use_preset_geom;
 
   struct vlasov_geom_lw *geom_lw = lua_newuserdata(L, sizeof(*geom_lw));
   geom_lw->magic = VLASOV_GEOM_DEFAULT;
