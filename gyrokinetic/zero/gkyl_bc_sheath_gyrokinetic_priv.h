@@ -61,6 +61,7 @@ static const edged_sheath_surrogate_kern_list ser_sheath_surrogate_list[] = {
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
   sheath_reflectedf_t reflectedf;  // reflectedf kernel.
+  sheath_surrogate_t surrogate; // surrogate kernel to determine vcut factor.
 };
 
 // Primary struct in this updater.
@@ -77,7 +78,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
   struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
-  struct gkyl_basis *vcut_fact_basis; // Basis for vcut_fact array (gk hybrid basis in velocity space).
+  struct gkyl_basis *vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
   struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
@@ -94,16 +95,22 @@ bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_e
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
+
+  sheath_reflectedf_t kern = NULL;
+
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
-      return ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
+      kern = ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
+      break;
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
+      kern = ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
+      break;
     default:
-      assert(false);
+      kern = NULL;
       break;
   }
-  return 0;
+  assert(kern); // Reflection kernel must be non-null since we always use reflection BCs in the sheath updater.
+  return kern;
 }
 
 GKYL_CU_D
@@ -112,6 +119,34 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 {
   basis->flip_odd_sign(dir, inp, out);
   basis->flip_odd_sign(cdim, out, out); // cdim is the vpar direction.
+}
+
+void 
+gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+
+GKYL_CU_D
+static sheath_surrogate_t
+bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+{
+  int dim = basis->ndim;
+  enum gkyl_basis_type basis_type = basis->b_type;
+  int poly_order = basis->poly_order;
+
+  sheath_surrogate_t kern = NULL;
+
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kern = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
+      break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kern = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
+      break;
+    default:
+      kern = NULL;
+      break;
+  }
+  assert(kern); // Surrogate kernel must be non-null if using surrogate.
+  return kern;
 }
 
 #ifdef GKYL_HAVE_CUDA

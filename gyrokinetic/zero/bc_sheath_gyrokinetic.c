@@ -54,6 +54,9 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
     const double *temp_e_p = (const double*) gkyl_array_cfetch(temp_e, conf_loc);
     const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
     const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
+    double *vcut_fact_p = (double*) gkyl_array_cfetch(up->vcut_fact, cperp_mu_loc);
+    // Call the surrogate kernel to compute the vcut factor in this cell.
+    up->kernels->surrogate(vmap_p, phi_p, phi_wall_p, dens_e_p, temp_e_p, me, bmag_p, bimpact_angle_p, vcut_fact_p);
   }
 }
 
@@ -83,35 +86,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
-
-  up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
-  if (use_surrogate) {
-    assert(up->vel_map->grid_vel.ndim > 1); // Cannot use surrogate for 1v case since there is no mu dependence.
-    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
-  }
-
-  // Create a special phase space basis and range for the vcut_fact array.
-  // Function of perpendicular config space coordinates and magnetic moment, i.e. 
-  // [mu],[x,mu],[x,y,mu] for 1x2v, 2x2v, 3x2v respectively. 
-  // (we set cdim because it is pdim-2, could be set to cdim-1 + vdim-1 as well).
-  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(cdim, basis->poly_order);
-
-  // Initialize the vcut fact range.
-  int lower[cdim], upper[cdim];
-  // Perpendicular config space directions.
-  for (int d=0; d < cdim-1; d++) {
-    lower[d] = skin_r->lower[d];
-    upper[d] = skin_r->upper[d];
-  } 
-  // The last direction is mu.
-  lower[cdim-1] = skin_r->lower[skin_r->ndim-1];
-  upper[cdim-1] = skin_r->upper[skin_r->ndim-1];
-  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
-
-  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
-  // Set the vcut_fact array to 1 by default (constant vcut).
-  double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
-  gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
+  int vdim = skin_r->ndim - cdim;
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -130,6 +105,39 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   assert(up->kernels->reflectedf);
   up->kernels_cu = up->kernels;
 #endif
+
+  // Sheath physics surrogate setup.
+  up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
+  up->kernels->surrogate = NULL;
+
+  // Setup vcut_fact to 1 by default.
+  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(cdim-1 + vdim-1, basis->poly_order);
+  int lower[cdim], upper[cdim];
+  for (int d=0; d < cdim-1; d++) {
+    lower[d] = skin_r->lower[d];
+    upper[d] = skin_r->upper[d];
+  } 
+  lower[cdim-1] = skin_r->lower[skin_r->ndim-1];
+  upper[cdim-1] = skin_r->upper[skin_r->ndim-1];
+  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
+  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
+  double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
+  gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
+  // Runtime function pointers.
+  if (use_surrogate) {
+    assert(vdim > 1); // Cannot use surrogate for 1v case since there is no mu dependence.
+    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
+#ifdef GKYL_HAVE_CUDA
+    if (use_gpu) {
+      assert(true); // Surrogate not implemented on GPU yet.
+    } else {
+      up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
+    }
+#else
+    up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
+#endif
+    assert(up->kernels->surrogate); // Surrogate kernel must be non-null if using surrogate.
+  }
 
   return up;
 }
