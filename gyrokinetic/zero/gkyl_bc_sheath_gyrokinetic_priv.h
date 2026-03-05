@@ -96,6 +96,7 @@ bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_e
   int poly_order = basis->poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
+      return ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
     default:
