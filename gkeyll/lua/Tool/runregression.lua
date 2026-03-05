@@ -655,6 +655,10 @@ local function list_tests(activeLayers, args)
                   elseif a.mode == "directory" then
                      for dir, fn, _ in dirtree(ro) do addLuaTest(dir .. "/" .. fn) end
                   end
+               else
+                  -- Bare test name (e.g. "rt_euler_sodshock"): search this layer's luareg/.
+                  local candidate = luaregDir .. "/" .. ro .. ".lua"
+                  if lfs.attributes(candidate) then addLuaTest(candidate) end
                end
             end
          else
@@ -709,6 +713,10 @@ local function list_tests(activeLayers, args)
                         if attr.mode == "file" then addCTest(dir .. "/" .. fn) end
                      end
                   end
+               else
+                  -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
+                  local candidate = cregSrcDir .. "/" .. ro .. ".c"
+                  if lfs.attributes(candidate) then addCTest(candidate) end
                end
             end
          else
@@ -1420,7 +1428,26 @@ end
 local function config_action(args, name)
    isConfiguring = true
 
-   local prefix = args.config_prefix or (os.getenv("HOME") .. "/gkylsoft")
+   local prefix = args.config_prefix
+   if not prefix then
+      -- Auto-detect from the installed config.mak.
+      -- GKYL_EXEC_PATH is the bin dir (e.g. ~/gkylsoft/gkeyll/bin);
+      -- config.mak lives one level up in share/.
+      local gkeyllDir = GKYL_EXEC_PATH:match("^(.+)/bin$")
+      if gkeyllDir then
+         local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
+         if mf then
+            for line in mf:lines() do
+               local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
+               if p then prefix = p; break end
+            end
+            mf:close()
+         end
+      end
+      prefix = prefix or (os.getenv("HOME") .. "/gkylsoft")
+      log(string.format("Auto-detected prefix from config.mak: %s\n", prefix))
+   end
+
    local mpiexec = args.config_mpiexec
       or (os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec")
    local sourceDir = args.config_source_dir or lfs.currentdir()
@@ -1902,6 +1929,8 @@ end
 local parser = argparse()
    :name("runregression")
    :require_command(true)
+   :help_description_margin(30)
+   :help_vertical_space(1)
    :description [[
 Run Gkeyll regression tests across the hierarchical layer architecture
 (moments -> vlasov -> gyrokinetic -> pkpm).
@@ -1929,29 +1958,31 @@ parser:flag("-a --all", "Run all tests, ignoring ignoretests files")
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
-c_conf:option("-p --prefix", "Location to write gkeyll-results/ directory")
+c_conf:option("-p --prefix",
+   "Where to write gkeyll-results/.\n"
+   .. "Auto-detected from config.mak if omitted.")
    :target("config_prefix")
 c_conf:option("-m --mpiexec",
-   "Full path to MPI executable (stored in config but currently unused: "
-   .. "MPI-based parallel test execution is not implemented)")
+   "Full path to MPI executable.\n"
+   .. "(MPI parallelism not yet implemented).")
    :target("config_mpiexec")
 c_conf:option("-s --source-dir",
-   "Path to gkeyll source root (contains moments/, vlasov/, etc. with creg/ and luareg/ subdirs)")
+   "Path to gkeyll source root.\n"
+   .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/)")
    :target("config_source_dir")
 c_conf:flag("--drop-tables",
-   "Re-create all SQL tables (erases existing regression data)", false)
+   "Drop and re-create all SQL tables\n"
+   .. "(erases existing regression data).", false)
 
 -- 'list' command --------------------------------------------------------------
 -- Lists all regression tests that would be run (useful for inspection).
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only",
-   "Only list this test or all tests in this directory. "
-   .. "Use absolute paths; relative paths bypass layer affinity detection.")
+   "List only this test. Accepts a bare name (rt_foo), an absolute path, or a directory.")
 c_list:option("-a --app",
-   "Filter by filename prefix: '--app euler' lists only rt_euler_*.lua files. "
-   .. "NOTE: this is NOT layer filtering. For layer filtering, insert the layer "
-   .. "name before the subcommand: 'list moments', 'list vlasov', etc.")
+   "Filter by name prefix (e.g. --app euler lists rt_euler_* tests).\n"
+   .. "For layer filtering, use: 'list moments', 'list vlasov', etc.")
 c_list:flag("-m --moat", "Only list MOAT regression tests")
 c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
 c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
@@ -1959,52 +1990,47 @@ c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
 -- 'run' command ---------------------------------------------------------------
 -- Runs regression tests. Layer is extracted from the command line BEFORE
 -- argparse (see the pre-processing block near the top of this file), so:
---   gkeyll runregression run check          → all layers, check
---   gkeyll runregression run moments check  → moments layer only, check
+--   gkeyll runregression run check          -> all layers, check
+--   gkeyll runregression run moments check  -> moments layer only, check
 local c_run = parser:command("run",
-   "Run regression tests. Insert a layer name before the subcommand to restrict "
-   .. "to one layer: 'run moments check', 'run vlasov create', 'run gyrokinetic check'. "
-   .. "Without a subcommand (check/create), tests are executed but results are not "
-   .. "saved or compared.")
+   "Run regression tests (check or create).\n"
+   .. "Prefix with a layer name to restrict: 'run moments check', 'run vlasov create'.\n"
+   .. "Without check/create, tests run but results are not saved or compared.")
    :require_command(false)
    :action(run_action)
 c_run:option("-r --run-only",
-   "Only run these tests or directories (comma-separated list). "
-   .. "Use absolute paths; relative paths bypass layer affinity detection "
-   .. "and may add the same test once per scanned layer.")
+   "Run only these tests (comma-separated).\n"
+   .. "Accepts bare names (rt_foo), absolute paths, or directories.\n"
+   .. "Use --c-only/--lua-only to disambiguate when a C and Lua test share the same name.")
 c_run:option("-a --app",
-   "Filter by filename prefix: '--app euler' runs only rt_euler_*.lua files. "
-   .. "NOTE: this is NOT layer filtering. For layer filtering, insert the layer "
-   .. "name before the subcommand: 'run moments check', 'run vlasov check', etc.")
+   "Filter by name prefix (e.g. --app euler runs rt_euler_* tests).\n"
+   .. "For layer filtering: 'run moments check', 'run vlasov check', etc.")
 c_run:flag("-m --moat", "Only run MOAT regression tests")
 c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
 c_run:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
 c_run:option("-t --timeout",
-   "Per-test wall-clock timeout in seconds (0 = unlimited). "
-   .. "Tests that exceed this limit are added to ignoretests.lua automatically.")
+   "Per-test timeout in seconds (0 = unlimited).\n"
+   .. "Timed-out tests are added to ignoretests.lua automatically.")
    :convert(tonumber)
    :default(0)
 c_run:option("--gpu-tol",
-   "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparison (default 1e-7). "
-   .. "Only relevant on GPU builds (CC=nvcc).")
+   "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparisons (default 1e-7).\n"
+   .. "Only used on GPU builds (CC=nvcc).")
    :convert(tonumber)
    :default(1e-7)
 c_run:flag("--no-gpu",
-   "Skip GPU testing even on a GPU build (run CPU tests only)")
+   "Skip GPU testing even on a GPU build.")
 c_run:option("-j --jobs",
-   "Number of tests to run concurrently within each layer "
-   .. "(0 = auto-detect physical cores, 1 = serial/default). "
-   .. "C tests are always compiled serially; only execution is parallelised. "
-   .. "GPU variants are always run serially.")
+   "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
+   .. "C compilation is always serial; GPU variants always run serially.")
    :convert(tonumber)
    :default(1)
 
 c_run:command("check",
-   "Run tests and compare output against accepted baselines in <prefix>/gkeyll-results/. "
-   .. "Reports pass/fail per test and writes results to the per-layer SQLite database.")
+   "Compare test output against accepted baselines;\n"
+   .. "report pass/fail and write to the SQLite DB.")
 c_run:command("create",
-   "Run tests and save output as accepted baselines in <prefix>/gkeyll-results/. "
-   .. "Overwrites any previously accepted files for tests that are run. "
+   "Run tests and save output as accepted baselines.\n"
    .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
 
 -- 'listunit' command ----------------------------------------------------------
