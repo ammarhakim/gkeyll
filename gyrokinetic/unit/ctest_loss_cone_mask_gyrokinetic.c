@@ -12,6 +12,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
@@ -283,6 +284,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = &ctx,
+    .position_map = pmap,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -480,6 +482,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_array_dg_find_peaks_release(bmag_peak_finder);
   gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
