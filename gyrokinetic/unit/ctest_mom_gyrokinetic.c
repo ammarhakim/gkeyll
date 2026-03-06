@@ -160,6 +160,7 @@ test_mom_gyrokinetic()
   gkyl_mom_type_release(m2);
   gkyl_mom_type_release(m3par);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -437,6 +438,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void
@@ -670,6 +672,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void
@@ -982,6 +985,7 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); } 

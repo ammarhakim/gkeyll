@@ -123,6 +123,7 @@ test_dg_gyrokinetic()
   TEST_CHECK( gyrokinetic->conf_range.volume == 512 );
 
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_dg_eqn_release(eqn);
 }
