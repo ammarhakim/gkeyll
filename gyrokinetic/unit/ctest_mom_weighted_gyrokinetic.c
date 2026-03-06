@@ -4,8 +4,6 @@
 
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_mom_weighted_gyrokinetic.h>
-#include <gkyl_mom_calc.h>
-#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
