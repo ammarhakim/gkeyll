@@ -63,8 +63,8 @@ gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
     long linidx_wgt = gkyl_range_idx(wgt_rng, conf_iter.idx);
 
     const double *bmag_c = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, linidx_conf);
-    const double *phi_c = gkyl_array_cfetch(phi, linidx_conf);
-    const double *wgt_c = gkyl_array_cfetch(phi, linidx_wgt);
+    const double *phi_c = phi? gkyl_array_cfetch(phi, linidx_conf) : 0;
+    const double *wgt_c = wgt? gkyl_array_cfetch(wgt, linidx_wgt) : 0;
     double *mom_c = gkyl_array_fetch(mout, linidx_conf);
 
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
