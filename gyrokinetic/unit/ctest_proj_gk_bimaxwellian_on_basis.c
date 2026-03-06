@@ -11,6 +11,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_array_ops.h>
 
 // allocate array (filled with zeros)
@@ -99,6 +100,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -107,6 +110,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = 0,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,

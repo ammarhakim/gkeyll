@@ -147,9 +147,9 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 4;
 
-  gk_array_meta_release(mt);
-  gk_array_meta_release(mt_surfvpar);
-  gk_array_meta_release(mt_surfmu);
+  gkyl_msgpack_data_release(mt);
+  gkyl_msgpack_data_release(mt_surfvpar);
+  gkyl_msgpack_data_release(mt_surfmu);
 }
 
 static void
@@ -268,7 +268,7 @@ gks_rad_write_emissivity_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
   app->stat.species_diag_calc_tm += (diag_calc_tm * num_charged_species) / gks->rad.num_cross_collisions;
   app->stat.neut_species_diag_calc_tm += (diag_calc_tm * num_neut_species) / gks->rad.num_cross_collisions;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 static inline void

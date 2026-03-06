@@ -20,13 +20,16 @@ CC=cc
 ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
-USE_MPI=
+USE_CUDSS=
 USE_LUA=
+USE_MPI=
+USE_NCCL=
+
 CONF_LUA_LIB=luajit-5.1
 USE_SUNDIALS=
 
 # Location of CUDA math libraries
-CUDAMATH_LIBS=
+CUDAMATH_LIB_DIR=
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -64,28 +67,30 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 
 Library Includes and Locations
 
---lapack-inc               Location of Lapacke headers
---lapack-lib               Full path to Lapack static library
+--lapack-inc               Location of Lapack headers.
+--lapack-lib               Location of Lapack library.
+--lapack-lib-name          Name of Lapack library (default: openblas).
 
---superlu-inc              Location of SuperLU headers
---superlu-lib              Full path to SuperLU static library
+--superlu-inc              Location of SuperLU headers.
+--superlu-lib              Location of SuperLU library.
+--superlu-lib-name         Name of SuperLU library (default: superlu).
 
---mpi-inc                  Location of MPI headers
---mpi-lib                  Location to MPI library
+--mpi-inc                  Location of MPI headers.
+--mpi-lib                  Location to MPI library.
 
---nccl-inc                 Location of NCCL headers
---nccl-lib                 Location to NCCL library
+--nccl-inc                 Location of NCCL headers.
+--nccl-lib                 Location to NCCL library.
 
---cudss-inc                Location of cuDSS headers
---cudss-lib                Location to cuDSS library
+--cudss-inc                Location of cuDSS headers.
+--cudss-lib                Location to cuDSS library.
 
---lua-inc                  Location of Lua headers
---lua-lib                  Location to Lua library
+--lua-inc                  Location of Lua headers.
+--lua-lib                  Location to Lua library.
 
 --sundials-inc             Location of SUNDIALS headers
 --sundials-lib             Location to SUNDIALS library
 
---cudamath-libdir          Full path to CUDA math libraries
+--cudamath-lib             Location of CUDA math libraries.
 
 EOF
 }
@@ -156,19 +161,27 @@ do
       ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
-      LAPACK_INC="$value"
+      LAPACK_INC_DIR="$value"
       ;;
    --lapack-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      LAPACK_LIB="$value"
+      LAPACK_LIB_DIR="$value"
+      ;;
+   --lapack-lib-name)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB_NAME="$value"
       ;;
    --superlu-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
-      SUPERLU_INC="$value"
+      SUPERLU_INC_DIR="$value"
       ;;
    --superlu-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      SUPERLU_LIB="$value"
+      SUPERLU_LIB_DIR="$value"
+      ;;
+   --superlu-lib-name)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_LIB_NAME="$value"
       ;;
    --use-mpi)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -230,9 +243,9 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_SUNDIALS_LIB_DIR="$value"
       ;;   
-   --cudamath-libdir)
+   --cudamath-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      CUDAMATH_LIBDIR="$value"
+      CUDAMATH_LIB_DIR="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -316,15 +329,16 @@ else
 fi
 
 # Default lapack include and libraries: we prefer linking to static library
-: "${LAPACK_INC:=$PREFIX/OpenBLAS/include}"
-: "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
+: "${LAPACK_INC_DIR:=$PREFIX/OpenBLAS/include/}"
+: "${LAPACK_LIB_DIR=$PREFIX/OpenBLAS/lib/}"
+: "${LAPACK_LIB_NAME=openblas}"
 
 # MPI specific paths and flags
 : "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include/}"
 : "${CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/}"
 
 # Lua specific paths and flags
-: "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"
+: "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1/}"
 : "${CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/}"
 
 # cuDSS specific paths and flags
@@ -332,13 +346,14 @@ fi
 : "${CONF_CUDSS_LIB_DIR=$PREFIX/cuDSS/lib/}"
 
 # SuperLU includes and librararies
-: "${SUPERLU_INC=$PREFIX/superlu/include}"
+: "${SUPERLU_INC_DIR=$PREFIX/superlu/include/}"
 if [ "$OSTYPE" = "linux-gnu"* ]
 then
-    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a}"
+    : "${SUPERLU_LIB_DIR=$PREFIX/superlu/lib64/}"
 else
-    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a}"
+    : "${SUPERLU_LIB_DIR=$PREFIX/superlu/lib/}"
 fi
+: "${SUPERLU_LIB_NAME=superlu}"
 
 # SUNDIALS specific paths and flags
 : "${CONF_SUNDIALS_INC_DIR=$PREFIX/sundials/include/}"
@@ -359,11 +374,13 @@ CUDA_ARCH=$CUDA_ARCH
 BUILD_APP=$APP
 
 # Library paths
-LAPACK_INC=$LAPACK_INC
-LAPACK_LIB=$LAPACK_LIB
+LAPACK_INC_DIR=$LAPACK_INC_DIR
+LAPACK_LIB_DIR=$LAPACK_LIB_DIR
+LAPACK_LIB_NAME=$LAPACK_LIB_NAME
 
-SUPERLU_INC=$SUPERLU_INC
-SUPERLU_LIB=$SUPERLU_LIB
+SUPERLU_INC_DIR=$SUPERLU_INC_DIR
+SUPERLU_LIB_DIR=$SUPERLU_LIB_DIR
+SUPERLU_LIB_NAME=$SUPERLU_LIB_NAME
 
 USE_MPI=$USE_MPI
 CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
@@ -386,7 +403,7 @@ USE_SUNDIALS=$USE_SUNDIALS
 CONF_SUNDIALS_INC_DIR=$CONF_SUNDIALS_INC_DIR
 CONF_SUNDIALS_LIB_DIR=$CONF_SUNDIALS_LIB_DIR
 
-CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
+CUDAMATH_LIB_DIR=$CUDAMATH_LIB_DIR
 
 FIN_APP_LIB_DIR=$FIN_APP_LIB_DIR
 FIN_APP_LIB=$FIN_APP_LIB
