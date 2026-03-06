@@ -164,7 +164,28 @@ local isConfiguring = false
 local configVals    = nil
 
 -- Path of the configuration file written by 'configure' and read by 'run'.
-local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+-- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
+-- from config.mak (same logic as prefix auto-detection in config_action).
+-- Falls back to ~/runregression.config.lua for backwards compatibility.
+local function computeConfFile()
+   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
+   if gkeyllDir then
+      local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
+      if mf then
+         for line in mf:lines() do
+            local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
+            if p then
+               mf:close()
+               return p .. "/gkeyll-results/runregression.config.lua",
+                      p .. "/gkeyll-results"
+            end
+         end
+         mf:close()
+      end
+   end
+   return os.getenv("HOME") .. "/runregression.config.lua", nil
+end
+local confFile, confFileResultsDir = computeConfFile()
 
 -- Per-layer SQLite database connections and prepared statements.
 -- Populated lazily by getLayerDB().
@@ -515,8 +536,18 @@ end
 local function loadConfigure(args)
    local f = loadfile(confFile)
    if not f then
-      log("Regression tests not configured! Run 'runregression configure' first.\n")
-      os.exit(1)
+      -- Try the legacy home-directory location as a fallback.
+      local legacyPath = os.getenv("HOME") .. "/runregression.config.lua"
+      f = loadfile(legacyPath)
+      if f then
+         log(string.format(
+            "NOTE: config loaded from legacy location %s.\n"
+            .. "Re-run 'runregression configure' to migrate it to gkeyll-results/.\n",
+            legacyPath))
+      else
+         log("Regression tests not configured! Run 'runregression configure' first.\n")
+         os.exit(1)
+      end
    end
    configVals = f()
 
@@ -1605,8 +1636,15 @@ local function run_action(args, name)
    end
 
    if GPU_BUILD then
-      log(string.format("GPU build: GPU tolerance = %g\n", gpuTol))
-      if args.no_gpu then log("--no-gpu: skipping GPU variants\n") end
+      if args.create then
+         log("Creating accepted results on CPU\n")
+      elseif args.check then
+         if args.no_gpu then
+            log("Only CPU tests requested (--no-gpu)\n")
+         else
+            log(string.format("GPU build: GPU tolerance = %g\n", gpuTol))
+         end
+      end
    end
 
    -- Determine concurrency level.  0 = auto-detect physical core count.
@@ -1972,7 +2010,7 @@ Results are stored in per-layer SQLite databases under gkeyll-results/.
 
 Typical workflow:
   1. Build and install: make install -j4
-  2. Configure: gkeyll runregression configure --source-dir /path/to/src
+  2. Configure: gkeyll runregression configure --source-dir /absolute/path/to/gkeyll/
   3. Create baselines: gkeyll runregression run create --timeout 120
   4. Check results:    gkeyll runregression run check  --timeout 120
   5. Layer-specific:   gkeyll runregression run moments check
@@ -1999,7 +2037,7 @@ c_conf:option("-m --mpiexec",
    .. "(MPI parallelism not yet implemented).")
    :target("config_mpiexec")
 c_conf:option("-s --source-dir",
-   "Path to gkeyll source root.\n"
+   "Absolute path to gkeyll source root.\n"
    .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/)")
    :target("config_source_dir")
 c_conf:flag("--drop-tables",
