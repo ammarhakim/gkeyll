@@ -84,6 +84,8 @@ struct gkyl_gyrokinetic_collisionless {
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   bool write_diagnostics; // Whether to output diagnostics.
+  bool do_not_add_to_dfdt; // If true, the collision operator will not be added to df/dt.
+    // Used to ignore the collisional updates of this species, while updating cross-species collisions.
 
   double nu_frac; // Rescales collision frequencies (default = 1).
 
