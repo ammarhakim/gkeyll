@@ -8,9 +8,7 @@
 #include <gkyl_mom_type.h>
 
 /**
- * Create new gyrokinetic moment type object. Valid 'mom' strings are "M0",
- * "M1", "M2", "M2par", "M2perp", "M3par", "M3perp", "ThreeMoments",
- * "FourMoments", "HamiltonianMoments".
+ * Create new gyrokinetic moment type object.
  *
  * @param cbasis Configuration-space basis-functions.
  * @param pbasis Phase-space basis-functions.
@@ -31,7 +29,6 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
 
 /**
  * Create new integrated gyrokinetic moment type object.
- * Valid 'mom' strings are "ThreeMoments", "FourMoments", "HamiltonianMoments".
  *
  * @param cbasis Configuration-space basis-functions.
  * @param pbasis Phase-space basis-functions.
