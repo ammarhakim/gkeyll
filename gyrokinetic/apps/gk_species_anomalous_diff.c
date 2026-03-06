@@ -72,7 +72,7 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_ho, fileNm);
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   gkyl_array_release(arr_ho);
 }
 
