@@ -13,16 +13,24 @@ gkyl_mom_weighted_gyrokinetic_new(double mass, double charge,
 {
   struct gkyl_mom_weighted_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
-  return up;
-}
+  up->use_gpu = use_gpu;
+  up->phase_grid = phase_grid;
+  up->mass = mass;
+  up->charge = charge;
+  up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
-{
-  for (int i=0; i<cdim; ++i)
-    out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
+  if (!use_gpu)
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_mom_weighted_gyrokinetic_kernels));
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_mom_weighted_gyrokinetic_kernels));
+#endif
+
+  // Choose kernels that compute the moment.
+  up->num_mom = mom_weighted_gk_choose_kernel(up->kernels, cbasis, pbasis, mom_type, wgt_type, is_integrated, use_gpu);
+
+  return up;
 }
 
 void
@@ -80,5 +88,14 @@ gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
 void
 gkyl_mom_weighted_gyrokinetic_release(struct gkyl_mom_weighted_gyrokinetic *up)
 {
+  // Release memory associated with this updater.
+  gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
+  if (!up->use_gpu)
+    gkyl_free(up->kernels);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->kernels);
+#endif
   gkyl_free(up);
 }
