@@ -1037,6 +1037,15 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
 end
 
 -- ---- File comparison --------------------------------------------------------
+-- Returns a shortened version of an absolute path for display purposes.
+-- Strips the results_dir prefix so paths display as e.g.
+-- "moments/creg-accepted/rt_10m_sodshock/rt_10m_sodshock-0.gkyl".
+local function shortPath(p)
+   local rd = configVals.results_dir .. "/"
+   if p:sub(1, #rd) == rd then return p:sub(#rd + 1) end
+   return p
+end
+
 -- Compares two .gkyl files (field data or dynvector) element-by-element.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
 --   Defaults to 1e-12 for both (original strict CPU comparison).
@@ -1044,10 +1053,10 @@ end
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
-   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
+   verboseLog(string.format("  Comparing %s\n             %s ...\n", shortPath(f1), shortPath(f2)))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
-         " ... files %s and/or %s do not exist!\n", f1, f2))
+         "    ... files %s and/or %s do not exist!\n", shortPath(f1), shortPath(f2)))
       return false
    end
 
@@ -1062,16 +1071,14 @@ local function compareFiles(f1, f2, absTol, relTol)
 
       if f1type ~= f2type then
          verboseLog(string.format(
-            " ... files %s and %s are not of the same type!\n", f1, f2))
+            "    ... type mismatch: %s vs %s\n", f1type, f2type))
          return false
       end
 
       if f1type == "dynvector" then
          local diff = G0.Zero.dynvecDiff(f1, f2)
          if not diff.is_compatible then
-            verboseLog(string.format(
-               " ... dynvector files not compatible (size/type mismatch or read failure): %s %s\n",
-               f1, f2))
+            verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false
          end
          -- Combined tolerance: fail only when BOTH absolute and relative
@@ -1081,13 +1088,13 @@ local function compareFiles(f1, f2, absTol, relTol)
          -- condition short-circuits (handles the 0/0 → DBL_MAX rel case).
          if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
             verboseLog(string.format(
-               " ... dynvector max abs diff %g (threshold %g), max rel diff %g (threshold %g)\n",
+               "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
                diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
             return false
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
-               " ... dynvector timestamp max abs diff %g (informational)\n", diff.tm_max_abs_diff))
+               "    ... dynvec timestamp max abs diff %g (informational)\n", diff.tm_max_abs_diff))
          end
          return true
       end
@@ -1095,7 +1102,7 @@ local function compareFiles(f1, f2, absTol, relTol)
       if f1type == "block-topology" then
          local equal = G0.Zero.blockTopoCmp(f1, f2)
          if not equal then
-            verboseLog(string.format(" ... block topology mismatch: %s %s\n", f1, f2))
+            verboseLog("    ... block topology mismatch\n")
          end
          return equal
       end
@@ -1105,7 +1112,7 @@ local function compareFiles(f1, f2, absTol, relTol)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
       if not g1 or not g2 then
          verboseLog(string.format(
-            " ... skipping %s (unsupported file format)\n", f1))
+            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
          return true
       end
 
@@ -1127,7 +1134,7 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
       if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
          verboseLog(string.format(
-            " ... max abs diff %g (threshold %g), max rel diff %g (threshold %g)\n",
+            "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
             diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
          return false
       end
@@ -1137,7 +1144,7 @@ local function compareFiles(f1, f2, absTol, relTol)
 
    if not ok then
       verboseLog(string.format(
-         " ... comparison CRASHED for %s: %s\n", f1, tostring(result)))
+         "    ... comparison CRASHED: %s\n", tostring(result)))
       log(string.format(
          "WARNING: comparison crashed for %s (C-level error: %s)\n",
          basename(f1), tostring(result)))
@@ -1181,6 +1188,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
    local testPrefix = (testType == "lua") and stripext(basename(test.file)) or nil
 
    local passed, count = true, 0
+   local failedFiles = {}
    -- Walk the accepted directory (ground truth) and verify each file is present
    -- in the run directory and matches within tolerance. Walking accepted (not run)
    -- means a test that crashes before writing its last frame is correctly flagged:
@@ -1196,9 +1204,13 @@ local function check_action(test, runDir, testType, absTol, relTol)
             local runFile = runDir .. "/" .. fn
             if not lfs.attributes(runFile) then
                verboseLog(string.format("  MISSING run file: %s\n", fn))
+               table.insert(failedFiles, fn .. "  [MISSING]")
                passed = false
             else
                local ok = compareFiles(accFile, runFile, absTol, relTol)
+               if not ok then
+                  table.insert(failedFiles, fn .. "  [DIFF]")
+               end
                passed = passed and ok
             end
          end
@@ -1215,6 +1227,26 @@ local function check_action(test, runDir, testType, absTol, relTol)
    else
       layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
       log(string.format("... %s FAILED!\n", test.name))
+      if #failedFiles > 0 then
+         -- Always log failing file names (brief, not gated on verbose).
+         log(string.format("  Failing files (%d):\n", #failedFiles))
+         for _, ff in ipairs(failedFiles) do
+            log(string.format("    %s\n", ff))
+         end
+         -- Write a machine-parseable failures file to the run directory.
+         local ffPath = runDir .. "/_rr_failures.txt"
+         local ffFile = io.open(ffPath, "w")
+         if ffFile then
+            ffFile:write(string.format("test: %s\n", test.name))
+            ffFile:write(string.format("accepted: %s\n", aDir))
+            ffFile:write(string.format("run: %s\n", runDir))
+            ffFile:write(string.format("failures: %d\n", #failedFiles))
+            for _, ff in ipairs(failedFiles) do
+               ffFile:write(ff .. "\n")
+            end
+            ffFile:close()
+         end
+      end
    end
    return passed and 1 or 0
 end
