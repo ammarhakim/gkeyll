@@ -298,6 +298,7 @@ test_2x_option(bool use_gpu)
 
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 }
 
 void test_2x() { test_2x_option(false); }

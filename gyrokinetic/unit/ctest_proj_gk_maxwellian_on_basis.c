@@ -283,6 +283,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   }
   gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -608,6 +609,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   }
   gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 
   gkyl_array_release(moms);
   if (use_gpu) 

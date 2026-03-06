@@ -155,6 +155,7 @@ test_3x2v_p1(bool use_gpu)
 
   // clean up
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(fin);
   gkyl_array_release(rhs);

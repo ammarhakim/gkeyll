@@ -888,6 +888,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+  gkyl_position_map_release(pmap);
   return gk_geom;
 }
 

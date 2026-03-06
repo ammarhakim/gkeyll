@@ -209,6 +209,7 @@ test_fixed_z()
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -282,6 +283,7 @@ test_shaped_plate()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdex");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -354,6 +356,7 @@ test_lower()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexlo");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -426,6 +429,7 @@ test_middle()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexmid");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -498,6 +502,7 @@ test_upper()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexup");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
