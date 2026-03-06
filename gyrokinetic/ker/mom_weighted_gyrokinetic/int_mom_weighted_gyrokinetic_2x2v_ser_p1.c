@@ -1,5 +1,5 @@
 #include <gkyl_mom_weighted_gyrokinetic_kernels.h> 
-GKYL_CU_DH void int_mom_gyrokinetic_M0_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M0_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -7,7 +7,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M0_WEIGHTX_2x2v_ser_p1(const double *dxv, co
   out[0] += (2.0*wgt[3]*f[5]+2.0*f[2]*wgt[2]+2.0*f[1]*wgt[1]+2.0*f[0]*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M1_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M1_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -15,7 +15,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M1_WEIGHTX_2x2v_ser_p1(const double *dxv, co
   out[0] += (1.4142135623730951*vmap[1]*wgt[3]*f[11]+1.4142135623730951*vmap[1]*wgt[2]*f[7]+1.4142135623730951*vmap[1]*wgt[1]*f[6]+1.4142135623730951*vmap[0]*wgt[3]*f[5]+1.4142135623730951*wgt[0]*vmap[1]*f[3]+1.4142135623730951*vmap[0]*f[2]*wgt[2]+1.4142135623730951*vmap[0]*f[1]*wgt[1]+1.4142135623730951*f[0]*vmap[0]*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M2PAR_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M2PAR_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -25,7 +25,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M2PAR_WEIGHTX_2x2v_ser_p1(const double *dxv,
   out[0] += (0.8944271909999159*vmap1R2*wgt[3]*f[20]+0.8944271909999161*vmap1R2*wgt[2]*f[18]+0.8944271909999161*vmap1R2*wgt[1]*f[17]+0.8944271909999159*wgt[0]*vmap1R2*f[16]+2.0*vmap[0]*vmap[1]*wgt[3]*f[11]+2.0*vmap[0]*vmap[1]*wgt[2]*f[7]+2.0*vmap[0]*vmap[1]*wgt[1]*f[6]+vmap1R2*wgt[3]*f[5]+vmap0R2*wgt[3]*f[5]+2.0*vmap[0]*wgt[0]*vmap[1]*f[3]+vmap1R2*f[2]*wgt[2]+vmap0R2*f[2]*wgt[2]+f[1]*vmap1R2*wgt[1]+vmap0R2*f[1]*wgt[1]+f[0]*wgt[0]*vmap1R2+f[0]*vmap0R2*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M2_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M2_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -41,7 +41,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M2_WEIGHTX_2x2v_ser_p1(const double *dxv, co
   out[0] += (0.8944271909999159*vmap1R2*wgt[3]*f[20]+0.8944271909999161*vmap1R2*wgt[2]*f[18]+0.8944271909999161*vmap1R2*wgt[1]*f[17]+0.8944271909999159*wgt[0]*vmap1R2*f[16]+2.0*vmap[0]*vmap[1]*wgt[3]*f[11]+2.0*vmap[0]*vmap[1]*wgt[2]*f[7]+2.0*vmap[0]*vmap[1]*wgt[1]*f[6]+vmap1R2*wgt[3]*f[5]+vmap0R2*wgt[3]*f[5]+0.5*bmag[0]*tmp[3]*wgt[3]+0.5*tmp[0]*bmag[3]*wgt[3]+0.5*bmag[1]*tmp[2]*wgt[3]+0.5*tmp[1]*bmag[2]*wgt[3]+0.5*wgt[0]*bmag[3]*tmp[3]+0.5*bmag[1]*wgt[2]*tmp[3]+0.5*wgt[1]*bmag[2]*tmp[3]+2.0*vmap[0]*wgt[0]*vmap[1]*f[3]+0.5*tmp[1]*wgt[2]*bmag[3]+0.5*wgt[1]*tmp[2]*bmag[3]+0.5*bmag[0]*tmp[2]*wgt[2]+vmap1R2*f[2]*wgt[2]+vmap0R2*f[2]*wgt[2]+0.5*tmp[0]*bmag[2]*wgt[2]+0.5*wgt[0]*bmag[2]*tmp[2]+f[1]*vmap1R2*wgt[1]+0.5*bmag[0]*tmp[1]*wgt[1]+vmap0R2*f[1]*wgt[1]+0.5*tmp[0]*bmag[1]*wgt[1]+f[0]*wgt[0]*vmap1R2+0.5*wgt[0]*bmag[1]*tmp[1]+f[0]*vmap0R2*wgt[0]+0.5*bmag[0]*tmp[0]*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M0M1M2_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M0M1M2_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -59,7 +59,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M0M1M2_WEIGHTX_2x2v_ser_p1(const double *dxv
   out[2] += (0.8944271909999159*vmap1R2*wgt[3]*f[20]+0.8944271909999161*vmap1R2*wgt[2]*f[18]+0.8944271909999161*vmap1R2*wgt[1]*f[17]+0.8944271909999159*wgt[0]*vmap1R2*f[16]+2.0*vmap[0]*vmap[1]*wgt[3]*f[11]+2.0*vmap[0]*vmap[1]*wgt[2]*f[7]+2.0*vmap[0]*vmap[1]*wgt[1]*f[6]+vmap1R2*wgt[3]*f[5]+vmap0R2*wgt[3]*f[5]+0.5*bmag[0]*tmp[3]*wgt[3]+0.5*tmp[0]*bmag[3]*wgt[3]+0.5*bmag[1]*tmp[2]*wgt[3]+0.5*tmp[1]*bmag[2]*wgt[3]+0.5*wgt[0]*bmag[3]*tmp[3]+0.5*bmag[1]*wgt[2]*tmp[3]+0.5*wgt[1]*bmag[2]*tmp[3]+2.0*vmap[0]*wgt[0]*vmap[1]*f[3]+0.5*tmp[1]*wgt[2]*bmag[3]+0.5*wgt[1]*tmp[2]*bmag[3]+0.5*bmag[0]*tmp[2]*wgt[2]+vmap1R2*f[2]*wgt[2]+vmap0R2*f[2]*wgt[2]+0.5*tmp[0]*bmag[2]*wgt[2]+0.5*wgt[0]*bmag[2]*tmp[2]+f[1]*vmap1R2*wgt[1]+0.5*bmag[0]*tmp[1]*wgt[1]+vmap0R2*f[1]*wgt[1]+0.5*tmp[0]*bmag[1]*wgt[1]+f[0]*wgt[0]*vmap1R2+0.5*wgt[0]*bmag[1]*tmp[1]+f[0]*vmap0R2*wgt[0]+0.5*bmag[0]*tmp[0]*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_HAMILTONIAN_NOWEIGHT_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_HAMILTONIAN_NOWEIGHT_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -77,7 +77,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_HAMILTONIAN_NOWEIGHT_2x2v_ser_p1(const doubl
   out[2] += (2.0*phi[3]*f[5]*q_+2.0*f[2]*phi[2]*q_+2.0*f[1]*phi[1]*q_+2.0*f[0]*phi[0]*q_+bmag[3]*tmp[3]+bmag[2]*tmp[2]+bmag[1]*tmp[1]+bmag[0]*tmp[0])*volFact+(0.8944271909999159*vmap1R2*f[16]+2.0*vmap[0]*vmap[1]*f[3]+f[0]*vmap1R2+f[0]*vmap0R2)*m_*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M2PERP_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M2PERP_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  
@@ -91,7 +91,7 @@ GKYL_CU_DH void int_mom_gyrokinetic_M2PERP_WEIGHTX_2x2v_ser_p1(const double *dxv
   out[0] += (0.5*bmag[0]*tmp[3]*wgt[3]+0.5*tmp[0]*bmag[3]*wgt[3]+0.5*bmag[1]*tmp[2]*wgt[3]+0.5*tmp[1]*bmag[2]*wgt[3]+0.5*wgt[0]*bmag[3]*tmp[3]+0.5*bmag[1]*wgt[2]*tmp[3]+0.5*wgt[1]*bmag[2]*tmp[3]+0.5*tmp[1]*wgt[2]*bmag[3]+0.5*wgt[1]*tmp[2]*bmag[3]+0.5*bmag[0]*tmp[2]*wgt[2]+0.5*tmp[0]*bmag[2]*wgt[2]+0.5*wgt[0]*bmag[2]*tmp[2]+0.5*bmag[0]*tmp[1]*wgt[1]+0.5*tmp[0]*bmag[1]*wgt[1]+0.5*wgt[0]*bmag[1]*tmp[1]+0.5*bmag[0]*tmp[0]*wgt[0])*volFact; 
 } 
 
-GKYL_CU_DH void int_mom_gyrokinetic_M0M1M2PARM2PERP_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void int_mom_weighted_gyrokinetic_M0M1M2PARM2PERP_WEIGHTX_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 0.39269908169872414*dxv[0]*dxv[1]*dxv[2]*dxv[3]/m_; 
  

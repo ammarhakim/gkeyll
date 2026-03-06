@@ -1,5 +1,5 @@
 #include <gkyl_mom_weighted_gyrokinetic_kernels.h> 
-GKYL_CU_DH void mom_gyrokinetic_M0_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M0_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   out[0] += (0.7071067811865475*wgt[7]*f[16]+0.7071067811865475*wgt[6]*f[8]+0.7071067811865475*wgt[5]*f[7]+0.7071067811865475*wgt[4]*f[6]+0.7071067811865475*f[3]*wgt[3]+0.7071067811865475*f[2]*wgt[2]+0.7071067811865475*f[1]*wgt[1]+0.7071067811865475*f[0]*wgt[0])*volFact; 
@@ -12,7 +12,7 @@ GKYL_CU_DH void mom_gyrokinetic_M0_WEIGHTX_3x2v_ser_p1(const double *dxv, const 
   out[7] += (0.7071067811865475*wgt[0]*f[16]+0.7071067811865475*wgt[1]*f[8]+0.7071067811865475*f[0]*wgt[7]+0.7071067811865475*wgt[2]*f[7]+0.7071067811865475*f[1]*wgt[6]+0.7071067811865475*wgt[3]*f[6]+0.7071067811865475*f[2]*wgt[5]+0.7071067811865475*f[3]*wgt[4])*volFact; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M1_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M1_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp[8]; 
@@ -34,7 +34,7 @@ GKYL_CU_DH void mom_gyrokinetic_M1_WEIGHTX_3x2v_ser_p1(const double *dxv, const 
   out[7] += (0.3535533905932737*tmp[0]*wgt[7]+0.3535533905932737*wgt[0]*tmp[7]+0.3535533905932737*tmp[1]*wgt[6]+0.3535533905932737*wgt[1]*tmp[6]+0.3535533905932737*tmp[2]*wgt[5]+0.3535533905932737*wgt[2]*tmp[5]+0.3535533905932737*tmp[3]*wgt[4]+0.3535533905932737*wgt[3]*tmp[4])*volFact; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M2_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M2_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmpPar[8]; 
@@ -77,7 +77,7 @@ GKYL_CU_DH void mom_gyrokinetic_M2_WEIGHTX_3x2v_ser_p1(const double *dxv, const 
   out[7] += (2.0*(0.729*bmag[7]*tmpPerp[7]*wgt[7]+0.405*bmag[6]*tmpPerp[6]*wgt[7]+0.405*bmag[5]*tmpPerp[5]*wgt[7]+0.405*bmag[4]*tmpPerp[4]*wgt[7]+0.225*bmag[3]*tmpPerp[3]*wgt[7]+0.225*bmag[2]*tmpPerp[2]*wgt[7]+0.225*bmag[1]*tmpPerp[1]*wgt[7]+0.125*bmag[0]*tmpPerp[0]*wgt[7]+0.405*bmag[6]*wgt[6]*tmpPerp[7]+0.405*bmag[5]*wgt[5]*tmpPerp[7]+0.405*bmag[4]*wgt[4]*tmpPerp[7]+0.225*bmag[3]*wgt[3]*tmpPerp[7]+0.225*bmag[2]*wgt[2]*tmpPerp[7]+0.225*bmag[1]*wgt[1]*tmpPerp[7]+0.125*bmag[0]*wgt[0]*tmpPerp[7]+0.405*tmpPerp[6]*wgt[6]*bmag[7]+0.405*tmpPerp[5]*wgt[5]*bmag[7]+0.405*tmpPerp[4]*wgt[4]*bmag[7]+0.225*tmpPerp[3]*wgt[3]*bmag[7]+0.225*tmpPerp[2]*wgt[2]*bmag[7]+0.225*tmpPerp[1]*wgt[1]*bmag[7]+0.125*tmpPerp[0]*wgt[0]*bmag[7]+0.225*bmag[3]*tmpPerp[5]*wgt[6]+0.225*tmpPerp[3]*bmag[5]*wgt[6]+0.225*bmag[2]*tmpPerp[4]*wgt[6]+0.225*tmpPerp[2]*bmag[4]*wgt[6]+0.125*bmag[0]*tmpPerp[1]*wgt[6]+0.125*tmpPerp[0]*bmag[1]*wgt[6]+0.225*bmag[3]*wgt[5]*tmpPerp[6]+0.225*wgt[3]*bmag[5]*tmpPerp[6]+0.225*bmag[2]*wgt[4]*tmpPerp[6]+0.225*wgt[2]*bmag[4]*tmpPerp[6]+0.125*bmag[0]*wgt[1]*tmpPerp[6]+0.125*wgt[0]*bmag[1]*tmpPerp[6]+0.225*tmpPerp[3]*wgt[5]*bmag[6]+0.225*wgt[3]*tmpPerp[5]*bmag[6]+0.225*tmpPerp[2]*wgt[4]*bmag[6]+0.225*wgt[2]*tmpPerp[4]*bmag[6]+0.125*tmpPerp[0]*wgt[1]*bmag[6]+0.125*wgt[0]*tmpPerp[1]*bmag[6]+0.225*bmag[1]*tmpPerp[4]*wgt[5]+0.225*tmpPerp[1]*bmag[4]*wgt[5]+0.125*bmag[0]*tmpPerp[2]*wgt[5]+0.125*tmpPerp[0]*bmag[2]*wgt[5]+0.225*bmag[1]*wgt[4]*tmpPerp[5]+0.225*wgt[1]*bmag[4]*tmpPerp[5]+0.125*bmag[0]*wgt[2]*tmpPerp[5]+0.125*wgt[0]*bmag[2]*tmpPerp[5]+0.225*tmpPerp[1]*wgt[4]*bmag[5]+0.225*wgt[1]*tmpPerp[4]*bmag[5]+0.125*tmpPerp[0]*wgt[2]*bmag[5]+0.125*wgt[0]*tmpPerp[2]*bmag[5]+0.125*bmag[0]*tmpPerp[3]*wgt[4]+0.125*tmpPerp[0]*bmag[3]*wgt[4]+0.125*bmag[0]*wgt[3]*tmpPerp[4]+0.125*wgt[0]*bmag[3]*tmpPerp[4]+0.125*tmpPerp[0]*wgt[3]*bmag[4]+0.125*wgt[0]*tmpPerp[3]*bmag[4]+0.125*bmag[1]*tmpPerp[2]*wgt[3]+0.125*tmpPerp[1]*bmag[2]*wgt[3]+0.125*bmag[1]*wgt[2]*tmpPerp[3]+0.125*wgt[1]*bmag[2]*tmpPerp[3]+0.125*tmpPerp[1]*wgt[2]*bmag[3]+0.125*wgt[1]*tmpPerp[2]*bmag[3])*volFact)/m_; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M2PAR_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M2PAR_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp[8]; 
@@ -103,7 +103,7 @@ GKYL_CU_DH void mom_gyrokinetic_M2PAR_WEIGHTX_3x2v_ser_p1(const double *dxv, con
   out[7] += (0.3535533905932737*tmp[0]*wgt[7]+0.3535533905932737*wgt[0]*tmp[7]+0.3535533905932737*tmp[1]*wgt[6]+0.3535533905932737*wgt[1]*tmp[6]+0.3535533905932737*tmp[2]*wgt[5]+0.3535533905932737*wgt[2]*tmp[5]+0.3535533905932737*tmp[3]*wgt[4]+0.3535533905932737*wgt[3]*tmp[4])*volFact; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M0M1M2_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M0M1M2_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp1[8]; 
@@ -163,7 +163,7 @@ GKYL_CU_DH void mom_gyrokinetic_M0M1M2_WEIGHTX_3x2v_ser_p1(const double *dxv, co
   out[23] += ((1.458*bmag[7]*tmp2perp[7]*wgt[7]+0.81*bmag[6]*tmp2perp[6]*wgt[7]+0.81*bmag[5]*tmp2perp[5]*wgt[7]+0.81*bmag[4]*tmp2perp[4]*wgt[7]+0.45*bmag[3]*tmp2perp[3]*wgt[7]+0.45*bmag[2]*tmp2perp[2]*wgt[7]+0.45*bmag[1]*tmp2perp[1]*wgt[7]+0.25*bmag[0]*tmp2perp[0]*wgt[7]+0.81*bmag[6]*wgt[6]*tmp2perp[7]+0.81*bmag[5]*wgt[5]*tmp2perp[7]+0.81*bmag[4]*wgt[4]*tmp2perp[7]+0.45*bmag[3]*wgt[3]*tmp2perp[7]+0.45*bmag[2]*wgt[2]*tmp2perp[7]+0.45*bmag[1]*wgt[1]*tmp2perp[7]+0.25*bmag[0]*wgt[0]*tmp2perp[7]+0.81*tmp2perp[6]*wgt[6]*bmag[7]+0.81*tmp2perp[5]*wgt[5]*bmag[7]+0.81*tmp2perp[4]*wgt[4]*bmag[7]+0.45*tmp2perp[3]*wgt[3]*bmag[7]+0.45*tmp2perp[2]*wgt[2]*bmag[7]+0.45*tmp2perp[1]*wgt[1]*bmag[7]+0.25*tmp2perp[0]*wgt[0]*bmag[7]+0.45*bmag[3]*tmp2perp[5]*wgt[6]+0.45*tmp2perp[3]*bmag[5]*wgt[6]+0.45*bmag[2]*tmp2perp[4]*wgt[6]+0.45*tmp2perp[2]*bmag[4]*wgt[6]+0.25*bmag[0]*tmp2perp[1]*wgt[6]+0.25*tmp2perp[0]*bmag[1]*wgt[6]+0.45*bmag[3]*wgt[5]*tmp2perp[6]+0.45*wgt[3]*bmag[5]*tmp2perp[6]+0.45*bmag[2]*wgt[4]*tmp2perp[6]+0.45*wgt[2]*bmag[4]*tmp2perp[6]+0.25*bmag[0]*wgt[1]*tmp2perp[6]+0.25*wgt[0]*bmag[1]*tmp2perp[6]+0.45*tmp2perp[3]*wgt[5]*bmag[6]+0.45*wgt[3]*tmp2perp[5]*bmag[6]+0.45*tmp2perp[2]*wgt[4]*bmag[6]+0.45*wgt[2]*tmp2perp[4]*bmag[6]+0.25*tmp2perp[0]*wgt[1]*bmag[6]+0.25*wgt[0]*tmp2perp[1]*bmag[6]+0.45*bmag[1]*tmp2perp[4]*wgt[5]+0.45*tmp2perp[1]*bmag[4]*wgt[5]+0.25*bmag[0]*tmp2perp[2]*wgt[5]+0.25*tmp2perp[0]*bmag[2]*wgt[5]+0.45*bmag[1]*wgt[4]*tmp2perp[5]+0.45*wgt[1]*bmag[4]*tmp2perp[5]+0.25*bmag[0]*wgt[2]*tmp2perp[5]+0.25*wgt[0]*bmag[2]*tmp2perp[5]+0.45*tmp2perp[1]*wgt[4]*bmag[5]+0.45*wgt[1]*tmp2perp[4]*bmag[5]+0.25*tmp2perp[0]*wgt[2]*bmag[5]+0.25*wgt[0]*tmp2perp[2]*bmag[5]+0.25*bmag[0]*tmp2perp[3]*wgt[4]+0.25*tmp2perp[0]*bmag[3]*wgt[4]+0.25*bmag[0]*wgt[3]*tmp2perp[4]+0.25*wgt[0]*bmag[3]*tmp2perp[4]+0.25*tmp2perp[0]*wgt[3]*bmag[4]+0.25*wgt[0]*tmp2perp[3]*bmag[4]+0.25*bmag[1]*tmp2perp[2]*wgt[3]+0.25*tmp2perp[1]*bmag[2]*wgt[3]+0.25*bmag[1]*wgt[2]*tmp2perp[3]+0.25*wgt[1]*bmag[2]*tmp2perp[3]+0.25*tmp2perp[1]*wgt[2]*bmag[3]+0.25*wgt[1]*tmp2perp[2]*bmag[3])*volFact)/m_+(0.3535533905932737*tmp2par[0]*wgt[7]+0.3535533905932737*wgt[0]*tmp2par[7]+0.3535533905932737*tmp2par[1]*wgt[6]+0.3535533905932737*wgt[1]*tmp2par[6]+0.3535533905932737*tmp2par[2]*wgt[5]+0.3535533905932737*wgt[2]*tmp2par[5]+0.3535533905932737*tmp2par[3]*wgt[4]+0.3535533905932737*wgt[3]*tmp2par[4])*volFact; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_HAMILTONIAN_NOWEIGHT_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_HAMILTONIAN_NOWEIGHT_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp[8]; 
@@ -204,7 +204,7 @@ GKYL_CU_DH void mom_gyrokinetic_HAMILTONIAN_NOWEIGHT_3x2v_ser_p1(const double *d
   out[23] += (0.7071067811865475*phi[0]*f[16]+0.7071067811865475*phi[1]*f[8]+0.7071067811865475*f[0]*phi[7]+0.7071067811865475*phi[2]*f[7]+0.7071067811865475*f[1]*phi[6]+0.7071067811865475*phi[3]*f[6]+0.7071067811865475*f[2]*phi[5]+0.7071067811865475*f[3]*phi[4])*q_*volFact+(0.44721359549995804*vmap1R2*f[43]+vmap[0]*vmap[1]*f[26]+0.5*vmap1R2*f[16]+0.5*vmap0R2*f[16])*m_*volFact+(0.3535533905932737*bmag[0]*tmp[7]+0.3535533905932737*tmp[0]*bmag[7]+0.3535533905932737*bmag[1]*tmp[6]+0.3535533905932737*tmp[1]*bmag[6]+0.3535533905932737*bmag[2]*tmp[5]+0.3535533905932737*tmp[2]*bmag[5]+0.3535533905932737*bmag[3]*tmp[4]+0.3535533905932737*tmp[3]*bmag[4])*volFact; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M2PERP_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M2PERP_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp[8]; 
@@ -226,7 +226,7 @@ GKYL_CU_DH void mom_gyrokinetic_M2PERP_WEIGHTX_3x2v_ser_p1(const double *dxv, co
   out[7] += (2.0*(0.729*bmag[7]*tmp[7]*wgt[7]+0.405*bmag[6]*tmp[6]*wgt[7]+0.405*bmag[5]*tmp[5]*wgt[7]+0.405*bmag[4]*tmp[4]*wgt[7]+0.225*bmag[3]*tmp[3]*wgt[7]+0.225*bmag[2]*tmp[2]*wgt[7]+0.225*bmag[1]*tmp[1]*wgt[7]+0.125*bmag[0]*tmp[0]*wgt[7]+0.405*bmag[6]*wgt[6]*tmp[7]+0.405*bmag[5]*wgt[5]*tmp[7]+0.405*bmag[4]*wgt[4]*tmp[7]+0.225*bmag[3]*wgt[3]*tmp[7]+0.225*bmag[2]*wgt[2]*tmp[7]+0.225*bmag[1]*wgt[1]*tmp[7]+0.125*bmag[0]*wgt[0]*tmp[7]+0.405*tmp[6]*wgt[6]*bmag[7]+0.405*tmp[5]*wgt[5]*bmag[7]+0.405*tmp[4]*wgt[4]*bmag[7]+0.225*tmp[3]*wgt[3]*bmag[7]+0.225*tmp[2]*wgt[2]*bmag[7]+0.225*tmp[1]*wgt[1]*bmag[7]+0.125*tmp[0]*wgt[0]*bmag[7]+0.225*bmag[3]*tmp[5]*wgt[6]+0.225*tmp[3]*bmag[5]*wgt[6]+0.225*bmag[2]*tmp[4]*wgt[6]+0.225*tmp[2]*bmag[4]*wgt[6]+0.125*bmag[0]*tmp[1]*wgt[6]+0.125*tmp[0]*bmag[1]*wgt[6]+0.225*bmag[3]*wgt[5]*tmp[6]+0.225*wgt[3]*bmag[5]*tmp[6]+0.225*bmag[2]*wgt[4]*tmp[6]+0.225*wgt[2]*bmag[4]*tmp[6]+0.125*bmag[0]*wgt[1]*tmp[6]+0.125*wgt[0]*bmag[1]*tmp[6]+0.225*tmp[3]*wgt[5]*bmag[6]+0.225*wgt[3]*tmp[5]*bmag[6]+0.225*tmp[2]*wgt[4]*bmag[6]+0.225*wgt[2]*tmp[4]*bmag[6]+0.125*tmp[0]*wgt[1]*bmag[6]+0.125*wgt[0]*tmp[1]*bmag[6]+0.225*bmag[1]*tmp[4]*wgt[5]+0.225*tmp[1]*bmag[4]*wgt[5]+0.125*bmag[0]*tmp[2]*wgt[5]+0.125*tmp[0]*bmag[2]*wgt[5]+0.225*bmag[1]*wgt[4]*tmp[5]+0.225*wgt[1]*bmag[4]*tmp[5]+0.125*bmag[0]*wgt[2]*tmp[5]+0.125*wgt[0]*bmag[2]*tmp[5]+0.225*tmp[1]*wgt[4]*bmag[5]+0.225*wgt[1]*tmp[4]*bmag[5]+0.125*tmp[0]*wgt[2]*bmag[5]+0.125*wgt[0]*tmp[2]*bmag[5]+0.125*bmag[0]*tmp[3]*wgt[4]+0.125*tmp[0]*bmag[3]*wgt[4]+0.125*bmag[0]*wgt[3]*tmp[4]+0.125*wgt[0]*bmag[3]*tmp[4]+0.125*tmp[0]*wgt[3]*bmag[4]+0.125*wgt[0]*tmp[3]*bmag[4]+0.125*bmag[1]*tmp[2]*wgt[3]+0.125*tmp[1]*bmag[2]*wgt[3]+0.125*bmag[1]*wgt[2]*tmp[3]+0.125*wgt[1]*bmag[2]*tmp[3]+0.125*tmp[1]*wgt[2]*bmag[3]+0.125*wgt[1]*tmp[2]*bmag[3])*volFact)/m_; 
 } 
 
-GKYL_CU_DH void mom_gyrokinetic_M0M1M2PARM2PERP_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void mom_weighted_gyrokinetic_M0M1M2PARM2PERP_WEIGHTX_3x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, const double *wgt, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[3]*dxv[4]/m_; 
   double tmp1[8]; 
