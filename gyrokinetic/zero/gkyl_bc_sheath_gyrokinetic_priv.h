@@ -35,10 +35,14 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
 
 // Function pointer type for surrogate sheath BC to determine vcut factor.
 typedef void (*sheath_surrogate_t)(const double *vmap, const double *phi, const double *phi_wall, 
-  const double *density, const double *temperature, const double mass, const double *bmag, const double *bimpact_angle, double *vcut_fact_out);
+  const double *density, const double *temperature, double q2Dm, const double *bmag, const double *bimpact_angle, double *vcut_fact_out);
 
 typedef struct { sheath_surrogate_t kernels[3]; } sheath_surrogate_kern_list;  // For use in kernel tables.
 typedef struct { sheath_surrogate_kern_list list[4]; } edged_sheath_surrogate_kern_list;
+
+// Function pointer for direct surrogate interface.
+typedef void (*srgrz_eval_t) (const double *mu_new, int n, double phi, double phi_wall, double dens_e,
+    double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 // Serendipity surrogate kernels.
 GKYL_CU_D
@@ -77,12 +81,14 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
+  int vcut_fact_dim; // Dimensionality of vcut_fact array.
   struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
   struct gkyl_basis *vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
   struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-    const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+    const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, double q2Dm,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
+  srgrz_eval_t surrogate_eval; // Function pointer for direct surrogate interface.
 };
 
 void
@@ -128,6 +134,7 @@ GKYL_CU_D
 static sheath_surrogate_t
 bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
 {
+  
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;

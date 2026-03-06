@@ -16,7 +16,7 @@ mkarr(bool on_gpu, long nc, long size)
 }
 
 void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, double q2Dm,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -29,24 +29,26 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
 
   int pdim = up->skin_r->ndim; 
   int vpar_dir = up->cdim;
+  
+  // Set the independent indices.
+  cidx[up->cdim-1] = up->edge == GKYL_LOWER_EDGE ? up->skin_r->lower[up->cdim-1] : up->skin_r->upper[up->cdim-1];
+  vidx[0] = up->skin_r->lower[up->cdim];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->vcut_fact_local);
   while (gkyl_range_iter_next(&iter)) {
 
-    // Build the indices.
     for (int d=0; d < up->cdim-1; d++) {
       cidx[d] = iter.idx[d];
       vcut_idx[d] = iter.idx[d];
     }
-    vidx[0] = 0; // vpar direction, not used in vcut_fact array.
-    vidx[1] = iter.idx[up->cdim-1]; // mu direction.
-    vcut_idx[up->cdim-1] = iter.idx[up->cdim-1];
-    // Get the linear indices to fetch from arrays.
+    vidx[1] = iter.idx[up->cdim-1];
+    vcut_idx[up->vcut_fact_dim-1] = iter.idx[up->vcut_fact_dim-1];
+
     long cperp_mu_loc = gkyl_range_idx(&up->vcut_fact_local, iter.idx);
-    long conf_loc = gkyl_range_idx(conf_r, iter.idx);
+    long conf_loc = gkyl_range_idx(conf_r, cidx);
     long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
-    // Fetch the values we need from the arrays.
+
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
@@ -55,13 +57,13 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
     const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
     const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
     double *vcut_fact_p = (double*) gkyl_array_cfetch(up->vcut_fact, cperp_mu_loc);
-    // Call the surrogate kernel to compute the vcut factor in this cell.
-    up->kernels->surrogate(vmap_p, phi_p, phi_wall_p, dens_e_p, temp_e_p, me, bmag_p, bimpact_angle_p, vcut_fact_p);
+
+    up->kernels->surrogate(vmap_p, phi_p, phi_wall_p, dens_e_p, temp_e_p, q2Dm, bmag_p, bimpact_angle_p, vcut_fact_p);
   }
 }
 
 void bc_gksheath_update_vcut_fact_surrogate_disabled(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, double q2Dm,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
 {
   return;
@@ -91,20 +93,22 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   // Sheath physics surrogate setup.
   up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
   // Setup vcut_fact to 1 by default.
-  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(cdim-1 + vdim-1, basis->poly_order);
-  int lower[cdim], upper[cdim];
+  up->vcut_fact_dim = cdim-1 + vdim-1;
+  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(up->vcut_fact_dim, basis->poly_order);
+  int lower[up->vcut_fact_dim], upper[up->vcut_fact_dim];
   for (int d=0; d < cdim-1; d++) {
     lower[d] = skin_r->lower[d];
     upper[d] = skin_r->upper[d];
   } 
-  lower[cdim-1] = skin_r->lower[skin_r->ndim-1];
-  upper[cdim-1] = skin_r->upper[skin_r->ndim-1];
+  lower[up->vcut_fact_dim-1] = skin_r->lower[skin_r->ndim-1];
+  upper[up->vcut_fact_dim-1] = skin_r->upper[skin_r->ndim-1];
   gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
   up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
   double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
   gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
   if (use_surrogate) {
     assert(vdim > 1);
+    assert(q2Dm == -2*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS); // The surrogate is only valid for electrons.
     up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
   }
   
@@ -220,11 +224,17 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc
   return &up->vcut_fact_local;
 }
 
-void gkyl_bc_gksheath_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, const double me,
+void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens_e, const struct gkyl_array *temp_e, double q2Dm,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
 {
-  return up->update_vcut_fact(up, phi, phi_wall, dens_e, temp_e, me, bimpact_angle, bmag, conf_r);
+  return up->update_vcut_fact(up, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, conf_r);
+}
+
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
+    double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out)
+{
+  return bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)

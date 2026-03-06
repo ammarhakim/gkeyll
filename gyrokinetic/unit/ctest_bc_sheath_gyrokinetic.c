@@ -44,23 +44,26 @@ struct test_sheath_ctx {
   double sigmax; // Width of distribution in x.
   double sigmay; // Width of distribution in y.
   double sigmaz; // Width of distribution in z.
-};
-
-struct eval_vcut_fact_ctx {
-  int cdim; // Configuration space dimension.
+  bool use_surrogate; // Whether to use surrogate model for vcut factor.
 };
 
 void
 eval_func_vcut_fact(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct eval_vcut_fact_ctx *pars = ctx;
+  struct test_sheath_ctx *pars = ctx;
   double mu = xn[pars->cdim-1]; // Mu is the last dimension.
 
-  double Lmu = 1.0; // Characteristic scale length in mu direction.
-  double vcut_fact_0 = 1.0;
-
-  double vcut_fact = vcut_fact_0 * (1 + exp(-mu/Lmu));
-  fout[0] =  1;//pow(vcut_fact, 2);
+  if (pars->use_surrogate) {
+    gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(&mu, 1, pars->phi_mpe, pars->phi_wall, pars->dens, 
+      pars->temp, 2*pars->charge/pars->mass, pars->B0, pars->impact_angle, fout);
+      fout[0] = fout[0];
+  } else {
+    double Lmu = 1.0; // Characteristic scale length in mu direction.
+    double vcut_fact_0 = 1.0;
+  
+    double vcut_fact = vcut_fact_0 * (1 + exp(-mu/Lmu));
+    fout[0] =  1;//pow(vcut_fact, 2);
+  }
 }
 
 void
@@ -77,9 +80,10 @@ eval_func_1x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   double upar = pars->upar;
   double z0 = pars->z0;
   double sigmaz = pars->sigmaz;
+  double T = pars->temp;
 
   double envelope = 1;//exp( -pow(z-z0,2)/(2.0*pow(sigmaz,2)) );
-  fout[0] = exp( -(pow(vpar-upar,2) + 2.0*mu*B0/m) /(2.0*pow(vt,2)) ) * envelope;
+  fout[0] = exp( -(m*pow(vpar-upar,2)/2.0 + mu*B0) / T ) * envelope;
 }
 
 void
@@ -98,9 +102,10 @@ eval_func_2x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   double z0 = pars->z0;
   double sigmax = pars->sigmax;
   double sigmaz = pars->sigmaz;
+  double T = pars->temp;
 
   double envelope = 1;//exp( -pow(x-x0,2)/(2.0*pow(sigmax,2)) ) * exp( -pow(z-z0,2)/(2.0*pow(sigmaz,2)) );
-  fout[0] = exp( -(pow(vpar-upar,2) + 2.0*mu*B0/m) /(2.0*pow(vt,2)) ) * envelope;
+  fout[0] = exp( -(m*pow(vpar-upar,2)/2.0 + mu*B0) / T ) * envelope;
 }
 
 void
@@ -121,9 +126,10 @@ eval_func_3x2v(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   double sigmax = pars->sigmax;
   double sigmay = pars->sigmay;
   double sigmaz = pars->sigmaz;
+  double T = pars->temp;
 
   double envelope =1;//exp( -pow(x-x0,2)/(2.0*pow(sigmax,2)) ) * exp( -pow(y-y0,2)/(2.0*pow(sigmay,2)) ) * exp( -pow(z-z0,2)/(2.0*pow(sigmaz,2)) );
-  fout[0] = exp( -(pow(vpar-upar,2) + mu*B0/m) /(2.0*pow(vt,2)) ) * envelope;
+  fout[0] = exp( -(m*pow(vpar-upar,2)/2.0 + mu*B0) / T ) * envelope;
 }
 
 // Checks that the distribution function values in the ghost cells are set to 
@@ -169,8 +175,8 @@ check_function(struct test_sheath_ctx *pars, struct gkyl_array *distf_ho, struct
     vcut_coord_lower[cdim-1] = cell_lower_mu;
     vcut_coord_upper[cdim-1] = cell_upper_mu;
     double vcut_fact_lower[1], vcut_fact_upper[1];
-    eval_func_vcut_fact(0, vcut_coord_lower, vcut_fact_lower, &(struct eval_vcut_fact_ctx) {.cdim = cdim});
-    eval_func_vcut_fact(0, vcut_coord_upper, vcut_fact_upper, &(struct eval_vcut_fact_ctx) {.cdim = cdim});
+    eval_func_vcut_fact(0, vcut_coord_lower, vcut_fact_lower, pars);
+    eval_func_vcut_fact(0, vcut_coord_upper, vcut_fact_upper, pars);
     double vpcr_lower = sqrt(vcut_fact_lower[0]) * vpar_cut_radius;
     double vpcr_upper = sqrt(vcut_fact_upper[0]) * vpar_cut_radius;
     double vpcr_min = fmin(vpcr_lower, vpcr_upper);
@@ -196,17 +202,27 @@ check_function(struct test_sheath_ctx *pars, struct gkyl_array *distf_ho, struct
     }
   }
   // Uncomment for debugging.
-  // printf("\n");
   // printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
-    // edge == GKYL_LOWER_EDGE? "lower" : "upper", pars->charge, delta_phi);
+  //   edge == GKYL_LOWER_EDGE? "lower" : "upper", pars->charge, delta_phi);
   // printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
 }
 
-void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
+void write_out_fields(struct test_sheath_ctx *pars, int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
   struct gkyl_array *distf_ho, struct gkyl_array *phi_ho, struct gkyl_array *phiw_ho,
   struct gkyl_rect_grid grid_ext, struct gkyl_range local_ext,
   struct gkyl_rect_grid grid_conf, struct gkyl_range local_conf, struct gkyl_basis *basis, struct gkyl_basis basis_conf) {
 
+  struct gkyl_rect_grid grid_norm_ext = grid_ext;
+  // Normalize vparallel by thermal speed.
+  double vt = sqrt(pars->temp/pars->mass);
+  grid_norm_ext.dx[cdim] /= vt;
+  grid_norm_ext.lower[cdim] /= vt;
+  grid_norm_ext.upper[cdim] /= vt;
+  // Normalize mu by B*vt^2.
+  grid_norm_ext.dx[cdim+1] *= pars->B0/pars->temp;
+  grid_norm_ext.lower[cdim+1] *= pars->B0/pars->temp;
+  grid_norm_ext.upper[cdim+1] *= pars->B0/pars->temp;
+  
   struct gkyl_msgpack_map_elem io_meta[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis->poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id }
@@ -224,7 +240,7 @@ void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
   char fname[256];
   const char *fmt = "bc_sheath_%dx%dv_%s_%s_%s.gkyl";
   snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "distf_out");
-  gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, fname);
+  gkyl_grid_sub_array_write(&grid_norm_ext, &local_ext, mt, distf_ho, fname);
   snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "phi_mpe");
   gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phi_ho, fname);
   snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "phi_wall");
@@ -235,7 +251,7 @@ void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
 }
 
 void
-test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_surrogate, bool use_gpu)
+test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -255,16 +271,20 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   double phi_wall = pars->phi_wall;
   double impact_angle = pars->impact_angle;
   double vt = sqrt(Ts/ms);
+  double q2Dm = 2*qs/ms;
+  double mu0 = Ts/B0;
 
   double phi_surr = -qs * (phi_mpe - phi_wall) / Ts;
-  double gamma_surr = sqrt(ms * ns / GKYL_EPSILON0) / B0;
+  double gamma_surr = sqrt(GKYL_ELECTRON_MASS * ns / GKYL_EPSILON0) / B0;
   double alpha_surr = impact_angle * 180.0 / GKYL_PI;
 
-  printf("\n surrogate params: phi = %.2f | gamma = %.2f | alpha = %.2f\n", phi_surr, gamma_surr, alpha_surr);
-  
+  // if (pars->use_surrogate) {
+  //   printf("\n surrogate params: alpha = %.2f | gamma = %.2f | phi = %.2f\n", alpha_surr, gamma_surr, phi_surr);
+  // }
+
   int poly_order = 1;
-  double lower[] = {-1.0, -5.0*vt, 0.};
-  double upper[] = { 1.0,  5.0*vt, 5.0*ms*(pow(vt,2))/B0};
+  double lower[] = {-1.0, -3.0*vt, 0.};
+  double upper[] = { 1.0,  3.0*vt, 5.0*mu0};
   int vdim = 2;
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -369,7 +389,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -391,7 +411,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
       .basis = vcut_fact_basis,
       .num_ret_vals = 1,
       .eval = eval_func_vcut_fact,
-      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+      .ctx = pars,
     }
   );
   gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
@@ -400,7 +420,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
 
-  if (use_surrogate) {
+  if (pars->use_surrogate) {
     struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *density_ho = use_gpu? mkarr(false, density->ncomp, density->size) : gkyl_array_acquire(density);
     gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
@@ -408,20 +428,20 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
     struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *temperature_ho = use_gpu? mkarr(false, temperature->ncomp, temperature->size) : gkyl_array_acquire(temperature);
-    gkyl_array_shiftc(temperature_ho, Ts, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(temperature, temperature_ho);
 
     struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size) : gkyl_array_acquire(bmag);
-    gkyl_array_shiftc(bmag_ho, B0, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bmag, bmag_ho);
 
     struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bimpact_angle_ho = use_gpu? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) : gkyl_array_acquire(bimpact_angle);
-    gkyl_array_shiftc(bimpact_angle_ho, impact_angle, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_gksheath_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, ms, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -444,7 +464,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
+    write_out_fields(pars, cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
       grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
@@ -468,7 +488,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 }
 
 void
-test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_surrogate, bool use_gpu)
+test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -489,10 +509,19 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   double phi_wall = pars->phi_wall;
   double impact_angle = pars->impact_angle;
   double vt = sqrt(Ts/ms);
+  double q2Dm = 2*qs/ms;
+  double mu0 = Ts/B0;
+
+  double phi_surr = -qs * (phi_mpe - phi_wall) / Ts;
+  double gamma_surr = sqrt(ms * ns / GKYL_EPSILON0) / B0;
+  double alpha_surr = impact_angle * 180.0 / GKYL_PI;
+
+  // if (pars->use_surrogate)
+    // printf("\n surrogate params: alpha = %.2f | gamma = %.2f | phi = %.2f\n", alpha_surr, gamma_surr, phi_surr);
 
   int poly_order = 1;
-  double lower[] = { 0.0, -1.0, -5.0*vt, 0.};
-  double upper[] = { 1.0,  1.0,  5.0*vt, ms*(pow(5.0*vt,2))/(2.0*B0)};
+  double lower[] = { 0.0, -1.0, -3.0*vt, 0.};
+  double upper[] = { 1.0,  1.0,  3.0*vt, 5*mu0};
   int vdim = 2;
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -597,7 +626,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -619,7 +648,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
       .basis = vcut_fact_basis,
       .num_ret_vals = 1,
       .eval = eval_func_vcut_fact,
-      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+      .ctx = pars,
     }
   );
   gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
@@ -627,6 +656,39 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
+
+  if (pars->use_surrogate) {
+    struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *density_ho = use_gpu? mkarr(false, density->ncomp, density->size) : gkyl_array_acquire(density);
+    gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(density, density_ho);
+
+    struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *temperature_ho = use_gpu? mkarr(false, temperature->ncomp, temperature->size) : gkyl_array_acquire(temperature);
+    gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(temperature, temperature_ho);
+
+    struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size) : gkyl_array_acquire(bmag);
+    gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(bmag, bmag_ho);
+
+    struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *bimpact_angle_ho = use_gpu? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) : gkyl_array_acquire(bimpact_angle);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
+
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
+
+    gkyl_array_release(density);
+    gkyl_array_release(density_ho);
+    gkyl_array_release(temperature);
+    gkyl_array_release(temperature_ho);
+    gkyl_array_release(bmag);
+    gkyl_array_release(bmag_ho);
+    gkyl_array_release(bimpact_angle);
+    gkyl_array_release(bimpact_angle_ho);
+  }
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -639,7 +701,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
+    write_out_fields(pars, cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
       grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
@@ -663,7 +725,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 }
 
 void
-test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_surrogate, bool use_gpu)
+test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc edge, bool write_fields, bool use_gpu)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -684,10 +746,19 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   double phi_wall = pars->phi_wall;
   double impact_angle = pars->impact_angle;
   double vt = sqrt(Ts/ms);
+  double mu0 = Ts/B0;
+  double q2Dm = 2*qs/ms;
+
+  double phi_surr = -qs * (phi_mpe - phi_wall) / Ts;
+  double gamma_surr = sqrt(ms * ns / GKYL_EPSILON0) / B0;
+  double alpha_surr = impact_angle * 180.0 / GKYL_PI;
+
+  // if (pars->use_surrogate)
+  //  printf("\n surrogate params: alpha = %.2f | gamma = %.2f | phi = %.2f\n", alpha_surr, gamma_surr, phi_surr);
 
   int poly_order = 1;
-  double lower[] = { 0.0, -2.0, -1.0, -5.0*vt, 0.};
-  double upper[] = { 1.0,  2.0,  1.0,  5.0*vt, ms*(pow(5.0*vt,2))/(2.0*B0)};
+  double lower[] = { 0.0, -2.0, -1.0, -3.0*vt, 0.};
+  double upper[] = { 1.0,  2.0,  1.0,  3.0*vt, 5*mu0};
   int vdim = 2;
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -798,7 +869,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis *vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -820,7 +891,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
       .basis = vcut_fact_basis,
       .num_ret_vals = 1,
       .eval = eval_func_vcut_fact,
-      .ctx = &(struct eval_vcut_fact_ctx) {.cdim = cdim},
+      .ctx = pars,
     }
   );
   gkyl_proj_on_basis_advance(projVcut, 0.0, vcut_fact_local, vcut_fact_ho);
@@ -828,6 +899,39 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Update the BC updater with vcut_fact array.
   gkyl_bc_sheath_gyrokinetic_set_vcut_fact(bcsheath, vcut_fact);
+
+  if (pars->use_surrogate) {
+    struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *density_ho = use_gpu? mkarr(false, density->ncomp, density->size) : gkyl_array_acquire(density);
+    gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(density, density_ho);
+
+    struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *temperature_ho = use_gpu? mkarr(false, temperature->ncomp, temperature->size) : gkyl_array_acquire(temperature);
+    gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(temperature, temperature_ho);
+
+    struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size) : gkyl_array_acquire(bmag);
+    gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(bmag, bmag_ho);
+
+    struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    struct gkyl_array *bimpact_angle_ho = use_gpu? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) : gkyl_array_acquire(bimpact_angle);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
+
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
+
+    gkyl_array_release(density);
+    gkyl_array_release(density_ho);
+    gkyl_array_release(temperature);
+    gkyl_array_release(temperature_ho);
+    gkyl_array_release(bmag);
+    gkyl_array_release(bmag_ho);
+    gkyl_array_release(bimpact_angle);
+    gkyl_array_release(bimpact_angle_ho);
+  }
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -840,7 +944,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Write out the distribution function after applying BC if requested.
   if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
+    write_out_fields(pars, cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, 
       grid_ext, local_ext, grid_conf, local_conf, &basis_ho, basis_conf);
 
   // Clean up.
@@ -866,7 +970,6 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 void test_bc_sheath_gk_1x2v_ho()
 {
   bool write_fields;
-  bool use_surrogate = true;
 
   struct test_sheath_ctx pars = {
     .cdim = 1,
@@ -877,101 +980,105 @@ void test_bc_sheath_gk_1x2v_ho()
     .upar = 0.0,
     .temp = 5.0 * GKYL_ELEMENTARY_CHARGE,
     .B0 = 1.0,
-    .phi_mpe = 20.0,
+    .phi_mpe = 15.0,
     .phi_wall = 0.0,
     .impact_angle = 5.0 * M_PI / 180.0, // 5 degrees
     .z0 = 0.0,
     .sigmaz = 1.0,
+    .use_surrogate = true,
   };
 
   // Electrons with positive sheath entrance potential.
   write_fields = true;
-  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  pars.use_surrogate = false;
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // // Reverse potential sign.
-  // pars.phi_mpe *= -1.0;
-  // write_fields = false;
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  // // // Reverse potential sign.
+  write_fields = false;
+  pars.phi_mpe *= -1.0;
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // // Ions with negative potential drop (reflection possible).
-  // pars.mass = GKYL_PROTON_MASS;
-  // pars.charge = GKYL_ELEMENTARY_CHARGE;
-  // write_fields = false;
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  // // // Ions with negative sheath entrance potential.
+  pars.use_surrogate = false; // the surrogate is for electrons.
+  write_fields = false;
+  pars.charge = GKYL_ELEMENTARY_CHARGE;
+  pars.mass = GKYL_PROTON_MASS;
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // // Reverse potential sign.
-  // pars.phi_mpe *= -1.0;
-  // write_fields = false;
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  // test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  // // // // Reverse potential sign.
+  write_fields = false;
+  pars.phi_mpe *= -1.0;
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 }
 
 void test_bc_sheath_gk_2x2v_ho()
 {
   bool write_fields;
-  bool use_surrogate = false;
 
   struct test_sheath_ctx pars = {
     .cdim = 2,
     .cells = {4, 4, 16, 12},
     .mass = GKYL_ELECTRON_MASS,
     .charge = -GKYL_ELEMENTARY_CHARGE,
-    .dens = 1.0e18,
+    .dens = 1.0e19,
     .upar = 0.0,
-    .temp = 10.0 * GKYL_ELEMENTARY_CHARGE,
+    .temp = 5.0 * GKYL_ELEMENTARY_CHARGE,
     .B0 = 1.0,
-    .phi_mpe = 10.0,
+    .phi_mpe = 15.0,
     .phi_wall = 0.0,
     .impact_angle = 5.0 * M_PI / 180.0, // 5 degrees
     .x0 = 0.0,
     .sigmax = 1.0,
     .z0 = 0.0,
     .sigmaz = 1.0,
+    .use_surrogate = true,
   };
-  
-  // Electrons with positive sheath entrance potential.
-  write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
 
-  // Electrons with negative sheath entrance potential.
+  // Electrons with positive sheath entrance potential.
+  write_fields = true;
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  pars.use_surrogate = false;
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
+
+  // // Electrons with negative sheath entrance potential.
   pars.phi_mpe *= -1.0;
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // Ions with negative sheath entrance potential.
+  // // Ions with negative sheath entrance potential.
+  pars.use_surrogate = false; // the surrogate is for electrons.
+  write_fields = false;
   pars.charge = GKYL_ELEMENTARY_CHARGE;
   pars.mass = GKYL_PROTON_MASS;
-  write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // Ions with negative sheath entrance potential.
-  pars.phi_mpe *= -1.0;
+  // // // Reverse potential sign.
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  pars.phi_mpe *= -1.0;
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 }
 
 void test_bc_sheath_gk_3x2v_ho()
 {
   bool write_fields;
-  bool use_surrogate = false;
 
   struct test_sheath_ctx pars = {
     .cdim = 3,
     .cells = {4, 4, 4, 16, 12},
     .mass = GKYL_ELECTRON_MASS,
     .charge = -GKYL_ELEMENTARY_CHARGE,
-    .dens = 1.0e18,
+    .dens = 1.0e19,
     .upar = 0.0,
-    .temp = 10.0 * GKYL_ELEMENTARY_CHARGE,
+    .temp = 5.0 * GKYL_ELEMENTARY_CHARGE,
     .B0 = 1.0,
-    .phi_mpe = 10.0,
+    .phi_mpe = 15.0,
     .phi_wall = 0.0,
     .impact_angle = 5.0 * M_PI / 180.0, // 5 degrees
     .x0 = 0.0,
@@ -980,33 +1087,34 @@ void test_bc_sheath_gk_3x2v_ho()
     .sigmay = 1.0,
     .z0 = 0.0,
     .sigmaz = 1.0,
+    .use_surrogate = true,
   };
 
   // Electrons with positive sheath entrance potential.
-  pars.charge = -GKYL_ELEMENTARY_CHARGE;
-  write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  write_fields = true;
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  pars.use_surrogate = false;
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // Electrons with negative sheath entrance potential.
+  // // Electrons with negative sheath entrance potential.
+  write_fields = false;
   pars.phi_mpe *= -1.0;
-  pars.charge = -GKYL_ELEMENTARY_CHARGE;
-  write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // Ions with positive sheath entrance potential.
+  // // Ions with negative sheath entrance potential.
+  pars.use_surrogate = false; // the surrogate is for electrons.
+  write_fields = false;
   pars.charge = GKYL_ELEMENTARY_CHARGE;
   pars.mass = GKYL_PROTON_MASS;
-  write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
-  // Ions with negative sheath entrance potential.
-  pars.phi_mpe *= -1.0;
+  // // // Reverse potential sign.
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, use_surrogate, false);
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, use_surrogate, false);
+  pars.phi_mpe *= -1.0;
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -1028,6 +1136,7 @@ void test_bc_sheath_gk_1x2v_dev()
     .impact_angle = 5.0 * M_PI / 180.0, // 5 degrees
     .z0 = 0.0,
     .sigmaz = 1.0,
+    .use_surrogate = false,
   };
 
   // Electrons with positive sheath entrance potential.

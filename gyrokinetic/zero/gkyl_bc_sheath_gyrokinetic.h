@@ -84,13 +84,13 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc
  * @param phi_wall Electrostatic potential at the wall.
  * @param density Electron density at the magnetic presheath entrance.
  * @param temperature Electron temperature at the magnetic presheath entrance.
- * @param me Electron mass.
+ * @param q2Dm 2 times Charge-to-mass ratio times.
  * @param bmag Magnetic field strength at the magnetic presheath entrance.
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param conf_r Configuration space range (to index phi, density, temperature, bmag, and bimpact_angle).
  */
-void gkyl_bc_gksheath_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature, const double me,
+void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature, double q2Dm,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 
 /**
@@ -99,3 +99,20 @@ void gkyl_bc_gksheath_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyr
  * @param up BC updater.
  */
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
+
+/**
+ * Auxiliary function to evaluate the surrogate model.
+ * 
+ * @param mu_new Pointer to array of mu values to evaluate surrogate at.
+ * @param n Number of mu values to evaluate surrogate at.
+ * @param phi Electrostatic potential at the magnetic presheath entrance (simulation boundary).
+ * @param phi_wall Electrostatic potential at the wall.
+ * @param density Electron density at the magnetic presheath entrance.
+ * @param temperature Electron temperature at the magnetic presheath entrance.
+ * @param q2Dm 2 times Charge-to-mass ratio times.
+ * @param bmag Magnetic field strength at the magnetic presheath entrance.
+ * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
+ * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
+ */
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
+    double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);

@@ -308,6 +308,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_predict(double alpha, double gamma, 
     /* output denormalisation */
     for (int _j = 0; _j < 20; _j++)
         out[_j] = h4[_j] * Y_sigma[_j] + Y_mu[_j];
+    /* enforce non-negativity of the output (physically vcut cannot be negative) */
+    for (int _j = 0; _j < 20; _j++)
+        if (out[_j] < 0.0f) out[_j] = 0.0f;
 }
 
 static double svm_score(double * input) {
@@ -353,36 +356,38 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
     bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, out);
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical(const double *mu_new, int n, double phi, double phi_wall, double dens_e,
-    double temp_e, double m_e, double bmag, double bimpact_angle, double *out)
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical(const double *mu_new, int n, double phi, double phi_wall, double density,
+    double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
     double munorm[n];
     for (int i = 0; i < n; i++) {
-        munorm[i] = mu_new[i] * bmag / temp_e;
+        munorm[i] = mu_new[i] * bmag / temperature;
     }
-    double gamma   = (1.0 / bmag) * sqrt(m_e * dens_e / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temp_e;
-    double alpha = bimpact_angle * 180/M_PI;
+    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temperature;
+    double alpha = impact_angle * 180/M_PI;
     bc_sheath_gyrokinetic_srgrz_eval(munorm, n, alpha, gamma, phinorm, out);
 }
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double *mu_new,  int n, double phi, double phi_wall,
-    double dens_e, double temp_e, double m_e, double bmag, double bimpact_angle, double *out)
+    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
-    double vcut_const = sqrt(GKYL_ELEMENTARY_CHARGE * (phi - phi_wall) /temp_e);
-    bc_sheath_gyrokinetic_srgrz_eval_physical(mu_new, n, phi, phi_wall, dens_e, temp_e, m_e, bmag, bimpact_angle, out);
+    // double vcut_const = sqrt(GKYL_ELEMENTARY_CHARGE * (phi - phi_wall) /temperature);
+    double vcut_const = sqrt(-q2Dm * (phi - phi_wall));
+    double vte = sqrt(temperature / GKYL_ELECTRON_MASS);
+    bc_sheath_gyrokinetic_srgrz_eval_physical(mu_new, n, phi, phi_wall, density, temperature, q2Dm, bmag, impact_angle, out);
     for (int i = 0; i < n; i++) {
-        out[i] = out[i]/vcut_const;
+        out[i] = pow(out[i] * vte / vcut_const, 2);
     }
 }
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact_converged(const double *mu_new,  int n, double phi, double phi_wall,
-    double dens_e, double temp_e, double m_e, double bmag, double bimpact_angle, double *out)
+    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
-    double gamma   = (1.0 / bmag) * sqrt(m_e * dens_e / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temp_e;
-    double alpha = bimpact_angle * 180/M_PI;
+    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temperature;
+    double alpha = impact_angle * 180/M_PI;
     int converged = bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm);
     if (converged) {
-        bc_sheath_gyrokinetic_srgrz_eval_physical(mu_new, n, phi, phi_wall, dens_e, temp_e, m_e, bmag, bimpact_angle, out);
+        bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(mu_new, n, phi, phi_wall, density, temperature, q2Dm, bmag, impact_angle, out);
     } else {
         for (int i = 0; i < n; i++) {
             out[i] = 0.0;
