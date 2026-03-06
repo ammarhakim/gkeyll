@@ -397,6 +397,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

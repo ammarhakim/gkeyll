@@ -205,6 +205,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // release memory for moment data object
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_array_release(prim_moms);
   gkyl_proj_on_basis_release(proj_prim_moms);
@@ -214,7 +215,6 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gkyl_array_release(distf_cu);
   }
   gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
-  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x2v_p1_gk() { test_1x2v_gk(1, false); }
