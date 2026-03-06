@@ -109,7 +109,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_omegaH(gkyl_gyrokinetic_
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -128,7 +128,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_user_specified(gkyl_gyro
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -167,7 +167,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -202,7 +202,7 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_local(gkyl_gyrokinet
   gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
   gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
   gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, gks->time_dilation_scale_const); // offset by a constant
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
 
   // Scale the CFL rate by the multiplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
@@ -377,10 +377,12 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL) ||
-      (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL)) {
+      (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL) ||
+      (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT)) {
       // Copy input parameters to struct.
       fdmul->cfl_dt_min_value = gks->info.time_rate_multiplier.cfl_dt_min_value;
       fdmul->f_threshold = gks->info.time_rate_multiplier.f_threshold;
+      fdmul->time_dilation_scale_const = gks->info.time_rate_multiplier.time_dilation_scale_const;
 
       if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
@@ -396,6 +398,10 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
       enum gkyl_dg_array_mask_types mask_type = GKYL_DG_ARRAY_MASK_NONE;
       switch (fdmul->type) {
+        case GKYL_GK_FDOT_MULTIPLIER_CONSTANT:
+          mask_type = GKYL_DG_ARRAY_MASK_NONE;
+          fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
+          break;
         case GKYL_GK_FDOT_MULTIPLIER_FIXED_DT:
           mask_type = GKYL_DG_ARRAY_MASK_NONE;
           fdmul->advance_times_cfl_func =
@@ -441,6 +447,10 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
       // Initialize multiplier to 1.0.
       gkyl_array_clear(fdmul->multiplier, 1.0);
+
+      if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT) {
+        gkyl_array_clear(fdmul->multiplier, fdmul->time_dilation_scale_const);
+      }
 
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {

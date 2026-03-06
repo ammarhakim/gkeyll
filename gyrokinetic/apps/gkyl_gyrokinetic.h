@@ -338,6 +338,7 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
