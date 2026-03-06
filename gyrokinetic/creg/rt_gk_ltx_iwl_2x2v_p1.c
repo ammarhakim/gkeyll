@@ -450,7 +450,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.7,
     .rleft= 0.1,
     .rright = 0.7,

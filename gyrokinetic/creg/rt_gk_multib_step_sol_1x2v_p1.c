@@ -92,7 +92,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_LO,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
@@ -123,7 +123,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_MID,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
@@ -154,7 +154,7 @@ create_gk_block_geom(void)
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_UP,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
