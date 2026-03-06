@@ -31,7 +31,7 @@ gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gk
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->src.source_host, fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -65,12 +65,8 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
     gk_species_moment_calc(&gks->src.moms[m], gks->local, app->local, gks->src.source);
     app->stat.n_mom += 1;
 
-    // Rescale moment by inverse of Jacobian. 
-    // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
-    // the density (the 0th component).
-    gkyl_dg_div_op_range(gks->src.moms[m].mem_geo, app->basis, 
-      0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
-      app->gk_geom->geo_int.jacobgeo, &app->local);      
+    // Rescale moment by inverse of Jacobian if needed.
+    gk_species_moment_diag_jacobgeo_div(app, &gks->src.moms[m], gks->src.moms[m].marr, gks->src.moms[m].marr);
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
@@ -89,7 +85,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 
   app->stat.n_diag += 1;
 }

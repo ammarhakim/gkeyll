@@ -121,13 +121,14 @@ gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid,
 bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2);
 
 /**
- * Write grid data to file. File must be opened by caller of this
- * function. Data is written in binary format.
+ * Write grid data to given file pointer. If file pointer is not stdout or
+ * stderr, data is written to previously opened file in binary format.
  *
  * @param grid Grid object to write
+ * @param nm Name of grid (for fp=stdout or stderr);
  * @param fp File handle to write to.
  */
-void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp);
+void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp);
 
 /**
  * Read data from file and initialize grid. File must be opened by

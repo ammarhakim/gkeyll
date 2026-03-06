@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -12,12 +13,12 @@
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_eqns, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold, bool use_gpu)
+  int num_eqns, const struct gkyl_dg_eqn **eqns, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, num_eqns, eqns, skip_cell_threshold);
-  } 
+    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, num_eqns, eqns);
+  }
 #endif
 
   gkyl_boundary_flux *up = gkyl_malloc(sizeof(gkyl_boundary_flux));
@@ -28,11 +29,6 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->skin_r = *skin_r;
   up->ghost_r = *ghost_r;
   up->use_gpu = use_gpu;
-
-  if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
-  else
-    up->skip_cell_threshold = -1.0;
 
   up->num_eqns = num_eqns;
   up->eqns = gkyl_malloc(up->num_eqns*sizeof(struct gkyl_dg_eqn *));
@@ -80,20 +76,12 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
     const double *fIn_g = gkyl_array_cfetch(fIn, linidx_g);
     double *fluxOut_g = gkyl_array_fetch(fluxOut, linidx_g);
 
-    if (fabs(fIn_s[0]) < up->skip_cell_threshold && fabs(fIn_g[0]) < up->skip_cell_threshold)
-    {
-      for (int d=0; d<fluxOut->ncomp; ++d) {
-        fluxOut_g[d] = 0.0;
-      }
-    }
-    else {
-      for (int i=0; i<up->num_eqns; i++)
-        up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fIn_s, fIn_g, fluxOut_g);
+    for (int i=0; i<up->num_eqns; i++) {
+      up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g,
+        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+        fIn_s, fIn_g, fluxOut_g);
     }
   }
-
 }
 
 void

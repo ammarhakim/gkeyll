@@ -63,12 +63,25 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt)
-{
-  if (!mt) return;
-  MPACK_FREE(mt->meta);
-  gkyl_free(mt);
+static bool gyrokinetic_str_ends_in_b0(char *name){
+  size_t len = strlen(name);
+  int i = len - 1;
+  int digit_count = 0;
+  while (i >= 0 && isdigit((unsigned char)name[i])) {
+    i--;
+    digit_count++;
+  }
+  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
+    const char *num_str = &name[i + 1];
+    int num = atoi(num_str);
+    if ( num == 0)
+      return true;
+    else
+      return false;
+  }
+  else {
+    return true;
+  }
 }
 
 gkyl_gyrokinetic_app*
@@ -1018,6 +1031,12 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK && gyrokinetic_str_ends_in_b0(app->name))
+    gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
+
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_hocdim = mkarr(false, app->cdim*app->basis.num_basis, app->local_ext.volume);
@@ -1089,8 +1108,6 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   struct gkyl_array *mc2p_global_ho = mkarr(false, mc2p_global->ncomp, mc2p_global->size);
   gkyl_array_copy(mc2p_global_ho, mc2p_global);
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
     // Create Nodal Range and Grid and Write Nodal Coordinates
     struct gkyl_range nrange;
@@ -1113,7 +1130,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
     gkyl_grid_sub_array_write(&ngrid, &nrange, mt_nodes,  mc2p_nodal, fileNm);
 
-    gk_array_meta_release(mt_nodes);
+    gkyl_msgpack_data_release(mt_nodes);
     gkyl_nodal_ops_release(n2m);
     gkyl_array_release(mc2p_nodal);
   }
@@ -1132,7 +1149,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gkyl_array_release(arr_surf_ho9);
   gkyl_array_release(arr_surf_ho18);
 
-  gk_array_meta_release(mt);
+  gkyl_msgpack_data_release(mt);
 }
 
 //
@@ -1162,7 +1179,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
-    gk_array_meta_release(mt);
+    gkyl_msgpack_data_release(mt);
 
     app->stat.field_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_field_io += 1;
@@ -1440,7 +1457,15 @@ gkyl_gyrokinetic_app_write_species_heating_diagnostics(gkyl_gyrokinetic_app* app
   gk_species_heating_write_diags(app, gks, &gks->heat_src, tm, frame);
 }
 
-//
+// ............. Collisionless outputs ............... //
+// 
+void
+gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_collisionless_write_diags(app, gks, &gks->collisionless, tm, frame);
+}
+
 // ............. Positivity outputs ............... //
 // 
 void
@@ -1593,6 +1618,8 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species_fdot_multiplier(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
+
+  gkyl_gyrokinetic_app_write_species_collisionless_diagnostics(app, sidx, tm, frame);
 }
 
 void
