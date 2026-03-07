@@ -357,7 +357,12 @@ fi
 
 # SUNDIALS specific paths and flags
 : "${CONF_SUNDIALS_INC_DIR=$PREFIX/sundials/include/}"
-: "${CONF_SUNDIALS_LIB_DIR=$PREFIX/sundials/lib/}"
+if [[ "$OSTYPE" = "linux-gnu"* || "$OSTYPE" = "GNU/Linux"* ]]
+then
+    : "${CONF_SUNDIALS_LIB_DIR=$PREFIX/sundials/lib64/}"
+else
+    : "${CONF_SUNDIALS_LIB_DIR=$PREFIX/sundials/lib/}"
+fi
 
 # Write out config.mak
 cat <<EOF1 > config.mak
