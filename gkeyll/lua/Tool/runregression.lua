@@ -1,9 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Runs regression tests and compares with accepted results.
--- Restructured to support the hierarchical layer architecture:
---   core -> moments -> vlasov -> gyrokinetics -> pkpm
--- Each layer has its own luareg/ (Lua regression tests) and creg/
+-- Each layer (moments -> vlasov -> gyrokinetics -> pkpm) 
+-- has its own luareg/ (Lua regression tests) and creg/
 -- (C regression test sources).
 --
 -- Lua tests:  discovered from source_dir/<layer>/luareg/rt_*.lua.
@@ -28,11 +27,6 @@ if GKYL_HAVE_SQLITE3 == false then
    return 1
 end
 
--- Minimal set of requires needed by this tool.
--- File comparison (compareFiles) uses the G0.Zero Lua-C API registered by
--- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c).  The old LuaJIT
--- FFI modules (ZeroArray, ZeroArrayRio, ZeroRectCart, ZeroUtil) are no longer
--- needed and have been removed.
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
@@ -870,7 +864,8 @@ end
 
 -- prepareCRun(test, timeoutSecs, mode, skipCompile) → table
 -- Creates the scratch dir, compiles the C test (unless skipCompile), creates
--- the layer source symlink, and builds the run command.
+-- the layer source symlink so tests can find data files by relative path, 
+-- and builds the run command.
 -- Returns {compileFailed=true, ...} on compile failure (no cmd field).
 -- Returns {compileFailed=false, cmd, runDir, test, compileLog, compileSecs} on success.
 local function prepareCRun(test, timeoutSecs, mode, skipCompile)
@@ -1021,8 +1016,8 @@ local function runLuaTest(test, timeoutSecs, mode)
 end
 
 -- Runs a single C regression test (thin wrapper over prepareCRun + executeBatch).
--- prepareCRun handles: scratch dir creation, stale-file removal, compilation,
---   symlink setup, and run-command construction.
+-- prepareCRun handles: scratch dir creation, stale-file removal, compilation, symlink 
+-- setup so tests can find data files by relative path, and run-command construction.
 -- mode: "gpu" = append '-g' to the binary invocation; nil/omitted = CPU.
 -- skipCompile: true = binary already exists (GPU re-run); skip compile phase.
 -- keepBinary: true = do not delete the binary after running (caller handles it).
@@ -1079,8 +1074,10 @@ end
 
 -- Compares two .gkyl files (field data or dynvector) element-by-element.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
---   Defaults to 1e-12 for both (original strict CPU comparison).
---   Pass looser values (e.g. 1e-8) for GPU-vs-accepted comparisons.
+--   Defaults to 1e-12 for both (strict CPU comparison).
+--   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
+-- File comparison uses the G0.Zero Lua-C API registered by
+-- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1340,7 +1337,7 @@ local function compareCpuGpu(test, cpuDir, gpuDir, testType, gpuTol)
    return passed and 1 or 0
 end
 
--- ---- Unit test helpers (unchanged from original) ----------------------------
+-- ---- Unit test helpers ----------------------------
 local function runLuaUnitTest(test)
    log(string.format("\nRunning unit test %s ...\n", test))
    local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
@@ -2053,7 +2050,8 @@ c_list:option("-r --run-only",
 c_list:option("-a --app",
    "Filter by name prefix (e.g. --app euler lists rt_euler_* tests).\n"
    .. "For layer filtering, use: 'list moments', 'list vlasov', etc.")
-c_list:flag("-m --moat", "Only list MOAT regression tests")
+c_list:flag("-m --moat", "Only list MOAT (Mother Of All Tests) regression tests\n"
+   .. "A condensed suite of the most comprehensive regression tests.")
 c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
 c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
 
@@ -2075,7 +2073,8 @@ c_run:option("-r --run-only",
 c_run:option("-a --app",
    "Filter by name prefix (e.g. --app euler runs rt_euler_* tests).\n"
    .. "For layer filtering: 'run moments check', 'run vlasov check', etc.")
-c_run:flag("-m --moat", "Only run MOAT regression tests")
+c_run:flag("-m --moat", "Only run MOAT (Mother Of All Tests) regression tests\n"
+   .. "A condensed suite of the most comprehensive regression tests.")
 c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
 c_run:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
 c_run:option("-t --timeout",
