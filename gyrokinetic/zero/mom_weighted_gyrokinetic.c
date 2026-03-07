@@ -6,7 +6,7 @@
 
 struct gkyl_mom_weighted_gyrokinetic*
 gkyl_mom_weighted_gyrokinetic_new(double mass, double charge,
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
   enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type wgt_type,
   bool is_integrated, bool use_gpu)
@@ -20,15 +20,18 @@ gkyl_mom_weighted_gyrokinetic_new(double mass, double charge,
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  if (!use_gpu)
+  // Choose kernels that compute the moment and determine the number of moments.
+  if (!use_gpu) {
     up->kernels = gkyl_malloc(sizeof(struct gkyl_mom_weighted_gyrokinetic_kernels));
+    mom_weighted_gk_choose_kernel(up->kernels, &up->num_mom, cbasis, pbasis, mom_type, wgt_type, is_integrated);
+  }
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_mom_weighted_gyrokinetic_kernels));
+    mom_weighted_gk_choose_kernel_cu(up->kernels, &up->num_mom, cbasis, pbasis, mom_type, wgt_type, is_integrated);
+  }
 #endif
 
-  // Choose kernels that compute the moment.
-  up->num_mom = mom_weighted_gk_choose_kernel(up->kernels, cbasis, pbasis, mom_type, wgt_type, is_integrated, use_gpu);
 
   return up;
 }

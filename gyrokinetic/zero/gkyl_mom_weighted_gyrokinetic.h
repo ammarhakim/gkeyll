@@ -33,7 +33,7 @@ typedef struct gkyl_mom_weighted_gyrokinetic gkyl_mom_weighted_gyrokinetic;
  * @return A new weighted moment updater.
  */
 struct gkyl_mom_weighted_gyrokinetic* gkyl_mom_weighted_gyrokinetic_new(double mass, double charge,
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
   enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type wgt_type,
   bool is_integrated, bool use_gpu);

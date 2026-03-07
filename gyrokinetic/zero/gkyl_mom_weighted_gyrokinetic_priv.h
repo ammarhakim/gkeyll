@@ -236,9 +236,10 @@ struct gkyl_mom_weighted_gyrokinetic_kernels {
 
 // Object definition.
 struct gkyl_mom_weighted_gyrokinetic {
-  struct gkyl_rect_grid *phase_grid;  // Phase-space grid.
+  const struct gkyl_rect_grid *phase_grid;  // Phase-space grid.
   double mass;  // Species mass.
   double charge;  // Species charge.
+  enum gkyl_mom_weight_type wgt_type; // Type of weight.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
   bool use_gpu; // Whether to run on the GPU.
@@ -250,7 +251,7 @@ struct gkyl_mom_weighted_gyrokinetic {
 // Declaration of cuda device functions.
 
 void
-mom_weighted_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels,
+mom_weighted_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type,
   enum gkyl_mom_weight_type wgt_type, bool is_integrated);
 
@@ -262,17 +263,10 @@ gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *u
 #endif
 
 GKYL_CU_D
-static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels,
+static void mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type,
-  enum gkyl_mom_weight_type wgt_type, bool is_integrated, bool use_gpu)
+  enum gkyl_mom_weight_type wgt_type, bool is_integrated)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    mom_weighted_gk_choose_kernel_cu(kernels, cbasis, pbasis, mom_type, wgt_type, is_integrated);
-    return;
-  }
-#endif
-
   enum gkyl_basis_type cbasis_type = cbasis->b_type, pbasis_type = pbasis->b_type;
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim - cdim;
@@ -325,35 +319,33 @@ static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_ke
       break;
   }
 
-  int num_mom = 0;
-
   if (mom_type == GKYL_F_MOMENT_M0) { // Density.
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 1;
+    *num_mom = 1;
   }
   else if (mom_type == GKYL_F_MOMENT_M1) { // Parallel momentum.
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 1;
+    *num_mom = 1;
   }
   else if (mom_type == GKYL_F_MOMENT_M2) { // Total kinetic energy.
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 1;
+    *num_mom = 1;
   }
   else if (mom_type == GKYL_F_MOMENT_M2PAR) { // Parallel energy.
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m2par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 1;
+    *num_mom = 1;
   }
   else if (mom_type == GKYL_F_MOMENT_M2PERP) { // Perpendicular energy.
     assert(vdim == 2);
@@ -361,7 +353,7 @@ static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_ke
     assert(NULL != m2perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m2perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 1;
+    *num_mom = 1;
   }
   else if (mom_type == GKYL_F_MOMENT_M0M1M2) { 
     // Density, parallel momentum, and total energy computed together.
@@ -369,7 +361,7 @@ static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_ke
     assert(NULL != m0m1m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m0m1m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 3;
+    *num_mom = 3;
   }
   else if (mom_type == GKYL_F_MOMENT_M0M1M2PARM2PERP) {
     // Density, parallel momentum, parallel and perpendicular
@@ -379,7 +371,7 @@ static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_ke
     assert(NULL != m0m1m2parm2perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = m0m1m2parm2perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = vdim+2;
+    *num_mom = vdim+2;
   }
   else if (mom_type == GKYL_F_MOMENT_HAMILTONIAN) {
     // M0, mass*M0 and total particle energy
@@ -387,13 +379,11 @@ static int mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_ke
     assert(NULL != hamiltonian_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     kernels->wmom = hamiltonian_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    num_mom = 3;
+    *num_mom = 3;
   }
   else {
     // string not recognized
     printf("Error: requested moment %d.\n", mom_type);
     gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
   }
-
-  return num_mom;
 }
