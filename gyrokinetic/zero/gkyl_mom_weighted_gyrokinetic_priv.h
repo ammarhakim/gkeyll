@@ -18,6 +18,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
+GKYL_CU_D
 static struct { int vdim[3]; } cv_index[] = {
   {-1, -1, -1}, // 0x makes no sense
   {-1,  0,  1}, // 1x kernel indices
@@ -251,7 +252,7 @@ struct gkyl_mom_weighted_gyrokinetic {
 // Declaration of cuda device functions.
 
 void
-mom_weighted_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
+mom_weighted_gk_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type,
   enum gkyl_mom_weight_type wgt_type, bool is_integrated);
 
@@ -267,7 +268,7 @@ static void mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_k
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type,
   enum gkyl_mom_weight_type wgt_type, bool is_integrated)
 {
-  enum gkyl_basis_type cbasis_type = cbasis->b_type, pbasis_type = pbasis->b_type;
+  enum gkyl_basis_type cbasis_type = cbasis->b_type;
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim - cdim;
   int poly_order = pbasis->poly_order;
@@ -279,7 +280,7 @@ static void mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_k
     *m0m1m2parm2perp_kernels,
     *hamiltonian_kernels;
 
-  switch (cbasis->b_type) {
+  switch (cbasis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (wgt_type == GKYL_F_MOMENT_WEIGHT_NONE) {
         if (is_integrated) {
@@ -310,7 +311,7 @@ static void mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_k
         }
       }
       else {
-        fprintf(stderr, "mom_weighted_gyrokinetic: Weight type not yet supported.\n");
+        printf("mom_weighted_gyrokinetic: Weight type not yet supported.\n");
       }
       break;
 
@@ -384,6 +385,6 @@ static void mom_weighted_gk_choose_kernel(struct gkyl_mom_weighted_gyrokinetic_k
   else {
     // string not recognized
     printf("Error: requested moment %d.\n", mom_type);
-    gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
+    assert(false);
   }
 }

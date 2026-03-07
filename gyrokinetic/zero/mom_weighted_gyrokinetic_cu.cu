@@ -17,12 +17,12 @@ gkyl_mom_weighted_gk_set_cu_ker_ptrs(struct gkyl_mom_weighted_gyrokinetic_kernel
 };
 
 void
-mom_weighted_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
+mom_weighted_gk_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *kernels, int *num_mom,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type,
   enum gkyl_mom_weight_type wgt_type, bool is_integrated)
 {
   // Allocate num_mom on device so we can copy it back to host.
-  int *num_mom_dev = gkyl_cu_malloc(sizeof(int));
+  int *num_mom_dev = (int*) gkyl_cu_malloc(sizeof(int));
 
   gkyl_mom_weighted_gk_set_cu_ker_ptrs<<<1,1>>>(kernels, num_mom_dev, *cbasis, *pbasis, mom_type, wgt_type, is_integrated);
 
@@ -34,10 +34,10 @@ __global__ static void
 gkyl_mom_weighted_gk_advance_cu_ker(double mass, double charge, struct gkyl_mom_weighted_gyrokinetic_kernels *kernels,
   struct gkyl_rect_grid phase_grid,
   struct gkyl_range conf_rng, struct gkyl_range vel_rng, struct gkyl_range phase_rng, struct gkyl_range wgt_rng,
-  const struct gkyl_array *vmap, struct gkyl_array *phi, struct gkyl_array *wgt, const struct gkyl_array *GKYL_RESTRICT fin,
+  const struct gkyl_array* GKYL_RESTRICT bmag, const struct gkyl_array* GKYL_RESTRICT vmap,
+  struct gkyl_array * GKYL_RESTRICT phi, struct gkyl_array * GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT fin,
   struct gkyl_array *GKYL_RESTRICT mout)
 {
-  double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], vidx[GKYL_MAX_VDIM];
   int cdim = conf_rng.ndim;
 
@@ -49,9 +49,9 @@ gkyl_mom_weighted_gk_advance_cu_ker(double mass, double charge, struct gkyl_mom_
     for (int d=cdim; d<phase_rng.ndim; d++)
       vidx[d-cdim] = pidx[d];
 
-    long linidx_conf = gkyl_range_idx(&conf_range, pidx);
-    long linidx_vel = gkyl_range_idx(&vel_range, vidx);
-    long linidx_phase = gkyl_range_idx(&vel_rng, pidx);
+    long linidx_conf = gkyl_range_idx(&conf_rng, pidx);
+    long linidx_vel = gkyl_range_idx(&vel_rng, vidx);
+    long linidx_phase = gkyl_range_idx(&phase_rng, pidx);
 
     const double *wgt_c = 0;
     if (wgt) {
@@ -70,7 +70,7 @@ gkyl_mom_weighted_gk_advance_cu_ker(double mass, double charge, struct gkyl_mom_
       mom_local[k] = 0.0;
 
     // Reduce local f to local mom.
-    kernel->wmom(phase_grid.dx, vmap_c, mass, charge, bmag_c, phi_c, f_c, wgt_c, mom_local);
+    kernels->wmom(phase_grid.dx, vmap_c, mass, charge, bmag_c, phi_c, f_c, wgt_c, mom_local);
 
     double* mout_c = (double*) gkyl_array_fetch(mout, linidx_conf);
     for (unsigned int k = 0; k < mout->ncomp; ++k)
@@ -89,10 +89,10 @@ gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *u
   gkyl_array_clear_range(mout, 0.0, conf_rng);
 
   struct gkyl_array *wgt_on_dev = NULL;
-  struct gkyl_range wgt_range_copy;
+  struct gkyl_range wgt_rng_copy;
   if (wgt) {
     wgt_on_dev = wgt->on_dev;
-    wgt_range_copy = *wgt_range;
+    wgt_rng_copy = *wgt_rng;
   }
 
   struct gkyl_array *phi_on_dev = NULL;
@@ -100,5 +100,6 @@ gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *u
     phi_on_dev = phi->on_dev;
 
   gkyl_mom_weighted_gk_advance_cu_ker<<<nblocks, nthreads>>>(up->mass, up->charge, up->kernels,
-    *(up->phase_grid), *conf_range, *phase_range, wgt_range_copy, phi_on_dev, wgt_on_dev, fin->on_dev, mout->on_dev);
+    *(up->phase_grid), *conf_rng, up->vel_map->local_vel, *phase_rng, wgt_rng_copy, up->gk_geom->geo_corn.bmag->on_dev,
+    up->vel_map->vmap->on_dev, phi_on_dev, wgt_on_dev, fin->on_dev, mout->on_dev);
 }

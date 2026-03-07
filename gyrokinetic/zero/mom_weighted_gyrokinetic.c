@@ -43,8 +43,8 @@ gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
   struct gkyl_array *GKYL_RESTRICT mout)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    gkyl_mom_weighted_gyrokinetic_advance_cu(up, phase_rng, conf_rng, phi, wgt, fin, mout);
+  if (up->use_gpu) {
+    gkyl_mom_weighted_gyrokinetic_advance_cu(up, phase_rng, conf_rng, wgt_rng, phi, wgt, fin, mout);
     return;
   }
 #endif
