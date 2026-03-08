@@ -89,10 +89,10 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_LO,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
@@ -120,10 +120,10 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_MID,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
@@ -151,10 +151,10 @@ create_gk_block_geom(void)
       .cuts = { 1 },
       .geometry = {
         .world = {1.2014, 0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_DN_SOL_OUT_UP,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
@@ -581,8 +581,6 @@ main(int argc, char **argv)
     .gk_block_geom = bgeom,
     .cfl_frac = 0.9,
     
-    .enforce_positivity = false,
-
     .num_species = 2,
     .species = { elc, ion},
 
@@ -605,7 +603,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

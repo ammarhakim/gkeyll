@@ -608,35 +608,11 @@ create_ctx(void)
   return ctx;
 }
 
-int main(int argc, char **argv)
+// Run the 2D simulation that generates the initial conditions.
+static void
+run_2x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
+  int *cells_x, int *cells_v, struct gkyl_comm *comm)
 {
-  struct gkyl_app_args app_args = parse_app_args(argc, argv);
-
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) MPI_Init(&argc, &argv);
-#endif
-
-  if (app_args.trace_mem) {
-    gkyl_cu_dev_mem_debug_set(true);
-    gkyl_mem_debug_set(true);
-  }
-
-  struct gk_mirror_ctx ctx = create_ctx(); // Context for init functions.
-
-  int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d=0; d<ctx.cdim; d++)
-    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d=0; d<ctx.vdim; d++)
-    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
-
-  // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
-
-
-  // ...................................................... //
-  // 2D simulation to produce ICs.
-  // ...................................................... //
-
   struct gkyl_gyrokinetic_projection elc_ic = {
     .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
     .ctx_density = &ctx,
@@ -793,12 +769,12 @@ int main(int argc, char **argv)
   };
   
   struct gkyl_mirror_geo_grid_inp grid_inp = {
-    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // GK app
@@ -812,7 +788,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MIRROR,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
       .world = {0.0},
       .mirror_grid_info = grid_inp,
     },
@@ -848,7 +824,37 @@ int main(int argc, char **argv)
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp_2x);
+}
 
+// Run the 3D simulation using the final frame of the 2D sim as IC.
+static void
+run_3x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
+  int *cells_x, int *cells_v, struct gkyl_comm *comm)
+{
+  // Recreate projection ICs for use in boundary conditions.
+  struct gkyl_gyrokinetic_projection elc_ic = {
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+    .ctx_density = &ctx,
+    .density = eval_density_elc,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_elc,
+    .ctx_temppar = &ctx,
+    .temppar = eval_temp_par_elc,      
+    .ctx_tempperp = &ctx,
+    .tempperp = eval_temp_perp_elc,   
+  };
+
+  struct gkyl_gyrokinetic_projection ion_ic = {
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+    .ctx_density = &ctx,
+    .density = eval_density_ion,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_ion,
+    .ctx_temppar = &ctx,
+    .temppar = eval_temp_par_ion,      
+    .ctx_tempperp = &ctx,
+    .tempperp = eval_temp_perp_ion,   
+  };
 
   // ...................................................... //
   // 3D simulation using final frame of 2D sim as IC.
@@ -962,6 +968,15 @@ int main(int argc, char **argv)
   };
 
   // GK app
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl",
+    .rclose = 0.2,
+    .zmin = -2.0,
+    .zmax =  2.0,
+    .include_axis = false,
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,
+  };
+
   struct gkyl_gk app_inp_3x = {
     .name = "gk_wham_2xIC_3x2v_p1",
     .cdim = ctx.cdim,
@@ -972,7 +987,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MIRROR,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
       .mirror_grid_info = grid_inp,
     },
 
@@ -1007,6 +1022,34 @@ int main(int argc, char **argv)
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp3x);
+}
+
+int main(int argc, char **argv)
+{
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) MPI_Init(&argc, &argv);
+#endif
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
+  struct gk_mirror_ctx ctx = create_ctx(); // Context for init functions.
+
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+
+  run_2x_sim(ctx, app_args, cells_x, cells_v, comm);
+  run_3x_sim(ctx, app_args, cells_x, cells_v, comm);
 
   gkyl_gyrokinetic_comms_release(comm);
 

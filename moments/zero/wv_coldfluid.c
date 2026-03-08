@@ -245,5 +245,7 @@ gkyl_wv_coldfluid_new(void)
 
   coldfluid->eqn.ref_count = gkyl_ref_count_init(coldfluid_free);
 
+  coldfluid->eqn.embed_geo = NULL;
+
   return &coldfluid->eqn;
 }

@@ -99,11 +99,11 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
 
     // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
     gkyl_array_set_offset_range(sca->dndt_react, 1.0, fin, 0, &app->local);
-    for (int i=0; i<ns->num_moments;++i)
+    for (int i=0; i<ns->num_moments; ++i)
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
         i, fin, 0, sca->dndt_react, &app->local); 
   
-    for (int i=0; i<ns->num_moments;++i)
+    for (int i=0; i<ns->num_moments; ++i)
       gkyl_dg_mul_op_range(app->basis, i, fin,
         i, fin, 0, sca->Jm0_init, &app->local);  
 
@@ -166,13 +166,12 @@ gk_neut_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_sp
     assert(ns->is_fluid);
 
     sca->type = sca_inp->type;
+    sca->num_boundaries = sca_inp->num_boundaries;
+    sca->recycling_coeff = sca_inp->recycling_coeff;
     sca->write_diagnostics = sca_inp->write_diagnostics;
 
     // Initial number density times conf-space Jacobian.
     sca->Jm0_init = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    sca->num_boundaries = sca_inp->num_boundaries;
-    sca->recycling_coeff = sca_inp->recycling_coeff;
 
     // Create an updater that integrates an array.
     sca->integrate_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);

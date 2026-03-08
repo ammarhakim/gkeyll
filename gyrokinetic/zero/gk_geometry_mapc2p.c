@@ -351,6 +351,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
   up->local_ext = geometry_inp->geo_local_ext;
@@ -413,6 +414,13 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
       geometry_inp->c2p_ctx, geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   }
 
+  // Store metadata for I/O.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+  };
+  up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -427,32 +435,25 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
 
-  if (geometry_inp->position_map == 0){
-    geometry_inp->position_map = gkyl_position_map_null_new();
+  // First construct the uniform 3d geometry
+  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+  if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
+      geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
+    // The array mc2nu is computed using the uniform geometry, so we need to deflate it
+    // Must deflate the 3D uniform geometry in order for the allgather to work
+    if (geometry_inp->grid.ndim < 3)
+      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
+    else
+      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+
+    gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
+      gk_geom->geo_int.bmag);
+
+    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
+
+    // Construct the non-uniform grid
     gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-    gkyl_position_map_release(geometry_inp->position_map);
-  }
-  else {
-    // First construct the uniform 3d geometry
-    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-    if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
-        geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
-      // The array mc2nu is computed using the uniform geometry, so we need to deflate it
-      // Must deflate the 3D uniform geometry in order for the allgather to work
-      if (geometry_inp->grid.ndim < 3)
-        gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
-      else
-        gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-
-      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
-        gk_geom->geo_int.bmag);
-
-      gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-      gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-
-      // Construct the non-uniform grid
-      gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-    }
   }
   return gk_geom_3d;
 }

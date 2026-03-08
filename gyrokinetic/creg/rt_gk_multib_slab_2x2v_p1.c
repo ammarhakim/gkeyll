@@ -240,7 +240,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,
@@ -265,7 +265,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,
@@ -291,7 +291,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .mapc2p = mapc2p,
         .c2p_ctx = app,
         .bfield_func = bfield_func,
@@ -459,6 +459,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 4,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
 
   };
@@ -503,6 +510,14 @@ main(int argc, char **argv)
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
     }, 
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
 
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
@@ -544,6 +559,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 4,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      }
     },
 
   };
@@ -592,6 +614,14 @@ main(int argc, char **argv)
   
     .num_diag_moments = 7,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
 
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
@@ -656,7 +686,7 @@ main(int argc, char **argv)
       .enabled = true,
       .frequency = 0.1,
       .estimate_completion_time = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

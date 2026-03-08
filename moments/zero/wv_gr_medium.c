@@ -371,6 +371,8 @@ gkyl_wv_gr_medium_inew(const struct gkyl_wv_gr_medium_inp* inp)
   gr_medium->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_medium_free);
   gr_medium->eqn.on_dev = &gr_medium->eqn; // On the CPU, the equation object points to itself.
 
+  gr_medium->eqn.embed_geo = NULL;
+
   return &gr_medium->eqn;
 }
 

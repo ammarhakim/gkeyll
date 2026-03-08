@@ -618,7 +618,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
@@ -656,7 +656,7 @@ int main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

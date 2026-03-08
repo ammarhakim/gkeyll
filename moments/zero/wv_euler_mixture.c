@@ -617,6 +617,8 @@ gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp)
   euler_mixture->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_mixture_free);
   euler_mixture->eqn.on_dev = &euler_mixture->eqn; // On the CPU, the equation object points ot itself.
 
+  euler_mixture->eqn.embed_geo = NULL;
+
   return &euler_mixture->eqn;
 }
 

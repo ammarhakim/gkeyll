@@ -94,6 +94,8 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
+  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
   gkyl_array_release(ns->fnew);
@@ -109,6 +111,8 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
   gkyl_free(ns->moms);
 
   gk_neut_species_bgk_release(app, &ns->bgk);
+
+  gk_neut_species_positivity_release(app, &ns->positivity);
 
   gk_neut_species_react_release(app, &ns->react_neut);
 
@@ -163,7 +167,6 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   ns->step_f_func = gk_neut_species_step_f_dynamic;
   ns->combine_func = gk_neut_species_combine_dynamic;
   ns->copy_func = gk_neut_species_copy_range_dynamic;
-  ns->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   ns->write_func = gk_neut_species_write_dynamic;
   ns->write_mom_func = gk_neut_species_write_mom_dynamic; // MF 2025/07/18: currently works for fluid too.
   ns->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_dynamic; // MF 2025/07/18: currently works for fluid too.
@@ -187,7 +190,6 @@ gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_ap
   s->step_f_func = gk_neut_species_step_f_static;
   s->combine_func = gk_neut_species_combine_static;
   s->copy_func = gk_neut_species_copy_range_static;
-  s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_init_only;
   s->write_mom_func = gk_neut_species_write_mom_init_only;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
@@ -250,6 +252,14 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
       ns->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
+  // Metadata for gk_neut_species app.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = ns->basis.id }
+  };
+  ns->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  ns->io_meta = gkyl_msgpack_map_elem_clone(ns->io_meta_len, io_meta);
+
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
   ns->f_host = app->use_gpu? mkarr(false, ns->f->ncomp, ns->f->size)
@@ -306,8 +316,6 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
     .max_iter = 0, .iter_eps = 10, .use_last_converged = false };
   gk_neut_species_lte_init(app, ns, &ns->lte, corr_inp);
 
-  ns->enforce_positivity = false;
-  
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions.
   ns->sca = (struct gk_scaling) { };
@@ -317,6 +325,10 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->bgk = (struct gk_bgk_collisions) { };
   ns->info.collisions.collision_id = 0;
   gk_neut_species_bgk_init(app, ns, &ns->bgk);
+
+  // Initialize positivity enforcing operator with null type (NYI for fluids).
+  ns->positivity = (struct gk_positivity) { };
+  gk_neut_species_positivity_init(app, ns, &ns->positivity);
 
   // Initialize reactions with charged species (NYI for fluids).
   ns->react_neut = (struct gk_react) { };

@@ -1796,6 +1796,8 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   gr_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_euler_free);
   gr_euler->eqn.on_dev = &gr_euler->eqn; // On the CPU, the equation object points to itself.
 
+  gr_euler->eqn.embed_geo = NULL;
+
   return &gr_euler->eqn;
 }
 

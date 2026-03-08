@@ -10,6 +10,7 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -88,7 +89,7 @@ test_load_geometry()
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "core/data/eqdsk/wham.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -115,17 +116,20 @@ test_load_geometry()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_MIRROR,
+    .geometry_id  = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -143,6 +147,7 @@ test_load_geometry()
   struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
   //write_geometry(up, cgrid, clocal, "whamlores");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -250,18 +255,21 @@ test_3x_p1_straight_cylinder()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "core/data/unit/straight_cylinder.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "gyrokinetic/data/unit/straight_cylinder.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.5, // closest R to region of interest
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MIRROR,
+    .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
+    .position_map = pos_map,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
@@ -692,6 +700,7 @@ test_3x_p1_straight_cylinder()
           .local = gk_geom->local,
           .global = gk_geom->global,
           .dir = dir,
+          .position_map = pos_map,
           
           .R = { psi_grid.lower[0], psi_grid.upper[0] },
           .Z = { psi_grid.lower[1], psi_grid.upper[1] },
@@ -783,6 +792,7 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(bhat_nodal);
   gkyl_array_release(dualmag_nodal);
   gkyl_array_release(bmag_nodal);
+  gkyl_array_release(bmag_nodal_interior);
   gkyl_array_release(cmag_nodal);
   gkyl_array_release(gij_nodal);
   gkyl_array_release(gij_contra_nodal);
@@ -794,7 +804,12 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(mc2p_nodal_interior);
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
+  gkyl_array_release(psi);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pos_map);
+  for (int dir = 0; dir < cdim; dir++) {
+    gkyl_mirror_grid_gen_release(mirror_grid_surf[dir]);
+  }
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -906,17 +921,17 @@ test_3x_p1_pmap_straight_cylinder()
     ext_range, range, ext_range, basis);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MIRROR,
+    .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
     .position_map = pos_map,
     .grid = grid,

@@ -255,7 +255,6 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
       .vel_range = &s->local_vel, 
       .gk_geom = app->gk_geom,
       .vel_map = s->vel_map,
-      .quad_type = inp.quad_type,
       .mass = s->info.mass,
       .bimaxwellian = bimaxwellian, 
       .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
@@ -282,10 +281,18 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     fg_ctx.gaussian_std_dev[dir] = inp.gaussian_std_dev[dir];
     fg_ctx.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
   }
-  // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  // By default, set all directions to non-periodic.
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir)
     fg_ctx.is_dir_periodic[dir] = false;
-  fg_ctx.is_dir_periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
+
+  // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  // First recover the BCs of the last config. space dimension for this species from the user input.
+  struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_LOWER_EDGE);
+  struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_UPPER_EDGE);
+  // Apply periodicity condition if both edges are IWL.
+  fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL);
+  
+  // Set periodicity also according to the global app settings.
   for (int i=0; i < app->num_periodic_dir; ++i)
     fg_ctx.is_dir_periodic[app->periodic_dirs[i]] = true;
 
@@ -322,24 +329,22 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
   gkyl_array_release(integrant);
   gkyl_array_integrate_release(int_op);
-
   // Scale the shape configuration function
   gkyl_array_scale(proj->gaussian_profile, 1.0/red_integral_ho[0]);
-  
   // We can now build the moments of the projection.
   proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
-
   // Density
   gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles + inp.f_floor, proj->gaussian_profile, 0*app->basis.num_basis);
-
   // Parallel velocity
   gkyl_array_set_offset(proj->prim_moms, 0.0, proj->gaussian_profile, 1*app->basis.num_basis);
-  
   // Temperature
   assert(inp.temp_max > 0);
-  double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./3. * inp.total_kin_energy/inp.total_num_particles;
+  double vdim_phys = s->vdim == 1? 1.0 : 3.0;
+  double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./vdim_phys * inp.total_kin_energy/inp.total_num_particles;
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
   gkyl_array_shiftc(proj->prim_moms, temp/s->info.mass, 2*app->basis.num_basis);
+  // Moment correction
+  proj->correct_all_moms = inp.correct_all_moms;
 }
 
 void 

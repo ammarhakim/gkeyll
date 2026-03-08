@@ -463,10 +463,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_R,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
           .rleft = 1.1,
           .rright = 1.7,
           .rmin = 1.1,
@@ -500,10 +500,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_LSN_SOL_LO,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
           .rclose = 2.5,
           .rleft = 0.8,
           .rright = 2.5,
@@ -536,10 +536,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_LSN_SOL_MID,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
           .rclose = 2.5,
           .rleft = 0.8,
           .rright = 2.5,
@@ -572,10 +572,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_LSN_SOL_UP,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
           .rclose = 2.5,
           .rleft = 0.8,
           .rright = 2.5,
@@ -608,10 +608,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_L,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
           .rleft = 1.1,
           .rright = 1.7,
           .rmin = 1.1,
@@ -645,10 +645,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
+        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_CORE,
+          .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
           .rclose = 2.0,
           .rleft = 0.8,
           .rright = 2.5,
@@ -1409,7 +1409,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

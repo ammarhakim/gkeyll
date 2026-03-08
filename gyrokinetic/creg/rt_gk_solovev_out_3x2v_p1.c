@@ -510,7 +510,7 @@ main(int argc, char **argv)
   };
   
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_DN_SOL_OUT,    // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,    // type of geometry
     .rclose = 3.0,               // closest R to region of interest
     .rright = 3.0,               // Closest R to outboard SOL
     .rleft = 0.1,                // closest R to inboard SOL
@@ -532,7 +532,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
@@ -563,7 +563,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

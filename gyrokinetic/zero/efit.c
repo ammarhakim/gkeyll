@@ -14,6 +14,7 @@
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
+#include <ctype.h>
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
@@ -22,6 +23,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->filepath = inp->filepath;
+  get_stripped_filename(up->filepath, up->name);
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
@@ -29,27 +31,51 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   
   // Check if file exists using gkyl_check_file_exists and handle error only on rank 0.
   if (!gkyl_check_file_exists(up->filepath)) {
-    fprintf(stderr, "Failed to open the eqdsk file: %s\n", up->filepath);
+    fprintf(stderr, "efit.c: Failed to open the eqdsk file: %s\n", up->filepath);
     assert(false);
   }
 
   FILE *ptr = fopen(up->filepath,"r"); 
 
-  // Get the dimensions
-  size_t status;
+  // Read the last two ints in the first line, assuming they are N_R and N_Z.
+  const int MAX_LINE_LENGTH = 256;
+  char first_line[MAX_LINE_LENGTH];
+  char *token;
+  if (fgets(first_line, sizeof(first_line), ptr) != NULL) {
+    // Remove potential newline character from the end of the line.
+    first_line[strcspn(first_line, "\n")] = 0;
 
-  char header[49];   // case in eqdsk header
-  int idum; // idum in eqdsk header
-  status = fscanf(ptr, "%48c%4d%4d%4d", header, &idum, &up->nr, &up->nz);
+    // Tokenize the string based on whitespace.
+    char temp_line[MAX_LINE_LENGTH];
+    strcpy(temp_line, first_line);
+    token = strtok(temp_line, " \t\r\n");
+    while (token != NULL) {
+      // Check if the token is a number.
+      int is_number = 1;
+      for (int i = 0; i < strlen(token); i++) {
+        if (!isdigit((unsigned char)token[i])) {
+          is_number = 0;
+          break;
+        }
+      }
+
+      if (is_number) {
+        // Store the last two integers.
+        up->nr = up->nz;
+        up->nz = atoi(token);
+      }
+
+      // Get the next token.
+      token = strtok(NULL, " \t\r\n");
+    }
+  }
 
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;
   // rmaxis,zmaxis,simag,sibry,bcentr;
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
-  //double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
-
-  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
+  size_t status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
     &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);

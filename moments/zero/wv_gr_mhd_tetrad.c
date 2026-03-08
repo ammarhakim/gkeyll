@@ -2123,6 +2123,8 @@ gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp* inp)
   gr_mhd_tetrad->eqn.ref_count = gkyl_ref_count_init(gkyl_gr_mhd_tetrad_free);
   gr_mhd_tetrad->eqn.on_dev = &gr_mhd_tetrad->eqn; // On the CPU, the equation object points to itself.
 
+  gr_mhd_tetrad->eqn.embed_geo = NULL;
+
   return &gr_mhd_tetrad->eqn;
 }
 

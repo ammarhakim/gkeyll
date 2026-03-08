@@ -15,7 +15,7 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Compute Maxwellian moments (J*n, u_par, T/m).
+  // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
@@ -163,13 +163,12 @@ static void
 gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wtm = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum.
   const char *fmt = "%s-%s_bgk_nu_sum_%d.gkyl";
@@ -185,7 +184,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -252,12 +251,9 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       bgk->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
         1.0, 1.0, 1.0, app->use_gpu);
 
-      // We define nu_ss = 0.5*nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s),
-      // with delta_ss = 1, beta = 0. This gives a nu_ss that is arguably 2X
-      // smaller than it should be, but we argue that it is high-energy
-      // particles that set the resistivity and those are in reality less
-      // collisional (because nu should be proportional to 1/v^3). And it makes
-      // the code 2X faster in the collisional regime.
+      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2,
+      // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
+      // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       bgk->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
         gks->info.collisions.den_ref, gks->info.collisions.den_ref, 
         gks->info.mass, gks->info.mass, gks->info.charge, gks->info.charge,
@@ -311,7 +307,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
   if (bgk->collision_id == GKYL_BGK_COLLISIONS) {
     if (gks->bgk.num_cross_collisions) {
       bgk->betaGreenep1 = 1.0; // Greene's beta factor + 1.
-      bgk->delta_sr = 1.0; // delta_sr free parameter.
+      bgk->delta_sr = 2.0; // delta_sr free parameter.
         
       // Set pointers to species we cross-collide with.
       int my_idx_in_other[GKYL_MAX_SPECIES];

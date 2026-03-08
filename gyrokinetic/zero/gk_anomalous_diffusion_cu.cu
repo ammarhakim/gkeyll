@@ -58,13 +58,9 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels   = ser_vol_kernels;
       surfx_kernels = ser_gyrokinetic_surfx_kernels;
-      if (bc_x_lower == GKYL_BC_GK_SKIP) {
+      if ((bc_x_lower == GKYL_BC_GK_SKIP) ||
+          (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC)) {
         // Boundary surf kernel not used.
-        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-      }
-      else if (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC) {
-        // Boundary surf and diag kernels not used.
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
       }
@@ -73,17 +69,19 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
         // Boundary diag kernel not used.
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
       }
+      else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      }
       else {
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
       }
 
-      if (bc_x_upper == GKYL_BC_GK_SKIP) {
-        // Boundary surf kernel not used.
-        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
-      }
-      else if (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC) {
+      if ((bc_x_upper == GKYL_BC_GK_SKIP) ||
+          (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC)) {
         // Boundary surf and diag kernels not used.
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
@@ -91,6 +89,12 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
       else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         // Boundary diag kernel not used.
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      }
+      else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
       }
       else {
@@ -127,20 +131,13 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  double skip_cell_threshold)
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper)
 {
   struct gk_anomalous_diffusion* diffusion = (struct gk_anomalous_diffusion*) gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
-  int pdim = cdim + vdim;
   int poly_order = cbasis->poly_order;
-
-  if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
-  else
-    diffusion->skip_cell_thresh = -1.0;
 
   diffusion->conf_range = *conf_range;
 

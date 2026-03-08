@@ -786,7 +786,7 @@ main(int argc, char **argv)
 //    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = { 0.0 },
 
       .mapc2p = mapc2p,
@@ -827,7 +827,7 @@ main(int argc, char **argv)
       .enabled = true,
       .frequency = 0.1,
       .estimate_completion_time = true,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

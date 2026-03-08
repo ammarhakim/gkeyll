@@ -11,6 +11,7 @@
 #include <gkyl_range.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_basis.h>
+#include <gkyl_position_map.h>
 
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -73,14 +74,17 @@ test_dg_gyrokinetic()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bfield_func = bfield_func, // magnetic field magnitude
       .bfield_ctx =0 ,
+      .position_map = pmap,
       .grid = confGrid,
       .local = confRange,
       .local_ext = confRange_ext,
@@ -95,7 +99,6 @@ test_dg_gyrokinetic()
       .geo_basis = confBasis,
   };
 
-
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
   double charge = 1.;
@@ -107,7 +110,7 @@ test_dg_gyrokinetic()
     phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
   struct gkyl_dg_eqn* eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, 
-    charge, mass, -1, 0, gk_geom, gvm, false);
+    charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK( eqn->num_equations == 1 );
 
@@ -120,6 +123,7 @@ test_dg_gyrokinetic()
   TEST_CHECK( gyrokinetic->conf_range.volume == 512 );
 
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_dg_eqn_release(eqn);
 }

@@ -410,6 +410,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
       
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -490,6 +496,12 @@ main(int argc, char **argv)
 //      .write_diagnostics = true,
     },
     
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+      .quasineutrality_rescale = true,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_ic, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
@@ -517,7 +529,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_LSN_SOL,                     // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,                     // type of geometry
     .rclose = 2.5,                             // closest R to region of interest
     .rright = 2.5,                             // Closest R to outboard SOL
     .rleft = 0.7,                              // closest R to inboard SOL
@@ -541,10 +553,8 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.03,
 
-    .enforce_positivity = true,
-
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
@@ -575,7 +585,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
