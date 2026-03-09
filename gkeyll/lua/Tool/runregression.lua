@@ -567,32 +567,63 @@ local function loadConfigure(args)
    end
 
    -- Load per-layer ignore and MOAT lists.
-   -- The file format for ignoretests.lua is:
-   --   return { lua = {"path/to/test.lua", ...}, c = {"rt_testname", ...} }
-   -- The file format for moat.lua is:
-   --   return {"path/to/test1.lua", "path/to/test2.lua", ...}
+   -- ignore_lua_tests.lua (in luareg/): return { tests = {...}, gpu = {...} }
+   -- ignore_c_tests.lua   (in creg/):   return { tests = {...}, gpu = {...} }
+   -- moat.lua (in luareg/): return {"rt_test1", "rt_test2", ...}
    -- Missing files are silently treated as empty lists.
    for _, layer in ipairs(LAYERS) do
-      local ignFile  = configVals.source_dir .. "/" .. layer.src .. "/luareg/ignoretests.lua"
-      local moatFile = configVals.source_dir .. "/" .. layer.src .. "/luareg/moat.lua"
+      local srcBase    = configVals.source_dir .. "/" .. layer.src
+      local luaIgnFile = srcBase .. "/luareg/ignore_lua_tests.lua"
+      local cIgnFile   = srcBase .. "/creg/ignore_c_tests.lua"
+      local luaMoatFile = srcBase .. "/luareg/moat_lua.lua"
+      local cMoatFile   = srcBase .. "/creg/moat_c.lua"
 
-      local gi = loadfile(ignFile)
-      if gi then
-         ignoreTests[layer.name] = gi()
-      else
-         ignoreTests[layer.name] = { lua = {}, c = {} }
+      local luaIgn = { tests = {}, gpu = {} }
+      local cIgn   = { tests = {}, gpu = {} }
+
+      local gLua = loadfile(luaIgnFile)
+      if gLua then
+         local ok, loaded = pcall(gLua)
+         if ok and type(loaded) == "table" then luaIgn = loaded end
       end
 
-      local gm = loadfile(moatFile)
-      if gm then
-         moatTests[layer.name] = gm()
-      else
-         moatTests[layer.name] = {}
+      local gC = loadfile(cIgnFile)
+      if gC then
+         local ok, loaded = pcall(gC)
+         if ok and type(loaded) == "table" then cIgn = loaded end
+      end
+
+      ignoreTests[layer.name] = {
+         lua     = luaIgn.tests or {},
+         c       = cIgn.tests   or {},
+         gpu_lua = luaIgn.gpu   or {},
+         gpu_c   = cIgn.gpu     or {},
+      }
+
+      moatTests[layer.name] = { lua = {}, c = {} }
+      local gLuaMoat = loadfile(luaMoatFile)
+      if gLuaMoat then
+         local ok, t = pcall(gLuaMoat)
+         if ok and type(t) == "table" then moatTests[layer.name].lua = t end
+      end
+      local gCMoat = loadfile(cMoatFile)
+      if gCMoat then
+         local ok, t = pcall(gCMoat)
+         if ok and type(t) == "table" then moatTests[layer.name].c = t end
       end
 
       if args.all then
-         -- --all overrides the ignore list.
-         ignoreTests[layer.name] = { lua = {}, c = {} }
+         -- --all bypasses the ignore list for the test types that will actually run.
+         -- Combined with --lua-only, only the Lua ignore list is cleared (C skipped anyway).
+         -- Combined with --c-only, only the C ignore list is cleared (Lua skipped anyway).
+         if not args.c_only then
+            ignoreTests[layer.name].lua     = {}
+            ignoreTests[layer.name].gpu_lua = {}
+         end
+         if not args.lua_only then
+            ignoreTests[layer.name].c     = {}
+            ignoreTests[layer.name].gpu_c = {}
+         end
       end
    end
 
@@ -629,8 +660,6 @@ local function list_tests(activeLayers, args)
       layersToScan = LAYERS
    end
 
-   local appPrefix = args.app
-
    for _, layer in ipairs(layersToScan) do
       -- ---- Lua tests --------------------------------------------------------
       local luaregDir = configVals.source_dir .. "/" .. layer.src .. "/luareg"
@@ -645,14 +674,7 @@ local function list_tests(activeLayers, args)
                local luaregPath = "/" .. layer.src .. "/luareg/"
                if not string.find(fn, luaregPath, 1, true) then return end
             end
-            -- Filter by app prefix if requested.
-            if appPrefix then
-               if not string.find(fn, "/rt_" .. appPrefix .. "_[^/]+%.lua$") then
-                  return
-               end
-            else
-               if not isLuaRegressionTest(fn) then return end
-            end
+            if not isLuaRegressionTest(fn) then return end
             -- Skip tests in ignore list.  The lua table stores basenames
             -- (no path, no extension) so the file works on any machine.
             local ignLua = ignoreTests[layer.name] and ignoreTests[layer.name].lua or {}
@@ -667,9 +689,10 @@ local function list_tests(activeLayers, args)
          end
 
          if args.moat then
-            -- Only run the MOAT tests for this layer.
-            for _, t in ipairs(moatTests[layer.name] or {}) do
-               addLuaTest(t)
+            -- Only run the MOAT Lua tests for this layer (basenames from moat_lua.lua).
+            for _, t in ipairs(moatTests[layer.name].lua or {}) do
+               local candidate = luaregDir .. "/" .. t .. ".lua"
+               if lfs.attributes(candidate) then addLuaTest(candidate) end
             end
          elseif args.run_only then
             for _, ro in ipairs(splitList(args.run_only)) do
@@ -712,10 +735,6 @@ local function list_tests(activeLayers, args)
             -- Must match rt_*.c pattern.
             if not string.match(fn, "/rt_[^/]+%.c$") then return end
             local testname = stripext(basename(fn))
-            -- Filter by app prefix if requested.
-            if appPrefix and not string.find(testname, "^rt_" .. appPrefix .. "_") then
-               return
-            end
             -- Skip tests in ignore list (C ignores are stored as basenames without .c).
             local ignC = ignoreTests[layer.name] and ignoreTests[layer.name].c or {}
             if lume.find(ignC, testname) then return end
@@ -727,7 +746,13 @@ local function list_tests(activeLayers, args)
             })
          end
 
-         if args.run_only then
+         if args.moat then
+            -- Only run the MOAT C tests for this layer (basenames from moat_c.lua).
+            for _, t in ipairs(moatTests[layer.name].c or {}) do
+               local candidate = cregSrcDir .. "/" .. t .. ".c"
+               if lfs.attributes(candidate) then addCTest(candidate) end
+            end
+         elseif args.run_only then
             for _, ro in ipairs(splitList(args.run_only)) do
                local a = lfs.attributes(ro)
                if a then
@@ -950,7 +975,9 @@ local function executeBatch(items)
    end
 
    -- Step 2: write the batch coordinator script.
-   local coordPath = configVals.results_dir .. "/_rr_batch_coordinator.sh"
+   -- Use the first item's runDir (not results_dir) so concurrent runregression
+   -- processes (e.g. different layers running in parallel) never share a file.
+   local coordPath = items[1].runDir .. "/_rr_batch_coordinator.sh"
    local cf = io.open(coordPath, "w")
    cf:write("#!/bin/sh\n")
    for _, item in ipairs(items) do
@@ -1093,21 +1120,22 @@ local function compareFiles(f1, f2, absTol, relTol)
    -- those from aborting the entire regression run.  Note: C-level
    -- assertion failures (abort/SIGABRT) cannot be caught by pcall —
    -- tests that trigger those must be added to the ignore list.
-   local ok, result = pcall(function()
+   -- pcall returns (true, result, detail) on success or (false, errmsg) on throw.
+   local ok, result, detail = pcall(function()
       local f1type = G0.Zero.gkylFileType(f1)
       local f2type = G0.Zero.gkylFileType(f2)
 
       if f1type ~= f2type then
          verboseLog(string.format(
             "    ... type mismatch: %s vs %s\n", f1type, f2type))
-         return false
+         return false, string.format("type mismatch: %s vs %s", f1type, f2type)
       end
 
       if f1type == "dynvector" then
          local diff = G0.Zero.dynvecDiff(f1, f2)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
-            return false
+            return false, "dynvec not compatible"
          end
          -- Combined tolerance: fail only when BOTH absolute and relative
          -- thresholds are exceeded.  This avoids false failures for near-zero
@@ -1118,7 +1146,8 @@ local function compareFiles(f1, f2, absTol, relTol)
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
                diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-            return false
+            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
+               diff.max_abs_diff, diff.max_rel_diff)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
@@ -1131,8 +1160,9 @@ local function compareFiles(f1, f2, absTol, relTol)
          local equal = G0.Zero.blockTopoCmp(f1, f2)
          if not equal then
             verboseLog("    ... block topology mismatch\n")
+            return false, "topology mismatch"
          end
-         return equal
+         return true
       end
 
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
@@ -1144,7 +1174,9 @@ local function compareFiles(f1, f2, absTol, relTol)
          return true
       end
 
-      if not G0.Zero.rectGridCmp(g1, g2) then return false end
+      if not G0.Zero.rectGridCmp(g1, g2) then
+         return false, "grid mismatch"
+      end
 
       local nghost = { 0, 0, 0, 0, 0, 0, 0 }
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
@@ -1152,7 +1184,7 @@ local function compareFiles(f1, f2, absTol, relTol)
 
       local diff = G0.Zero.arrayDiff(a1, a2, r1)
 
-      if not diff.is_compatible then return false end
+      if not diff.is_compatible then return false, "incompatible arrays" end
       -- Combined tolerance: fail only when BOTH absolute and relative thresholds
       -- are exceeded.  Near-zero values naturally have large relative differences
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
@@ -1164,21 +1196,23 @@ local function compareFiles(f1, f2, absTol, relTol)
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
             diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-         return false
+         return false, string.format("max_abs=%.3g max_rel=%.3g",
+            diff.max_abs_diff, diff.max_rel_diff)
       end
 
       return true
    end)
 
    if not ok then
+      -- result holds the error message when pcall catches a throw.
       verboseLog(string.format(
          "    ... comparison CRASHED: %s\n", tostring(result)))
       log(string.format(
          "WARNING: comparison crashed for %s (C-level error: %s)\n",
          basename(f1), tostring(result)))
-      return false
+      return false, "crash: " .. tostring(result)
    end
-   return result
+   return result, detail
 end
 
 -- ---- Post-run actions: create and check -------------------------------------
@@ -1235,9 +1269,11 @@ local function check_action(test, runDir, testType, absTol, relTol)
                table.insert(failedFiles, fn .. "  [MISSING]")
                passed = false
             else
-               local ok = compareFiles(accFile, runFile, absTol, relTol)
+               local ok, detail = compareFiles(accFile, runFile, absTol, relTol)
                if not ok then
-                  table.insert(failedFiles, fn .. "  [DIFF]")
+                  local entry = fn .. "  [DIFF]"
+                  if detail and detail ~= "" then entry = entry .. "  " .. detail end
+                  table.insert(failedFiles, entry)
                end
                passed = passed and ok
             end
@@ -1249,6 +1285,8 @@ local function check_action(test, runDir, testType, absTol, relTol)
    -- accepted directory itself is absent. Either way the check cannot pass.
    if count == 0 then passed = false end
 
+   -- Build the comparison log (stored in the DB so queryrdb can surface it later).
+   local checkLog = ""
    if passed then
       layerCounts[test.layer].passed = layerCounts[test.layer].passed + 1
       log("... passed.\n")
@@ -1256,11 +1294,15 @@ local function check_action(test, runDir, testType, absTol, relTol)
       layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
       log(string.format("... %s FAILED!\n", test.name))
       if #failedFiles > 0 then
-         -- Always log failing file names (brief, not gated on verbose).
+         -- Always log failing file names with diff magnitudes (not gated on verbose).
          log(string.format("  Failing files (%d):\n", #failedFiles))
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
+         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
+         checkLog = "--- Comparison failures ---\n"
+            .. table.concat(failedFiles, "\n")
          -- Write a machine-parseable failures file to the run directory.
          local ffPath = runDir .. "/_rr_failures.txt"
          local ffFile = io.open(ffPath, "w")
@@ -1269,14 +1311,12 @@ local function check_action(test, runDir, testType, absTol, relTol)
             ffFile:write(string.format("accepted: %s\n", aDir))
             ffFile:write(string.format("run: %s\n", runDir))
             ffFile:write(string.format("failures: %d\n", #failedFiles))
-            for _, ff in ipairs(failedFiles) do
-               ffFile:write(ff .. "\n")
-            end
+            for _, ff in ipairs(failedFiles) do ffFile:write(ff .. "\n") end
             ffFile:close()
          end
       end
    end
-   return passed and 1 or 0
+   return passed and 1 or 0, checkLog
 end
 
 -- ---- GPU comparison helpers -------------------------------------------------
@@ -1398,40 +1438,25 @@ end
 
 -- ---- Ignore-list updater ----------------------------------------------------
 -- Called after a run with --timeout when some tests exceeded the limit.
--- Merges the new timed-out test names into the layer's ignoretests.lua and
--- writes the file back so subsequent runs automatically skip them.
+-- Merges timed-out names into the layer's per-suite ignore files and writes
+-- them back so subsequent runs automatically skip those tests.
 --
--- 'layer'            - layer table ({name, src})
--- 'newLuaNames'      - list of Lua test basenames (CPU) that timed out
--- 'newCNames'        - list of C binary basenames (CPU) that timed out
--- 'newGpuLuaNames'   - list of Lua test basenames (GPU variant) that timed out
--- 'newGpuCNames'     - list of C binary basenames (GPU variant) that timed out
-local function updateIgnoreTests(layer, newLuaPaths, newCNames,
+-- Lua timeouts  → luareg/ignore_lua_tests.lua  (tests / gpu keys)
+-- C timeouts    → creg/ignore_c_tests.lua       (tests / gpu keys)
+--
+-- Re-reads each file from disk before writing: manual edits made after this
+-- process started are preserved.
+local function updateIgnoreTests(layer, newLuaNames, newCNames,
       newGpuLuaNames, newGpuCNames)
    newGpuLuaNames = newGpuLuaNames or {}
    newGpuCNames   = newGpuCNames   or {}
 
-   local ignFile = configVals.source_dir
-      .. "/" .. layer.src .. "/luareg/ignoretests.lua"
+   local srcBase    = configVals.source_dir .. "/" .. layer.src
+   local luaIgnFile = srcBase .. "/luareg/ignore_lua_tests.lua"
+   local cIgnFile   = srcBase .. "/creg/ignore_c_tests.lua"
 
-   -- Re-read the file from disk rather than using the in-memory table: the file
-   -- may have been edited manually after this process started, and we must not
-   -- lose those edits when writing back the updated timeout list.
-   local existing = { lua = {}, c = {}, gpu_lua = {}, gpu_c = {} }
-   local gi = loadfile(ignFile)
-   if gi then
-      local ok, loaded = pcall(gi)
-      if ok and type(loaded) == "table" then
-         existing = loaded
-      end
-   end
-   existing.lua     = existing.lua     or {}
-   existing.c       = existing.c       or {}
-   existing.gpu_lua = existing.gpu_lua or {}
-   existing.gpu_c   = existing.gpu_c   or {}
-
-   -- Generic merge helper: adds entries from 'newList' into 'existingList',
-   -- avoiding duplicates.  Returns the count of entries actually added.
+   -- Adds entries from newList into existingList (no duplicates).
+   -- Returns count of entries actually added.
    local function mergeList(existingList, newList)
       local set = {}
       for _, v in ipairs(existingList) do set[v] = true end
@@ -1446,40 +1471,72 @@ local function updateIgnoreTests(layer, newLuaPaths, newCNames,
       return added
    end
 
-   local addedLua    = mergeList(existing.lua,     newLuaPaths)
-   local addedC      = mergeList(existing.c,       newCNames)
-   local addedGpuLua = mergeList(existing.gpu_lua, newGpuLuaNames)
-   local addedGpuC   = mergeList(existing.gpu_c,   newGpuCNames)
-
-   if addedLua == 0 and addedC == 0 and addedGpuLua == 0 and addedGpuC == 0 then
-      return
+   -- Write { tests = {...}, gpu = {...} } to path with a header comment.
+   local function writeIgnoreFile(path, header, tbl)
+      local f = io.open(path, "w")
+      f:write(header)
+      f:write("return {\n")
+      f:write("   tests = {\n")
+      for _, v in ipairs(tbl.tests) do f:write(string.format("      %q,\n", v)) end
+      f:write("   },\n")
+      f:write("   gpu = {\n")
+      for _, v in ipairs(tbl.gpu)   do f:write(string.format("      %q,\n", v)) end
+      f:write("   },\n")
+      f:write("}\n")
+      f:close()
    end
 
-   -- Helper to write a single table of quoted strings.
-   local function writeTable(fh, key, list)
-      fh:write(string.format("   %s = {\n", key))
-      for _, v in ipairs(list) do
-         fh:write(string.format("      %q,\n", v))
+   -- ---- Lua ignore file ----
+   if #newLuaNames > 0 or #newGpuLuaNames > 0 then
+      local existing = { tests = {}, gpu = {} }
+      local gi = loadfile(luaIgnFile)
+      if gi then
+         local ok, loaded = pcall(gi)
+         if ok and type(loaded) == "table" then existing = loaded end
       end
-      fh:write("   },\n")
+      existing.tests = existing.tests or {}
+      existing.gpu   = existing.gpu   or {}
+
+      local addedTests = mergeList(existing.tests, newLuaNames)
+      local addedGpu   = mergeList(existing.gpu,   newGpuLuaNames)
+      if addedTests > 0 or addedGpu > 0 then
+         writeIgnoreFile(luaIgnFile,
+            "-- Tests skipped by the Lua regression suite.\n"
+            .. "-- Remove an entry manually to re-enable the test.\n"
+            .. "-- gpu: Lua tests whose GPU variant timed out"
+            .. " (CPU variant still runs).\n",
+            existing)
+         log(string.format(
+            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
+            luaIgnFile, addedTests, addedGpu))
+      end
    end
 
-   -- Write the merged table back to the file.
-   local f = io.open(ignFile, "w")
-   f:write("-- Auto-updated by runregression: tests that exceeded the per-test timeout.\n")
-   f:write("-- Remove an entry manually to re-enable the test.\n")
-   f:write("-- gpu_lua / gpu_c: tests whose GPU variant timed out (CPU variant still runs).\n")
-   f:write("return {\n")
-   writeTable(f, "lua",     existing.lua)
-   writeTable(f, "c",       existing.c)
-   writeTable(f, "gpu_lua", existing.gpu_lua)
-   writeTable(f, "gpu_c",   existing.gpu_c)
-   f:write("}\n")
-   f:close()
+   -- ---- C ignore file ----
+   if #newCNames > 0 or #newGpuCNames > 0 then
+      local existing = { tests = {}, gpu = {} }
+      local gi = loadfile(cIgnFile)
+      if gi then
+         local ok, loaded = pcall(gi)
+         if ok and type(loaded) == "table" then existing = loaded end
+      end
+      existing.tests = existing.tests or {}
+      existing.gpu   = existing.gpu   or {}
 
-   log(string.format(
-      "[ignore] Updated %s (+%d Lua, +%d C, +%d GPU-Lua, +%d GPU-C timed-out tests)\n",
-      ignFile, addedLua, addedC, addedGpuLua, addedGpuC))
+      local addedTests = mergeList(existing.tests, newCNames)
+      local addedGpu   = mergeList(existing.gpu,   newGpuCNames)
+      if addedTests > 0 or addedGpu > 0 then
+         writeIgnoreFile(cIgnFile,
+            "-- Tests skipped by the C regression suite.\n"
+            .. "-- Remove an entry manually to re-enable the test.\n"
+            .. "-- gpu: C tests whose GPU variant timed out"
+            .. " (CPU variant still runs).\n",
+            existing)
+         log(string.format(
+            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
+            cIgnFile, addedTests, addedGpu))
+      end
+   end
 end
 
 -- ---- Command action functions -----------------------------------------------
@@ -1510,7 +1567,13 @@ local function config_action(args, name)
 
    local mpiexec = args.config_mpiexec
       or (os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec")
-   local sourceDir = args.config_source_dir or lfs.currentdir()
+   local sourceDir = args.config_source_dir
+   if not sourceDir then
+      log("ERROR: --source-dir is required.\n"
+         .. "Example: gkeyll runregression configure"
+         .. " --source-dir /path/to/gkeyll\n")
+      os.exit(1)
+   end
 
    configure(prefix, mpiexec, sourceDir, args)
 end
@@ -1682,7 +1745,8 @@ local function run_action(args, name)
                   test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             else
-               local status = postRun(test, runDir, "lua")
+               local status, checkLog = postRun(test, runDir, "lua")
+               checkLog = checkLog or ""
 
                -- GPU variant: only on check or bare run, not on create.
                local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
@@ -1706,7 +1770,9 @@ local function run_action(args, name)
 
                insertRegressionData(
                   test.layer, runID, test.name, "lua",
-                  status, runtm, runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
+                  status, runtm,
+                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+                  gpuStatus, gpuRuntime, cpuGpuDiff)
             end
          end
       end
@@ -1733,7 +1799,8 @@ local function run_action(args, name)
                   test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             else
-               local status = postRun(test, runDir, "c")
+               local status, checkLog = postRun(test, runDir, "c")
+               checkLog = checkLog or ""
 
                -- GPU variant: only on check or bare run, not on create.
                local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
@@ -1767,7 +1834,9 @@ local function run_action(args, name)
 
                insertRegressionData(
                   test.layer, runID, test.name, "c",
-                  status, runtm, runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
+                  status, runtm,
+                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+                  gpuStatus, gpuRuntime, cpuGpuDiff)
             end
          end
       end -- if not args.lua_only
@@ -1800,7 +1869,8 @@ local function run_action(args, name)
          else
             log(string.format("\n[Lua] %s completed (%g sec)\n", test.name, r.runtm))
             verboseLog(r.runlog)
-            local status = postRun(test, prep.runDir, "lua")
+            local status, checkLog = postRun(test, prep.runDir, "lua")
+            checkLog = checkLog or ""
             local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
             if prep.doGpu and not args.create then
                layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
@@ -1819,7 +1889,9 @@ local function run_action(args, name)
             end
             insertRegressionData(
                test.layer, runID, test.name, "lua",
-               status, r.runtm, r.runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
+               status, r.runtm,
+               r.runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+               gpuStatus, gpuRuntime, cpuGpuDiff)
          end
       end
 
@@ -1837,7 +1909,8 @@ local function run_action(args, name)
          else
             log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
             verboseLog(r.runlog)
-            local status = postRun(test, runDir, "c")
+            local status, checkLog = postRun(test, runDir, "c")
+            checkLog = checkLog or ""
             local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
             if prep.doGpu and not args.create then
                layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
@@ -1855,6 +1928,7 @@ local function run_action(args, name)
                end
             end
             local fullLog = (prep.compileLog or "") .. "\n" .. r.runlog
+               .. (checkLog ~= "" and "\n" .. checkLog or "")
             insertRegressionData(
                test.layer, runID, test.name, "c",
                status, r.runtm, fullLog, gpuStatus, gpuRuntime, cpuGpuDiff)
@@ -2018,13 +2092,17 @@ step is needed.
 ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
-parser:flag("-a --all", "Run all tests, ignoring ignoretests files")
 
 -- 'configure' command ---------------------------------------------------------
 -- Sets up directories, databases, and writes ~/runregression.config.lua.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
+c_conf:option("-s --source-dir",
+   "REQUIRED. Absolute path to gkeyll source root\n"
+   .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/).\n"
+   .. "Example: --source-dir /path/to/gkeyll")
+   :target("config_source_dir")
 c_conf:option("-p --prefix",
    "Where to write gkeyll-results/.\n"
    .. "Auto-detected from config.mak if omitted.")
@@ -2033,10 +2111,6 @@ c_conf:option("-m --mpiexec",
    "Full path to MPI executable.\n"
    .. "(MPI parallelism not yet implemented).")
    :target("config_mpiexec")
-c_conf:option("-s --source-dir",
-   "Absolute path to gkeyll source root.\n"
-   .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/)")
-   :target("config_source_dir")
 c_conf:flag("--drop-tables",
    "Drop and re-create all SQL tables\n"
    .. "(erases existing regression data).", false)
@@ -2047,9 +2121,9 @@ local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only",
    "List only this test. Accepts a bare name (rt_foo), an absolute path, or a directory.")
-c_list:option("-a --app",
-   "Filter by name prefix (e.g. --app euler lists rt_euler_* tests).\n"
-   .. "For layer filtering, use: 'list moments', 'list vlasov', etc.")
+c_list:flag("-a --all",
+   "List all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
+   .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
 c_list:flag("-m --moat", "Only list MOAT (Mother Of All Tests) regression tests\n"
    .. "A condensed suite of the most comprehensive regression tests.")
 c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
@@ -2070,9 +2144,9 @@ c_run:option("-r --run-only",
    "Run only these tests (comma-separated).\n"
    .. "Accepts bare names (rt_foo), absolute paths, or directories.\n"
    .. "Use --c-only/--lua-only to disambiguate when a C and Lua test share the same name.")
-c_run:option("-a --app",
-   "Filter by name prefix (e.g. --app euler runs rt_euler_* tests).\n"
-   .. "For layer filtering: 'run moments check', 'run vlasov check', etc.")
+c_run:flag("-a --all",
+   "Run all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
+   .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
 c_run:flag("-m --moat", "Only run MOAT (Mother Of All Tests) regression tests\n"
    .. "A condensed suite of the most comprehensive regression tests.")
 c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
