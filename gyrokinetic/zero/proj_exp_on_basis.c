@@ -5,8 +5,8 @@
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_powsqrt_on_basis.h>
-#include <gkyl_proj_powsqrt_on_basis_priv.h>
+#include <gkyl_proj_exp_on_basis.h>
+#include <gkyl_proj_exp_on_basis_priv.h>
 #include <gkyl_range.h>
 
 // create range to loop over quadrature points.
@@ -88,10 +88,10 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   return tot_quad;
 }
 
-gkyl_proj_powsqrt_on_basis*
-gkyl_proj_powsqrt_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu)
+gkyl_proj_exp_on_basis*
+gkyl_proj_exp_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu)
 {
-  gkyl_proj_powsqrt_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_powsqrt_on_basis));
+  gkyl_proj_exp_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_exp_on_basis));
 
   up->ndim = basis->ndim;
   up->num_quad = num_quad;
@@ -111,7 +111,7 @@ gkyl_proj_powsqrt_on_basis_new(const struct gkyl_basis *basis, int num_quad, boo
 }
 
 static void
-proj_on_basis(const gkyl_proj_powsqrt_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
+proj_on_basis(const gkyl_proj_exp_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -130,13 +130,13 @@ proj_on_basis(const gkyl_proj_powsqrt_on_basis *up, const struct gkyl_array *fun
 }
 
 void
-gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
-  const struct gkyl_range *range, double expIn, const struct gkyl_array *fIn,
-  struct gkyl_array *fOut)
+gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up,
+  const struct gkyl_range *range, double alpha, double beta,
+  const struct gkyl_array *fIn, struct gkyl_array *fOut)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_powsqrt_on_basis_advance_cu(up, range, expIn, fIn, fOut);
+    return gkyl_proj_exp_on_basis_advance_cu(up, range, expIn, fIn, fOut);
 #endif
 
   // Create range to loop over quadrature points.
@@ -163,8 +163,8 @@ gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
 
       double *fOut_q = gkyl_array_fetch(up->fun_at_ords, qidx);
 
-      // Evaluate pow(sqrt()) at quad point.
-      fOut_q[0] = (fIn_q < 0.) ? 1.e-40 : pow(sqrt(fIn_q), expIn);
+      // Evaluate exp at quad point.
+      fOut_q[0] = alpha*exp(beta*fIn_q);
     }
 
     // Compute expansion coefficients.
@@ -174,7 +174,7 @@ gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
 }
 
 void
-gkyl_proj_powsqrt_on_basis_release(gkyl_proj_powsqrt_on_basis* up)
+gkyl_proj_exp_on_basis_release(gkyl_proj_exp_on_basis* up)
 {
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

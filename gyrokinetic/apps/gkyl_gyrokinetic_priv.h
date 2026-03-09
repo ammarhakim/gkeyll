@@ -684,6 +684,12 @@ struct gk_scaling {
       int ref_species_idx; // Index of reference species species.
       double fixed_fraction; // Fraction of reference species density.
     };
+    struct {
+      // Objects for GKYL_GK_SPECIES_SCALING_BOLTZMANN.
+      struct gkyl_proj_exp_on_basis *proj_exp; // Operator to project exp(A).
+      struct gkyl_array *sheath_val; // Value at the sheath entrance, copied to interior cells.
+      struct gkyl_array *buffer_conf; // Conf-space buffer array.
+    };
   };
 
   // Methods chosen at runtime.
