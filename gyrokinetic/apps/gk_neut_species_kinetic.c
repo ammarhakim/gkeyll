@@ -19,7 +19,7 @@ gk_neut_species_kinetic_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_
   gk_neut_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute diagnostic moments of the boundary fluxes.
-  gk_neut_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  gk_neut_species_bflux_calc_moms(app, &species->bflux, app->field->phi_smooth, rhs, bflux_moms);
 }
 
 static inline void
@@ -304,7 +304,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   }
 
   // Allocate data for integrated moments.
-  gk_neut_species_moment_init(app, s, &s->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+  gk_neut_species_moment_init(app, s, &s->integ_moms, GKYL_F_MOMENT_M0M1M2, 0, true);
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {
@@ -853,13 +853,13 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   }
   
   // Allocate object for computing number .density 
-  gk_neut_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false);
+  gk_neut_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, 0, false);
 
   // Allocate objects for computing diagnostic moments.
   int ndm = s->info.num_diag_moments;
   s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m], false);
+    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m], 0, false);
 
   // Initialize boundary fluxes.
   s->bflux = (struct gk_boundary_fluxes) { };

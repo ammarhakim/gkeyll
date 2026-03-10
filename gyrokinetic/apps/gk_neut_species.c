@@ -302,11 +302,11 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
 
   for (int m=0; m<gkns->info.num_diag_moments; ++m) {
     struct timespec wst = gkyl_wall_clock();
-    gk_neut_species_moment_calc(&gkns->moms[m], gkns->local, app->local, gkns->f);
+    gk_neut_species_moment_calc(app, &gkns->moms[m], &gkns->local, &app->local, 0, 0, 0, gkns->f);
     app->stat.n_neut_mom += 1;
 
     // Rescale moment by inverse of Jacobian if necessary. 
-    gk_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
+    gk_neut_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
     app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
@@ -336,7 +336,7 @@ gk_neut_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk
   int num_mom = gkns->integ_moms.num_mom;
   double avals_global[num_mom];
   
-  gk_neut_species_moment_calc(&gkns->integ_moms, gkns->local, app->local, gkns->f); 
+  gk_neut_species_moment_calc(app, &gkns->integ_moms, &gkns->local, &app->local, 0, 0, 0, gkns->f); 
   app->stat.n_neut_mom += 1;
 
   // Reduce to compute sum over whole domain, append to diagnostics.

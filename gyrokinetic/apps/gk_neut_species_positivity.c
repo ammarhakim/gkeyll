@@ -12,10 +12,10 @@ static void
 gkns_pos_deltaf_moms_calc(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_positivity *pos)
 {
-  gk_neut_species_moment_calc(&pos->moms, gkns->local, app->local, pos->fbuffer_ptr);
+  gk_neut_species_moment_calc(app, &pos->moms, &gkns->local, &app->local, 0, 0, 0, pos->fbuffer_ptr);
 
   // Rescale moment by inverse of Jacobian if needed.
-  gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
+  gk_neut_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
 }
 
 static void
@@ -74,7 +74,7 @@ static void
 gkns_pos_deltaf_integ_moms_calc(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_positivity *pos)
 {
-  gk_neut_species_moment_calc(&pos->integ_moms, gkns->local, app->local, pos->fbuffer_ptr); 
+  gk_neut_species_moment_calc(app, &pos->integ_moms, &gkns->local, &app->local, 0, 0, 0, pos->fbuffer_ptr); 
 }
 
 static void
@@ -201,10 +201,10 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
-      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, 0, false);
 
       // Integrated moments of delta f.
-      gk_neut_species_moment_init(app, gkns, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_neut_species_moment_init(app, gkns, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, 0, true);
 
       if (app->use_gpu) {
         pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));

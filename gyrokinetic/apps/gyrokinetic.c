@@ -1253,7 +1253,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
         // Compute moments of the boundary fluxes.
-        gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+        gk_species_bflux_calc_moms(app, &s->bflux, app->field->phi_smooth, distf[i], bflux[i]);
 
       }
     }
@@ -1280,7 +1280,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     struct gk_species *gks = &app->species[i];
     gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
-    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
+    gk_species_bflux_calc_moms(app, &gks->bflux, app->field->phi_smooth, gks->f, bflux[i]);
   }
 
   // Apply boundary conditions.
@@ -3533,7 +3533,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
           gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
           // Compute moments of the boundary fluxes.
-          gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+          gk_species_bflux_calc_moms(app, &s->bflux, app->field->phi_smooth, distf[i], bflux[i]);
         }
       }
 
@@ -3557,7 +3557,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
       // Compute moments of the boundary fluxes.
-      gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+      gk_species_bflux_calc_moms(app, &s->bflux, app->field->phi_smooth, distf[i], bflux[i]);
 
     }
 

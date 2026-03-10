@@ -16,7 +16,7 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, &species->local, &app->local, 0, 0, 0, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
   

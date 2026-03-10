@@ -229,13 +229,14 @@ gk_neut_species_bflux_rhs(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *
 
 static void
 gk_neut_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute moments of boundary fluxes.
   for (int b=0; b<bflux->num_boundaries; ++b) {
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_neut_species_moment_calc(&bflux->moms_op[m], *bflux->boundaries_phase_ghost[b], *bflux->boundaries_conf_ghost[b], rhs);
+      gk_neut_species_moment_calc(app, &bflux->moms_op[m], bflux->boundaries_phase_ghost[b],
+        bflux->boundaries_conf_ghost[b], 0, 0, phi, rhs);
 
       gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, bflux->boundaries_conf_ghost[b]);
     }
@@ -245,16 +246,16 @@ gk_neut_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_bou
 
 static void
 gk_neut_species_bflux_calc_moms_disabled(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Do nothing.
 }
 
 void
 gk_neut_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  bflux->bflux_calc_moms_func(app, bflux, rhs, bflux_moms);
+  bflux->bflux_calc_moms_func(app, bflux, phi, rhs, bflux_moms);
 }
 
 static void
@@ -744,7 +745,7 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
     bool need_hamil_ghost = false;
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_neut_species_moment_init(app, gkns, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
+      gk_neut_species_moment_init(app, gkns, &bflux->moms_op[m], bflux->calc_mom_names[m], 0, false);
 
       need_hamil_ghost = (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M1_FROM_H)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_ENERGY);

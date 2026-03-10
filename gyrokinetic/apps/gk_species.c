@@ -52,7 +52,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
  
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Obtain the maximum density (using cell centers).
-    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+    gk_species_moment_calc(app, &gks->m0, &gks->local, &app->local, 0, 0, 0, fin);
     gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
   
     double m0_max[1];
@@ -111,7 +111,7 @@ gk_species_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *spec
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute moments of the boundary fluxes.
-  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  gk_species_bflux_calc_moms(app, &species->bflux, app->field->phi_smooth, rhs, bflux_moms);
 }
 
 static void
@@ -467,7 +467,7 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
 
   for (int m=0; m<gks->info.num_diag_moments; ++m) {
     struct timespec wtm = gkyl_wall_clock();
-    gk_species_moment_calc(&gks->moms[m], gks->local, app->local, gks->f);
+    gk_species_moment_calc(app, &gks->moms[m], &gks->local, &app->local, 0, 0, app->field->phi_smooth, gks->f);
     app->stat.n_mom += 1;
     
     // Rescale moment by inverse of Jacobian if necessary. 
@@ -509,7 +509,7 @@ gk_species_calc_int_mom_dt_enabled(gkyl_gyrokinetic_app* app, struct gk_species 
   struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
   // Need to do it after the fields are updated.
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, fin); 
+  gk_species_moment_calc(app, &gks->integ_moms, &gks->local, &app->local, 0, 0, app->field->phi_smooth, fin); 
   gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -536,7 +536,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
   int num_mom = gks->integ_moms.num_mom;
   double avals_global[num_mom];
   
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
+  gk_species_moment_calc(app, &gks->integ_moms, &gks->local, &app->local, 0, 0, app->field->phi_smooth, gks->f); 
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
@@ -824,7 +824,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   int num_diag_int_moms = gks->info.num_integrated_diag_moments;
   assert(num_diag_int_moms < 2); // 1 int moment allowed now.
   gk_species_moment_init(app, gks, &gks->integ_moms,
-    num_diag_int_moms == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : gks->info.integrated_diag_moments[0], true);
+    num_diag_int_moms == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : gks->info.integrated_diag_moments[0], 0, true);
 
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
@@ -1528,7 +1528,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 
   // Allocate data for density (for charge density or upar calculation).
-  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
+  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, 0, false);
 
   if (gks->info.flr.type) {
     // Create operator needed for FLR effects.
@@ -1600,7 +1600,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
+    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], 0, false);
 
   // initialize projection routine for initial conditions
   if (gks->info.init_from_file.type == 0) {
@@ -1900,7 +1900,7 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
     // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *gks = &app->species[i];
-      gk_species_moment_calc(&gks->m0, gks->local, app->local, gks->f);
+      gk_species_moment_calc(app, &gks->m0, &gks->local, &app->local, 0, 0, 0, gks->f);
       if (strcmp(gks->info.name, gks_self->info.name)) {
         gkyl_array_accumulate(npol, -gks->info.charge, gks->m0.marr);
       }

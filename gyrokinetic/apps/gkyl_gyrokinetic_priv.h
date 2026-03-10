@@ -75,6 +75,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_weighted_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
 #include <gkyl_prim_cross_m0deltas.h>
@@ -133,8 +134,9 @@ struct gk_species_moment {
   int num_basis_conf; // Number of conf-space basis functions.
   double mass; // Species mass.
   // This method should probably be replaced by an updater.
-  void (*fluid_calc_M)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-    const struct gkyl_range conf_rng, const struct gkyl_array *fin);
+  void (*fluid_calc_M)(struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *weight_rng,
+    const struct gkyl_array *weight, const struct gkyl_array *phi, const struct gkyl_array *fin);
 
   union {
     // Kinetic species .............................................. //
@@ -154,6 +156,9 @@ struct gk_species_moment {
         struct {
           struct gkyl_dg_updater_moment *mcalc; 
         };
+        struct {
+          struct gkyl_mom_weighted_gyrokinetic *hamil_calc;
+        };
       };
     };
 
@@ -164,10 +169,11 @@ struct gk_species_moment {
   };
 
   // Methods chosen at runtime.
-  void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-    const struct gkyl_range conf_rng, const struct gkyl_array *fin);
+  void (*calc_func)(struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *weight_rng,
+    const struct gkyl_array *weight, const struct gkyl_array *phi, const struct gkyl_array *fin);
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
-  void (*diag_jacobgeo_div_func)(const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm,
+  void (*diag_jacobgeo_div_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
     struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 };
 
@@ -513,7 +519,7 @@ struct gk_boundary_fluxes {
   void (*bflux_rhs_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*bflux_calc_moms_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-    const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+    struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_get_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
@@ -1556,23 +1562,29 @@ void gkyl_gyrokinetic_app_apply_ic_cross_neut_species(gkyl_gyrokinetic_app* app,
  * @param app gyrokinetic app object.
  * @param s Species object.
  * @param sm Species moment object.
- * @param nm Name string indicating moment type
+ * @param mom_type Type of moment to compute.
+ * @param weight_type Type of weight to include in moment integral.
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type wgt_type,
+  bool is_integrated);
 
 /**
- * Calculate moment, given distribution function @a fin.
+ * Calculate a moment, given distribution function @a fin and the
+ * optional weight @weight.
  * 
  * @param sm Species moment object.
  * @param phase_rng Phase-space range.
  * @param conf_rng Config-space range.
+ * @param weight_rng Range to index the weight.
+ * @param weight Weight to include in moment calculation.
+ * @param phi Electrostatic potential (for Hamiltonian moment).
  * @param fin Input distribution function array
  */
-void gk_species_moment_calc(const struct gk_species_moment *sm,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
-  const struct gkyl_array *fin);
+void gk_species_moment_calc(struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *weight_rng,
+  const struct gkyl_array *weight, const struct gkyl_array *phi, const struct gkyl_array *fin);
 
 /**
  * Divide the moment by the configuration-space Jacobian for diagnostic
@@ -1585,7 +1597,7 @@ void gk_species_moment_calc(const struct gk_species_moment *sm,
  * @param mom_out Array in which to place the output.
  */
 void gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
-  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
+  const struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 
 /**
  * Release species moment object.
@@ -2329,11 +2341,12 @@ gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, enum gk
  *
  * @param app Gyrokinetic app object.
  * @param bflux Species boundary flux object.
+ * @param phi Electrostatic potential (for Hamiltonian moment).
  * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs.
  * @param bflux_moms Array of moments of boundary fluxes through every boundary.
  */
 void gk_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
  * Clear the boundary fluxes at each boundary.
@@ -2617,11 +2630,12 @@ gk_neut_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir, en
  *
  * @param app Gyrokinetic app object.
  * @param bflux Species boundary flux object.
+ * @param phi Electrostatic potential (not used for neutrals).
  * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs.
  * @param bflux_out Array of moments of boundary fluxes through every boundary.
  */
 void gk_neut_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
  * Clear the boundary fluxes at each boundary.
@@ -3394,23 +3408,42 @@ void gk_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_speci
  * @param app gyrokinetic app object.
  * @param s Neutral species object.
  * @param sm Neutral species moment object.
- * @param nm Name string indicating moment type.
+ * @param mom_type Type of moment to compute.
+ * @param weight_type Type of weight to include in moment integral.
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type wgt_type,
+  bool is_integrated);
 
 /**
- * Calculate neutral species moment, given input neutral distribution function fin.
+ * Calculate a moment, given distribution function @a fin and the
+ * optional weight @weight.
  * 
- * @param sm Neutral species moment object.
+ * @param sm Species moment object.
  * @param phase_rng Phase-space range.
  * @param conf_rng Config-space range.
- * @param fin Input neutral distribution function array.
+ * @param weight_rng Range to index the weight.
+ * @param weight Weight to include in moment calculation.
+ * @param phi Electrostatic potential (not used for neutrals).
+ * @param fin Input distribution function array
  */
-void gk_neut_species_moment_calc(const struct gk_species_moment *sm,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
-  const struct gkyl_array *fin);
+void gk_neut_species_moment_calc(struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *weight_rng,
+  const struct gkyl_array *weight, const struct gkyl_array *phi, const struct gkyl_array *fin);
+
+/**
+ * Divide the moment by the configuration-space Jacobian for diagnostic
+ * purposes. Not all components of the diagnostic moment are divided, depending
+ * on the type.
+ * 
+ * @param app Gyrokinetic app object.
+ * @param sm Species moment object.
+ * @param Jmom_in Moment(s) to be divided by J.
+ * @param mom_out Array in which to place the output.
+ */
+void gk_neut_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 
 /**
  * Release neutral species moment object.

@@ -32,19 +32,25 @@ gkyl_mom_weighted_gyrokinetic_new(double mass, double charge,
   }
 #endif
 
-
   return up;
 }
+
+int
+gkyl_mom_weighted_gyrokinetic_num_mom(const gkyl_mom_weighted_gyrokinetic* up)
+{
+  return up->num_mom;
+}
+
 
 void
 gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *wgt_rng,
-  struct gkyl_array *phi, struct gkyl_array *wgt, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_array *GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT phi,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_mom_weighted_gyrokinetic_advance_cu(up, phase_rng, conf_rng, wgt_rng, phi, wgt, fin, mout);
+    gkyl_mom_weighted_gyrokinetic_advance_cu(up, phase_rng, conf_rng, wgt_rng, wgt, phi, fin, mout);
     return;
   }
 #endif
@@ -66,8 +72,8 @@ gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
     long linidx_wgt = gkyl_range_idx(wgt_rng, conf_iter.idx);
 
     const double *bmag_c = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, linidx_conf);
-    const double *phi_c = phi? gkyl_array_cfetch(phi, linidx_conf) : 0;
     const double *wgt_c = wgt? gkyl_array_cfetch(wgt, linidx_wgt) : 0;
+    const double *phi_c = phi? gkyl_array_cfetch(phi, linidx_conf) : 0;
     double *mom_c = gkyl_array_fetch(mout, linidx_conf);
 
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);

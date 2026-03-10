@@ -259,8 +259,8 @@ mom_weighted_gk_choose_kernel_cu(struct gkyl_mom_weighted_gyrokinetic_kernels *k
 void
 gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *wgt_rng,
-  struct gkyl_array *phi, struct gkyl_array *wgt, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout);
+  const struct gkyl_array *GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT phi,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 #endif
 
 GKYL_CU_D

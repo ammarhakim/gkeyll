@@ -34,9 +34,9 @@ __global__ static void
 gkyl_mom_weighted_gk_advance_cu_ker(double mass, double charge, struct gkyl_mom_weighted_gyrokinetic_kernels *kernels,
   struct gkyl_rect_grid phase_grid,
   struct gkyl_range conf_rng, struct gkyl_range vel_rng, struct gkyl_range phase_rng, struct gkyl_range wgt_rng,
-  const struct gkyl_array* GKYL_RESTRICT bmag, const struct gkyl_array* GKYL_RESTRICT vmap,
-  struct gkyl_array * GKYL_RESTRICT phi, struct gkyl_array * GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_array *GKYL_RESTRICT bmag, const struct gkyl_array *GKYL_RESTRICT vmap,
+  const struct gkyl_array *GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT phi,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
   int pidx[GKYL_MAX_DIM], vidx[GKYL_MAX_VDIM];
   int cdim = conf_rng.ndim;
@@ -81,8 +81,8 @@ gkyl_mom_weighted_gk_advance_cu_ker(double mass, double charge, struct gkyl_mom_
 void
 gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *wgt_rng,
-  struct gkyl_array *phi, struct gkyl_array *wgt, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_array *GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT phi,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
   int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
 
@@ -101,5 +101,5 @@ gkyl_mom_weighted_gyrokinetic_advance_cu(struct gkyl_mom_weighted_gyrokinetic *u
 
   gkyl_mom_weighted_gk_advance_cu_ker<<<nblocks, nthreads>>>(up->mass, up->charge, up->kernels,
     *(up->phase_grid), *conf_rng, up->vel_map->local_vel, *phase_rng, wgt_rng_copy, up->gk_geom->geo_corn.bmag->on_dev,
-    up->vel_map->vmap->on_dev, phi_on_dev, wgt_on_dev, fin->on_dev, mout->on_dev);
+    up->vel_map->vmap->on_dev, wgt_on_dev, phi_on_dev, fin->on_dev, mout->on_dev);
 }

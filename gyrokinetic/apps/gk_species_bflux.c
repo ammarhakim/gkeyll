@@ -229,7 +229,7 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux
 
 static void
 gk_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Compute moments of boundary fluxes.
   struct timespec wst = gkyl_wall_clock();
@@ -237,11 +237,12 @@ gk_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary
     if (bflux->a_hamiltonian_mom) {
       // Apply BC to phi so it is defined in the ghost cell.
       // Fill the ghost with the skin evaluated at the boundary.
-      gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->field->phi_smooth);
+      gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, phi);
     }
 
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_species_moment_calc(&bflux->moms_op[m], *bflux->boundaries_phase_ghost[b], *bflux->boundaries_conf_ghost[b], rhs);
+      gk_species_moment_calc(app, &bflux->moms_op[m], bflux->boundaries_phase_ghost[b],
+        bflux->boundaries_conf_ghost[b], 0, 0, phi, rhs);
 
       gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, bflux->boundaries_conf_ghost[b]);
     }
@@ -251,16 +252,16 @@ gk_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary
 
 static void
 gk_species_bflux_calc_moms_disabled(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Do nothing.
 }
 
 void
 gk_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
-  const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  struct gkyl_array *phi, const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  bflux->bflux_calc_moms_func(app, bflux, rhs, bflux_moms);
+  bflux->bflux_calc_moms_func(app, bflux, phi, rhs, bflux_moms);
 }
 
 static void
@@ -753,7 +754,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bool need_m2perp = false;
     bflux->a_hamiltonian_mom = false;
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
+      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], 0, false);
 
       need_m2perp = need_m2perp || (
            (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP)

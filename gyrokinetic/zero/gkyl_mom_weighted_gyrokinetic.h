@@ -39,6 +39,15 @@ struct gkyl_mom_weighted_gyrokinetic* gkyl_mom_weighted_gyrokinetic_new(double m
   bool is_integrated, bool use_gpu);
 
 /**
+ * Fetch the number of moments
+ *
+ * @param moment moment updater object
+ * 
+ * @return number of moments
+ */
+int gkyl_mom_weighted_gyrokinetic_num_mom(const struct gkyl_mom_weighted_gyrokinetic* up);
+
+/**
  * Compute a weighted moment of the gyrokinetic distribution function.
  * The phase_rng and conf_rng MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
@@ -48,15 +57,15 @@ struct gkyl_mom_weighted_gyrokinetic* gkyl_mom_weighted_gyrokinetic_new(double m
  * @param phase_rng Phase-space range.
  * @param conf_rng Config-space range.
  * @param wgt_rng Weight range.
- * @param phi Electrostatic potential (for Hamiltonian moment).
  * @param wgt Weight.
+ * @param phi Electrostatic potential (for Hamiltonian moment).
  * @param fin Input distribution function array.
  * @param mout Output moment array.
  */
 void gkyl_mom_weighted_gyrokinetic_advance(struct gkyl_mom_weighted_gyrokinetic *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, const struct gkyl_range *wgt_rng,
-  struct gkyl_array *phi, struct gkyl_array *wgt, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout);
+  const struct gkyl_array *GKYL_RESTRICT wgt, const struct gkyl_array *GKYL_RESTRICT phi,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 
 /**
  * Free memory associated with the weighted moment calculation.

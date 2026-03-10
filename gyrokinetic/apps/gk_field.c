@@ -310,7 +310,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+    gk_species_moment_calc(app, &s->m0, &s->local, &app->local, 0, 0, 0, fin[i]);
     field->accumulate_rhoc_func(app, field, s, bflux[i]);
   } 
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
