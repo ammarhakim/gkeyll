@@ -61,7 +61,7 @@ copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *a
   }
   struct gkyl_range rng_curr;
   for (int i=0; i<num_cells_z; ++i) {
-    lower[idx_par] = app->local.lower[idx_par]+i-1;
+    lower[idx_par] = app->local.lower[idx_par]+i;
     upper[idx_par] = lower[idx_par];
     gkyl_sub_range_init(&rng_curr, &app->local_ext, lower, upper);
     gkyl_array_copy_range_to_range(arr_out, buff, &rng_curr, lower_ghost); 
