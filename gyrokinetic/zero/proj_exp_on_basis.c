@@ -136,7 +136,7 @@ gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_exp_on_basis_advance_cu(up, range, expIn, fIn, fOut);
+    return gkyl_proj_exp_on_basis_advance_cu(up, range, alpha, beta, fIn, fOut);
 #endif
 
   // Create range to loop over quadrature points.
