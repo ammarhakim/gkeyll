@@ -702,7 +702,7 @@ int main(int argc, char **argv)
       .cross_nu_ctx = &ctx,
       .den_ref = ctx.n0,
       .temp_ref = ctx.Te0,
-//      .not_in_dfdt = true,
+      .do_not_add_to_dfdt = true,
     },
 
     .scaling = {
@@ -771,7 +771,6 @@ int main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
-      .frequency = 1.,
     },
   };
 
