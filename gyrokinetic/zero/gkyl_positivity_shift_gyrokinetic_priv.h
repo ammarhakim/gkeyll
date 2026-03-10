@@ -18,8 +18,8 @@ enum gkyl_positivity_shift_type {
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
-typedef void (*m0_t)(const double *dxv, const double *vmap,
-  double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out);
+typedef void (*m0_t)(const double *dxv, const double *vmap, double m_, double q_,
+  const double *bmag, const double *phi, const double *f, double* GKYL_RESTRICT out);
 
 typedef struct { m0_pos_check_t kernels[3]; } pos_shift_gk_kern_list_m0_pos_check; // For use in kernel tables.
 typedef struct { shift_t kernels[3]; } pos_shift_gk_kern_list_shift; // For use in kernel tables.

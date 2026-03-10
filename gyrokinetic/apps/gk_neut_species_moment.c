@@ -36,7 +36,7 @@ gk_neut_species_kinetic_moment_calc(struct gkyl_gyrokinetic_app *app, const stru
     gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, phase_rng, conf_rng, fin, sm->marr);
   }
   else {
-    gkyl_dg_updater_moment_advance(sm->mcalc, phase_rng, conf_rng, fin, sm->marr);
+    gkyl_dg_updater_moment_advance(sm->mcalc_neut, phase_rng, conf_rng, fin, sm->marr);
   }  
 }
 
@@ -48,14 +48,14 @@ gk_neut_species_kinetic_moment_release(const struct gkyl_gyrokinetic_app *app, c
     gkyl_array_release(sm->marr_host);
 
   if (sm->is_integrated) {
-    gkyl_dg_updater_moment_release(sm->mcalc);
+    gkyl_dg_updater_moment_release(sm->mcalc_neut);
   }
   else {
     if (sm->is_maxwellian_moms) {
       gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);
     }
     else {
-      gkyl_dg_updater_moment_release(sm->mcalc);
+      gkyl_dg_updater_moment_release(sm->mcalc_neut);
     }
 
     // Free the weak division memory.
@@ -71,11 +71,11 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
   if (sm->is_integrated) {
     // Create moment operator.
     struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
-    sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
+    sm->mcalc_neut = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
       &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
       mom_type, sm->is_integrated, app->use_gpu);
 
-    sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+    sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc_neut);
 
     // Allocate arrays to hold moments.
     sm->marr = mkarr(app->use_gpu, sm->num_mom, app->local_ext.volume);
@@ -109,11 +109,11 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
     }
     else {
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
-      sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
+      sm->mcalc_neut = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
         &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
         mom_type, sm->is_integrated, app->use_gpu);
 
-      sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+      sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc_neut);
       sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp;
     }
 

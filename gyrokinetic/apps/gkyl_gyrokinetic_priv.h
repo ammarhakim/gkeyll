@@ -43,7 +43,6 @@
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -142,7 +141,7 @@ struct gk_species_moment {
     // Kinetic species .............................................. //
     struct {
       // Options for moment calculation: 
-      // 1. Compute the moment directly with dg_updater_moment_gyrokinetic
+      // 1. Compute the moment directly with mom_gyrokinetic
       // 2. Compute the moments of the equivalent Maxwellian (n, u_par, T/m)
       // 3. Compute the moments of the equivalent Bi-Maxwellian (n, u_par, T_par/m, T_perp/m)
       //    Latter two options use specialized gkyl_gyrokinetic_maxwellian_moments updater
@@ -154,10 +153,13 @@ struct gk_species_moment {
           struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
         };
         struct {
-          struct gkyl_dg_updater_moment *mcalc; 
+          struct gkyl_mom_gyrokinetic *mcalc_charged; 
         };
         struct {
-          struct gkyl_mom_weighted_gyrokinetic *hamil_calc;
+          struct gkyl_dg_updater_moment *mcalc_neut; 
+        };
+        struct {
+          struct gkyl_mom_weighted_gyrokinetic *mcalc_weighted_charged;
         };
       };
     };
@@ -575,7 +577,7 @@ struct gk_recycle_wall {
   struct gkyl_array *bc_buffer; // Fixed buffers for recycle BCs.
   struct gkyl_array *phase_flux_gk[GKYL_MAX_SPECIES]; // Array to put phase-flux into.
   struct gkyl_array *m0_flux_gk[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
-  struct gkyl_dg_updater_moment *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
+  struct gkyl_mom_gyrokinetic *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
 
   struct gkyl_array *unit_phase_flux_neut; // Unit-density neutral flux.  
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
