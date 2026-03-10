@@ -1378,7 +1378,6 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "gk_multib_asdex_2x2v_p1",
 
     .cdim = ctx.cdim,
     .poly_order = 1,
@@ -1396,6 +1395,8 @@ main(int argc, char **argv)
     .use_gpu = app_args.use_gpu,
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,
