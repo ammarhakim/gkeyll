@@ -84,6 +84,7 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_powsqrt_on_basis.h>
+#include <gkyl_proj_exp_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>

@@ -50,10 +50,10 @@ copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *a
 
   // Copy lower ghost of input field into buffer.
   struct gkyl_range* lower_ghost = &app->lower_ghost[idx_par];
-  gkyl_array_set_offset_range(buff, arr_in, 1.0, comp_in, lower_ghost); 
+  gkyl_array_set_offset_range(buff, 1.0, arr_in, comp_in, lower_ghost); 
 
   // Create a range for each z cell, and copy from buffer into that range.
-  int num_cells_z = app->local.cells[idx_par];
+  int num_cells_z = app->local.upper[idx_par]-app->local.lower[idx_par]+1;
   int lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   for (int d=0; d<idx_par; ++d) {
     lower[d] = app->local.lower[d];
@@ -61,10 +61,10 @@ copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *a
   }
   struct gkyl_range rng_curr;
   for (int i=0; i<num_cells_z; ++i) {
-    lower[idx_par] = app->local.lower[d]+i-1;
+    lower[idx_par] = app->local.lower[idx_par]+i-1;
     upper[idx_par] = lower[idx_par];
     gkyl_sub_range_init(&rng_curr, &app->local_ext, lower, upper);
-    gkyl_array_copy_range_to_range(arr_out, buff, &rng_curr, lower_ghost);, 
+    gkyl_array_copy_range_to_range(arr_out, buff, &rng_curr, lower_ghost); 
   }
 }
 
@@ -76,30 +76,28 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
 
   // Compute density and temperature.
   gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, gks->lte.moms.marr,
+  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, gks->lte.moms.marr,
     0, gks->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
   // Boltzmann density = n_sheath * exp(-q * (phi-phi_sheath)/T ).
   // Copy the sheath potential from the lower ghost cell to the interior cells.
   int idx_par = app->cdim-1;
   int off = 2*idx_par;
-  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, field->sheath_vals[off], 1*app->basis.num_basis, sca->buffer_conf);
+  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off], 1*app->basis.num_basis, sca->buffer_conf);
 
   // Compute ( phi-phi_sheath)/(T/m) ).
   gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, sca->buffer_conf,
+  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, sca->buffer_conf,
     0, sca->buffer_conf, 2, gks->lte.moms.marr, &app->local);
 
   // Compute exp(-q * (phi-phi_sheath)/T ).
   double qDm = gks->info.charge/gks->info.mass;
   struct gkyl_array *m0_boltz = gks->m0.marr;
-  gkyl_proj_exp_on_basis(sca->proj_exp, &app->local, 1.0, -qDm, sca->buffer_conf, m0_boltz);
+  gkyl_proj_exp_on_basis_advance(sca->proj_exp, &app->local, 1.0, -qDm, sca->buffer_conf, m0_boltz);
 
   // Copy the sheath density from the lower ghost cell to the interior cells.
-  int idx_par = app->cdim-1;
-  int off = 2*idx_par;
-  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, field->sheath_vals[off], 0*app->basis.num_basis, sca->buffer_conf);
+  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off], 0*app->basis.num_basis, sca->buffer_conf);
 
   // Compute n_sheath * exp(-q * (phi-phi_sheath)/T ).
   gkyl_dg_mul_op_range(app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local);
@@ -182,7 +180,7 @@ gk_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
     sca->sheath_val = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->buffer_conf = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    sca->proj_exp = gkyl_proj_exp_on_basis_new(&app->basis, basis.poly_order+1, app->use_gpu);
+    sca->proj_exp = gkyl_proj_exp_on_basis_new(&app->basis, app->basis.poly_order+1, app->use_gpu);
 
     sca->apply_func = gk_species_scaling_apply_boltzmann;
     if (sca->write_diagnostics)
@@ -246,7 +244,7 @@ gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app,
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_FIXED_FRACTION) {
   } 
-  else if (sca_inp->type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {
+  else if (sca->type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {
     gkyl_proj_exp_on_basis_release(sca->proj_exp);
     gkyl_array_release(sca->sheath_val);
     gkyl_array_release(sca->buffer_conf);
