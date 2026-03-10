@@ -1279,17 +1279,17 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
 {
   // Check whether one of the neutral species has a recycle_react_scale
   // operation thats depend on this gyrokinetic species.
-  bool has_rrs = false;
+  bool has_sca = false;
   int neuts = app->num_neut_species;
   for (int i=0; i<neuts; ++i) {
     struct gk_neut_species *ns = &app->neut_species[i];
-    struct gkyl_gyrokinetic_recycling_reaction_scaling_inp *rrs_inp = &ns->info.recycling_reaction_scaling;
-    if ((rrs_inp->num_boundaries > 0) && (0 == strcmp(gks->info.name, rrs_inp->impacting_ion_name))) {
-      has_rrs = true;
+    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
+    if ((sca_inp->num_boundaries > 0) && (0 == strcmp(gks->info.name, sca_inp->impacting_ion_name))) {
+      has_sca = true;
       break;
     }
   }
-  return has_rrs;
+  return has_sca;
 }
 
 static bool
@@ -1647,7 +1647,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   // Check if using Boltzmann elc.
-  bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
+  bool ion_in_boltz_elc_field = (gks->info.charge > 0.0) && 
+    app->field->update_field && (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN);
   // Check if sources are adaptive.
   bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
   // Check if other species use the recycle_react_scale operation.
@@ -1667,14 +1668,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     if (recycling_bcs) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
-    if (boltz_elc_field || adaptive_sources || recycle_react_scale) {
+    if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
       // This is within an if-statement instead of an else if because it
       // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
     }
   }
   int *nmom_extra = &add_bflux_moms_inp.num_diag_moments;
-  if (boltz_elc_field || adaptive_sources || recycle_react_scale) {
+  if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M0;
   }
   if (adaptive_sources) {
@@ -1702,6 +1703,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .use_last_converged = use_last_converged
   };
   gk_species_lte_init(app, gks, &gks->lte, corr_inp);
+
+  // Initialize the object that scales the species (meant for fluid neutrals for now).
+  gks->sca = (struct gk_scaling) { };
+  gk_species_scaling_init(app, gks, &gks->sca);
 
   // Initialize reactions with charged species.
   gks->react = (struct gk_react) { };
@@ -1784,6 +1789,9 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
     gkyl_dg_bin_op_mem_release(div_mem);
     gkyl_array_release(npol);
   }
+
+  // Store initial density in scaling operator.
+  gk_species_scaling_apply_ic_cross(app, gks_self, &gks_self->sca);
 }
 
 double
@@ -1904,6 +1912,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gkyl_velocity_map_release(gks->vel_map);
 
   gk_species_collisionless_release(app, &gks->collisionless);
+
+  gk_species_scaling_release(app, &gks->sca);
 
   gk_species_anomalous_diff_release(app, &gks->anom_diff);
 

@@ -14,6 +14,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -619,6 +620,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
     local, local_ext, local_vel, local_ext_vel, use_gpu);
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -627,6 +629,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .mapc2p = mapc2p,
     .bfield_ctx = &proj_ctx,
     .bfield_func = eval_bfield_3x,
+    .position_map = pmap,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -804,6 +807,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
@@ -1360,6 +1364,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
     local, local_ext, local_vel, local_ext_vel, use_gpu);
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -1368,6 +1373,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .mapc2p = mapc2p,
     .bfield_ctx = &proj_ctx,
     .bfield_func = eval_bfield_3x,
+    .position_map = pmap,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -1597,6 +1603,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);

@@ -21,7 +21,7 @@ gkyl_proj_powsqrt_on_basis* gkyl_proj_powsqrt_on_basis_new(
 /**
  * Compute pow( sqrt(fIn), expIn) via quadrature.
  *
- * @param up Spizer collision frequency updater object.
+ * @param up Projection updater.
  * @param range Config-space range
  * @param expIn Exponent.
  * @param fIn Input scalar field.

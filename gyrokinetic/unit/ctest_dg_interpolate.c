@@ -6,6 +6,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_dg_interpolate.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -872,6 +873,9 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
     geometry_input.geo_local = confLocal;
     geometry_input.geo_local_ext = confLocal_ext;
   }
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+  geometry_input.position_map = pmap;
+  
   // Deflate geometry.
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   struct gk_geometry *gk_geom = cdim < 3? gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input)
@@ -884,6 +888,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+  gkyl_position_map_release(pmap);
   return gk_geom;
 }
 
