@@ -10,7 +10,7 @@ extern "C" {
 __global__ static void
 gkyl_proj_exp_on_basis_advance_cu_ker(int num_quad, 
   const struct gkyl_range range, const struct gkyl_array* GKYL_RESTRICT basis_at_ords,
-  const struct gkyl_array* GKYL_RESTRICT weights, double alpha, beta,
+  const struct gkyl_array* GKYL_RESTRICT weights, double alpha, double beta,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT fOut)
 {
   int num_basis = basis_at_ords->ncomp;
