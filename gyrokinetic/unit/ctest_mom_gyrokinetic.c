@@ -988,38 +988,25 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_1x1v_p1() { test_1x1v(1, false); } 
-void test_1x1v_p2() { test_1x1v(2, false); } 
-void test_1x2v_p1() { test_1x2v(1, false); } 
-void test_1x2v_p2() { test_1x2v(2, false); } 
-void test_2x2v_p1() { test_2x2v(1, false); } 
-void test_2x2v_p2() { test_2x2v(2, false); } 
+void test_1x1v_p1_ho() { test_1x1v(1, false); } 
+void test_1x2v_p1_ho() { test_1x2v(1, false); } 
+void test_2x2v_p1_ho() { test_2x2v(1, false); } 
 
 #ifdef GKYL_HAVE_CUDA
 void test_1x1v_p1_cu() { test_1x1v(1, true); } 
-void test_1x1v_p2_cu() { test_1x1v(2, true); } 
 void test_1x2v_p1_cu() { test_1x2v(1, true); } 
-void test_1x2v_p2_cu() { test_1x2v(2, true); } 
 void test_2x2v_p1_cu() { test_2x2v(1, true); } 
-void test_2x2v_p2_cu() { test_2x2v(2, true); } 
 #endif
 
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
-  { "test_1x1v_p1", test_1x1v_p1 },
-// { "test_1x1v_p2", test_1x1v_p2 },
-  { "test_1x2v_p1", test_1x2v_p1 },
-// { "test_1x2v_p2", test_1x2v_p2 },
-  { "test_2x2v_p1", test_2x2v_p1 },
-// { "test_2x2v_p2", test_2x2v_p2 },
+  { "test_1x1v_p1_ho", test_1x1v_p1_ho },
+  { "test_1x2v_p1_ho", test_1x2v_p1_ho },
+  { "test_2x2v_p1_ho", test_2x2v_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-//  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
   { "test_1x1v_p1_cu", test_1x1v_p1_cu },
-// { "test_1x1v_p2_cu", test_1x1v_p2_cu },
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
-// { "test_1x2v_p2_cu", test_1x2v_p2_cu },
   { "test_2x2v_p1_cu", test_2x2v_p1_cu },
-// { "test_2x2v_p2_cu", test_2x2v_p2_cu },
 #endif
   { NULL, NULL },
 };
