@@ -56,12 +56,10 @@ gk_neut_species_lte_kinetic(gkyl_gyrokinetic_app *app, const struct gk_neut_spec
 {
   // Compute equivalent f_lte from fin.
   struct timespec wst = gkyl_wall_clock();
-  gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
+  gk_neut_species_moment_calc(app, &lte->moms, &species->local, &app->local, 0, 0, 0, fin);
 
   // Divide the density by the Jacobian.
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
-    0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->geo_int.jacobgeo, &app->local);  
+  gk_neut_species_moment_diag_jacobgeo_div(app, &lte->moms, lte->moms.marr, lte->moms.marr);
   app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
@@ -130,7 +128,7 @@ gk_neut_species_lte_fluid_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_
   struct correct_all_moms_inp corr_inp)
 {
   // Allocate moments needed for LTE update.
-  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
+  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, 0, false);
 
   lte->from_moms_func = gk_neut_species_lte_fluid_from_moms;
   lte->from_f_func = gk_neut_species_lte_fluid;
@@ -143,7 +141,7 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   struct correct_all_moms_inp corr_inp)
 {
   // Allocate moments needed for LTE update.
-  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
+  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, 0, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,

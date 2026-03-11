@@ -131,7 +131,11 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_mom/%.c.o : $(KERNELS_DIR)/gyrokinetic_mom/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/mom_gyrokinetic/%.c.o : $(KERNELS_DIR)/mom_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/mom_weighted_gyrokinetic/%.c.o : $(KERNELS_DIR)/mom_weighted_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 

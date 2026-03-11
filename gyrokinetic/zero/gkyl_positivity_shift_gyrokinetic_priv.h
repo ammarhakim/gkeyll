@@ -18,8 +18,8 @@ enum gkyl_positivity_shift_type {
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
-typedef void (*m0_t)(const double *dxv, const double *vmap,
-  double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out);
+typedef void (*m0_t)(const double *dxv, const double *vmap, double m_, double q_,
+  const double *bmag, const double *phi, const double *f, double* GKYL_RESTRICT out);
 
 typedef struct { m0_pos_check_t kernels[3]; } pos_shift_gk_kern_list_m0_pos_check; // For use in kernel tables.
 typedef struct { shift_t kernels[3]; } pos_shift_gk_kern_list_shift; // For use in kernel tables.
@@ -51,10 +51,10 @@ static const pos_shift_gk_kern_list_shift pos_shift_gk_kern_list_MRSlimiter_ser[
 
 GKYL_CU_D
 static const pos_shift_gk_kern_list_m0 pos_shift_gk_kern_list_m0_ser[] = {
-  { gyrokinetic_M0_1x1v_ser_p1, gyrokinetic_M0_1x1v_ser_p2, NULL },
-  { gyrokinetic_M0_1x2v_ser_p1, gyrokinetic_M0_1x2v_ser_p2, NULL },
-  { gyrokinetic_M0_2x2v_ser_p1, gyrokinetic_M0_2x2v_ser_p2, NULL },
-  { gyrokinetic_M0_3x2v_ser_p1, NULL, NULL },
+  { mom_gyrokinetic_M0_1x1v_ser_p1, mom_gyrokinetic_M0_1x1v_ser_p2, NULL },
+  { mom_gyrokinetic_M0_1x2v_ser_p1, mom_gyrokinetic_M0_1x2v_ser_p2, NULL },
+  { mom_gyrokinetic_M0_2x2v_ser_p1, mom_gyrokinetic_M0_2x2v_ser_p2, NULL },
+  { mom_gyrokinetic_M0_3x2v_ser_p1, NULL, NULL },
 };
 
 struct gkyl_positivity_shift_gyrokinetic_kernels {

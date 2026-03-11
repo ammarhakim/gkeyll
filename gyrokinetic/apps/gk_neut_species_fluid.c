@@ -192,7 +192,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
                               : gkyl_malloc(sizeof(double));
 
   // Allocate data for integrated moments.
-  gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+  gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, 0, true);
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {
@@ -350,7 +350,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   int ndm = ns->info.num_diag_moments;
   ns->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, ns, &ns->moms[m], ns->info.diag_moments[m], false);
+    gk_neut_species_moment_init(app, ns, &ns->moms[m], ns->info.diag_moments[m], 0, false);
 
   // Initialize boundary fluxes.
   ns->bflux = (struct gk_boundary_fluxes) { };

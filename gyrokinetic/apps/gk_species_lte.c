@@ -8,7 +8,7 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   int cdim = app->cdim;
 
   // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
-  gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+  gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, 0, false);
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
@@ -98,12 +98,10 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute needed Maxwellian moments (J*n, u_par, T/m).
-  gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &lte->moms, &species->local, &app->local, 0, 0, 0, fin);
   
   // Divide out the Jacobian from the density.
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
-    0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->geo_int.jacobgeo, &app->local);  
+  gk_species_moment_diag_jacobgeo_div(app, &lte->moms, lte->moms.marr, lte->moms.marr);
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
