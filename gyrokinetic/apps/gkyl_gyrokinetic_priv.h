@@ -1252,6 +1252,8 @@ struct gk_field {
   struct gkyl_array *phi, *phi1, *phinew; // Electrostatic potential.
   struct gkyl_array *phi_host;  // Host copy for use IO and initialization.
 
+  struct gkyl_sundials_nvec **sundials_nvec; // Sundials Nvector wrap of f.
+
   bool init_phi_pol; // Whether to use the initial user polarization phi.
   struct gkyl_array *phi_pol; // Initial polarization density potential.
 
@@ -4193,6 +4195,61 @@ void gk_neut_species_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_
  * @return Newly created field.
  */
 struct gk_field* gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app);
+
+/**
+ * Allocate EM field Sundials NVectors.
+ * Returns the number of nvectors allocated.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkf Gyrokinetic field object.
+ * @param bflux Species boundary flux object.
+ * @return number of nvectors allocated.
+ */
+int gk_field_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+
+/**
+ * Delete Sundials NVectors wrapping EM fields.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkf Gyrokinetic field object.
+ */
+void gk_field_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+
+/**
+ * Pack EM field SUNDIALS NVectors into given array.
+ * Increment array offset if nvectors were added to array.
+ * Returns the number of nvectors packed.
+ *
+ * @param app gyrokinetic app object.
+ * @param gkf Gyrokinetic field object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ * @param Number of NVectors packed.
+ */
+int gk_field_sundials_nvec_pack(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Allocate new EM field SUNDIALS NVectors using temporary
+ * buffers and pack them into given array. Increment array offset if nvectors
+ * were added to array.
+ *
+ * @param app gyrokinetic app object.
+ * @param gkf Gyrokinetic field object.
+ * @param snvec_arr Array of Sundials Nvectors.
+ * @param snvec_arr_off Offset in snvec_arr where to place the next Nvector.
+ */
+void gk_field_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off);
+
+/**
+ * Delete Sundials NVectors wrapping EM fields.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkf Gyrokinetic field object.
+ */
+void
+gk_field_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
  * Get the electrostatic potential phi from the array of EM fields.

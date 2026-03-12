@@ -33,8 +33,8 @@ struct _N_VectorContent_Gkeyll
   struct gkyl_comm *comm; // Communicator.
   struct gkyl_range *local_range; // Local range.
   struct gkyl_sundials_reduce_mem *red_mem; // Memory for reductions.
-  bool is_passive; // Whether the quantity wrapped is passively evolved, i.e.
-                   // not included in the calculation of dt or error norms.
+  bool no_error_norm; // Whether to exclude it from the calculation of dt or error norms.
+  bool not_stepped; // Whether to exclude it from time stepping.
 };
 
 typedef struct _N_VectorContent_Gkeyll* N_VectorContent_Gkeyll;
@@ -75,18 +75,18 @@ struct gkyl_sundials
   int (*cfl_stable_dt_ssprk_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
   int (*cfl_stable_dt_sts_func)(N_Vector nvec_y, sunrealtype t_curr, sunrealtype *dt_out, void *ctx);
 
-  int (*pre_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*pre_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx);
+  int (*post_process_step_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx);
   int (*pre_process_rk_stage_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
   int (*post_process_rk_stage_ssprk_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
 
-  int (*pre_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*pre_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx);
+  int (*post_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx);
   int (*pre_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
   int (*post_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
 
-  int (*pre_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
-  int (*post_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*pre_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx);
+  int (*post_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx);
 };
 
 /**

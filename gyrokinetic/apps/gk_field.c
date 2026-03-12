@@ -272,6 +272,64 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   return gkf;
 }
 
+int
+gk_field_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+{
+  int num_nvec = 0;
+  if (gkf->num_fields > 0) { 
+    gkf->sundials_nvec = gkyl_malloc(gkf->num_fields*sizeof(struct gkyl_sundials_nvec *));
+    for (int i=0; i<gkf->num_fields; ++i) {
+      gkf->sundials_nvec[i] = gkyl_sundials_nvec_new(app->gk_sundials,
+        gkf->f[i], app->comm, &app->local, true, true);
+      num_nvec++;
+    }
+  }
+  return num_nvec;
+}
+
+void
+gk_field_sundials_nvec_release(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+{
+  if (gkf->num_fields > 0) { 
+    for (int i=0; i<gkf->num_fields; ++i) {
+      gkyl_sundials_nvec_release(gkf->sundials_nvec[i]);
+    }
+    gkyl_free(gkf->sundials_nvec);
+  }
+}
+
+int
+gk_field_sundials_nvec_pack(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  int num_nvec = 0;
+  if (gkf->num_fields > 0) {
+    struct gkyl_gyrokinetic_fdot_args *fdot_args = &app->fdot_args;
+
+    for (int i=0; i<gkf->num_fields; ++i) {
+      snvec_arr[*snvec_arr_off] = gkf->sundials_nvec[i];
+      fdot_args->offset_field[i] = *snvec_arr_off;
+      fdot_args->num_arr_field[i] = 1;
+      (*snvec_arr_off)++;
+      num_nvec++;
+    }
+  }
+  return num_nvec;
+}
+
+void
+gk_field_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
+  struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
+{
+  if (gkf->num_fields > 0) { 
+    for (int i=0; i<gkf->num_fields; ++i) {
+      snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials,
+        gkf->fnew[i], app->comm, &app->local, true, true);
+      (*snvec_arr_off)++;
+    }
+  }
+}
+
 void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *gkf, struct gkyl_array *emfields[])
 {

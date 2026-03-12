@@ -76,12 +76,13 @@ snvec_clone_empty(N_Vector nvin)
   // Otherwise, use_gpu flag will be false even if it must be true.
 
   // TO DO: Check to verify if this function is called separately
-  content->use_gpu     = SUNFALSE;
-  content->arr         = NULL;
-  content->comm        = NULL;
-  content->local_range = NULL;
-  content->is_passive  = SUNFALSE;
-  content->red_mem     = NULL;
+  content->use_gpu       = SUNFALSE;
+  content->arr           = NULL;
+  content->comm          = NULL;
+  content->local_range   = NULL;
+  content->no_error_norm = SUNFALSE;
+  content->not_stepped   = SUNFALSE;
+  content->red_mem       = NULL;
 
   return nvout;
 }
@@ -107,13 +108,14 @@ snvec_clone(N_Vector nvin)
 
   nvout_arr = mkarr(NV_CONTENT_GKZ(nvin)->use_gpu, nvin_arr->ncomp, nvin_arr->size);
 
-  NV_CONTENT_GKZ(nvout)->arr         = nvout_arr;
-  NV_CONTENT_GKZ(nvout)->use_gpu     = NV_CONTENT_GKZ(nvin)->use_gpu;
-  NV_CONTENT_GKZ(nvout)->comm        = NV_CONTENT_GKZ(nvin)->comm;
-  NV_CONTENT_GKZ(nvout)->local_range = NV_CONTENT_GKZ(nvin)->local_range;
-  NV_CONTENT_GKZ(nvout)->is_passive  = NV_CONTENT_GKZ(nvin)->is_passive;
-  NV_CONTENT_GKZ(nvout)->red_mem     = NV_CONTENT_GKZ(nvin)->red_mem;
-  NV_CONTENT_GKZ(nvout)->own_vector  = SUNTRUE;
+  NV_CONTENT_GKZ(nvout)->arr           = nvout_arr;
+  NV_CONTENT_GKZ(nvout)->use_gpu       = NV_CONTENT_GKZ(nvin)->use_gpu;
+  NV_CONTENT_GKZ(nvout)->comm          = NV_CONTENT_GKZ(nvin)->comm;
+  NV_CONTENT_GKZ(nvout)->local_range   = NV_CONTENT_GKZ(nvin)->local_range;
+  NV_CONTENT_GKZ(nvout)->no_error_norm = NV_CONTENT_GKZ(nvin)->no_error_norm;
+  NV_CONTENT_GKZ(nvout)->not_stepped   = NV_CONTENT_GKZ(nvin)->not_stepped;
+  NV_CONTENT_GKZ(nvout)->red_mem       = NV_CONTENT_GKZ(nvin)->red_mem;
+  NV_CONTENT_GKZ(nvout)->own_vector    = SUNTRUE;
 
   return nvout;
 }
@@ -192,6 +194,10 @@ snvec_get_length(N_Vector x)
 static void
 snvec_linear_sum(sunrealtype a, N_Vector x, sunrealtype b, N_Vector y, N_Vector z)
 {
+  bool not_stepped = NV_CONTENT_GKZ(z)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
   struct gkyl_array *yarr = NV_CONTENT_GKZ(y)->arr;
   struct gkyl_array *zarr = NV_CONTENT_GKZ(z)->arr;
@@ -209,6 +215,10 @@ snvec_linear_sum(sunrealtype a, N_Vector x, sunrealtype b, N_Vector y, N_Vector 
 static void
 snvec_const(sunrealtype c, N_Vector z)
 {
+  bool not_stepped = NV_CONTENT_GKZ(z)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *zarr = NV_CONTENT_GKZ(z)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(z)->local_range;
 
@@ -226,6 +236,10 @@ snvec_const(sunrealtype c, N_Vector z)
 static void
 snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
 {
+  bool not_stepped = NV_CONTENT_GKZ(z)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
   struct gkyl_array *zarr = NV_CONTENT_GKZ(z)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
@@ -244,6 +258,10 @@ snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
 static void
 snvec_div(N_Vector u, N_Vector v, N_Vector w)
 {
+  bool not_stepped = NV_CONTENT_GKZ(w)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_array *v_arr = NV_CONTENT_GKZ(v)->arr;
   struct gkyl_array *w_arr = NV_CONTENT_GKZ(w)->arr;
@@ -263,6 +281,10 @@ snvec_div(N_Vector u, N_Vector v, N_Vector w)
 static void
 snvec_abs(N_Vector u, N_Vector v)
 {
+  bool not_stepped = NV_CONTENT_GKZ(v)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_array *v_arr = NV_CONTENT_GKZ(v)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
@@ -281,6 +303,10 @@ snvec_abs(N_Vector u, N_Vector v)
 static void
 snvec_inv(N_Vector u, N_Vector v)
 {
+  bool not_stepped = NV_CONTENT_GKZ(v)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *u_arr       = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_array *v_arr       = NV_CONTENT_GKZ(v)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
@@ -300,6 +326,10 @@ snvec_inv(N_Vector u, N_Vector v)
 static void
 snvec_add_const(N_Vector u, sunrealtype x, N_Vector v)
 {
+  bool not_stepped = NV_CONTENT_GKZ(v)->not_stepped;
+  if (not_stepped)
+    return;
+
   struct gkyl_array *u_arr       = NV_CONTENT_GKZ(u)->arr;
   struct gkyl_array *v_arr       = NV_CONTENT_GKZ(v)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(u)->local_range;
@@ -322,8 +352,8 @@ snvec_add_const(N_Vector u, sunrealtype x, N_Vector v)
 static sunrealtype
 snvec_dot_product(N_Vector x, N_Vector y)
 {
-  bool is_passive = NV_CONTENT_GKZ(x)->is_passive;
-  if (is_passive)
+  bool no_error_norm = NV_CONTENT_GKZ(x)->no_error_norm;
+  if (no_error_norm)
     return 0.0;
 
   struct gkyl_array *x_arr = NV_CONTENT_GKZ(x)->arr;
@@ -359,8 +389,8 @@ snvec_dot_product(N_Vector x, N_Vector y)
 static sunrealtype
 snvec_abs_max_norm(N_Vector u)
 {
-  bool is_passive = NV_CONTENT_GKZ(u)->is_passive;
-  if (is_passive)
+  bool no_error_norm = NV_CONTENT_GKZ(u)->no_error_norm;
+  if (no_error_norm)
     return 0.0;
 
   struct gkyl_array *u_arr = NV_CONTENT_GKZ(u)->arr;
@@ -407,8 +437,8 @@ snvec_abs_max_norm(N_Vector u)
 static sunrealtype
 snvec_wrms_norm(N_Vector nvx, N_Vector nvwgt)
 {
-  bool is_passive = NV_CONTENT_GKZ(nvx)->is_passive;
-  if (is_passive)
+  bool no_error_norm = NV_CONTENT_GKZ(nvx)->no_error_norm;
+  if (no_error_norm)
     return 0.0;
 
   struct gkyl_array *nvx_arr = NV_CONTENT_GKZ(nvx)->arr;
@@ -492,13 +522,14 @@ snvec_new_empty(SUNContext sunctx)
   nvec->content = content;
 
   // Attach gkyl_array.
-  content->own_vector  = SUNFALSE;
-  content->use_gpu     = SUNFALSE;
-  content->arr         = 0;
-  content->comm        = 0;
-  content->local_range = 0;
-  content->is_passive  = SUNFALSE;
-  content->red_mem     = 0;
+  content->own_vector    = SUNFALSE;
+  content->use_gpu       = SUNFALSE;
+  content->arr           = 0;
+  content->comm          = 0;
+  content->local_range   = 0;
+  content->no_error_norm = SUNFALSE;
+  content->not_stepped   = SUNFALSE;
+  content->red_mem       = 0;
 
   return nvec;
 }
@@ -701,14 +732,14 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ERKStepSetTable", 1);
 
   // Set pre/post processing methods in arkode mem.
-  flag = ARKodeSetPreRHSProcessFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPreRHSProcessFn", 1);
+  flag = ARKodeSetPreRhsFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPreRhsFn", 1);
   flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem_ssprk, gksun->post_process_rk_stage_ssprk_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
-  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
+  flag = ARKodeSetPreStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPreStepFn", 1);
+  flag = ARKodeSetPostStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
 
   // Free the Butcher tableau.
   ARKodeButcherTable_Free(B_ssp33);
@@ -761,14 +792,14 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeWFtolerances", 1);
 
   // Set pre/post processing methods in arkode mem.
-  flag = ARKodeSetPreRHSProcessFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPreRHSProcessFn", 1);
+  flag = ARKodeSetPreRhsFn(gksun->arkode_mem_ssprk, gksun->pre_process_rk_stage_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPreRhsFn", 1);
   flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem_ssprk, gksun->post_process_rk_stage_ssprk_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
-  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
+  flag = ARKodeSetPreStepFn(gksun->arkode_mem_ssprk, gksun->pre_process_step_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPreStepFn", 1);
+  flag = ARKodeSetPostStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
+  sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
 }
 
 static void
@@ -860,14 +891,14 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "LSRKStepSetSTSMethod", 1);
 
   // Set pre/post processing methods in arkode mem.
-  flag = ARKodeSetPreRHSProcessFn(gksun->arkode_mem_sts, gksun->pre_process_rk_stage_sts_func);
-  sundials_check_flag(&flag, "ARKodeSetPreRHSProcessFn", 1);
+  flag = ARKodeSetPreRhsFn(gksun->arkode_mem_sts, gksun->pre_process_rk_stage_sts_func);
+  sundials_check_flag(&flag, "ARKodeSetPreRhsFn", 1);
   flag = ARKodeSetPostprocessStageFn(gksun->arkode_mem_sts, gksun->post_process_rk_stage_sts_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStageFn", 1);
-  flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_sts, gksun->pre_process_step_sts_func);
-  sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_sts, gksun->post_process_step_sts_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
+  flag = ARKodeSetPreStepFn(gksun->arkode_mem_sts, gksun->pre_process_step_sts_func);
+  sundials_check_flag(&flag, "ARKodeSetPreStepFn", 1);
+  flag = ARKodeSetPostStepFn(gksun->arkode_mem_sts, gksun->post_process_step_sts_func);
+  sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
 }
 
 void
@@ -954,10 +985,10 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
     }
   
     // Set pre/post processing methods in arkode mem.
-    flag = ARKodeSetPreprocessStepFn(gksun->arkode_mem_opsplit, gksun->pre_process_step_opsplit_func);
-    sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
-    flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_opsplit, gksun->post_process_step_opsplit_func);
-    sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
+    flag = ARKodeSetPreStepFn(gksun->arkode_mem_opsplit, gksun->pre_process_step_opsplit_func);
+    sundials_check_flag(&flag, "ARKodeSetPreStepFn", 1);
+    flag = ARKodeSetPostStepFn(gksun->arkode_mem_opsplit, gksun->post_process_step_opsplit_func);
+    sundials_check_flag(&flag, "ARKodeSetPostStepFn", 1);
   }
   else {
     gksun->arkode_mem_opsplit = gksun->has_ssprk? gksun->arkode_mem_ssprk : gksun->arkode_mem_sts;
@@ -985,7 +1016,8 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
   }
 
   if (gksun->has_ssprk) {
-    if (gksun->is_opsplit || gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
+    if (gksun->is_opsplit ||
+        gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
       // Estimate the CFL stable dt.
       // Use the temporary NVector.
       N_Vector manynvbuff = gsmanynv_buff->nvec;
@@ -1185,7 +1217,7 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
 
 struct gkyl_sundials_nvec*
 gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
-  struct gkyl_comm *comm, struct gkyl_range *local_range, bool is_passive)
+  struct gkyl_comm *comm, struct gkyl_range *local_range, bool no_error_norm, bool not_stepped)
 {
   struct gkyl_sundials_nvec *gsnv = gkyl_malloc(sizeof(*gsnv));
 
@@ -1211,11 +1243,16 @@ gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
     assert(false);
   }
 
+  // If a quantity is not stepped, it shouldn't be included in error calculation.
+  if (not_stepped)
+    assert(no_error_norm);
+
   NV_CONTENT_GKZ(nvout)->own_vector = SUNFALSE;
   NV_CONTENT_GKZ(nvout)->use_gpu = gkyl_array_is_cu_dev(arr);
   NV_CONTENT_GKZ(nvout)->comm = comm;
   NV_CONTENT_GKZ(nvout)->local_range = local_range;
-  NV_CONTENT_GKZ(nvout)->is_passive = is_passive;
+  NV_CONTENT_GKZ(nvout)->no_error_norm = no_error_norm;
+  NV_CONTENT_GKZ(nvout)->not_stepped = not_stepped;
   NV_CONTENT_GKZ(nvout)->arr = arr;
   NV_CONTENT_GKZ(nvout)->red_mem = &gsnv->red_mem;
 
@@ -1321,7 +1358,7 @@ gkyl_sundials_release(struct gkyl_sundials *gksun)
 
 struct gkyl_sundials_nvec*
 gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
-  struct gkyl_comm *comm, struct gkyl_range *local_range, bool is_passive)
+  struct gkyl_comm *comm, struct gkyl_range *local_range, bool no_error_norm, bool not_stepped)
 {
   // Do nothing.
   return 0;

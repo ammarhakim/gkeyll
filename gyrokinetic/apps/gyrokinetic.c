@@ -689,6 +689,7 @@ gyrokinetic_fdot_args_alloc(struct gkyl_gyrokinetic_fdot_args *fdot_args, struct
   }
 
   int num_fields = app->field->num_fields;
+  fdot_args->num_fields = num_fields;
   fdot_args->fieldin = 0;
   fdot_args->fieldout = 0;
   if (num_fields > 0) {
@@ -717,6 +718,10 @@ gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, stru
       gkyl_free(fdot_args->num_arr_bflux_neut);
       gkyl_free(fdot_args->offset_distf_neut);
       gkyl_free(fdot_args->offset_bflux_neut);
+    }
+    if (num_fields > 0) {
+      gkyl_free(fdot_args->num_arr_field);
+      gkyl_free(fdot_args->offset_field);
     }
     for (int i=0; i<ns_charged; ++i) {
       gkyl_free(fdot_args->bflux_in[i]);
@@ -1030,6 +1035,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
       struct gk_neut_species *gk_ns = &app->neut_species[i];
       tot_num_vecs += gk_neut_species_sundials_nvec_new(app, gk_ns);
     }
+    tot_num_vecs += gk_field_sundials_nvec_new(app, app->field);
    
     // Package all Sundials NVector pointers into one array.
     struct gkyl_sundials_nvec *snvec_arr[tot_num_vecs];
@@ -1052,6 +1058,12 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     for (int i=0; i<ns_neut; ++i) {
       gk_neut_species_sundials_nvec_pack(app, i, snvec_arr, &snvec_arr_off);
     }
+    int nfields = app->field->num_fields;
+    if (nfields > 0) {
+      app->fdot_args.num_arr_field = gkyl_malloc(nfields*sizeof(int));
+      app->fdot_args.offset_field = gkyl_malloc(nfields*sizeof(int));
+    }
+    gk_field_sundials_nvec_pack(app, app->field, snvec_arr, &snvec_arr_off);
 
     app->sundials_mnvec = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
 
@@ -1299,6 +1311,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         struct gk_neut_species *gk_ns = &app->neut_species[i];
         gk_neut_species_sundials_nvec_new_pack_buff(app, gk_ns, snvec_arr, &snvec_arr_off);
       }
+      gk_field_sundials_nvec_new_pack_buff(app, app->field, snvec_arr, &snvec_arr_off);
 
       mnvec_buff = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
     }
@@ -3589,6 +3602,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         struct gk_neut_species *gk_ns = &app->neut_species[i];
         gk_neut_species_sundials_nvec_new_pack_buff(app, gk_ns, snvec_arr, &snvec_arr_off);
       }
+      gk_field_sundials_nvec_new_pack_buff(app, app->field, snvec_arr, &snvec_arr_off);
 
       mnvec_buff = gkyl_sundials_many_nvec_new(app->gk_sundials, tot_num_vecs, snvec_arr);
     }
@@ -3698,6 +3712,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
       struct gk_neut_species *gk_ns = &app->neut_species[i];
       gk_neut_species_sundials_nvec_release(app, gk_ns);
     }
+    gk_field_sundials_nvec_release(app, app->field);
+
     gkyl_sundials_many_nvec_release(app->sundials_mnvec);
 
     gkyl_sundials_release(app->gk_sundials);

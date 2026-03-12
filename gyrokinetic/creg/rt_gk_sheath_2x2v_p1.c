@@ -788,8 +788,8 @@ main(int argc, char **argv)
     .sundials_stepper = {
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
-      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3,
-//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
+//      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3,
+      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4,
 //      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKC_2,
       .relative_tolerance = 1e-5,

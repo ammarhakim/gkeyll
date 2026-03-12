@@ -67,6 +67,13 @@ unpack_manynvec_gyrokinetic_neut_in(struct gkyl_gyrokinetic_fdot_args *fdot_args
 }
 
 static void
+unpack_manynvec_gyrokinetic_field_in(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_fields; ++i)
+    fdot_args->fieldin[i] = smanynvec_get_array(manynvec, fdot_args->offset_field[i]);
+}
+
+static void
 unpack_manynvec_gyrokinetic_charged_out(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
 {
   for (int i=0; i<fdot_args->num_species; ++i) {
@@ -92,6 +99,13 @@ unpack_manynvec_gyrokinetic_neut_out(struct gkyl_gyrokinetic_fdot_args *fdot_arg
       bflux_s[j] = smanynvec_get_array(manynvec, off+j);
     }
   }
+}
+
+static void
+unpack_manynvec_gyrokinetic_field_out(struct gkyl_gyrokinetic_fdot_args *fdot_args, N_Vector manynvec)
+{
+  for (int i=0; i<fdot_args->num_fields; ++i)
+    fdot_args->fieldout[i] = smanynvec_get_array(manynvec, fdot_args->offset_field[i]);
 }
 
 static void
@@ -130,12 +144,23 @@ unpack_manynvec_gyrokinetic_neut(struct gkyl_gyrokinetic_fdot_args *fdot_args,
   }
 }
 
+static void
+unpack_manynvec_gyrokinetic_field(struct gkyl_gyrokinetic_fdot_args *fdot_args,
+  N_Vector manynvec_in, N_Vector manynvec_out)
+{
+  for (int i=0; i<fdot_args->num_fields; ++i) {
+    fdot_args->fieldin[i] = smanynvec_get_array(manynvec_in, fdot_args->offset_field[i]);
+    fdot_args->fieldout[i] = smanynvec_get_array(manynvec_out, fdot_args->offset_field[i]);
+  }
+}
+
 static inline void
 unpack_manynvec_gyrokinetic_in(struct gkyl_gyrokinetic_fdot_args *fdot_args,
   N_Vector manynvec_in)
 {
   unpack_manynvec_gyrokinetic_charged_in(fdot_args, manynvec_in);
   unpack_manynvec_gyrokinetic_neut_in(fdot_args, manynvec_in);
+  unpack_manynvec_gyrokinetic_field_in(fdot_args, manynvec_in);
 }
 
 static inline void
@@ -144,6 +169,7 @@ unpack_manynvec_gyrokinetic_out(struct gkyl_gyrokinetic_fdot_args *fdot_args,
 {
   unpack_manynvec_gyrokinetic_charged_out(fdot_args, manynvec_out);
   unpack_manynvec_gyrokinetic_neut_out(fdot_args, manynvec_out);
+  unpack_manynvec_gyrokinetic_field_out(fdot_args, manynvec_out);
 }
 
 static inline void
@@ -152,6 +178,7 @@ unpack_manynvec_gyrokinetic(struct gkyl_gyrokinetic_fdot_args *fdot_args,
 {
   unpack_manynvec_gyrokinetic_charged(fdot_args, manynvec_in, manynvec_out);
   unpack_manynvec_gyrokinetic_neut(fdot_args, manynvec_in, manynvec_out);
+  unpack_manynvec_gyrokinetic_field(fdot_args, manynvec_in, manynvec_out);
 }
 
 /**
@@ -277,11 +304,13 @@ dfdt_sts_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
+ * @param attempt Step attempt number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-pre_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+pre_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -369,11 +398,12 @@ post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_yc
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-post_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+post_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -394,11 +424,13 @@ post_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, voi
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
+ * @param attempt Step attempt number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-pre_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+pre_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -472,6 +504,7 @@ post_process_rk_stage_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, v
     N_Vector manynvec_yin;
     flag = ARKodeGetLastState(app_ctx->arkode_mem_sts, &manynvec_yin);
     unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yin);
+    unpack_manynvec_gyrokinetic_field_in(fdot_args, manynvec_yin);
 
     flag = ARKodeGetCurrentState(app_ctx->arkode_mem_sts, &manynvec_yin);
     unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_yin);
@@ -487,11 +520,12 @@ post_process_rk_stage_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, v
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-post_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+post_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -512,11 +546,13 @@ post_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, void*
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
+ * @param attempt Step attempt number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-pre_process_step_gyrokinetic_opsplit(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+pre_process_step_gyrokinetic_opsplit(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 
@@ -537,11 +573,12 @@ pre_process_step_gyrokinetic_opsplit(sunrealtype t_curr, N_Vector manynvec_y, vo
  *
  * @param t_curr Current simulation time.
  * @param manynvec_y State vector.
+ * @param step Step number.
  * @param ctx App-specific context.
  * @return Sucess (=0) flag.
  */
 static int
-post_process_step_gyrokinetic_opsplit(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
+post_process_step_gyrokinetic_opsplit(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx)
 {
   struct gkyl_sundials_app_ctx *app_ctx = ctx;
 

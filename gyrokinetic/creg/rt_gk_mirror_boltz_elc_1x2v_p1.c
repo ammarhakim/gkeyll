@@ -623,7 +623,7 @@ int main(int argc, char **argv)
       .relative_tolerance = 1e-5,
       .absolute_tolerance = 1e-12,
 //      .max_steps = 100000,
-      .num_stages = 3,
+      .num_stages = 4,
 //      .max_num_stages = 10,
 //      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
 //      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).

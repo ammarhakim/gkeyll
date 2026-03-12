@@ -262,13 +262,13 @@ typedef struct gkyl_sundials_nvec gkyl_sundials_nvec; // Sundials nvector.
  * @param arr Gkeyll array to wrap.
  * @param comm Gkeyll communicator object.
  * @param local_range Local range to loop over arr.
- * @param is_passive Whether this is a passively evolved quantity, i.e. not
- *        included in dt or error norm calculations.
+ * @param no_error_norm Whether to exclude from dt or error norm calculation.
+ * @param not_stepped Whether to exclude from time stepping.
  * @return A new NVECTOR.
  */
 struct gkyl_sundials_nvec* gkyl_sundials_nvec_new(struct gkyl_sundials *gksun,
   struct gkyl_array *arr, struct gkyl_comm *comm, struct gkyl_range *local_range,
-  bool is_passive);
+  bool no_error_norm, bool not_stepped);
 
 /**
  * Fetch the Gkeyll array wrapped by an NVECTOR.

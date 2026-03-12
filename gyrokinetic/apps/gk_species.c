@@ -1833,7 +1833,7 @@ gk_species_sundials_nvec_new(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   int num_nvec = 0;
   if (!gks->info.is_static) {
-    gks->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, gks->f, gks->comm, &gks->local, false);
+    gks->sundials_nvec = gkyl_sundials_nvec_new(app->gk_sundials, gks->f, gks->comm, &gks->local, false, false);
     num_nvec++;
 
     num_nvec += gk_species_bflux_sundials_nvec_new(app, gks, &gks->bflux);
@@ -1869,7 +1869,7 @@ gk_species_sundials_nvec_new_pack_buff(gkyl_gyrokinetic_app *app, struct gk_spec
   struct gkyl_sundials_nvec **snvec_arr, int *snvec_arr_off)
 {
   if (!gks->info.is_static) {
-    snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials, gks->lte.f_lte, gks->comm, &gks->local, false);
+    snvec_arr[*snvec_arr_off] = gkyl_sundials_nvec_new(app->gk_sundials, gks->lte.f_lte, gks->comm, &gks->local, false, false);
     (*snvec_arr_off)++;
 
     gk_species_bflux_sundials_nvec_new_pack_buff(app, gks, &gks->bflux, snvec_arr, snvec_arr_off);
