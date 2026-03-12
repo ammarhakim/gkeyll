@@ -521,8 +521,8 @@ create_ctx(void)
 //  double mu_max_ion_c = 1.0/pow(mu_lin_fac_inv,(mu_pow-1)/mu_pow);
 
   // Grid DOF:
-  int Nz = 192; // Number of cells in z direction.
-  int Nvpar = 48; // Number of cells in parallel velocity direction.
+  int Nz = 64; // Number of cells in z direction.
+  int Nvpar = 32; // Number of cells in parallel velocity direction.
   int Nmu = 16;  // Number of cells in mu direction.
   int poly_order = 1;
 
@@ -546,8 +546,8 @@ create_ctx(void)
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 4; // Frames per OAP phase
-  int num_frames_fdp = 4; // Frames per FDP phase
+  int num_frames_oap = 1; // Frames per OAP phase
+  int num_frames_fdp = 1; // Frames per FDP phase
   int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
@@ -979,6 +979,7 @@ int main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
