@@ -709,8 +709,6 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
   flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem_ssprk, gksun->post_process_failed_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 
   // Free the Butcher tableau.
   ARKodeButcherTable_Free(B_ssp33);
@@ -771,8 +769,6 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
   flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_ssprk, gksun->post_process_step_ssprk_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem_ssprk, gksun->post_process_failed_step_ssprk_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 }
 
 static void
@@ -872,8 +868,6 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   sundials_check_flag(&flag, "ARKodeSetPreprocessStepFn", 1);
   flag = ARKodeSetPostprocessStepFn(gksun->arkode_mem_sts, gksun->post_process_step_sts_func);
   sundials_check_flag(&flag, "ARKodeSetPostprocessStepFn", 1);
-  flag = ARKodeSetPostprocessStepFailFn(gksun->arkode_mem_sts, gksun->post_process_failed_step_sts_func);
-  sundials_check_flag(&flag, "ARKodeSetPostprocessStepFailFn", 1);
 }
 
 void

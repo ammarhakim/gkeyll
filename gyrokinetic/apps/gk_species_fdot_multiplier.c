@@ -53,7 +53,7 @@ gk_species_fdot_multiplier_write_init_only(gkyl_gyrokinetic_app* app, struct gk_
 
 void
 gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array **fieldin, struct gkyl_array *out)
 {
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -61,16 +61,17 @@ gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct 
 
 void
 gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array **fieldin, struct gkyl_array *out)
 {
   // Find the potential at the mirror throat.
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, fdmul->bmag_max_coord,
+  struct gkyl_array *phi_curr = gk_field_get_phi_from_fields(app->field, (struct gkyl_array **) fieldin);
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi_curr, fdmul->bmag_max_coord,
     app->basis_on_dev, &app->grid, &app->local, fdmul->phi_m);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_m, fdmul->phi_m_global);
 
   // Project the loss cone mask.
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_m_global, fdmul->multiplier);
+    phi_curr, fdmul->phi_m_global, fdmul->multiplier);
 
   // Multiply out by the multplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -78,8 +79,9 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app, con
 
 void
 gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array **fieldin, struct gkyl_array *out)
 {
+  // Do nothing.
 }
 
 static void
@@ -242,22 +244,22 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
 
 void
 gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array **fieldin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  fdmul->advance_times_cfl_func(app, gks, fdmul, phi, out);
+  fdmul->advance_times_cfl_func(app, gks, fdmul, fieldin, out);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }
   
 void
 gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array **fieldin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  fdmul->advance_times_rate_func(app, gks, fdmul, phi, out);
+  fdmul->advance_times_rate_func(app, gks, fdmul, fieldin, out);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
   

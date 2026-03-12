@@ -64,70 +64,79 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
 }
 
 static void
-gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, struct gkyl_array *phi_out)
 {
   // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
-  gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+  gk_field_calc_ambi_pot_sheath_vals(app, gkf);
 
   // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
-  gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
-    field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
+  gkyl_ambi_bolt_potential_phi_calc(gkf->ambi_pot, &app->local, &app->local_ext,
+    gkf->rho_c, gkf->sheath_vals[2*(app->cdim-1)], phi_out);
 
   // Smooth the potential along z.
-  gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
+  gk_field_fem_projection_par(app, gkf, phi_out, phi_out);
 }
 
 static void
-gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_global_dg);
-  gkyl_array_release(f->phi_fem);
-  gkyl_array_release(f->phi_smooth);
+  gkyl_array_release(gkf->rho_c);
+  gkyl_array_release(gkf->rho_c_global_dg);
+  gkyl_array_release(gkf->phi_fem);
+  gkyl_array_release(gkf->phi);
+  gkyl_array_release(gkf->phi1);
+  gkyl_array_release(gkf->phinew);
 
   if (app->use_gpu) {
-    gkyl_array_release(f->phi_host);
+    gkyl_array_release(gkf->phi_host);
   }
 
-  gkyl_ambi_bolt_potential_release(f->ambi_pot);
+  gkyl_ambi_bolt_potential_release(gkf->ambi_pot);
   for (int i = 0; i < 2*app->cdim; ++i) {
-    gkyl_array_release(f->sheath_vals[i]);
+    gkyl_array_release(gkf->sheath_vals[i]);
   }
-  gkyl_fem_parproj_release(f->fem_parproj);
-  gkyl_array_integrate_release(f->calc_em_energy);
+  gkyl_fem_parproj_release(gkf->fem_parproj);
+  gkyl_array_integrate_release(gkf->calc_em_energy);
 }
 
 void
-gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
-  gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
+  gkyl_sub_range_intersect(&gkf->global_sub_range, &app->global, &app->local);
 
   // Allocate arrays for charge density.
-  f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkf->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
   // Allocate arrays for electrostatic potential.
-  f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkf->phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->phi1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->phinew = gkyl_array_acquire(gkf->phi1);
+
+  // Package field arrays into array of array pointers.
+  gkf->f[0] = gkf->phi;
+  gkf->f1[0] = gkf->phi1;
+  gkf->fnew[0] = gkf->phinew;
 
   // Allocate phi_host for I/O.
-  f->phi_host = f->phi_smooth;
+  gkf->phi_host = gkf->phi;
   if (app->use_gpu) {
-    f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    gkf->phi_host = mkarr(false, gkf->phi->ncomp, gkf->phi->size);
   }
 
   double polarization_weight = 1.0;
-  f->rhs_phi_func = gk_field_rhs_boltzmann;
-  f->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
+  gkf->rhs_phi_func = gk_field_rhs_boltzmann;
+  gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
 
-  f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
-    f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
+  gkf->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
+    gkf->info.electron_mass, gkf->info.electron_charge, gkf->info.electron_temp, app->use_gpu);
   
   // Sheath_vals contains both the density and potential sheath values.
   for (int j=0; j<app->cdim; ++j) {
-    f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+    gkf->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+    gkf->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
   }
 
   enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
@@ -137,29 +146,29 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     }
   }
 
-  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
+  gkf->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
     fem_parproj_bc, 0, 0, app->use_gpu);
 
   if (app->cdim == 1) {
-    f->es_energy_fac_1d = polarization_weight;
-    f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
+    gkf->es_energy_fac_1d = polarization_weight;
+    gkf->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   } else {
-    f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
+    gkf->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
   // Create operator needed for FLR effects.
-  f->use_flr = false;
-  f->invert_flr = gk_field_invert_flr_none;
+  gkf->use_flr = false;
+  gkf->invert_flr = gk_field_invert_flr_none;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     if (s->info.flr.type) {
-      f->use_flr = f->use_flr || s->info.flr.type;
+      gkf->use_flr = gkf->use_flr || s->info.flr.type;
     }
   }
 
-  f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
+  gkf->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
 
-  f->solver_release_func = gk_field_fem_release_boltzmann;
+  gkf->solver_release_func = gk_field_fem_release_boltzmann;
 }

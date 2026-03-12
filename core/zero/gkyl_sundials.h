@@ -57,13 +57,11 @@ struct gkyl_sundials_app_ctx {
   void (*pre_process_rk_stage_ssprk_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen, int stage_idx, int num_stages);
   void (*post_process_rk_stage_ssprk_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
   void (*post_process_step_ssprk_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
-  void (*post_process_failed_step_ssprk_func)(void* app_gen, double tcurr, void *fdot_args);
   // Operations performed at the beginning/end of an STS step/stage or failed step.
   void (*pre_process_step_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
   void (*pre_process_rk_stage_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen, int stage_idx, int num_stages);
   void (*post_process_rk_stage_sts_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
   void (*post_process_step_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
-  void (*post_process_failed_step_sts_func)(void* app_gen, double tcurr, void *fdot_args);
   // Function that reduces a local dt across MPI processes.
   double (*reduce_dt_func)(void *app_gen, double t_curr, double dt_local);
   // Objects below are private.

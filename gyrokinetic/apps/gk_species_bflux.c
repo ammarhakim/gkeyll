@@ -798,7 +798,6 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->f = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
     bflux->f1 = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
     bflux->fnew = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
-    bflux->f_copy = gkyl_malloc(bflux->num_boundaries*bflux->num_calc_moms*sizeof(struct gkyl_array *));
     for (int b=0; b<bflux->num_boundaries; ++b) {
       for (int m=0; m<bflux->num_calc_moms; m++) {
         // Allocate arrays storing moments of the boundary flux.
@@ -806,7 +805,6 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         bflux->f[b*bflux->num_calc_moms+m] = mkarr(app->use_gpu, num_mom_comp*app->basis.num_basis, app->local_ext.volume);
         bflux->f1[b*bflux->num_calc_moms+m] = mkarr(app->use_gpu, num_mom_comp*app->basis.num_basis, app->local_ext.volume);
         bflux->fnew[b*bflux->num_calc_moms+m] = mkarr(app->use_gpu, num_mom_comp*app->basis.num_basis, app->local_ext.volume);
-        bflux->f_copy[b*bflux->num_calc_moms+m] = mkarr(app->use_gpu, num_mom_comp*app->basis.num_basis, app->local_ext.volume);
       }
     }
   }
@@ -1139,13 +1137,11 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *spe
         gkyl_array_release(bflux->f[b*bflux->num_calc_moms+m]);
         gkyl_array_release(bflux->f1[b*bflux->num_calc_moms+m]);
         gkyl_array_release(bflux->fnew[b*bflux->num_calc_moms+m]);
-        gkyl_array_release(bflux->f_copy[b*bflux->num_calc_moms+m]);
       }
     }
     gkyl_free(bflux->f);
     gkyl_free(bflux->f1);
     gkyl_free(bflux->fnew);
-    gkyl_free(bflux->f_copy);
   }
 
   if (bflux->allocated_diags) {

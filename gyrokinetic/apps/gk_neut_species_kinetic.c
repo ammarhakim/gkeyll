@@ -1,8 +1,8 @@
 #include <gkyl_gk_neut_species_priv.h>
 
 static inline void
-gk_neut_species_kinetic_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
+gk_neut_species_kinetic_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
 {
   // Time rate of change of the distribution due to terms stepped with SSP-RK.
 
@@ -19,12 +19,12 @@ gk_neut_species_kinetic_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_
   gk_neut_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute diagnostic moments of the boundary fluxes.
-  gk_neut_species_bflux_calc_moms(app, &species->bflux, app->field->phi_smooth, rhs, bflux_moms);
+  gk_neut_species_bflux_calc_moms(app, &species->bflux, 0, rhs, bflux_moms);
 }
 
 static inline void
-gk_neut_species_kinetic_dfdt_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
+gk_neut_species_kinetic_dfdt_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
 {
   // Time rate of change of the distribution due to terms stepped with STS.
 }

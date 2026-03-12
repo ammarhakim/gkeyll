@@ -132,16 +132,6 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Allocate arrays to store surface phase space flux.
     gkcls->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
 
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
-      // Parallel component of magnetic vector potential.
-      gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
-    }
-    else {
-      gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-      gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-    }
-
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
     for (int d=0; d<app->cdim; d++) {
       bctype_conf[d] = gks->lower_bc[d].type;
@@ -154,7 +144,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
-      .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot };
+      .phi = gks->gyro_phi, .apar = gks->gyro_apar, .apardot = gks->gyro_apardot };
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
@@ -203,10 +193,7 @@ void
 gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls)
 {
   if (gkcls->collisionless_id) {
-
     gkyl_array_release(gkcls->flux_surf);
-    gkyl_array_release(gkcls->apar);
-    gkyl_array_release(gkcls->apardot);
   
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);

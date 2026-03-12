@@ -59,8 +59,8 @@ static const struct gkyl_str_int_pair gk_collisionless_type[] = {
   { "None", GKYL_GK_COLLISIONLESS_NONE },
   { "GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES },
   { "GKCollisionlessES_no_by", GKYL_GK_COLLISIONLESS_ES_NO_BY },
-  { "GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP },
-  { "GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR },
+  { "GKCollisionlessEM_Apar", GKYL_GK_COLLISIONLESS_EM_APAR },
+  { "GKCollisionlessEM_Aperp", GKYL_GK_COLLISIONLESS_EM_APERP },
   { "GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM },
   { 0, 0 }
 };
@@ -71,6 +71,8 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
   { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
   { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
+  { "ElectromagneticApar", GKYL_GK_FIELD_EM_APAR },
+  { "ElectromagneticAperp", GKYL_GK_FIELD_EM_APERP },
   { "Electromagnetic", GKYL_GK_FIELD_EM },
   { 0, 0 }
 };

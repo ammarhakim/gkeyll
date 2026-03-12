@@ -72,6 +72,8 @@ struct gk_multib_field {
   int cdim; // Number of configuration space dimensions.
   bool half_domain; // For use in double null. Whether to set BCs for simulation of lower half (Z<0).
 
+  int num_fields; // Number of EM fields evolved (e.g. phi, apar, aperp).
+
   struct gkyl_array **phi_local;
   struct gkyl_array **rho_c_local;
 
@@ -124,19 +126,19 @@ struct gk_multib_field {
  * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  */
 void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+  struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /**
- * Compute the gyrokinetic fields and apply boundary conditions.
+ * Apply boundary conditions to the distributions.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
+ * @param fields Current EM fields.
  * @param distf Array of distribution functions (for each charged species).
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  * @param distf_neut Array of distribution functions (for each neutral species).
  */
-void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
+void gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+  struct gkyl_array *fields[], struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
 
 /**
  * Take time-step using the RK3 method. Also sets the status object
@@ -166,7 +168,7 @@ struct gk_multib_field* gk_multib_field_new(const struct gkyl_gyrokinetic_multib
  * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
 */
 void gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+  struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 
 /** Releas the resources for the multib field object
  * @param mbf Multib field object.

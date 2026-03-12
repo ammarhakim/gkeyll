@@ -62,7 +62,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 
   for (int m=0; m<gks->src.num_diag_mom; ++m) {
     struct timespec wst = gkyl_wall_clock();
-    gk_species_moment_calc(app, &gks->src.moms[m], &gks->local, &app->local, 0, 0, app->field->phi_smooth, gks->src.source);
+    gk_species_moment_calc(app, &gks->src.moms[m], &gks->local, &app->local, 0, 0, app->field->phi, gks->src.source);
     app->stat.n_mom += 1;
 
     // Rescale moment by inverse of Jacobian if needed.
@@ -113,7 +113,7 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
   int num_mom = gks->src.integ_moms.num_mom;
   double avals_global[num_mom];
 
-  gk_species_moment_calc(app, &gks->src.integ_moms, &gks->local, &app->local, 0, 0, app->field->phi_smooth, gks->src.source); 
+  gk_species_moment_calc(app, &gks->src.integ_moms, &gks->local, &app->local, 0, 0, app->field->phi, gks->src.source); 
   app->stat.n_mom += 1;
 
   // Reduce to compute sum over whole domain, append to diagnostics

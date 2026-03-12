@@ -16,12 +16,15 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
 
   int ns_charged = app->num_species;
   int ns_neut = app->num_neut_species;
+  int nfields = app->field->num_fields;
   int nblocks_local = app->num_local_blocks;
 
   const struct gkyl_array **fin = fdot_args->fin;
   const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  const struct gkyl_array **fieldin = fdot_args->fieldin;
   struct gkyl_array **fout = fdot_args->fout;
   struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array **fieldout = fdot_args->fieldout;
   struct gkyl_array ***bflux_in = fdot_args->bflux_in;
   struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
   struct gkyl_array ***bflux_out = fdot_args->bflux_out;
@@ -32,6 +35,7 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     int li_charged = b * ns_charged;
     int li_neut = b * ns_neut;
+    int li_field = b * nfields;
 
     struct gkyl_gyrokinetic_fdot_args *sb_fdot_args = &sbapp->fdot_args;
     for (int i=0; i<ns_charged; ++i) {
@@ -45,6 +49,10 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
       sb_fdot_args->fout_neut[i] = fout_neut[li_neut+i];
       sb_fdot_args->bflux_in_neut[i] = bflux_in_neut[li_neut+i];
       sb_fdot_args->bflux_out_neut[i] = bflux_out_neut[li_neut+i];
+    }
+    for (int i=0; i<nfields; ++i) {
+      sb_fdot_args->fieldin[i] = fieldin[li_field+i];
+      sb_fdot_args->fieldout[i] = fieldout[li_field+i];
     }
 
     gyrokinetic_rhs(app->singleb_apps[b], tcurr, dt, sb_fdot_args, st);
@@ -89,13 +97,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
   // from the actual time-step.
   int ns_charged = app->num_species;
   int ns_neut = app->num_neut_species;
+  int nfields = app->field->num_fields;
   int nblocks_local = app->num_local_blocks;
 
   struct gkyl_gyrokinetic_multib_fdot_args *fdot_args = &app->fdot_args;
   const struct gkyl_array **fin = fdot_args->fin;
   const struct gkyl_array **fin_neut = fdot_args->fin_neut;
+  const struct gkyl_array **fieldin = fdot_args->fieldin;
   struct gkyl_array **fout = fdot_args->fout;
   struct gkyl_array **fout_neut = fdot_args->fout_neut;
+  struct gkyl_array **fieldout = fdot_args->fieldout;
   struct gkyl_array ***bflux_in = fdot_args->bflux_in;
   struct gkyl_array ***bflux_in_neut = fdot_args->bflux_in_neut;
   struct gkyl_array ***bflux_out = fdot_args->bflux_out;
@@ -114,6 +125,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
           int li_neut = b * ns_neut;
+          int li_field = b * nfields;
           for (int i=0; i<ns_charged; ++i) {
             struct gk_species *gks = &sbapp->species[i];
             fin[li_charged+i] = gks->f;
@@ -127,6 +139,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	    fout_neut[li_neut+i] = gkns->f1;
             bflux_in_neut[li_neut+i] = gkns->bflux.f;
             bflux_out_neut[li_neut+i] = gkns->bflux.f1;
+          }
+          for (int i=0; i<nfields; ++i) {
+            struct gk_field *gkf = sbapp->field;
+            fieldin[li_field+i] = gkf->f[i];
+            fieldout[li_field+i] = gkf->f1[i];
           }
         }
 
@@ -155,19 +172,25 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
         for (int b=0; b<nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
+          int li_field = b * nfields;
           for (int i=0; i<ns_charged; ++i) {
             struct gk_species *gks = &sbapp->species[i];
             // Compute moment of f_old to later compute moment of df/dt.
             // Do it before the fields are updated, but after dt is calculated.
-            gk_species_calc_int_mom_dt(sbapp, gks, fin[li_charged+i], dt, gks->fdot_mom_old);
+            gk_species_calc_int_mom_dt(sbapp, gks, (struct gkyl_array *) fin[li_charged+i],
+              (struct gkyl_array **) &fieldin[li_field], dt, gks->fdot_mom_old);
           }
 
           // Compute field energy divided by dt for energy balance diagnostics.
-          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_old);
+          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, (struct gkyl_array **) &fieldin[li_field],
+            sbapp->field->em_energy_red_old);
         }
 
-        // Compute the fields and apply BCs.
-        gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
+        // Compute the field.
+        gyrokinetic_multib_calc_field(app, tcurr, fout, bflux_out);
+      
+        // Apply boundary conditions.
+        gyrokinetic_multib_apply_bc(app, tcurr, fieldout, fout, fout_neut);
 
         state = RK_STAGE_2;
         break;
@@ -177,6 +200,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
           int li_neut = b * ns_neut;
+          int li_field = b * nfields;
           for (int i=0; i<ns_charged; ++i) {
             struct gk_species *gks = &sbapp->species[i];
             fin[li_charged+i] = gks->f1;
@@ -190,6 +214,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	    fout_neut[li_neut+i] = gkns->fnew;
             bflux_in_neut[li_neut+i] = gkns->bflux.f1;
             bflux_out_neut[li_neut+i] = gkns->bflux.fnew;
+          }
+          for (int i=0; i<nfields; ++i) {
+            struct gk_field *gkf = sbapp->field;
+            fieldin[li_field+i] = gkf->f1[i];
+            fieldout[li_field+i] = gkf->fnew[i];
           }
         }
 
@@ -207,7 +236,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               bflux_in[li_charged+i] = gks->bflux.f;
             }
           }
-          gyrokinetic_multib_calc_field(app, tcurr, fin, bflux_in);
+          gyrokinetic_multib_calc_field(app, tcurr, (struct gkyl_array **) fin, bflux_in);
 
           // Collect stats.
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
@@ -242,6 +271,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
             int li_neut = b * ns_neut;
+            int li_field = b * nfields;
             // Compute the fields and apply BCs.
             for (int i=0; i<ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
@@ -251,8 +281,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             for (int i=0; i<ns_neut; ++i) {
               fout_neut[li_neut+i] = sbapp->neut_species[i].f1;
             }
+            for (int i=0; i<nfields; ++i) {
+              struct gk_field *gkf = sbapp->field;
+              fieldout[li_field+i] = gkf->f1[i];
+            }
           }
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
+          // Compute the field.
+          gyrokinetic_multib_calc_field(app, tcurr, fout, bflux_out);
+        
+          // Apply boundary conditions.
+          gyrokinetic_multib_apply_bc(app, tcurr, fieldout, fout, fout_neut);
 
           state = RK_STAGE_3;
         }
@@ -263,6 +301,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
           int li_neut = b * ns_neut;
+          int li_field = b * nfields;
           for (int i=0; i<ns_charged; ++i) {
 	    struct gk_species *gks = &sbapp->species[i]; 
             fin[li_charged+i] = gks->f1;
@@ -276,6 +315,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	    fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
             bflux_in_neut[li_neut+i] = gkns->bflux.f1;
             bflux_out_neut[li_neut+i] = gkns->bflux.fnew;
+          }
+          for (int i=0; i<nfields; ++i) {
+            struct gk_field *gkf = sbapp->field;
+            fieldin[li_field+i] = gkf->f1[i];
+            fieldout[li_field+i] = gkf->fnew[i];
           }
         }
 
@@ -292,7 +336,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               bflux_in[li_charged+i] = gks->bflux.f;
             }
           }
-          gyrokinetic_multib_calc_field(app, tcurr, fin, bflux_in);
+          gyrokinetic_multib_calc_field(app, tcurr, (struct gkyl_array **) fin, bflux_in);
 
           // Collect stats.
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
@@ -348,6 +392,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
             int li_neut = b * ns_neut;
+            int li_field = b * nfields;
             for (int i=0; i<ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               fout[li_charged+i] = gks->f;
@@ -356,26 +401,34 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             for (int i=0; i<ns_neut; ++i) {
               fout_neut[li_neut+i] = sbapp->neut_species[i].f;
             }
+            for (int i=0; i<nfields; ++i) {
+              struct gk_field *gkf = sbapp->field;
+              fieldout[li_field+i] = gkf->f[i];
+            }
           }
 
 //          // Enforce quasineutrality of the positivity shifts.
 //          gyrokinetic_multib_post_positivity_quasineut(app, fout);
 
-          // Compute the fields and apply BCs
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
+          // Compute the field.
+          gyrokinetic_multib_calc_field(app, tcurr, fout, bflux_out);
+        
+          // Apply boundary conditions.
+          gyrokinetic_multib_apply_bc(app, tcurr, fieldout, fout, fout_neut);
 
           for (int b=0; b<nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
+            int li_field = b * nfields;
 	    for (int i=0; i<ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
-              gk_species_calc_int_mom_dt(sbapp, gks, fout[li_charged+i], dt, gks->fdot_mom_new);
+              gk_species_calc_int_mom_dt(sbapp, gks, fout[li_charged+i], &fieldout[li_field], dt, gks->fdot_mom_new);
             }
 
             // Compute field energy divided by dt for energy balance diagnostics.
-            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_new);
+            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, &fieldout[li_field], sbapp->field->em_energy_red_new);
           }
 
           state = RK_COMPLETE;

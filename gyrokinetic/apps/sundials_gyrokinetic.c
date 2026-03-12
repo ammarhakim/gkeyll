@@ -390,34 +390,6 @@ post_process_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_y, voi
 };
 
 /**
- * Post-process a failed SSP-RK step.
- *
- * @param t_curr Current simulation time.
- * @param manynvec_yn Last accepted state vector (y_{n}, what the step started with).
- * @param ctx App-specific context.
- * @return Sucess (=0) flag.
- */
-static int
-post_process_failed_step_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_yn, void* ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-
-  // Distribute state vector as Gkeyll expects.
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-
-  N_Vector manynvec_ycur;
-  int flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_ycur);
-  // We use yn for distf so the (f_{n+1}-f_{n})/dt diagnostic comes out right,
-  // but use ycur for the bfluxes so the boundary fluxes come out right.
-  unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yn);
-  unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_ycur);
-
-  app_ctx->post_process_failed_step_ssprk_func(app_ctx->app_ptr, t_curr, fdot_args);
-
-  return 0;
-};
-
-/**
  * Pre-process a STS step.
  *
  * @param t_curr Current simulation time.
@@ -531,28 +503,6 @@ post_process_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, void*
   unpack_manynvec_gyrokinetic_out(fdot_args, manynvec_y);
 
   app_ctx->post_process_step_sts_func(app_ctx->app_ptr, t_curr, dt, fdot_args);
-
-  return 0;
-};
-
-/**
- * Post-process a failed STS step.
- *
- * @param t_curr Current simulation time.
- * @param manynvec_y State vector.
- * @param ctx App-specific context.
- * @return Sucess (=0) flag.
- */
-static int
-post_process_failed_step_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, void* ctx)
-{
-  struct gkyl_sundials_app_ctx *app_ctx = ctx;
-
-  // Distribute state vector as Gkeyll expects.
-  struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
-  unpack_manynvec_gyrokinetic_in(fdot_args, manynvec_y);
-
-  app_ctx->post_process_failed_step_sts_func(app_ctx->app_ptr, t_curr, fdot_args);
 
   return 0;
 };
@@ -774,13 +724,11 @@ gkyl_sundials_gyrokinetic_assign_methods(struct gkyl_sundials *gksun)
   gksun->pre_process_rk_stage_ssprk_func = pre_process_rk_stage_gyrokinetic_ssprk;
   gksun->post_process_rk_stage_ssprk_func = post_process_rk_stage_gyrokinetic_ssprk;
   gksun->post_process_step_ssprk_func = post_process_step_gyrokinetic_ssprk;
-  gksun->post_process_failed_step_ssprk_func = post_process_failed_step_gyrokinetic_ssprk;
 
   gksun->pre_process_step_sts_func = pre_process_step_gyrokinetic_sts;
   gksun->pre_process_rk_stage_sts_func = pre_process_rk_stage_gyrokinetic_sts;
   gksun->post_process_rk_stage_sts_func = post_process_rk_stage_gyrokinetic_sts;
   gksun->post_process_step_sts_func = post_process_step_gyrokinetic_sts;
-  gksun->post_process_failed_step_sts_func = post_process_failed_step_gyrokinetic_sts;
 
   gksun->pre_process_step_opsplit_func = pre_process_step_gyrokinetic_opsplit;
   gksun->post_process_step_opsplit_func = post_process_step_gyrokinetic_opsplit;
