@@ -476,7 +476,7 @@ int main(int argc, char **argv)
 
     .geometry = {
       .world = {0.0},
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
       .has_LCFS = true,

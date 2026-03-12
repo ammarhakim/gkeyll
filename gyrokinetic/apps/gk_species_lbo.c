@@ -176,13 +176,12 @@ static void
 gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wtm = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum and nu_prim_moms.
   const char *fmt = "%s-%s_lbo_nu_sum_%d.gkyl";
@@ -323,7 +322,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
     lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&gks->grid, 
       &app->basis, &gks->basis, &app->local, &drag_inp, &diff_inp, gks->info.mass, 
-      gks->info.skip_cell_threshold, app->gk_geom, gks->vel_map,  app->use_gpu);
+      app->gk_geom, gks->vel_map,  app->use_gpu);
 
     // Methods chosen at runtime.
     lbo->moms_func = gklbo_moms_enabled;
