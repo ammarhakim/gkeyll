@@ -240,19 +240,14 @@ void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double b = 8;
-  // double func = (atan(-(xn[0] - 0.7) * b) - atan(-(xn[0] + 0.7) * b))/M_PI;
-  // fout[0] = 1e17*func;
-  fout[0] = 1e17;
+  double z = xn[1];
+  fout[0] = 1e17 * exp(-2 * pow(fabs(z), 2));
 }
 
 void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double b=30;
-  // double func = (-atan(-(xn[0] - 0.98) * b) - atan(-(xn[0] + 0.98) * b))/M_PI;
-  // fout[0] = 1.2e6*func;
   fout[0] = 0.0;
 }
 
@@ -260,9 +255,6 @@ void
 eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double b = 5;
-  // double func = (atan(-(xn[0] - 0.7) * b) - atan(-(xn[0] + 0.7) * b))/M_PI;
-  // fout[0] = 15000*GKYL_ELEMENTARY_CHARGE*func;
   fout[0] = app->Ti0;
 }
 
@@ -277,7 +269,6 @@ eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
   double src_sigma = app->ion_source_sigma;
   double src_amp_floor = src_amp * 1e-2;
   if (fabs(z) <= 0.98) {
-    // sixth order polynomial drop of to the edge
     fout[0] = src_amp * (1 - pow(fabs(z), 6) / 0.98);
   }
   else {
@@ -317,7 +308,6 @@ void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *
   double cvpar = vc[0], cmu = vc[1];
   double b = 1.4;
   vp[0] = vpar_max_ion * tan(cvpar * b) / tan(b);
-  // Cubic map in mu.
   vp[1] = mu_max_ion * pow(cmu, 3);
 }
 
