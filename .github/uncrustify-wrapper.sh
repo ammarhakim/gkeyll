@@ -13,12 +13,14 @@
 #   - Format Selection (uncrustify handles this via --frag flag)
 #
 # How to set up in VS Code:
-# 
+#
 # Navigate to .vscode settings in this repository and open .vscode/settings.json.
-# Then, set the "uncrustify.executablePath" setting to point, e.g.
-# 
-#   "uncrustify.configPath.linux": "${workspaceFolder}/.github/uncrustify.cfg",
-#   "uncrustify.executablePath.linux": "/home/maxwell-rosen/gkeyll/.github/uncrustify-wrapper.sh",
+# Then, set the "uncrustify.executablePath" setting to point to this script
+# using an ABSOLUTE path, e.g.
+#
+#   "uncrustify.configPath.linux": "/path/to/gkeyll/.github/uncrustify.cfg",
+#   "uncrustify.executablePath.linux": "/path/to/gkeyll/.github/uncrustify-wrapper.sh",
+#
 # To enable formatting of .h and .cu files, add these lines to .vscode/settings.json:
 #   "files.associations": {
 #      "*.h": "cpp",
@@ -29,10 +31,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CUDA_POST_SCRIPT="$SCRIPT_DIR/cuda-after-uncrustify.sh"
 C_H_POST_SCRIPT="$SCRIPT_DIR/c-h-after-uncrustify.sh"
 
-# Find the actual uncrustify binary
-UNCRUSTIFY_BIN=$(which uncrustify)
+# Find the actual uncrustify binary; fall back to known locations if PATH is stale
+# (VS Code may have a cached PATH from before uncrustify was installed).
+UNCRUSTIFY_BIN=$(which uncrustify 2>/dev/null)
 if [ -z "$UNCRUSTIFY_BIN" ]; then
-  echo "Error: uncrustify not found in PATH" >&2
+  for candidate in /usr/bin/uncrustify /usr/local/bin/uncrustify; do
+    if [ -x "$candidate" ]; then
+      UNCRUSTIFY_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if [ -z "$UNCRUSTIFY_BIN" ]; then
+  echo "Error: uncrustify not found in PATH or known locations" >&2
   exit 1
 fi
 
