@@ -384,6 +384,7 @@ post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_yc
     N_Vector manynvec_yn;
     flag = ARKodeGetLastState(app_ctx->arkode_mem_ssprk, &manynvec_yn);
     unpack_manynvec_gyrokinetic_distf_in(fdot_args, manynvec_yn);
+    unpack_manynvec_gyrokinetic_field_in(fdot_args, manynvec_yn);
 
     unpack_manynvec_gyrokinetic_bflux_in(fdot_args, manynvec_ycur);
   }

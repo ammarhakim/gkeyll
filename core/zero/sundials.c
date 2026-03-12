@@ -236,10 +236,9 @@ snvec_const(sunrealtype c, N_Vector z)
 static void
 snvec_scale(sunrealtype c, N_Vector x, N_Vector z)
 {
-  bool not_stepped = NV_CONTENT_GKZ(z)->not_stepped;
-  if (not_stepped)
-    return;
-
+  // NOTE: we allow vectors not stepped to scale because I think this method is
+  // used for copying (e.g. ycur -> yn), which is needed for some df/dt diagnostics
+  // to come out right.
   struct gkyl_array *xarr = NV_CONTENT_GKZ(x)->arr;
   struct gkyl_array *zarr = NV_CONTENT_GKZ(z)->arr;
   struct gkyl_range *local_range = NV_CONTENT_GKZ(x)->local_range;
