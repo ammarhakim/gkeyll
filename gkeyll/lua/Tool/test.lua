@@ -23,7 +23,7 @@ local uuid = require "Lib.UUID"
 
 if GKYL_HAVE_SQLITE3 == false then
    -- can't run without SQLITE3
-   print("Sorry, runregression needs Sqlite3. This executable was built without it.")
+   print("Sorry, test needs Sqlite3. This executable was built without it.")
    return 1
 end
 
@@ -36,7 +36,7 @@ local sql = require "sqlite3"
 
 -- GKYL_OUT_PREFIX is required by some Lua modules; set to a safe default here
 -- (each test run redirects output to its own scratch directory).
-GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "test"
 
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default: no verbose output
@@ -122,11 +122,12 @@ end
 
 -- ---- Layer pre-processing of command arguments ------------------------------
 -- The argparse library does not natively support positional sub-sub-command
--- names that collide with free text (e.g. "run moments check"). We therefore
+-- names that collide with free text (e.g. "test regression moments check"). We
+-- therefore
 -- scan GKYL_COMMANDS_L before argparse sees it, extract any token that is a
 -- known layer name, and store it in 'detectedLayer'. The remaining tokens are
--- passed to argparse as normal, so "run moments check" becomes "run check"
--- from argparse's perspective.
+-- passed to argparse as normal, so "test regression moments check" becomes
+-- "test regression check" from argparse's perspective.
 local detectedLayer = nil
 local filteredCmds  = {}
 for i = 1, #GKYL_COMMANDS_L do
@@ -158,9 +159,9 @@ local isConfiguring = false
 local configVals    = nil
 
 -- Path of the configuration file written by 'configure' and read by 'run'.
--- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
+-- Preferred location: <prefix>/gkeyll-results/test.config.lua, derived
 -- from config.mak (same logic as prefix auto-detection in config_action).
--- Falls back to ~/runregression.config.lua for backwards compatibility.
+-- Falls back to ~/test.config.lua for backwards compatibility.
 local function computeConfFile()
    local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
    if gkeyllDir then
@@ -170,14 +171,14 @@ local function computeConfFile()
             local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
             if p then
                mf:close()
-               return p .. "/gkeyll-results/runregression.config.lua",
+               return p .. "/gkeyll-results/test.config.lua",
                       p .. "/gkeyll-results"
             end
          end
          mf:close()
       end
    end
-   return os.getenv("HOME") .. "/runregression.config.lua", nil
+   return os.getenv("HOME") .. "/test.config.lua", nil
 end
 local confFile, confFileResultsDir = computeConfFile()
 
@@ -531,15 +532,15 @@ local function loadConfigure(args)
    local f = loadfile(confFile)
    if not f then
       -- Try the legacy home-directory location as a fallback.
-      local legacyPath = os.getenv("HOME") .. "/runregression.config.lua"
+      local legacyPath = os.getenv("HOME") .. "/test.config.lua"
       f = loadfile(legacyPath)
       if f then
          log(string.format(
             "NOTE: config loaded from legacy location %s.\n"
-            .. "Re-run 'runregression configure' to migrate it to gkeyll-results/.\n",
+            .. "Re-run 'test configure' to migrate it to gkeyll-results/.\n",
             legacyPath))
       else
-         log("Regression tests not configured! Run 'runregression configure' first.\n")
+         log("Regression tests not configured! Run 'test configure' first.\n")
          os.exit(1)
       end
    end
@@ -548,7 +549,7 @@ local function loadConfigure(args)
    -- Sanity-check that required keys are present.
    if not configVals.source_dir then
       log("Configuration is missing source_dir. "
-         .. "Please re-run 'runregression configure' with --source-dir.\n")
+         .. "Please re-run 'test configure' with --source-dir.\n")
       os.exit(1)
    end
 
@@ -975,7 +976,7 @@ local function executeBatch(items)
    end
 
    -- Step 2: write the batch coordinator script.
-   -- Use the first item's runDir (not results_dir) so concurrent runregression
+   -- Use the first item's runDir (not results_dir) so concurrent test
    -- processes (e.g. different layers running in parallel) never share a file.
    local coordPath = items[1].runDir .. "/_rr_batch_coordinator.sh"
    local cf = io.open(coordPath, "w")
@@ -1570,7 +1571,7 @@ local function config_action(args, name)
    local sourceDir = args.config_source_dir
    if not sourceDir then
       log("ERROR: --source-dir is required.\n"
-         .. "Example: gkeyll runregression configure"
+         .. "Example: gkeyll test configure"
          .. " --source-dir /path/to/gkeyll\n")
       os.exit(1)
    end
@@ -1590,13 +1591,17 @@ local function list_action(args, name)
    end
 end
 
--- 'run' command: execute regression tests and optionally create or check results.
+-- 'regression' command: execute regression tests and optionally create or check results.
 -- On a GPU build (CC=nvcc), GPU-capable layers (vlasov, gyrokinetic, pkpm) run
 -- each test twice: once in CPU mode, once in GPU mode.  Both are compared against
 -- the same accepted baselines, and then CPU vs GPU output is compared to detect
 -- GPU-specific divergence.  The 'create' action always forces CPU mode so that
 -- accepted baselines are deterministic.
 local function run_action(args, name)
+   if args.list then
+      return list_action(args, name)
+   end
+
    loadConfigure(args)
 
    local luaTests, cTests = list_tests(detectedLayer, args)
@@ -2058,22 +2063,31 @@ end
 local function rununit_action(args, name)
    loadConfigure(args)
    local lua, cxx = list_unit_tests(args)
-   log("Running unit tests ...\n\n")
+   local mode = args.create and "create" or "check"
+   log(string.format("Running unit tests (%s mode) ...\n\n", mode))
    local tmStart = Time.clock()
    lume.each(lua, runLuaUnitTest)
    lume.each(cxx, runCxxUnitTest)
    log(string.format("All unit tests completed in %g secs\n", Time.clock() - tmStart))
 end
 
+-- 'unit' command. create/check both execute unit suites; list only enumerates tests.
+local function unit_action(args, name)
+   if args.list then
+      return listunit_action(args, name)
+   end
+   return rununit_action(args, name)
+end
+
 -- ---- CLI parser -------------------------------------------------------------
 
 local parser = argparse()
-   :name("runregression")
+    :name("test")
    :require_command(true)
    :help_description_margin(30)
    :help_vertical_space(1)
    :description [[
-Run Gkeyll regression tests across the hierarchical layer architecture
+Run Gkeyll regression and unit tests across the hierarchical layer architecture
 (moments -> vlasov -> gyrokinetic -> pkpm).
 
 Each layer has Lua regression tests (luareg/) and C regression tests (creg/).
@@ -2081,10 +2095,10 @@ Results are stored in per-layer SQLite databases under gkeyll-results/.
 
 Typical workflow:
   1. Build and install: make install -j4
-  2. Configure: gkeyll runregression configure --source-dir /absolute/path/to/gkeyll/
-  3. Create baselines: gkeyll runregression run create --timeout 120
-  4. Check results:    gkeyll runregression run check  --timeout 120
-  5. Layer-specific:   gkeyll runregression run moments check
+   2. Configure: gkeyll test configure --source-dir /absolute/path/to/gkeyll/
+   3. Create baselines: gkeyll test regression create --timeout 120
+   4. Check results:    gkeyll test regression check  --timeout 120
+   5. Layer-specific:   gkeyll test regression moments check
 
 C regression tests are compiled on-the-fly using the installed
 share/Makefile (PREFIX/gkeyll/share/Makefile). No separate 'make regression'
@@ -2094,7 +2108,7 @@ step is needed.
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 
 -- 'configure' command ---------------------------------------------------------
--- Sets up directories, databases, and writes ~/runregression.config.lua.
+-- Sets up directories, databases, and writes a regression config file.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
@@ -2115,75 +2129,66 @@ c_conf:flag("--drop-tables",
    "Drop and re-create all SQL tables\n"
    .. "(erases existing regression data).", false)
 
--- 'list' command --------------------------------------------------------------
--- Lists all regression tests that would be run (useful for inspection).
-local c_list = parser:command("list", "List all regression tests")
-   :action(list_action)
-c_list:option("-r --run-only",
-   "List only this test. Accepts a bare name (rt_foo), an absolute path, or a directory.")
-c_list:flag("-a --all",
-   "List all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
-   .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
-c_list:flag("-m --moat", "Only list MOAT (Mother Of All Tests) regression tests\n"
-   .. "A condensed suite of the most comprehensive regression tests.")
-c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
-c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
-
--- 'run' command ---------------------------------------------------------------
--- Runs regression tests. Layer is extracted from the command line BEFORE
--- argparse (see the pre-processing block near the top of this file), so:
---   gkeyll runregression run check          -> all layers, check
---   gkeyll runregression run moments check  -> moments layer only, check
-local c_run = parser:command("run",
-   "Run regression tests (check or create).\n"
-   .. "Prefix with a layer name to restrict: 'run moments check', 'run vlasov create'.\n"
+-- 'regression' command --------------------------------------------------------
+-- Layer is extracted from the command line BEFORE argparse (see the
+-- pre-processing block near the top of this file), so:
+--   gkeyll test regression check          -> all layers, check
+--   gkeyll test regression moments check  -> moments layer only, check
+local c_reg = parser:command("regression",
+   "Run or list regression tests.\n"
+   .. "Prefix with a layer name to restrict: 'test regression moments check', 'test regression vlasov create', etc.\n"
    .. "Without check/create, tests run but results are not saved or compared.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only",
+c_reg:option("-r --run-only",
    "Run only these tests (comma-separated).\n"
    .. "Accepts bare names (rt_foo), absolute paths, or directories.\n"
    .. "Use --c-only/--lua-only to disambiguate when a C and Lua test share the same name.")
-c_run:flag("-a --all",
+c_reg:flag("-a --all",
    "Run all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
    .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
-c_run:flag("-m --moat", "Only run MOAT (Mother Of All Tests) regression tests\n"
+c_reg:flag("-m --moat", "Only run MOAT (Mother Of All Tests) regression tests\n"
    .. "A condensed suite of the most comprehensive regression tests.")
-c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
-c_run:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
-c_run:option("-t --timeout",
+c_reg:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
+c_reg:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
+c_reg:option("-t --timeout",
    "Per-test timeout in seconds (0 = unlimited).\n"
    .. "Timed-out tests are added to ignoretests.lua automatically.")
    :convert(tonumber)
    :default(0)
-c_run:option("--gpu-tol",
+c_reg:option("--gpu-tol",
    "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparisons (default 1e-7).\n"
    .. "Only used on GPU builds (CC=nvcc).")
    :convert(tonumber)
    :default(1e-7)
-c_run:flag("--no-gpu",
+c_reg:flag("--no-gpu",
    "Skip GPU testing even on a GPU build.")
-c_run:option("-j --jobs",
+c_reg:option("-j --jobs",
    "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
    .. "C compilation is always serial; GPU variants always run serially.")
    :convert(tonumber)
    :default(1)
 
-c_run:command("check",
+c_reg:command("check",
    "Compare test output against accepted baselines;\n"
    .. "report pass/fail and write to the SQLite DB.")
-c_run:command("create",
+c_reg:command("create",
    "Run tests and save output as accepted baselines.\n"
    .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
+c_reg:command("list",
+   "List all regression tests that would be run (inspection only).")
 
--- 'listunit' command ----------------------------------------------------------
-parser:command("listunit", "List all unit tests")
-   :action(listunit_action)
-
--- 'rununit' command -----------------------------------------------------------
-local c_rununit = parser:command("rununit", "Run unit tests.")
+-- 'unit' command --------------------------------------------------------------
+-- Unit tests accept create/check for symmetry with regression workflows.
+local c_unit = parser:command("unit",
+   "Run or list unit tests.\n"
+   .. "Examples: 'unit create', 'unit gyrokinetic check', 'unit list'.")
    :require_command(false)
-   :action(rununit_action)
+   :action(unit_action)
+
+c_unit:command("create", "Run unit tests in create mode.")
+c_unit:command("check",  "Run unit tests in check mode.")
+c_unit:command("list",   "List all unit tests.")
 
 -- ---- Parse and dispatch -----------------------------------------------------
 -- Use filteredCmds (layer names removed) rather than GKYL_COMMANDS_L.

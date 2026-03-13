@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Query the per-layer regression databases created by runregression.
+-- Query the per-layer regression databases created by the test tool.
 -- Updated for the hierarchical layer architecture: each layer (moments,
 -- vlasov, gyrokinetic, pkpm) now has its own SQLite database stored at
 --   gkeyll-results/<layer>/regressiondb
@@ -10,7 +10,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Database schema (one file per layer, created by runregression configure):
+-- Database schema (one file per layer, created by test configure):
 --
 -- table RegressionMeta (
 --   guid               text,
@@ -58,8 +58,8 @@ GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
 
 local log = Logger { logToFile = true }
 
--- Path of the configuration file written by 'runregression configure'.
-local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+-- Path of the configuration file written by 'test configure'.
+local confFile = os.getenv("HOME") .. "/test.config.lua"
 
 -- ---- Database connection ----------------------------------------------------
 -- Opens the correct database based on the parsed args:
@@ -67,7 +67,7 @@ local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 --   --layer <name> → derive path from the config file:
 --                    results_dir/<layer>/regressiondb
 -- Having a --layer option (rather than requiring the user to know the database
--- path) keeps the interface consistent with how runregression names databases.
+-- path) keeps the interface consistent with how the test tool names databases.
 local function configure(args)
    if args.db then
       -- Direct path override: useful for inspecting an arbitrary DB file.
@@ -81,7 +81,7 @@ local function configure(args)
 
       local f = loadfile(confFile)
       if not f then
-         print("Regression tests not configured. Run 'runregression configure' first.")
+         print("Regression tests not configured. Run 'gkeyll test configure' first.")
          os.exit(1)
       end
       local configVals = f()
@@ -91,8 +91,10 @@ local function configure(args)
       if not lfs.attributes(dbPath) then
          print(string.format(
             "Database for layer '%s' not found at:\n  %s\n"
-            .. "Run 'runregression configure' and then 'runregression run create' first.",
-            args.layer, dbPath))
+            .. "Run 'test configure' and then"
+            .. " 'test regression create' first.\n"
+            .. "Config used: %s",
+            args.layer, dbPath, usedPath))
          os.exit(1)
       end
       sqlConn = sql.open(dbPath)
@@ -348,7 +350,7 @@ local parser = argparse()
    :name("queryrdb")
    :require_command(true)
    :description [[
-Query the per-layer regression databases created by the runregression tool.
+Query the per-layer regression databases created by the test tool.
 
 Each layer (moments, vlasov, gyrokinetic, pkpm) has its own SQLite database.
 Use --layer to select which layer's database to query, or --db to open an

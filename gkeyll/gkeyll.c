@@ -71,7 +71,7 @@ static struct tool_description tool_list[] = {
   {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
   {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
   {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
-  {"runregression", "runregression.lua", "Run regression/unit tests"},
+  {"test", "test.lua", "Run regression/unit tests"},
   {"multimomlinear", "multimomlinear.lua",
    "Linear dispersion solver for multi-moment, multifluid equations"},  
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},

@@ -142,7 +142,7 @@ rect_decomp_openlibs(lua_State *L)
 }
 
 /* *************************************************************** */
-/* Array, RectGrid, and Range wrappers for runregression compareFiles */
+/* Array, RectGrid, and Range wrappers for test compareFiles */
 /* *************************************************************** */
 
 /* -- RectGrid userdata -- */
