@@ -291,7 +291,6 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .global = local_conf,
     .global_ext = local_ext_conf,
     .basis = basis_conf,
-    .position_map = pmap,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext,
@@ -784,8 +783,8 @@ test_1x2v_nonzero_phi_gk(int poly_order, bool use_gpu)
 
   // High mu particles at center should mostly be trapped.
   double trapped_frac = (double)num_trapped_high_mu_center / (double)total_high_mu_center;
-  printf("Trapped fraction for high-mu center particles: %g (%d / %d)\n",
-    trapped_frac, num_trapped_high_mu_center, total_high_mu_center);
+  // printf("Trapped fraction for high-mu center particles: %g (%d / %d)\n",
+  //   trapped_frac, num_trapped_high_mu_center, total_high_mu_center);
   TEST_CHECK(trapped_frac >= 0.5);
   if (trapped_frac < 0.5) {
     printf("High-mu center trapped fraction: %g (%d / %d)\n",
@@ -794,8 +793,8 @@ test_1x2v_nonzero_phi_gk(int poly_order, bool use_gpu)
 
   // Low mu particles at center should mostly be passing.
   double passing_frac = (double)num_passing_low_mu_center / (double)total_low_mu_center;
-  printf("Passing fraction for low-mu center particles: %g (%d / %d)\n",
-    passing_frac, num_passing_low_mu_center, total_low_mu_center);
+  // printf("Passing fraction for low-mu center particles: %g (%d / %d)\n",
+  //   passing_frac, num_passing_low_mu_center, total_low_mu_center);
   TEST_CHECK(passing_frac >= 0.5);
   if (passing_frac < 0.5) {
     printf("Low-mu center passing fraction: %g (%d / %d)\n",

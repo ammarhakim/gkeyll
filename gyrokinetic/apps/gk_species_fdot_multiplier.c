@@ -96,12 +96,12 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
     gkyl_array_dg_find_peaks_project_on_peak_idx(fdmul->bmag_peak_finder, fdmul->phi_smooth_global,
       fdmul->bmag_tandem_peak_idx, fdmul->phi_at_bmag_tandem);
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem,
+      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_tandem,
       fdmul->multiplier);
   }
   else {
     gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-      fdmul->phi_smooth_global, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
+      phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
   }
 
   // Multiply out by the multiplier.

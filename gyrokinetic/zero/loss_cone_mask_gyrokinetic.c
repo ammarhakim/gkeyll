@@ -594,7 +594,9 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         // Convert comp position coordinate to phys pos coord.
         gkyl_rect_grid_cell_center(up->grid_phase, pidx, xc);
         log_to_comp(up->cdim, xcomp_d, up->grid_phase->dx, xc, xmu);
-        up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
+        // up->c2p_pos(xmu, xmu, up->c2p_pos_ctx); 
+        // I don't think this operation should happen because the z coodinate is only used
+        // for comparing to the location of maximum bmag, which is in computational coordinates
 
         // Convert comp velocity coordinate to phys velocity coord.
         const struct gkyl_velocity_map *gvm = up->vel_map;
