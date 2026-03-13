@@ -68,9 +68,6 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   bool is_tandem; // Whether we are dealing with a tandem mirror case.
   bool use_gpu; // Boolean if we are performing projection on device.
 
-  loss_cone_mask_gyrokinetic_c2p_t c2p_pos; // Function transforming position comp to phys coords.
-  void *c2p_pos_ctx; // Context for the c2p_pos mapping.
-
   bool cellwise_trap_loss; // Whether a whole cell is trapped/lost, or whether
                            // high-order distinction within a cell is allowed.
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.

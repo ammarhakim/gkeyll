@@ -274,9 +274,6 @@ gkyl_loss_cone_mask_gyrokinetic_ker(int cdim, struct gkyl_rect_grid grid_phase,
       // Convert comp position coordinate to phys pos coord.
       log_to_comp(cdim, xcomp_d, grid_phase.dx, xc, xmu);
 
-      // Nonuniform spatial grids are NOT implemented on GPU
-      // up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
-
       // Convert comp velocity coordinate to phys velocity coord.
       double xcomp[1];
       for (int vd = 0; vd < vdim; vd++) {
@@ -416,9 +413,6 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(int cdim, struct gkyl_rect_grid grid_ph
 
     // Convert comp position coordinate to phys pos coord.
     log_to_comp(cdim, xcomp_d, grid_phase.dx, xc, xmu);
-
-    // Nonuniform spatial grids are NOT implemented on GPU
-    // up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
 
     // Convert comp velocity coordinate to phys velocity coord.
     double xcomp[1];

@@ -299,8 +299,6 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .qtype = qtype,
         .num_quad = num_quad,
         .cellwise_trap_loss = cellwise_const,
-        .c2p_pos_func = proj_on_basis_c2p_position_func,
-        .c2p_pos_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
