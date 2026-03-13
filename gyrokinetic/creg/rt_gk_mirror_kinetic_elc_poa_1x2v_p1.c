@@ -1159,6 +1159,9 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
