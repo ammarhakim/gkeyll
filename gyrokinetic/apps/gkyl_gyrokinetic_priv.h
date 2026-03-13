@@ -84,6 +84,7 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_powsqrt_on_basis.h>
+#include <gkyl_proj_exp_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
@@ -323,6 +324,7 @@ struct gk_collisionless {
 struct gk_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
+  bool do_not_add_to_dfdt; // Whether to not add collision contribution to df/dt 
 
   struct gkyl_array *self_nu; // Self-collision frequency.
   struct gkyl_array *boundary_corrections; // LBO boundary corrections.
@@ -683,6 +685,12 @@ struct gk_scaling {
       // Info for GKYL_GK_SPECIES_SCALING_FIXED_FRACTION.
       int ref_species_idx; // Index of reference species species.
       double fixed_fraction; // Fraction of reference species density.
+    };
+    struct {
+      // Objects for GKYL_GK_SPECIES_SCALING_BOLTZMANN.
+      struct gkyl_proj_exp_on_basis *proj_exp; // Operator to project exp(A).
+      struct gkyl_array *sheath_val; // Value at the sheath entrance, copied to interior cells.
+      struct gkyl_array *buffer_conf; // Conf-space buffer array.
     };
   };
 

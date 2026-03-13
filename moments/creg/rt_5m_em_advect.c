@@ -318,7 +318,6 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "5m_em_advect",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -342,6 +341,8 @@ main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.

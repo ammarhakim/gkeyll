@@ -1638,7 +1638,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   // Check if using Boltzmann elc.
-  bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
+  bool ion_in_boltz_elc_field = (gks->info.charge > 0.0) && 
+    app->field->update_field && (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN);
   // Check if sources are adaptive.
   bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
   // Check if other species use the recycle_react_scale operation.
@@ -1658,14 +1659,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     if (recycling_bcs) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
-    if (boltz_elc_field || adaptive_sources || recycle_react_scale) {
+    if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
       // This is within an if-statement instead of an else if because it
       // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
     }
   }
   int *nmom_extra = &add_bflux_moms_inp.num_diag_moments;
-  if (boltz_elc_field || adaptive_sources || recycle_react_scale) {
+  if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M0;
   }
   if (adaptive_sources) {

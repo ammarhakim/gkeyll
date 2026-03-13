@@ -33,9 +33,11 @@ struct gk_mirror_ctx
   double alphaIC0;
   double alphaIC1;
   double nuFrac;
-  // Ion-ion collision freq.
-  double logLambdaIon;
+  // Collision freq.
   double nuIon;
+  double nuElc;
+  double nuIonElc;
+  double nuElcIon;
   // Thermal speeds.
   double vti;
   double vte;
@@ -78,6 +80,8 @@ struct gk_mirror_ctx
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
+  double vpar_max_elc;
+  double mu_max_elc;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -311,12 +315,61 @@ eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   }
 }
 
+// Elc initial conditions
+void
+eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->n0;
+}
+
+void
+eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = 0.0;
+}
+
+void
+eval_temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->Te0;
+}
+
 // Evaluate collision frequencies
 void
 evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   fout[0] = app->nuIon;
+}
+
+void
+evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->nuElc;
+}
+
+void
+evalNuElcIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->nuElcIon;
+}
+
+void
+evalNuIonElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->nuIonElc;
 }
 
 // Geometry evaluation functions for the gk app
@@ -391,6 +444,13 @@ create_ctx(void)
   double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
   double nuIon = nuFrac * logLambdaIon * pow(eV, 4.) * n0 /
                  (12 * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(mi) * pow(Ti0, 3. / 2.));
+  // Ion-ion collision freq.
+  double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
+  double nuElc = nuFrac * logLambdaElc * pow(eV, 4.) * n0 /
+                 (6. * sqrt(2.) * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(me) * pow(Te0, 3. / 2.));
+  // Cross collision freq.
+  double nuElcIon = nuElc*sqrt(2.0);
+  double nuIonElc = nuElcIon*(me/mi);
 
   // Thermal speeds.
   double vti = sqrt(Ti0 / mi);
@@ -442,6 +502,8 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
+  double vpar_max_elc = 20 * vte;
+  double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   int Nz = 32;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 48;  // Number of cells in the mu direction 192
@@ -471,8 +533,10 @@ create_ctx(void)
     .alphaIC0 = alphaIC0,
     .alphaIC1 = alphaIC1,
     .nuFrac = nuFrac,
-    .logLambdaIon = logLambdaIon,
     .nuIon = nuIon,
+    .nuElc = nuElc,
+    .nuIonElc = nuIonElc,
+    .nuElcIon = nuElcIon,
     .vti = vti,
     .vte = vte,
     .c_s = c_s,
@@ -505,6 +569,8 @@ create_ctx(void)
     .TSrcFloorIon = TSrcFloorIon,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -574,6 +640,12 @@ int main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIon,
       .self_nu_ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+      .cross_nu = { evalNuElcIon, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti0,
     },
 
     .source = {
@@ -599,6 +671,48 @@ int main(int argc, char **argv)
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
 
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.qe,
+    .mass = ctx.me,
+    .vdim = ctx.vdim,
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = { cells_v[0], cells_v[1] },
+
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = eval_density_elc,
+      .ctx_upar = &ctx,
+      .upar = eval_upar_elc,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_elc,      
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNuElc,
+      .self_nu_ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+      .cross_nu = { evalNuIonElc, },
+      .cross_nu_ctx = &ctx,
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
+      .do_not_add_to_dfdt = true,
+    },
+
+    .scaling = {
+      .type = GKYL_GK_SPECIES_SCALING_BOLTZMANN,
+    },
+
+    .num_diag_moments = 1,
+    .diag_moments = {GKYL_F_MOMENT_MAXWELLIAN},
+  };
+
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
@@ -609,7 +723,6 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = { 
-    .name = "gk_mirror_boltz_elc_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -629,8 +742,8 @@ int main(int argc, char **argv)
     .num_periodic_dir = 0,
     .periodic_dirs = {},
 
-    .num_species = 1,
-    .species = {ion},
+    .num_species = 2,
+    .species = {ion, elc},
 
     .field = field,
 
@@ -641,6 +754,8 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
