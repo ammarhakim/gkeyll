@@ -222,8 +222,6 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .num_quad = num_quad,
-        .c2p_pos_func = proj_on_basis_c2p_position_func,
-        .c2p_pos_func_ctx = &damp->proj_on_basis_c2p_ctx,
         .use_gpu = app->use_gpu,
       };
       damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
