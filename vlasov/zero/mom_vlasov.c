@@ -78,7 +78,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, 
+    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels,
     *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
 
   switch (inp->conf_basis->b_type) {
@@ -88,6 +88,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m3ijk_kernels = ser_m3ijk_kernels;
       m1i_hamil_vel_kernels = ser_hamil_vel_m1i_kernels;
       m2_hamil_vel_kernels = ser_hamil_vel_m2_kernels;
+      m3i_hamil_vel_kernels = ser_hamil_vel_m3i_kernels;
       five_moments_hamil_vel_kernels = ser_hamil_vel_five_moments_kernels;
       m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
       m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
@@ -100,6 +101,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m3ijk_kernels = tensor_m3ijk_kernels;
       m1i_hamil_vel_kernels = tensor_hamil_vel_m1i_kernels;
       m2_hamil_vel_kernels = tensor_hamil_vel_m2_kernels;
+      m3i_hamil_vel_kernels = tensor_hamil_vel_m3i_kernels;
       five_moments_hamil_vel_kernels = tensor_hamil_vel_five_moments_kernels;
       break;
 
@@ -152,17 +154,15 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   else if (inp->mom_type == GKYL_F_MOMENT_M3 || inp->mom_type == GKYL_F_MOMENT_ENERGY_FLUX) { 
     // As part of Hamiltonian Vlasov refactor, assume user wants H*dH/dv moment when they
     // request M3 in some form. JJ 07/25/25
-    gkyl_exit("mom_vlasov M3: Not currently supported in new Hamiltonian formulation.");
-    // assert(cv_index[cdim].vdim[vdim] != -1);
-    // if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
-    //   assert(NULL != m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    //   mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    // }
-    // else {
-    //   assert(NULL != m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    //   mom_vlasov->momt.kernel = m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    // }    
-    // mom_vlasov->momt.num_mom = vdim;
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
+      assert(NULL != m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    }
+    else {
+      assert(false); 
+    }    
+    mom_vlasov->momt.num_mom = vdim;
   }
   else if (inp->mom_type == GKYL_F_MOMENT_M2IJ) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);

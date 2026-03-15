@@ -64,7 +64,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, 
+    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels, 
     *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
 
   switch (b_type) {
@@ -74,6 +74,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       m3ijk_kernels = ser_m3ijk_kernels;
       m1i_hamil_vel_kernels = ser_hamil_vel_m1i_kernels;
       m2_hamil_vel_kernels = ser_hamil_vel_m2_kernels;
+      m3i_hamil_vel_kernels = ser_hamil_vel_m3i_kernels;
       five_moments_hamil_vel_kernels = ser_hamil_vel_five_moments_kernels;
       m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
       m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
@@ -86,6 +87,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       m3ijk_kernels = tensor_m3ijk_kernels;
       m1i_hamil_vel_kernels = tensor_hamil_vel_m1i_kernels;
       m2_hamil_vel_kernels = tensor_hamil_vel_m2_kernels;
+      m3i_hamil_vel_kernels = tensor_hamil_vel_m3i_kernels;
       five_moments_hamil_vel_kernels = tensor_hamil_vel_five_moments_kernels;
       break;
 
@@ -133,12 +135,12 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M3:
-      // if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
-      //   mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-      // }
-      // else {
-      //   mom_vlasov->momt.kernel = m3i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-      // }
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
+        mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      }
+      else {
+       assert(false); 
+      }
       mom_vlasov->momt.num_mom = vdim;
       break;
 

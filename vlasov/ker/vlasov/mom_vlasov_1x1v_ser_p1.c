@@ -40,6 +40,17 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x1v_ser_p1(const double *w, const doubl
   out[0] += (hamil[1]*f[2]+f[0]*hamil[0])*volFact; 
   out[1] += (hamil[1]*f[3]+hamil[0]*f[1])*volFact; 
 } 
+GKYL_CU_DH void mom_vlasov_hamil_vel_M3i_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[1]/2; 
+  double dv10 = 2.0/dxv[1]; 
+  double dH_dpx[2] = {0.0}; 
+  dH_dpx[0] = 1.7320508075688772*hamil[1]*dv10; 
+
+  out[0] += (0.7071067811865475*dH_dpx[0]*hamil[1]*f[2]+0.7071067811865475*dH_dpx[0]*f[0]*hamil[0])*volFact; 
+  out[1] += (0.7071067811865475*dH_dpx[0]*hamil[1]*f[3]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[1])*volFact; 
+} 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 

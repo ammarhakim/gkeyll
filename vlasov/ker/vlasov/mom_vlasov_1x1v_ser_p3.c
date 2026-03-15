@@ -50,6 +50,21 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x1v_ser_p3(const double *w, const doubl
   out[2] += (1.0000000000000002*hamil[1]*f[6]+hamil[0]*f[4])*volFact; 
   out[3] += (1.0*hamil[1]*f[10]+hamil[0]*f[8])*volFact; 
 } 
+GKYL_CU_DH void mom_vlasov_hamil_vel_M3i_1x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[1]/2; 
+  double dv10 = 2.0/dxv[1]; 
+  double dH_dpx[4] = {0.0}; 
+  dH_dpx[0] = 2.6457513110645907*hamil[3]*dv10+1.7320508075688772*hamil[1]*dv10; 
+  dH_dpx[1] = 3.872983346207417*hamil[2]*dv10; 
+  dH_dpx[2] = 5.916079783099617*hamil[3]*dv10; 
+
+  out[0] += (0.421637021355784*dH_dpx[2]*hamil[3]*f[9]+0.7071067811865475*dH_dpx[0]*hamil[3]*f[9]+0.6210590034081186*dH_dpx[1]*hamil[2]*f[9]+0.6210590034081186*hamil[1]*dH_dpx[2]*f[9]+0.6210590034081186*dH_dpx[1]*hamil[3]*f[5]+0.45175395145262565*dH_dpx[2]*hamil[2]*f[5]+0.7071067811865475*dH_dpx[0]*hamil[2]*f[5]+0.7071067811865475*hamil[0]*dH_dpx[2]*f[5]+0.6324555320336759*dH_dpx[1]*hamil[1]*f[5]+0.6210590034081186*dH_dpx[2]*f[2]*hamil[3]+0.6324555320336759*dH_dpx[1]*f[2]*hamil[2]+0.7071067811865475*f[0]*dH_dpx[2]*hamil[2]+0.6324555320336759*hamil[1]*dH_dpx[2]*f[2]+0.7071067811865475*dH_dpx[0]*hamil[1]*f[2]+0.7071067811865475*hamil[0]*dH_dpx[1]*f[2]+0.7071067811865475*f[0]*dH_dpx[1]*hamil[1]+0.7071067811865475*dH_dpx[0]*f[0]*hamil[0])*volFact; 
+  out[1] += (0.421637021355784*dH_dpx[2]*hamil[3]*f[11]+0.7071067811865474*dH_dpx[0]*hamil[3]*f[11]+0.6210590034081187*dH_dpx[1]*hamil[2]*f[11]+0.6210590034081187*hamil[1]*dH_dpx[2]*f[11]+0.6210590034081187*dH_dpx[1]*hamil[3]*f[7]+0.4517539514526257*dH_dpx[2]*hamil[2]*f[7]+0.7071067811865475*dH_dpx[0]*hamil[2]*f[7]+0.7071067811865475*hamil[0]*dH_dpx[2]*f[7]+0.632455532033676*dH_dpx[1]*hamil[1]*f[7]+0.6210590034081186*dH_dpx[2]*f[3]*hamil[3]+0.6324555320336759*dH_dpx[1]*hamil[2]*f[3]+0.6324555320336759*hamil[1]*dH_dpx[2]*f[3]+0.7071067811865475*dH_dpx[0]*hamil[1]*f[3]+0.7071067811865475*hamil[0]*dH_dpx[1]*f[3]+0.7071067811865475*f[1]*dH_dpx[2]*hamil[2]+0.7071067811865475*dH_dpx[1]*f[1]*hamil[1]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[1])*volFact; 
+  out[2] += (0.6210590034081187*dH_dpx[2]*hamil[3]*f[6]+0.632455532033676*dH_dpx[1]*hamil[2]*f[6]+0.632455532033676*hamil[1]*dH_dpx[2]*f[6]+0.7071067811865475*dH_dpx[0]*hamil[1]*f[6]+0.7071067811865475*hamil[0]*dH_dpx[1]*f[6]+0.7071067811865475*dH_dpx[2]*hamil[2]*f[4]+0.7071067811865475*dH_dpx[1]*hamil[1]*f[4]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[4])*volFact; 
+  out[3] += (0.6210590034081187*dH_dpx[2]*hamil[3]*f[10]+0.6324555320336759*dH_dpx[1]*hamil[2]*f[10]+0.6324555320336759*hamil[1]*dH_dpx[2]*f[10]+0.7071067811865474*dH_dpx[0]*hamil[1]*f[10]+0.7071067811865474*hamil[0]*dH_dpx[1]*f[10]+0.7071067811865475*dH_dpx[2]*hamil[2]*f[8]+0.7071067811865475*dH_dpx[1]*hamil[1]*f[8]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[8])*volFact; 
+} 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 

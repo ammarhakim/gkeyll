@@ -58,6 +58,25 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M2_1x2v_ser_p1(const double *w, const doubl
   out[0] += (hamil[3]*f[6]+hamil[2]*f[3]+hamil[1]*f[2]+f[0]*hamil[0])*volFact; 
   out[1] += (hamil[3]*f[7]+hamil[2]*f[5]+hamil[1]*f[4]+hamil[0]*f[1])*volFact; 
 } 
+GKYL_CU_DH void mom_vlasov_hamil_vel_M3i_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[1]*dxv[2]/4; 
+  double dv10 = 2.0/dxv[1]; 
+  double dv11 = 2.0/dxv[2]; 
+  double dH_dpx[4] = {0.0}; 
+  dH_dpx[0] = 1.7320508075688772*hamil[1]*dv10; 
+  dH_dpx[2] = 1.7320508075688772*hamil[3]*dv10; 
+
+  double dH_dpy[4] = {0.0}; 
+  dH_dpy[0] = 1.7320508075688772*hamil[2]*dv11; 
+  dH_dpy[1] = 1.7320508075688772*hamil[3]*dv11; 
+
+  out[0] += (0.5*dH_dpx[0]*hamil[3]*f[6]+0.5*hamil[1]*dH_dpx[2]*f[6]+0.5*dH_dpx[2]*f[2]*hamil[3]+0.5*dH_dpx[0]*hamil[2]*f[3]+0.5*hamil[0]*dH_dpx[2]*f[3]+0.5*f[0]*dH_dpx[2]*hamil[2]+0.5*dH_dpx[0]*hamil[1]*f[2]+0.5*dH_dpx[0]*f[0]*hamil[0])*volFact; 
+  out[1] += (0.5*dH_dpx[0]*hamil[3]*f[7]+0.5*hamil[1]*dH_dpx[2]*f[7]+0.5*dH_dpx[0]*hamil[2]*f[5]+0.5*hamil[0]*dH_dpx[2]*f[5]+0.5*dH_dpx[2]*hamil[3]*f[4]+0.5*dH_dpx[0]*hamil[1]*f[4]+0.5*f[1]*dH_dpx[2]*hamil[2]+0.5*dH_dpx[0]*hamil[0]*f[1])*volFact; 
+  out[2] += (0.5*dH_dpy[0]*hamil[3]*f[6]+0.5*dH_dpy[1]*hamil[2]*f[6]+0.5*dH_dpy[1]*f[3]*hamil[3]+0.5*dH_dpy[0]*hamil[2]*f[3]+0.5*dH_dpy[0]*hamil[1]*f[2]+0.5*hamil[0]*dH_dpy[1]*f[2]+0.5*f[0]*dH_dpy[1]*hamil[1]+0.5*dH_dpy[0]*f[0]*hamil[0])*volFact; 
+  out[3] += (0.5*dH_dpy[0]*hamil[3]*f[7]+0.5*dH_dpy[1]*hamil[2]*f[7]+0.5*dH_dpy[1]*hamil[3]*f[5]+0.5*dH_dpy[0]*hamil[2]*f[5]+0.5*dH_dpy[0]*hamil[1]*f[4]+0.5*hamil[0]*dH_dpy[1]*f[4]+0.5*dH_dpy[1]*f[1]*hamil[1]+0.5*dH_dpy[0]*hamil[0]*f[1])*volFact; 
+} 
 GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
