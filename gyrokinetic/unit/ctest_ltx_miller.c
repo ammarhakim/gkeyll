@@ -8,6 +8,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -108,7 +109,7 @@ test_ltx_miller()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.4,
     .rleft= 0.2,
     .rright= 0.45,
@@ -122,10 +123,13 @@ test_ltx_miller()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -143,6 +147,7 @@ test_ltx_miller()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;

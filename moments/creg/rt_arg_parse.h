@@ -26,6 +26,7 @@ struct gkyl_app_args {
   int vcells[3]; // velocity space cells
   int cuts[3]; // domain decomposition "cuts"
   char file_name[1024]; // name of input file
+  char app_name[128]; // basename of argv[0] — use with snprintf/strcpy to set char[] name fields (cannot assign directly in compound literals)
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
   bool skip_limiters; // should we skip limiters?
@@ -221,6 +222,16 @@ parse_app_args(int argc, char **argv)
   args.skip_limiters = skip_limiters;
   args.is_restart = is_restart;
   args.restart_frame = restart_frame;
+
+  // Derive app_name from the executable name (basename of argv[0]).
+  if (argc > 0 && argv[0]) {
+    const char *slash = strrchr(argv[0], '/');
+    const char *base = slash ? slash + 1 : argv[0];
+    strncpy(args.app_name, base, sizeof(args.app_name) - 1);
+    args.app_name[sizeof(args.app_name) - 1] = '\0';
+  } else {
+    strncpy(args.app_name, "unknown", sizeof(args.app_name) - 1);
+  }
 
   return args;
 }

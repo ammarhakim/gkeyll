@@ -127,7 +127,6 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "sr_euler_riem_2d",
 
     .ndim = 2,
     .lower = { -1., -1. },
@@ -141,6 +140,8 @@ main(int argc, char **argv)
   };
 
   // create app object
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
