@@ -1,3 +1,4 @@
+/* gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  –  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 316d59e */
 #pragma once
 
 #include <math.h>
@@ -16,7 +17,7 @@ EXTERN_C_BEG
  * @param gamma: normalised plasma density parameter
  * @param phi:   normalised sheath potential drop (e * (phi - phi_wall) / T_e)
  */
-GKYL_CU_DH int  bc_sheath_gyrokinetic_srgrz_converged(double alpha, double gamma, double phi);
+GKYL_CU_DH int bc_sheath_gyrokinetic_srgrz_converged(double alpha, double gamma, double phi);
 
 /**
  * Runs the NN regression; writes SRGRZ_N_MU predicted v_par_cut values into out[].
