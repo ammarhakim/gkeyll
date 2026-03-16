@@ -852,13 +852,20 @@ struct gk_source_bgk {
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
+  struct gk_species_moment integ_mom_op; // Integrated moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
+  double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
+  gkyl_dynvec integ_diag; // Integrated moments of the source.
   bool is_first_diag_dynvec_write_call; // Whether dynvec is being written for the first time.
   // Methods chosen at runtime.
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_source_bgk *src, double tm, int frame);
+  void (*calc_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_source_bgk *src, double tm);
+  void (*write_integrated_diags_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_source_bgk *src);
 };
 
 struct gk_positivity {
@@ -2966,6 +2973,27 @@ void gk_species_source_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *spe
  */
 void gk_species_source_bgk_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, double tm, int frame);
+
+/**
+ * Calculate integrated diagnostics of the BGK source operator.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param src BGK source object.
+ * @param tm Current simulation time.
+ */
+void gk_species_source_bgk_calc_integrated_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_source_bgk *src, double tm);
+
+/**
+ * Write integrated diagnostics of the BGK source operator.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param src BGK source object.
+ */
+void gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app,
+  struct gk_source_bgk *src, struct gk_positivity *pos);
 
 /**
  * Release species source_bgk object.

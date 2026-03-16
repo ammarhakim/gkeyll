@@ -62,15 +62,14 @@ gk_species_source_bgk_rhs_default_enabled(gkyl_gyrokinetic_app *app, struct gk_s
 }
 
 static void
-gk_species_source_bgk_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_src_bgk_rhs_accumulate_density_maxwellian(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
-    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+  gk_species_moment_diag_jacobgeo_div(app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr);
   // Set a cap
   gkyl_array_set_offset(src->Jrate_cap, src->damping_factor, species->lte.moms.marr, 0*app->basis.num_basis);
 
@@ -82,40 +81,22 @@ gk_species_source_bgk_rhs_density(gkyl_gyrokinetic_app *app, struct gk_species *
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 0*app->basis.num_basis);
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
-  // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
-    src->Jrate, species->lte.f_lte, &app->local, &species->local);
-  // Assemble the BGK-like term and add it to rhs.
-  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  // Add this Maxwellian onto the average of Maxwellians.
+  gkyl_array_accumulate_range(out, 1.0/3.0, species->lte.f_lte, &species->local);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
-
-  // Temporaty hack, write out the M0 moments
-  //gkyl_array_accumulate(src->Jrate_fmax, -1.0/src->coupling_time, fin);
-  //for (int m=0; m<species->info.num_diag_moments; ++m) {
-  //  gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
-  //  gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
-  //  if (app->use_gpu)
-  //    gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
-  //  const char *fmt = "%s-%s_%s_nsource.gkyl";
-  //  int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  char fileNm[sz+1]; // ensures no buffer overflow
-  //  snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
-  //}
 }
 
 static void
-gk_species_source_bgk_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_src_bgk_rhs_accumulate_momentum_maxwellian(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
-    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+  gk_species_moment_diag_jacobgeo_div(app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr);
 
   // Divide M1dot by the rate and density then add on upar
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M1dot, 0, src->rate, &app->local);  
@@ -124,40 +105,22 @@ gk_species_source_bgk_rhs_momentum(gkyl_gyrokinetic_app *app, struct gk_species 
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 1*app->basis.num_basis);
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
-  // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
-    src->Jrate, species->lte.f_lte, &app->local, &species->local);
-  // Assemble the BGK-like term and add it to rhs.
-  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  // Add this Maxwellian onto the average of Maxwellians.
+  gkyl_array_accumulate_range(out, 1.0/3.0, species->lte.f_lte, &species->local);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
-
-  // Temporaty hack, write out  the M2 moment
-  //gkyl_array_accumulate(src->Jrate_fmax, -1.0/src->coupling_time, fin); // Testing a factor of 2
-  //for (int m=0; m<species->info.num_diag_moments; ++m) {
-  //  gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
-  //  gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
-  //  if (app->use_gpu)
-  //    gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
-  //  const char *fmt = "%s-%s_%s_msource.gkyl";
-  //  int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  char fileNm[sz+1]; // ensures no buffer overflow
-  //  snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
-  //}
 }
 
 static void
-gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gks_src_bgk_rhs_accumulate_energy_maxwellian(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
-    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
+  gk_species_moment_diag_jacobgeo_div(app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr);
   // Set a cap
   gkyl_array_set_offset(src->Jrate_cap, src->damping_factor*species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
 
@@ -174,37 +137,31 @@ gk_species_source_bgk_rhs_energy(gkyl_gyrokinetic_app *app, struct gk_species *s
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 2*app->basis.num_basis);
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
-  // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
-    src->Jrate, species->lte.f_lte, &app->local, &species->local);
-  // Assemble the BGK-like term and add it to rhs.
-  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+
+  // Add this Maxwellian onto the average of Maxwellians.
+  gkyl_array_accumulate_range(out, 1.0/3.0, species->lte.f_lte, &species->local);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
-
-  // Temporaty hack, write out  the M2 moment
-  //gkyl_array_accumulate(src->Jrate_fmax, -1.0/src->coupling_time, fin); // Testing a factor of 2
-  //for (int m=0; m<species->info.num_diag_moments; ++m) {
-  //  gk_species_moment_calc(&species->moms[m], species->local, app->local, src->Jrate_fmax);
-  //  gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
-  //  if (app->use_gpu)
-  //    gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
-  //  const char *fmt = "%s-%s_%s_hsource.gkyl";
-  //  int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  char fileNm[sz+1]; // ensures no buffer overflow
-  //  snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
-  //}
 }
 
 static void
 gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gk_species_source_bgk_rhs_density(app, species, src, fin, rhs);
-  gk_species_source_bgk_rhs_momentum(app, species, src, fin, rhs);
-  gk_species_source_bgk_rhs_energy(app, species, src, fin, rhs);
+  gkyl_array_clear(src->Jrate_fmax, 0.0);
+
+  gks_src_bgk_rhs_accumulate_density_maxwellian(app, species, src, fin, src->Jrate_fmax);
+  gks_src_bgk_rhs_accumulate_momentum_maxwellian(app, species, src, fin, src->Jrate_fmax);
+  gks_src_bgk_rhs_accumulate_energy_maxwellian(app, species, src, fin, src->Jrate_fmax);
+
+  // Multiply the Maxwellian by Jrate.
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
+    src->Jrate, src->Jrate_fmax, &app->local, &species->local);
+  // Assemble the BGK-like term and add it to rhs.
+  gkyl_array_clear(src->Jrate_fmax, 0.0);
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, species->lte.f_lte,
+    fin, src->implicit_step, src->dt_implicit, src->Jrate_fmax, species->cflrate);
+  gkyl_array_accumulate(rhs, 1.0, src->Jrate_fmax);
 }
 
 static void
@@ -271,6 +228,80 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
 }
 
 static void
+gks_src_bgk_calc_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
+  struct gk_species *gks, struct gk_source_bgk *src, double tm)
+{
+  // Do nothing.
+}
+
+static void
+gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
+  struct gk_species *gks, struct gk_source_bgk *src, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  int num_mom = src->integ_mom_op.num_mom;
+  double avals_global[num_mom];
+  
+  // Compute integrated moments of source term.
+  gk_species_moment_calc(&src->integ_moms, gks->local, app->local, src->Jrate_fmax); 
+  app->stat.n_mom += 1;
+
+  // Reduce (sum) over whole domain, append to diagnostics.
+  gkyl_array_reduce_range(src->red_integ_diag, src->integ_moms.marr, GKYL_SUM, &app->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+    src->red_integ_diag, src->red_integ_diag_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(avals_global, src->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(avals_global, src->red_integ_diag_global, sizeof(double[num_mom]));
+  }
+  gkyl_dynvec_append(src->integ_diag, tm, avals_global);
+  
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag += 1;
+}
+
+static void
+gks_src_bgk_write_integrated_diags_disabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_source_bgk *src)
+{
+  // Empty.
+}
+
+static void
+gks_src_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_source_bgk *src)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    // Write integrated diagnostic moments.
+    const char *fmt = "%s-%s_source_bgk_integrated_%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2]);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2]);
+
+    if (src->is_first_integ_write_call) {
+      gkyl_dynvec_write(src->integ_diag, fileNm);
+      src->is_first_integ_write_call = false;
+      src->integ_diag_file_exists = true;
+    }
+    else {
+      gkyl_dynvec_awrite(src->integ_diag, fileNm);
+    }
+  }
+  gkyl_dynvec_clear(src->integ_diag);
+  app->stat.n_diag_io += 1;
+  
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
 gk_source_bgk_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, int frame, double stime, char* file_suffix,
   struct gkyl_array *arrout, struct gkyl_array *arrout_host)
@@ -321,6 +352,8 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
   src->write_diags_func = gk_species_source_bgk_write_diags_disabled;
   src->rhs_func = gk_species_source_bgk_rhs_disabled;
+  src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_disabled;
+  src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_disabled;
 
   if (src->source_bgk_id == GKYL_SOURCE_BGK_DEFAULT) {
     int vdim_phys = gks->info.vdim == 1? 1 : 3;
@@ -332,6 +365,10 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
                                                : gkyl_array_acquire(src->rate);
     gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
+
+    // Divide rate by 3 so we can group density, momentum and energy terms.
+    gkyl_array_scale(rate_host, 1.0/3.0, &app->local);
+
     gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
     gkyl_array_copy(src->rate, rate_host);
     gkyl_proj_on_basis_release(proj_rate);
@@ -418,10 +455,26 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     src->implicit_step = false;
     src->dt_implicit = 1e9;
 
+    // Integrated moments of the operator.
+    gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
+
+    if (app->use_gpu) {
+      src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_moms.num_mom]));
+      src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_moms.num_mom]));
+    } 
+    else {
+      src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_moms.num_mom]));
+      src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_moms.num_mom]));
+    }
+    src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_moms.num_mom);
+    src->is_first_integ_write_call = true;
+
     // Methods chosen at runtime.
     src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
     if (src->write_diagnostics) {
       src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
+      src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
+      src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
     }
   }
 }
@@ -484,6 +537,16 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
     }
 
     gkyl_bgk_collisions_release(src->bgk_op);
+    gk_species_moment_release(app, &src->integ_mom_op); 
+    gkyl_dynvec_release(src->integ_diag);
+    if (app->use_gpu) {
+      gkyl_cu_free(src->red_integ_diag);
+      gkyl_cu_free(src->red_integ_diag_global);
+    }
+    else {
+      gkyl_free(src->red_integ_diag);
+      gkyl_free(src->red_integ_diag_global);
+    }
 
   }
 }
