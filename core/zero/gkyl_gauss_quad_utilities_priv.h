@@ -1,8 +1,11 @@
 #pragma once
 
+#include <string.h>
+
 #include <gkyl_array.h>
-#include <gkyl_range.h>
+#include <gkyl_basis.h>
 #include <gkyl_gauss_quad_data.h>
+#include <gkyl_range.h>
 
 // create range to loop over quadrature points.
 static inline struct gkyl_range get_qrange(int dim, int num_quad) {
