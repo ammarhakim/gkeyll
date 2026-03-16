@@ -11,9 +11,9 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx(const doubl
   // out (GPU): double array to put nonzero values of the global matrix into.
 
   #ifdef __CUDA_ARCH__
-    double *csr_vals = out;
+    double *csr_vals = (double *) out;
   #else
-    gkyl_mat_triples *tri = out;
+    gkyl_mat_triples *tri = (gkyl_mat_triples *) out;
   #endif
 
   const double *epsxx = &epsilon[0];
@@ -21,22 +21,22 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx(const doubl
   double rdx00 = 4.0/(dx[0]*dx[0]);
 
   #ifdef __CUDA_ARCH__
-  atomicAdd( &csr_vals[globalIdxs[0]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[1]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[2]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[3]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[8]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[9]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[10]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[11]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[0]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[1]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[2]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[3]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[8]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[9]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[10]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[11]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
   #else
     gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], -(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]);
     gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]);
@@ -69,9 +69,9 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx(const doub
   // out (GPU): double array to put nonzero values of the global matrix into.
 
   #ifdef __CUDA_ARCH__
-    double *csr_vals = out;
+    double *csr_vals = (double *) out;
   #else
-    gkyl_mat_triples *tri = out;
+    gkyl_mat_triples *tri = (gkyl_mat_triples *) out;
   #endif
 
   const double *epsxx = &epsilon[0];
@@ -79,22 +79,22 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx(const doub
   double rdx00 = 4.0/(dx[0]*dx[0]);
 
   #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[0]],__double_as_longlong(1.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[1]],__double_as_longlong(0.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[2]],__double_as_longlong(0.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[3]],__double_as_longlong(0.0));
-  atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[8]],__double_as_longlong(0.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[9]],__double_as_longlong(0.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[10]],__double_as_longlong(1.0));
-  atomicExch((unsigned long long int*) &csr_vals[globalIdxs[11]],__double_as_longlong(0.0));
-  atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[0]],__double_as_longlong(1.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[1]],__double_as_longlong(0.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[2]],__double_as_longlong(0.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[3]],__double_as_longlong(0.0));
+    atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[8]],__double_as_longlong(0.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[9]],__double_as_longlong(0.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[10]],__double_as_longlong(1.0));
+    atomicExch((unsigned long long int*) &csr_vals[globalIdxs[11]],__double_as_longlong(0.0));
+    atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
   #else
     gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
     gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -127,9 +127,9 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx(const double
   // out (GPU): double array to put nonzero values of the global matrix into.
 
   #ifdef __CUDA_ARCH__
-    double *csr_vals = out;
+    double *csr_vals = (double *) out;
   #else
-    gkyl_mat_triples *tri = out;
+    gkyl_mat_triples *tri = (gkyl_mat_triples *) out;
   #endif
 
   const double *epsxx = &epsilon[0];
@@ -140,22 +140,22 @@ GKYL_CU_DH void fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx(const double
   rdx2[0] = 2.0/dx[0]; 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd( &csr_vals[globalIdxs[0]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[1]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[2]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[3]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[8]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[9]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[10]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[11]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
-  atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[0]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[1]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[2]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[3]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[4]],(0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[5]],(-(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[6]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[7]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[8]],(0.08333333333333333*epsxx[0]*rdx00+0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[9]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[10]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00+0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[11]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[12]],(-(0.08333333333333333*epsxx[0]*rdx00)-0.05555555555555555*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[13]],(0.08333333333333333*epsxx[0]*rdx00-0.09622504486493762*kSq[1]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[14]],(-(0.1443375672974064*epsxx[2]*rdx00)-0.16666666666666666*epsxx[0]*rdx00-0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]));
+    atomicAdd( &csr_vals[globalIdxs[15]],(0.1443375672974064*epsxx[2]*rdx00+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]-0.19245008972987523*kSq[2]-0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]));
   #else
     gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], -(0.1443375672974064*epsxx[2]*rdx00)+0.16666666666666666*epsxx[0]*rdx00-0.16666666666666666*kSq[3]+0.19245008972987523*kSq[2]+0.19245008972987523*kSq[1]-0.2222222222222222*kSq[0]);
     gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1443375672974064*epsxx[2]*rdx00-0.16666666666666666*epsxx[0]*rdx00+0.09622504486493762*kSq[2]-0.1111111111111111*kSq[0]);
