@@ -946,7 +946,14 @@ struct gk_species {
   struct gkyl_array *f_host; // Host copy for IO and initialization.
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
-  
+
+  struct gkyl_array *angle; // grazing angle (temporary, should be put in geom struct).
+  bool alloc_srg_aux_var; // To know whether surrogate auxiliary variables are allocated.
+  struct gkyl_gk_maxwellian_moments *maxwell_mom; // Maxwellian moment array to get temperature and density for surrogate BCs.
+  struct gkyl_array *maxmom; // Array for maxwellian moments.
+  struct gkyl_array *dens_sheath; // Zeroth maxwellian moment, at the sheath used for surrogate BCs.
+  struct gkyl_array *temp_sheath; // Third maxwellian moment times mass, at the sheath used for surrogate BCs.
+
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment integ_moms; // Integrated moments.
   struct gk_species_moment *moms; // Diagnostic moments

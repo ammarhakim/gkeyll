@@ -441,7 +441,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -678,7 +678,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -921,7 +921,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, q2Dm, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -989,7 +989,7 @@ void test_bc_sheath_gk_1x2v_ho()
   };
 
   // Electrons with positive sheath entrance potential.
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
   pars.use_surrogate = false;
   test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
@@ -1039,7 +1039,7 @@ void test_bc_sheath_gk_2x2v_ho()
   };
 
   // Electrons with positive sheath entrance potential.
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
   pars.use_surrogate = false;
   test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
@@ -1091,7 +1091,7 @@ void test_bc_sheath_gk_3x2v_ho()
   };
 
   // Electrons with positive sheath entrance potential.
-  write_fields = true;
+  write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
   pars.use_surrogate = false;
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
