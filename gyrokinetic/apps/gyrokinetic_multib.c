@@ -1395,6 +1395,25 @@ gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyroki
 }
 
 //
+// ............. BGK Source outputs ............... //
+// 
+void
+gkyl_gyrokinetic_multib_app_calc_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_multib_app* app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(app->singleb_apps[b], sidx);
+  }
+}
+
+//
 // ............. LTE outputs ............... //
 // 
 void
@@ -1530,6 +1549,7 @@ gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app* app
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_multib_app_calc_species_source_bgk_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(app, i, tm);
   }
@@ -1546,6 +1566,7 @@ gkyl_gyrokinetic_multib_app_write_integrated_mom(gkyl_gyrokinetic_multib_app *ap
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_multib_app_write_species_integrated_mom(app, i);
     gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(app, i);
+    gkyl_gyrokinetic_multib_app_write_species_source_bgk_integrated_diagnostics(app, i);
     gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(app, i);
     gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(app, i);

@@ -2992,8 +2992,8 @@ void gk_species_source_bgk_calc_integrated_diags(gkyl_gyrokinetic_app* app, stru
  * @param gks Species object.
  * @param src BGK source object.
  */
-void gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app,
-  struct gk_source_bgk *src, struct gk_positivity *pos);
+void gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_source_bgk *src);
 
 /**
  * Release species source_bgk object.

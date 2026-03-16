@@ -244,11 +244,11 @@ gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
   double avals_global[num_mom];
   
   // Compute integrated moments of source term.
-  gk_species_moment_calc(&src->integ_moms, gks->local, app->local, src->Jrate_fmax); 
+  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_fmax); 
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
-  gkyl_array_reduce_range(src->red_integ_diag, src->integ_moms.marr, GKYL_SUM, &app->local);
+  gkyl_array_reduce_range(src->red_integ_diag, src->integ_mom_op.marr, GKYL_SUM, &app->local);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
     src->red_integ_diag, src->red_integ_diag_global);
   if (app->use_gpu) {
@@ -286,10 +286,9 @@ gks_src_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2]);
 
-    if (src->is_first_integ_write_call) {
+    if (src->is_first_diag_dynvec_write_call) {
       gkyl_dynvec_write(src->integ_diag, fileNm);
-      src->is_first_integ_write_call = false;
-      src->integ_diag_file_exists = true;
+      src->is_first_diag_dynvec_write_call = false;
     }
     else {
       gkyl_dynvec_awrite(src->integ_diag, fileNm);
@@ -367,7 +366,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
 
     // Divide rate by 3 so we can group density, momentum and energy terms.
-    gkyl_array_scale(rate_host, 1.0/3.0, &app->local);
+    gkyl_array_scale_range(rate_host, 1.0/3.0, &app->local);
 
     gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
     gkyl_array_copy(src->rate, rate_host);
@@ -459,15 +458,15 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
 
     if (app->use_gpu) {
-      src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_moms.num_mom]));
-      src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_moms.num_mom]));
+      src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
     } 
     else {
-      src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_moms.num_mom]));
-      src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_moms.num_mom]));
+      src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
     }
-    src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_moms.num_mom);
-    src->is_first_integ_write_call = true;
+    src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
+    src->is_first_diag_dynvec_write_call = true;
 
     // Methods chosen at runtime.
     src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
@@ -491,6 +490,20 @@ gk_species_source_bgk_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *
   struct gk_source_bgk *src, double tm, int frame)
 {
   src->write_diags_func(app, gks, src, tm, frame);
+}
+
+void
+gk_species_source_bgk_calc_integrated_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_source_bgk *src, double tm)
+{
+  src->calc_integrated_diags_func(app, gks, src, tm);
+}
+
+void
+gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_source_bgk *src)
+{
+  src->write_integrated_diags_func(app, gks, src);
 }
 
 void
