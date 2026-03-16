@@ -109,3 +109,5 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact_converged(const double *mu_new, int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
 
+EXTERN_C_END
+
