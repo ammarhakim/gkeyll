@@ -750,7 +750,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_d3d_iwl_2x2v_p1",
 
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
@@ -787,6 +786,8 @@ main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

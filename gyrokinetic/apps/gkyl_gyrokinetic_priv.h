@@ -1284,7 +1284,7 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
+  struct gkyl_bc_twistshift *bc_ts_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
   
@@ -1411,14 +1411,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
   }
   return out;
 }
-
-/**
- * Free memory for array metadata object.
- *
- * @param mt Array metadata object.
- */
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
