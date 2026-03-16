@@ -1,4 +1,4 @@
-/* gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  –  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 316d59e */
+/* gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  –  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 9c5f494 */
 #pragma once
 
 #include <math.h>
@@ -7,6 +7,16 @@
 
 /* Number of points in the fixed mu-grid. */
 #define SRGRZ_N_MU 20
+
+/* --- weight storage type --- **/
+typedef struct {
+  double W0[225], b0[75];
+  double W1[5625], b1[75];
+  double W2[5625], b2[75];
+  double W3[1500], b3[20];
+  double Y_mu[20], Y_sigma[20];
+  double MU_GRID[20];
+} srgrz_weights_t;
 
 EXTERN_C_BEG
 
