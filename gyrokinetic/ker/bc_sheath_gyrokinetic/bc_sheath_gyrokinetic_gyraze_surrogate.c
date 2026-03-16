@@ -326,11 +326,11 @@ GKYL_CU_DH double *bc_sheath_gyrokinetic_srgrz_grid(double *out)
     return out;
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const double *mu_new, int n, double *out)
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const double *mu_new, int n, double mu_ref, double *out)
 {
     int ng = SRGRZ_N_MU;
     for (int i = 0; i < n; i++) {
-        double mu = mu_new[i];
+        double mu = mu_new[i]/mu_ref;
         if (mu <= MU_GRID[0])          { out[i] = vcut[0];          continue; }
         if (mu >= MU_GRID[ng - 1])     { out[i] = vcut[ng - 1];     continue; }
         /* binary search for the bracketing interval */
@@ -344,24 +344,21 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const dou
     }
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double alpha, double gamma, double phi, double *out)
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double mu_ref, double alpha, double gamma, double phi, double *out)
 {
     double vcut[SRGRZ_N_MU];
     bc_sheath_gyrokinetic_srgrz_predict(alpha, gamma, phi, vcut);
-    bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, out);
+    bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, mu_ref, out);
 }
 
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical(const double *mu_new, int n, double phi, double phi_wall, double density,
     double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
-    double munorm[n];
-    for (int i = 0; i < n; i++) {
-        munorm[i] = mu_new[i] * bmag / temperature;
-    }
+    double muref = temperature / bmag;
     double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
     double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temperature;
     double alpha = impact_angle * 180/M_PI;
-    bc_sheath_gyrokinetic_srgrz_eval(munorm, n, alpha, gamma, phinorm, out);
+    bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, muref, alpha, gamma, phinorm, out);
 }
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
