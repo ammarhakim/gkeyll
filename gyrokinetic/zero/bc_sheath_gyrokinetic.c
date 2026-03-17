@@ -96,7 +96,20 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_disabled;
   // Setup vcut_fact to 1 by default.
   up->vcut_fact_dim = cdim-1 + vdim-1;
-  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(up->vcut_fact_dim, basis->poly_order);
+
+  // Get polynomial order
+  int poly_order;
+  if (use_gpu) {
+    struct gkyl_basis *basis_ho;
+    basis_ho = gkyl_malloc(sizeof(struct gkyl_basis));
+    gkyl_cu_memcpy(basis_ho, basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
+    poly_order = basis_ho->poly_order;
+    gkyl_free(basis_ho);
+  } else {
+    poly_order = basis->poly_order;
+  }
+  gkyl_cart_modal_serendip(&up->vcut_fact_basis, up->vcut_fact_dim, poly_order);
+
   int lower[up->vcut_fact_dim], upper[up->vcut_fact_dim];
   for (int d=0; d < cdim-1; d++) {
     lower[d] = skin_r->lower[d];
@@ -104,9 +117,9 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   } 
   lower[up->vcut_fact_dim-1] = skin_r->lower[skin_r->ndim-1];
   upper[up->vcut_fact_dim-1] = skin_r->upper[skin_r->ndim-1];
-  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
-  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
-  double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
+  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis.ndim, lower, upper);
+  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis.num_basis, up->vcut_fact_local.volume);
+  double dg_norm = pow(sqrt(2), up->vcut_fact_basis.ndim);
   gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
   if (use_surrogate) {
     assert(vdim > 1);
@@ -216,7 +229,7 @@ struct gkyl_array* gkyl_bc_sheath_gyrokinetic_get_vcut_fact(struct gkyl_bc_sheat
   return gkyl_array_acquire(up->vcut_fact);
 }
 
-struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up)
+struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   return up->vcut_fact_basis;
 }
@@ -249,7 +262,6 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 #endif
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->vcut_fact);
-  gkyl_cart_modal_basis_release(up->vcut_fact_basis);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }

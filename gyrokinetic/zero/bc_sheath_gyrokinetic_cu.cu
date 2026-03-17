@@ -59,13 +59,14 @@ gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis,
 
 __global__ static void
 gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
-  const struct gkyl_range conf_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis,
+  const struct gkyl_range conf_r, const struct gkyl_range vcut_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis,
   const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
+  const struct gkyl_array *phi_wall, const struct gkyl_array *vcut_fact, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
 {
   int fidx[GKYL_MAX_DIM]; // Flipped index.
   int pidx[GKYL_MAX_DIM];
   int vidx[2];
+  int vcut_fact_idx[GKYL_MAX_CDIM];
 
   int pdim = skin_r.ndim;
   int vpar_dir = cdim;
@@ -79,6 +80,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     // since update_range is a subrange
 
     gkyl_sub_range_inv_idx(&skin_r, linc, pidx);
+    // gkyl_sub_range_inv_idx(&vcut_r, linc, vcut_fact_idx);
 
     gkyl_copy_int_arr(pdim, pidx, fidx);
     fidx[vpar_dir] = uplo - pidx[vpar_dir];
@@ -99,13 +101,19 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(vmap, vel_loc);
 
+    // Get vcut factor.
+    for (int d=0; d<cdim-1; d++) vcut_fact_idx[d] = pidx[d]; // config space perp directions.
+    vcut_fact_idx[cdim-1] = pidx[pdim-1]; // mu direction.
+    long vcut_fact_loc = gkyl_range_idx(&vcut_r, vcut_fact_idx);
+    const double *vcut_fact_p = (const double*) gkyl_array_cfetch(vcut_fact, vcut_fact_loc);
+
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
     // 1) fhat=0 (no reflection, i.e. absorb),
     // 2) fhat=f (full reflection)
     // 3) fhat=c*f (partial reflection)
     double fhat[112];  // MF 2022/08/24: hardcoded to number of DG coeffs in 3x2v p2 for now.
-    kers->reflectedf(vmap_p, q2Dm, phi_p, phi_wall_p, inp, fhat);
+    kers->reflectedf(vmap_p, q2Dm, phi_p, phi_wall_p, vcut_fact_p, inp, fhat);
 
     // Reflect fhat into skin cells.
     bc_gksheath_reflect(dir, basis, cdim, out, fhat);
@@ -120,7 +128,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *u
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
-      *conf_r, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev,
+      *conf_r, up->vcut_fact_local, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->vcut_fact->on_dev,
       up->kernels_cu, distf->on_dev);
   }
 }

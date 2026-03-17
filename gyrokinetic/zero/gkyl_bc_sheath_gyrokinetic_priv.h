@@ -83,7 +83,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
   int vcut_fact_dim; // Dimensionality of vcut_fact array.
   struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
-  struct gkyl_basis *vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
+  struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
   struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp, double q, double m,
@@ -164,11 +164,10 @@ bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_ed
  * @param up BC updater.
  * @param phi Electrostatic potential.
  * @param phi_wall Wall potential.
- * @param vcut_fact Alpha(mu) factor for mu dependent reflection.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
 void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, const struct gkyl_array *vcut_fact, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 #endif
