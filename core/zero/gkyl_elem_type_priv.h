@@ -5,11 +5,12 @@
 
 // code for array datatype for use in IO
 static const uint64_t gkyl_array_data_type[] = {
-  [GKYL_INT] = 0,
-  [GKYL_FLOAT] = 1,
+  [GKYL_INT]    = 0,
+  [GKYL_FLOAT]  = 1,
   [GKYL_DOUBLE] = 2,
   [GKYL_INT_64] = 3,
-  [GKYL_USER] = 32,
+  [GKYL_LONG]   = 4,
+  [GKYL_USER]   = 32,
 };
 
 // mapping of code to datatype: MUST be consistent with the
@@ -19,6 +20,7 @@ static const int gkyl_array_code_to_data_type[] = {
   [1] = GKYL_FLOAT,
   [2] = GKYL_DOUBLE,
   [3] = GKYL_INT_64,
+  [4] = GKYL_LONG,
   [32] = GKYL_USER
 };    
 
@@ -28,6 +30,7 @@ static const size_t gkyl_elem_type_size[] = {
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
   [GKYL_INT_64] = sizeof(int64_t),
+  [GKYL_LONG] = sizeof(long),
   [GKYL_USER] = 1,
 };
 

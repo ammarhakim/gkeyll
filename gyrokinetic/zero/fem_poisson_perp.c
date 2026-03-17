@@ -37,7 +37,11 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   } else {
     up->ishelmholtz = false;
     kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->num_basis, 1);
-    gkyl_array_clear(kSq_ho, 0.);
+    gkyl_array_clear(kSq_ho, 0.0);
+
+    up->kSq_null = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, kSq_ho->ncomp, kSq_ho->size)
+                          : gkyl_array_acquire(kSq_ho);
+    gkyl_array_clear(up->kSq_null, 0.0);
   }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
@@ -177,11 +181,11 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   up->prob = gkyl_superlu_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
 #endif
 
-  struct gkyl_mat_triples **tri = gkyl_malloc(up->par_range.volume*sizeof(struct gkyl_mat_triples *));
+  up->tri = gkyl_malloc(up->par_range.volume*sizeof(struct gkyl_mat_triples *));
   for (size_t i=0; i<up->par_range.volume; i++) {
-    tri[i] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+    up->tri[i] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri[i]);
+    if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(up->tri[i]);
 #endif
   }
 
@@ -209,21 +213,75 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
       // Apply the -nabla . (epsilon*nabla_perp)-kSq stencil.
       keri = idx_to_inloup_ker(up->ndim_perp, up->num_cells, idx1);
-      up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
+      up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, up->tri[paridx]);
     }
   }
+
+  if (!(up->use_gpu))
+    gkyl_superlu_amat_from_triples(up->prob, up->tri);
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
-  else
-    gkyl_superlu_amat_from_triples(up->prob, tri);
-#else
-  gkyl_superlu_amat_from_triples(up->prob, tri);
+    gkyl_culinsolver_amat_from_triples(up->prob_cu, up->tri);
 #endif
 
-  for (size_t i=0; i<up->par_range.volume; i++)
-    gkyl_mat_triples_release(tri[i]);
-  gkyl_free(tri);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    // Store offsets into csr_val in cudss_ops.cu so we can update the LHS matrix on the GPU.
+    up->csr_val_idx = gkyl_array_cu_dev_new(GKYL_LONG, pow(up->basis.num_basis, 2), up->epsilon->size);
+    struct gkyl_array *csr_val_idx_ho = gkyl_array_new(GKYL_LONG, up->csr_val_idx->ncomp, up->csr_val_idx->size);
+
+    gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+    while (gkyl_range_iter_next(&up->par_iter1d)) {
+      long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+      gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+      while (gkyl_range_iter_next(&up->perp_iter2d)) {
+        long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+        for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
+        idx1[up->pardir] = up->par_iter1d.idx[0];
+
+        long linidx = gkyl_range_idx(up->solve_range, idx1);
+
+        long *csr_val_idx_p = gkyl_array_fetch(csr_val_idx_ho, linidx);
+
+        int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
+        for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
+        up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+	for (int k=0; k<up->basis.num_basis; k++) {
+	  for (int l=0; l<up->basis.num_basis; l++) {
+            size_t nnz = gkyl_mat_triples_size(up->tri[paridx]); // Number of nonzero elements.
+            // Given the global i,j (row-col) place in the LHS matrix, find the linear index into the mat_triples list. 
+            // Here we do a brute-force search as we are unsure of the order, and this is done only once at t=0.
+	    long off = -1;
+            gkyl_mat_triples_iter *mtt_iter = gkyl_mat_triples_iter_new(up->tri[k]);
+            for (size_t m=0; m<nnz; ++m) {
+              gkyl_mat_triples_iter_next(mtt_iter); // bump iterator.
+              struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(mtt_iter);
+              if ((up->globalidx[k] == mt.row) && (up->globalidx[l] == mt.col)) {
+                off = m;
+		break;
+	      }
+	    }
+
+	    csr_val_idx_p[k*up->basis.num_basis+l] = paridx*nnz + off;
+          }
+        }
+      }
+    }
+
+    gkyl_array_copy(up->csr_val_idx, csr_val_idx_ho);
+    gkyl_array_release(csr_val_idx_ho);
+  }
+#endif
+
+  if (up->use_gpu) {
+    for (size_t i=0; i<up->par_range.volume; i++)
+      gkyl_mat_triples_release(up->tri[i]);
+
+    gkyl_free(up->tri);
+  }
 
   gkyl_array_release(epsilon_ho);
   gkyl_array_release(kSq_ho);
@@ -350,6 +408,52 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
 
 }
 
+void
+gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(epsilon));
+    if (up->ishelmholtz)
+      assert(gkyl_array_is_cu_dev(kSq));
+
+    gkyl_fem_poisson_perp_update_lhs_cu(up, epsilon, kSq);
+    return;
+  }
+#endif
+
+  int idx0[GKYL_MAX_CDIM],  idx1[GKYL_MAX_CDIM];
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+    while (gkyl_range_iter_next(&up->perp_iter2d)) {
+      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+      for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
+      idx1[up->pardir] = up->par_iter1d.idx[0];
+
+      long linidx = gkyl_range_idx(up->solve_range, idx1);
+
+      double *eps_p = gkyl_array_fetch(epsilon, linidx);
+      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq, linidx) : gkyl_array_fetch(kSq,0);
+
+      int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
+      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
+      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+      // Apply the -nabla . (epsilon*nabla_perp)-kSq stencil.
+      keri = idx_to_inloup_ker(up->ndim_perp, up->num_cells, idx1);
+      up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, up->tri[paridx]);
+    }
+  }
+
+  assert(false);
+//  if (!(up->use_gpu))
+//    gkyl_superlu_update_amat_from_triples(up->prob, up->tri);
+}
+
 void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
 {
   if (up->isdomperiodic) {
@@ -357,18 +461,28 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
     gkyl_free(up->rhs_avg);
   }
 
+  if (!(up->ishelmholtz))
+    gkyl_array_release(up->kSq_null);
+
+  if (!(up->use_gpu)) {
+    for (size_t i=0; i<up->par_range.volume; i++)
+      gkyl_mat_triples_release(up->tri[i]);
+
+    gkyl_free(up->tri);
+    gkyl_superlu_prob_release(up->prob);
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);
     gkyl_cu_free(up->dx_cu);
-    if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
+    if (up->isdomperiodic)
+      gkyl_cu_free(up->rhs_avg_cu);
+
     gkyl_cu_free(up->bcvals_cu);
+    gkyl_array_release(up->csr_val_idx);
     gkyl_culinsolver_prob_release(up->prob_cu);
-  } else {
-    gkyl_superlu_prob_release(up->prob);
   }
-#else
-  gkyl_superlu_prob_release(up->prob);
 #endif
 
   gkyl_array_release(up->brhs);

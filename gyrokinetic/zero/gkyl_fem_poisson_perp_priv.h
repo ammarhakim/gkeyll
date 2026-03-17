@@ -82,7 +82,7 @@ static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = {
 
 // Function pointer type for lhs kernels.
 typedef void (*lhsstencil_t)(const double *epsilon, const double *kSq, const double *dx, const double *bcVals,
-  const long *globalIdxs, gkyl_mat_triples *tri);
+  const long *globalIdxs, void *out);
 
 // For use in kernel tables.
 typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_loc_list_2x;
@@ -93,6 +93,7 @@ typedef struct { lhsstencil_kern_loc_list_3x list[3]; } lhsstencil_kern_bcy_list
 typedef struct { lhsstencil_kern_bcy_list_3x list[9]; } lhsstencil_kern_bcx_list_3x;
 
 // Serendipity lhs kernels.
+GKYL_CU_D
 static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
   // periodicx
   { .list =
@@ -128,6 +129,7 @@ static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
   },
 };
 
+GKYL_CU_D
 static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = {
   // periodicx
   { .list = {
@@ -482,12 +484,15 @@ struct gkyl_fem_poisson_perp {
   int numnodes_local;
   long numnodes_global;
 
+  struct gkyl_mat_triples **tri; // Matrix triples used to set LHS matrix.
+
   struct gkyl_superlu_prob *prob;
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_culinsolver_prob *prob_cu;
   struct gkyl_array *brhs_cu;
+  struct gkyl_array *csr_val_idx; // Indices into the csr_val array in cudss_ops.cu, to reset the LHS matrix.
 #endif
 
   long *globalidx;
@@ -495,6 +500,9 @@ struct gkyl_fem_poisson_perp {
   struct gkyl_fem_poisson_perp_kernels *kernels;
   struct gkyl_fem_poisson_perp_kernels *kernels_cu;
   bool use_gpu;
+
+  // Objects introduced to allow updating the LHS matrix.
+  struct gkyl_array *kSq_null; // Permittivity.
 };
 
 void
@@ -638,6 +646,15 @@ fem_poisson_perp_choose_sol_kernels(const struct gkyl_basis* basis)
 }
 
 #ifdef GKYL_HAVE_CUDA
+/**
+ * Assign the left-side matrix.
+ *
+ * @param up FEM poisson updater to run.
+ * @param epsilon Laplacian term weight.
+ * @param kSq Linear Helmholtz term.
+ */
+void gkyl_fem_poisson_perp_update_lhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
+
 /**
  * Assign the right-side vector on the device.
  *

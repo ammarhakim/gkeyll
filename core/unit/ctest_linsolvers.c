@@ -14,6 +14,7 @@ void test_cusolver_ops_multiple_rhs();
 void test_cusolver_ops_multiple_prob();
 void test_cudss_simple();
 void test_cudss_ops();
+void test_cudss_ops_update_amat();
 void test_cudss_ops_multiple_rhs();
 
 void test_slu_example()
@@ -283,6 +284,7 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDSS
   { "cudss_simple", test_cudss_simple },
   { "cudss_ops", test_cudss_ops },
+  { "cudss_ops_update_amat", test_cudss_ops_update_amat },
   { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
 #else
   { "cusolver_qr", test_cusolver_qr },

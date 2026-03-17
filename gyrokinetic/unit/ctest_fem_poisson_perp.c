@@ -158,137 +158,36 @@ void evalFunc_consteps_dirichletx_neumannx_2x(double t, const double *xn, double
   fout[0] *= (1.+kz*z);
 }
 
-void
-test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
-{
-  double epsilon_0 = 1.0;
-  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
-  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
-      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
-      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
-  {
-    lower[0] = 0.;  upper[0] = 1.;
-  }
-  int dim = sizeof(lower)/sizeof(lower[0]);
-  int dim_perp = dim-1; 
-
-  // Grids.
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
-
-  // Basis functions.
+// Persistent objects created by consteps test.
+struct fem_poisson_perp_consteps_objs {
+  struct gkyl_fem_poisson_perp *poisson;
+  struct gkyl_array *eps;
+  struct gkyl_array *rho;
+  struct gkyl_array *phi;
+  struct gkyl_array *phisol_ho;
+  struct gkyl_array *rho_ho;
+  struct gkyl_array *phi_ho;
+  struct gkyl_range localRange, localRange_ext;
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+};
 
-  int ghost[] = { 1, 1 };
-  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
-  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+void
+fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_objs *objs)
+{
+  gkyl_fem_poisson_perp_release(objs->poisson);
+  gkyl_array_release(objs->eps);
+  gkyl_array_release(objs->rho);
+  gkyl_array_release(objs->phi);
+  gkyl_array_release(objs->phisol_ho);
+  gkyl_array_release(objs->rho_ho);
+  gkyl_array_release(objs->phi_ho);
+}
 
-  // Projection updater for DG field.
-  gkyl_proj_on_basis *projob, *projob_sol;
-  if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
-  }
-
-  // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  // Create DG field for permittivity tensor.
-  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
-  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
-  // Analytic solution.
-  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
-  // Device copies:
-  struct gkyl_array *rho_ho, *phi_ho;
-  if (use_gpu) {
-    rho_ho = mkarr(false, rho->ncomp, rho->size);
-    phi_ho = mkarr(false, phi->ncomp, phi->size);
-  }
-  else {
-    rho_ho = gkyl_array_acquire(rho);
-    phi_ho = gkyl_array_acquire(phi);
-  }
-
-  // Project RHS charge density on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
-
-  // Project the permittivity onto the basis.
-  double dg0norm = pow(sqrt(2.),dim);
-  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 0*basis.num_basis);
-
-  // Project the analytic solution.
-  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
-
-  // FEM poisson solver.
-  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
-
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
-//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
-//  gkyl_fem_parproj_solve  (smooth_op, rho);
-
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
-
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(poisson, phi);
-  gkyl_array_copy(phi_ho, phi);
-
-//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
-//  gkyl_fem_parproj_solve  (smooth_op, phi);
-//  gkyl_fem_parproj_release(smooth_op);
-
-  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
-    // Subtract the volume averaged sol from the numerical and analytic solutions.
-    // This is not strictly necessary, as the potential is only known up to 
-    // constant shift, but it makes unit testing more robust across CPU/GPU.
-    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
-    double sol_avg[1];
-    // Factor accounting for normalization when subtracting a constant from a
-    // DG field and the 1/N to properly compute the volume averaged RHS.
-    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
-    // Subtract the volume averaged sol from the sol.
-    gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
-    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
-      struct gkyl_range perp_range;
-      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
-    }
-    // Now do the same to the analytic solution.
-    gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
-    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
-      struct gkyl_range perp_range;
-      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
-    }
-    gkyl_array_release(sol_cellavg);
-  }
-
-//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
-//  printf("error L2 norm = %g\n",errL2);
+void
+fem_poisson_perp_consteps_2x_check(struct fem_poisson_perp_consteps_objs *objs,
+  int poly_order, struct gkyl_poisson_bc bcs, double scale_fac)
+{
+  // Check results in fem_poisson_perp_consteps_2x test.
 
   if (poly_order == 1) {
     if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) {
@@ -297,14 +196,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
 //      };
 //      long i = 0;
 //      struct gkyl_range_iter iter;
-//      gkyl_range_iter_init(&iter, &localRange);
+//      gkyl_range_iter_init(&iter, &objs->localRange);
 //      while (gkyl_range_iter_next(&iter)) {
-//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
 //        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
 //        // Only check one cell in z:
-//        for (int m=0; m<basis.num_basis; m++) {
-//          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//        for (int m=0; m<objs->basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
 //          TEST_MSG("Produced: %.13e", phi_p[m]);
 //          i += 1;
 //        }
@@ -386,14 +285,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       };
       long i = 0;
       struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
+      gkyl_range_iter_init(&iter, &objs->localRange);
       while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
         // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
           i += 1;
         }
@@ -475,14 +374,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       };
       long i = 0;
       struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
+      gkyl_range_iter_init(&iter, &objs->localRange);
       while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
         // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
           i += 1;
         }
@@ -564,14 +463,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       };
       long i = 0;
       struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
+      gkyl_range_iter_init(&iter, &objs->localRange);
       while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
         // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
           i += 1;
         }
@@ -585,19 +484,181 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
     TEST_MSG("This poly_order is not available");
   }
 
-//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_2x_rho_1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_2x_phi_8x8_p1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_2x_phisol_8x8_p1.gkyl");
+}
 
-  gkyl_fem_poisson_perp_release(poisson);
+struct fem_poisson_perp_consteps_objs*
+test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
+  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
+
+  struct fem_poisson_perp_consteps_objs *objs = gkyl_malloc(sizeof(*objs));
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  gkyl_cart_modal_serendip(&objs->basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, ghost, &objs->localRange_ext, &objs->localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob, *projob_sol;
+  if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  objs->rho = mkarr(use_gpu, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  objs->phi = mkarr(use_gpu, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  objs->eps = mkarr(use_gpu, epsnum*objs->basis.num_basis, objs->localRange_ext.volume);
+  // Analytic solution.
+  objs->phisol_ho = mkarr(false, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Device copies:
+  if (use_gpu) {
+    objs->rho_ho = mkarr(false, objs->rho->ncomp, objs->rho->size);
+    objs->phi_ho = mkarr(false, objs->phi->ncomp, objs->phi->size);
+  }
+  else {
+    objs->rho_ho = gkyl_array_acquire(objs->rho);
+    objs->phi_ho = gkyl_array_acquire(objs->phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &objs->localRange, objs->rho_ho);
   gkyl_proj_on_basis_release(projob);
+  gkyl_array_copy(objs->rho, objs->rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.),dim);
+  gkyl_array_shiftc(objs->eps, epsilon_0*dg0norm, 0*objs->basis.num_basis);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &objs->localRange, objs->phisol_ho);
   gkyl_proj_on_basis_release(projob_sol);
-  gkyl_array_release(rho);
-  gkyl_array_release(eps);
-  gkyl_array_release(phi);
-  gkyl_array_release(phisol_ho);
-  gkyl_array_release(rho_ho);
-  gkyl_array_release(phi_ho);
+
+  // FEM poisson solver.
+  objs->poisson = gkyl_fem_poisson_perp_new(&objs->localRange, &grid, objs->basis, &bcs, objs->eps, NULL, use_gpu);
+
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&objs->localRange, &objs->localRange_ext, &objs->basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, objs->rho, objs->rho);
+//  gkyl_fem_parproj_solve  (smooth_op, objs->rho);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+  gkyl_array_copy(objs->phi_ho, objs->phi);
+
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
+
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    // Subtract the volume averaged sol from the numerical and analytic solutions.
+    // This is not strictly necessary, as the potential is only known up to 
+    // constant shift, but it makes unit testing more robust across CPU/GPU.
+    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, objs->localRange_ext.volume);
+    double sol_avg[1];
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
+    // Subtract the volume averaged sol from the sol.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phi_ho, objs->localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(objs->phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    // Now do the same to the analytic solution.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phisol_ho, objs->localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(objs->phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    gkyl_array_release(sol_cellavg);
+  }
+
+//  double errL2 = error_L2norm(grid, objs->localRange, objs->basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
+
+  // Check results for correctness.
+  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->rho_ho, "ctest_fem_poisson_perp_2x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->phi_ho, "ctest_fem_poisson_perp_2x_phi_8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->phisol_ho, "ctest_fem_poisson_perp_2x_phisol_8x8_p1.gkyl");
+
+  return objs;
+}
+
+void
+test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  struct fem_poisson_perp_consteps_objs *objs = test_fem_poisson_perp_consteps_2x_objs(poly_order, cells, bcs, use_gpu);
+  fem_poisson_perp_consteps_objs_release(objs);
+}
+
+void
+test_fem_poisson_perp_consteps_2x_update(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  // Run the first test.
+  struct fem_poisson_perp_consteps_objs *objs = test_fem_poisson_perp_consteps_2x_objs(poly_order, cells, bcs, use_gpu);
+
+  // Now update the LHS matrix. Multiply it by a constant so the solution should be the same as before but divided by that constant.
+  double prob_fac = 1.3;
+  gkyl_array_scale(objs->eps, prob_fac);
+  gkyl_fem_poisson_perp_update_lhs(objs->poisson, objs->eps, NULL);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+  gkyl_array_copy(objs->phi_ho, objs->phi);
+
+  // Check results for correctness.
+  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0/prob_fac);
+
+  // Release persistent objects. 
+  fem_poisson_perp_consteps_objs_release(objs);
 }
 
 void evalFunc_consteps_periodicx_periodicy_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
@@ -3149,6 +3210,16 @@ void test_2x_p1_dirichletx_neumannx_consteps() {
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
 }
 
+void test_2x_p1_neumannx_dirichletx_consteps_update() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, false);
+}
+
 void test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -3424,6 +3495,16 @@ void gpu_test_2x_p1_dirichletx_neumannx_consteps() {
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
+void gpu_test_2x_p1_neumannx_dirichletx_consteps_update() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, true);
+}
+
 void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -3667,6 +3748,7 @@ TEST_LIST = {
   { "test_2x_p1_dirichletx", test_2x_p1_dirichletx_consteps },
   { "test_2x_p1_neumannx_dirichletx", test_2x_p1_neumannx_dirichletx_consteps },
   { "test_2x_p1_dirichletx_neumannx", test_2x_p1_dirichletx_neumannx_consteps },
+  { "test_2x_p1_neumannx_dirichletx_update", test_2x_p1_neumannx_dirichletx_consteps_update },
 
   { "test_3x_p1_periodicx_periodicy", test_3x_p1_periodicx_periodicy_consteps },
   { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety_consteps },
@@ -3691,6 +3773,7 @@ TEST_LIST = {
   { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps },
   { "gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps },
   { "gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps },
+  { "gpu_test_2x_p1_neumannx_dirichletx_update", gpu_test_2x_p1_neumannx_dirichletx_consteps_update },
 
   { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
   { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
