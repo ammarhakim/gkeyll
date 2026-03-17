@@ -66,6 +66,15 @@ void gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *
 void gkyl_superlu_solve(struct gkyl_superlu_prob *prob);
 
 /**
+ * Update the values of the left-hand-side SuperLU matrix A in Ax=B problem from a list of
+ * triples. Assumes the sparsity pattern didn't change.
+ *
+ * @param prob SuperLu struct holding arrays used in problem.
+ * @param tri coordinates & values of non-zero entries in A matrix (triplets).
+ */
+void gkyl_superlu_amat_update_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri);
+
+/**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.
  * Recall the RHS is a mrow x nrhs matrix.
  *

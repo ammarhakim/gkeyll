@@ -427,6 +427,9 @@ gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *e
   while (gkyl_range_iter_next(&up->par_iter1d)) {
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
+    // Clear mat triples.
+    gkyl_mat_triples_clear(up->tri[paridx], 0.0);
+
     gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
       long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
@@ -437,7 +440,7 @@ gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *e
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *eps_p = gkyl_array_fetch(epsilon, linidx);
-      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq, linidx) : gkyl_array_fetch(kSq,0);
+      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq, linidx) : gkyl_array_fetch(up->kSq_null,0);
 
       int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
@@ -449,9 +452,7 @@ gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *e
     }
   }
 
-  assert(false);
-//  if (!(up->use_gpu))
-//    gkyl_superlu_update_amat_from_triples(up->prob, up->tri);
+  gkyl_superlu_amat_update_from_triples(up->prob, up->tri);
 }
 
 void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
