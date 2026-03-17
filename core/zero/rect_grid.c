@@ -132,48 +132,49 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
 }
 
 void
-gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp)
+gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
 {
-  if (fp == stdout || fp == stderr) {
-    fprintf(fp, "%s = { ndim = %d, ", nm, grid->ndim);
-
-    fprintf(fp, " lower = { ");
-    for (int d=0; d<grid->ndim; ++d)
-      fprintf(fp, "%.9e%c ", grid->lower[d], d==grid->ndim-1 ? ' ' : ',');
-    fprintf(fp, "}, ");
-
-    fprintf(fp, "upper = { ");
-    for (int d=0; d<grid->ndim; ++d)
-      fprintf(fp, "%.9e%c ", grid->upper[d] , d==grid->ndim-1 ? ' ' : ',');
-    fprintf(fp, "}, ");
-
-    fprintf(fp, "cells = { ");
-    for (int d=0; d<grid->ndim; ++d)
-      fprintf(fp, "%d%c ", grid->cells[d] , d==grid->ndim-1 ? ' ' : ',');
-    fprintf(fp, "}, ");
-
-    fprintf(fp, "dx = { ");
-    for (int d=0; d<grid->ndim; ++d)
-      fprintf(fp, "%.9e%c ", grid->upper[d] , d==grid->ndim-1 ? ' ' : ',');
-    fprintf(fp, "}, ");
-
-    fprintf(fp, " cellVolume = %.9e, ", grid->cellVolume );
-    
-    fprintf(fp, " }\n");
-    fflush(fp);
-  }
-  else {
-    // Dimension and shape are written as 64 bit integers.
-    uint64_t ndim = grid->ndim;
-    uint64_t cells[GKYL_MAX_DIM];
-    for (int d=0; d<grid->ndim; ++d)
-      cells[d] = grid->cells[d];
+  // Dimension and shape are written as 64 bit integers.
+  uint64_t ndim = grid->ndim;
+  uint64_t cells[GKYL_MAX_DIM];
+  for (int d=0; d<grid->ndim; ++d)
+    cells[d] = grid->cells[d];
   
-    fwrite(&ndim, sizeof(uint64_t), 1, fp);
-    fwrite(cells, sizeof(uint64_t), grid->ndim, fp);
-    fwrite(grid->lower, sizeof(double), grid->ndim, fp);
-    fwrite(grid->upper, sizeof(double), grid->ndim, fp);
-  }
+  fwrite(&ndim, sizeof(uint64_t), 1, fp);
+  fwrite(cells, sizeof(uint64_t), grid->ndim, fp);
+  fwrite(grid->lower, sizeof(double), grid->ndim, fp);
+  fwrite(grid->upper, sizeof(double), grid->ndim, fp);
+}
+
+void
+gkyl_rect_grid_print(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp)
+{
+  fprintf(fp, "%s = { ndim = %d, ", nm, grid->ndim);
+
+  fprintf(fp, " lower = { ");
+  for (int d = 0; d < grid->ndim; ++d)
+    fprintf(fp, "%.9e%c ", grid->lower[d], d == grid->ndim - 1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "upper = { ");
+  for (int d = 0; d < grid->ndim; ++d)
+    fprintf(fp, "%.9e%c ", grid->upper[d], d == grid->ndim - 1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "cells = { ");
+  for (int d = 0; d < grid->ndim; ++d)
+    fprintf(fp, "%d%c ", grid->cells[d], d == grid->ndim - 1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "dx = { ");
+  for (int d = 0; d < grid->ndim; ++d)
+    fprintf(fp, "%.9e%c ", grid->dx[d], d == grid->ndim - 1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, " cellVolume = %.9e, ", grid->cellVolume);
+
+  fprintf(fp, " }\n");
+  fflush(fp);
 }
 
 bool

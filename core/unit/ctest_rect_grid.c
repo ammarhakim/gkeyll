@@ -199,7 +199,7 @@ void test_grid_io()
 
   FILE *fp = 0;
   with_file (fp, "ctest_rect_grid.dat", "w")
-    gkyl_rect_grid_write(&grid, 0, fp);
+    gkyl_rect_grid_write(&grid, fp);
 
   struct gkyl_rect_grid grid2;
   with_file (fp, "ctest_rect_grid.dat", "r")
