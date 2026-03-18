@@ -24,7 +24,6 @@ struct gkyl_superlu_prob {
   SuperLUStat_t stat;
   trans_t trans;
   GlobalLU_t Glu;
-  bool assigned_rhs;
   // Arguments needed by the expert driver.
   double *R, *C;
   char equed;
@@ -72,8 +71,14 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
 
   prob->trans = NOTRANS;
 
-  prob->assigned_rhs = false;
+  // Create the RHS matrix B, with random data for now.
+  for (size_t k=0; k<mrow*GKYL_MAX2(nprob,nrhs); k++)
+    prob->rhs[k] = 1.0;
 
+  for (size_t k=0; k<prob->nprob; k++)
+    dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
+      SLU_DN, SLU_D, SLU_GE);
+  
   // Arguments needed by the expert driver.
   prob->equed = 'N';
   if ( !(prob->etree = intMalloc(ncol)) ) 
@@ -195,40 +200,28 @@ gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
 void
 gkyl_superlu_brhs_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_triples *tri)
 {
-  if (!prob->assigned_rhs) {
-    long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
-    
-    // sorted (column-major order) keys (linear indices to flattened matrix)
-    gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
-    for (size_t i=0; i<nnz_rhs; i++) {
+  long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
+  
+  // sorted (column-major order) keys (linear indices to flattened matrix)
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
+  for (size_t k=0; k<prob->nprob; k++) {
+    double *B_curr = (double*)((DNformat*)prob->B[k]->Store)->nzval;
+    for (size_t i=0; i<prob->mrow*prob->nrhs; i++) {
       gkyl_mat_triples_iter_next(iter); // bump iterator
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);    
-      prob->rhs[i] = mt.val;
+      B_curr[i] = mt.val;
     }
-    gkyl_mat_triples_iter_release(iter);
-    
-    // Create RHS matrix B. See SuperLU manual for definitions.
-    for (size_t k=0; k<prob->nprob; k++)
-      dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
-        SLU_DN, SLU_D, SLU_GE);
-  
-    prob->assigned_rhs = true;
   }
+  gkyl_mat_triples_iter_release(iter);
 }
 
 void
 gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *bin)
 {
-  if (!prob->assigned_rhs) {
-    for (size_t i=0; i<prob->mrow*GKYL_MAX2(prob->nprob,prob->nrhs); i++)
-      prob->rhs[i] = bin[i];
-    
-    // Create RHS matrix B. See SuperLU manual for definitions.
-    for (size_t k=0; k<prob->nprob; k++)
-      dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
-        SLU_DN, SLU_D, SLU_GE);
-
-    prob->assigned_rhs = true;
+  for (size_t k=0; k<prob->nprob; k++) {
+    double *B_curr = (double*)((DNformat*)prob->B[k]->Store)->nzval;
+    for (size_t i=0; i<prob->mrow*prob->nrhs; i++)
+      B_curr[i] = bin[k*prob->mrow*prob->nrhs+i];
   }
 }
 
@@ -251,13 +244,6 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
              prob->ferr, prob->berr, &prob->Glu, &prob->mem_usage, &prob->stat, &prob->info);
 
     prob->options.Fact = FACTORED; // LU decomp done.
-  }
-
-  for (size_t k=0; k<prob->nprob; k++) {
-    if (prob->assigned_rhs) {
-      Destroy_SuperMatrix_Store(prob->B[k]);
-      prob->assigned_rhs = false;
-    }
   }
 }
 
@@ -323,14 +309,15 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
   for (size_t k=0; k<prob->nprob; k++) {
     SUPERLU_FREE (prob->perm_r[k]);
     Destroy_CompCol_Matrix(prob->A[k]);
+    Destroy_SuperMatrix_Store(prob->B[k]);
     gkyl_free(prob->A[k]);
+    gkyl_free(prob->B[k]);
 
     if (prob->options.Fact==FACTORED) {
       Destroy_SuperNode_Matrix(prob->L[k]);
       Destroy_CompCol_Matrix(prob->U[k]);
     }
 
-    gkyl_free(prob->B[k]);
     gkyl_free(prob->L[k]);
     gkyl_free(prob->U[k]);
   }
