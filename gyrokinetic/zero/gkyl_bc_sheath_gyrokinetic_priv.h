@@ -86,7 +86,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
   struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-    const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp, double q, double m,
+    const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
   srgrz_eval_t surrogate_eval; // Function pointer for direct surrogate interface.
 };
@@ -143,8 +143,6 @@ bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_ed
 
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
-      kern = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
-      break;
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kern = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
       break;
@@ -170,4 +168,20 @@ bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_ed
 void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
+/**
+ * CUDA device function to update the vcut_fact array.
+ * 
+ * @param up BC updater.
+ * @param phi Electrostatic potential.
+ * @param phi_wall Wall potential.
+ * @param dens Density array.
+ * @param temp Temperature array.
+ * @param bmag Magnetic field magnitude array.
+ * @param bimpact_angle Magnetic field impact angle array.
+ * @param conf_r Configuration space range (to index phi, dens, temp, bmag, and bimpact_angle).
+ * 
+ */
+void bc_gksheath_update_vcut_fact_surrogate_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 #endif

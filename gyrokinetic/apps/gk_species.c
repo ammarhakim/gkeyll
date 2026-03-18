@@ -214,7 +214,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            species->info.charge, species->info.mass, app->gk_geom->geo_int.bmag, 
+            app->gk_geom->geo_int.bmag, 
             // app->gk_geom->geo_int.bimpactangle, 
             species->angle, // This is temporary
             &app->local);
@@ -224,7 +224,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_IWL:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            species->info.charge, species->info.mass, app->gk_geom->geo_int.bmag, 
+            app->gk_geom->geo_int.bmag, 
             // app->gk_geom->geo_int.bimpactangle, 
             species->angle, // This is temporary
             &app->local);
@@ -252,7 +252,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
-            species->info.charge, species->info.mass, app->gk_geom->geo_int.bmag, 
+            app->gk_geom->geo_int.bmag, 
             // app->gk_geom->geo_int.bimpactangle, 
             species->angle, // This is temporary
             &app->local);
@@ -262,7 +262,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_IWL:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
-            species->info.charge, species->info.mass, app->gk_geom->geo_int.bmag, 
+            app->gk_geom->geo_int.bmag, 
             // app->gk_geom->geo_int.bimpactangle, 
             species->angle, // This is temporary
             &app->local);

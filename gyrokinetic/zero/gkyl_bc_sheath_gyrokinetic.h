@@ -84,14 +84,12 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc
  * @param phi_wall Electrostatic potential at the wall.
  * @param density Density at the magnetic presheath entrance.
  * @param temperature Temperature at the magnetic presheath entrance.
- * @param q Charge
- * @param m Mass
  * @param bmag Magnetic field strength at the magnetic presheath entrance.
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param conf_r Configuration space range (to index phi, density, temperature, bmag, and bimpact_angle).
  */
 void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature, double q, double m,
+  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 
 /**
