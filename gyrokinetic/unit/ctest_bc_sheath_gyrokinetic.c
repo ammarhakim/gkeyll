@@ -1,6 +1,23 @@
-// Test creation and deallocation of updater that applies the
-// conducting sheath BC for gyrokinetics.
-//
+/* This is the unit test for the sheath BC updater.
+  * The test does the following:
+  * 1. Initializes the sheath BC updater with a given configuration space dimension, edge.
+  * 2. Project a maxwellian distribution function with input parameters to the edge of the domain (skin cells).
+  * 3. Apply the sheath BC updater to the distribution function.
+  * 4. Check the ghost values of the distribution function (where the result of the sheath BC is stored).
+  *    We check that the reflected function is zero in cells that are fully outside the cutoff 
+  *    and non zero in cells that are fully inside. You can check these numbers by setting pars.verbose to true.
+  * 5. Deallocate memory used by the updater.
+  * 
+  * This is done for each configuration space dimension (1x2v, 2x2v, 3x2v), for both lower and upper edge, and
+  * positive, negative potential, for electrons and ions.
+  * 
+  * The test is also able to verify the interface of the surrogate model for the sheath BC by setting 
+  * pars.use_surrogate to true. In this case the check uses the surrogate directly to obtain the vcut.
+  * 
+  * Finally, one can set write_fields to true to write the distribution function and visualize it with postgkyl.
+  * 
+*/
+
 #include <acutest.h>
 
 #include <gkyl_array_ops.h>
@@ -205,7 +222,8 @@ check_function(struct test_sheath_ctx *pars, struct gkyl_array *distf_ho, struct
   if (pars->verbose) {
     printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
       edge == GKYL_LOWER_EDGE? "lower" : "upper", pars->charge, delta_phi);
-    printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
+    printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n",
+      num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
   }
 }
 
@@ -443,7 +461,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -680,7 +698,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -923,7 +941,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
     gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, qs, ms, bmag, bimpact_angle, &local_conf);
+    gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf);
 
     gkyl_array_release(density);
     gkyl_array_release(density_ho);
@@ -1140,7 +1158,7 @@ void test_bc_sheath_gk_1x2v_dev()
     .impact_angle = 5.0 * GKYL_PI / 180.0, // 5 degrees
     .z0 = 0.0,
     .sigmaz = 1.0,
-    .use_surrogate = false,
+    .use_surrogate = true,
     .verbose = false,
   };
 
@@ -1190,7 +1208,7 @@ void test_bc_sheath_gk_2x2v_dev()
     .sigmax = 1.0,
     .z0 = 0.0,
     .sigmaz = 1.0,
-    .use_surrogate = false,
+    .use_surrogate = true,
     .verbose = false,
   };
 
@@ -1242,13 +1260,14 @@ void test_bc_sheath_gk_3x2v_dev()
     .sigmay = 1.0,
     .z0 = 0.0,
     .sigmaz = 1.0,
-    .use_surrogate = false,
+    .use_surrogate = true,
     .verbose = false,
   };
 
   // Electrons with positive sheath entrance potential.
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, write_fields, true);
+  pars.use_surrogate = false;
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, write_fields, true);
 
   // Electrons with negative sheath entrance potential.
