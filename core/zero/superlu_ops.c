@@ -232,6 +232,14 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
     for (size_t k=0; k<prob->nprob; k++)
       dgstrs(prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k], &prob->stat, &prob->info);
   } else {
+
+    if (prob->options.Fact == SamePattern) {
+      for (size_t k=0; k<prob->nprob; k++) {
+        Destroy_SuperNode_Matrix(prob->L[k]);
+        Destroy_CompCol_Matrix(prob->U[k]);
+      }
+    }
+
     dgssvx(&prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->etree, &prob->equed, prob->R, prob->C,
       prob->L[0], prob->U[0], NULL, 0, prob->B[0], prob->B[0], &prob->rpg, &prob->rcond,
            prob->ferr, prob->berr, &prob->Glu, &prob->mem_usage, &prob->stat, &prob->info);

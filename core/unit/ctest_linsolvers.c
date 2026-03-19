@@ -449,7 +449,6 @@ void test_superlu_ops_multiple_prob_update_amat()
     prob_fac_per_rhs[k] = (k+1)*prob_fac;
 
   for (size_t k=0; k<nprob; k++) {
-    tri_arr[k] = gkyl_mat_triples_new(m, n);
     struct gkyl_mat_triples *tri = tri_arr[k];
 
     s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
