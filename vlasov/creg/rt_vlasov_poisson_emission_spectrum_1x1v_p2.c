@@ -357,7 +357,6 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm app_inp = {
-    .name = "vp_emission_spectrum_1x1v_p2",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -ctx.Lx },
@@ -383,6 +382,8 @@ main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial & final simulation times.
