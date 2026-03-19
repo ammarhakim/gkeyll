@@ -181,6 +181,7 @@ fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_objs *ob
   gkyl_array_release(objs->phisol_ho);
   gkyl_array_release(objs->rho_ho);
   gkyl_array_release(objs->phi_ho);
+  gkyl_free(objs);
 }
 
 void
