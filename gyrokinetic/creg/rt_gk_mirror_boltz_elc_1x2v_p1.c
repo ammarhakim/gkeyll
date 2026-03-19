@@ -702,7 +702,7 @@ int main(int argc, char **argv)
       .cross_nu_ctx = &ctx,
       .den_ref = ctx.n0,
       .temp_ref = ctx.Te0,
-      .do_not_add_to_dfdt = true,
+      .not_in_dfdt = true,
     },
 
     .scaling = {
