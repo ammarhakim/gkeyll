@@ -11,7 +11,6 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic_run.h>
 #include <gkyl_math.h>
 
 #include <rt_arg_parse.h>
@@ -233,9 +232,9 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 30 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 288;
+  int Nz = 64;
   int Nvpar = 32; // 96 uniform
-  int Nmu = 32;  // 192 uniform
+  int Nmu = 16;  // 192 uniform
   int poly_order = 1;
 
   // Source parameters
@@ -254,8 +253,8 @@ create_ctx(void)
   int num_cycles = 3; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 5;        // Frames per OAP phase
-  int num_frames_fdp = 5;        // Frames per FDP phase
+  int num_frames_oap = 1;        // Frames per OAP phase
+  int num_frames_fdp = 1;        // Frames per FDP phase
   int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
   
   // Whether to evolve the field.
@@ -689,23 +688,91 @@ int main(int argc, char **argv)
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_inp = app_inp,
-    .time_stepping = {
-      .t_end           = ctx.t_end,
-      .num_frames      = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = (int)(ctx.int_diag_calc_freq * ctx.num_frames),
-      .dt_failure_tol  = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart      = app_args.is_restart,
-      .restart_frame   = app_args.restart_frame,
-      .num_steps       = app_args.num_steps,
-    },
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
+
+  // Triggers for IO.
+  struct gkyl_tm_trigger trig_write_conf, trig_write_phase, trig_calc_intdiag;
+
+  struct time_frame_state tfs = {
+    .t_curr = 0.0, // Initial simulation time.
+    .frame_curr = 0, // Initial frame.
+    .t_end = ctx.poa_phases[0].duration, // Final time of 1st phase.
+    .num_frames = ctx.poa_phases[0].num_frames, // Number of frames in 1st phase.
   };
 
-  gkyl_gyrokinetic_run_simulation(&run_inp);
+  int phase_idx_init = 0, phase_idx_end = ctx.num_phases; // Initial and final phase index.
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
 
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    tfs.frame_curr = status.frame;
+    tfs.t_curr = status.stime;
+
+    // Find out what phase we are in.
+    double time_count = 0.0;
+    int frame_count = 0;
+    int pit_curr = 0;
+    for (int pit=0; pit<ctx.num_phases; pit++) {
+      time_count += ctx.poa_phases[pit].duration;
+      frame_count += ctx.poa_phases[pit].num_frames;
+      if ((tfs.t_curr <= time_count) && (tfs.frame_curr <= frame_count)) {
+        pit_curr = pit;
+        break;
+      }
+    };
+    phase_idx_init = pit_curr;
+
+    // Change the duration and number frames so this phase reaches the expected
+    // time and number of frames and not beyond.
+    struct gk_poa_phase_params *pparams = &ctx.poa_phases[phase_idx_init];
+    pparams->num_frames = frame_count - tfs.frame_curr;
+    pparams->duration = time_count - tfs.t_curr;
+
+    gkyl_gyrokinetic_app_cout(app, stdout, "Restarting from frame %d", tfs.frame_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, " at time = %g\n", tfs.t_curr);
+  }
+  else {
+    gkyl_gyrokinetic_app_apply_ic(app, tfs.t_curr);
+
+    // Write out ICs.
+    reset_io_triggers(&ctx, &tfs, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag);
+
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, tfs.t_curr, true, -1.0);
+    write_data(&trig_write_conf, &trig_write_phase, app, tfs.t_curr, true);
+  }
+
+  if (app_args.num_steps != INT_MAX)
+    phase_idx_end = 1;
+
+  // Loop over number of number of phases;
+  for (int pit=phase_idx_init; pit<phase_idx_end; pit++) {
+    struct gk_poa_phase_params *phase_params = &ctx.poa_phases[pit];
+    run_phase(app, &ctx, app_args.num_steps, &trig_write_conf, &trig_write_phase, &trig_calc_intdiag, &tfs, phase_params);
+  }
+
+  gkyl_gyrokinetic_app_stat_write(app);
+
+  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app); // fetch simulation statistics
+  gkyl_gyrokinetic_app_cout(app, stdout, "\n");
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0)
+  {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
+
+  freeresources:
+  // simulation complete, free app
+  gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
   release_ctx(&ctx);
 

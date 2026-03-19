@@ -856,6 +856,7 @@ struct gk_fdot_multiplier {
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
+  double cfl_factor_times_omega_max; // User-specified factor multiplied by maximum characteristic frequency to get minimum dt.
   double f_threshold; // Threshold for mask-based time dilation.
   double time_dilation_scale_const;
 

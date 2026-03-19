@@ -347,7 +347,9 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
@@ -370,6 +372,7 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
     // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
   double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
+  double cfl_factor_times_omega_max; // For FIXED_FACTOR_TIMES_OMEGA_MAX: the factor multiplied by the maximum characteristic frequency to get the minimum dt value.
 };
 
 // Parameters for gk species.
