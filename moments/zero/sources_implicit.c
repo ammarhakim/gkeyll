@@ -409,6 +409,7 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
   gkyl_mem_buff_release(sol_buff);
   gkyl_mat_release(lhs_mat);
   gkyl_mat_release(rhs_mat);
+  gkyl_mat_release(lhs_T_mat);
   gkyl_mat_release(rhs_T_mat);
 }
 

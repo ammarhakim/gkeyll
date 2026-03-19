@@ -391,7 +391,6 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "vlasov_sr_twostream_1x1v",
     
     .cdim = 1, .vdim = 1,
     .lower = { -0.5 * ctx.Lx },
@@ -418,6 +417,8 @@ main(int argc, char **argv)
   };
   
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
