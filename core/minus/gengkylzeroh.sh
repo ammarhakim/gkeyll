@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # list of header files, excluding private headers
-header_list=`cd $1; ls gkyl_*.h | grep -v "priv" | sort`
+header_list=`cd $1; ls *gkyl_*.h | grep -v "priv" | sort`
 
 cat <<EOF
 #pragma once
