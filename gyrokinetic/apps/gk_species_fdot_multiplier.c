@@ -153,11 +153,8 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(gkyl_
   double omega_max = DBL_MAX;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
 
-
   // Compute omega_max - a ceiling on omega is a floor on dt.
-  printf("Max CFL rate: %e\n", omega_max);
   omega_max = fdmul->cfl_factor_times_omega_max * omega_max;
-  printf("Maximum characteristic frequency for time dilation: %e\n", omega_max);
 
   // Compute multiplier = min(1.0, omega_max / omega_cfl).
   gkyl_array_copy(fdmul->multiplier, cflrate);
