@@ -93,7 +93,19 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
+  
+  // Input structure for building the dg eqn object
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &app->confBasis,
+    .crange = &app->local,
+    .conf_flux_surf = 0,
+    .lightSpeed = c,
+    .field_id = GKYL_FIELD_E_B,
+    .elcErrorSpeedFactor = ef,
+    .mgnErrorSpeedFactor = mf,
+    .use_gpu = app->use_gpu,
+  }; 
+  eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
 

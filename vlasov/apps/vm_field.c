@@ -18,6 +18,12 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->info = vm->field;
   f->field_id = f->info.field_id;
 
+  // Acquire the geometry object (only used for GR)
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+    f->geom = app->vm_geom;
+    f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  }
+
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   f->em1 = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
@@ -113,7 +119,40 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->basis, c, ef, mf, app->use_gpu);
+
+  // Allocate nodal surface expansion of Configuration space flux array. 
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+
+    // Compute the number of configuration space nodes, with case for hybrid-tensor.
+    f->num_surf_conf_nodes = pow(app->poly_order+1,app->cdim - 1);
+
+    // 
+    f->conf_flux_surf = mkarr(app->use_gpu, app->cdim*8*f->num_surf_conf_nodes, app->local_ext.volume);
+    struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
+      .conf_basis = &app->basis,
+      .conf_grid = &app->grid,
+      .field_id = f->field_id,
+      .use_gpu = app->use_gpu,
+    }; 
+    f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
+  }
+   
+  // Input structure for building the dg eqn object
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &app->basis,
+    .crange = &app->local,
+    .conf_flux_surf = (f->field_id == GKYL_FIELD_GR_D_B ) ? f->conf_flux_surf : 0,
+    .lapse_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse->nodal_arr_vol : 0,
+    .shift_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift->nodal_arr_vol : 0,
+    .h_ij_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij->nodal_arr_vol : 0,
+    .det_h_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h->nodal_arr_vol : 0,
+    .lightSpeed = c,
+    .field_id = f->field_id,
+    .elcErrorSpeedFactor = ef,
+    .mgnErrorSpeedFactor = mf,
+    .use_gpu = app->use_gpu,
+  }; 
+  eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {false};
 
@@ -336,11 +375,31 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    // Divide out configuration-space Jacobian. 
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h->nodal_arr_vol, 
+       em, field->em_no_J, app->use_gpu); 
+
+    // Apply BCs after dividing out J so ghost cells are populated
+    // for conf_flux_surf which references the ghost cells for the flux
+    vm_field_apply_bc(app, field, field->em_no_J);
+
+    // Compute the surface expansion of the phase space flux in configuration space. 
+    gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
+      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->det_h,
+      field->em_no_J, field->cflrate, field->conf_flux_surf);
+  }
+
   if (!field->info.is_static) {
-    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    if (field->field_id == GKYL_FIELD_GR_D_B) {
+      gkyl_hyper_dg_advance(field->slvr, &app->local, field->em_no_J, field->cflrate, rhs);
+    }
+    else {
+      gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    }
 
     // Accumulate resistive layer to EM fields if present. 
-    if (app->field->has_sigma) {
+    if (app->field->has_sigma && field->field_id != GKYL_FIELD_GR_D_B) {
       for (int i = 0; i < 6; ++i) {
         gkyl_dg_mul_op_range(app->basis, i, field->sigmaEM, 0,
           app->field->sigma, i, em, &app->local);
@@ -547,6 +606,11 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+    gkyl_array_release(f->em_no_J);
+    gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
+    gkyl_array_release(f->conf_flux_surf);
+  }
   gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);
   
@@ -596,4 +660,3 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   gkyl_free(f);
 }
-

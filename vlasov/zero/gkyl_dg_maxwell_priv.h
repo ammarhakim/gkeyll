@@ -1,8 +1,11 @@
 #pragma once
 
 #include <gkyl_maxwell_kernels.h>
+#include <gkyl_dg_gr_maxwell_kernels.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
+
+#include <assert.h>
 
 // private header for use in Maxwell DG equation object creation
 // functions
@@ -11,14 +14,33 @@
 typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, const double *dx,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
+typedef double (*maxwell_surf_from_flux_t)(const double *w, const double *dx,
+  const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out);
+
+typedef void (*maxwell_gr_maxwell_vol_t)(const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
+  const double *h_ij_nodal, const double *det_h_nodal, const double *fields_no_J, double* GKYL_RESTRICT out);
+
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[4]; } gkyl_dg_maxwell_vol_kern_list;
 typedef struct { maxwell_surf_t kernels[4]; } gkyl_dg_maxwell_surf_kern_list;
+typedef struct { maxwell_gr_maxwell_vol_t kernels[4]; } gkyl_dg_maxwell_gr_maxwell_vol_kern_list;
+typedef struct { maxwell_surf_from_flux_t kernels[4]; } gkyl_dg_maxwell_surf_from_flux_kern_list;
 
 struct dg_maxwell {
   struct gkyl_dg_eqn eqn; // Base object    
   gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
+  struct gkyl_range crange; // Configuration-space range for use in indexing conf_flux
+  
   maxwell_surf_t surf[3]; // pointers to surface kernels
+  bool use_conf_flux_surf; // If using configuration-space fluxes for streaming terms (GR Maxwell).
+  const struct gkyl_array *conf_flux_surf; // Nodal expansion of fluxes at configuration space surfaces. 
+  maxwell_surf_from_flux_t surf_from_flux[3]; // Surface terms for streaming using fluxes.
+
+  maxwell_gr_maxwell_vol_t vol; // pointers to volume kernels (for nodal geometry)
+  const struct gkyl_array *lapse_vol_nodes; // nodal expansion of lapse at volume nodes
+  const struct gkyl_array *shift_vol_nodes; // nodal expansion of shift at volume nodes
+  const struct gkyl_array *h_ij_vol_nodes; // nodal expansion of spatial metric at volume nodes
+  const struct gkyl_array *det_h_vol_nodes; // nodal expansion of spatial metric determinant at volume nodes
 };
 
 //
@@ -141,6 +163,22 @@ static const gkyl_dg_maxwell_vol_kern_list ten_vol_kernels[] = {
   { NULL, kernel_maxwell_vol_3x_ser_p1, kernel_maxwell_vol_3x_tensor_p2, NULL },              // 2
 };
 
+// Volume kernel list (Serendipity basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_gr_maxwell_vol_kern_list ser_gr_maxwell_vol_kernels[] = {
+  { NULL, gr_maxwell_vol_1x_ser_p1, gr_maxwell_vol_1x_ser_p2, NULL }, // 0
+  { NULL, gr_maxwell_vol_2x_ser_p1, gr_maxwell_vol_2x_ser_p2, NULL }, // 1
+  { NULL, gr_maxwell_vol_3x_ser_p1, gr_maxwell_vol_3x_ser_p2, NULL },              // 2
+};
+
+// Volume kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_gr_maxwell_vol_kern_list ten_gr_maxwell_vol_kernels[] = {
+  { NULL, gr_maxwell_vol_1x_tensor_p1, gr_maxwell_vol_1x_tensor_p2, NULL }, // 0
+  { NULL, gr_maxwell_vol_2x_tensor_p1, gr_maxwell_vol_2x_tensor_p2, NULL }, // 1
+  { NULL, gr_maxwell_vol_3x_tensor_p1, gr_maxwell_vol_3x_tensor_p2, NULL },              // 2
+};
+
 // Surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_maxwell_surf_kern_list ser_surf_x_kernels[] = {
@@ -189,12 +227,108 @@ static const gkyl_dg_maxwell_surf_kern_list ten_surf_z_kernels[] = {
   { NULL, maxwell_surfz_3x_ser_p1, maxwell_surfz_3x_tensor_p2, NULL }, // 2
 };
 
+// DG GR Maxwell surface kernel list: x-direction (Serendipity basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list ser_gr_maxwell_surf_from_flux_x_kernels[] = {
+  // 1x kernels
+  { NULL, gr_maxwell_surfx_1x_ser_p1, gr_maxwell_surfx_1x_ser_p2, NULL }, // 0
+  // 2x kernels
+  { NULL, gr_maxwell_surfx_2x_ser_p1, gr_maxwell_surfx_2x_ser_p2, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfx_3x_ser_p1, gr_maxwell_surfx_3x_ser_p2, NULL }, // 2
+};
+
+// DG GR Maxwell surface kernel list: y-direction (Serendipity basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list ser_gr_maxwell_surf_from_flux_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  // 2x kernels
+  { NULL, gr_maxwell_surfy_2x_ser_p1, gr_maxwell_surfy_2x_ser_p2, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfy_3x_ser_p1, gr_maxwell_surfy_3x_ser_p2, NULL }, // 2
+};
+
+// DG GR Maxwell surface kernel list: z-direction (Serendipity basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list ser_gr_maxwell_surf_from_flux_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+// 2x kernels
+  { NULL, NULL, NULL, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfz_3x_ser_p1, gr_maxwell_surfz_3x_ser_p2, NULL }, // 2
+};
+
+
+// DG GR Maxwell surface kernel list: x-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list tensor_gr_maxwell_surf_from_flux_x_kernels[] = {
+  // 1x kernels
+  { NULL, gr_maxwell_surfx_1x_tensor_p1, gr_maxwell_surfx_1x_tensor_p2, NULL }, // 0
+  // 2x kernels
+  { NULL, gr_maxwell_surfx_2x_tensor_p1, gr_maxwell_surfx_2x_tensor_p2, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfx_3x_tensor_p1, gr_maxwell_surfx_3x_tensor_p2, NULL }, // 2
+};
+
+// DG GR Maxwell surface kernel list: y-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list tensor_gr_maxwell_surf_from_flux_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  // 2x kernels
+  { NULL, gr_maxwell_surfy_2x_tensor_p1, gr_maxwell_surfy_2x_tensor_p2, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfy_3x_tensor_p1, gr_maxwell_surfy_3x_tensor_p2, NULL }, // 2
+};
+
+// DG GR Maxwell surface kernel list: z-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_maxwell_surf_from_flux_kern_list tensor_gr_maxwell_surf_from_flux_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+// 2x kernels
+  { NULL, NULL, NULL, NULL }, // 1
+  // 3x kernels
+  { NULL, gr_maxwell_surfz_3x_tensor_p1, gr_maxwell_surfz_3x_tensor_p2, NULL }, // 2
+};
+
+
+
 /**
  * Free Maxwell equation object
  *
  * @param ref Reference counter for Maxwell equation
  */
 void gkyl_maxwell_free(const struct gkyl_ref_count *ref);
+
+GKYL_CU_D
+static double
+vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
+  const int*  idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
+
+  // For GR problems, use conf_flux_surf
+  if (maxwell->use_conf_flux_surf) {
+    // Each cell owns the *lower* edge surface flux
+    long cidx = gkyl_range_idx(&maxwell->crange, idx);
+    const double* lapse = (const double*) gkyl_array_cfetch(maxwell->lapse_vol_nodes, cidx);
+    const double* shift = (const double*) gkyl_array_cfetch(maxwell->shift_vol_nodes, cidx);
+    const double* h_ij = (const double*) gkyl_array_cfetch(maxwell->h_ij_vol_nodes, cidx);
+    const double* det_h = (const double*) gkyl_array_cfetch(maxwell->det_h_vol_nodes, cidx);
+
+    // For GR Maxwell the volume term does not contribute to CFL, only the conf-flux.
+    maxwell->vol(xc, dx, lapse, shift, h_ij, det_h, qIn, qRhsOut);
+
+    return 0.0;
+  }
+  else {
+    // For non-GR problems, use regular volume kernel (which includes streaming terms)
+    assert(false);
+  }
+}
 
 GKYL_CU_D
 static double
@@ -206,8 +340,22 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
-    qInL, qInC, qInR, qRhsOut);
+
+  // For GR problems, use conf_flux_surf
+  if (maxwell->use_conf_flux_surf) {
+    // Each cell owns the *lower* edge surface flux
+    long cidxC = gkyl_range_idx(&maxwell->crange, idxC);
+    long cidxR = gkyl_range_idx(&maxwell->crange, idxR);
+    const double* conf_flux_surf_l = (const double*) gkyl_array_cfetch(maxwell->conf_flux_surf, cidxC);
+    const double* conf_flux_surf_r = (const double*) gkyl_array_cfetch(maxwell->conf_flux_surf, cidxR);
+
+    return maxwell->surf_from_flux[dir](xcC, dxC,
+      conf_flux_surf_l, conf_flux_surf_r, qRhsOut);
+  }
+  else {
+    return maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
+      qInL, qInC, qInR, qRhsOut);
+  }
 }
 
 GKYL_CU_D

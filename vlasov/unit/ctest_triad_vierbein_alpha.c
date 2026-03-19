@@ -6,6 +6,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -17,6 +18,15 @@
 #include <gkyl_vlasov_kernels.h>
 #include <gkyl_nc_hamil_vol_comps_kernels.h>
 
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+
 void
 test_triad_2x2v_rphi_ks_pnt_alpha_p2()
 {
@@ -25,7 +35,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
   int poly_order = 2;
 
   // Black hole parameters
-  struct vm_geom geom;
+  struct gkyl_triad_geom_ctx geom;
   geom.mass_bh = 0.7;
   geom.spin_bh = 0.2;
 
@@ -83,7 +93,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
   int num_pt_indices[3] = { 1 , 6, 18 }; 
 
   // Allocate arrays for covariant tangent basis 
-  conf_poisson_tensor = mkarr(false, confBasis.num_basis*num_pt_indices[vdim-1], confLocal_ext.volume);
+  conf_poisson_tensor = mkarr(confBasis.num_basis*num_pt_indices[vdim-1], confLocal_ext.volume);
 
   // Construct the Geometry for this configuration
   gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis, 
@@ -339,7 +349,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
   // Build the hamiltonian 
   // Hamiltonian (GR) is a full phase-space array. 
   struct gkyl_range hamil_range = local; 
-  struct gkyl_array *hamil = mkarr(false, basis.num_basis, local_ext.volume);
+  struct gkyl_array *hamil = mkarr(basis.num_basis, local_ext.volume);
 
   // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
   struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, GKYL_TRIAD_GR_KERR_SCHILD_RPHI), &geom);

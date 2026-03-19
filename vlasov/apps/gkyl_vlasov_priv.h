@@ -33,6 +33,10 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
+#include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_divide_Jc.h>
+#include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
 #include <gkyl_dg_maxwell.h>
@@ -391,9 +395,16 @@ struct vm_source {
 // geometry data
 struct vm_geom {
   struct gkyl_vlasov_geom info; // data for vlasov geometry
-    double spin_bh, mass_bh; // Charge and mass.
-    bool use_preset_geom; // bool to determine if we are using triad input geom
-    enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
+  double spin_bh, mass_bh; // Charge and mass.
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
+
+  // Geometry needed for GR-DG-Maxwells
+  bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
+  struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
+  struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))\
 
 };
 
@@ -652,6 +663,12 @@ struct vm_field {
       double *es_energy_red, *es_energy_red_global; // Memory for use in GPU reduction of ES energy.
     };
   };
+
+  struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
+  struct gkyl_array *em_no_J; // arrays for storing em field without Jc
+  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
+  struct gkyl_dg_gr_maxwell_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
 
   bool has_ext_em; // flag to indicate there are external electromagnetic fields (E, B)
   bool ext_em_evolve; // flag to indicate external electromagnetic fields are time dependent

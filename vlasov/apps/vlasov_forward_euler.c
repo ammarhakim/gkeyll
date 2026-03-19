@@ -87,7 +87,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   // compute RHS of Maxwell equations
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B) {
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
       double dt1 = vm_field_rhs(app, app->field, emin, emout);
       dtmin = fmin(dtmin, dt1);
     }
@@ -120,7 +120,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
 
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B) {
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
       struct timespec wst = gkyl_wall_clock();
 
       // (can't accumulate current when field is static)

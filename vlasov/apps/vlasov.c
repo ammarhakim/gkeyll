@@ -222,6 +222,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx, app->use_gpu);
 
+  // allocate space to store vlasov-maxwell geometry objects
+  app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
+  vm_geom_init(vm, app, app->vm_geom);
+
   app->has_field = !vm->skip_field; // note inversion of truth value
   if (app->has_field) {
     if (vm->is_electrostatic) {
@@ -243,10 +247,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->field_energy_write = vm_field_write_energy; 
     }
   }
-
-  // allocate space to store geometry objects
-  app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
-  vm_geom_init(vm, app, app->vm_geom);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
@@ -389,7 +389,7 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
   }
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B)
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
       vm_field_apply_bc(app, app->field, emfield);
   }
 }
@@ -447,7 +447,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id == GKYL_FIELD_E_B)
+  if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
     vm_field_apply_ic(app, app->field, t0);
   else if (app->field->field_id != GKYL_FIELD_NULL) {
     struct gkyl_array *distf[app->num_species];
@@ -1048,7 +1048,7 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B) {
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
       cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
       rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
       cstr_drop(&fileNm);
@@ -1148,6 +1148,8 @@ gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, ...)
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
+  vm_geom_release(app, app->vm_geom);
+  gkyl_free(app->vm_geom);
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   for (int i=0; i<app->num_fluid_species; ++i)
@@ -1157,7 +1159,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   if (app->num_fluid_species > 0)
     gkyl_free(app->fluid_species);
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B)
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
       vm_field_release(app, app->field);
     else
       vp_field_release(app, app->field);

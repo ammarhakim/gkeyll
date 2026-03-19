@@ -12,25 +12,45 @@ extern "C" {
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 __global__ void static
-dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_type, int cdim, int poly_order)
+dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_type, int cdim, 
+  bool use_conf_flux_surf, int poly_order)
 {
   const gkyl_dg_maxwell_vol_kern_list *vol_kernels;
-  const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
+  const gkyl_dg_maxwell_gr_maxwell_vol_kern_list *vol_gr_kernels;
+  const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
+  const gkyl_dg_maxwell_surf_from_flux_kern_list *surf_from_flux_x_kernels, *surf_from_flux_y_kernels, *surf_from_flux_z_kernels;
+ 
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
+      if ( use_conf_flux_surf ) {
+        vol_gr_kernels = ser_gr_maxwell_vol_kernels;
+        surf_from_flux_x_kernels = ser_gr_maxwell_surf_from_flux_x_kernels;
+        surf_from_flux_y_kernels = ser_gr_maxwell_surf_from_flux_y_kernels;
+        surf_from_flux_z_kernels = ser_gr_maxwell_surf_from_flux_z_kernels;
+      }
+      else {
+        vol_kernels = ser_vol_kernels;
+        surf_x_kernels = ser_surf_x_kernels;
+        surf_y_kernels = ser_surf_y_kernels;
+        surf_z_kernels = ser_surf_z_kernels;
+      }
 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
+      if ( use_conf_flux_surf ) {
+        vol_gr_kernels = ten_gr_maxwell_vol_kernels;
+        surf_from_flux_x_kernels = tensor_gr_maxwell_surf_from_flux_x_kernels;
+        surf_from_flux_y_kernels = tensor_gr_maxwell_surf_from_flux_y_kernels;
+        surf_from_flux_z_kernels = tensor_gr_maxwell_surf_from_flux_z_kernels;
+      }
+      else {
+        vol_kernels = ten_vol_kernels;
+        surf_x_kernels = ten_surf_x_kernels;
+        surf_y_kernels = ten_surf_y_kernels;
+        surf_z_kernels = ten_surf_z_kernels;
+      }
       
       break;
 
@@ -42,38 +62,88 @@ dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_ty
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
-  maxwell->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
+  if ( use_conf_flux_surf ) {
+    maxwell->eqn.vol_term = vol;  
+    maxwell->vol = CK(vol_gr_kernels, cdim, poly_order);  
+  }
+  else {
+    maxwell->eqn.vol_term = CK(vol_kernels, cdim, poly_order);  
+  }
+  
 
-  maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim>1)
-    maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim>2)
-    maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  if ( use_conf_flux_surf ) {
+    maxwell->surf_from_flux[0] = CK(surf_from_flux_x_kernels, cdim, poly_order);
+    if (cdim>1)
+      maxwell->surf_from_flux[1] = CK(surf_from_flux_y_kernels, cdim, poly_order);
+    if (cdim>2)
+      maxwell->surf_from_flux[2] = CK(surf_from_flux_z_kernels, cdim, poly_order);
+  }
+  else {
+    maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
+    if (cdim>1)
+      maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
+    if (cdim>2)
+      maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  }
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
 {
   struct dg_maxwell *maxwell = (struct dg_maxwell*) gkyl_malloc(sizeof(struct dg_maxwell));
 
   // set basic parameters
   maxwell->eqn.num_equations = 8;
-  maxwell->maxwell_data.c = lightSpeed;
-  maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;
-  maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;
+  maxwell->maxwell_data.c = inp->lightSpeed;
+  maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
+  maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
 
   maxwell->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
 
+  maxwell->conf_flux_surf = 0;
+  maxwell->lapse_vol_nodes = 0;
+  maxwell->shift_vol_nodes = 0;
+  maxwell->h_ij_vol_nodes = 0;
+  maxwell->det_h_vol_nodes = 0;
+  struct gkyl_array *conf_flux_surf = 0;
+  struct gkyl_array *lapse_vol_nodes = 0;
+  struct gkyl_array *shift_vol_nodes = 0;
+  struct gkyl_array *h_ij_vol_nodes = 0;
+  struct gkyl_array *det_h_vol_nodes = 0;
+  maxwell->use_conf_flux_surf = false;
+  if (inp->field_id == GKYL_FIELD_GR_D_B) {
+    assert(inp->crange);
+    maxwell->use_conf_flux_surf = true;
+    maxwell->crange = *inp->crange;
+    conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
+    lapse_vol_nodes = gkyl_array_acquire(inp->lapse_vol_nodes);
+    shift_vol_nodes = gkyl_array_acquire(inp->shift_vol_nodes);
+    h_ij_vol_nodes = gkyl_array_acquire(inp->h_ij_vol_nodes);
+    det_h_vol_nodes = gkyl_array_acquire(inp->det_h_vol_nodes);
+    maxwell->conf_flux_surf = conf_flux_surf->on_dev; 
+    maxwell->lapse_vol_nodes = lapse_vol_nodes->on_dev; 
+    maxwell->shift_vol_nodes = shift_vol_nodes->on_dev; 
+    maxwell->h_ij_vol_nodes = h_ij_vol_nodes->on_dev; 
+    maxwell->det_h_vol_nodes = det_h_vol_nodes->on_dev; 
+  }
+
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
-  dg_maxwell_set_cu_dev_ptrs<<<1,1>>>(maxwell_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  dg_maxwell_set_cu_dev_ptrs<<<1,1>>>(maxwell_cu, inp->cbasis->b_type, inp->cbasis->ndim, 
+    maxwell->use_conf_flux_surf, inp->cbasis->poly_order);
 
   // set parent on_dev pointer
   maxwell->eqn.on_dev = &maxwell_cu->eqn;
+
+  // Host-side equation object should store host pointers.
+  maxwell->conf_flux_surf = conf_flux_surf; 
+  maxwell->lapse_vol_nodes = lapse_vol_nodes; 
+  maxwell->shift_vol_nodes = shift_vol_nodes; 
+  maxwell->h_ij_vol_nodes = h_ij_vol_nodes; 
+  maxwell->det_h_vol_nodes = det_h_vol_nodes; 
 
   return &maxwell->eqn;
 }

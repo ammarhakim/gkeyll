@@ -1,11 +1,11 @@
 local Vlasov = G0.Vlasov
+ffi = require "ffi"
+-- Rectangular waveguide test for GR Maxwell's equations. Tests flat space limit in 
+-- Rectangular coordinate with M = 0, a = 0.
+-- See: 
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
-
--- Physical constants (using normalized code units).
-epsilon0 = 1.0 -- Permittivity of free space.
-mu0 = 1.0 -- Permeability of free space.
 
 -- Derived physical quantities (using normalized code units).
 omega = math.sqrt(2.0) * pi -- Frequency of mode.
@@ -29,8 +29,27 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
+massBH = 0.0 -- Mass of the black hole
+spinBH = 0.0 -- Spin parameter, a = J/M, of the black hole ( Kerr-Schild, coordinates , |a| <= M).
+
 vlasovApp = Vlasov.App.new {
-  
+  -- Model ID sets Maxwell's Eq type
+  modelID = G0.Model.TriadGR, -- General Relativity Maxwell's used here
+
+  -- Vlasov Geometry
+  -- NOTE: Kerr-Schild spherical assumed for DG-GR-Kinetic and DG-GR-Maxwell
+  geom = Vlasov.Geom.new {
+    
+    -- Black hole parameters
+    massBH = massBH,
+    spinBH = spinBH,
+
+    -- Specify the geometry ry choice
+    usePresetGeom = true,
+    triadPresetGeomType = G0.TriadGeom.Flat
+    
+  },
+
   tEnd = t_end,
   nFrame = num_frames,
   fieldEnergyCalcs = field_energy_calcs,
@@ -48,32 +67,47 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (r-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { }, -- Periodic directions (none).
+  periodicDirs = { }, -- Periodic directions (x- and y-directions only).
 
   -- Field.
   field = Vlasov.Field.new {
-    epsilon0 = epsilon0, mu0 = mu0,
+
+    -- Use GR field ID
+    fieldID = G0.FieldModel.GR,
 
     -- Initial conditions function.
     init = function (t, xn)
       local x, y = xn[1], xn[2]
 
-      local Ex = 0.0 -- Total electric field (x-direction).
-      local Ey = 0.0 -- Total electric field (y-direction).
-      local Ez = math.sin(pi * x) * math.sin(pi * y) -- Total electric field (z-direction).
-    
-      local Bx = 0.0 -- Total magnetic field (x-direction).
+      -- D^i, and B^i (contravaraint components)
+      local Dr = 0.0 -- Total electric field (r-direction).
+      local Dy = 0.0 -- Total electric field (y-direction).
+      local Dz = math.sin(pi * x) * math.sin(pi * y) -- Total electric field (z-direction). (Flat limit: E = D)
+
+      local Br = 0.0 -- Total magnetic field (r-direction).
       local By = 0.0 -- Total magnetic field (y-direction).
       local Bz = math.cos(pi * x) * math.cos(pi * y) -- Total magnetic field (z-direction).
 
-      return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
+      -- Must return conserved variables
+      local metric_det = 1.0 
+      
+      -- Compute Jc * D^i and Jc * B^i
+      local JDr = metric_det * Dr
+      local JDy = metric_det * Dy
+      local JDz = metric_det * Dz
+      local JBr = metric_det * Br
+      local JBy = metric_det * By
+      local JBz = metric_det * Bz
+
+      -- Hand off the conserved varaibles (Q^\xi = J * U^\xi)
+      return JDr, JDy, JDz, JBr, JBy, JBz, 0.0, 0.0
     end,
 
     bcx = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall }, -- PEC wall boundary conditions (x-direction).
-    bcy = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall } -- PEC wall boundary conditions (y-direction).
+    bcy = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall } -- PEC wall boundary conditions (y-direction).  }
   }
 }
 

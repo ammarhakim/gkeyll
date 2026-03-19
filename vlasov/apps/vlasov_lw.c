@@ -60,9 +60,21 @@ static const struct gkyl_str_int_pair model_type[] = {
   { 0, 0 }
 };
 
+// Vlasov field type -> enum map.
+static const struct gkyl_str_int_pair field_type[] = {
+  { "Default", GKYL_FIELD_E_B },
+  { "Phi", GKYL_FIELD_PHI },
+  { "phiExtPotentials", GKYL_FIELD_PHI_EXT_POTENTIALS },
+  { "phiExtFields", GKYL_FIELD_PHI_EXT_FIELDS },
+  { "Null", GKYL_FIELD_NULL},
+  { "GR", GKYL_FIELD_GR_D_B},
+  { 0, 0 }
+};
+
 // Vlasov model type -> enum map.
 static const struct gkyl_str_int_pair triad_geom_type[] = {
   { "None", GKYL_TRIAD_NONE },
+  { "Flat", GKYL_TRIAD_FLAT },
   { "Annulus", GKYL_TRIAD_ANNULUS },
   { "Cylindrical_rz", GKYL_TRIAD_CYLINDRICAL_RZ },
   { "GR_KS_rphi", GKYL_TRIAD_GR_KERR_SCHILD_RPHI },
@@ -116,6 +128,12 @@ void
 gkyl_register_vlasov_model_types(lua_State *L)
 {
   register_types(L, model_type, "Model");
+}
+
+void
+gkyl_register_vlasov_field_types(lua_State *L)
+{
+  register_types(L, field_type, "FieldModel");
 }
 
 void
@@ -1456,7 +1474,7 @@ vlasov_field_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_field vm_field = { };
 
-  vm_field.field_id = GKYL_FIELD_E_B;
+  vm_field.field_id = glua_tbl_get_integer(L, "fieldID", 0);
   
   vm_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
@@ -2095,6 +2113,14 @@ vm_app_new(lua_State *L)
 
     for (int d = 0; d < cdim; d++) {
       vm.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
+  }
+  if (cdim == 0) {
+    return luaL_error(L, "App must define a non-empty \"cells\" table!");
+  }
+  for (int d = 0; d < cdim; d++) {
+    if (vm.cells[d] < 1) {
+      return luaL_error(L, "App \"cells[%d]\" must be > 0 (got %d)", d + 1, vm.cells[d]);
     }
   }
 
@@ -3278,6 +3304,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
   // collision ID, source ID, and radiation ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_field_types(L);
   gkyl_register_vlasov_triad_geom_types(L);
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L); 

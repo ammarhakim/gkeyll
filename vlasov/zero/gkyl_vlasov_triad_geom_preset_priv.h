@@ -1,4 +1,3 @@
-#include <gkyl_vlasov_priv.h>
 #include <gkyl_vlasov_triad_geom.h>
 
 void
@@ -56,7 +55,7 @@ eval_ks_rphi_hamil_1x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_R
 {
 
   // Grab the geometry
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
   
@@ -79,7 +78,7 @@ eval_ks_rphi_hamil_2x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_R
 {
 
   // Grab the geometry
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
   
@@ -103,7 +102,7 @@ eval_ks_r_hamil_1x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 {
 
   // Grab the geometry
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
   
@@ -128,7 +127,7 @@ eval_ks_rtheta_hamil_2x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL
 {
 
   // Grab the geometry
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
   
@@ -153,7 +152,7 @@ eval_ks_rphi_vierbein_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_
 {
 
   // Parameters
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -181,7 +180,7 @@ void
 eval_ks_rphi_vierbein_gradient_2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -209,7 +208,7 @@ void
 eval_ks_r_vierbein_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   // Parameters
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -240,7 +239,7 @@ eval_ks_r_vierbein_3v(double t, const double *xn, double* restrict fout, void *c
 void 
 eval_ks_r_vierbein_gradient_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -287,7 +286,7 @@ void
 eval_ks_rtheta_vierbein_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   // Parameters
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -319,7 +318,7 @@ eval_ks_rtheta_vierbein_3v(double t, const double *xn, double* restrict fout, vo
 void 
 eval_ks_rtheta_vierbein_gradient_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -367,7 +366,7 @@ void
 eval_ks_vierbein_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   // Parameters
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -400,7 +399,7 @@ eval_ks_vierbein_3v(double t, const double *xn, double* restrict fout, void *ctx
 void 
 eval_ks_vierbein_gradient_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
 
@@ -563,7 +562,7 @@ eval_ks_hamil_3x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 {
 
   // Grab the geometry
-  const struct vm_geom *geom = ctx;
+  const struct gkyl_triad_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
   double M = geom->mass_bh;
   

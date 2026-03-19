@@ -67,6 +67,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_range = vms->mom_hamil_range;
     vms->hamil = gkyl_array_acquire(vms->mom_hamil);
 
+    // Triad geometry context if needed for preset geometries.
+    struct gkyl_triad_geom_ctx preset_geom_ctx = {
+      .mass_bh = vms->geom->mass_bh,
+      .spin_bh = vms->geom->spin_bh,
+    };
+
     struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
     inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
@@ -78,8 +84,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     else if (vms->geom->use_preset_geom) {
       inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
-      inp_triad_geom.eval_vierbein_ctx = vms->geom;
-      inp_triad_geom.eval_vierbein_gradient_ctx = vms->geom;
+      inp_triad_geom.eval_vierbein_ctx = &preset_geom_ctx;
+      inp_triad_geom.eval_vierbein_gradient_ctx = &preset_geom_ctx;
     }
     else if ((vms->info.triad_basis) && (vms->info.triad_basis_gradient) && (vms->info.cov_tangent_basis))  {
       inp_triad_geom.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
@@ -132,8 +138,14 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       vms->hamil_host = mkarr(false, vms->basis.num_basis, vms->local_ext.volume);
     }
 
+    // Triad geometry context if needed for preset geometries.
+    struct gkyl_triad_geom_ctx preset_geom_ctx = {
+      .mass_bh = vms->geom->mass_bh,
+      .spin_bh = vms->geom->spin_bh,
+    };
+
     // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
-    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type), vms->geom);
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type), &preset_geom_ctx);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->hamil, vms->hamil_host);
@@ -145,8 +157,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
     if (vms->geom->use_preset_geom) {
       inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
-      inp_triad_geom.eval_vierbein_ctx = vms->geom;
-      inp_triad_geom.eval_vierbein_gradient_ctx = vms->geom;
+      inp_triad_geom.eval_vierbein_ctx = &preset_geom_ctx;
+      inp_triad_geom.eval_vierbein_gradient_ctx = &preset_geom_ctx;
     }
     else {
       // Only Preset Geometries are allowed for GKYL_MODEL_TRIAD_GR
@@ -356,7 +368,7 @@ vm_species_collisionless_rhs_included(gkyl_vlasov_app *app, struct vm_species *v
       gkyl_array_accumulate_range(vms->qmem, vms->qbym, app->field->ext_em, &app->local);
     }
 
-    if (vms->field_id == GKYL_FIELD_E_B) {
+    if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
       gkyl_array_accumulate_range(vms->qmem, vms->qbym, em, &app->local);
     }
     else if (vms->field_id == GKYL_FIELD_PHI) {
@@ -1429,7 +1441,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->has_B = false; 
   vms->has_phi = false; 
   if (app->has_field) {
-    if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em) {
+    if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
       vms->has_E = true; 
       vms->has_B = true; 
     } 

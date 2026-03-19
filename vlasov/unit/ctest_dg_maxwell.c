@@ -11,7 +11,18 @@ test_dg_max()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
 
-  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_new(&basis, 1.0, 0.5, 0.25, false);
+  // Input structure for building the dg eqn object
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &basis,
+    .crange = 0,
+    .conf_flux_surf = 0,
+    .lightSpeed = 1.0,
+    .field_id = GKYL_FIELD_E_B,
+    .elcErrorSpeedFactor = 0.5,
+    .mgnErrorSpeedFactor = 0.25,
+    .use_gpu = false,
+  }; 
+  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   TEST_CHECK( eqn->num_equations == 8 );
 
@@ -43,7 +54,18 @@ test_cu_dg_max()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
 
-  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_cu_dev_new(&basis, 1.0, 0.5, 0.25);
+  // Input structure for building the dg eqn object
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &basis,
+    .crange = 0,
+    .conf_flux_surf = 0,
+    .lightSpeed = 1.0,
+    .field_id = GKYL_FIELD_E_B,
+    .elcErrorSpeedFactor = 0.5,
+    .mgnErrorSpeedFactor = 0.25,
+    .use_gpu = true,
+  }; 
+  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   // this is not possible from user code and should NOT be done. This
   // is for testing only

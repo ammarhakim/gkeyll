@@ -7,9 +7,15 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+// Triad geometry context if needed for preset geometries.
+struct gkyl_triad_geom_ctx {
+  double mass_bh; // Mass of the black hole (M)
+  double spin_bh; // Spin of the black hole (a = J/M)
+};
 
 enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_NONE = 0,
+  GKYL_TRIAD_FLAT,
   GKYL_TRIAD_ANNULUS,
   GKYL_TRIAD_CYLINDRICAL_RZ,
   GKYL_TRIAD_GR_KERR_SCHILD_RPHI,
