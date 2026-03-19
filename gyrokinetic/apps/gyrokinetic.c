@@ -1081,6 +1081,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bioverJB, arr_ho3, "bioverJB", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.B3, arr_ho1, "B3", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.dualcurlbhat, arr_ho3, "dualcurlbhat", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bimpactangle, arr_ho1, "bimpactangle", mt);
 
 
   // Write surface quantities
@@ -2717,6 +2718,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bioverJB         , arr_ho3, "bioverJB");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.B3               , arr_ho1, "B3");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhat     , arr_ho3, "dualcurlbhat");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bimpactangle     , arr_ho1, "bimpactangle");
 
   struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->num_surf_basis, app->local_ext.volume);
   struct gkyl_array* arr_surf_ho2 = mkarr(false, 2*app->gk_geom->num_surf_basis, app->local_ext.volume);

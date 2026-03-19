@@ -947,7 +947,6 @@ struct gk_species {
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
 
-  struct gkyl_array *angle; // grazing angle (temporary, should be put in geom struct).
   bool alloc_srg_aux_var; // To know whether surrogate auxiliary variables are allocated.
   struct gkyl_gk_maxwellian_moments *maxwell_mom; // Maxwellian moment array to get temperature and density for surrogate BCs.
   struct gkyl_array *maxmom; // Array for maxwellian moments.

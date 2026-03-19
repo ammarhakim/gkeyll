@@ -202,7 +202,12 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
     // Advance the Maxwellian moment computation to get density and temperature for surrogate BCs.
     // We can later optimize this by calling it for upper and lower skin cells.
     gkyl_gk_maxwellian_moments_advance(species->maxwell_mom, &species->local, &app->local, f, species->maxmom);
-    gkyl_array_set_range(species->dens_sheath, 1.0, species->maxmom, &app->local);
+    
+    // Overwrite the density with the polarization density
+    // gkyl_array_set_range(species->dens_sheath, 1.0, species->maxmom, &app->local);
+    gkyl_array_clear(species->dens_sheath, 0.0);
+    gkyl_array_shiftc(species->dens_sheath, species->info.polarization_density * pow(sqrt(2.0),app->cdim), 0);
+
     int num_conf_basis = app->basis.num_basis;
     gkyl_array_set_offset_range(species->temp_sheath, species->info.mass, species->maxmom, 2*num_conf_basis, &app->local);
   }
@@ -215,8 +220,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            // app->gk_geom->geo_int.bimpactangle, 
-            species->angle, // This is temporary
+            app->gk_geom->geo_int.bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
@@ -225,8 +229,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            // app->gk_geom->geo_int.bimpactangle, 
-            species->angle, // This is temporary
+            app->gk_geom->geo_int.bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
@@ -253,8 +256,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            // app->gk_geom->geo_int.bimpactangle, 
-            species->angle, // This is temporary
+            app->gk_geom->geo_int.bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
@@ -263,8 +265,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            // app->gk_geom->geo_int.bimpactangle, 
-            species->angle, // This is temporary
+            app->gk_geom->geo_int.bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
@@ -1003,11 +1004,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .use_gpu = app->use_gpu,
     };
     gks->maxwell_mom = gkyl_gk_maxwellian_moments_inew( &inp_mom );
-    gks->angle = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
     gks->maxmom = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
     gks->dens_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->temp_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(gks->angle, 5 * pow(sqrt(2.0),app->cdim), 0); // Set to 5 degrees for now.
   }
 
   // Set function pointers.
@@ -2000,7 +1999,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   if (gks->alloc_srg_aux_var) {
     gkyl_gk_maxwellian_moments_release(gks->maxwell_mom);
-    gkyl_array_release(gks->angle);
   }
 
   gks->release_func(app, gks);
