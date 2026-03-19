@@ -1,4 +1,4 @@
-/* gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  –  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 9c5f494 */
+/* gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  –  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 8ad119f */
 #pragma once
 
 #include <math.h>
@@ -58,6 +58,22 @@ GKYL_CU_DH double *bc_sheath_gyrokinetic_srgrz_grid(double *out);
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const double *mu_new, int n, double mu_ref, double *out);
 
 /**
+ * Projects (alpha, gamma, phi) onto the nearest convergent point in parameter space.
+ * The projection minimises svm_score(x)^2 + 1e-3*||x-x0||^2 via gradient descent
+ * with Armijo backtracking (mirrors find_nearest() in surrogate_proj.py).
+ * Returns 1 if the projected point is convergent, 0 otherwise.
+ *
+ * @param alpha: impact angle in degrees
+ * @param gamma: normalised plasma density parameter
+ * @param phi:   normalised sheath potential drop (e * (phi - phi_wall) / T_e)
+ * @param alpha_proj: pointer to where the projected impact angle (degrees) is written
+ * @param gamma_proj: pointer to where the projected gamma is written
+ * @param phi_proj:   pointer to where the projected phi is written
+ */
+GKYL_CU_DH int bc_sheath_gyrokinetic_srgrz_project(double alpha, double gamma, double phi,
+                             double *alpha_proj, double *gamma_proj, double *phi_proj);
+
+/**
  * Returns the prediction of a custom mu grid of size n
  *
  * @param mu_new:  input array of size n containing the new mu points
@@ -69,6 +85,23 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const dou
  * @param out:     output array of size n where interpolated values are written
  */
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double mu_ref, double alpha, double gamma, double phi, double *out);
+
+/**
+ * Like bc_sheath_gyrokinetic_srgrz_eval, but projects (alpha, gamma, phi) onto the nearest
+ * convergent point in parameter space when GYRAZE is predicted not to converge.
+ * The projection minimises svm_score(x)^2 + 1e-3*||x-x0||^2 via gradient
+ * descent with Armijo backtracking (mirrors find_nearest() in surrogate_proj.py).
+ *
+ * @param mu_new:  input array of size n containing the new mu points
+ * @param n:       number of points in mu_new and out
+ * @param mu_ref:  reference mu value for normalisation (e.g. temperature / Bmag)
+ * @param alpha:   impact angle in degrees
+ * @param gamma:   normalised plasma density parameter
+ * @param phi:     normalised sheath potential drop (e * (phi - phi_wall) / T_e)
+ * @param out:     output array of size n where interpolated values are written
+ */
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval(const double *mu_new, int n, double mu_ref,
+    double alpha, double gamma, double phi, double *out);
 
 /**
  * Converts from physical parameters and evaluates on a custom mu grid.
@@ -83,15 +116,14 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
  * @param phi_wall: wall potential (V)
  * @param density:  electron density (m^-3)
  * @param temperature:  electron temperature (eV)
- * @param q2Dm:     2 x charge-to-mass ratio (C/kg)
  * @param bmag:    magnetic field strength (T)
  * @param impact_angle: magnetic impact angle (radians)
  */
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical(const double *mu_new, int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
+    double density, double temperature, double bmag, double impact_angle, double *out);
 
 /**
- * Same as srgrz_eval_physical, but normalises output by sqrt(2 * e * (phi - phi_wall) / mass)
+ * Same as bc_sheath_gyrokinetic_srgrz_eval_physical, but normalises output by sqrt(2 * e * (phi - phi_wall) / mass)
  *
  * @param mu_new:  input array of size n containing the new mu points
  * @param n:       number of points in mu_new and out
@@ -119,7 +151,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double
  * @param bmag:    magnetic field strength (T)
  * @param impact_angle: magnetic impact angle (radians)
  */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact_converged(const double *mu_new, int n, double phi, double phi_wall,
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_proj_physical_vcut_fact(const double *mu_new, int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
 
 EXTERN_C_END

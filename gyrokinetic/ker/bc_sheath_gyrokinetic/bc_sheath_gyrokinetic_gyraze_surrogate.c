@@ -1,5 +1,5 @@
 /*
- * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gkeyll_sheath_ai @ 9c5f494
+ * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gkeyll_sheath_ai @ 8ad119f
  */
 #include "gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h"
 
@@ -336,7 +336,127 @@ GKYL_CU_DH double svm_score(double * input) {
 GKYL_CU_DH int bc_sheath_gyrokinetic_srgrz_converged(double alpha, double gamma, double phi)
 {
     double input[3] = {alpha, gamma, phi};
-    return (svm_score(input) >= 0.5) ? 1 : 0;
+    return (svm_score(input) >= 0.0) ? 1 : 0;
+}
+
+/* Finite-difference gradient of svm_score(x) */
+GKYL_CU_DH static void _srgrz_svm_grad(const double *x, double h, double *g)
+{
+    double xp[3], xm[3];
+    for (int i = 0; i < 3; i++) {
+        xp[0]=x[0]; xp[1]=x[1]; xp[2]=x[2];
+        xm[0]=x[0]; xm[1]=x[1]; xm[2]=x[2];
+        xp[i] += h; xm[i] -= h;
+        g[i] = (svm_score(xp) - svm_score(xm)) / (2.0*h);
+    }
+}
+
+/* Project x0 onto the convergent region by minimising
+ * f(x) = svm_score(x)^2 + lam*||x-x0||^2 using L-BFGS
+ * with Armijo backtracking. Mirrors find_nearest() in surrogate_proj.py.
+ * Returns 1 if svm_score(x_out) >= 0.0, 0 otherwise. */
+GKYL_CU_DH  int _srgrz_project(const double *x0, double *x_out,
+                             double lam, int maxiter, double tol)
+{
+    const int N = 3;
+    const int M = 5; /* L-BFGS memory depth */
+    double x[3] = {x0[0], x0[1], x0[2]};
+    const double h = 1e-5;
+    double g_prev[3], s_mem[5][3], y_mem[5][3], rho[5];
+    double alpha_ls, q[3], r[3], a_coeff[5];
+    int k = 0, m_stored = 0;
+
+    /* Evaluate initial objective and gradient */
+    double s = svm_score(x);
+    double obj = s*s;
+    double sg[3], g[3];
+    _srgrz_svm_grad(x, h, sg);
+    for (int i = 0; i < N; i++) {
+        obj += lam*(x[i]-x0[i])*(x[i]-x0[i]);
+        g[i] = 2.0*s*sg[i] + 2.0*lam*(x[i]-x0[i]);
+    }
+
+    for (int iter = 0; iter < maxiter; iter++) {
+        /* L-BFGS two-loop recursion to get search direction r = -H*g */
+        for (int i = 0; i < N; i++) q[i] = g[i];
+        int bound = m_stored;
+        for (int j = bound - 1; j >= 0; j--) {
+            int idx = (k - 1 - (bound - 1 - j) + M * M) % M;
+            double dot = 0;
+            for (int i = 0; i < N; i++) dot += s_mem[idx][i] * q[i];
+            a_coeff[j] = rho[idx] * dot;
+            for (int i = 0; i < N; i++) q[i] -= a_coeff[j] * y_mem[idx][i];
+        }
+        /* Scale: H0 = (s'y)/(y'y) * I */
+        double gamma_lbfgs = 1.0;
+        if (m_stored > 0) {
+            int idx = (k - 1 + M) % M;
+            double sy = 0, yy = 0;
+            for (int i = 0; i < N; i++) {
+                sy += s_mem[idx][i] * y_mem[idx][i];
+                yy += y_mem[idx][i] * y_mem[idx][i];
+            }
+            if (yy > 0) gamma_lbfgs = sy / yy;
+        }
+        for (int i = 0; i < N; i++) r[i] = gamma_lbfgs * q[i];
+        for (int j = 0; j < bound; j++) {
+            int idx = (k - bound + j + M * M) % M;
+            double dot = 0;
+            for (int i = 0; i < N; i++) dot += y_mem[idx][i] * r[i];
+            double beta = rho[idx] * dot;
+            for (int i = 0; i < N; i++) r[i] += s_mem[idx][i] * (a_coeff[j] - beta);
+        }
+        /* Search direction = -r */
+        for (int i = 0; i < N; i++) r[i] = -r[i];
+
+        /* Armijo backtracking line search */
+        double dg = 0;
+        for (int i = 0; i < N; i++) dg += g[i] * r[i];
+        alpha_ls = 1.0;
+        for (int ls = 0; ls < 40; ls++) {
+            double xn[3] = {x[0]+alpha_ls*r[0], x[1]+alpha_ls*r[1], x[2]+alpha_ls*r[2]};
+            double sn = svm_score(xn);
+            double obj_n = sn*sn;
+            for (int i = 0; i < N; i++) obj_n += lam*(xn[i]-x0[i])*(xn[i]-x0[i]);
+            if (obj_n <= obj + 1e-4*alpha_ls*dg) break;
+            alpha_ls *= 0.5;
+        }
+
+        /* Update x and store L-BFGS vectors */
+        for (int i = 0; i < N; i++) g_prev[i] = g[i];
+        double step2 = 0.0;
+        int sidx = k % M;
+        for (int i = 0; i < N; i++) {
+            double dx = alpha_ls * r[i];
+            s_mem[sidx][i] = dx;
+            x[i] += dx;
+            step2 += dx*dx;
+        }
+        if (step2 < tol*tol) break;
+
+        /* Recompute objective and gradient at new x */
+        s = svm_score(x);
+        obj = s*s;
+        _srgrz_svm_grad(x, h, sg);
+        for (int i = 0; i < N; i++) {
+            obj += lam*(x[i]-x0[i])*(x[i]-x0[i]);
+            g[i] = 2.0*s*sg[i] + 2.0*lam*(x[i]-x0[i]);
+        }
+
+        /* y = g_new - g_old */
+        double sy = 0;
+        for (int i = 0; i < N; i++) {
+            y_mem[sidx][i] = g[i] - g_prev[i];
+            sy += s_mem[sidx][i] * y_mem[sidx][i];
+        }
+        if (sy > 1e-20) {
+            rho[sidx] = 1.0 / sy;
+            k++;
+            if (m_stored < M) m_stored++;
+        }
+    }
+    x_out[0]=x[0]; x_out[1]=x[1]; x_out[2]=x[2];
+    return (svm_score(x_out) >= 0.0) ? 1 : 0;
 }
 
 GKYL_CU_DH double *bc_sheath_gyrokinetic_srgrz_grid(double *out)
@@ -367,6 +487,24 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const dou
     }
 }
 
+GKYL_CU_DH  int bc_sheath_gyrokinetic_srgrz_project(double alpha, double gamma, double phi, double *alpha_proj, double *gamma_proj, double *phi_proj)
+{
+    /* If already converged, return original point unchanged (matches Python). */
+    if (bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phi)) {
+        *alpha_proj = alpha;
+        *gamma_proj = gamma;
+        *phi_proj = phi;
+        return 1;
+    }
+    double x0[3] = {alpha, gamma, phi};
+    double xp[3];
+    int converged = _srgrz_project(x0, xp, 1e-3, 500, 1e-6);
+    *alpha_proj = xp[0];
+    *gamma_proj = xp[1];
+    *phi_proj = xp[2];
+    return converged;
+}
+
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double mu_ref, double alpha, double gamma, double phi, double *out)
 {
     double vcut[SRGRZ_N_MU];
@@ -374,38 +512,67 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
     bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, mu_ref, out);
 }
 
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval(const double *mu_new, int n, double mu_ref,
+    double alpha, double gamma, double phi, double *out)
+{
+    double xp[3];
+    bc_sheath_gyrokinetic_srgrz_project(alpha, gamma, phi, &xp[0], &xp[1], &xp[2]);
+    bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, mu_ref, xp[0], xp[1], xp[2], out);
+}
+
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical(const double *mu_new, int n, double phi, double phi_wall, double density,
-    double temperature, double q2Dm, double bmag, double impact_angle, double *out)
+    double temperature, double bmag, double impact_angle, double *out)
 {
     double muref = temperature / bmag;
     double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temperature;
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
     bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, muref, alpha, gamma, phinorm, out);
 }
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
-    // double vcut_const = sqrt(GKYL_ELEMENTARY_CHARGE * (phi - phi_wall) /temperature);
-    double vcut_const = sqrt(-q2Dm * (phi - phi_wall));
-    double vte = sqrt(temperature / GKYL_ELECTRON_MASS);
-    bc_sheath_gyrokinetic_srgrz_eval_physical(mu_new, n, phi, phi_wall, density, temperature, q2Dm, bmag, impact_angle, out);
-    for (int i = 0; i < n; i++) {
-        out[i] = pow(out[i] * vte / vcut_const, 2);
+    double muref = temperature / bmag;
+    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
+    double alpha = impact_angle * 180/GKYL_PI;
+
+    if (phinorm > 0.05) {
+      bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, muref, alpha, gamma, phinorm, out);
+
+      double vcut_const_sq = -q2Dm * (phi - phi_wall);
+      double vte_sq = temperature / GKYL_ELECTRON_MASS;
+      for (int i = 0; i < n; i++)
+        out[i] = pow(out[i],2) / (2*phinorm);
+    } else {
+      for (int i = 0; i < n; i++)
+        out[i] = 1.0;
     }
 }
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact_converged(const double *mu_new,  int n, double phi, double phi_wall,
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_proj_physical_vcut_fact(const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
-    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * phi) / temperature;
+    double gamma = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
-    int converged = bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm);
-    if (converged) {
-        bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(mu_new, n, phi, phi_wall, density, temperature, q2Dm, bmag, impact_angle, out);
+    double muref = temperature / bmag;
+
+    if (phinorm > 0.05) {
+      if (!bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
+        double xp[3];
+        bc_sheath_gyrokinetic_srgrz_project(alpha, gamma, phinorm, &xp[0], &xp[1], &xp[2]);
+        alpha = xp[0];
+        gamma = xp[1];
+        phinorm = xp[2];
+      }
+      bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, muref, alpha, gamma, phinorm, out);
+
+      double vcut_const_sq = -q2Dm * (phi - phi_wall);
+      double vte_sq = temperature / GKYL_ELECTRON_MASS;
+      for (int i = 0; i < n; i++)
+        out[i] = pow(out[i],2) / (2*phinorm);
     } else {
-        for (int i = 0; i < n; i++) {
-            out[i] = 0.0;
-        }
+      for (int i = 0; i < n; i++)
+        out[i] = 1.0;
     }
 }
