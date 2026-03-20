@@ -1,5 +1,4 @@
 #include <gkyl_alloc.h>
-#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_calc_bmag.h>
 #include <gkyl_comm_io.h>
@@ -32,11 +31,7 @@ gkyl_position_map_null_new()
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = GKYL_PMAP_USER_INPUT;
-  for (int i = 0; i < 3; i++){
-    gpm->maps[i] = gkyl_position_map_identity;
-    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
-    gpm->ctxs[i] = 0;
-  }
+
   gpm->use_map_derivs = true;
   gpm->to_optimize = false;
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
@@ -44,9 +39,17 @@ gkyl_position_map_null_new()
   gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
-  gpm->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
+  
+  for (int i = 0; i < 3; i++){
+    gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
+    gpm->ctxs[i] = 0;
+    gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->constB_ctx->ctxs_backup[i] = 0;
+    gpm->xpt_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->xpt_ctx->ctxs_backup[i] = 0;
+  }
   return gpm;
 }
 
@@ -157,8 +160,6 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 3*gpm->basis.num_basis, gpm->local_ext.volume);
-  gpm->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
 
   struct gkyl_position_map *gpm_out = gpm;
