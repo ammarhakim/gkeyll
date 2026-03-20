@@ -14,6 +14,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_dg_bin_ops.h>
 #include <assert.h>
 
 static
@@ -76,6 +77,10 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
   gkyl_nodal_ops_release(n2m);
+
+  // Need 1/B for LBO collisions, computed weakly.
+  gkyl_dg_inv_op_range(up->basis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local); 
+
 }
 
 static
@@ -184,16 +189,16 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_release(n2m);
 
-  // now calculate the metrics
+  // Now calculate the metrics.
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance_interior(mcalc, up);
   gkyl_array_copy(up->geo_int.g_ij_neut, up->geo_int.g_ij);
   
-  // calculate the derived geometric quantities
+  // Calculate the derived geometric quantities.
   struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
   gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
     up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot, up->geo_int.jacobtot_inv, 
-    up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+    up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
   gkyl_array_copy(up->geo_int.gij_neut, up->geo_int.gij);
   gkyl_calc_derived_geo_release(jcalculator);
   gkyl_calc_metric_advance_bcart(mcalc, nrange, up->geo_int.b_i, up->geo_int.dzdx, up->geo_int.bcart, &up->local);
