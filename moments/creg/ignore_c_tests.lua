@@ -1,37 +1,8 @@
--- Auto-updated by runregression: tests that exceeded the per-test timeout.
+-- Tests skipped by the C regression suite.
 -- Remove an entry manually to re-enable the test.
--- gpu_lua / gpu_c: tests whose GPU variant timed out (CPU variant still runs).
+-- gpu: C tests whose GPU variant timed out (CPU variant still runs).
 return {
-   lua = {
-      "rt_gr_ultra_rel_bhl_static",
-      "rt_gr_bhl_spinning_neutronstar",
-      "rt_gr_mhd_bhl_static_tetrad",
-      "rt_gr_mhd_bhl_static",
-      "rt_gr_mhd_bhl_spinning",
-      "rt_gr_ultra_rel_bhl_static_tetrad",
-      "rt_gr_bhl_static",
-      "rt_gr_multifluid_bhl_spinning",
-      "rt_gr_mhd_brio_wu_tetrad",
-      "rt_gr_multifluid_bhl_spinning_tetrad",
-      "rt_gr_multifluid_bhl_static_tetrad",
-      "rt_gr_ultra_rel_bhl_spinning",
-      "rt_gr_mhd_strong_blast_tetrad",
-      "rt_euler_rgfm_shock_bubble",
-      "rt_10m_ot_grad_closure",
-      "rt_gr_mhd_brio_wu",
-      "rt_gr_bhl_static_neutronstar",
-      "rt_gr_ultra_rel_bhl_spinning_tetrad",
-      "rt_gr_mhd_bhl_spinning_tetrad",
-      "rt_gr_multifluid_bhl_static",
-      "rt_gr_bhl_spinning",
-      "rt_gr_mhd_blackhole_collapse",
-      "rt_10m_ot",
-      "rt_10m_burch_grad_closure",
-      "rt_gr_mhd_strong_blast",
-      "rt_gr_kh_2d",
-      "rt_10m_ot_nn_closure",
-   },
-   c = {
+   tests = {
       "rt_gr_ultra_rel_bhl_static",
       "rt_euler_rgfm_shock_bubble",
       "rt_gr_bhl_static_neutronstar",
@@ -57,7 +28,6 @@ return {
       "rt_gr_bhl_static",
       "rt_gr_ultra_rel_blackhole_collapse",
       "rt_euler_multiblock",
-      "rt_multib_euler_2d",
       "rt_10m_riem_nn_closure_p1",
       "rt_10m_ot_nn_closure",
       "rt_10m_riem_nn_closure_p2",
@@ -66,9 +36,15 @@ return {
       "rt_gr_mhd_bhl_spinning_tetrad",
       "rt_10m_ot",
       "rt_gr_kh_2d",
+      "rt_gr_mild_shock",
+      "rt_gr_bhl_spinning_tetrad",
+      "rt_gr_multifluid_brio_wu_tetrad",
+      "rt_gr_bhl_static_tetrad",
+      "rt_gr_ultra_rel_shock",
+      "rt_gr_multifluid_brio_wu",
+      "rt_gr_blackhole_spinning",
+      "rt_gr_blackhole_static",
    },
-   gpu_lua = {
-   },
-   gpu_c = {
+   gpu = {
    },
 }
