@@ -28,8 +28,10 @@ endif
 SUPERLU_LIB_NAME ?= superlu
 SUPERLU_LIBS ?= -l$(SUPERLU_LIB_NAME)
 
-# Include config.mak file (if it exists)
--include GKEYLL_SHARE_INSTALL_PREFIX_TAG/config.mak
+# Include config.mak file (if it exists).
+# Use $(PREFIX)/gkeyll/share/config.mak so this works on any machine
+# regardless of where make install was run.
+-include $(PREFIX)/gkeyll/share/config.mak
 
 CFLAGS = -O3 -g -ffast-math -I. 
 

@@ -921,6 +921,7 @@ local function prepareCRun(test, timeoutSecs, mode, skipCompile)
             compileSecs   = compileSecs,
          }
       end
+      log(string.format("... compiled in %g sec\n", compileSecs))
       verboseLog(compileLog)
    end
 
@@ -1013,6 +1014,7 @@ local function executeBatch(items)
          runtm    = runtm,
          runlog   = runlog,
          timedOut = (exitCode == 124),
+         exitCode = exitCode,
       })
    end
 
@@ -1779,64 +1781,91 @@ local function run_action(args, name)
 
       -- ---- C tests ----------------------------------------------------------
       if not args.lua_only then
+         -- Phase 1: compile all C tests serially before running any.
+         -- Matches the parallel path's Phase 1: a full compile report is visible
+         -- before any binary executes, and compile failures never block run phase.
+         local cPreps = {}
          for _, test in ipairs(cTests) do
             layerCounts[test.layer].total = layerCounts[test.layer].total + 1
             local doGpu = shouldDoGpu(test, "c")
-
-            -- CPU run: compile + run (no -g flag = CPU mode by default).
-            -- When doGpu is true, keep the binary for the subsequent GPU re-run.
-            local runtm, runlog, runDir, timedOut, compileFailed =
-               runCTest(test, timeoutSecs, nil, false, doGpu)
-
-            if compileFailed then
+            local prep  = prepareCRun(test, timeoutSecs, nil, false)
+            prep.doGpu  = doGpu
+            table.insert(cPreps, prep)
+            if prep.compileFailed then
                insertRegressionData(
-                  test.layer, runID, test.name, "c", -4, runtm, runlog)
+                  test.layer, runID, test.name, "c", -4,
+                  prep.compileSecs, "COMPILE FAILED:\n" .. prep.compileLog)
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            elseif timedOut then
-               table.insert(timedOutByLayer[test.layer].c,
-                  stripext(basename(test.src)))
-               insertRegressionData(
-                  test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            else
-               local status, checkLog = postRun(test, runDir, "c")
-               checkLog = checkLog or ""
+            end
+         end
 
-               -- GPU variant: only on check or bare run, not on create.
-               local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-               if doGpu and not args.create then
-                  layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
+         -- Phase 2: run compiled-OK tests one at a time.
+         for _, prep in ipairs(cPreps) do
+            if not prep.compileFailed then
+               local test     = prep.test
+               local doGpu    = prep.doGpu
+               local testname = stripext(basename(test.src))
+               local runDir   = prep.runDir
 
-                  -- Re-run the same binary with -g (skipCompile=true).
-                  gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                     test, runDir, "c",
-                     runCTest, {test, timeoutSecs, "gpu", true})
+               log(string.format("\n[C]   Running %s ...\n", test.name))
+               local bResults = executeBatch({ prep })
+               local r        = bResults[1]
+               local crashed  = (r.exitCode ~= 0 and not r.timedOut)
+               local runlog   = (prep.compileLog or "") .. "\n" .. r.runlog
 
-                  if gpuStatus == -3 then
-                     table.insert(gpuTimedOutByLayer[test.layer].c,
-                        stripext(basename(test.src)))
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == -5 or gpuStatus == 0 then
-                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-                  elseif gpuStatus == 1 then
-                     layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+               if r.timedOut then
+                  log(string.format("... TIMED OUT after %g sec\n", r.runtm))
+                  table.insert(timedOutByLayer[test.layer].c, testname)
+                  insertRegressionData(
+                     test.layer, runID, test.name, "c", -3, r.runtm, "TIMED OUT")
+                  layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+               elseif crashed and args.create then
+                  -- Binary crashed: no .gkyl output exists to save as baseline.
+                  log(string.format(
+                     "... CRASHED (exit %d): accepted results NOT saved.\n", r.exitCode))
+                  insertRegressionData(
+                     test.layer, runID, test.name, "c", 0, r.runtm, runlog)
+                  layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+               else
+                  if crashed then
+                     log(string.format("... CRASHED (exit %d) in %g sec\n",
+                        r.exitCode, r.runtm))
+                  else
+                     log(string.format("... completed in %g sec\n", r.runtm))
                   end
+                  verboseLog(r.runlog)
+                  local status, checkLog = postRun(test, runDir, "c")
+                  checkLog = checkLog or ""
+
+                  -- GPU variant: only on check or bare run, not on create.
+                  local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
+                  if doGpu and not args.create then
+                     layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
+                     gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
+                        test, runDir, "c",
+                        runCTest, {test, timeoutSecs, "gpu", true})
+                     if gpuStatus == -3 then
+                        table.insert(gpuTimedOutByLayer[test.layer].c, testname)
+                        layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                     elseif gpuStatus == -5 or gpuStatus == 0 then
+                        layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                     elseif gpuStatus == 1 then
+                        layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+                     end
+                  end
+
+                  insertRegressionData(
+                     test.layer, runID, test.name, "c",
+                     status, r.runtm,
+                     runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+                     gpuStatus, gpuRuntime, cpuGpuDiff)
                end
 
-               -- Clean up the compiled C binary now that both CPU and GPU runs are done.
-               if doGpu then
-                  local testname = stripext(basename(test.src))
-                  os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
-                     runDir, testname, runDir, testname))
-                  os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
-                     runDir, testname))
-               end
-
-               insertRegressionData(
-                  test.layer, runID, test.name, "c",
-                  status, runtm,
-                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
-                  gpuStatus, gpuRuntime, cpuGpuDiff)
+               -- Clean up compiled binary after both CPU and (optional) GPU runs.
+               os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
+                  runDir, testname, runDir, testname))
+               os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
+                  runDir, testname))
             end
          end
       end -- if not args.lua_only
@@ -1900,14 +1929,28 @@ local function run_action(args, name)
          local test     = prep.test
          local testname = stripext(basename(test.src))
          local runDir   = prep.runDir
+         local crashed  = (r.exitCode ~= 0 and not r.timedOut)
          if r.timedOut then
             log(string.format("\n[C] %s TIMED OUT (%g sec)\n", test.name, r.runtm))
             table.insert(timedOutByLayer[test.layer].c, testname)
             insertRegressionData(
                test.layer, runID, test.name, "c", -3, r.runtm, "TIMED OUT")
             layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+         elseif crashed and args.create then
+            -- Binary crashed: no .gkyl output exists to save as baseline.
+            log(string.format("\n[C] %s CRASHED (exit %d): accepted results NOT saved.\n",
+               test.name, r.exitCode))
+            insertRegressionData(
+               test.layer, runID, test.name, "c", 0, r.runtm,
+               (prep.compileLog or "") .. "\n" .. r.runlog)
+            layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
          else
-            log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
+            if crashed then
+               log(string.format("\n[C] %s CRASHED (exit %d) in %g sec\n",
+                  test.name, r.exitCode, r.runtm))
+            else
+               log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
+            end
             verboseLog(r.runlog)
             local status, checkLog = postRun(test, runDir, "c")
             checkLog = checkLog or ""
