@@ -820,9 +820,9 @@ int main(int argc, char **argv)
     },    
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
+      .type = GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,
+      .dt_set_by_species = "elc",
       .cellwise_const = true,
-      .write_diagnostics = true,
     },
     .write_omega_cfl = true,
 
