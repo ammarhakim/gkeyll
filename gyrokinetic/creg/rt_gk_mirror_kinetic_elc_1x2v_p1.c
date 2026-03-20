@@ -751,11 +751,14 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
-      .cellwise_const = true,
-      .write_diagnostics = true,
-      .time_dilation_scale_const = 0.05,
+    .time_rate_multipliers = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+        .time_dilation_scale_const = 0.05,
+      },
     },
     .write_omega_cfl = true,
 
@@ -819,10 +822,19 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },    
 
-    .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,
-      .dt_set_by_species = "elc",
-      .cellwise_const = true,
+    .time_rate_multipliers = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+        .time_dilation_scale_const = 0.05,
+      },
+      .multiplier[1] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
     .write_omega_cfl = true,
 

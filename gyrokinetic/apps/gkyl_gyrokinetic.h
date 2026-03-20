@@ -369,6 +369,13 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   char dt_set_by_species[32]; // For DT_SET_BY_SPECIES: the name of the species whose dt we are using to set the maximum dt for this species. e.g. "elc"
 };
 
+// Parameters for a chain of df/dt multipliers. Components are applied in order.
+struct gkyl_gyrokinetic_fdot_multipliers {
+  int num_multipliers;
+  double omega_H_scale_const; // A constant which multipliers the omegaH frequency
+  struct gkyl_gyrokinetic_fdot_multiplier multiplier[GKYL_MAX_FDOT_MUL];
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -389,8 +396,8 @@ struct gkyl_gyrokinetic_species {
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  // Phase-space field multiplying df/dt.
-  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
+  // Ordered list of phase-space fields multiplying df/dt.
+  struct gkyl_gyrokinetic_fdot_multipliers time_rate_multipliers;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -1342,7 +1349,7 @@ void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
  * @param fdot_mult_inp Input struct for the fdot_multiplier.
  */
 void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
 
 /**
  * Reset the collisionless multiplier for a given species.
