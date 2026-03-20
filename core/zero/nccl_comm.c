@@ -139,9 +139,15 @@ comm_free(const struct gkyl_ref_count *ref)
   gkyl_mem_buff_release(nccl->allgather_buff_local.buff);
   gkyl_mem_buff_release(nccl->allgather_buff_global.buff);
 
-  // Finalize NCCL comm.
+  // Finalize NCCL comm. For non-blocking communicators, explicitly finalize
+  // and wait for completion before destroying, per NCCL documentation.
   checkCuda(cudaStreamSynchronize(nccl->custream));
   checkCuda(cudaDeviceSynchronize());
+  ncclCommFinalize(nccl->ncomm);
+  ncclResult_t nstat;
+  do {
+    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
+  } while(nstat == ncclInProgress);
   ncclCommDestroy(nccl->ncomm);
 
   if (nccl->is_mcomm_allocated)
