@@ -17,6 +17,7 @@ BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
+BUILD_SOLPS=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -167,6 +168,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADAS="$value"
       ;;
+   --build-solps)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SOLPS="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -261,6 +266,14 @@ build_adas() {
     fi
 }
 
+build_solps() {
+    if [ "$BUILD_SOLPS" = "yes" ]
+    then
+	echo "Building SOLPS for neutral evolution"
+	./build-solps.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
@@ -270,3 +283,4 @@ build_openblas
 build_superlu
 build_cudss
 build_adas
+build_solps
