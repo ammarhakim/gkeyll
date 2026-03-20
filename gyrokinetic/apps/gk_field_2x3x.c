@@ -13,6 +13,75 @@
 #include <time.h>
 
 static void
+gk_field_3x_write_twistshift(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  // Write the discretized shift (for TS BCs) to file.
+  int comm_rank, comm_size;
+  gkyl_comm_get_rank(app->comm, &comm_rank);
+  gkyl_comm_get_size(app->comm, &comm_size);
+
+  const char *vars[] = {"x","y","z"};
+  const char *edge[] = {"lower","upper"};
+  const char *fmt = "%s-bc_%s%s_twistshift.gkyl";
+
+  struct gk_species *gks = &app->species[0];
+  for (int i = 0; i < 2*app->cdim; i++) {
+    if (gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_IWL ||
+        gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+
+      int dir = gks->info.bcs[i].dir;
+      int edi = gks->info.bcs[i].edge;
+      if (comm_rank == 0 && edi == GKYL_LOWER_EDGE) {
+        struct gkyl_bc_twistshift *bc_ts = f->bc_ts_lo;
+        
+        struct gkyl_rect_grid shear_grid;
+        struct gkyl_range shear_r;
+        struct gkyl_basis shift_b;
+        struct gkyl_array *shift_dg = gkyl_bc_twistshift_get_shift_objects(bc_ts, &shear_grid, &shear_r, &shift_b);
+
+        // Twistshift updater stores the shift on a restricted range (the core) but a full
+        // grid. Create a restricted grid for I/O.
+        struct gkyl_rect_grid shear_grid_core;
+        double lower[1], upper[1];
+        int cells[] = {shear_r.volume};
+        if (app->gk_geom->geqdsk_sign_convention == 0) {
+          // x increases towards SOL.
+          lower[0] = shear_grid.lower[0];
+          upper[0] = shear_grid.lower[0] + shear_grid.dx[0]*cells[0];
+          gkyl_rect_grid_init(&shear_grid_core, shear_grid.ndim, lower, upper, cells);
+        }
+        else {
+          // x increases towards SOL.
+          lower[0] = shear_grid.upper[0] - shear_grid.dx[0]*cells[0];
+          upper[0] = shear_grid.upper[0];
+          gkyl_rect_grid_init(&shear_grid_core, shear_grid.ndim, lower, upper, cells);
+        }
+
+        // Package metadata for shift file.
+        struct gkyl_msgpack_map_elem io_meta_shift_dg[] = {
+          { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = shift_b.poly_order },
+          { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = shift_b.id }
+        };
+        int io_meta_shift_dg_len = sizeof(io_meta_shift_dg)/sizeof(io_meta_shift_dg[0]);
+        int io_meta_shift_len[] = {app->io_meta_basic_len, io_meta_shift_dg_len};
+        const struct gkyl_msgpack_map_elem* io_meta_shift[] = {app->io_meta_basic, io_meta_shift_dg};
+        struct gkyl_msgpack_data *mt_shift = gkyl_msgpack_create_union(sizeof(io_meta_shift_len)/sizeof(int),
+          io_meta_shift_len, io_meta_shift);
+
+        int sz = gkyl_calc_strlen(fmt, app->name, vars[dir], edge[edi]);
+        char fileNm[sz+1]; // ensures no buffer overflow
+        sprintf(fileNm, fmt, app->name, vars[dir], edge[edi]);
+
+        gkyl_grid_sub_array_write(&shear_grid_core, &shear_r, mt_shift, shift_dg, fileNm);
+
+        gkyl_array_release(shift_dg);
+        gkyl_msgpack_data_release(mt_shift);
+      }
+    }
+  }
+}
+
+static void
 gk_field_fem_projection_par_iwl_2x(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
 {
   // Project a DG field onto the parallel FEM basis to make it
@@ -52,7 +121,7 @@ gk_field_fem_projection_par_iwl_3x(gkyl_gyrokinetic_app *app, struct gk_field *f
   // fill core upper parallel boundary ghost with skin boundary value.
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &app->global_lower_ghost_par_core, &app->global_upper_skin_par_core);
-  gkyl_bc_twistshift_advance(field->bc_T_LU_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
   // Smooth the the DG array.
@@ -120,7 +189,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .shift_func_ctx = par_lower_bc->aux_ctx,
       .use_gpu = app->use_gpu,
     };
-    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+    f->bc_ts_lo = gkyl_bc_twistshift_new(&T_LU_lo);
 
     long buff_sz = GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -128,8 +197,10 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_upper_skin_par_core, &app->global_upper_ghost_par_core,
       app->basis.num_basis, app->cdim, app->use_gpu);
-  }
 
+    // Write the discrete shift to file.
+    gk_field_3x_write_twistshift(app, f);
+  }
 }
 
 static void
@@ -184,7 +255,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_fem_parproj_release(f->fem_parproj_sol);
 
     if (app->cdim == 3) {
-      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
+      gkyl_bc_twistshift_release(f->bc_ts_lo);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
       gkyl_array_release(f->bc_buffer);
     }

@@ -8,6 +8,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -111,6 +112,8 @@ test_mom_gyrokinetic()
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -119,6 +122,7 @@ test_mom_gyrokinetic()
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = 0,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -156,6 +160,7 @@ test_mom_gyrokinetic()
   gkyl_mom_type_release(m2);
   gkyl_mom_type_release(m3par);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -251,6 +256,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -260,6 +266,7 @@ test_1x1v(int polyOrder, bool use_gpu)
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -431,6 +438,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void
@@ -500,6 +508,8 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -508,6 +518,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -661,6 +672,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void
@@ -730,6 +742,8 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -738,6 +752,7 @@ test_2x2v(int poly_order, bool use_gpu)
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -970,6 +985,7 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); } 

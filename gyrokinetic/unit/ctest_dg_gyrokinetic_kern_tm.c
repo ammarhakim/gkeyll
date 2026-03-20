@@ -11,6 +11,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -86,6 +87,8 @@ test_3x2v_p1(bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -94,6 +97,7 @@ test_3x2v_p1(bool use_gpu)
       .c2p_ctx = 0,
       .bfield_func = bfield_func, // magnetic field magnitude
       .bfield_ctx =0 ,
+      .position_map = pmap,
       .grid = confGrid,
       .local = confRange,
       .local_ext = confRange_ext,
@@ -151,6 +155,7 @@ test_3x2v_p1(bool use_gpu)
 
   // clean up
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(fin);
   gkyl_array_release(rhs);

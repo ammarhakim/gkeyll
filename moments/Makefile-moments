@@ -9,14 +9,6 @@ UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
 
-SUPERLU_INC_DIR ?= $(PREFIX)/superlu/include/
-ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
-else
-	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib/
-endif
-SUPERLU_LIB_NAME ?= superlu
-SUPERLU_LIBS ?= -l$(SUPERLU_LIB_NAME)
 
 CORELLIB := ../$(BUILD_DIR)/core/libg0core.so
 CORESLLIB := 

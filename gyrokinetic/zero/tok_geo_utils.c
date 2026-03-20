@@ -202,6 +202,7 @@ void set_upper_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double smax = res.res;
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmax_iwl_plate = rzplate[1];
+      geo->rmin = rzplate[0];
 }
 
 // Sets zmin if plate is specified
@@ -219,6 +220,7 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double smin = res.res;
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmin_iwl_plate = rzplate[1];
+      geo->rmin = rzplate[0];
 }
 
 void 
@@ -862,6 +864,17 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rleft and rright. Will need both
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
+
+    double rmin_old = geo->rmin;
+    if (geo->plate_spec && ( (arc_ctx->psi > geo->efit->sibry && geo->efit->sibry > geo->efit->simag) || (arc_ctx->psi < geo->efit->sibry && geo->efit->sibry < geo->efit->simag) )){
+      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else {
+      arc_ctx->zmin_iwl_plate = geo->zmaxis;
+      arc_ctx->zmax_iwl_plate = geo->zmaxis;
+    }
+
     arc_ctx->zmax = inp->zmax; // Initial guess.
 
     double zlo = geo->zmaxis;
@@ -872,15 +885,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Done finding turning points
     arc_ctx->zmin_iwl = arc_ctx->zmin;
     arc_ctx->zmax_iwl = arc_ctx->zmax;
-
-    if (geo->plate_spec && ( (arc_ctx->psi > geo->efit->sibry && geo->efit->sibry > geo->efit->simag) || (arc_ctx->psi < geo->efit->sibry && geo->efit->sibry < geo->efit->simag) )){
-      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-    }
-    else {
-      arc_ctx->zmin_iwl_plate = geo->zmaxis;
-      arc_ctx->zmax_iwl_plate = geo->zmaxis;
-    }
+    geo->rmin = rmin_old;
 
     arc_ctx->right = true;
     arc_ctx->arcL_q1 = integrate_psi_contour_memo(geo, psi_curr, geo->zmaxis, arc_ctx->zmax, arc_ctx->rright, false, false, arc_memo);
