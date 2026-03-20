@@ -275,7 +275,7 @@ core-regression: ## Build core regression tests
 
 core-install: ## Install core infrastructure code
 	cd core && $(MAKE) -f Makefile-core install
-	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
+	test -e config.mak && sed 's|^PREFIX=.*|PREFIX=${INSTALL_PREFIX}|' config.mak > ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
 	sed '${SED_REPS_STR1};${SED_REPS_STR2}' Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 
 core-clean: ## Clean core infrastructure code
