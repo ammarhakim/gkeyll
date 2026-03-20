@@ -66,6 +66,10 @@ struct gkyl_moment_em_coupling_inp {
   bool has_gr_ultra_rel_sources; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
   double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
 
+  bool has_gr_polytropic_sources; // Run with general relativistic source terms (Euler equations, polytropic equation of state).
+  double gr_polytropic_gas_gamma; // Adiabatic index for general relativistic Euler equations (polytropic equation of state).
+  double gr_polytropic_K_poly; // Adiabatic constant for general relativistic Euler equations (polytropic equation of state).
+
   bool has_gr_euler_sources; // Run with general relativistic source terms (Euler equations, general equation of state).
   double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (general equation of state).
 

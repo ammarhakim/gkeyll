@@ -123,6 +123,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_gr_polytropic_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_gr_polytropic) {
+      src_inp.has_gr_polytropic_sources = true;
+
+      if (app->species[i].gr_polytropic_gas_gamma != 0.0) {
+        src_inp.gr_polytropic_gas_gamma = app->species[i].gr_polytropic_gas_gamma;
+        src_inp.gr_polytropic_K_poly = app->species[i].gr_polytropic_K_poly;
+      }
+    }
+  }
+
   src_inp.has_gr_euler_sources = false;
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_gr_euler) {

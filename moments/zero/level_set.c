@@ -7,6 +7,7 @@
 #include <gkyl_wv_gr_euler_tetrad_priv.h>
 #include <gkyl_wv_gr_ultra_rel_euler_priv.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
+#include <gkyl_wv_gr_polytropic_euler_priv.h>
 #include <gkyl_wv_gr_twofluid_priv.h>
 #include <gkyl_wv_gr_twofluid_tetrad_priv.h>
 #include <gkyl_wv_gr_mhd_priv.h>
@@ -685,6 +686,288 @@ gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *upd
   }
   else if (spacetime_gauge == GKYL_BLACKHOLE_COLLAPSE_GAUGE) {
     const struct gkyl_gr_spacetime* spacetime = gr_ultra_rel_euler->spacetime;
+    const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
+
+    double mass = blackhole->mass;
+    double spin = blackhole->spin;
+
+    double pos_x = blackhole->pos_x;
+    double pos_y = blackhole->pos_y;
+    double pos_z = blackhole->pos_z;
+
+    for (int i = loidx_c; i <= upidx_c; i++) {
+      idxl[dir] = i;
+
+      double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+      double evol_param = qnew[66];
+
+      if (evol_param < mass) {
+        evol_param += 0.001 + (0.001 * evol_param);
+      }
+      qnew[66] = evol_param;
+
+      double x = qnew[67];
+      double y = qnew[68];
+      double z = qnew[69];
+
+      struct gkyl_gr_spacetime *new_spacetime = gkyl_gr_blackhole_new(false, fmin(evol_param, mass), spin, pos_x, pos_y, pos_z);
+
+      double lapse;
+      double *shift = gkyl_malloc(sizeof(double[3]));
+      bool in_excision_region;
+
+      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+        spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+        extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      double *lapse_der = gkyl_malloc(sizeof(double[3]));
+      double **shift_der = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+        shift_der[i] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+      for (int i = 0; i < 3; i++) {
+        spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+        for (int j = 0; j < 3; j++) {
+          spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+        }
+      }
+
+      new_spacetime->lapse_function_func(new_spacetime, 0.0, x, y, z, &lapse);
+      new_spacetime->shift_vector_func(new_spacetime, 0.0, x, y, z, &shift);
+      new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
+
+      new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
+      new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+
+      new_spacetime->lapse_function_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      new_spacetime->shift_vector_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
+      qnew[4] = lapse;
+      qnew[5] = shift[0]; qnew[6] = shift[1]; qnew[7] = shift[2];
+
+      qnew[8] = spatial_metric[0][0]; qnew[9] = spatial_metric[0][1]; qnew[10] = spatial_metric[0][2];
+      qnew[11] = spatial_metric[1][0]; qnew[12] = spatial_metric[1][1]; qnew[13] = spatial_metric[1][2];
+      qnew[14] = spatial_metric[2][0]; qnew[15] = spatial_metric[2][1]; qnew[16] = spatial_metric[2][2];
+
+      qnew[17] = extrinsic_curvature[0][0]; qnew[18] = extrinsic_curvature[0][1]; qnew[19] = extrinsic_curvature[0][2];
+      qnew[20] = extrinsic_curvature[1][0]; qnew[21] = extrinsic_curvature[1][1]; qnew[22] = extrinsic_curvature[1][2];
+      qnew[23] = extrinsic_curvature[2][0]; qnew[24] = extrinsic_curvature[2][1]; qnew[25] = extrinsic_curvature[2][2];
+
+      if (in_excision_region) {
+        qnew[26] = -1.0;
+      }
+      else {
+        qnew[26] = 1.0;
+      }
+
+      qnew[27] = lapse_der[0]; qnew[28] = lapse_der[1]; qnew[29] = lapse_der[2];
+
+      qnew[30] = shift_der[0][0]; qnew[31] = shift_der[0][1]; qnew[32] = shift_der[0][2];
+      qnew[33] = shift_der[1][0]; qnew[34] = shift_der[1][1]; qnew[35] = shift_der[1][2];
+      qnew[36] = shift_der[2][0]; qnew[37] = shift_der[2][1]; qnew[38] = shift_der[2][2];
+
+      qnew[39] = spatial_metric_der[0][0][0]; qnew[40] = spatial_metric_der[0][0][1]; qnew[41] = spatial_metric_der[0][0][2];
+      qnew[42] = spatial_metric_der[0][1][0]; qnew[43] = spatial_metric_der[0][1][1]; qnew[44] = spatial_metric_der[0][1][2];
+      qnew[45] = spatial_metric_der[0][2][0]; qnew[46] = spatial_metric_der[0][2][1]; qnew[47] = spatial_metric_der[0][2][2];
+
+      qnew[48] = spatial_metric_der[1][0][0]; qnew[49] = spatial_metric_der[1][0][1]; qnew[50] = spatial_metric_der[1][0][2];
+      qnew[51] = spatial_metric_der[1][1][0]; qnew[52] = spatial_metric_der[1][1][1]; qnew[53] = spatial_metric_der[1][1][2];
+      qnew[54] = spatial_metric_der[1][2][0]; qnew[55] = spatial_metric_der[1][2][1]; qnew[56] = spatial_metric_der[1][2][2];
+
+      qnew[57] = spatial_metric_der[2][0][0]; qnew[58] = spatial_metric_der[2][0][1]; qnew[59] = spatial_metric_der[2][0][2];
+      qnew[60] = spatial_metric_der[2][1][0]; qnew[61] = spatial_metric_der[2][1][1]; qnew[62] = spatial_metric_der[2][1][2];
+      qnew[63] = spatial_metric_der[2][2][0]; qnew[64] = spatial_metric_der[2][2][1]; qnew[65] = spatial_metric_der[2][2][2];
+
+      if (in_excision_region) {
+        for (int i = 0; i < 66; i++) {
+          qnew[i] = 0.0;
+        }
+        qnew[26] = -1.0;
+      }
+
+      for (int i = 0; i < 3; i++) {
+        gkyl_free(spatial_metric[i]);
+        gkyl_free(extrinsic_curvature[i]);
+        gkyl_free(shift_der[i]);
+    
+        for (int j = 0; j < 3; j++) {
+          gkyl_free(spatial_metric_der[i][j]);
+        }
+        gkyl_free(spatial_metric_der[i]);
+      }
+      gkyl_free(spatial_metric);
+      gkyl_free(extrinsic_curvature);
+      gkyl_free(shift);
+      gkyl_free(lapse_der);
+      gkyl_free(shift_der);
+      gkyl_free(spatial_metric_der);
+      gkyl_free(new_spacetime);
+    }
+  }
+}
+
+void
+gr_polytropic_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
+  struct gkyl_array *qout, int dir)
+{
+  const struct gkyl_wv_eqn* eqn = wv->equation;
+  const struct wv_gr_polytropic_euler *gr_polytropic_euler = container_of(eqn, struct wv_gr_polytropic_euler, eqn);
+
+  const enum gkyl_spacetime_gauge spacetime_gauge = gr_polytropic_euler->spacetime_gauge;
+
+  if (spacetime_gauge == GKYL_STATIC_GAUGE) {
+    const struct gkyl_gr_spacetime* spacetime = gr_polytropic_euler->spacetime;
+    int reinit_freq = gr_polytropic_euler->reinit_freq;
+    
+    for (int i = loidx_c; i<= upidx_c; i++) {
+      idxl[dir] = i;
+      
+      double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+      double evol_param = qnew[66];
+
+      if (evol_param > reinit_freq) {
+        static int gi = 0;
+        if (gi < 5) {
+            printf("[gauge] qnew[67]=%.4f qnew[68]=%.4f qnew[69]=%.4f\n",
+                qnew[67], qnew[68], qnew[69]);
+            gi++;
+        }
+        double x = qnew[67];
+        double y = qnew[68];
+        double z = qnew[69];
+
+        double lapse;
+        double *shift = gkyl_malloc(sizeof(double[3]));
+        bool in_excision_region;
+
+        double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+        for (int i = 0; i < 3; i++) {
+          spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+        }
+
+        double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+        for (int i = 0; i < 3; i++) {
+          extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+        }
+
+        double *lapse_der = gkyl_malloc(sizeof(double[3]));
+        double **shift_der = gkyl_malloc(sizeof(double*[3]));
+        for (int i = 0; i < 3; i++) {
+          shift_der[i] = gkyl_malloc(sizeof(double[3]));
+        }
+
+        double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+        for (int i = 0; i < 3; i++) {
+          spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+          for (int j = 0; j < 3; j++) {
+            spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+          }
+        }
+
+        // double Lx = 200.0;
+        // int Nx = 512;
+        // double dx = Lx / Nx;
+        // double fd_step = 0.5 * dx;
+
+        spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
+        // in gr_polytropic_euler_impose_gauge, right after computing lapse
+        static int gauge_check = 0;
+        if (gauge_check < 3 && fabs(x - 108.0) < 0.5) {
+            printf("[gauge] x=%.4f lapse=%.6f shift=(%.4e,%.4e,%.4e) gam_xx=%.6f\n",
+                x, lapse, shift[0], shift[1], shift[2],
+                spatial_metric[0][0]);
+            gauge_check++;
+        }
+        spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
+        spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+
+        spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
+        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+
+        spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
+        qnew[4] = lapse;
+        qnew[5] = shift[0]; qnew[6] = shift[1]; qnew[7] = shift[2];
+
+        qnew[8] = spatial_metric[0][0]; qnew[9] = spatial_metric[0][1]; qnew[10] = spatial_metric[0][2];
+        qnew[11] = spatial_metric[1][0]; qnew[12] = spatial_metric[1][1]; qnew[13] = spatial_metric[1][2];
+        qnew[14] = spatial_metric[2][0]; qnew[15] = spatial_metric[2][1]; qnew[16] = spatial_metric[2][2];
+
+        qnew[17] = extrinsic_curvature[0][0]; qnew[18] = extrinsic_curvature[0][1]; qnew[19] = extrinsic_curvature[0][2];
+        qnew[20] = extrinsic_curvature[1][0]; qnew[21] = extrinsic_curvature[1][1]; qnew[22] = extrinsic_curvature[1][2];
+        qnew[23] = extrinsic_curvature[2][0]; qnew[24] = extrinsic_curvature[2][1]; qnew[25] = extrinsic_curvature[2][2];
+        
+        if (in_excision_region) {
+          qnew[26] = -1.0;
+        }
+        else {
+          qnew[26] = 1.0;
+        }
+
+        qnew[27] = lapse_der[0]; qnew[28] = lapse_der[1]; qnew[29] = lapse_der[2];
+
+        qnew[30] = shift_der[0][0]; qnew[31] = shift_der[0][1]; qnew[32] = shift_der[0][2];
+        qnew[33] = shift_der[1][0]; qnew[34] = shift_der[1][1]; qnew[35] = shift_der[1][2];
+        qnew[36] = shift_der[2][0]; qnew[37] = shift_der[2][1]; qnew[38] = shift_der[2][2];
+
+        qnew[39] = spatial_metric_der[0][0][0]; qnew[40] = spatial_metric_der[0][0][1]; qnew[41] = spatial_metric_der[0][0][2];
+        qnew[42] = spatial_metric_der[0][1][0]; qnew[43] = spatial_metric_der[0][1][1]; qnew[44] = spatial_metric_der[0][1][2];
+        qnew[45] = spatial_metric_der[0][2][0]; qnew[46] = spatial_metric_der[0][2][1]; qnew[47] = spatial_metric_der[0][2][2];
+
+        qnew[48] = spatial_metric_der[1][0][0]; qnew[49] = spatial_metric_der[1][0][1]; qnew[50] = spatial_metric_der[1][0][2];
+        qnew[51] = spatial_metric_der[1][1][0]; qnew[52] = spatial_metric_der[1][1][1]; qnew[53] = spatial_metric_der[1][1][2];
+        qnew[54] = spatial_metric_der[1][2][0]; qnew[55] = spatial_metric_der[1][2][1]; qnew[56] = spatial_metric_der[1][2][2];
+
+        qnew[57] = spatial_metric_der[2][0][0]; qnew[58] = spatial_metric_der[2][0][1]; qnew[59] = spatial_metric_der[2][0][2];
+        qnew[60] = spatial_metric_der[2][1][0]; qnew[61] = spatial_metric_der[2][1][1]; qnew[62] = spatial_metric_der[2][1][2];
+        qnew[63] = spatial_metric_der[2][2][0]; qnew[64] = spatial_metric_der[2][2][1]; qnew[65] = spatial_metric_der[2][2][2];
+
+        if (in_excision_region) {
+          for (int i = 0; i < 66; i++) {
+            qnew[i] = 0.0;
+          }
+          qnew[26] = -1.0;
+        }
+
+        for (int i = 0; i < 3; i++) {
+          gkyl_free(spatial_metric[i]);
+          gkyl_free(extrinsic_curvature[i]);
+          gkyl_free(shift_der[i]);
+      
+          for (int j = 0; j < 3; j++) {
+            gkyl_free(spatial_metric_der[i][j]);
+          }
+          gkyl_free(spatial_metric_der[i]);
+        }
+        gkyl_free(spatial_metric);
+        gkyl_free(extrinsic_curvature);
+        gkyl_free(shift);
+        gkyl_free(lapse_der);
+        gkyl_free(shift_der);
+        gkyl_free(spatial_metric_der);
+
+        qnew[66] = 0.0;
+      }
+      else {
+        qnew[66] += 1.0;
+      }
+    }
+  }
+  else if (spacetime_gauge == GKYL_BLACKHOLE_COLLAPSE_GAUGE) {
+    const struct gkyl_gr_spacetime* spacetime = gr_polytropic_euler->spacetime;
     const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
     double mass = blackhole->mass;

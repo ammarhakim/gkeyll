@@ -102,6 +102,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->gr_ultra_rel_gas_gamma = inp.gr_ultra_rel_gas_gamma;
   }
 
+  mom_em->has_gr_polytropic_sources = inp.has_gr_polytropic_sources;
+  if (mom_em->has_gr_polytropic_sources) {
+    mom_em->gr_polytropic_gas_gamma = inp.gr_polytropic_gas_gamma;
+    mom_em->gr_polytropic_K_poly = inp.gr_polytropic_K_poly;
+  }
+
   mom_em->has_gr_euler_sources = inp.has_gr_euler_sources;
   if (mom_em->has_gr_euler_sources) {
     mom_em->gr_euler_gas_gamma = inp.gr_euler_gas_gamma;

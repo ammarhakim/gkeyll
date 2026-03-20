@@ -802,6 +802,10 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   if (mom_em->has_gr_ultra_rel_sources) {
     explicit_gr_ultra_rel_source_update(mom_em, t_curr, dt, fluid_s);
   }
+  if (mom_em->has_gr_polytropic_sources) {
+    //printf("ENTERTING THE LOOOOOOOOOOOOOP %i", mom_em->has_gr_polytropic_sources);
+    explicit_gr_polytropic_source_update(mom_em, t_curr, dt, fluid_s);
+  }
   if (mom_em->has_gr_euler_sources) {
     explicit_gr_euler_source_update(mom_em, t_curr, dt, fluid_s);
   }

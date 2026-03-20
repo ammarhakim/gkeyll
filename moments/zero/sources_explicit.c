@@ -7,6 +7,7 @@
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_wv_gr_ultra_rel_euler_priv.h>
+#include <gkyl_wv_gr_polytropic_euler_priv.h>
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -486,6 +487,358 @@ explicit_medium_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 
     explicit_medium_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 15; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
+explicit_gr_polytropic_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+
+  static int dt_check = 0;
+  if (dt_check < 1) {
+      printf("[EULER_ARGS] gas_gamma=%.6e t_curr=%.6e dt=%.6e fluid_old[0]=%.6e\n",
+          gas_gamma, t_curr, dt, fluid_old[0]);
+      dt_check++;
+  }
+  // Are pointers the same?
+  // printf("PTR: fluid_old=%p fluid_new=%p same=%d\n",
+  //   (void*)fluid_old, (void*)fluid_new, fluid_old == fluid_new);
+  
+  double K_poly = mom_em->gr_polytropic_K_poly;
+
+  double lapse = fluid_old[4];
+  double shift_x = fluid_old[5];
+  double shift_y = fluid_old[6];
+  double shift_z = fluid_old[7];
+
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = fluid_old[8]; spatial_metric[0][1] = fluid_old[9]; spatial_metric[0][2] = fluid_old[10];
+  spatial_metric[1][0] = fluid_old[11]; spatial_metric[1][1] = fluid_old[12]; spatial_metric[1][2] = fluid_old[13];
+  spatial_metric[2][0] = fluid_old[14]; spatial_metric[2][1] = fluid_old[15]; spatial_metric[2][2] = fluid_old[16];
+
+  double inv_spatial_metric[3][3];
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  double trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    trace += spatial_metric[i][i];
+  }
+
+  double spatial_metric_sq[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_sq[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+      }
+    }
+  }
+
+  double sq_trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    sq_trace += spatial_metric_sq[i][i];
+  }
+
+  double euclidean_metric[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        euclidean_metric[i][j] = 1.0;
+      }
+      else {
+        euclidean_metric[i][j] = 0.0;
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
+        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+    }
+  }
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = fluid_old[17]; extrinsic_curvature[0][1] = fluid_old[18]; extrinsic_curvature[0][2] = fluid_old[19];
+  extrinsic_curvature[1][0] = fluid_old[20]; extrinsic_curvature[1][1] = fluid_old[21]; extrinsic_curvature[1][2] = fluid_old[22];
+  extrinsic_curvature[2][0] = fluid_old[23]; extrinsic_curvature[2][1] = fluid_old[24]; extrinsic_curvature[2][2] = fluid_old[25];
+
+  bool in_excision_region = false;
+  if (fluid_old[26] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double v[70] = { 0.0 };
+    gkyl_gr_polytropic_euler_prim_vars(K_poly, gas_gamma, fluid_old, v);
+
+    double rho = v[0];
+    double vx = v[1];
+    double vy = v[2];
+    double vz = v[3];
+    double p = K_poly * pow(rho, gas_gamma);
+
+    lapse = v[4];
+    shift_x = v[5];
+    shift_y = v[6];
+    shift_z = v[7];
+
+    spatial_metric[0][0] = v[8]; spatial_metric[0][1] = v[9]; spatial_metric[0][2] = v[10];
+    spatial_metric[1][0] = v[11]; spatial_metric[1][1] = v[12]; spatial_metric[1][2] = v[13];
+    spatial_metric[2][0] = v[14]; spatial_metric[2][1] = v[15]; spatial_metric[2][2] = v[16];
+
+    extrinsic_curvature[0][0] = v[17]; extrinsic_curvature[0][1] = v[18]; extrinsic_curvature[0][2] = v[19];
+    extrinsic_curvature[1][0] = v[20]; extrinsic_curvature[1][1] = v[21]; extrinsic_curvature[1][2] = v[22];
+    extrinsic_curvature[2][0] = v[23]; extrinsic_curvature[2][1] = v[24]; extrinsic_curvature[2][2] = v[25];
+
+    double lapse_der[3];
+    lapse_der[0] = v[27];
+    lapse_der[1] = v[28];
+    lapse_der[2] = v[29];
+
+    double shift_der[3][3];
+    shift_der[0][0] = v[30]; shift_der[0][1] = v[31]; shift_der[0][2] = v[32];
+    shift_der[1][0] = v[33]; shift_der[1][1] = v[34]; shift_der[1][2] = v[35];
+    shift_der[2][0] = v[36]; shift_der[2][1] = v[37]; shift_der[2][2] = v[38];
+
+    double spatial_metric_der[3][3][3];
+    spatial_metric_der[0][0][0] = v[39]; spatial_metric_der[0][0][1] = v[40]; spatial_metric_der[0][0][2] = v[41];
+    spatial_metric_der[0][1][0] = v[42]; spatial_metric_der[0][1][1] = v[43]; spatial_metric_der[0][1][2] = v[44];
+    spatial_metric_der[0][2][0] = v[45]; spatial_metric_der[0][2][1] = v[46]; spatial_metric_der[0][2][2] = v[47];
+
+    spatial_metric_der[1][0][0] = v[48]; spatial_metric_der[1][0][1] = v[49]; spatial_metric_der[1][0][2] = v[50];
+    spatial_metric_der[1][1][0] = v[51]; spatial_metric_der[1][1][1] = v[52]; spatial_metric_der[1][1][2] = v[53];
+    spatial_metric_der[1][2][0] = v[54]; spatial_metric_der[1][2][1] = v[55]; spatial_metric_der[1][2][2] = v[56];
+
+    spatial_metric_der[2][0][0] = v[57]; spatial_metric_der[2][0][1] = v[58]; spatial_metric_der[2][0][2] = v[59];
+    spatial_metric_der[2][1][0] = v[60]; spatial_metric_der[2][1][1] = v[61]; spatial_metric_der[2][1][2] = v[62];
+    spatial_metric_der[2][2][0] = v[63]; spatial_metric_der[2][2][1] = v[64]; spatial_metric_der[2][2][2] = v[65];
+
+    spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+      (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+      (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+
+    double vel[3];
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+    double v_sq = 0.0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double W = 1.0 / sqrt(1.0 - v_sq);
+    if (v_sq > 1.0 - pow(10.0, -8.0)) {
+      W = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double spacetime_vel[4];
+    spacetime_vel[0] = W / lapse;
+    spacetime_vel[1] = (W * vx) - (shift_x * (W / lapse));
+    spacetime_vel[2] = (W * vy) - (shift_y * (W / lapse));
+    spacetime_vel[3] = (W * vz) - (shift_z * (W / lapse));
+
+    double shift[3];
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+    double inv_spacetime_metric[4][4];
+    // inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
+    // for (int i = 0; i < 3; i++) {
+    //   inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
+    //   inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+    // }
+    // for (int i = 0; i < 3; i++) {
+    //   for (int j = 0; j < 3; j++) {
+    //     inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+    //   }
+    // }
+    inv_spacetime_metric[0][0] = -(1.0 / (lapse * lapse));
+    for (int i = 0; i < 3; i++) {
+      inv_spacetime_metric[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
+    }
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        inv_spacetime_metric[i + 1][j + 1] = inv_spatial_metric[i][j] 
+          - (1.0 / (lapse * lapse)) * shift[i] * shift[j];
+      }
+    }
+
+    double h = 1.0 + (gas_gamma / (gas_gamma - 1.0)) * (p / fmax(rho, 1.0e-15));
+
+    double stress_energy[4][4];
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + (p * inv_spacetime_metric[i][j]);
+      }
+    }
+
+    double mom[3];
+    mom[0] = (rho * h) * (W * W) * vx;
+    mom[1] = (rho * h) * (W * W) * vy;
+    mom[2] = (rho * h) * (W * W) * vz;
+
+    for (int i = 0; i < 70; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+
+    // Energy density source.
+    //double local_etot = fluid_old[0] / sqrt(spatial_det);
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        fluid_new[0] += sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+        // if (local_etot > 1e-3) {
+        //   printf("after K term [%d][%d]: fluid_new[0]=%e\n", i, j, fluid_new[0]);
+        // }
+        fluid_new[0] += sqrt(spatial_det) * dt * (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[0] += sqrt(spatial_det) * dt * (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
+      }
+
+      fluid_new[0] -= sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * lapse_der[i]);
+      fluid_new[0] -= sqrt(spatial_det) * dt * (stress_energy[0][i + 1] * lapse_der[i]);
+    }
+    // if (local_etot > 1e-3) {
+    //   printf("after energy source: fluid_new[0]=%e fluid_old[0]=%e\n", fluid_new[0], fluid_old[0]);
+    // }
+
+    // Momentum density sources.
+    for (int j = 0; j < 3; j++) {
+      fluid_new[1 + j] -= sqrt(spatial_det) * dt * (stress_energy[0][0] * lapse * lapse_der[j]);
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          fluid_new[1 + j] += sqrt(spatial_det) * dt * (0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[1 + j] += sqrt(spatial_det) * dt * (0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+        }
+
+        fluid_new[1 + j] += sqrt(spatial_det) * dt * ((mom[k] / lapse) * shift_der[j][k]);
+
+        for (int i = 0; i < 3; i++) {
+          fluid_new[1 + j] += sqrt(spatial_det) * dt * (stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+        }
+      }
+    }
+
+    static int se_check = 0;
+    if (se_check < 1 && fluid_old[0]/sqrt(spatial_det) > 4e-4) {
+      double sqg = sqrt(spatial_det);
+      double T00 = stress_energy[0][0];
+      double t1_step1 = sqg;
+      double t1_step2 = t1_step1 * dt;
+      double t1_step3 = t1_step2 * T00;
+      double t1_step4 = t1_step3 * lapse;
+      double t1_step5 = t1_step4 * lapse_der[0];
+      printf("[T1_STEPS] sqg=%.6e dt=%.6e T00=%.6e lapse=%.6e lapse_der0=%.6e\n",
+          sqg, dt, T00, lapse, lapse_der[0]);
+      printf("[T1_STEPS] s1=%.6e s2=%.6e s3=%.6e s4=%.6e s5=%.6e\n",
+          t1_step1, t1_step2, t1_step3, t1_step4, t1_step5);
+      printf("[T1_STEPS] -s5=%.6e vs term1_printed=%.6e\n",
+          -t1_step5, -sqg*dt*T00*lapse*lapse_der[0]);
+      se_check++;
+    }
+
+    // static int se_check = 0;
+    // if (se_check < 3 && fluid_old[0]/sqrt(spatial_det) > 4e-4) {
+    //   // existing SE print
+    //   printf("[SE] x=%.4f T00=%.6e T11=%.6e T22=%.6e lapse=%.6f lapse_der0=%.6e met_der000=%.6e\n",
+    //       fluid_old[67],
+    //       stress_energy[0][0], stress_energy[1][1], stress_energy[2][2],
+    //       lapse, lapse_der[0], spatial_metric_der[0][0][0]);
+    //   printf("[SE] term1=%.6e term2=%.6e net=%.6e\n",
+    //       -sqrt(spatial_det)*dt*stress_energy[0][0]*lapse*lapse_der[0],
+    //       sqrt(spatial_det)*dt*0.5*stress_energy[1][1]*spatial_metric_der[0][0][0],
+    //       fluid_new[1] - fluid_old[1]);
+
+    //   // analytic flux divergence at this point
+    //   // flux = alpha * sqrt(gamma) * p  for static star
+    //   // d/dx(alpha * sqrt(gamma) * p) ~ T11 * d/dx(alpha*sqrt(gamma))
+    //   double alpha_sqrtgam = lapse * sqrt(spatial_det);
+    //   double d_alpha_sqrtgam_dx = lapse_der[0] * sqrt(spatial_det) 
+    //       + lapse * 0.5 / sqrt(spatial_det) * spatial_det * spatial_metric_der[0][0][0];
+    //   double flux_div_analytic = p * d_alpha_sqrtgam_dx + alpha_sqrtgam * 0.0; // dp/dx ~ 0 at center
+      
+    //   // more directly: for static TOV, flux divergence = d/dx(alpha*sqrt(gam)*p)
+    //   // use lapse_der and metric_der already available
+    //   double dp_dx = (gas_gamma * p / rho) * 
+    //       ((-lapse_der[0] / lapse) * rho); // from TOV: dp/dx = -rho*h * d(ln alpha)/dx
+    //   double flux_div = d_alpha_sqrtgam_dx * p + alpha_sqrtgam * dp_dx;
+
+    //   printf("[FLUX_DIV] x=%.4f alpha_sqrtgam=%.6e d_alpha_sqrtgam_dx=%.6e dp_dx=%.6e flux_div=%.6e\n",
+    //       fluid_old[67], alpha_sqrtgam, d_alpha_sqrtgam_dx, dp_dx, flux_div * dt);
+
+    //   se_check++;
+    // }
+
+    static int src_conv = 0;
+    if (src_conv < 3 && fluid_old[0]/sqrt(spatial_det) > 1e-5 
+      && fluid_old[0]/sqrt(spatial_det) < 2e-4) {  // surface cells only
+      printf("[CONV_SRC] x=%.6f dS_x=%.6e dS_y=%.6e Etot=%.6e rho=%.6e\n",
+          fluid_old[67],
+          fluid_new[1] - fluid_old[1],
+          fluid_new[2] - fluid_old[2],
+          fluid_old[0]/sqrt(spatial_det),
+          rho);
+      src_conv++;
+    }
+
+    static int src_check = 0;
+    if (src_check < 5 && fluid_old[0]/sqrt(spatial_det) > 1e-4) {
+        double dS = fluid_new[1] - fluid_old[1];
+        printf("[SRC] x=%.4f Etot=%.6e p=%.6e rho=%.6e dS_x=%.6e\n",
+            fluid_old[67], fluid_old[0]/sqrt(spatial_det), p, rho, dS);
+        src_check++;
+    }
+  }
+  else {
+    for (int i = 0; i < 70; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+  }
+}
+
+void
+explicit_gr_polytropic_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->gr_polytropic_gas_gamma;
+  double K_poly = mom_em->gr_polytropic_K_poly;
+
+  for (int i = 0; i < nfluids; i++) {
+    if (mom_em->param[i].type != GKYL_EQN_GR_POLYTROPIC_EULER) {
+      continue;
+    }
+
+    double *f = fluid_s[i];
+
+    double f_new[70], f_stage1[70], f_stage2[70], f_old[70];
+
+    for (int j = 0; j < 70; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_gr_polytropic_source_update_euler(mom_em, gas_gamma, t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 70; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_gr_polytropic_source_update_euler(mom_em, gas_gamma, t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 70; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_gr_polytropic_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 70; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

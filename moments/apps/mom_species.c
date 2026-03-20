@@ -98,6 +98,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_ultra_rel_gas_gamma = mom_sp->gr_ultra_rel_gas_gamma;
   }
 
+  sp->has_gr_polytropic = false;
+  if (mom_sp->has_gr_polytropic) {
+    sp->update_sources = true; 
+    sp->has_gr_polytropic = true;
+
+    sp->gr_polytropic_gas_gamma = mom_sp->gr_polytropic_gas_gamma;
+    sp->gr_polytropic_K_poly = mom_sp->gr_polytropic_K_poly;
+  }
+
   sp->has_gr_euler = false;
   if (mom_sp->has_gr_euler) {
     sp->update_sources = true; 
