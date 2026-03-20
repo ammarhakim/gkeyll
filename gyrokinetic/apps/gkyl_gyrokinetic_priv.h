@@ -834,10 +834,12 @@ struct gk_fdot_multiplier {
   // Time dilation mask object.
   struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
 
-  // Scratch arrays for time dilation computation.
+  // Scratch doubles for time dilation computation.
   double *omega_max_local_cu; // GPU scratch space for reduce operation.
   double *global_max_f; // Allreduced global maximum across all processes
   double *local_max_f; // Process specific maximum
+
+  struct gk_species *species_dt_is_set_from; // Pointer to another species which sets dt for the present species.
 
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
@@ -1078,6 +1080,7 @@ struct gk_species {
   double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
   double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  double *dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
   double *m0_max; // Maximum number density in this MPI process.
 };
 

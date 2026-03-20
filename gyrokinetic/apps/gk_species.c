@@ -137,9 +137,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   double dt_out = app->cfl/omega_cfl_ho[0];
   
-  // Enforce the omega_H constraint on dt.
   species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
+
+  species->dt_cfl_global_ho[0] = dt_out;
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   return dt_out;
@@ -679,6 +680,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_free(s->omega_cfl);
     gkyl_free(s->m0_max);
   }
+  gkyl_free(s->dt_cfl_global_ho);
 
   // Release integrated moment memory.
   gk_species_moment_release(app, &s->integ_moms); 
@@ -751,6 +753,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->omega_cfl = gkyl_malloc(sizeof(double));
     gks->m0_max = gkyl_malloc(app->basis.num_basis*sizeof(double));
   }
+  gks->dt_cfl_global_ho = gkyl_malloc(sizeof(double));
 
   // Allocate data for integrated moments.
   int num_diag_int_moms = gks->info.num_integrated_diag_moments;

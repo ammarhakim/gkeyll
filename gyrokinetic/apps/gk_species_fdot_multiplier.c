@@ -86,6 +86,41 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
 }
 
+// Set the multiplier array based on cflrate and time dilation parameters.
+// See https://arxiv.org/html/2510.09756
+static double
+compute_global_array_max(const gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul,
+  const struct gkyl_array *array)
+{
+  // Compute the global maximum of the array on the host
+  double local_max;
+  if (app->use_gpu) {
+#ifdef GKYL_HAVE_CUDA
+    gkyl_array_reduce(fdmul->omega_max_local_cu, array, GKYL_MAX);
+    gkyl_cu_memcpy(&local_max, fdmul->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+#endif
+  }
+  else {
+    gkyl_array_reduce(&local_max, array, GKYL_MAX);
+  }
+  double global_max = DBL_MAX;
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &local_max, &global_max);
+  return global_max;
+}
+
+static void
+clamp_cflrate_by_omega_max(const struct gk_fdot_multiplier *fdmul, const double omega_max,
+  struct gkyl_array *multiplier, struct gkyl_array *cflrate)
+{
+  // multiplier = max(1.0, omega_max/(cflrate)) * time_dilation_scale_const.
+  gkyl_array_copy(multiplier, cflrate);
+  gkyl_array_invert_by_cell(multiplier);
+  gkyl_array_scale(multiplier, omega_max);
+  gkyl_array_min_by_cell(multiplier, 1.0);
+  gkyl_array_scale(multiplier, fdmul->time_dilation_scale_const);
+  gkyl_array_scale_by_cell(cflrate, multiplier);
+}
+
 void
 gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
@@ -93,26 +128,13 @@ gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const str
 {
 }
 
-// Set the multiplier array based on cflrate and time dilation parameters.
-// See https://arxiv.org/html/2510.09756
 void
 gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_omegaH(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute omega_max - a ceiling on omega is a floor on dt.
-  // WARNING: dt_omegaH is DBL_MAX for boltzmann and adiabatic fields!
   double omega_max = 1.0 / gks->dt_omegaH;
-
-  // Compute multiplier = min(1.0, omega_max / omega_cfl).
-  gkyl_array_copy(fdmul->multiplier, cflrate);
-  gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
-  gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
-  gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
-
-  // Scale the CFL rate by the multiplier.
-  gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
 }
 
 void
@@ -120,18 +142,17 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_user_specified(gkyl_gyro
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute omega_max - a ceiling on omega is a floor on dt.
   double omega_max = 1.0 / fdmul->cfl_dt_min_value;
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
+}
 
-  // Compute multiplier = min(1.0, omega_max / omega_cfl).
-  gkyl_array_copy(fdmul->multiplier, cflrate);
-  gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
-  gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
-  gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
-
-  // Scale the CFL rate by the multiplier.
-  gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
+void
+gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_set_by_species(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
+  const struct gkyl_array *f, struct gkyl_array *cflrate)
+{
+  double omega_max = 1.0 / fdmul->species_dt_is_set_from->dt_cfl_global_ho[0];
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
 }
 
 void
@@ -139,32 +160,9 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(gkyl_
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute the maximum CFL rate
-  double omega_max_local;
-  if (app->use_gpu) {
-#ifdef GKYL_HAVE_CUDA
-    gkyl_array_reduce(fdmul->omega_max_local_cu, cflrate, GKYL_MAX);
-    gkyl_cu_memcpy(&omega_max_local, fdmul->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-#endif
-  }
-  else {
-    gkyl_array_reduce(&omega_max_local, cflrate, GKYL_MAX);
-  }
-  double omega_max = DBL_MAX;
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
-
-  // Compute omega_max - a ceiling on omega is a floor on dt.
+  double omega_max = compute_global_array_max(app, fdmul, cflrate);
   omega_max = fdmul->cfl_factor_times_omega_max * omega_max;
-
-  // Compute multiplier = min(1.0, omega_max / omega_cfl).
-  gkyl_array_copy(fdmul->multiplier, cflrate);
-  gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
-  gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
-  gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
-
-  // Scale the CFL rate by the multiplier.
-  gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
 }
 
 void
@@ -172,7 +170,6 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute local max f
   gkyl_array_reduce(fdmul->local_max_f, f, GKYL_MAX);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, app->basis.num_basis,
     fdmul->local_max_f, fdmul->global_max_f);
@@ -181,29 +178,8 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_global(gkyl_gyrokine
   gkyl_dg_array_mask_advance(fdmul->cfl_mask, f);
   gkyl_dg_array_mask_scale_by_cell(fdmul->cfl_mask, cflrate);
   const struct gkyl_array *mask_array = gkyl_dg_array_mask_get_mask(fdmul->cfl_mask);
-
-  double omega_max_local;
-  if (app->use_gpu) {
-#ifdef GKYL_HAVE_CUDA
-    gkyl_array_reduce(fdmul->omega_max_local_cu, mask_array, GKYL_MAX);
-    gkyl_cu_memcpy(&omega_max_local, fdmul->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-#endif
-  }
-  else {
-    gkyl_array_reduce(&omega_max_local, mask_array, GKYL_MAX);
-  }
-  double omega_max = DBL_MAX;
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
-
-  // Compute multiplier = min(1.0, omega_max / omega_cfl).
-  gkyl_array_copy(fdmul->multiplier, cflrate);
-  gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
-  gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
-  gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
-
-  // Scale the CFL rate by the multiplier.
-  gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
+  double omega_max = compute_global_array_max(app, fdmul, mask_array);
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
 }
 
 void
@@ -211,34 +187,11 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_f_frac_local(gkyl_gyrokinet
   const struct gk_species *gks, struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi,
   const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  // Compute omega_max - a ceiling on omega is a floor on dt.
-  double omega_max = DBL_MAX;
-
   gkyl_dg_array_mask_advance(fdmul->cfl_mask, f);
   gkyl_dg_array_mask_scale_by_cell(fdmul->cfl_mask, cflrate);
   const struct gkyl_array *mask_array = gkyl_dg_array_mask_get_mask(fdmul->cfl_mask);
-
-  double omega_max_local;
-  if (app->use_gpu) {
-#ifdef GKYL_HAVE_CUDA
-    gkyl_array_reduce(fdmul->omega_max_local_cu, mask_array, GKYL_MAX);
-    gkyl_cu_memcpy(&omega_max_local, fdmul->omega_max_local_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-#endif
-  }
-  else {
-    gkyl_array_reduce(&omega_max_local, mask_array, GKYL_MAX);
-  }
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omega_max_local, &omega_max);
-
-  // Compute multiplier = min(1.0, omega_max / omega_cfl).
-  gkyl_array_copy(fdmul->multiplier, cflrate);
-  gkyl_array_invert_by_cell(fdmul->multiplier); // 1/omega_cfl
-  gkyl_array_scale(fdmul->multiplier, omega_max); // omega_max / omega_cfl
-  gkyl_array_min_by_cell(fdmul->multiplier, 1.0); // min(1.0, omega_max / omega_cfl)
-  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const); // offset by a constant
-
-  // Scale the CFL rate by the multiplier.
-  gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
+  double omega_max = compute_global_array_max(app, fdmul, mask_array);
+  clamp_cflrate_by_omega_max(fdmul, omega_max, fdmul->multiplier, cflrate);
 }
 
 static void
@@ -409,6 +362,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
     else if ((fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH) ||
+      (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL) ||
@@ -455,6 +409,12 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
           mask_type = GKYL_DG_ARRAY_MASK_NONE;
           fdmul->advance_times_cfl_func =
             gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_omegaH;
+          break;
+        case GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES:
+          mask_type = GKYL_DG_ARRAY_MASK_NONE;
+          fdmul->species_dt_is_set_from = gk_find_species(app, gks->info.time_rate_multiplier.dt_set_by_species);
+          fdmul->advance_times_cfl_func =
+            gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_set_by_species;
           break;
         case GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD:
           mask_type = GKYL_DG_ARRAY_MASK_C0_GREATER;
@@ -569,6 +529,7 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
     else if ((fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH) ||
+      (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL) ||
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL)) {

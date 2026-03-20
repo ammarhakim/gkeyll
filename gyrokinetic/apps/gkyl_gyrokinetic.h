@@ -342,6 +342,7 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
+  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species. That species must be updated before this species. i.e. if the ions scale dt based on electrons, you must specify in the app `.species = {elc, ion},` so the electrons are updated first.
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
@@ -364,6 +365,8 @@ struct gkyl_gyrokinetic_fdot_multiplier {
     // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
   double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
   double cfl_factor_times_omega_max; // For FIXED_FACTOR_TIMES_OMEGA_MAX: the factor multiplied by the maximum characteristic frequency to get the minimum dt value.
+
+  char dt_set_by_species[32]; // For DT_SET_BY_SPECIES: the name of the species whose dt we are using to set the maximum dt for this species. e.g. "elc"
 };
 
 // Parameters for gk species.
