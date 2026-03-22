@@ -579,10 +579,6 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   // triggers a segfault in some NCCL versions (e.g. 2.25).
   bool has_nccl_ops = (nridx > nridx_nccl_start) || (nsidx > nsidx_nccl_start);
 
-  fprintf(stderr, "[rank %d] per_sync: ncomm=%p has_nccl_ops=%d nridx=%d nsidx=%d\n",
-    nccl->rank, (void*)nccl->ncomm, has_nccl_ops, nridx, nsidx);
-  fflush(stderr);
-
   if (has_nccl_ops) {
     checkNCCL(ncclGroupStart());
 
@@ -633,6 +629,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
       .decomp = ext_decomp,
       .sync_corners = nccl->sync_corners,
       .device_set = 1,
+      .custream = nccl->custream,
     }
   );
   gkyl_rect_decomp_release(ext_decomp);
