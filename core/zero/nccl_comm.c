@@ -572,29 +572,41 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   }
 
   // Phase 2: NCCL group with only ncclRecv/ncclSend calls inside.
-  // No CUDA memory operations or kernel launches between group start/end.
-  checkNCCL(ncclGroupStart());
+  // Only enter the group if this rank has actual operations to post.
+  // Ranks that touch an edge in a non-periodic direction (e.g. velocity
+  // in a phase-space decomposition) but not in any periodic direction
+  // would otherwise post an empty ncclGroupStart/ncclGroupEnd, which
+  // triggers a segfault in some NCCL versions (e.g. 2.25).
+  bool has_nccl_ops = (nridx > nridx_nccl_start) || (nsidx > nsidx_nccl_start);
 
-  for (int r=nridx_nccl_start; r<nridx; ++r) {
-    size_t recv_vol = array->esznc*nccl->recv[r].range.volume;
-    checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[r].buff),
-      recv_vol, ncclChar, recv_nids[r], nccl->ncomm, nccl->custream));
+  fprintf(stderr, "[rank %d] per_sync: ncomm=%p has_nccl_ops=%d nridx=%d nsidx=%d\n",
+    nccl->rank, (void*)nccl->ncomm, has_nccl_ops, nridx, nsidx);
+  fflush(stderr);
+
+  if (has_nccl_ops) {
+    checkNCCL(ncclGroupStart());
+
+    for (int r=nridx_nccl_start; r<nridx; ++r) {
+      size_t recv_vol = array->esznc*nccl->recv[r].range.volume;
+      checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[r].buff),
+        recv_vol, ncclChar, recv_nids[r], nccl->ncomm, nccl->custream));
+    }
+
+    for (int s=nsidx_nccl_start; s<nsidx; ++s) {
+      size_t send_vol = array->esznc*nccl->send[s].range.volume;
+      checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[s].buff),
+        send_vol, ncclChar, send_nids[s], nccl->ncomm, nccl->custream));
+    }
+
+    checkNCCL(ncclGroupEnd());
+
+    // Phase 3: Complete all sends and recvs.
+    ncclResult_t nstat;
+    do {
+      checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
+    } while(nstat == ncclInProgress);
+    checkCuda(cudaStreamSynchronize(nccl->custream));
   }
-
-  for (int s=nsidx_nccl_start; s<nsidx; ++s) {
-    size_t send_vol = array->esznc*nccl->send[s].range.volume;
-    checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[s].buff),
-      send_vol, ncclChar, send_nids[s], nccl->ncomm, nccl->custream));
-  }
-
-  checkNCCL(ncclGroupEnd());
-
-  // Phase 3: Complete all sends and recvs.
-  ncclResult_t nstat;
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-  } while(nstat == ncclInProgress);
-  checkCuda(cudaStreamSynchronize(nccl->custream));
 
   // Phase 4: Copy received data into ghost-cells.
   for (int r=nridx_nccl_start; r<nridx; ++r) {
