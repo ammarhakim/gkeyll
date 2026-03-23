@@ -1064,27 +1064,27 @@ void test_bc_sheath_gk_2x2v_ho()
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
   pars.use_surrogate = false;
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
   // // Electrons with negative sheath entrance potential.
   pars.phi_mpe *= -1.0;
   write_fields = false;
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
   // // Ions with negative sheath entrance potential.
   pars.use_surrogate = false; // the surrogate is for electrons.
   write_fields = false;
   pars.charge = GKYL_ELEMENTARY_CHARGE;
   pars.mass = GKYL_PROTON_MASS;
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 
   // // // Reverse potential sign.
   write_fields = false;
   pars.phi_mpe *= -1.0;
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
-  // test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, write_fields, false);
 }
 void test_bc_sheath_gk_3x2v_ho()
 {
