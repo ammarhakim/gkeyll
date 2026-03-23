@@ -64,8 +64,7 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
     double phi_norm = (GKYL_ELEMENTARY_CHARGE * phi_p[0]) / temp_p[0] / 2.0;
     double gamma = (1.0 / bmag_p[0]) * sqrt(GKYL_ELECTRON_MASS * dens_p[0] / GKYL_EPSILON0) / 2.0;
     double alpha = bimpact_angle_p[0] * 180/GKYL_PI / 2.0;
-    printf("phi=%.2f, gamma=%.2f, alpha=%.2f, vcut_fact=%.2f\n", phi_norm, gamma, alpha, vcut_fact_p[0]); // --- IGNORE ---
-
+    
     up->kernels->surrogate(vmap_p, phi_p, phi_wall_p, dens_p, temp_p, up->q2Dm, bmag_p, bimpact_angle_p, vcut_fact_p);
   }
 }
