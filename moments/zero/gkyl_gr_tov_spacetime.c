@@ -47,13 +47,6 @@ star_radius(const struct gr_tov_spacetime *ts, double x, double y, double z)
 //  beta_r = alpha_BL^2  h'
 //  spatial_metric_rr = A_BL - alpha_BL^2  h'^2
 
-
-struct sks_data {
-  double alpha;
-  double beta_r;
-  double spatial_metric_rr;
-};
-
 static bool
 eval_cks_interior(const struct gkyl_tov *tov,
     double dx, double dy, double dz,
@@ -83,7 +76,7 @@ eval_cks_interior(const struct gkyl_tov *tov,
   *lapse = lapse_SKS;
 
   for (int i = 0; i < 3; i++) {
-    shift_vector[i] = beta_r * n[i];
+    shift_vector[i] = (beta_r / gamma_rr) * n[i]; // beta_r * n[i];
     for (int j = 0; j < 3; j++)
       spatial_metric[i][j] = (i==j ? 1.0 : 0.0) + (gamma_rr - 1.0)*n[i]*n[j];
   }
