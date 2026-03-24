@@ -77,6 +77,7 @@ gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct 
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
 }
 
+void
 gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, double *out)
