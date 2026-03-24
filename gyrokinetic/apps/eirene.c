@@ -19,7 +19,8 @@ gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct 
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
-    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[i], rhs[i]);
+    int sidx = gk_find_species_idx(app, gks->info.name);
+    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx]);
   }
 }
 
@@ -82,6 +83,28 @@ gk_eirene_write(struct gkyl_gyrokinetic_app *app, double tm, int frame)
 
 }
 
+void
+gk_eirene_calc_integrated_diagnostics(struct gkyl_gyrokinetic_app *app, double tm)
+{
+  struct gk_eirene *eirene = app->eirene;
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
+    struct gk_species *gks = eirene->coupling_species[i];
+    struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
+    bgk_src->calc_integrated_diags_func(app, gks, bgk_src, tm);
+  }
+}
+
+void
+gk_eirene_write_integrated_diagnostics(struct gkyl_gyrokinetic_app *app)
+{
+  struct gk_eirene *eirene = app->eirene;
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
+    struct gk_species *gks = eirene->coupling_species[i];
+    struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
+    bgk_src->write_integrated_diags_func(app, gks, bgk_src);
+  }
+}
+
 struct gk_eirene*
 gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
 {
@@ -97,6 +120,8 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     struct gk_species *gks = eirene->coupling_species[i];
     eirene->bgk_src[i].coupling_time = gks->info.charge > 0 ? eirene->info.ion_coupling_time : eirene->info.elc_coupling_time;
     eirene->bgk_src[i].damping_factor = eirene->info.damping_factor;
+    eirene->bgk_src[i].elc_core_coll_factor = eirene->info.elc_core_coll_factor;
+    eirene->bgk_src[i].ion_core_coll_factor = eirene->info.ion_core_coll_factor;
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);

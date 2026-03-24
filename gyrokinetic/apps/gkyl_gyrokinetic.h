@@ -163,6 +163,8 @@ struct gkyl_gyrokinetic_source_bgk {
   double power; // Desired heating power (sets T_Q(t)).
   double coupling_time; // Coupling time for external source model
                         // nu(x) = 1/coupling time
+  double elc_core_coll_factor; // core rate is increased by this factor
+  double ion_core_coll_factor; // core rate is increased by this factor
   double damping_factor; // For external source model
                          // n_s = max(n_s, damping factor*n)
                          // to prevent driving n negative
@@ -528,6 +530,8 @@ struct gkyl_gyrokinetic_eirene {
   double ion_coupling_time; // Coupling time (electrons)
   double elc_coupling_time; // Coupling time (ions)
   double damping_factor; // Damping Factor
+  double elc_core_coll_factor; // core rate is increased by this factor
+  double ion_core_coll_factor; // core rate is increased by this factor
   int num_coupling_species; // number of species to couple
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
@@ -748,6 +752,21 @@ void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
  * @param frame Frame number.
  */
 void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double tm, int frame);
+
+/**
+ * Calculate eirene integrated diagnostics.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ */
+void gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app, double tm);
+
+/**
+ * Write eirene integrated diagnostics.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app);
 
 /**
  * Write species data to file.

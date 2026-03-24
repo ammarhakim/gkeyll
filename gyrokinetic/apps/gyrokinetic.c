@@ -1509,6 +1509,18 @@ gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double 
   gk_eirene_write(app, tm, frame);
 }
 
+void
+gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app, double tm)
+{
+  gk_eirene_calc_integrated_diagnostics(app, tm);
+}
+
+void
+gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app)
+{
+  gk_eirene_write_integrated_diagnostics(app);
+}
+
 // ............. Collisionless outputs ............... //
 // 
 void
@@ -1776,6 +1788,8 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
     gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
+
+  gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(app, tm);
 }
 
 void
@@ -1806,6 +1820,8 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
+
+  gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(app);
 }
 
 void
