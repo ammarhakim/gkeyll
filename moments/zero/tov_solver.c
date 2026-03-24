@@ -118,7 +118,9 @@ static void implicit_tov_source_update(double r, double y[3], double h, double K
     // stage 2 — RHS at stage1, then mix with y_old
     tov_rhs(r + h, y_stage1, f, K, Gamma);
     for (int i = 0; i < 3; i++)
-        y_stage2[i] = 0.75*y_old[i] + 0.25*(y_old[i] + h * f[i]);
+        //y_stage2[i] = 0.75*y_old[i] + 0.25*(y_old[i] + h * f[i]);
+        y_stage2[i] = 0.75*y_old[i] + 0.25*(y_stage1[i] + h * f[i]);
+
 
     // stage 3 — RHS at stage2, final mix
     tov_rhs(r + 0.5*h, y_stage2, f, K, Gamma);
@@ -345,6 +347,16 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     //         i, tov->r_areal[i], tov->P[i], tov->rho[i], tov->m[i], tov->Phi[i]);
     // }
 
+    FILE *fp = fopen("tov_profile.txt", "w");
+    if (fp) {
+        fprintf(fp, "# r rho P eps e m Phi alpha\n");
+        for (int i = 0; i < tov->N && tov->r_areal[i] < tov->R_areal + 1.0; i++)
+            fprintf(fp, "%.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e\n",
+                tov->r_areal[i], tov->rho[i], tov->P[i],
+                tov->eps[i], tov->e[i], tov->m[i], tov->Phi[i], exp(tov->Phi[i]));
+        fclose(fp);
+    }
+
     return tov;
 }
 
@@ -360,5 +372,4 @@ void gkyl_tov_solution_release(struct gkyl_tov *tov)
     gkyl_free(tov->Phi);
     gkyl_free(tov);
 }
-
 
