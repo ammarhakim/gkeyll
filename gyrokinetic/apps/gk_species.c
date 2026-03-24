@@ -140,8 +140,12 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   double dt_out = app->cfl/omega_cfl_ho[0];
   
   species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+
+  for (int i = 0; i < species->num_fdot_mult; ++i) {
+    gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult[i],
+      &species->dt_omegaH);
+  }
   
-  gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult, &species->dt_omegaH);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
   species->dt_cfl_global_ho[0] = dt_out;
