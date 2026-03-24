@@ -75,6 +75,7 @@ gks_src_bgk_rhs_accumulate_density_maxwellian(gkyl_gyrokinetic_app *app, struct 
 
   // Divide M0dot by the rate and add M0
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M0dot, 0, src->rate, &app->local);  
+  gkyl_array_scale(src->Jrate_mom, 3.0); // Extra factor of 3 because of grouping of sources.
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 0*app->basis.num_basis);
   // Apply a cap so we don't drive the density negative
   gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
@@ -100,6 +101,7 @@ gks_src_bgk_rhs_accumulate_momentum_maxwellian(gkyl_gyrokinetic_app *app, struct
 
   // Divide M1dot by the rate and density then add on upar
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M1dot, 0, src->rate, &app->local);  
+  gkyl_array_scale(src->Jrate_mom, 3.0); // Extra factor of 3 because of grouping of sources.
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 1*app->basis.num_basis);
   // Set the LTE moments for projection and project
@@ -127,8 +129,7 @@ gks_src_bgk_rhs_accumulate_energy_maxwellian(gkyl_gyrokinetic_app *app, struct g
   // Translate M2dot into a temperature, add on T, then divide by mass to get vtsq
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
-  gkyl_array_scale(src->Jrate_mom, species->info.mass/2.0);
-  gkyl_array_scale(src->Jrate_mom, 2.0/3.0);
+  gkyl_array_scale(src->Jrate_mom, (species->info.mass/2.0)*(2.0/3.0)*3.0); // Extra factor of 3 because of grouping of sources.
   gkyl_array_accumulate_offset(src->Jrate_mom, species->info.mass, species->lte.moms.marr, 2*app->basis.num_basis);
   // Apply the cap so we don't drive the density negative
   gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
@@ -365,9 +366,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
 
-    // Divide rate by 3 so we can group density, momentum and energy terms.
-    gkyl_array_scale_range(rate_host, 1.0/3.0, &app->local);
-
     gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
     gkyl_array_copy(src->rate, rate_host);
     gkyl_proj_on_basis_release(proj_rate);
@@ -430,10 +428,13 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     // source_bgk rate.
     src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->coupling_time, 0); // Sets rate = 1/coupling_time
+
+    // Divide rate by 3 so we can group density, momentum and energy terms.
+    gkyl_array_scale_range(src->rate, 3.0, &app->local);
+
     // Multiply the rate by the conf-space Jacobian.
     src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
-
 
     // External source rates
     src->M0dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
