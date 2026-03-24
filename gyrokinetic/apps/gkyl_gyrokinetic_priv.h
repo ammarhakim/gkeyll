@@ -859,6 +859,7 @@ struct gk_damping {
 
 struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
+  int component_id; // Index of this multiplier in the chain.
   bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
   bool is_tandem; // Whether we are doing a tandem mirror
@@ -894,13 +895,16 @@ struct gk_fdot_multiplier {
   // Time dilation mask object.
   struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
 
-  // Scratch arrays for time dilation computation.
+  // Scratch doubles for time dilation computation.
   double *omega_max_local_cu; // GPU scratch space for reduce operation.
   double *global_max_f; // Allreduced global maximum across all processes
   double *local_max_f; // Process specific maximum
 
+  struct gk_species *species_dt_is_set_from; // Pointer to another species which sets dt for the present species.
+
   // Functions chosen at runtime.
-  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
     struct gkyl_array *cflrate);
@@ -1084,7 +1088,8 @@ struct gk_species {
 
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
-  struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
+  int num_fdot_mult; // Number of active df/dt multipliers in chain.
+  struct gk_fdot_multiplier fdot_mult[GKYL_MAX_FDOT_MUL]; // Functions multiplying df/dt.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -1142,6 +1147,7 @@ struct gk_species {
   double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
   double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  double *dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
   double *m0_max; // Maximum number density in this MPI process.
 };
 
@@ -2898,7 +2904,9 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
  * @param s Species object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdmul);
+void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul,
+  const struct gkyl_gyrokinetic_fdot_multiplier *fdot_mult_inp, int component_id);
 
 /**
  * Multiply the CFL rate.
@@ -2965,7 +2973,7 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
  * @param fdot_mult_inp New input struct for the fdot_multiplier.
  */
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
 
 /** gk_anomalous_diff API */
 

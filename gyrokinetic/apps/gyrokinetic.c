@@ -1873,7 +1873,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Multiply dfdt (fout) by a factor.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fin[i], fout[i]);
+    for (int m = 0; m < gks->num_fdot_mult; ++m) {
+      gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult[m],
+        app->field->phi_smooth, fin[i], fout[i]);
+    }
   }
 
   struct timespec wtm = gkyl_wall_clock();
@@ -3054,10 +3057,10 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
 void
 gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char* species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp)
+  const char* species_name, struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp)
 {
   struct gk_species *gks = gk_find_species(app, species_name);
-  gk_species_fdot_multiplier_reset(app, tm, gks, &gks->fdot_mult, fdot_mult_inp);
+  gk_species_fdot_multiplier_reset(app, tm, gks, fdot_mult_inp);
 }
 
 void
