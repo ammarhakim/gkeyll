@@ -10,13 +10,10 @@
 // Object type.
 typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 
-// Type of function expected for the ctp_pos_func input.
-typedef void (*loss_cone_mask_gyrokinetic_c2p_t)(const double *xcomp, double *xphys, void *ctx);
-
 // Available options:
-//   A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
-//   B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=true. Output: ncomp=1 array.
-//   C) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=false. Output: ncomp=phase_basis.ncomp array.
+// A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
+// B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=true. Output: ncomp=1 array.
+// C) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=false. Output: ncomp=phase_basis.ncomp array.
 
 // Inputs packaged as a struct.
 struct gkyl_loss_cone_mask_gyrokinetic_inp {
@@ -27,18 +24,22 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations).
   const struct gkyl_range *vel_range; // Velocity space range.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  const struct gkyl_array *bmag; // Magnetic field magnitude.
-  const double *bmag_max; // Maximum bmag (on GPU if use_gpu=true).
-  const double *bmag_max_loc; // Location of maximum bmag (on GPU if use_gpu=true)..
+  const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
+  const struct gkyl_array *bmag_max; // Maximum bmag per field line (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
+  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  bool is_tandem; // =True
   double mass; // Species mass.
   double charge; // Species charge.
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.
   int num_quad; // Number of quad points in each direction to use (default: poly_order+1).
   bool cellwise_trap_loss; // =True takes a whole cell to be either trapped or passing,
                            // so not high-order distinction within the cell is made.
-  loss_cone_mask_gyrokinetic_c2p_t c2p_pos_func; // Function that transforms a set of cdim
-                                    // position-space computational coordinates to physical ones.
-  void *c2p_pos_func_ctx; // Context for c2p_pos_func.
   bool use_gpu; // Whether to run on GPU.
 };
 
@@ -54,7 +55,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic* 
+struct gkyl_loss_cone_mask_gyrokinetic*
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
@@ -64,16 +65,18 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat (on GPU if use_gpu=true).
+ * @param phi_m Electrostatic potential at the mirror throat (DG array on reduced grid).
+ * @param phi_tandem Electrostatic potential at the tandem mirror throat (DG array on reduced grid).
  * @param mask_out Output masking function.
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const struct gkyl_array *phi_m, const struct gkyl_array *phi_tandem,
+  struct gkyl_array *mask_out);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic* up);
+void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up);

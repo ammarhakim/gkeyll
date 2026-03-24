@@ -139,6 +139,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   
   // Enforce the omega_H constraint on dt.
   species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  
+  gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult, &species->dt_omegaH);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
