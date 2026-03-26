@@ -39,7 +39,7 @@ struct gkyl_poisson_bc {
 };
 
 GKYL_CU_DH
-static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
+static inline int idx_to_inup_ker(int dim, const int *num_cells, const int *idx) {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between upper cells and
   // elsewhere.
@@ -51,7 +51,7 @@ static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int
 }
 
 GKYL_CU_DH
-static inline int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx) {
+static inline int idx_to_inloup_ker(int dim, const int *num_cells, const int *idx) {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between lower, interior
   // and upper cells.

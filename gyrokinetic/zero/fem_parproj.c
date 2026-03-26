@@ -1,5 +1,8 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_parproj_priv.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <assert.h>
 
 struct gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_range *solve_range,

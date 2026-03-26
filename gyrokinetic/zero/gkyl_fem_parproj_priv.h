@@ -1,7 +1,9 @@
 // Private header for fem_parproj updater.
 #pragma once
+#include <gkyl_fem_parproj.h>
 #include <gkyl_fem_parproj_kernels.h>
-#include <gkyl_basis.h>
+#include <gkyl_util.h>
+#include <assert.h>
 #include <gkyl_superlu_ops.h>
 #ifdef GKYL_HAVE_CUDA
 #include <gkyl_culinsolver_ops.h>
@@ -351,11 +353,8 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_kernels {
   local2global_t l2g[2];  // Pointer to local-to-global kernel.
-
   lhsstencil_t lhsker[3];  // Weighted LHS kernel.
-
   srcstencil_t srcker[3];  // RHS source kernel.
-
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 };
 
