@@ -15,10 +15,6 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
-  else
-    up->kernels_cu = up->kernels;
-#else
-  up->kernels_cu = up->kernels;
 #endif
 
   up->solve_range = solve_range;
@@ -157,7 +153,7 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
 
       idx1[0] = up->fem_iter.idx[0];
       for (size_t d=1; d<up->pardir; d++) idx1[d] = up->perp_iter.idx[0];
-      for (size_t d=up->pardir; d<up->pardir+1; d++) idx1[d] = up->fem_iter.idx[GKYL_MAX2(d,1)];
+      idx1[up->pardir] = up->fem_iter.idx[GKYL_MIN2(up->pardir,1)];
 
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-up->solve_range->lower[d];
 
@@ -224,7 +220,7 @@ gkyl_fem_parproj_couplex_set_rhs(struct gkyl_fem_parproj_couplex* up,
 
       idx1[0] = up->fem_iter.idx[0];
       for (size_t d=1; d<up->pardir; d++) idx1[d] = up->perp_iter.idx[0];
-      for (size_t d=up->pardir; d<up->pardir+1; d++) idx1[d] = up->fem_iter.idx[GKYL_MAX2(d,1)];
+      idx1[up->pardir] = up->fem_iter.idx[GKYL_MIN2(up->pardir,1)];
 
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-up->solve_range->lower[d];
 
@@ -270,7 +266,7 @@ gkyl_fem_parproj_couplex_solve(struct gkyl_fem_parproj_couplex* up, struct gkyl_
 
       idx1[0] = up->fem_iter.idx[0];
       for (size_t d=1; d<up->pardir; d++) idx1[d] = up->perp_iter.idx[0];
-      for (size_t d=up->pardir; d<up->pardir+1; d++) idx1[d] = up->fem_iter.idx[GKYL_MAX2(d,1)];
+      idx1[up->pardir] = up->fem_iter.idx[GKYL_MIN2(up->pardir,1)];
 
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-up->solve_range->lower[d];
 

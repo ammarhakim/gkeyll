@@ -398,9 +398,9 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_couplex_kernels {
-  local2global_t l2g[2]; // Pointer to local-to-global kernel.
-  lhsstencil_t lhsker[3]; // Weighted LHS kernel.
-  srcstencil_t srcker[3]; // RHS source kernel.
+  local2global_t l2g[4]; // Pointer to local-to-global kernel.
+  lhsstencil_t lhsker[9]; // Weighted LHS kernel.
+  srcstencil_t srcker[9]; // RHS source kernel.
   solstencil_t solker; // Kernel that takes the solution and converts it to modal.
 };
 
@@ -426,18 +426,17 @@ struct gkyl_fem_parproj_couplex {
   int numnodes_local;
   long numnodes_global;
 
-  struct gkyl_array *brhs;
+  long *globalidx;
 
   struct gkyl_superlu_prob* prob;
+  struct gkyl_array *brhs;
+  struct gkyl_fem_parproj_couplex_kernels *kernels;
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_culinsolver_prob* prob_cu;
   struct gkyl_array *brhs_cu;
+  struct gkyl_fem_parproj_couplex_kernels *kernels_cu;
 #endif
 
-  long *globalidx;
-
-  struct gkyl_fem_parproj_couplex_kernels *kernels;
-  struct gkyl_fem_parproj_couplex_kernels *kernels_cu;
   bool use_gpu;  
 };
 
@@ -498,7 +497,7 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
     case GKYL_BASIS_MODAL_SERENDIPITY:
       for (int k=0; k<9; k++)
         kers->lhsker[k] = has_weight_lhs? CK(ser_lhsstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
-                                  : CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k); 
+                                        : CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k); 
       break;
     default:
       assert(false);
@@ -512,7 +511,7 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
     case GKYL_BASIS_MODAL_SERENDIPITY:
       for (int k=0; k<9; k++)
         kers->srcker[k] = has_weight_rhs? CK(ser_srcstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
-                                  : CK(ser_srcstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
+                                        : CK(ser_srcstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
       break;
     default:
       assert(false);
@@ -523,6 +522,7 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->solker = ser_solstencil_list[basis->ndim-1].kernels[basis->poly_order-1];
+      break;
     default:
       assert(false);
       break;
