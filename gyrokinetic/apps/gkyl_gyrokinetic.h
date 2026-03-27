@@ -318,6 +318,7 @@ enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
   GKYL_GK_DAMPING_LOSS_CONE,
+  GKYL_GK_DAMPING_LOW_PASS_FILTER,
 };
 
 struct gkyl_gyrokinetic_damping {

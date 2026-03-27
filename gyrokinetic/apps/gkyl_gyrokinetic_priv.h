@@ -808,6 +808,10 @@ struct gk_damping {
   double *bmag_max_coord; // Location of bmag_max.
   double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
   struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
+  // Low-pass filter variables
+  struct gkyl_array *fbar; // Filtered/averaged distribution function.
+  struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.
+  struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
@@ -2772,6 +2776,18 @@ void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
 void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp);
 
 /**
+ * Initialize filtered distribution function from initial distribution.
+ * Should be called after initial conditions are applied to f.
+ *
+ * @param gks Pointer to species.
+ * @param damp Species damping object.
+ * @param f Initial distribution function.
+ */
+void gk_species_damping_init_fbar_from_f(const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *f);
+
+
+/**
  * Compute species applied source term.
  *
  * @param app gyrokinetic app object.
@@ -2796,6 +2812,18 @@ void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_speci
  * @param frame Output frame.
  */
 void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Compute filtered distribution RHS for low-pass filter damping:
+ *   d(fbar)/dt = rate * (f - fbar).
+ *
+ * @param damp Species damping object.
+ * @param fin Current distribution function f.
+ * @param fbar_in Current filtered distribution function fbar.
+ * @param rhs_fbar RHS buffer for fbar.
+ */
+void gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
 
 /**
  * Release species damping object.
