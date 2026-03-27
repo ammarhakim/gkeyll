@@ -242,6 +242,8 @@ gks_src_bgk_rhs_accumulate_combo_maxwellian(gkyl_gyrokinetic_app *app, struct gk
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 0*app->basis.num_basis);
 
   // Now Do Energy
+  gk_species_moment_calc(&src->correct_mom_op, species->local, app->local, fin);
+  gk_species_moment_diag_jacobgeo_div(app, &src->correct_mom_op, src->correct_mom_op.marr, src->correct_mom_op.marr);
   // Set a minimum on the temperature so it doesn't go negative
   gkyl_array_set_offset(src->Jrate_cap, src->damping_factor, species->lte.moms.marr, 2*app->basis.num_basis);
   // Translate M2dot into a temperature, add on T, then divide by mass to get vtsq
@@ -250,8 +252,6 @@ gks_src_bgk_rhs_accumulate_combo_maxwellian(gkyl_gyrokinetic_app *app, struct gk
 
   gkyl_array_set(src->M2mod, 2.0, src->Jrate_mom);
 
-  gk_species_moment_calc(&src->correct_mom_op, species->local, app->local, fin);
-  gk_species_moment_diag_jacobgeo_div(app, &src->correct_mom_op, src->correct_mom_op.marr, src->correct_mom_op.marr);
   gkyl_dg_mul_op_range(app->basis, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, &app->local);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, 0, src->correct_mom_op.marr, &app->local);  
   //gkyl_dg_mul_op_range(app->basis, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, 1, species->lte.moms.marr, &app->local);
@@ -279,11 +279,11 @@ gks_src_bgk_rhs_accumulate_combo_maxwellian(gkyl_gyrokinetic_app *app, struct gk
   //gkyl_array_accumulate_offset(src->M2mod, -1.0, src->correct_mom_op.marr, 2*app->basis.num_basis);
   //gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2mod, 0, species->lte.moms.marr, &app->local);  
   //gkyl_array_scale(src->Jrate_mom, 1.0/3.0);
-  //// Apply the cap so we don't drive the temperature negative
+  // Apply the cap so we don't drive the temperature negative
   //gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
-  //// Set the corrected temperature
+  // Set the corrected temperature
   //gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 2*app->basis.num_basis);
-  //// Project with LTE moments
+  // Project with LTE moments
   //gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
 
   // Add this Maxwellian onto the average of Maxwellians.
