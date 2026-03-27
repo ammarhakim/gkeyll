@@ -127,6 +127,93 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
+struct vm_proj {
+  enum gkyl_projection_id proj_id; // type of projection
+  enum gkyl_model_id model_id;
+  // organization of the different projection objects and the required data and solvers
+  union {
+    // function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
+      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+    };
+    // LTE (Local thermodynamic equilibrium) distribution function project with moment correction
+    // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+    struct {
+      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *V_drift; // host-side V_drift
+      struct gkyl_array *T_over_m; // host-side T/m (temperature/mass)
+
+      struct gkyl_array *vlasov_lte_moms_host; // host-side LTE moms (n, V_drift, T/m)
+      struct gkyl_array *vlasov_lte_moms; // LTE moms (n, V_drift, T/m) for passing to updaters
+
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
+      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+      
+      // LTE distribution function projection object
+      // also corrects the density of projected distribution function
+      struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+
+      // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+      bool correct_all_moms; // boolean if we are correcting all the moments
+      struct gkyl_vlasov_lte_correct *corr_lte;    
+    };
+  };
+};
+
+struct vm_lte {  
+  struct gkyl_array *f_lte;
+
+  struct vm_species_moment moms; // moments needed in the equilibrium
+
+  // LTE distribution function projection object
+  // also corrects the density of projected distribution function
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+  // LTE correction object. 
+  struct gkyl_vlasov_lte_correct *corr_lte; 
+
+  long n_iter; // total number of iterations from correcting moments
+  long num_corr; // total number of times the correction updater is called
+  bool correct_all_moms; // boolean if we are correcting all the moments
+  gkyl_dynvec corr_stat;
+  bool is_first_corr_status_write_call;
+};
+
+struct vm_collisionless {
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
+
+  bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  bool use_vierbein; // bool to determine if using vierbein inputs for triads.
+  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
+
+  double qbym; // Charge (q) divided by mass (m).
+  struct gkyl_array *qmem; // array for q/m*(E,B) 
+  struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
+  bool has_E; // Do we have electric fields? 
+  bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
+  bool has_B; // Do we have magnetic fields? 
+  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
+  int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
+
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
+  struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
+  struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel).   
+
+  struct gkyl_dg_eqn *eqn; // Vlasov equation object.
+  struct gkyl_hyper_dg *slvr; // Vlasov solver.  
+  
+  void (*rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
+    struct vm_collisionless *cls, const struct gkyl_array *fin, const struct gkyl_array *em, 
+    struct gkyl_array *rhs);  
+};
+
 struct vm_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_coll_diagnostics; // Whether to write diagnostics out.
@@ -178,24 +265,6 @@ struct vm_lbo_collisions {
   void (*rhs_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
     struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_mom_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame);
-};
-
-struct vm_lte {  
-  struct gkyl_array *f_lte;
-
-  struct vm_species_moment moms; // moments needed in the equilibrium
-
-  // LTE distribution function projection object
-  // also corrects the density of projected distribution function
-  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
-  // LTE correction object. 
-  struct gkyl_vlasov_lte_correct *corr_lte; 
-
-  long n_iter; // total number of iterations from correcting moments
-  long num_corr; // total number of times the correction updater is called
-  bool correct_all_moms; // boolean if we are correcting all the moments
-  gkyl_dynvec corr_stat;
-  bool is_first_corr_status_write_call;
 };
 
 struct vm_bgk_collisions {  
@@ -311,41 +380,6 @@ struct vm_emitting_wall {
   struct gkyl_range *emit_skin_r;
 };
 
-struct vm_proj {
-  enum gkyl_projection_id proj_id; // type of projection
-  enum gkyl_model_id model_id;
-  // organization of the different projection objects and the required data and solvers
-  union {
-    // function projection
-    struct {
-      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
-      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
-    };
-    // LTE (Local thermodynamic equilibrium) distribution function project with moment correction
-    // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
-    struct {
-      struct gkyl_array *dens; // host-side density
-      struct gkyl_array *V_drift; // host-side V_drift
-      struct gkyl_array *T_over_m; // host-side T/m (temperature/mass)
-
-      struct gkyl_array *vlasov_lte_moms_host; // host-side LTE moms (n, V_drift, T/m)
-      struct gkyl_array *vlasov_lte_moms; // LTE moms (n, V_drift, T/m) for passing to updaters
-
-      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
-      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-      
-      // LTE distribution function projection object
-      // also corrects the density of projected distribution function
-      struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
-
-      // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-      bool correct_all_moms; // boolean if we are correcting all the moments
-      struct gkyl_vlasov_lte_correct *corr_lte;    
-    };
-  };
-};
-
 struct vm_source {
   bool write_source; // Are we writing out the source?
   bool evolve_source; // Are our sources time-dependent?
@@ -413,10 +447,8 @@ struct vm_species {
   struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
-  bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
-  bool use_preset_geom; // bool to determine if we are using triad input geom
-  bool use_vierbein; // bool to determine if using vierbein inputs for triads.
-  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
+  enum gkyl_field_id field_id; // Type of field equation.
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).  
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   bool use_vmap; // bool to determine if we are using mapped velocity-space grids
@@ -438,26 +470,13 @@ struct vm_species {
   struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
                              // When using uniform velocity-space mesh, just stores the distribution function at that RK stage. 
 
-  enum gkyl_field_id field_id; // Type of field equation.
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
-  double qbym; // Charge (q) divided by mass (m).
-  struct gkyl_array *qmem; // array for q/m*(E,B) 
-  struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
-  bool has_E; // Do we have electric fields? 
-  bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
-  bool has_B; // Do we have magnetic fields? 
+  // Organization of the different equation objects and the required data.
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
-  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
-  int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
-
-  // Organization of the different equation objects and the required data and solvers.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
-  struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
-  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
-  struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
-  struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
-  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel). 
+  struct gkyl_array *hamil; // Specified Hamiltonian function for poisson bracket.
+  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+  struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation  
   union {
     // Special relativistic Vlasov-Maxwell model.
     struct {
@@ -479,12 +498,6 @@ struct vm_species {
       struct gkyl_array *effective_potential_host; // Host side effective potential
     };
   };
-
-  struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
-  struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation
-
-  struct gkyl_dg_eqn *eqn; // Vlasov equation object.
-  struct gkyl_hyper_dg *slvr; // Vlasov solver.   
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment m0; // for computing charge density
@@ -519,32 +532,25 @@ struct vm_species {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  bool has_app_accel; // flag to indicate there is applied acceleration
-  bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
-  struct gkyl_array *app_accel; // applied acceleration
-  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
-
   int num_init; // Number of initial condition functions.
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
-  
+
+  struct vm_lte lte; // object needed for the lte equilibrium
+
+  struct vm_collisionless collisionless; // Collisionless terms.
+
+  struct vm_lbo_collisions lbo; // LBO collisions object
+  struct vm_bgk_collisions bgk; // BGK collisions object
+
   bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
 
-  struct vm_lte lte; // object needed for the lte equilibrium
-
-  // collisions
-  struct vm_lbo_collisions lbo; // LBO collisions object
-  struct vm_bgk_collisions bgk; // BGK collisions object
-
   double *omega_cfl;
 
   // Pointer to various functions selected at runtime.
-  void (*collisionless_rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
-    const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
   void (*apply_ic_func)(gkyl_vlasov_app* app, struct vm_species *vms, double tm);
   double (*rhs_func)(gkyl_vlasov_app *app, struct vm_species *vms,
     const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
@@ -993,61 +999,138 @@ void vm_species_moment_calc(const struct vm_species_moment *sm,
 void vm_species_moment_release(const struct gkyl_vlasov_app *app,
   const struct vm_species_moment *sm);
 
-/** vm_species_emission API */
+/** vm_species_projection API */
 
 /**
- * Initialize species emission object
+ * Initialize species projection object.
  *
- * @param app Vlasov app object
- * @param emit Species emission object
- * @param dir Direction of BC
- * @param edge Edge of configuration space
- * @param ctx Emission context
+ * @param app vlasov app object
+ * @param s Species object 
+ * @param inp Input struct for projection (contains functions pointers for type of projection)
+ * @param proj Species projection object
  */
-void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
-  int dir, enum gkyl_edge_loc edge, void *ctx);
+void vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s, 
+  struct gkyl_vlasov_projection inp, struct vm_proj *proj);
 
 /**
- * Initialize emission BC cross-species object.
+ * Compute species projection
+ *
+ * @param app vlasov app object
+ * @param species Species object
+ * @param proj Species projection object
+ * @param f Output distribution function from projection
+ * @param tm Time for use in projection
+ */
+void vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_proj *proj, struct gkyl_array *f, double tm);
+
+/**
+ * Release species projection object.
+ *
+ * @param app vlasov app object
+ * @param proj Species projection object to release
+ */
+void vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj);
+
+/** vm_species_lte API */
+
+/**
+ * Initialize species lte object.
  *
  * @param app Vlasov app object
  * @param s Species object 
- * @param emit Species emission object
+ * @param lte Species lte object
+ * @param corr_inp Input struct with moment correction inputs
  */
-void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_emitting_wall *emit);
+void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lte *lte, struct correct_all_moms_inp corr_inp);
 
 /**
- * Apply emission BCs to species distribution function
+ * Compute LTE distribution from input moments
  *
  * @param app Vlasov app object
- * @param s Species object 
- * @param emit Pointer to emission object
- * @param fout Field to apply BCs
- * @param tcurr Current time
+ * @param species Pointer to species
+ * @param lte Pointer to lte object
+ * @param moms_lte Input LTE moments
  */
-void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_species *s, 
-  const struct vm_emitting_wall *emit, struct gkyl_array *fout, double tcurr);
+void vm_species_lte_from_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lte *lte,
+  const struct gkyl_array *moms_lte);
 
 /**
- * Write emission spectrum distribution function
+ * Compute equivalent LTE distribution from input distribution function. 
  *
  * @param app Vlasov app object
- * @param s Species object
- * @param emit Pointer to emission object
- * @param mt Write meta
- * @param frame Current frame
+ * @param species Pointer to species
+ * @param lte Pointer to lte
+ * @param fin Input distribution function
  */
-void vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame);
+void vm_species_lte(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lte *lte,
+  const struct gkyl_array *fin);
 
 /**
- * Release species emission object.
+ * Write the LTE correction status. 
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ */
+void vm_species_lte_write_max_corr_status(gkyl_vlasov_app* app, struct vm_species *vms);
+
+/**
+ * Release species lte object.
  *
  * @param app Vlasov app object
- * @param emit Species emission object to release
+ * @param lte Species lte object to release
  */
-void vm_species_emission_release(const struct vm_emitting_wall *emit);
+void vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte);
+
+/** vm_species_collisionless API */
+
+/**
+ * Initialize species collisionless object.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param cls Species collisionless object.
+ */
+void vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vms, 
+  struct vm_collisionless *cls);
+
+/**
+ * Compute species applied acceleration term
+ *
+ * @param app Vlasov app object
+ * @param cls Species collisionless object
+ * @param tm Time for use in acceleration
+ */
+void vm_species_collisionless_app_accel(gkyl_vlasov_app *app, struct vm_collisionless *cls, double tm);
+
+/**
+ * Compute RHS contribution from collisionless terms.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param cls Species collisionless object.
+ * @param fin Input distribution function.
+ * @param em Input electromagnetic fields.
+ * @param rhs Collisionless contribution to df/dt.
+ */
+void vm_species_collisionless_rhs(gkyl_vlasov_app *app, struct vm_species *vms, 
+  struct vm_collisionless *cls, const struct gkyl_array *fin, const struct gkyl_array *em, 
+  struct gkyl_array *rhs);
+
+/**
+ * Release species collisionless object.
+ *
+ * @param app Vlasov app object.
+ * @param vms Pointer to species.
+ * @param cls Species collisionless object.
+ */  
+void vm_species_collisionless_release(const struct gkyl_vlasov_app *app, 
+  const struct vm_species *vms, const struct vm_collisionless *cls);
 
 /** vm_species_lbo API */
 
@@ -1130,59 +1213,6 @@ void vm_species_lbo_write_mom(gkyl_vlasov_app* app, struct vm_species *species, 
  * @param sm Species LBO object to release
  */
 void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
-
-/**
- * Initialize species lte object.
- *
- * @param app Vlasov app object
- * @param s Species object 
- * @param lte Species lte object
- * @param corr_inp Input struct with moment correction inputs
- */
-void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_lte *lte, struct correct_all_moms_inp corr_inp);
-
-/**
- * Compute LTE distribution from input moments
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param lte Pointer to lte object
- * @param moms_lte Input LTE moments
- */
-void vm_species_lte_from_moms(gkyl_vlasov_app *app,
-  const struct vm_species *species,
-  struct vm_lte *lte,
-  const struct gkyl_array *moms_lte);
-
-/**
- * Compute equivalent LTE distribution from input distribution function. 
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param lte Pointer to lte
- * @param fin Input distribution function
- */
-void vm_species_lte(gkyl_vlasov_app *app,
-  const struct vm_species *species,
-  struct vm_lte *lte,
-  const struct gkyl_array *fin);
-
-/**
- * Write the LTE correction status. 
- *
- * @param app Vlasov app object.
- * @param vms Pointer to species.
- */
-void vm_species_lte_write_max_corr_status(gkyl_vlasov_app* app, struct vm_species *vms);
-
-/**
- * Release species lte object.
- *
- * @param app Vlasov app object
- * @param lte Species lte object to release
- */
-void vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte);
 
 /** vm_species_bgk API */
 
@@ -1312,38 +1342,61 @@ void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species
  */
 void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
 
-/** vm_species_projection API */
+/** vm_species_emission API */
 
 /**
- * Initialize species projection object.
+ * Initialize species emission object
  *
- * @param app vlasov app object
+ * @param app Vlasov app object
+ * @param emit Species emission object
+ * @param dir Direction of BC
+ * @param edge Edge of configuration space
+ * @param ctx Emission context
+ */
+void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
+  int dir, enum gkyl_edge_loc edge, void *ctx);
+
+/**
+ * Initialize emission BC cross-species object.
+ *
+ * @param app Vlasov app object
  * @param s Species object 
- * @param inp Input struct for projection (contains functions pointers for type of projection)
- * @param proj Species projection object
+ * @param emit Species emission object
  */
-void vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s, 
-  struct gkyl_vlasov_projection inp, struct vm_proj *proj);
+void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_emitting_wall *emit);
 
 /**
- * Compute species projection
+ * Apply emission BCs to species distribution function
  *
- * @param app vlasov app object
- * @param species Species object
- * @param proj Species projection object
- * @param f Output distribution function from projection
- * @param tm Time for use in projection
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param emit Pointer to emission object
+ * @param fout Field to apply BCs
+ * @param tcurr Current time
  */
-void vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
-  struct vm_proj *proj, struct gkyl_array *f, double tm);
+void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_species *s, 
+  const struct vm_emitting_wall *emit, struct gkyl_array *fout, double tcurr);
 
 /**
- * Release species projection object.
+ * Write emission spectrum distribution function
  *
- * @param app vlasov app object
- * @param proj Species projection object to release
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param emit Pointer to emission object
+ * @param mt Write meta
+ * @param frame Current frame
  */
-void vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj);
+void vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame);
+
+/**
+ * Release species emission object.
+ *
+ * @param app Vlasov app object
+ * @param emit Species emission object to release
+ */
+void vm_species_emission_release(const struct vm_emitting_wall *emit);
 
 /** vm_species_source API */
 
@@ -1475,15 +1528,6 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
  * @param t0 Time for use in ICs
  */
 void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0);
-
-/**
- * Compute species applied acceleration term
- *
- * @param app Vlasov app object
- * @param species Species object
- * @param tm Time for use in acceleration
- */
-void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute RHS from species distribution function

@@ -1003,7 +1003,7 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   // Computation necessary in case applied acceleration
   // is time-independent and not computed in the time-stepping loop
   // since it is not read-in as part of restarts. 
-  vm_species_calc_app_accel(app, vms, rstat.stime);
+  vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
 
   return rstat;
 }
