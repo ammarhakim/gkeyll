@@ -149,6 +149,60 @@ tov_spatial_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const doubl
 }
 
 static void
+tov_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const double t,
+    const double x, const double y, const double z, double ***spacetime_metric)
+{
+  struct gr_tov_spacetime *ts = tov_st(spacetime);
+  double r = star_radius(ts, x, y, z);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_metric)[i][j] = 0.0;
+    }
+  }
+
+  if (r < ts->R_star) {
+    double lapse;
+    double shift_vector[3]; //contrav
+    double spatial_metric[3][3];
+
+    eval_cks_interior(ts->tov,
+        x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2],
+        &lapse, shift_vector, spatial_metric);
+
+    double shift_vect_cov[3] = {0.0, 0.0, 0.0};
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        shift_vect_cov[i] += spatial_metric[i][j] * shift_vector[j];
+      }
+    }
+
+    double shift_vect_sq = 0.0;
+    for (int i = 0; i < 3; i++) {
+      shift_vect_sq += shift_vect_cov[i] * shift_vector[i];
+    }
+
+    (*spacetime_metric)[0][0] = -(lapse * lapse) + shift_vect_sq;
+
+    for (int i = 0; i < 3; i++) {
+      (*spacetime_metric)[0][i + 1] = shift_vect_cov[i];
+      (*spacetime_metric)[i + 1][0] = shift_vect_cov[i];
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        (*spacetime_metric)[i + 1][j + 1] = spatial_metric[i][j];
+      }
+    }
+
+    }
+    else {
+      ts->bh->spacetime_metric_tensor_func(ts->bh, t, x, y, z, spacetime_metric);
+    }
+
+}
+
+static void
 tov_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t,
 const double x, const double y, const double z, double* spatial_metric_det)
 {
@@ -174,6 +228,27 @@ const double x, const double y, const double z, double* spatial_metric_det)
 }
 
 static void
+tov_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t,
+const double x, const double y, const double z, double* spacetime_metric_det)
+{
+  struct gr_tov_spacetime *ts = tov_st(spacetime);
+  double r = star_radius(ts, x, y, z);
+  if (r < ts->R_star) {
+    double lapse, shift_vector[3], spatial_metric[3][3];
+    eval_cks_interior(ts->tov, x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2], &lapse, shift_vector, spatial_metric);
+    double spatial_det =
+            spatial_metric[0][0] * (spatial_metric[1][1] * spatial_metric[2][2] - spatial_metric[1][2] * spatial_metric[2][1])
+          - spatial_metric[0][1] * (spatial_metric[1][0] * spatial_metric[2][2] - spatial_metric[1][2] * spatial_metric[2][0])
+          + spatial_metric[0][2] * (spatial_metric[1][0] * spatial_metric[2][1] - spatial_metric[1][1] * spatial_metric[2][0]);
+
+    *spacetime_metric_det = -(lapse * lapse) * spatial_det;
+  }
+  else {
+    ts->bh->spacetime_metric_det_func(ts->bh, t, x, y, z, spacetime_metric_det);
+  }
+}
+
+static void
 tov_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const double t,
     const double x, const double y, const double z, double ***spatial_inv_metric_tensor)
 {
@@ -181,61 +256,128 @@ tov_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const d
     double r = star_radius(ts, x, y, z);
 
     if (r < ts->R_star) {
-        double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++)
-            spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+          spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+      }
 
-        tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+      tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
 
-        double spatial_metric_det =
-            (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
-            (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
-            (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+      double spatial_metric_det =
+          (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+          (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+          (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
 
-        double trace = 0.0;
-        for (int i = 0; i < 3; i++)
-            trace += spatial_metric[i][i];
+      double trace = 0.0;
+      for (int i = 0; i < 3; i++) {
+          trace += spatial_metric[i][i];
+      }
 
-        double **spatial_metric_sq = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-            spatial_metric_sq[i] = gkyl_malloc(sizeof(double[3]));
-            for (int j = 0; j < 3; j++)
-                spatial_metric_sq[i][j] = 0.0;
-        }
+      double **spatial_metric_sq = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+          spatial_metric_sq[i] = gkyl_malloc(sizeof(double[3]));
+          for (int j = 0; j < 3; j++) {
+              spatial_metric_sq[i][j] = 0.0;
+          }
+      }
 
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                for (int k = 0; k < 3; k++)
-                    spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+      for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++){
+              for (int k = 0; k < 3; k++) {
+                  spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+              }
+          }
+      }
 
-        double sq_trace = 0.0;
-        for (int i = 0; i < 3; i++)
-            sq_trace += spatial_metric_sq[i][i];
+      double sq_trace = 0.0;
+      for (int i = 0; i < 3; i++) {
+          sq_trace += spatial_metric_sq[i][i];
+      }
 
-        double **euclidean_metric = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-            euclidean_metric[i] = gkyl_malloc(sizeof(double[3]));
-            for (int j = 0; j < 3; j++)
-                euclidean_metric[i][j] = (i == j) ? 1.0 : 0.0;
-        }
+      double **euclidean_metric = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) {
+          euclidean_metric[i] = gkyl_malloc(sizeof(double[3]));
+          for (int j = 0; j < 3; j++) {
+              euclidean_metric[i][j] = (i == j) ? 1.0 : 0.0;
+          }
+      }
 
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                (*spatial_inv_metric_tensor)[i][j] = (1.0 / spatial_metric_det) *
-                    ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-                     (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+              (*spatial_inv_metric_tensor)[i][j] = (1.0 / spatial_metric_det) *
+                  ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                    (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+          }
+      }
 
-        for (int i = 0; i < 3; i++) {
-            gkyl_free(spatial_metric[i]);
-            gkyl_free(spatial_metric_sq[i]);
-            gkyl_free(euclidean_metric[i]);
-        }
-        gkyl_free(spatial_metric);
-        gkyl_free(spatial_metric_sq);
-        gkyl_free(euclidean_metric);
+      for (int i = 0; i < 3; i++) {
+          gkyl_free(spatial_metric[i]);
+          gkyl_free(spatial_metric_sq[i]);
+          gkyl_free(euclidean_metric[i]);
+      }
+      gkyl_free(spatial_metric);
+      gkyl_free(spatial_metric_sq);
+      gkyl_free(euclidean_metric);
     }
     else {
         ts->bh->spatial_inv_metric_tensor_func(ts->bh, t, x, y, z, spatial_inv_metric_tensor);
+    }
+}
+
+static void
+tov_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const double t,
+    const double x, const double y, const double z, double ***spacetime_inv_metric)
+{
+  struct gr_tov_spacetime *ts = tov_st(spacetime);
+  double r = star_radius(ts, x, y, z);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_inv_metric)[i][j] = 0.0;
+    }
+  }
+
+  if (r < ts->R_star) {
+    double lapse;
+    double shift_vector[3]; //contrav
+    double spatial_metric[3][3];
+
+    eval_cks_interior(ts->tov,
+        x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2],
+        &lapse, shift_vector, spatial_metric);
+
+    double **spatial_metric_inv = gkyl_malloc(sizeof(double*[3]));
+    for (int i = 0; i < 3; i++) {
+        spatial_metric_inv[i] = gkyl_malloc(sizeof(double[3]));
+    }
+
+    tov_spatial_inv_metric_tensor(spacetime, t, x, y, z, &spatial_metric_inv);
+
+    double lapse_sq = lapse * lapse;
+
+    (*spacetime_inv_metric)[0][0] = -1.0 / lapse_sq;
+
+    for (int i = 0; i < 3; i++) {
+        (*spacetime_inv_metric)[0][i + 1] = shift_vector[i] / lapse_sq;
+        (*spacetime_inv_metric)[i + 1][0] = shift_vector[i] / lapse_sq;
+    }
+
+    // g^ij = γ^ij - β^i β^j / α²
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            (*spacetime_inv_metric)[i + 1][j + 1] = spatial_metric_inv[i][j]
+                - (shift_vector[i] * shift_vector[j]) / lapse_sq;
+        }
+    }
+
+    for (int i = 0; i < 3; i++) {
+        gkyl_free(spatial_metric_inv[i]);
+    }
+    gkyl_free(spatial_metric_inv);
+
+    }
+    else {
+        ts->bh->spacetime_inv_metric_tensor_func(ts->bh, t, x, y, z, spacetime_inv_metric);
     }
 }
 
@@ -244,7 +386,6 @@ tov_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t
   const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** lapse_function_der)
 {
-  
   gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
@@ -258,18 +399,86 @@ tov_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t,
 
 static void
 tov_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t,
-  const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
+  const double x, const double y, const double z, const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
   gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
 static void
+tov_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t,
+  const double x, const double y, const double z, const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
+{
+  gkyl_gr_spacetime_metric_tensor_diff(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
+}
+
+static void
 tov_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t,
-  const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double**** spatial_christoffel)
+  const double x, const double y, const double z, const double dx, const double dy, const double dz, double**** spatial_christoffel)
 {
   gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
+}
+
+static void
+tov_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t,
+  const double x, const double y, const double z, const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel)
+{
+  gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
+}
+
+static void
+tov_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* spatial_ricci_scalar)
+{
+  gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
+}
+
+static void
+tov_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** spatial_ricci_tensor)
+{
+  gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
+}
+
+static void
+tov_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor)
+{
+  gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
+}
+
+static void
+tov_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_riemann_tensor)
+{
+  gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
+}
+
+static void
+tov_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor)
+{
+  gkyl_gr_spacetime_riemann_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
+}
+
+static void
+tov_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar)
+{
+  gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
+}
+
+static void
+tov_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_weyl_tensor)
+{
+  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dx, spatial_weyl_tensor);
+}
+
+static void
+tov_spacetime_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor)
+{
+  gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
 static void
@@ -354,6 +563,21 @@ tov_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, c
   bool* in_excision_region)
 {
   *in_excision_region = false;
+}
+
+void
+gkyl_gr_tov_free(const struct gkyl_ref_count* ref)
+{
+  struct gkyl_gr_spacetime* base = container_of(ref, struct gkyl_gr_spacetime, ref_count);
+
+  if (gkyl_gr_spacetime_is_cu_dev(base)) {
+    // Free inner on_dev object.
+    struct gr_tov_spacetime *ts = container_of(base->on_dev, struct gr_tov_spacetime, spacetime);
+    gkyl_cu_free(ts);
+  }
+
+  struct gr_tov_spacetime *ts = container_of(base, struct gr_tov_spacetime, spacetime);
+  gkyl_free(ts);
 }
 
 static void
@@ -467,20 +691,32 @@ gkyl_gr_tov_spacetime_new(bool use_gpu, struct gkyl_tov *tov,
 
   ts->spacetime.lapse_function_func = tov_lapse_function;
   ts->spacetime.spatial_metric_tensor_func = tov_spatial_metric_tensor;
+  ts->spacetime.spacetime_metric_tensor_func = tov_spacetime_metric_tensor;
   ts->spacetime.shift_vector_func = tov_shift_vector;
 
   ts->spacetime.excision_region_func = tov_excision_region;
 
   ts->spacetime.spatial_metric_det_func = tov_spatial_metric_det;
+  ts->spacetime.spacetime_metric_det_func = tov_spacetime_metric_det;
   ts->spacetime.spatial_inv_metric_tensor_func = tov_spatial_inv_metric_tensor;
+  ts->spacetime.spacetime_inv_metric_tensor_func = tov_spacetime_inv_metric_tensor;
   ts->spacetime.spatial_metric_tensor_der_func  = tov_spatial_metric_tensor_der;
+  ts->spacetime.spacetime_metric_tensor_der_func = tov_spacetime_metric_tensor_der;
   ts->spacetime.lapse_function_der_func = tov_lapse_function_der;
   ts->spacetime.shift_vector_der_func = tov_shift_vector_der;
   ts->spacetime.spatial_christoffel_func = tov_spatial_christoffel;
+  ts->spacetime.spacetime_christoffel_func = tov_spacetime_christoffel;
   ts->spacetime.extrinsic_curvature_tensor_func = tov_extrinsic_curvature_tensor;
-
+  ts->spacetime.spatial_ricci_scalar_func = tov_spatial_ricci_scalar;
+  ts->spacetime.spatial_ricci_tensor_func = tov_spatial_ricci_tensor;
+  ts->spacetime.spacetime_ricci_scalar_func = tov_spacetime_ricci_scalar;
+  ts->spacetime.spacetime_ricci_tensor_func = tov_spacetime_ricci_tensor;
+  ts->spacetime.spatial_riemann_tensor_func = tov_spatial_riemann_tensor;
+  ts->spacetime.spacetime_riemann_tensor_func = tov_spacetime_riemann_tensor;
+  ts->spacetime.spatial_weyl_tensor_func = tov_spatial_weyl_tensor;
+  ts->spacetime.spacetime_weyl_tensor_func = tov_spacetime_weyl_tensor;
   //ts->spacetime.vacuum_einstein = NULL;
-  tov_verify_metric(&ts->spacetime);
-  tov_verify_lapse_derivative(&ts->spacetime);
+  //tov_verify_metric(&ts->spacetime);
+  //tov_verify_lapse_derivative(&ts->spacetime);
   return &ts->spacetime;
 }

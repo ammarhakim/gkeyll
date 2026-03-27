@@ -112,20 +112,22 @@ static void implicit_tov_source_update(double r, double y[3], double h, double K
 
     // stage 1 — Euler step from y_old
     tov_rhs(r, y_old, f, K, Gamma);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
         y_stage1[i] = y_old[i] + h * f[i];
+    }
 
     // stage 2 — RHS at stage1, then mix with y_old
     tov_rhs(r + h, y_stage1, f, K, Gamma);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
         //y_stage2[i] = 0.75*y_old[i] + 0.25*(y_old[i] + h * f[i]);
         y_stage2[i] = 0.75*y_old[i] + 0.25*(y_stage1[i] + h * f[i]);
-
+    }
 
     // stage 3 — RHS at stage2, final mix
     tov_rhs(r + 0.5*h, y_stage2, f, K, Gamma);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
         y_new[i] = (1.0/3.0)*y_old[i] + (2.0/3.0)*(y_stage2[i] + h * f[i]);
+    }
 
     for (int i = 0; i < 3; i ++) {
         y[i] = y_new[i];
@@ -317,8 +319,9 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     // g_tt = -(1 - 2M/r) = -e^2Phi. => Phi(R) = 0.5 * ln(1 - 2M/R)
     double Phi_exact = 0.5 * log(1.0 - 2.0 * tov->M_star / tov->R_areal);
     double Phi_shift = Phi_exact - tov->Phi[i_surf]; // We integrated with Phi(0) = Phi_c = 0 before (arbitrary), so we need to shift the profile by a constant
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
         tov->Phi[i] += Phi_shift;
+    }   
 
 
     // Extend to vacuum exterior out to r_max
@@ -347,15 +350,16 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     //         i, tov->r_areal[i], tov->P[i], tov->rho[i], tov->m[i], tov->Phi[i]);
     // }
 
-    FILE *fp = fopen("tov_profile.txt", "w");
-    if (fp) {
-        fprintf(fp, "# r rho P eps e m Phi alpha\n");
-        for (int i = 0; i < tov->N && tov->r_areal[i] < tov->R_areal + 1.0; i++)
-            fprintf(fp, "%.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e\n",
-                tov->r_areal[i], tov->rho[i], tov->P[i],
-                tov->eps[i], tov->e[i], tov->m[i], tov->Phi[i], exp(tov->Phi[i]));
-        fclose(fp);
-    }
+    // FILE *fp = fopen("tov_profile.txt", "w");
+    // if (fp) {
+    //     fprintf(fp, "# r rho P eps e m Phi alpha\n");
+    //     for (int i = 0; i < tov->N && tov->r_areal[i] < tov->R_areal + 1.0; i++) {
+    //         fprintf(fp, "%.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e\n",
+    //             tov->r_areal[i], tov->rho[i], tov->P[i],
+    //             tov->eps[i], tov->e[i], tov->m[i], tov->Phi[i], exp(tov->Phi[i]));
+    //     }
+    //     fclose(fp);
+    // }
 
     return tov;
 }
