@@ -4,16 +4,44 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_basis_ops.h>
 
+void gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_damping *damp, const struct gkyl_array *phi, const struct gkyl_array *fin,
+  struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+void gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_damping *damp, const struct gkyl_array *phi, const struct gkyl_array *fin,
+  struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+void gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_damping *damp, const struct gkyl_array *phi, const struct gkyl_array *fin,
+  struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+void gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_damping *damp, const struct gkyl_array *phi, const struct gkyl_array *fin,
+  struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+void gk_species_damping_calc_fbar_rhs_disabled(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+void gk_species_damping_calc_fbar_rhs_enabled(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+
+
 void
-gk_species_damping_init_fbar_from_f(const struct gk_species *gks, struct gk_damping *damp, 
+gk_species_damping_set_fbar_to_f_enabled(const struct gk_species *gks, struct gk_damping *damp, 
   const struct gkyl_array *f)
 {
-  if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-    // Initialize the filtered distribution to match the initial distribution
-    gkyl_array_set(damp->fbar, 1.0, f);
-    gkyl_array_set(damp->fbar1, 1.0, f);
-    gkyl_array_set(damp->fbarnew, 1.0, f);
-  }
+  gkyl_array_set(damp->fbar, 1.0, f);
+  gkyl_array_set(damp->fbar1, 1.0, f);
+  gkyl_array_set(damp->fbarnew, 1.0, f);
+}
+
+void
+gk_species_damping_set_fbar_to_f_disabled(const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *f)
+{
+}
+
+void
+gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *f)
+{
+  damp->set_fbar_to_f_func(gks, damp, f);
 }
 
 void
@@ -83,6 +111,9 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
   // Default function pointers.
   damp->write_func = gk_species_damping_write_disabled;
+  damp->advance_func = gk_species_damping_advance_disabled;
+  damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_disabled;
+  damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_disabled;
 
   if (damp->type) {
     // Allocate rate array.
@@ -113,6 +144,8 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
       if (num_quad == 1)
         gkyl_array_scale_range(damp->rate, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
+
+      damp->advance_func = gk_species_damping_advance_user_input;
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
@@ -139,14 +172,14 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       if (app->use_gpu) {
         damp->bmag_max = gkyl_cu_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
-	gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-	gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
       }
       else {
         damp->bmag_max = gkyl_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_malloc(app->cdim*sizeof(double));
-	memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
-	memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
+        memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
+        memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double));
       }
 
       // Electrostatic potential at bmag_max_coord.
@@ -205,6 +238,8 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         app->field->phi_smooth, damp->phi_m_global, damp->rate);
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
+
+      damp->advance_func = gk_species_damping_advance_loss_cone;
     }
     else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
       // Allocate filtered distribution function array
@@ -218,6 +253,10 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       // Initialize fbar from the projection of the initial distribution
       // (will be set from the initial f in the main app loop)
       gkyl_array_set(damp->fbar, 0.0);
+
+      damp->advance_func = gk_species_damping_advance_low_pass_filter;
+      damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_enabled;
+      damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_enabled;
     }
 
     // Set function pointers chosen at runtime.
@@ -230,58 +269,85 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   }
 }
 
+void
+gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  struct gkyl_array *rhs, struct gkyl_array *cflrate)
+{
+}
+
+
+void
+gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  struct gkyl_array *rhs, struct gkyl_array *cflrate)
+{
+  gkyl_array_set(f_buffer, 1.0, fin);
+  gkyl_array_scale_by_cell(f_buffer, damp->rate);
+
+  // Add damping to f and the CFL frequency.
+  gkyl_array_accumulate(rhs, -1.0, f_buffer);
+  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
+}
+
+void
+gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  struct gkyl_array *rhs, struct gkyl_array *cflrate)
+{
+  // Find the potential at the mirror throat.
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord,
+    app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+
+  // Project the loss cone mask.
+  gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
+    phi, damp->phi_m_global, damp->rate);
+
+  // Assemble the damping term -scale_prof * mask * f.
+  gkyl_array_set(f_buffer, 1.0, fin);
+  gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
+  gkyl_array_scale_by_cell(f_buffer, damp->rate);
+
+  // Add damping to f and the CFL frequency.
+  gkyl_array_accumulate(rhs, -1.0, f_buffer);
+  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
+}
+
+void
+gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  struct gkyl_array *rhs, struct gkyl_array *cflrate)
+{
+  // Match fbar state to the RK stage of fin.
+  const struct gkyl_array *fbar_in = damp->fbar;
+  if (fin == gks->f1)
+    fbar_in = damp->fbar1;
+  else if (fin == gks->fnew)
+    fbar_in = damp->fbarnew;
+
+  // Compute f - fbar and scale by the damping rate: rate * (f - fbar)
+  gkyl_array_set(f_buffer, 1.0, fin);      // f_buffer = f
+  gkyl_array_accumulate(f_buffer, -1.0, fbar_in); // f_buffer = f - fbar
+  gkyl_array_scale_by_cell(f_buffer, damp->rate);    // f_buffer = rate * (f - fbar)
+  
+  // Add damping term to RHS: df/dt -= rate * (f - fbar)
+  // Add to the CFL frequency.
+  gkyl_array_accumulate(rhs, -1.0, f_buffer);
+  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
+}
+
 
 void
 gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
   const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  if (damp->type) {
-    struct timespec wst = gkyl_wall_clock();
-    if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
-      gkyl_array_set(f_buffer, 1.0, fin);
-      gkyl_array_scale_by_cell(f_buffer, damp->rate);
-      gkyl_array_accumulate(rhs, -1.0, f_buffer);
-    }
-    else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      // Find the potential at the mirror throat.
-      gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord,
-        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+  struct timespec wst = gkyl_wall_clock();
 
-      // Project the loss cone mask.
-      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        phi, damp->phi_m_global, damp->rate);
-
-      // Assemble the damping term -scale_prof * mask * f.
-      gkyl_array_set(f_buffer, 1.0, fin);
-      gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-      gkyl_array_scale_by_cell(f_buffer, damp->rate);
-      gkyl_array_accumulate(rhs, -1.0, f_buffer);
-
-    }
-    else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-      // Match fbar state to the RK stage of fin.
-      const struct gkyl_array *fbar_in = damp->fbar;
-      if (fin == gks->f1)
-        fbar_in = damp->fbar1;
-      else if (fin == gks->fnew)
-        fbar_in = damp->fbarnew;
-
-      // Compute f - fbar and scale by the damping rate: rate * (f - fbar)
-      gkyl_array_set(f_buffer, 1.0, fin);      // f_buffer = f
-      gkyl_array_accumulate(f_buffer, -1.0, fbar_in); // f_buffer = f - fbar
-      gkyl_array_scale_by_cell(f_buffer, damp->rate);    // f_buffer = rate * (f - fbar)
-      
-      // Add damping term to RHS: df/dt -= rate * (f - fbar)
-      gkyl_array_accumulate(rhs, -1.0, f_buffer);
-    }
-
-    // Add the frequency to the CFL frequency.
-    gkyl_array_accumulate(cflrate, 1.0, damp->rate);
-
-    app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
-  }
+  damp->advance_func(app, gks, damp, phi, fin, f_buffer, rhs, cflrate);
+  
+  app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
 }
 
 
@@ -292,15 +358,26 @@ gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 }
 
 void
+gk_species_damping_calc_fbar_rhs_disabled(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar)
+{
+}
+
+void
+gk_species_damping_calc_fbar_rhs_enabled(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar)
+{
+  // rhs_fbar = rate * (f - fbar)
+  gkyl_array_set(rhs_fbar, 1.0, fin);
+  gkyl_array_accumulate(rhs_fbar, -1.0, fbar_in);
+  gkyl_array_scale_by_cell(rhs_fbar, damp->rate);
+}
+
+void
 gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
   const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar)
 {
-  if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-    // rhs_fbar = rate * (f - fbar)
-    gkyl_array_set(rhs_fbar, 1.0, fin);
-    gkyl_array_accumulate(rhs_fbar, -1.0, fbar_in);
-    gkyl_array_scale_by_cell(rhs_fbar, damp->rate);
-  }
+  damp->calc_fbar_rhs_func(damp, fin, fbar_in, rhs_fbar);
 }
 
 void
@@ -350,5 +427,5 @@ gk_species_damping_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species
 
   gks->info.damping = damp_inp;
   gk_species_damping_init(app, gks, damp);
-  gk_species_damping_init_fbar_from_f(gks, damp, gks->f);
+  gk_species_damping_set_fbar_to_f(gks, damp, gks->f);
 }

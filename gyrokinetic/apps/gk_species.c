@@ -1733,7 +1733,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
   // Initialize fbar for low-pass filter damping
-  gk_species_damping_init_fbar_from_f(gks, &gks->damping, gks->f);
+  gk_species_damping_set_fbar_to_f(gks, &gks->damping, gks->f);
 
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, gks->lte.f_lte, t0);

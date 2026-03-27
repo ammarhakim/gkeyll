@@ -814,6 +814,13 @@ struct gk_damping {
   struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+    const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+    struct gkyl_array *rhs, struct gkyl_array *cflrate);
+  void (*set_fbar_to_f_func)(const struct gk_species *gks, struct gk_damping *damp,
+    const struct gkyl_array *f);
+  void (*calc_fbar_rhs_func)(const struct gk_damping *damp,
+    const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
 };
 
 struct gk_fdot_multiplier {
@@ -2783,7 +2790,7 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
  * @param damp Species damping object.
  * @param f Initial distribution function.
  */
-void gk_species_damping_init_fbar_from_f(const struct gk_species *gks, struct gk_damping *damp, 
+void gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping *damp, 
   const struct gkyl_array *f);
 
 
