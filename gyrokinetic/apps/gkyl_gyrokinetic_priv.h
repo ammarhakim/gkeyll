@@ -2833,6 +2833,18 @@ void gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
  */
 void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp);
 
+/**
+ * Reset species damping object.
+ *
+ * @param app gyrokinetic app object.
+ * @param tm Time.
+ * @param gks Species object.
+ * @param damp Species damping object.
+ * @param damp_inp New damping input.
+ */
+void gk_species_damping_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_damping *damp, struct gkyl_gyrokinetic_damping damp_inp);
+
 /** gk_species_fdot_multiplier API */
 
 /**
