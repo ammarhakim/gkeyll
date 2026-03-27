@@ -4,6 +4,17 @@ static void
 gk_species_damping_step_fbar_ssp_rk3(struct gk_species *gks, const struct gkyl_array *fin,
   const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt)
 {
+  // Okay so this is not good
+  // There is significant amounts of refactoring needed to be done here
+  // This if statement is no good
+  // We should have these functions point to pointers
+  // We have to be careful that we do not step uninitilized data
+  // It would be so much better if we can combine this into stepping like a species
+  // We should't have to initilize a seperate species, but that's almost what this is doing. Damping is creating a new distribution function which must be stepped.
+  // The stepping should happen inside the SSPRK3 algorithm
+  // I'm not sure how sundials will change all this logic, so we should wait for that.
+  // The current implementation here is functional, but it's not designed well
+  
   if (gks->damping.type != GKYL_GK_DAMPING_LOW_PASS_FILTER)
     return;
 
