@@ -846,6 +846,7 @@ struct gk_source_bgk {
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
   double *volint_local, *volint_global; // Local and global volume integrals.
   struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
+  struct gkyl_array *M1mod, *M2mod; // Corrected source rates for external sourcing
   struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
   double coupling_time; // Coupling time for external heating model
   double damping_factor; // Damping factor used to prevent negative densities
@@ -856,6 +857,7 @@ struct gk_source_bgk {
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
   struct gk_species_moment integ_mom_op; // Integrated moments.
+  struct gk_species_moment correct_mom_op; // Correction moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments of the source.
