@@ -4,6 +4,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_basis_ops.h>
 
+// Damping state synchronization helpers.
+
 void
 gk_species_damping_set_fbar_to_f_enabled(const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *f)
@@ -25,6 +27,8 @@ gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping
 {
   damp->set_fbar_to_f_func(gks, damp, f);
 }
+
+// Damping diagnostics write helpers.
 
 void
 gk_species_damping_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
@@ -78,6 +82,8 @@ gk_species_damping_write_init_only(gkyl_gyrokinetic_app *app, struct gk_species 
   gks->damping.write_func = gk_species_damping_write_disabled;
 }
 
+// Damping rate projection helpers.
+
 static void
 proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
@@ -114,6 +120,8 @@ gk_species_damping_project_phase_rate(const struct gkyl_gyrokinetic_app *app,
   if (num_quad == 1)
     gkyl_array_scale_range(rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
 }
+
+// Damping RHS assembly dispatch helpers.
 
 void
 gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
@@ -205,6 +213,8 @@ gk_species_damping_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
   gks->damping.write_func(app, gks, tm, frame);
 }
 
+// Low-pass filter fbar RHS helpers.
+
 void
 gk_species_damping_calc_fbar_rhs_disabled(const struct gk_damping *damp,
   const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar)
@@ -227,6 +237,8 @@ gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
 {
   damp->calc_fbar_rhs_func(damp, fin, fbar_in, rhs_fbar);
 }
+
+// Low-pass filter stage update helpers.
 
 static void
 gk_species_damping_forward_euler_disabled(struct gk_species *gks,
@@ -252,6 +264,8 @@ gk_species_damping_forward_euler(struct gk_species *gks,
 {
   gks->damping.forward_euler_func(gks, fin, fbar_in, fbar_out, dt);
 }
+
+// Low-pass filter RK stage combine/copy helpers.
 
 static void
 gk_species_damping_combine_disabled(struct gk_species *gks, struct gkyl_array *fout,
@@ -295,6 +309,8 @@ gk_species_damping_copy_range(struct gk_species *gks, struct gkyl_array *fout,
 {
   gks->damping.copy_func(gks, fout, fin, range);
 }
+
+// Damping object lifecycle.
 
 void
 gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
@@ -525,6 +541,8 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
     }
   }
 }
+
+// Damping runtime reset.
 
 void
 gk_species_damping_reset(gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks,
