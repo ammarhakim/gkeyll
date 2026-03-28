@@ -115,7 +115,6 @@ gk_species_damping_project_phase_rate(const struct gkyl_gyrokinetic_app *app,
     gkyl_array_scale_range(rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
 }
 
-
 void
 gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
