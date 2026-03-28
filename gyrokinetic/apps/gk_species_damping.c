@@ -591,8 +591,6 @@ void
 gk_species_damping_reset(gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks,
   struct gk_damping *damp, struct gkyl_gyrokinetic_damping damp_inp)
 {
-  (void)tm;
-
   gk_species_damping_release(app, damp);
 
   gks->info.damping = damp_inp;
