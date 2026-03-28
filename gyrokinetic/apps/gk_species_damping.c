@@ -36,6 +36,41 @@ gk_species_damping_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *
 {
 }
 
+static void
+gk_species_damping_write_fbar_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  double tm, int frame)
+{
+}
+
+static void
+gk_species_damping_write_fbar_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  double tm, int frame)
+{
+  // Metadata from app, species, and geometry (same pattern as species f write).
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_fbar_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {app->io_meta_basic, gks->io_meta,
+    app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(
+    sizeof(io_meta_fbar_len) / sizeof(int), io_meta_fbar_len, io_meta_fbar);
+
+  const char *fmt_fbar = "%s-%s_fbar_%d.gkyl";
+  int sz_fbar = gkyl_calc_strlen(fmt_fbar, app->name, gks->info.name, frame);
+  char fileNm_fbar[sz_fbar + 1]; // ensures no buffer overflow
+  snprintf(fileNm_fbar, sizeof fileNm_fbar, fmt_fbar, app->name, gks->info.name, frame);
+
+  // Copy fbar from device to host before writing it out.
+  if (app->use_gpu)
+    gkyl_array_copy(gks->damping.fbar_host, gks->damping.fbar);
+
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt_fbar, gks->damping.fbar_host,
+    fileNm_fbar);
+  app->stat.n_io += 1;
+
+  gkyl_msgpack_data_release(mt_fbar);
+}
+
 void
 gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
   int frame)
@@ -69,6 +104,8 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *g
 
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->damping.rate_host, fileNm);
   app->stat.n_io += 1;
+
+  gks->damping.write_fbar_func(app, gks, tm, frame);
 
   gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
@@ -318,6 +355,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 {
   damp->type = gks->info.damping.type;
   damp->evolve = false; // Whether the rate is time dependent.
+  damp->write_fbar = gks->info.damping.write_fbar;
   const double rate_const = gks->info.damping.rate_const;
 
   int num_quad = gks->info.damping.num_quad? gks->info.damping.num_quad : 1; // Default is a p=0 mask.
@@ -325,6 +363,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
   // Default function pointers.
   damp->write_func = gk_species_damping_write_disabled;
+  damp->write_fbar_func = gk_species_damping_write_fbar_disabled;
   damp->advance_func = gk_species_damping_advance_disabled;
   damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_disabled;
   damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_disabled;
@@ -479,9 +518,13 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       damp->fbar = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
       damp->fbar1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
       damp->fbarnew = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
-      damp->fbar_host = damp->fbar;
-      if (app->use_gpu)
-        damp->fbar_host = mkarr(false, damp->fbar->ncomp, damp->fbar->size);
+      damp->fbar_host = 0;
+      if (damp->write_fbar) {
+        damp->write_fbar_func = gk_species_damping_write_fbar_enabled;
+        damp->fbar_host = damp->fbar;
+        if (app->use_gpu)
+          damp->fbar_host = mkarr(false, damp->fbar->ncomp, damp->fbar->size);
+      }
 
       // Initialize fbar from the projection of the initial distribution
       // (will be set from the initial f in the main app loop)
@@ -536,7 +579,7 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
       gkyl_array_release(damp->fbar);
       gkyl_array_release(damp->fbar1);
       gkyl_array_release(damp->fbarnew);
-      if (app->use_gpu)
+      if (app->use_gpu && damp->write_fbar)
         gkyl_array_release(damp->fbar_host);
     }
   }
