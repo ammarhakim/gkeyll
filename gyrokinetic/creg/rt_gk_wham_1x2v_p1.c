@@ -608,6 +608,11 @@ int main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
+    .damping = {
+      .type = GKYL_GK_DAMPING_LOW_PASS_FILTER,
+      .rate_const = 1e-6,
+    },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,

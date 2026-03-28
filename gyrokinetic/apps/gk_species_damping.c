@@ -318,7 +318,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 {
   damp->type = gks->info.damping.type;
   damp->evolve = false; // Whether the rate is time dependent.
-  const double damping_const = gks->info.damping.damping_const;
+  const double rate_const = gks->info.damping.rate_const;
 
   int num_quad = gks->info.damping.num_quad? gks->info.damping.num_quad : 1; // Default is a p=0 mask.
   assert(num_quad == 1); // MF 2025/06/11: Limited to this for now.
@@ -345,10 +345,10 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       if (gks->info.damping.rate_profile) {
         gk_species_damping_project_phase_rate(app, gks, num_quad, gks->info.damping.rate_profile,
           gks->info.damping.rate_profile_ctx, damp->rate_host, damp->rate);
-        gkyl_array_scale(damp->rate, damping_const == 0.0 ? 1.0 : damping_const);
+        gkyl_array_scale(damp->rate, rate_const == 0.0 ? 1.0 : rate_const);
       }
       else {
-        gkyl_array_clear(damp->rate, damping_const);
+        gkyl_array_clear(damp->rate, rate_const);
       }
 
       damp->advance_func = gk_species_damping_advance_user_input;
@@ -441,7 +441,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         gkyl_array_clear(scale_prof_high_order, 1.0);
       }
 
-      gkyl_array_scale(scale_prof_high_order, damping_const == 0.0 ? 1.0 : damping_const);
+      gkyl_array_scale(scale_prof_high_order, rate_const == 0.0 ? 1.0 : rate_const);
 
       damp->scale_prof = mkarr(app->use_gpu, num_quad == 1? 1 : gks->basis.num_basis,
         gks->local_ext.volume);
@@ -469,10 +469,10 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       if (gks->info.damping.rate_profile) {
         gk_species_damping_project_phase_rate(app, gks, num_quad, gks->info.damping.rate_profile,
           gks->info.damping.rate_profile_ctx, damp->rate_host, damp->rate);
-        gkyl_array_scale(damp->rate, damping_const == 0.0 ? 1.0 : damping_const);
+        gkyl_array_scale(damp->rate, rate_const == 0.0 ? 1.0 : rate_const);
       }
       else {
-        gkyl_array_clear(damp->rate, damping_const);
+        gkyl_array_clear(damp->rate, rate_const);
       }
 
       // Allocate filtered distribution function array

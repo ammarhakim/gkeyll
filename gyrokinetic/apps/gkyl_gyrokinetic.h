@@ -331,10 +331,10 @@ struct gkyl_gyrokinetic_damping {
   enum gkyl_gyrokinetic_damping_type type;
   // Optional constant damping factor.
   // Semantics:
-  //  - if rate_profile is NULL: use damping_const as the full rate profile.
-  //  - if rate_profile is provided: effective rate is damping_const*rate_profile,
-  //    where damping_const defaults to 1.0 when left as 0.0.
-  double damping_const;
+  //  - if rate_profile is NULL: use rate_const as the full rate profile.
+  //  - if rate_profile is provided: effective rate is rate_const*rate_profile,
+  //    where rate_const defaults to 1.0 when left as 0.0.
+  double rate_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
