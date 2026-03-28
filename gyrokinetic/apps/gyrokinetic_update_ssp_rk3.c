@@ -1,31 +1,9 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 static void
-gk_species_damping_step_fbar_ssp_rk3(struct gk_species *gks, const struct gkyl_array *fin,
-  const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt)
-{
-  // Okay so this is not good
-  // There is significant amounts of refactoring needed to be done here
-  // This if statement is no good
-  // We should have these functions point to pointers
-  // We have to be careful that we do not step uninitilized data
-  // It would be so much better if we can combine this into stepping like a species
-  // We should't have to initilize a seperate species, but that's almost what this is doing. Damping is creating a new distribution function which must be stepped.
-  // The stepping should happen inside the SSPRK3 algorithm
-  // I'm not sure how sundials will change all this logic, so we should wait for that.
-  // The current implementation here is functional, but it's not designed well
-  
-  if (gks->damping.type != GKYL_GK_DAMPING_LOW_PASS_FILTER)
-    return;
-
-  // Reuse existing species scratch buffer for rhs_fbar.
-  gk_species_damping_calc_fbar_rhs(&gks->damping, fin, fbar_in, gks->lte.f_lte);
-  gk_species_step_f(gks, fbar_out, dt, fbar_in);
-}
-
-static void
 gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fbar_in[], struct gkyl_array *fbar_out[],
   struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
@@ -49,6 +27,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
+    gk_species_damping_forward_euler(gks, fin[i], fbar_in[i], fbar_out[i], dta);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -69,6 +48,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   // from the actual time-step.
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
+  const struct gkyl_array *fbar_in[app->num_species];
+  struct gkyl_array *fbar_out[app->num_species];
   struct gkyl_array **bflux_in[app->num_species];
   struct gkyl_array **bflux_out[app->num_species];
 
@@ -90,6 +71,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f;
           fout[i] = gks->f1;
+          fbar_in[i] = gks->damping.fbar;
+          fbar_out[i] = gks->damping.fbar1;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f;
           bflux_out[i] = gks->bflux.f1;
@@ -109,16 +92,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_in, tcurr);
         }
 
-        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
-
-        // Advance filtered distributions with the same stage-1 FE update.
-        for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-          gk_species_damping_step_fbar_ssp_rk3(gks, gks->f,
-            gks->damping.fbar, gks->damping.fbar1, dt);
-        }
 
         // Subtract boundary flux f from f1 so that we only step boundary
         // fluxes during a given time step, not over all time. And so that the
@@ -155,6 +131,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
+          fbar_in[i] = gks->damping.fbar1;
+          fbar_out[i] = gks->damping.fbarnew;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f1;
           bflux_out[i] = gks->bflux.fnew;
@@ -168,15 +146,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
-
-        // Advance filtered distributions with the same stage-2 FE update.
-        for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-          gk_species_damping_step_fbar_ssp_rk3(gks, gks->f1,
-            gks->damping.fbar1, gks->damping.fbarnew, st.dt_actual);
-        }
 
         if (st.dt_actual < dt) {
 
@@ -205,10 +176,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
-            if (gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-              gk_species_combine(gks, gks->damping.fbar1, 3.0/4.0, gks->damping.fbar,
-                1.0/4.0, gks->damping.fbarnew, &gks->local_ext);
-            }
+            gk_species_damping_combine(gks, gks->damping.fbar1, 3.0/4.0, gks->damping.fbar,
+              1.0/4.0, gks->damping.fbarnew, &gks->local_ext);
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f1, 1.0/4.0, gks->bflux.fnew);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
@@ -238,6 +207,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
+          fbar_in[i] = gks->damping.fbar1;
+          fbar_out[i] = gks->damping.fbarnew;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f1;
           bflux_out[i] = gks->bflux.fnew;
@@ -251,15 +222,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
-
-        // Advance filtered distributions with the same stage-3 FE update.
-        for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-          gk_species_damping_step_fbar_ssp_rk3(gks, gks->f1,
-            gks->damping.fbar1, gks->damping.fbarnew, st.dt_actual);
-        }
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
@@ -290,11 +254,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Step f.
             gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
             gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
-            if (gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-              gk_species_combine(gks, gks->damping.fbar1, 1.0/3.0, gks->damping.fbar,
-                2.0/3.0, gks->damping.fbarnew, &gks->local_ext);
-              gk_species_copy_range(gks, gks->damping.fbar, gks->damping.fbar1, &gks->local_ext);
-            }
+            gk_species_damping_combine(gks, gks->damping.fbar, 1.0/3.0, gks->damping.fbar1,
+              2.0/3.0, gks->damping.fbarnew, &gks->local_ext);
+            gk_species_damping_copy_range(gks, gks->damping.fbar1, gks->damping.fbar,
+              &gks->local_ext);
             // Step boundary fluxes.
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f, 2.0/3.0, gks->bflux.fnew);
             gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);

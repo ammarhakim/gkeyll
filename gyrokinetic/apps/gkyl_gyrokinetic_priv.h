@@ -821,6 +821,13 @@ struct gk_damping {
     const struct gkyl_array *f);
   void (*calc_fbar_rhs_func)(const struct gk_damping *damp,
     const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+  void (*forward_euler_func)(struct gk_species *gks, const struct gkyl_array *fin,
+    const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt);
+  void (*combine_func)(struct gk_species *gks, struct gkyl_array *fout, double c1,
+    const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gk_species *gks, struct gkyl_array *fout,
+    const struct gkyl_array *fin, const struct gkyl_range *range);
 };
 
 struct gk_fdot_multiplier {
@@ -2831,6 +2838,41 @@ void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks,
  */
 void gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
   const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+
+/**
+ * Take a forward-Euler substep for the filtered distribution.
+ *
+ * This is a runtime-dispatched no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ *
+ * @param gks Species object.
+ * @param fin Current distribution function f.
+ * @param fbar_in Current filtered distribution state.
+ * @param fbar_out Output filtered distribution state after FE substep.
+ * @param dt Time-step for substep.
+ */
+void gk_species_damping_forward_euler(struct gk_species *gks,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *fbar_out, double dt);
+
+/**
+ * Combine filtered distributions like gk_species_combine.
+ *
+ * This is runtime-dispatched and a no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ */
+void gk_species_damping_combine(struct gk_species *gks, struct gkyl_array *fout, double c1,
+  const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy filtered distribution ranges like gk_species_copy_range.
+ *
+ * This is runtime-dispatched and a no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ */
+void gk_species_damping_copy_range(struct gk_species *gks, struct gkyl_array *fout,
+  const struct gkyl_array *fin, const struct gkyl_range *range);
 
 /**
  * Release species damping object.

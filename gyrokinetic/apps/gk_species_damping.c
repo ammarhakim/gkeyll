@@ -86,6 +86,35 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
+static void
+gk_species_damping_project_phase_rate(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks, int num_quad,
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx),
+  void *rate_profile_ctx, struct gkyl_array *rate_host, struct gkyl_array *rate)
+{
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+  proj_on_basis_c2p_ctx.cdim = app->cdim;
+  proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+  proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+
+  gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
+    .grid = &gks->grid,
+    .basis = &gks->basis,
+    .num_quad = num_quad,
+    .num_ret_vals = 1,
+    .eval = rate_profile,
+    .ctx = rate_profile_ctx,
+    .c2p_func = proj_on_basis_c2p_phase_func,
+    .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+  });
+  gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, rate_host);
+  gkyl_proj_on_basis_release(projup);
+  gkyl_array_copy(rate, rate_host);
+
+  if (num_quad == 1)
+    gkyl_array_scale_range(rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+}
+
 
 void
 gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
@@ -200,12 +229,81 @@ gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
   damp->calc_fbar_rhs_func(damp, fin, fbar_in, rhs_fbar);
 }
 
+static void
+gk_species_damping_forward_euler_disabled(struct gk_species *gks,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *fbar_out, double dt)
+{
+}
+
+static void
+gk_species_damping_forward_euler_enabled(struct gk_species *gks,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *fbar_out, double dt)
+{
+  // Reuse species scratch storage to assemble fbar RHS for this FE substep.
+  gk_species_damping_calc_fbar_rhs(&gks->damping, fin, fbar_in, gks->lte.f_lte);
+  gk_species_step_f(gks, fbar_out, dt, fbar_in);
+}
+
+void
+gk_species_damping_forward_euler(struct gk_species *gks,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *fbar_out, double dt)
+{
+  gks->damping.forward_euler_func(gks, fin, fbar_in, fbar_out, dt);
+}
+
+static void
+gk_species_damping_combine_disabled(struct gk_species *gks, struct gkyl_array *fout,
+  double c1, const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+  const struct gkyl_range *rng)
+{
+}
+
+static void
+gk_species_damping_combine_enabled(struct gk_species *gks, struct gkyl_array *fout,
+  double c1, const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+  const struct gkyl_range *rng)
+{
+  gk_species_combine(gks, fout, c1, f1, c2, f2, rng);
+}
+
+void
+gk_species_damping_combine(struct gk_species *gks, struct gkyl_array *fout, double c1,
+  const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+  const struct gkyl_range *rng)
+{
+  gks->damping.combine_func(gks, fout, c1, f1, c2, f2, rng);
+}
+
+static void
+gk_species_damping_copy_range_disabled(struct gk_species *gks, struct gkyl_array *fout,
+  const struct gkyl_array *fin, const struct gkyl_range *range)
+{
+}
+
+static void
+gk_species_damping_copy_range_enabled(struct gk_species *gks, struct gkyl_array *fout,
+  const struct gkyl_array *fin, const struct gkyl_range *range)
+{
+  gk_species_copy_range(gks, fout, fin, range);
+}
+
+void
+gk_species_damping_copy_range(struct gk_species *gks, struct gkyl_array *fout,
+  const struct gkyl_array *fin, const struct gkyl_range *range)
+{
+  gks->damping.copy_func(gks, fout, fin, range);
+}
+
 void
 gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_damping *damp)
 {
   damp->type = gks->info.damping.type;
   damp->evolve = false; // Whether the rate is time dependent.
+  const double damping_const = gks->info.damping.damping_const;
 
   int num_quad = gks->info.damping.num_quad? gks->info.damping.num_quad : 1; // Default is a p=0 mask.
   assert(num_quad == 1); // MF 2025/06/11: Limited to this for now.
@@ -215,6 +313,9 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   damp->advance_func = gk_species_damping_advance_disabled;
   damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_disabled;
   damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_disabled;
+  damp->forward_euler_func = gk_species_damping_forward_euler_disabled;
+  damp->combine_func = gk_species_damping_combine_disabled;
+  damp->copy_func = gk_species_damping_copy_range_disabled;
 
   if (damp->type) {
     // Allocate rate array.
@@ -225,26 +326,15 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       damp->rate_host = mkarr(false, damp->rate->ncomp, damp->rate->size);
 
     if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
-      proj_on_basis_c2p_ctx.cdim = app->cdim;
-      proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
-      proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
-        .grid = &gks->grid,
-        .basis = &gks->basis,
-        .num_quad = num_quad,
-        .num_ret_vals = 1,
-        .eval = gks->info.damping.rate_profile,
-        .ctx = gks->info.damping.rate_profile_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_on_basis_c2p_ctx,
-      });
-      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
-      gkyl_proj_on_basis_release(projup);
-      gkyl_array_copy(damp->rate, damp->rate_host);
-
-      if (num_quad == 1)
-        gkyl_array_scale_range(damp->rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+      // USER_INPUT supports either a projected profile, or a uniform constant if no profile is provided.
+      if (gks->info.damping.rate_profile) {
+        gk_species_damping_project_phase_rate(app, gks, num_quad, gks->info.damping.rate_profile,
+          gks->info.damping.rate_profile_ctx, damp->rate_host, damp->rate);
+        gkyl_array_scale(damp->rate, damping_const == 0.0 ? 1.0 : damping_const);
+      }
+      else {
+        gkyl_array_clear(damp->rate, damping_const);
+      }
 
       damp->advance_func = gk_species_damping_advance_user_input;
     }
@@ -325,11 +415,18 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         scale_prof_high_order->ncomp, scale_prof_high_order->size)
                                                      : gkyl_array_acquire(scale_prof_high_order);
 
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_new(&gks->grid, &gks->basis, num_quad, 1,
-        gks->info.damping.rate_profile, gks->info.damping.rate_profile_ctx);
-      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scale_prof_high_order_ho);
-      gkyl_proj_on_basis_release(projup);
-      gkyl_array_copy(scale_prof_high_order, scale_prof_high_order_ho);
+      if (gks->info.damping.rate_profile) {
+        gkyl_proj_on_basis *projup = gkyl_proj_on_basis_new(&gks->grid, &gks->basis, num_quad, 1,
+          gks->info.damping.rate_profile, gks->info.damping.rate_profile_ctx);
+        gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scale_prof_high_order_ho);
+        gkyl_proj_on_basis_release(projup);
+        gkyl_array_copy(scale_prof_high_order, scale_prof_high_order_ho);
+      }
+      else {
+        gkyl_array_clear(scale_prof_high_order, 1.0);
+      }
+
+      gkyl_array_scale(scale_prof_high_order, damping_const == 0.0 ? 1.0 : damping_const);
 
       damp->scale_prof = mkarr(app->use_gpu, num_quad == 1? 1 : gks->basis.num_basis,
         gks->local_ext.volume);
@@ -353,6 +450,16 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       damp->advance_func = gk_species_damping_advance_loss_cone;
     }
     else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
+      // LOW_PASS_FILTER supports either a projected phase-space profile or a uniform constant.
+      if (gks->info.damping.rate_profile) {
+        gk_species_damping_project_phase_rate(app, gks, num_quad, gks->info.damping.rate_profile,
+          gks->info.damping.rate_profile_ctx, damp->rate_host, damp->rate);
+        gkyl_array_scale(damp->rate, damping_const == 0.0 ? 1.0 : damping_const);
+      }
+      else {
+        gkyl_array_clear(damp->rate, damping_const);
+      }
+
       // Allocate filtered distribution function array
       damp->fbar = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
       damp->fbar1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
@@ -363,11 +470,14 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
       // Initialize fbar from the projection of the initial distribution
       // (will be set from the initial f in the main app loop)
-      gkyl_array_set(damp->fbar, 0.0);
+      gkyl_array_clear(damp->fbar, 0.0);
 
       damp->advance_func = gk_species_damping_advance_low_pass_filter;
       damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_enabled;
       damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_enabled;
+      damp->forward_euler_func = gk_species_damping_forward_euler_enabled;
+      damp->combine_func = gk_species_damping_combine_enabled;
+      damp->copy_func = gk_species_damping_copy_range_enabled;
     }
 
     // Set function pointers chosen at runtime.

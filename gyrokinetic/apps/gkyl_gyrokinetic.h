@@ -329,6 +329,12 @@ struct gkyl_gyrokinetic_damping {
   //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
   //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
   enum gkyl_gyrokinetic_damping_type type;
+  // Optional constant damping factor.
+  // Semantics:
+  //  - if rate_profile is NULL: use damping_const as the full rate profile.
+  //  - if rate_profile is provided: effective rate is damping_const*rate_profile,
+  //    where damping_const defaults to 1.0 when left as 0.0.
+  double damping_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
