@@ -505,6 +505,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     }
     else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
       // LOW_PASS_FILTER supports either a projected phase-space profile or a uniform constant.
+      damp->evolve = true; // Since fbar must evolve in time.
       if (gks->info.damping.rate_profile) {
         gk_species_damping_project_phase_rate(app, gks, num_quad, gks->info.damping.rate_profile,
           gks->info.damping.rate_profile_ctx, damp->rate_host, damp->rate);
