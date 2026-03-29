@@ -338,6 +338,7 @@ struct gkyl_gyrokinetic_damping {
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
+  bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
 };
 

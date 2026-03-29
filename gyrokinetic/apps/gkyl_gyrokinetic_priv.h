@@ -801,6 +801,7 @@ struct gk_source {
 struct gk_damping {
   enum gkyl_gyrokinetic_damping_type type; // Type of damping term.
   bool evolve; // Whether the source is time dependent.
+  bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // Whether to write low-pass-filter fbar diagnostics.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
@@ -815,6 +816,7 @@ struct gk_damping {
   struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_rate_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_fbar_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
     const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
