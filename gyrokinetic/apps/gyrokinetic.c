@@ -2061,7 +2061,8 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
     + stat->species_omega_cfl_tm + stat->species_src_tm + stat->species_heat_tm
     + stat->neut_species_collisionless_tm + stat->neut_species_coll_tm + stat->neut_species_react_tm
     + stat->neut_species_omega_cfl_tm + stat->neut_species_src_tm + stat->dfdt_dt_reduce_tm + stat->fwd_euler_step_f_tm;
-  stat->field_sum_tm = stat->field_phi_rhs_tm  + stat->field_phi_solve_tm;
+  stat->field_sum_tm = stat->field_phi_rhs_tm  + stat->field_phi_solve_tm
+    + stat->field_apar_rhs_tm + stat->field_apar_solve_tm;
   stat->bc_sum_tm = stat->species_bc_tm + stat->neut_species_bc_tm;
   stat->time_rate_diags_sum_tm = stat->fdot_tm + stat->phidot_tm;
   stat->pos_shift_sum_tm = stat->species_pos_shift_tm + stat->neut_species_pos_shift_tm + stat->pos_shift_quasineut_tm;
@@ -2122,6 +2123,8 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Field solves:                    %.4e sec. / %4.2f %%.\n", stat->field_tm, ratio_to_percent(stat->field_tm,stat->time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Phi eqn RHS:                   %.4e sec. / %4.2f %%.\n", stat->field_phi_rhs_tm  , ratio_to_percent(stat->field_phi_rhs_tm  ,stat->field_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Phi eqn solve:                 %.4e sec. / %4.2f %%.\n", stat->field_phi_solve_tm, ratio_to_percent(stat->field_phi_solve_tm,stat->field_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Apar eqn RHS:                  %.4e sec. / %4.2f %%.\n", stat->field_apar_rhs_tm, ratio_to_percent(stat->field_apar_rhs_tm,stat->field_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Apar eqn solve:                %.4e sec. / %4.2f %%.\n", stat->field_apar_solve_tm, ratio_to_percent(stat->field_apar_solve_tm,stat->field_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Accounted for:                 %4.2f %%.\n", ratio_to_percent(stat->field_sum_tm, stat->field_tm, 100.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Boundary conditions::            %.4e sec. / %4.2f %%.\n", stat->bc_tm, ratio_to_percent(stat->bc_tm,stat->time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n", stat->species_bc_tm     , ratio_to_percent(stat->species_bc_tm     ,stat->bc_tm, 0.0));
