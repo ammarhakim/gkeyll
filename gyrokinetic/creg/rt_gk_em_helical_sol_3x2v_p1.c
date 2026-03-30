@@ -12,6 +12,9 @@
 
 #include <rt_arg_parse.h>
 
+// This regression test is directly inspired from the helical SOL demonstration
+// in Section 6 of Mandell et al. J. Plasma Phys. (2020), vol. 86, 905860109.
+
 // Define the context of the simulation. This is basically all the globals
 struct gk_app_ctx {
   int cdim, vdim; // Dimensionality.
