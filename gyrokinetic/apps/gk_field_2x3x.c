@@ -138,16 +138,6 @@ gk_field_twistshift_disabled(struct gkyl_bc_twistshift *up, struct gkyl_array *f
   // Do nothing
 }
 
-static void 
-gk_field_twistshift_enabled(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar){
-  gkyl_bc_twistshift_advance(up, fdo, ftar);
-}
-
-static void
-gk_field_twistshift_disabled(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar){
-  // Do nothing
-}
-
 static void
 gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
 {
@@ -159,7 +149,7 @@ gk_field_enforce_parallel_bc_enabled(const gkyl_gyrokinetic_app *app, struct gk_
     num_periodic_dir, periodic_dirs, finout); 
   
   // Update the lower z ghosts with twist-and-shift if we are in 3x2v
-   field->twistshift_func(field->bc_T_LU_lo, finout, finout);
+   field->twistshift_func(field->bc_ts_lo, finout, finout);
 
   // Sync ghost cells between MPI processes.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
@@ -179,7 +169,7 @@ gk_field_enforce_parallel_bc_em_enabled(const struct gkyl_gyrokinetic_app *app, 
     num_periodic_dir, periodic_dirs, finout); 
   
   // Update the lower z ghosts with twist-and-shift if we are in 3x2v
-  field->twistshift_func(field->bc_T_LU_lo, finout, finout);
+  field->twistshift_func(field->bc_ts_lo, finout, finout);
 
   // Sync ghost cells between MPI processes.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
