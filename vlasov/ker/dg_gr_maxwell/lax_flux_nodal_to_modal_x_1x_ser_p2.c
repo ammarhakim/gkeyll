@@ -18,7 +18,7 @@ GKYL_CU_DH double lax_flux_nodal_to_modal_x_1x_ser_p2(const double *dxv,
     flux_r_quad = &flux_r[i*1]; 
     double U_l_quad = 0.0; 
     double U_r_quad = 0.0; 
-    alpha_max = fmax(alpha_max, fabs(max_alpha_quad[0])); 
+    alpha_max = fmax(alpha_max, J_c[0]*fabs(max_alpha_quad[0])); 
     U_l_quad = 1.5811388300841895*em_no_J_l[2]+1.224744871391589*em_no_J_l[1]+0.7071067811865475*em_no_J_l[0]; 
     U_r_quad = 1.5811388300841895*em_no_J_r[2]-1.224744871391589*em_no_J_r[1]+0.7071067811865475*em_no_J_r[0]; 
     out[0+i*1] = 0.5*((flux_r_quad[0] + flux_l_quad[0]) - fabs(max_alpha_quad[0])*J_c[0]*(U_r_quad - U_l_quad)); 
