@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gkyl_gk_geometry.h>
 #include <gkyl_dg_geom.h>
 #include <gkyl_array.h>
