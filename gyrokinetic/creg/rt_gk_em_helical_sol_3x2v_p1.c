@@ -12,19 +12,16 @@
 
 #include <rt_arg_parse.h>
 
-// This regression test is directly inspired from the helical SOL demonstration
-// in Section 6 of Mandell et al. J. Plasma Phys. (2020), vol. 86, 905860109.
-
 // Define the context of the simulation. This is basically all the globals
 struct gk_app_ctx {
   int cdim, vdim; // Dimensionality.
   
   // Geometry and magnetic field.
   double B_axis;
-  double R0;
-  double a0;
-  double Rc;
-  double B0;
+  double R_axis;
+  double a_center;
+  double R_center;
+  double B_center;
   double Lp; // Poloidal length (used to get the field line pitch).
   double Lt; // Toroidal length (used to get the field line pitch).
 
@@ -167,9 +164,9 @@ double bmag(const double *xc, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double Rc = app->Rc;
-  return B0*Rc/x;
+  double B_axis = app->B_axis;
+  double R_axis = app->R_axis;
+  return B_axis * R_axis/x;
 }
 
 // Interface function calls.
@@ -194,7 +191,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   double x = xc[0], y = xc[1], z = xc[2];
 
   struct gk_app_ctx *app = ctx;
-  double Rc = app->Rc;
+  double R_center = app->R_center;
   double Lp = app->Lp;
   double Lt = app->Lt;
 
@@ -203,7 +200,8 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = x;
   double Z   = z*sin(theta);
-  double phi = (y/sin(theta) + z*cos(theta)/Rc);
+  double phi = (y/sin(theta) + z*cos(theta))/R_center;
+
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -233,17 +231,17 @@ create_ctx(void)
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
-  double R0 = 0.85;
-  double a0 = 0.5;
+  double R_axis = 0.85;
+  double a_center = 0.5; // Minor radius of the center of the domain.
+  double R_center = R_axis + a_center; // Major radius of the center of the domain.
+  double B_center = B_axis*R_axis/R_center; // Magnetic field strength at the center of the domain.
   double Lp = 2.4; // Poloidal length (used to get the field line pitch).
   double Lt = 8.0; // Toroidal length (used to get the field line pitch).
-  double Rc = R0 + a0;
-  double B0 = B_axis*R0/Rc;
 
   // Source parameters.
   double P_SOL = 8.1e5;
   double S0 = 5.7691e23*10;
-  double xSource = Rc - 0.05;
+  double xSource = R_center - 0.05;
   double lambdaSource = 0.005;
 
   // Collisions;
@@ -252,7 +250,7 @@ create_ctx(void)
   // Derived parameters.
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
   double c_s = sqrt(Te0/mi); // Sound speed.
-  double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
+  double omega_ci = fabs(qi*B_center/mi); // Ion cyclotron frequency.
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
   // Box size.
@@ -260,25 +258,25 @@ create_ctx(void)
   double Ly = 100*rho_s;
   double Lz = Lt; // [m]
 
-  double x_min = Rc - Lx/2;
-  double x_max = Rc + Lx/2;
+  double x_min = R_center - Lx/2;
+  double x_max = R_center + Lx/2;
   double y_min = -Ly/2;
   double y_max = Ly/2;
   double z_min = -Lz/2;
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 4;
-  int Ny = 4;
+  int Nx = 2;
+  int Ny = 2;
   int Nz = 4;
   int Nvpar = 4;
   int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
-  double mu_max_elc = 12*me*pow(vte,2)/(2*B0);
+  double mu_max_elc = 12*me*pow(vte,2)/(2*B_center);
   double vpar_max_ion = 4.*vti;
-  double mu_max_ion = 12*mi*pow(vti,2)/(2*B0);
+  double mu_max_ion = 12*mi*pow(vti,2)/(2*B_center);
 
   double t_end = 1.e-6; // End time, should terminate in 43 steps.
   int num_frames = 1;
@@ -291,12 +289,12 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .B_axis = B_axis,
-    .R0 = R0,
-    .a0 = a0,
+    .R_axis = R_axis,
+    .a_center = a_center,
     .Lp = Lp,
     .Lt = Lt,
-    .Rc = Rc,
-    .B0 = B0,
+    .R_center = R_center,
+    .B_center = B_center,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
