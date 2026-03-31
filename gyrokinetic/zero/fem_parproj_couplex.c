@@ -74,8 +74,8 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   sublower[0] = up->solve_range->lower[0];
   subupper[0] = up->solve_range->upper[0];
   for (int d=up->pardir; d<up->pardir+1; d++) {
-    sublower[d] = up->solve_range->lower[d];
-    subupper[d] = up->solve_range->upper[d];
+    sublower[1] = up->solve_range->lower[d];
+    subupper[1] = up->solve_range->upper[d];
   }
   gkyl_range_init(&up->fem_range, GKYL_MIN2(2,up->ndim), sublower, subupper);
 
@@ -142,6 +142,7 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
 #endif
   }
 
+//  printf(" ---- ---- --- ---- -\n");
   int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->perp_iter, &prob_range);
   while (gkyl_range_iter_next(&up->perp_iter)) {
@@ -163,11 +164,19 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
         wgt_p = gkyl_array_cfetch(weight_left_ho, linidx);
       }
 
-      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, idx1);
+      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, up->fem_iter.idx);
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+//      if (up->ndim == 2)
+//        printf("idx1=%d,%d | keri l2g=%d | globalidx=%ld,%ld,%ld,%ld",idx1[0],idx1[1],keri,up->globalidx[0],up->globalidx[1],up->globalidx[2],up->globalidx[3]);
+//      else if (up->ndim == 3)
+//        printf("idx1=%d,%d,%d | keri l2g=%d | globalidx=%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",idx1[0],idx1[1],idx1[2],keri,
+//          up->globalidx[0],up->globalidx[1],up->globalidx[2],up->globalidx[3],
+//          up->globalidx[4],up->globalidx[5],up->globalidx[6],up->globalidx[7]
+//          );
 
       // Apply the wgt*phi*basis stencil.
-      keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, idx1);
+      keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, up->fem_iter.idx);
+//      printf(" keri lhs=%d | linidx_perp=%ld\n",keri,linidx_perp);
       up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[linidx_perp]);
     }
   }
@@ -209,6 +218,7 @@ gkyl_fem_parproj_couplex_set_rhs(struct gkyl_fem_parproj_couplex* up,
   gkyl_array_clear(up->brhs, 0.0);
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
 
+//  printf(" ---- ---- --- ---- -\n");
   int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->perp_iter, &up->perp_range);
   while (gkyl_range_iter_next(&up->perp_iter)) {
@@ -224,8 +234,15 @@ gkyl_fem_parproj_couplex_set_rhs(struct gkyl_fem_parproj_couplex* up,
 
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-up->solve_range->lower[d];
 
-      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, idx1);
+      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, up->fem_iter.idx);
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+//      if (up->ndim == 2)
+//        printf("idx1=%d,%d | keri l2g=%d | globalidx=%ld,%ld,%ld,%ld",idx1[0],idx1[1],keri,up->globalidx[0],up->globalidx[1],up->globalidx[2],up->globalidx[3]);
+//      else if (up->ndim == 3)
+//        printf("idx1=%d,%d,%d | keri l2g=%d | globalidx=%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld",idx1[0],idx1[1],idx1[2],keri,
+//          up->globalidx[0],up->globalidx[1],up->globalidx[2],up->globalidx[3],
+//          up->globalidx[4],up->globalidx[5],up->globalidx[6],up->globalidx[7]
+//          );
 
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
@@ -235,7 +252,8 @@ gkyl_fem_parproj_couplex_set_rhs(struct gkyl_fem_parproj_couplex* up,
 
       long perpProbOff = linidx_perp*up->numnodes_global;
 
-      keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, idx1);
+      keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, up->fem_iter.idx);
+//      printf(" keri src=%d | linidx_perp=%ld\n",keri,linidx_perp);
       up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, perpProbOff, up->globalidx, brhs_p);
     }
   }
@@ -255,6 +273,7 @@ gkyl_fem_parproj_couplex_solve(struct gkyl_fem_parproj_couplex* up, struct gkyl_
 
   gkyl_superlu_solve(up->prob);
 
+//  printf(" ---- ---- --- ---- -\n");
   int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->perp_iter, &up->perp_range);
   while (gkyl_range_iter_next(&up->perp_iter)) {
@@ -270,16 +289,17 @@ gkyl_fem_parproj_couplex_solve(struct gkyl_fem_parproj_couplex* up, struct gkyl_
 
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-up->solve_range->lower[d];
 
-      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, idx1);
+      int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, up->fem_iter.idx);
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
+//      printf("idx1=%d,%d | keri l2g=%d | globalidx=%ld,%ld,%ld,%ld",idx1[0],idx1[1],keri,up->globalidx[0],up->globalidx[1],up->globalidx[2],up->globalidx[3]);
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
       long perpProbOff = linidx_perp*up->numnodes_global;
 
-      keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, idx1);
+//      printf(" keri sol=%d | linidx_perp=%ld\n",keri,linidx_perp);
       up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), perpProbOff, up->globalidx, phiout_p);
     }
   }
