@@ -109,7 +109,7 @@ struct gk_geom_int {
   struct gkyl_array* rtg33inv; // 1 component 1/sqrt(g_33)
   struct gkyl_array*  bioverJB; // 1 component b_i/J/|B|
   struct gkyl_array* B3; // 1 component e^3 \dot \vec{B} = 1/g_33 
-  struct gkyl_array* bimpactangle; // 1 component arcsin(1/sqrt(g_11 * g_22 * g_33))
+  struct gkyl_array* bimpactangle; // 1 component arcsin(1/sqrt(g_33 * g^33))
   
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
