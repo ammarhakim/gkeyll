@@ -416,9 +416,9 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
         bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
 
-        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+        // set bimpactangle = arcsin(1/sqrt(g_11 * g_22 * g_33))
         double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_int.bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[0] * gFld_n[3] * gFld_n[5])));
 
       }
     }
@@ -1377,9 +1377,9 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
          bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
 
-         // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+         // set bimpactangle = arcsin(1/sqrt(g_11 * g_22 * g_33))
          double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_int.bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-         bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
+         bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[0] * gFld_n[3] * gFld_n[5])));
 
       }
     }
