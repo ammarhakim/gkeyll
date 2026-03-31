@@ -537,7 +537,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(const double
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
 
-    if (phinorm > 0.05) {
+    if (phinorm > 0.05 && bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
       bc_sheath_gyrokinetic_srgrz_eval(mu_new, n, muref, alpha, gamma, phinorm, out);
 
       double vcut_const_sq = -q2Dm * (phi - phi_wall);
