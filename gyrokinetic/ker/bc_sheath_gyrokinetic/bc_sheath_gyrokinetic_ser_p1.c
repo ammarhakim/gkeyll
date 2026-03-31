@@ -2326,12 +2326,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_1x2v_ser_p1(const double *
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+    bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
     vcut_fact_n[0] = vcut_fact;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+    bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
     vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = 0.7071067811865475*(vcut_fact_n[1]+vcut_fact_n[0]); 
@@ -2353,12 +2353,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_1x2v_ser_p1(const double *
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+    bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
     vcut_fact_n[0] = vcut_fact;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+    bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
     vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = 0.7071067811865475*(vcut_fact_n[1]+vcut_fact_n[0]); 
@@ -2387,12 +2387,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1(const double *
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x)_1 
@@ -2405,12 +2405,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1(const double *
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = vcut_fact_n[1]+vcut_fact_n[0]; 
@@ -2441,12 +2441,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1(const double *
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x)_1 
@@ -2459,12 +2459,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1(const double *
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = vcut_fact_n[1]+vcut_fact_n[0]; 
@@ -2495,12 +2495,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_1 
@@ -2513,12 +2513,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_2 
@@ -2531,12 +2531,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_3 
@@ -2549,12 +2549,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = 1.4142135623730951*(vcut_fact_n[1]+vcut_fact_n[0]); 
@@ -2589,12 +2589,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_1 
@@ -2607,12 +2607,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_2 
@@ -2625,12 +2625,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   // node (x,y)_3 
@@ -2643,12 +2643,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[0] = vcut_fact;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
+      bc_sheath_gyrokinetic_srgrz_eval_fact(&mu, 1, phi_n, phi_wall_n, dens_n, temp_n, q2Dm, bmag_n, angle_n, &vcut_fact);
       vcut_fact_n[1] = vcut_fact;
 
   vcut_fact_out[0] = 1.4142135623730951*(vcut_fact_n[1]+vcut_fact_n[0]); 

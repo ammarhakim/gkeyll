@@ -77,6 +77,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   bool use_gpu; // Whether to run on GPU.
   double q2Dm; // charge-to-mass ratio times 2.
   bool use_surrogate; // Whether to use surrogate sheath BC to determine vcut.
+  bool use_surrogate_conv_check; // Whether to use the SVM classifier to check for convergence before using the surrogate.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
@@ -128,11 +129,12 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 }
 
 void 
-gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+  bool use_conv_check, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
 static sheath_surrogate_t
-bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, bool use_conv_check)
 {
   
   int dim = basis->ndim;

@@ -219,18 +219,14 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_int.bimpactangle, 
-            &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_int.bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_IWL:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_int.bimpactangle, 
-            &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_int.bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
           if (cdim == 3) {
@@ -868,12 +864,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         &gks->lower_skin[d], &gks->lower_ghost[d], gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->lower_bc[d].use_sheath_surrogate, app->use_gpu);
+        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->lower_bc[d].use_sheath_surrogate,
+        gks->lower_bc[d].use_surrogate_conv_check, app->use_gpu);
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         &gks->lower_skin_par_sol, &gks->lower_ghost_par_sol, gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->lower_bc[d].use_sheath_surrogate, app->use_gpu);
+        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->lower_bc[d].use_sheath_surrogate,
+        gks->lower_bc[d].use_surrogate_conv_check, app->use_gpu);
 
       if (cdim == 3) {
         // For 3x2v we need a twistshift BC in the core.
@@ -928,12 +926,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         &gks->upper_skin[d], &gks->upper_ghost[d], gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->upper_bc[d].use_sheath_surrogate, app->use_gpu);
+        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->upper_bc[d].use_sheath_surrogate, 
+        gks->upper_bc[d].use_surrogate_conv_check, app->use_gpu);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         &gks->upper_skin_par_sol, &gks->upper_ghost_par_sol, gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->upper_bc[d].use_sheath_surrogate, app->use_gpu);
+        cdim, 2.0*(gks->info.charge/gks->info.mass), gks->upper_bc[d].use_sheath_surrogate, 
+        gks->upper_bc[d].use_surrogate_conv_check, app->use_gpu);
 
       if (cdim == 3) {
         // For 3x2v we need a twistshift BC in the core.
