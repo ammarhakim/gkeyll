@@ -139,6 +139,7 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
   gkyl_nodal_ops_m2n(n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.bmag_nodal, gk_geom->geo_int.bmag, true);
   gkyl_nodal_ops_m2n(n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
   gkyl_nodal_ops_m2n(n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.dualcurlbhat_nodal, gk_geom->geo_int.dualcurlbhat, true);
+  gkyl_nodal_ops_m2n(n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.bimpactangle_nodal, gk_geom->geo_int.bimpactangle, true);
 
   // Populate nodal arrays for config space surface terms
   int lower[gk_geom->grid.ndim];
@@ -479,6 +480,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.B3, up->geo_int.B3, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bimpactangle, up->geo_int.bimpactangle, 1);
   // Done deflating modal
   // Deflate nodal quantities
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.jacobgeo_nodal, up->geo_int.jacobgeo_nodal, 1);
@@ -643,6 +645,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.rtg33inv);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
+  gkyl_array_release(up->geo_int.bimpactangle);
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
