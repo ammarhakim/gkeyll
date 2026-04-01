@@ -14,6 +14,11 @@
 
 #include <stdbool.h>
 
+struct gkyl_gyrokinetic_projection_moment_import {
+  enum gkyl_ic_import_type type;
+  char file_name[128];
+};
+
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -42,6 +47,13 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_temppar;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_tempperp;
+
+      // Optionally read primitive moments from files.
+      struct gkyl_gyrokinetic_projection_moment_import density_from_file;
+      struct gkyl_gyrokinetic_projection_moment_import upar_from_file;
+      struct gkyl_gyrokinetic_projection_moment_import temp_from_file;
+      struct gkyl_gyrokinetic_projection_moment_import temppar_from_file;
+      struct gkyl_gyrokinetic_projection_moment_import tempperp_from_file;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
