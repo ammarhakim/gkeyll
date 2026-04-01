@@ -836,7 +836,6 @@ struct gk_source_bgk {
   bool write_diagnostics; // Whether to write diagnostics out.
   double norm_power; // Normalized power, 2*P/(vdim_phys*m).
   struct gkyl_array *rate; // Sourcing rate.
-  struct gkyl_array *grouprate; // Group sourcing rate.
   struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
   struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
@@ -846,12 +845,10 @@ struct gk_source_bgk {
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
   double *volint_local, *volint_global; // Local and global volume integrals.
   struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
-  struct gkyl_array *M1mod, *M2mod; // Corrected source rates for external sourcing
   struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
   double coupling_time; // Coupling time for external heating model
   double damping_factor; // Damping factor used to prevent negative densities
-  double elc_core_coll_factor; // core rate is increased by this factor
-  double ion_core_coll_factor; // core rate is increased by this factor
+  double core_coll_factor; // core rate is increased by this factor
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.

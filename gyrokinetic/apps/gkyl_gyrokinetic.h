@@ -527,11 +527,9 @@ struct gkyl_gyrokinetic_field {
 struct gkyl_gyrokinetic_eirene {
   char input_data_path[128]; // Path to EIRENE data
   char output_data_path[128]; // Path to EIRENE data
-  double ion_coupling_time; // Coupling time (electrons)
-  double elc_coupling_time; // Coupling time (ions)
-  double damping_factor; // Damping Factor
-  double elc_core_coll_factor; // core rate is increased by this factor
-  double ion_core_coll_factor; // core rate is increased by this factor
+  double coupling_time[GKYL_MAX_SPECIES]; // Coupling time (electrons)
+  double damping_factor[GKYL_MAX_SPECIES]; // Damping Factor
+  double core_coll_factor[GKYL_MAX_SPECIES]; // core rate is increased by this factor
   int num_coupling_species; // number of species to couple
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
