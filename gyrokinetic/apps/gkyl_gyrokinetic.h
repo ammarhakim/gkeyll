@@ -530,6 +530,7 @@ struct gkyl_gyrokinetic_field {
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
+  struct gkyl_gyrokinetic_ic_import polarization_potential_init_from_file;
 
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
