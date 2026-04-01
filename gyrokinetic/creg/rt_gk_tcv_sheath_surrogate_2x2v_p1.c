@@ -637,8 +637,10 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .use_sheath_surrogate = true  },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, .use_sheath_surrogate = true  },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, 
+        .use_sheath_surrogate = true, .use_surrogate_conv_check = true  },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, 
+        .use_sheath_surrogate = true, .use_surrogate_conv_check = true  },
     },
 
     .num_diag_moments = 9,

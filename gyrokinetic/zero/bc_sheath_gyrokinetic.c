@@ -1,6 +1,6 @@
-#include <gkyl_bc_sheath_gyrokinetic.h>
-#include <gkyl_bc_sheath_gyrokinetic_priv.h>
-#include <gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h>
+#include "gkyl_bc_sheath_gyrokinetic.h"
+#include "gkyl_bc_sheath_gyrokinetic_priv.h"
+#include "gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h"
 #include <gkyl_alloc.h>
 #include <assert.h>
 
@@ -258,7 +258,7 @@ void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_
 void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out)
 {
-  return bc_sheath_gyrokinetic_srgrz_eval_physical_vcut_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
+  return bc_sheath_gyrokinetic_srgrz_eval_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
