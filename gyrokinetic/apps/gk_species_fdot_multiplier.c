@@ -285,6 +285,11 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
     fdmul->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
     fdmul->proj_on_basis_c2p_ctx.pos_map = app->position_map;
 
+    fdmul->time_dilation_scale_const = gks->info.time_rate_multiplier.time_dilation_scale_const;
+    if (fdmul->time_dilation_scale_const <= 0.0) {
+      fdmul->time_dilation_scale_const = 1.0;
+    }
+
     if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
 
       gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
@@ -302,7 +307,9 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
-      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
+      if (gks->collisionless.scale_fac > 0.0 && gks->collisionless.scale_fac < 1.0) {
+        fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
+      }
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_init_only;
@@ -425,7 +432,9 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
-      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
+      if (gks->collisionless.scale_fac > 0.0 && gks->collisionless.scale_fac < 1.0) {
+        fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
+      }
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
@@ -444,13 +453,9 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT)) {
 
       // Copy input parameters to struct.
-      fdmul->cfl_dt_min_value = fdot_mult_inp->cfl_dt_min_value;
-      fdmul->f_threshold = fdot_mult_inp->f_threshold;
-      fdmul->time_dilation_scale_const = fdot_mult_inp->time_dilation_scale_const;
-      if (fdmul->time_dilation_scale_const <= 0.0) {
-        fdmul->time_dilation_scale_const = 1.0;
-      }
-      fdmul->cfl_factor_times_omega_max = fdot_mult_inp->cfl_factor_times_omega_max;
+      fdmul->cfl_dt_min_value = gks->info.time_rate_multiplier.cfl_dt_min_value;
+      fdmul->f_threshold = gks->info.time_rate_multiplier.f_threshold;
+      fdmul->cfl_factor_times_omega_max = gks->info.time_rate_multiplier.cfl_factor_times_omega_max;
 
       if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
