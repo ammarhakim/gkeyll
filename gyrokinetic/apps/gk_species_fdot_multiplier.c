@@ -91,6 +91,9 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
     phi, fdmul->phi_m_global, fdmul->multiplier);
 
+  // Offset by a constant factor
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const);
+
   // Multiply cflrate by the multplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
 }
