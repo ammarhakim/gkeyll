@@ -432,6 +432,7 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
+
       if (gks->collisionless.scale_fac > 0.0 && gks->collisionless.scale_fac < 1.0) {
         fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       }
