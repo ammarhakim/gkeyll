@@ -325,7 +325,7 @@ struct gk_collisionless {
 struct gk_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
-  bool do_not_add_to_dfdt; // Whether to not add collision contribution to df/dt 
+  bool not_in_dfdt; // Whether to not add collision contribution to df/dt 
 
   struct gkyl_array *self_nu; // Self-collision frequency.
   struct gkyl_array *boundary_corrections; // LBO boundary corrections.
@@ -831,12 +831,27 @@ struct gk_source {
 struct gk_damping {
   enum gkyl_gyrokinetic_damping_type type; // Type of damping term.
   bool evolve; // Whether the source is time dependent.
+  bool is_tandem; // Whether we are doing a tandem mirror.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+  struct gkyl_array_dg_find_peaks *bmag_peak_finder; // Finds peaks in bmag along parallel direction.
+  struct gkyl_array *phi_smooth_global; // Smoothed electrostatic potential on the global grid.
+  // Per-field-line bmag_max arrays (pointers to arrays owned by bmag_peak_finder).
+  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_array *bmag_wall; // Magnetic field amplitude at the wall per field line.
+  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag_wall per field line.
+  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range_ext; // Extended range for bmag_max arrays.
+  int bmag_max_peak_idx; // Index of the LOCAL_MAX peak in the peak finder.
+  int bmag_tandem_peak_idx; // Index of the TANDEM_MIRROR peak in the peak finder.
+  struct gkyl_array *phi_at_bmag_max; // Phi evaluated at all peak locations.
+  struct gkyl_array *phi_at_bmag_tandem; // Phi evaluated at tandem mirror locations.
   struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
@@ -844,15 +859,32 @@ struct gk_damping {
 
 struct gk_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
+  int component_id; // Index of this multiplier in the chain.
   bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
+  bool is_tandem; // Whether we are doing a tandem mirror
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+
+  // Updater to find bmag peaks (mirror throat location).
+  struct gkyl_array_dg_find_peaks *bmag_peak_finder; // Finds peaks in bmag along parallel direction.
+  struct gkyl_array *phi_smooth_global; // Smoothed electrostatic potential on the global grid.
+  // Per-field-line bmag_max arrays (pointers to arrays owned by bmag_peak_finder).
+  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
+  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
+  const struct gkyl_array *bmag_wall; // Magnetic field amplitude at the wall per field line.
+  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag_wall per field line.
+  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
+  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
+  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
+  const struct gkyl_range *bmag_max_range_ext; // Extended range for bmag_max arrays.
+  int bmag_max_peak_idx; // Index of the LOCAL_MAX peak in the peak finder.
+  int bmag_tandem_peak_idx; // Index of the TANDEM_MIRROR peak in the peak finder.
+  struct gkyl_array *phi_at_bmag_max; // Phi evaluated at all peak locations.
+  struct gkyl_array *phi_at_bmag_tandem; // Phi evaluated at tandem mirror locations.
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
@@ -863,19 +895,24 @@ struct gk_fdot_multiplier {
   // Time dilation mask object.
   struct gkyl_dg_array_mask *cfl_mask; // Mask object for time dilation masking.
 
-  // Scratch arrays for time dilation computation.
+  // Scratch doubles for time dilation computation.
   double *omega_max_local_cu; // GPU scratch space for reduce operation.
   double *global_max_f; // Allreduced global maximum across all processes
   double *local_max_f; // Process specific maximum
 
+  struct gk_species *species_dt_is_set_from; // Pointer to another species which sets dt for the present species.
+
   // Functions chosen at runtime.
-  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
     struct gkyl_array *cflrate);
   void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
     struct gkyl_array *cflrate);
+  void (*advance_times_omegaH_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, double *out);
 };
 
 struct gk_heating {
@@ -1051,7 +1088,8 @@ struct gk_species {
 
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
-  struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
+  int num_fdot_mult; // Number of active df/dt multipliers in chain.
+  struct gk_fdot_multiplier fdot_mult[GKYL_MAX_FDOT_MUL]; // Functions multiplying df/dt.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -1109,6 +1147,7 @@ struct gk_species {
   double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
   double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  double *dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
   double *m0_max; // Maximum number density in this MPI process.
 };
 
@@ -2865,7 +2904,9 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
  * @param s Species object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdmul);
+void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul,
+  const struct gkyl_gyrokinetic_fdot_multiplier *fdot_mult_inp, int component_id);
 
 /**
  * Multiply the CFL rate.
@@ -2879,6 +2920,17 @@ void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk
  */
 void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
+
+/**
+ * Multiply the omegaH rate.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fdmul Species df/dt multiplier object.
+ * @param out omegaH rate to multiply.
+ */
+void gk_species_fdot_multiplier_advance_times_omegaH(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, double *out);
 
 /**
  * Multiply df/dt.
@@ -2921,7 +2973,7 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
  * @param fdot_mult_inp New input struct for the fdot_multiplier.
  */
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
 
 /** gk_anomalous_diff API */
 
