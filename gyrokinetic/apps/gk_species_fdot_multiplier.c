@@ -115,6 +115,9 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
       phi, fdmul->phi_at_bmag_max, fdmul->phi_at_bmag_max, fdmul->multiplier);
   }
 
+  // Offset by a constant factor
+  gkyl_array_scale(fdmul->multiplier, fdmul->time_dilation_scale_const);
+
   // Multiply cflrate by the multplier.
   gkyl_array_scale_by_cell(cflrate, fdmul->multiplier);
 }
