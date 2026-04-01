@@ -260,7 +260,7 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
     fdmul->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
     fdmul->proj_on_basis_c2p_ctx.pos_map = app->position_map;
 
-    fdmul->time_dilation_scale_const = gks->info.time_rate_multiplier.time_dilation_scale_const;
+    fdmul->time_dilation_scale_const = fdot_mult_inp->time_dilation_scale_const;
     if (fdmul->time_dilation_scale_const <= 0.0) {
       fdmul->time_dilation_scale_const = 1.0;
     }
@@ -394,9 +394,9 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT)) {
 
       // Copy input parameters to struct.
-      fdmul->cfl_dt_min_value = gks->info.time_rate_multiplier.cfl_dt_min_value;
-      fdmul->f_threshold = gks->info.time_rate_multiplier.f_threshold;
-      fdmul->cfl_factor_times_omega_max = gks->info.time_rate_multiplier.cfl_factor_times_omega_max;
+      fdmul->cfl_dt_min_value = fdot_mult_inp->cfl_dt_min_value;
+      fdmul->f_threshold = fdot_mult_inp->f_threshold;
+      fdmul->cfl_factor_times_omega_max = fdot_mult_inp->cfl_factor_times_omega_max;
 
       if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
