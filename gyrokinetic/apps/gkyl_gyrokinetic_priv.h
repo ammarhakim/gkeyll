@@ -737,6 +737,11 @@ struct gk_proj {
 
       struct gkyl_array *prim_moms_host; // Host-side prim_moms for initialization with proj_on_basis
       struct gkyl_array *prim_moms; // Prim_moms we pass to Maxwellian projection object (potentially on device)
+      bool dens_is_imported;
+      bool upar_is_imported;
+      bool temp_is_imported;
+      bool temppar_is_imported;
+      bool tempperp_is_imported;
 
       bool correct_all_moms; // Boolean if we are correcting all the moments.
 
