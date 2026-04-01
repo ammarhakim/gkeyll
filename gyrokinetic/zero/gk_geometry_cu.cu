@@ -47,7 +47,7 @@ gk_geometry_set_int_cu_kernel(struct gk_geometry *gk_geom,
   struct gkyl_array *dualmag_nodal, struct gkyl_array *normals_nodal, struct gkyl_array *gij_neut_nodal,
   struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd, struct gkyl_array *bcart_nodal,
   struct gkyl_array *B3_nodal, struct gkyl_array *dualcurlbhatoverB_nodal, struct gkyl_array *rtg33inv_nodal,
-  struct gkyl_array *bioverJB_nodal, struct gkyl_array *bimpactangle, struct gkyl_array *bimpactangle_nodal 
+  struct gkyl_array *bioverJB_nodal 
  )
 {
   // Expansions.
@@ -185,8 +185,7 @@ gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_in
     geo_int->dxdz_nodal->on_dev, geo_int->dzdx_nodal->on_dev, geo_int->dualmag_nodal->on_dev,
     geo_int->normals_nodal->on_dev, geo_int->gij_neut_nodal->on_dev, geo_int->b_i_nodal->on_dev,
     geo_int->b_i_nodal_fd->on_dev, geo_int->bcart_nodal->on_dev, geo_int->B3_nodal->on_dev,
-    geo_int->dualcurlbhatoverB_nodal->on_dev, geo_int->rtg33inv_nodal->on_dev, geo_int->bioverJB_nodal->on_dev,
-    geo_int->bimpactangle->on_dev, geo_int->bimpactangle_nodal->on_dev);
+    geo_int->dualcurlbhatoverB_nodal->on_dev, geo_int->rtg33inv_nodal->on_dev, geo_int->bioverJB_nodal->on_dev);
 }
 
 // Host-side wrapper for set_surf_cu_kernel
