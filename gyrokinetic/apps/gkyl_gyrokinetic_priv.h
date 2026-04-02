@@ -75,7 +75,6 @@
 #include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_mom_weighted_gyrokinetic.h>
-#include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
 #include <gkyl_prim_cross_m0deltas.h>
 #include <gkyl_prim_lbo_calc.h>

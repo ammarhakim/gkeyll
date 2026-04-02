@@ -1040,7 +1040,9 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
 
         // Set outer dt to the largest of the SSP-RK and STS dt's.
         dt_init = GKYL_MAX2(dt_ssprk, dt_sts); 
-//    printf("Init dt_ssprk=%.7e | dt_sts=%.7e\n",dt_ssprk,dt_sts);
+#ifdef GKYL_DEBUG_SUNDIALS_OP_SPLIT
+    printf("Init CFL stable dt_ssprk=%.7e | dt_sts=%.7e\n",dt_ssprk,dt_sts);
+#endif
         gkyl_sundials_set_fixed_step(gksun, dt_init);
       }
       else {
@@ -1059,6 +1061,20 @@ void
 gkyl_sundials_set_fixed_step(struct gkyl_sundials *gksun, double dt)
 {
   int flag = ARKodeSetFixedStep(gksun->arkode_mem_opsplit, dt);
+  sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
+}
+
+void
+gkyl_sundials_set_fixed_step_ssprk(struct gkyl_sundials *gksun, double dt)
+{
+  int flag = ARKodeSetFixedStep(gksun->arkode_mem_ssprk, dt);
+  sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
+}
+
+void
+gkyl_sundials_set_fixed_step_sts(struct gkyl_sundials *gksun, double dt)
+{
+  int flag = ARKodeSetFixedStep(gksun->arkode_mem_sts, dt);
   sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
 }
 

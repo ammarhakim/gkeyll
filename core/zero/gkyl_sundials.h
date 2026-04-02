@@ -10,6 +10,9 @@
 #include <gkyl_range.h>
 #include <gkyl_comm.h>
 
+// Comment out if you don't want debug prints.
+// #define GKYL_DEBUG_SUNDIALS_OP_SPLIT
+
 // Time stepping method options.
 enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_NONE          = 0,
@@ -147,6 +150,22 @@ void gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
  * @param dt Time step size.
  */
 void gkyl_sundials_set_fixed_step(struct gkyl_sundials *gksun, double dt);
+
+/**
+ * Disable adaptive time stepping and set the fixed time step for SSP-RK.
+ *
+ * @param gksun SUNDIALS object.
+ * @param dt Time step size.
+ */
+void gkyl_sundials_set_fixed_step_ssprk(struct gkyl_sundials *gksun, double dt);
+
+/**
+ * Disable adaptive time stepping and set the fixed time step for SSP-RK.
+ *
+ * @param gksun SUNDIALS object.
+ * @param dt Time step size.
+ */
+void gkyl_sundials_set_fixed_step_sts(struct gkyl_sundials *gksun, double dt);
 
 /**
  * Evolve the solution contained in a given Nvector from
