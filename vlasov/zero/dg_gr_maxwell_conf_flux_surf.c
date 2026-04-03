@@ -156,6 +156,24 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
         double *flux_r = gkyl_array_fetch(conf_flux_surf, cidx_r); 
         double *cflrate_d_r = gkyl_array_fetch(cflrate, cidx_r);
 
+        // Grab the geometry information at the right interface surface
+        if (dir == 0) {
+          lapse_d = gkyl_array_cfetch(lapse->nodal_arr_surf_x, cidx_r);
+          shift_d = gkyl_array_cfetch(shift->nodal_arr_surf_x, cidx_r);
+          h_ij_d = gkyl_array_cfetch(h_ij->nodal_arr_surf_x, cidx_r);
+          det_h_d = gkyl_array_cfetch(det_h->nodal_arr_surf_x, cidx_r);
+        } else if (dir == 1) {
+          lapse_d = gkyl_array_cfetch(lapse->nodal_arr_surf_y, cidx_r);
+          shift_d = gkyl_array_cfetch(shift->nodal_arr_surf_y, cidx_r);
+          h_ij_d = gkyl_array_cfetch(h_ij->nodal_arr_surf_y, cidx_r);
+          det_h_d = gkyl_array_cfetch(det_h->nodal_arr_surf_y, cidx_r);
+        } else {
+          lapse_d = gkyl_array_cfetch(lapse->nodal_arr_surf_z, cidx_r);
+          shift_d = gkyl_array_cfetch(shift->nodal_arr_surf_z, cidx_r);
+          h_ij_d = gkyl_array_cfetch(h_ij->nodal_arr_surf_z, cidx_r);
+          det_h_d = gkyl_array_cfetch(det_h->nodal_arr_surf_z, cidx_r);
+        }
+
         /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
           and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of the geometry */
         geom_edge = 1;
