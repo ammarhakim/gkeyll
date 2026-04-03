@@ -171,7 +171,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Set function pointers.
   f->rhs_phi_func = gk_field_rhs_phi_1x;
   if (f->is_em) {
-    f->em_rhs_func = gk_field_em_rhs_enabled;
+    f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
     f->ampere_solve = gk_field_ampere_solve_1x_enabled;
   } else {
     f->em_rhs_func = gk_field_em_rhs_none;

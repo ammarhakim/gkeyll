@@ -393,7 +393,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
   if (f->is_em) {
     assert(f->info.mu0 > 0.0);
-    f->step_apar = gk_field_step_apar_enabled;
+    f->step_apar = f->info.is_apar_static ? gk_field_step_apar_disabled : gk_field_step_apar_enabled;
     f->em_combine_func = gk_field_combine_enabled;
     f->em_copy_func = gk_field_copy_range_enabled;
   } else {

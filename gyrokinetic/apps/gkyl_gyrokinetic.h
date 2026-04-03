@@ -476,6 +476,7 @@ struct gkyl_gyrokinetic_neut_species {
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   bool is_static; // =true field does not change in time.
+  bool is_apar_static; // =true Apar at initial time is used for all time steps.
   bool zero_init_field; // =true doesn't compute the initial field.
 
   double polarization_bmag; 
