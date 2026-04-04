@@ -118,6 +118,12 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  
+  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  for (int i = 0; i < species->num_fdot_mult; ++i) {
+    gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult[i],
+      &species->dt_omegaH);
+  }
 
   // Multiply CFL rate by the df/dt multiplier.
   for (int i = 0; i < species->num_fdot_mult; ++i) {
@@ -139,13 +145,6 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
 
   double dt_out = app->cfl/omega_cfl_ho[0];
-  
-  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
-
-  for (int i = 0; i < species->num_fdot_mult; ++i) {
-    gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult[i],
-      &species->dt_omegaH);
-  }
   
   dt_out = fmin(dt_out, species->dt_omegaH);
 
