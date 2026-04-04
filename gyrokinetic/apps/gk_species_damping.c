@@ -1,12 +1,10 @@
 #include <assert.h>
 #include <gkyl_alloc.h>
-#include <gkyl_array_dg_find_peaks.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 // Damping state synchronization helpers.
 
 void
-
 gk_species_damping_set_fbar_to_f_enabled(const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *f)
 {
@@ -52,7 +50,6 @@ gk_species_damping_write_rate_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
   };
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
-
   // Update app basic metadata with time/frame.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
@@ -134,7 +131,6 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *g
   gks->damping.write_rate_func(app, gks, tm, frame);
 
   gks->damping.write_fbar_func(app, gks, tm, frame);
-
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -356,7 +352,6 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 {
   damp->type = gks->info.damping.type;
   damp->evolve = false; // Whether the rate is time dependent.
-  damp->is_tandem = false; // Default to single mirror.
   damp->write_rate = gks->info.damping.write_rate;
   damp->write_fbar = gks->info.damping.write_fbar;
   const double rate_const = gks->info.damping.rate_const;
@@ -375,18 +370,14 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   damp->combine_func = gk_species_damping_combine_disabled;
   damp->copy_func = gk_species_damping_copy_range_disabled;
 
-  damp->proj_on_basis_c2p_ctx.cdim = app->cdim;
-  damp->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
-  damp->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-  damp->proj_on_basis_c2p_ctx.pos_map = app->position_map;
-
-  if (!damp->type)
+  if (!damp->type) {
     return;
+  }
 
   if (damp->write_rate)
     damp->write_rate_func = gk_species_damping_write_rate_enabled;
 
-  // Damping rate is hardwired cellwise-constant (p0).
+  // Allocate rate array.
   damp->rate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
   damp->rate_host = damp->rate;
   if (app->use_gpu)
@@ -430,7 +421,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     }
 
     // Initialize fbar from the projection of the initial distribution
-    // (will be set from the initial f in the main app loop).
+    // (will be set from the initial f in the main app loop)
     gkyl_array_clear(damp->fbar, 0.0);
 
     damp->advance_func = gk_species_damping_advance_low_pass_filter;
@@ -455,9 +446,8 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
 {
   if (damp->type) {
     gkyl_array_release(damp->rate);
-    if (app->use_gpu) {
+    if (app->use_gpu)
       gkyl_array_release(damp->rate_host);
-    }
 
     if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
       // Nothing to release.
