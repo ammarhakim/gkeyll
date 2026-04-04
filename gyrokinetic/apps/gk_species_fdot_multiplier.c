@@ -83,7 +83,7 @@ gk_species_fdot_multiplier_advance_omegaH_mult(gkyl_gyrokinetic_app *app,
   struct gk_fdot_multiplier *fdmul, double *out)
 {
   // Multiply out by the multplier.
-  out[0] = out[0] / gks->collisionless.scale_fac;
+  out[0] = out[0] / gks->collisionless.scale_fac / fdmul->time_dilation_scale_const;
 }
 
 void
