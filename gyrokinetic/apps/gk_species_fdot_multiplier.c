@@ -307,9 +307,7 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
-      if (gks->collisionless.scale_fac > 0.0 && gks->collisionless.scale_fac < 1.0) {
-        fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
-      }
+      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_init_only;
@@ -432,10 +430,7 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
-
-      if (gks->collisionless.scale_fac > 0.0 && gks->collisionless.scale_fac < 1.0) {
-        fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
-      }
+      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
@@ -536,7 +531,8 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT) {
         gkyl_array_clear(fdmul->multiplier, fdmul->time_dilation_scale_const);
       }
-
+      
+      fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
       fdmul->advance_times_rate_func = gk_species_fdot_multiplier_advance_mult;
       if (fdmul->write_diagnostics) {
         fdmul->write_func = gk_species_fdot_multiplier_write_enabled;
