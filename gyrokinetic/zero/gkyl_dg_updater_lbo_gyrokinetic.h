@@ -28,7 +28,6 @@ struct gkyl_dg_updater_lbo_gyrokinetic_tm {
  * @param drag_inp Input struct to gyrokinetic drag operator (see gkyl_dg_lbo_gyrokinetic_drag.h) 
  * @param diff_inp Input struct to gyrokinetic diffusion operator (see gkyl_dg_lbo_gyrokinetic_diff.h) 
  * @param mass Species mass.
- * @param skip_cell_threshold Threshold for skipping cells
  * @param gk_geom Gyrokinetic geometry object.
  * @param vel_map Velocity space mapping object.
  * @param use_gpu Bool for whether updater is on host or device
@@ -37,8 +36,8 @@ struct gkyl_dg_updater_lbo_gyrokinetic_tm {
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
-  double mass, double skip_cell_threshold, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
   bool use_gpu);
 
 /**

@@ -83,9 +83,25 @@ GKYL_CU_DH void ambi_bolt_potential_phi_calc_1x_ser_p2(double q_e, double T_e, c
   // phi: electrostatic potential in domain volume.
 
   double phi_qp[3];
-  phi_qp[0] = -((1.0*log(-((3.0*m0Ion[1])/(2.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0]))+(1.4142135623730951*m0Ion[2])/(1.4142135623730951*sheathvals[2]-2.1213203435596424*sheathvals[1]+1.5811388300841895*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]-1.3416407864998738*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]-0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
-  phi_qp[1] = -((1.0*log(m0Ion[0]/(sheathvals[0]-1.118033988749895*sheathvals[2])-(2.23606797749979*m0Ion[2])/(2.0*sheathvals[0]-2.23606797749979*sheathvals[2]))*T_e)/q_e)-0.7905694150420947*sheathvals[5]+0.7071067811865475*sheathvals[3]; 
-  phi_qp[2] = -((1.0*log((3.0*m0Ion[1])/(2.0*sheathvals[2]+3.0*sheathvals[1]+2.23606797749979*sheathvals[0])+(1.4142135623730951*m0Ion[2])/(1.4142135623730951*sheathvals[2]+2.1213203435596424*sheathvals[1]+1.5811388300841895*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]+1.3416407864998738*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]+0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
+  double m0IonS_curr;
+  m0IonS_curr = 0.6324555320336759*sheathvals[2]-0.9486832980505137*sheathvals[1]+0.7071067811865475*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[0] = -((1.0*T_e*log(fmax(0.6324555320336759*m0Ion[2]-0.9486832980505137*m0Ion[1]+0.7071067811865475*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)+0.6324555320336759*sheathvals[5]-0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3];
+  } else {
+    phi_qp[0] = 0.0;
+  }
+  m0IonS_curr = 0.7071067811865475*sheathvals[0]-0.7905694150420947*sheathvals[2];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[1] = -((1.0*T_e*log(fmax(0.7071067811865475*m0Ion[0]-0.7905694150420947*m0Ion[2],m0IonS_curr)/m0IonS_curr))/q_e)-0.7905694150420947*sheathvals[5]+0.7071067811865475*sheathvals[3];
+  } else {
+    phi_qp[1] = 0.0;
+  }
+  m0IonS_curr = 0.6324555320336759*sheathvals[2]+0.9486832980505137*sheathvals[1]+0.7071067811865475*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[2] = -((1.0*T_e*log(fmax(0.6324555320336759*m0Ion[2]+0.9486832980505137*m0Ion[1]+0.7071067811865475*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)+0.6324555320336759*sheathvals[5]+0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3];
+  } else {
+    phi_qp[2] = 0.0;
+  }
 
   phi[0] = 0.39283710065919303*phi_qp[2]+0.6285393610547091*phi_qp[1]+0.39283710065919303*phi_qp[0]; 
   phi[1] = 0.5270462766947298*phi_qp[2]-0.5270462766947298*phi_qp[0]; 

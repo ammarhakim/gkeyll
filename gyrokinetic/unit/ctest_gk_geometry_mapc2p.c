@@ -321,6 +321,7 @@ test_3x_p1()
   gkyl_nodal_ops_release(n2m);
   gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 }
 
 void

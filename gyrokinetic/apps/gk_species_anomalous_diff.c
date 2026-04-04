@@ -72,7 +72,7 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_ho, fileNm);
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   gkyl_array_release(arr_ho);
 }
 
@@ -150,7 +150,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     // Create solver.
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type, gks->info.skip_cell_threshold,
+      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type,
       gkad->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {

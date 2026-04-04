@@ -334,7 +334,7 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   }
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->f_host, fileNm);
     
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
@@ -372,7 +372,7 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
     gks->cflrate_ho, fileNm);
 
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
@@ -399,12 +399,8 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     gk_species_moment_calc(&gks->moms[m], gks->local, app->local, gks->f);
     app->stat.n_mom += 1;
     
-    // Rescale moment by inverse of Jacobian. 
-    // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
-    // the density (the 0th component).
-    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->basis, 
-      0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
-      app->gk_geom->geo_int.jacobgeo, &app->local);  
+    // Rescale moment by inverse of Jacobian if necessary. 
+    gk_species_moment_diag_jacobgeo_div(app, &gks->moms[m], gks->moms[m].marr, gks->moms[m].marr);
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wtm);
       
     struct timespec wst = gkyl_wall_clock();
@@ -424,7 +420,7 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 
   app->stat.n_diag += 1;
 }
@@ -1393,7 +1389,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
-
+  
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
   gks->num_periodic_dir = app->num_periodic_dir;

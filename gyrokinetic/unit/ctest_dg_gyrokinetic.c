@@ -110,7 +110,7 @@ test_dg_gyrokinetic()
     phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
   struct gkyl_dg_eqn* eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, 
-    charge, mass, -1, 0, gk_geom, gvm, false);
+    charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK( eqn->num_equations == 1 );
 
@@ -123,6 +123,7 @@ test_dg_gyrokinetic()
   TEST_CHECK( gyrokinetic->conf_range.volume == 512 );
 
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
   gkyl_position_map_release(pmap);
   gkyl_dg_eqn_release(eqn);

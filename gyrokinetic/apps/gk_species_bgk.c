@@ -15,7 +15,7 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Compute Maxwellian moments (J*n, u_par, T/m).
+  // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
@@ -184,7 +184,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 

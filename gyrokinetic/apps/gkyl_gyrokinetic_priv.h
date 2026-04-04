@@ -165,6 +165,8 @@ struct gk_species_moment {
   void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
     const struct gkyl_range conf_rng, const struct gkyl_array *fin);
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
+  void (*diag_jacobgeo_div_func)(const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm,
+    struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 };
 
 // Forward declare species struct.
@@ -279,6 +281,7 @@ struct gk_collisionless {
     // Charged (gyrokinetic) species ............................................ //
     struct {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
@@ -936,6 +939,7 @@ struct gk_species {
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
+
   struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for time independent BCs.
 
@@ -1280,7 +1284,7 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
+  struct gkyl_bc_twistshift *bc_ts_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
   
@@ -1409,14 +1413,6 @@ gk_fetch_bc_with_dir_edge(struct gkyl_gyrokinetic_bc *bc_list, int num_bcs,
 }
 
 /**
- * Free memory for array metadata object.
- *
- * @param mt Array metadata object.
- */
-void
-gk_array_meta_release(struct gkyl_msgpack_data *mt);
-
-/**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
  * geometry. This method needs to be complemented by
  * gkyl_gyrokinetic_app_new_solver below.
@@ -1540,6 +1536,19 @@ void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 void gk_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
+
+/**
+ * Divide the moment by the configuration-space Jacobian for diagnostic
+ * purposes. Not all components of the diagnostic moment are divided, depending
+ * on the type.
+ * 
+ * @param app Gyrokinetic app object.
+ * @param sm Species moment object.
+ * @param Jmom_in Moment(s) to be divided by J.
+ * @param mom_out Array in which to place the output.
+ */
+void gk_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out);
 
 /**
  * Release species moment object.
