@@ -718,67 +718,67 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p1_inx_nonperiodicx_i
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]; 
+    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]; 
 
   }  else {
-    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]; 
 
   }
 
-    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+1; 
+    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2; 
 
   }  else {
-    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+1; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2; 
 
   }  else {
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2; 
 
   }
 
    if ((idx_curr[0]+1==num_cells[0]-1) && (idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+6; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+4; 
 
   }  else if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+6; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+4; 
 
   }  else if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2; 
 
   }  else {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+3; 
 
   }  else {
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+3; 
 
   }
 
    if ((idx_curr[0]+1==num_cells[0]-1) && (idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+8; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+6; 
 
   }  else if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+8; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+6; 
 
   }  else if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+5; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+3; 
 
   }  else {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+5; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+3; 
 
   }
 
@@ -791,139 +791,139 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p2_inx_nonperiodicx_i
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]; 
+    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]; 
 
-    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+1; 
+    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]; 
 
   }  else {
-    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]; 
 
   }
 
-    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+2; 
+    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+2; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+3; 
 
   }  else {
-    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+2; 
 
   }
 
-    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+3; 
+    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+3; 
 
-    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+4; 
+    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+4; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5; 
 
   }  else {
-    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+3; 
 
   }
 
-    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+13; 
+    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+8; 
 
   }  else {
-    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5; 
 
   }
 
-    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+6; 
+    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+6; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+10; 
 
   }  else {
-    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+6; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+7; 
 
   }  else {
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+7; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+8; 
 
   }  else {
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+8; 
 
   }
 
    if ((idx_curr[0]+1==num_cells[0]-1) && (idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+17; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+12; 
 
   }  else if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+17; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+12; 
 
   }  else if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+12; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+7; 
 
   }  else {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+12; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+7; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+9; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+9; 
 
   }  else {
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+9; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+9; 
 
   }
 
    if ((idx_curr[0]+1==num_cells[0]-1) && (idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+20; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+15; 
 
   }  else if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+20; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+15; 
 
   }  else if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+14; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+9; 
 
   }  else {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+14; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+9; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+10; 
 
   }  else {
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+10; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+11; 
 
   }  else {
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+11; 
 
   }
 
    if ((idx_curr[0]+1==num_cells[0]-1) && (idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+22; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+17; 
 
   }  else if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+22; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+17; 
 
   }  else if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+10; 
 
   }  else {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+10; 
 
   }
 
@@ -1154,43 +1154,43 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p1_upx_nonperiodicx_i
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]; 
+    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]; 
 
-    globalIdxs[1] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+1; 
+    globalIdxs[1] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+1; 
 
-    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2; 
 
-    globalIdxs[3] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[3] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+3; 
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+4; 
 
   }  else {
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+4; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+5; 
+    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+5; 
 
   }  else {
-    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+5; 
+    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+5; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+6; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+6; 
 
   }  else {
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+6; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+6; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+7; 
+    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+7; 
 
   }  else {
-    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+7; 
+    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+7; 
 
   }
 
@@ -1203,91 +1203,91 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p2_upx_nonperiodicx_i
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]; 
+    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]; 
 
-    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+1; 
+    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+1; 
 
-    globalIdxs[2] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+2; 
+    globalIdxs[2] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+2; 
 
-    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+3; 
+    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+3; 
 
-    globalIdxs[4] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+4; 
+    globalIdxs[4] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+4; 
 
-    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5; 
 
-    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+6; 
+    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+6; 
 
-    globalIdxs[7] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[7] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+7; 
 
-    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+8; 
 
-    globalIdxs[9] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+9; 
+    globalIdxs[9] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+9; 
 
-    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+10; 
 
-    globalIdxs[11] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[11] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+11; 
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+12; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+12; 
 
   }  else {
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+12; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+12; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+13; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+13; 
 
   }  else {
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+13; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+13; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+14; 
+    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+14; 
 
   }  else {
-    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+14; 
+    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+14; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+15; 
 
   }  else {
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+15; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+16; 
+    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+16; 
 
   }  else {
-    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+16; 
+    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+16; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+17; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+17; 
 
   }  else {
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+17; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+17; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+18; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+18; 
 
   }  else {
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+18; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+18; 
 
   }
 
    if ((idx_curr[2]+1==num_cells[2]-1)) {
-    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+19; 
+    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+19; 
 
   }  else {
-    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+19; 
+    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+19; 
 
   }
 
@@ -1446,43 +1446,43 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p1_inx_nonperiodicx_u
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]; 
+    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]; 
 
   }  else {
-    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[1] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]; 
 
   }
 
-    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+1; 
+    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+4; 
+    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+4*idx_curr[2]+2; 
 
   }  else {
-    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[3] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[2]+1; 
 
   }
 
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[0]+2; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]; 
 
   }  else {
-    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[0]+2; 
+    globalIdxs[5] = (2*idx_curr[0]+2)*num_cells[2]; 
 
   }
 
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]+1; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[0]+4; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2; 
 
   }  else {
-    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+2*idx_curr[0]+3; 
+    globalIdxs[7] = (2*idx_curr[0]+2)*num_cells[2]+1; 
 
   }
 
@@ -1495,91 +1495,91 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p2_inx_nonperiodicx_u
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]; 
+    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]; 
 
-    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+1; 
+    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]; 
 
   }  else {
-    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[2] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]; 
 
   }
 
-    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+2; 
+    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+2; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+3; 
 
   }  else {
-    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[4] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+2; 
 
   }
 
-    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+3; 
+    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+3; 
 
-    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+4; 
+    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+4; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5; 
 
   }  else {
-    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[7] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+3; 
 
   }
 
-    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+13; 
+    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+8; 
 
   }  else {
-    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[9] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5; 
 
   }
 
-    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+6; 
+    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+7*idx_curr[2]+6; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+15; 
+    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+12*idx_curr[2]+10; 
 
   }  else {
-    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[11] = (7*idx_curr[0]+7)*num_cells[2]+7*idx_curr[2]+6; 
 
   }
 
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]; 
 
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+1; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+1; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+5; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]; 
 
   }  else {
-    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+5; 
+    globalIdxs[14] = (7*idx_curr[0]+7)*num_cells[2]; 
 
   }
 
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+2; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+2; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+8; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+3; 
 
   }  else {
-    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+7; 
+    globalIdxs[16] = (7*idx_curr[0]+7)*num_cells[2]+2; 
 
   }
 
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+3; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+3; 
 
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+4; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+4; 
 
    if ((idx_curr[0]+1==num_cells[0]-1)) {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+10; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+5; 
 
   }  else {
-    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+5*idx_curr[0]+8; 
+    globalIdxs[19] = (7*idx_curr[0]+7)*num_cells[2]+3; 
 
   }
 
@@ -1738,21 +1738,21 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p1_upx_nonperiodicx_u
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]; 
+    globalIdxs[0] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]; 
 
-    globalIdxs[1] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+1; 
+    globalIdxs[1] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+1; 
 
-    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+2; 
+    globalIdxs[2] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2; 
 
-    globalIdxs[3] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+2*idx_curr[0]+3; 
+    globalIdxs[3] = 2*idx_curr[0]*num_cells[2]+4*idx_curr[2]+3; 
 
-    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]; 
+    globalIdxs[4] = 2*idx_curr[0]*num_cells[2]; 
 
-    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]+1; 
+    globalIdxs[5] = 2*idx_curr[0]*num_cells[2]+1; 
 
-    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]+2; 
+    globalIdxs[6] = 2*idx_curr[0]*num_cells[2]+2; 
 
-    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+2*idx_curr[0]+3; 
+    globalIdxs[7] = 2*idx_curr[0]*num_cells[2]+3; 
 
 
 }
@@ -1763,45 +1763,45 @@ GKYL_CU_DH void fem_parproj_couplex_local_to_global_3x_ser_p2_upx_nonperiodicx_u
   // idx_curr:   index of current cell in each direction.
   // globalIdxs: global linear index of each basis function/node in current cell.
 
-    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]; 
+    globalIdxs[0] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]; 
 
-    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+1; 
+    globalIdxs[1] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+1; 
 
-    globalIdxs[2] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+2; 
+    globalIdxs[2] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+2; 
 
-    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+3; 
+    globalIdxs[3] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+3; 
 
-    globalIdxs[4] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+4; 
+    globalIdxs[4] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+4; 
 
-    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+5; 
+    globalIdxs[5] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5; 
 
-    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+6; 
+    globalIdxs[6] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+6; 
 
-    globalIdxs[7] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+7; 
+    globalIdxs[7] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+7; 
 
-    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+8; 
+    globalIdxs[8] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+8; 
 
-    globalIdxs[9] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+9; 
+    globalIdxs[9] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+9; 
 
-    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+10; 
+    globalIdxs[10] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+10; 
 
-    globalIdxs[11] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+5*idx_curr[0]+11; 
+    globalIdxs[11] = 7*idx_curr[0]*num_cells[2]+12*idx_curr[2]+11; 
 
-    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]; 
+    globalIdxs[12] = 7*idx_curr[0]*num_cells[2]; 
 
-    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+1; 
+    globalIdxs[13] = 7*idx_curr[0]*num_cells[2]+1; 
 
-    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+2; 
+    globalIdxs[14] = 7*idx_curr[0]*num_cells[2]+2; 
 
-    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+3; 
+    globalIdxs[15] = 7*idx_curr[0]*num_cells[2]+3; 
 
-    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+4; 
+    globalIdxs[16] = 7*idx_curr[0]*num_cells[2]+4; 
 
-    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+5; 
+    globalIdxs[17] = 7*idx_curr[0]*num_cells[2]+5; 
 
-    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+6; 
+    globalIdxs[18] = 7*idx_curr[0]*num_cells[2]+6; 
 
-    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+5*idx_curr[0]+7; 
+    globalIdxs[19] = 7*idx_curr[0]*num_cells[2]+7; 
 
 
 }
