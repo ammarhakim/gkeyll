@@ -19,7 +19,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   // Compute the time rate of change of the distributions, df/dt.
-  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
+  gyrokinetic_rhs(app, tcurr, dt, fin, fbar_in, fout, bflux_out, fin_neut, fout_neut,
+    bflux_out_neut, st);
 
   struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.

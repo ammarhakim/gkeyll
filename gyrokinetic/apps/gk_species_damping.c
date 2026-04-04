@@ -191,7 +191,8 @@ gk_species_damping_project_phase_rate(const struct gkyl_gyrokinetic_app *app,
 void
 gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
 }
@@ -199,7 +200,8 @@ gk_species_damping_advance_disabled(gkyl_gyrokinetic_app *app, const struct gk_s
 void
 gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   gkyl_array_set(f_buffer, 1.0, fin);
@@ -213,7 +215,8 @@ gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk
 void
 gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Find the potential at the mirror throat.
@@ -238,16 +241,10 @@ gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_
 void
 gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  // Match fbar state to the RK stage of fin.
-  const struct gkyl_array *fbar_in = damp->fbar;
-  if (fin == gks->f1)
-    fbar_in = damp->fbar1;
-  else if (fin == gks->fnew)
-    fbar_in = damp->fbarnew;
-
   // Compute f - fbar, where fbar is stored as a cellwise-constant p0 field.
   gkyl_array_set(f_buffer, 1.0, fin); // f_buffer = fin
   gkyl_array_accumulate_offset(f_buffer, -1.0, fbar_in, 0); // f_buffer = fin - fbar
@@ -262,12 +259,13 @@ gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const stru
 void
 gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  damp->advance_func(app, gks, damp, phi, fin, f_buffer, rhs, cflrate);
+  damp->advance_func(app, gks, damp, phi, fin, fbar_in, f_buffer, rhs, cflrate);
 
   app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
 }
