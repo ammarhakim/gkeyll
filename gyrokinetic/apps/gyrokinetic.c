@@ -3073,6 +3073,14 @@ gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double 
 }
 
 void
+gkyl_gyrokinetic_app_reset_species_damping(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_damping damping_inp)
+{
+  struct gk_species *gks = gk_find_species(app, species_name);
+  gk_species_damping_reset(app, tm, gks, &gks->damping, damping_inp);
+}
+
+void
 gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
   struct gkyl_gyrokinetic_field field_inp)
 {
