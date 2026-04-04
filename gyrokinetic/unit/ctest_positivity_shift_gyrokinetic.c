@@ -56,6 +56,12 @@ void eval_bfield_1x(double t, const double *xn, double* restrict fout, void *ctx
   fout[2] = B0;
 }
 
+void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  struct test_ctx *tctx = ctx;
+  fout[0] = tctx->B0;
+}
+
 void eval_distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
@@ -150,7 +156,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     bmag_ho = mkarr(false, bmag->ncomp, bmag->size);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
+    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 

@@ -21,9 +21,7 @@ jobs:
 
       - name: install-superlu
         run: |
-          cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
-          chmod +x .github/workflows/make-module.sh
-          chmod +x .github/workflows/make-check.sh
+          cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..
 
       # Core module
       - name: Build core-unit
