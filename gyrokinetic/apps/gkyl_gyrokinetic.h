@@ -339,6 +339,7 @@ enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
   GKYL_GK_DAMPING_LOSS_CONE,
+  GKYL_GK_DAMPING_LOW_PASS_FILTER,
 };
 
 struct gkyl_gyrokinetic_damping {
@@ -349,9 +350,17 @@ struct gkyl_gyrokinetic_damping {
   //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
   //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
   enum gkyl_gyrokinetic_damping_type type;
+  // Optional constant damping factor.
+  // Semantics:
+  //  - if rate_profile is NULL: use rate_const as the full rate profile.
+  //  - if rate_profile is provided: effective rate is rate_const*rate_profile,
+  //    where rate_const defaults to 1.0 when left as 0.0.
+  double rate_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
+  bool write_rate; // Whether to write damping-rate diagnostics.
+  bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
 };
 
 // Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
