@@ -355,6 +355,7 @@ struct gkyl_gyrokinetic_damping {
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
   bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
+  bool cellwise_const; // For low-pass filter damping, whether fbar uses a single value per cell.
 };
 
 // Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
