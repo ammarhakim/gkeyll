@@ -1348,6 +1348,18 @@ void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, do
   const char *species_name, struct gkyl_gyrokinetic_positivity pos_inp);
 
 /**
+ * Reset the damping for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param damping_inp Input parameters for damping terms.
+ */
+void
+gkyl_gyrokinetic_app_reset_species_damping(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_damping damping_inp);
+
+/**
  * Reset the field solver.
  *
  * @param app App object.
