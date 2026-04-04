@@ -1,6 +1,6 @@
 #include <gkyl_dg_gr_maxwell_kernels.h> 
 GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_tensor_p1(const double *w, const double *dxv, 
-      const int geom_edge, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
+      const int theta_pole, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
       const double *J_c, const double *field_no_J_con_l, const double *field_no_J_con_r, 
       double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT max_alpha_quad) 
 { 
@@ -75,6 +75,26 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_tensor_p1(const double *w, const d
   By_con_l_n[3] = 0.6123724356957944*By_l[7]+0.6123724356957944*By_l[6]+0.6123724356957944*By_l[5]+0.3535533905932737*By_l[4]+0.6123724356957944*By_l[3]+0.3535533905932737*By_l[2]+0.3535533905932737*By_l[1]+0.3535533905932737*By_l[0];
   Bz_con_l_n[3] = 0.6123724356957944*Bz_l[7]+0.6123724356957944*Bz_l[6]+0.6123724356957944*Bz_l[5]+0.3535533905932737*Bz_l[4]+0.6123724356957944*Bz_l[3]+0.3535533905932737*Bz_l[2]+0.3535533905932737*Bz_l[1]+0.3535533905932737*Bz_l[0];
   
+  // If at a theta pole, zero out B^(theta, phi), abd B^(theta, phi) 
+  if ( theta_pole ) { 
+    Dy_con_l_n[0] = 0.0;
+    By_con_l_n[0] = 0.0;
+    Dz_con_l_n[0] = 0.0;
+    Bz_con_l_n[0] = 0.0;
+    Dy_con_l_n[1] = 0.0;
+    By_con_l_n[1] = 0.0;
+    Dz_con_l_n[1] = 0.0;
+    Bz_con_l_n[1] = 0.0;
+    Dy_con_l_n[2] = 0.0;
+    By_con_l_n[2] = 0.0;
+    Dz_con_l_n[2] = 0.0;
+    Bz_con_l_n[2] = 0.0;
+    Dy_con_l_n[3] = 0.0;
+    By_con_l_n[3] = 0.0;
+    Dz_con_l_n[3] = 0.0;
+    Bz_con_l_n[3] = 0.0;
+  } 
+  
   for (int i=0; i<4; ++i) {
     Hx_l_n[i] = lapse_nodal[i]*( h_xx_nodal[i]*Bx_con_l_n[i] + h_xy_nodal[i]*By_con_l_n[i] + h_xz_nodal[i]*Bz_con_l_n[i] ) - J_c[i]*( shift_nodal_y[i]*Dz_con_l_n[i] - shift_nodal_z[i]*Dy_con_l_n[i]); 
     Hy_l_n[i] = lapse_nodal[i]*( h_xy_nodal[i]*Bx_con_l_n[i] + h_yy_nodal[i]*By_con_l_n[i] + h_yz_nodal[i]*Bz_con_l_n[i] ) - J_c[i]*( - shift_nodal_x[i]*Dz_con_l_n[i] + shift_nodal_z[i]*Dx_con_l_n[i]); 
@@ -118,6 +138,26 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_tensor_p1(const double *w, const d
   Bx_con_r_n[3] = -(0.6123724356957944*Bx_r[7])-0.6123724356957944*Bx_r[6]-0.6123724356957944*Bx_r[5]+0.3535533905932737*Bx_r[4]-0.6123724356957944*Bx_r[3]+0.3535533905932737*Bx_r[2]+0.3535533905932737*Bx_r[1]+0.3535533905932737*Bx_r[0];
   By_con_r_n[3] = -(0.6123724356957944*By_r[7])-0.6123724356957944*By_r[6]-0.6123724356957944*By_r[5]+0.3535533905932737*By_r[4]-0.6123724356957944*By_r[3]+0.3535533905932737*By_r[2]+0.3535533905932737*By_r[1]+0.3535533905932737*By_r[0];
   Bz_con_r_n[3] = -(0.6123724356957944*Bz_r[7])-0.6123724356957944*Bz_r[6]-0.6123724356957944*Bz_r[5]+0.3535533905932737*Bz_r[4]-0.6123724356957944*Bz_r[3]+0.3535533905932737*Bz_r[2]+0.3535533905932737*Bz_r[1]+0.3535533905932737*Bz_r[0];
+  
+  // If at a theta pole, zero out B^(theta, phi), abd B^(theta, phi) 
+  if ( theta_pole ) { 
+    Dy_con_r_n[0] = 0.0;
+    By_con_r_n[0] = 0.0;
+    Dz_con_r_n[0] = 0.0;
+    Bz_con_r_n[0] = 0.0;
+    Dy_con_r_n[1] = 0.0;
+    By_con_r_n[1] = 0.0;
+    Dz_con_r_n[1] = 0.0;
+    Bz_con_r_n[1] = 0.0;
+    Dy_con_r_n[2] = 0.0;
+    By_con_r_n[2] = 0.0;
+    Dz_con_r_n[2] = 0.0;
+    Bz_con_r_n[2] = 0.0;
+    Dy_con_r_n[3] = 0.0;
+    By_con_r_n[3] = 0.0;
+    Dz_con_r_n[3] = 0.0;
+    Bz_con_r_n[3] = 0.0;
+  } 
   
   for (int i=0; i<4; ++i) {
     Hx_r_n[i] = lapse_nodal[i]*( h_xx_nodal[i]*Bx_con_r_n[i] + h_xy_nodal[i]*By_con_r_n[i] + h_xz_nodal[i]*Bz_con_r_n[i] ) - J_c[i]*( shift_nodal_y[i]*Dz_con_r_n[i] - shift_nodal_z[i]*Dy_con_r_n[i]); 
