@@ -803,6 +803,7 @@ struct gk_damping {
   bool evolve; // Whether the source is time dependent.
   bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // Whether to write low-pass-filter fbar diagnostics.
+  bool cellwise_const; // Whether low-pass-filter fbar is stored as one value per cell.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
   // Low-pass filter variables

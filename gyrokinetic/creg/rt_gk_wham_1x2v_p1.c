@@ -613,8 +613,9 @@ int main(int argc, char **argv)
       .rate_const = 1e-6,
       .write_rate = true,
       .write_fbar = true,
+      .cellwise_const = true,
     },
-
+    
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
