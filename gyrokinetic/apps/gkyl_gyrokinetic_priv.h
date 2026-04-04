@@ -805,11 +805,6 @@ struct gk_damping {
   bool write_fbar; // Whether to write low-pass-filter fbar diagnostics.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
-  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
-  struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
   // Low-pass filter variables
   struct gkyl_array *fbar; // Filtered/averaged distribution function.
   struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.

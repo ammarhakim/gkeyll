@@ -1,8 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_loss_cone_mask_gyrokinetic.h>
 #include <gkyl_alloc.h>
-#include <gkyl_dg_basis_ops.h>
 
 // Damping state synchronization helpers.
 
@@ -213,32 +211,6 @@ gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk
 }
 
 void
-gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *f_buffer,
-  struct gkyl_array *rhs, struct gkyl_array *cflrate)
-{
-  // Find the potential at the mirror throat.
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord,
-    app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
-
-  // Project the loss cone mask.
-  gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-    phi, damp->phi_m_global, damp->rate);
-
-  // Assemble the damping term -scale_prof * mask * f.
-  gkyl_array_set(f_buffer, 1.0, fin);
-  gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-  gkyl_array_scale_by_cell(f_buffer, damp->rate);
-
-  // Add damping to f and the CFL frequency.
-  gkyl_array_accumulate(rhs, -1.0, f_buffer);
-  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
-}
-
-void
 gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
@@ -424,118 +396,6 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
     damp->advance_func = gk_species_damping_advance_user_input;
   }
-  else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-    damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
-
-    // Maximum bmag and its location.
-    // NOTE: if the same max bmag occurs at multiple locations,
-    // bmag_max_coord may have different values on different MPI processes.
-    double bmag_max_coord_ho[GKYL_MAX_CDIM];
-    double bmag_max_ho = gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX,
-      bmag_max_coord_ho);
-    double bmag_max_local = bmag_max_ho;
-    double bmag_max_global;
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local,
-      &bmag_max_global);
-    double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
-    if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
-      for (int d = 0; d < app->cdim; d++) {
-        bmag_max_coord_local[d] = bmag_max_coord_ho[d];
-      }
-    }
-    else {
-      for (int d = 0; d < app->cdim; d++) {
-        bmag_max_coord_local[d] = -DBL_MAX;
-      }
-    }
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local,
-      bmag_max_coord_global);
-
-    if (app->use_gpu) {
-      damp->bmag_max = gkyl_cu_malloc(sizeof(double));
-      damp->bmag_max_coord = gkyl_cu_malloc(app->cdim * sizeof(double));
-      gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-      gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double),
-        GKYL_CU_MEMCPY_H2D);
-    }
-    else {
-      damp->bmag_max = gkyl_malloc(sizeof(double));
-      damp->bmag_max_coord = gkyl_malloc(app->cdim * sizeof(double));
-      memcpy(damp->bmag_max, &bmag_max_global, sizeof(double));
-      memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double));
-    }
-
-    // Electrostatic potential at bmag_max_coord.
-    if (app->use_gpu) {
-      damp->phi_m = gkyl_cu_malloc(sizeof(double));
-      damp->phi_m_global = gkyl_cu_malloc(sizeof(double));
-    }
-    else {
-      damp->phi_m = gkyl_malloc(sizeof(double));
-      damp->phi_m_global = gkyl_malloc(sizeof(double));
-    }
-
-    // Operator that projects the loss cone mask.
-    struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
-      .phase_grid = &gks->grid,
-      .conf_basis = &app->basis,
-      .phase_basis = &gks->basis,
-      .conf_range = &app->local,
-      .conf_range_ext = &app->local_ext,
-      .vel_range = &gks->local_vel,
-      .vel_map = gks->vel_map,
-      .bmag = app->gk_geom->geo_int.bmag,
-      .bmag_max = damp->bmag_max,
-      .bmag_max_loc = damp->bmag_max_coord,
-      .mass = gks->info.mass,
-      .charge = gks->info.charge,
-      .num_quad = num_quad,
-      .use_gpu = app->use_gpu,
-    };
-    damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
-
-    // Project the conf-space rate profile provided.
-    struct gkyl_array *scale_prof_high_order = mkarr(app->use_gpu, 1,
-      gks->local_ext.volume);
-    struct gkyl_array *scale_prof_high_order_ho = app->use_gpu? mkarr(false,
-      scale_prof_high_order->ncomp, scale_prof_high_order->size)
-                                                    : gkyl_array_acquire(scale_prof_high_order);
-
-    if (gks->info.damping.rate_profile) {
-      struct gkyl_basis basis_mult;
-      gkyl_cart_modal_serendip(&basis_mult, gks->basis.ndim, 0);
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_new(&gks->grid, &basis_mult, num_quad, 1,
-        gks->info.damping.rate_profile, gks->info.damping.rate_profile_ctx);
-      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scale_prof_high_order_ho);
-      gkyl_proj_on_basis_release(projup);
-      gkyl_array_copy(scale_prof_high_order, scale_prof_high_order_ho);
-    }
-    else {
-      gkyl_array_clear(scale_prof_high_order, 1.0);
-    }
-
-    gkyl_array_scale(scale_prof_high_order, rate_const == 0.0 ? 1.0 : rate_const);
-
-    damp->scale_prof = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-    gkyl_array_set_offset(damp->scale_prof, pow(sqrt(2.0), gks->grid.ndim), scale_prof_high_order,
-      0);
-
-    gkyl_array_release(scale_prof_high_order_ho);
-    gkyl_array_release(scale_prof_high_order);
-
-    // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
-    // Find the potential at the mirror throat.
-    gkyl_dg_basis_ops_eval_array_at_coord_comp(app->field->phi_smooth, damp->bmag_max_coord,
-      app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
-    // Project the loss cone mask.
-    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-      app->field->phi_smooth, damp->phi_m_global, damp->rate);
-    // Multiply by the user's scaling profile.
-    gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-
-    damp->advance_func = gk_species_damping_advance_loss_cone;
-  }
   else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
     // LOW_PASS_FILTER supports either a projected phase-space profile or a uniform constant.
     damp->evolve = true; // Since fbar must evolve in time.
@@ -591,22 +451,6 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
 
     if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
       // Nothing to release.
-    }
-    else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      if (app->use_gpu) {
-        gkyl_cu_free(damp->bmag_max);
-        gkyl_cu_free(damp->bmag_max_coord);
-        gkyl_cu_free(damp->phi_m);
-        gkyl_cu_free(damp->phi_m_global);
-      }
-      else {
-        gkyl_free(damp->bmag_max);
-        gkyl_free(damp->bmag_max_coord);
-        gkyl_free(damp->phi_m);
-        gkyl_free(damp->phi_m_global);
-      }
-      gkyl_loss_cone_mask_gyrokinetic_release(damp->lcm_proj_op);
-      gkyl_array_release(damp->scale_prof);
     }
     else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
       gkyl_array_release(damp->fbar);
