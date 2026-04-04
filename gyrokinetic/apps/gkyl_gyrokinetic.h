@@ -338,7 +338,6 @@ struct gkyl_gyrokinetic_positivity {
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE,
   GKYL_GK_DAMPING_LOW_PASS_FILTER,
 };
 
@@ -346,15 +345,10 @@ struct gkyl_gyrokinetic_damping {
   // Add a damping term to the RHS of the gyrokinetic equation
   //   df/dt = - rate(z) * f
   // with the function rate(z) being:
-  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
-  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
-  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
+  //   Alternativly, a low-pass filter can be applied (type = GKYL_GK_DAMPING_LOW_PASS_FILTER), which projects f to a lower-dimensional function fbar(z) and applies the damping as df/dt = - rate(z) * (f - fbar).
   enum gkyl_gyrokinetic_damping_type type;
-  // Optional constant damping factor.
-  // Semantics:
-  //  - if rate_profile is NULL: use rate_const as the full rate profile.
-  //  - if rate_profile is provided: effective rate is rate_const*rate_profile,
-  //    where rate_const defaults to 1.0 when left as 0.0.
+
   double rate_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.

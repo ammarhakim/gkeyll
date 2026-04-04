@@ -1,16 +1,7 @@
 #include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_dg_find_peaks.h>
-#include <gkyl_dg_basis_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_loss_cone_mask_gyrokinetic.h>
-
-static void
-proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
-{
-  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
-  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
-}
 
 // Damping state synchronization helpers.
 
@@ -224,40 +215,6 @@ gk_species_damping_advance_user_input(gkyl_gyrokinetic_app *app, const struct gk
 }
 
 void
-gk_species_damping_advance_loss_cone(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *f_buffer,
-  struct gkyl_array *rhs, struct gkyl_array *cflrate)
-{
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, damp->phi_smooth_global);
-
-  // Find phi at bmag_max and (if present) at tandem mirror peak.
-  gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
-    damp->bmag_max_peak_idx, damp->phi_at_bmag_max);
-
-  if (damp->is_tandem) {
-    gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
-      damp->bmag_tandem_peak_idx, damp->phi_at_bmag_tandem);
-    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-      phi,  damp->phi_at_bmag_max, damp->phi_at_bmag_tandem, damp->rate);
-  }
-  else {
-    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-      phi, damp->phi_at_bmag_max, damp->phi_at_bmag_max, damp->rate);
-  }
-
-  // Assemble the damping term -scale_prof * mask * f.
-  gkyl_array_set(f_buffer, 1.0, fin);
-  gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-  gkyl_array_scale_by_cell(f_buffer, damp->rate);
-
-  // Add damping to f and the CFL frequency.
-  gkyl_array_accumulate(rhs, -1.0, f_buffer);
-  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
-}
-
-void
 gk_species_damping_advance_low_pass_filter(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
@@ -448,168 +405,6 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
     damp->advance_func = gk_species_damping_advance_user_input;
   }
-  else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-    damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
-
-    enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
-
-    // Create peak finder for bmag to find the mirror throat.
-    // Search along the parallel (z) direction, which is the last configuration-space dimension.
-    int search_dir = app->cdim - 1;
-    struct gkyl_array_dg_find_peaks_inp peak_inp = {
-      .basis = &app->basis,
-      .grid = &app->grid,
-      .range = &app->global,
-      .range_ext = &app->global_ext,
-      .search_dir = search_dir,
-      .use_gpu = app->use_gpu,
-    };
-
-    struct gkyl_array *bmag_int_global = mkarr(app->use_gpu,
-      app->gk_geom->geo_int.bmag->ncomp, app->global_ext.volume);
-    damp->phi_smooth_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_int.bmag,
-      bmag_int_global);
-    damp->bmag_peak_finder = gkyl_array_dg_find_peaks_new(&peak_inp, bmag_int_global);
-    gkyl_array_dg_find_peaks_advance(damp->bmag_peak_finder, bmag_int_global);
-    gkyl_array_release(bmag_int_global);
-
-    int num_peaks = gkyl_array_dg_find_peaks_num_peaks(damp->bmag_peak_finder);
-    damp->bmag_max_peak_idx = num_peaks - 2; // Edge is num_peaks-1, so maximum is one less.
-    damp->bmag_max = gkyl_array_dg_find_peaks_acquire_vals(damp->bmag_peak_finder,
-      damp->bmag_max_peak_idx);
-    damp->bmag_max_z_coord = gkyl_array_dg_find_peaks_acquire_coords(damp->bmag_peak_finder,
-      damp->bmag_max_peak_idx);
-    damp->bmag_wall = gkyl_array_dg_find_peaks_acquire_vals(damp->bmag_peak_finder,
-      num_peaks - 1);
-    damp->bmag_wall_z_coord = gkyl_array_dg_find_peaks_acquire_coords(damp->bmag_peak_finder,
-      num_peaks - 1);
-    damp->bmag_max_basis = gkyl_array_dg_find_peaks_get_basis(damp->bmag_peak_finder);
-    damp->bmag_max_range = gkyl_array_dg_find_peaks_get_range(damp->bmag_peak_finder);
-    damp->bmag_max_range_ext = gkyl_array_dg_find_peaks_get_range_ext(damp->bmag_peak_finder);
-
-    damp->phi_at_bmag_max = mkarr(app->use_gpu, damp->bmag_max_basis->num_basis,
-      damp->bmag_max_range_ext->volume);
-    damp->phi_at_bmag_tandem = mkarr(app->use_gpu, damp->bmag_max_basis->num_basis,
-      damp->bmag_max_range_ext->volume);
-
-    bool is_symmetric;
-    int cdim = app->cdim;
-    if (gkyl_compare_double(-app->grid.lower[cdim - 1], app->grid.upper[cdim - 1], 1e-12)) {
-      is_symmetric = true;
-    }
-    else if (gkyl_compare_double(app->grid.lower[cdim - 1], 0.0, 1e-12)) {
-      is_symmetric = false;
-    }
-    else {
-      assert(false); // Needs either the lower bound at 0 or symmetric grid.
-    }
-
-    if ((is_symmetric && num_peaks == 5) || (!is_symmetric && num_peaks == 3)) {
-      damp->is_tandem = false;
-    }
-    else if ((is_symmetric && num_peaks == 9) || (!is_symmetric && num_peaks == 5)) {
-      damp->is_tandem = true;
-    }
-    else {
-      assert(false); // Unsupported number of extrema for loss-cone damping.
-    }
-
-    if (damp->is_tandem)
-      damp->bmag_tandem_peak_idx = num_peaks - 4;
-    else
-      damp->bmag_tandem_peak_idx = num_peaks - 2;
-
-    damp->bmag_tandem = gkyl_array_dg_find_peaks_acquire_vals(damp->bmag_peak_finder,
-      damp->bmag_tandem_peak_idx);
-    damp->bmag_tandem_z_coord = gkyl_array_dg_find_peaks_acquire_coords(damp->bmag_peak_finder,
-      damp->bmag_tandem_peak_idx);
-
-    // Operator that projects the loss cone mask.
-    struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
-      .phase_grid = &gks->grid,
-      .conf_basis = &app->basis,
-      .phase_basis = &gks->basis,
-      .conf_range = &app->local,
-      .conf_range_ext = &app->local_ext,
-      .vel_range = &gks->local_vel,
-      .vel_map = gks->vel_map,
-      .bmag = app->gk_geom->geo_int.bmag,
-      .bmag_max = damp->bmag_max,
-      .bmag_max_z_coord = damp->bmag_max_z_coord,
-      .bmag_wall = damp->bmag_wall,
-      .bmag_wall_z_coord = damp->bmag_wall_z_coord,
-      .bmag_tandem = damp->bmag_tandem,
-      .bmag_tandem_z_coord = damp->bmag_tandem_z_coord,
-      .is_tandem = damp->is_tandem,
-      .bmag_max_basis = damp->bmag_max_basis,
-      .bmag_max_range = damp->bmag_max_range,
-      .mass = gks->info.mass,
-      .charge = gks->info.charge,
-      .qtype = qtype,
-      .num_quad = num_quad,
-      .cellwise_trap_loss = true,
-      .use_gpu = app->use_gpu,
-    };
-    damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
-
-    // Project conf-space scaling profile (if provided), otherwise use 1.
-    struct gkyl_array *scale_prof_high_order = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-    struct gkyl_array *scale_prof_high_order_ho = app->use_gpu ?
-      mkarr(false, scale_prof_high_order->ncomp, scale_prof_high_order->size) :
-      gkyl_array_acquire(scale_prof_high_order);
-
-    if (gks->info.damping.rate_profile) {
-      struct gkyl_basis basis_mult;
-      gkyl_cart_modal_serendip(&basis_mult, gks->basis.ndim, 0);
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
-        .grid = &gks->grid,
-        .basis = &basis_mult,
-        .num_quad = num_quad,
-        .num_ret_vals = 1,
-        .eval = gks->info.damping.rate_profile,
-        .ctx = gks->info.damping.rate_profile_ctx,
-        .c2p_func = proj_on_basis_c2p_position_func,
-        .c2p_func_ctx = &damp->proj_on_basis_c2p_ctx,
-      });
-      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scale_prof_high_order_ho);
-      gkyl_proj_on_basis_release(projup);
-      gkyl_array_copy(scale_prof_high_order, scale_prof_high_order_ho);
-    }
-    else {
-      gkyl_array_clear(scale_prof_high_order, 1.0);
-    }
-
-    gkyl_array_scale(scale_prof_high_order, rate_const == 0.0 ? 1.0 : rate_const);
-
-    damp->scale_prof = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-    gkyl_array_set_offset(damp->scale_prof, pow(sqrt(2.0), gks->grid.ndim), scale_prof_high_order,
-      0);
-
-    gkyl_array_release(scale_prof_high_order_ho);
-    gkyl_array_release(scale_prof_high_order);
-
-    // Compute initial damping rate (phi at init time).
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->field->phi_smooth,
-      damp->phi_smooth_global);
-    gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
-      damp->bmag_max_peak_idx, damp->phi_at_bmag_max);
-
-    if (damp->is_tandem) {
-      gkyl_array_dg_find_peaks_project_on_peak_idx(damp->bmag_peak_finder, damp->phi_smooth_global,
-        damp->bmag_tandem_peak_idx, damp->phi_at_bmag_tandem);
-      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        damp->phi_smooth_global, damp->phi_at_bmag_max, damp->phi_at_bmag_tandem, damp->rate);
-    }
-    else {
-      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        damp->phi_smooth_global, damp->phi_at_bmag_max, damp->phi_at_bmag_max, damp->rate);
-    }
-    gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-
-    damp->advance_func = gk_species_damping_advance_loss_cone;
-  }
   else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
     // LOW_PASS_FILTER supports either a projected phase-space profile or a uniform constant.
     damp->evolve = true; // Since fbar must evolve in time.
@@ -666,22 +461,6 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
 
     if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
       // Nothing to release.
-    }
-    else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-      gkyl_array_release(damp->bmag_max);
-      gkyl_array_release(damp->bmag_max_z_coord);
-      gkyl_array_release(damp->bmag_wall);
-      gkyl_array_release(damp->bmag_wall_z_coord);
-      gkyl_array_release(damp->bmag_tandem);
-      gkyl_array_release(damp->bmag_tandem_z_coord);
-
-      gkyl_array_release(damp->phi_at_bmag_max);
-      gkyl_array_release(damp->phi_at_bmag_tandem);
-
-      gkyl_array_release(damp->phi_smooth_global);
-      gkyl_array_dg_find_peaks_release(damp->bmag_peak_finder);
-      gkyl_loss_cone_mask_gyrokinetic_release(damp->lcm_proj_op);
-      gkyl_array_release(damp->scale_prof);
     }
     else if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
       gkyl_array_release(damp->fbar);
