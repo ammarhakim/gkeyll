@@ -176,7 +176,6 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *g
 {
   struct timespec wst = gkyl_wall_clock();
   gks->damping.write_rate_func(app, gks, tm, frame);
-
   gks->damping.write_fbar_func(app, gks, tm, frame);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
