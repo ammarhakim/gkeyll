@@ -398,6 +398,8 @@ struct vm_geom {
   double spin_bh, mass_bh; // Charge and mass.
   bool use_preset_geom; // bool to determine if we are using triad input geom
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
+  int theta_pole_lo[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
+  int theta_pole_up[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
 
   // Geometry needed for GR-DG-Maxwells
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells

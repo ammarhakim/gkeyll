@@ -36,6 +36,8 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf {
   dg_gr_maxwell_alpha_quad_conf_t dg_gr_maxwell_alpha_quad[3]; // Contribution to alpha_c at quadrature points. 
   lax_flux_nodal_to_modal_t lax_flux_nodal_to_modal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
   conf_flux_surf_t conf_flux_surf; // Assembly function for computing modal surface expansion of configuration-space fluxes. 
+  int theta_pole_lo[GKYL_MAX_CDIM]; // (Lower side) Default zeros, but 1 if any directions use theta-pole BC's.
+  int theta_pole_up[GKYL_MAX_CDIM]; // (Upper side) Default zeros, but 1 if any directions use theta-pole BC's.
 
   uint32_t flags;
   bool use_gpu;

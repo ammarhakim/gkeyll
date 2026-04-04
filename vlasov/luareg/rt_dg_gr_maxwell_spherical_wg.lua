@@ -1,29 +1,46 @@
 local Vlasov = G0.Vlasov
--- Wald solution referenced from Section 3.2 of the Tetrad-First paper: https://arxiv.org/pdf/2410.02549
--- Axisymmetry in phi, startign from a uniform backgrond B-field
--- Also see: K. Parfery et al. Introducing PHAEDRA: a new spectral code for simulations of relativistic magnetospheres
+ffi = require "ffi"
+-- Spherical waveguide test for GR Maxwell's equations. Tests flat non-curved space limit in 
+-- spherical coordinate with M = 0, a = 0.
+-- Tests r-theta plane
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
 
 -- Simulation parameters.
-Nr = 48 -- Cell count (r-direction).
+Nr = 24 -- Cell count (r-direction).
 Ntheta = 48 -- Cell count (theta-direction).
-poly_order = 1 -- Polynomial order.
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.1 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+-- Waveguide parameters --
+r0, r1 = 2.0, 5.0 -- inner and outer radii
+w = 2.2281321786 -- frequency of mode
+tperiod = 2*math.pi/w -- period of mode
+
+t_end = 2 * tperiod -- Final simulation time.
+num_frames = 30 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-massBH = 0.3 -- Mass of the black hole
+massBH = 0.0 -- Mass of the black hole
 spinBH = 0.0 -- Spin parameter, a = J/M, of the black hole ( Kerr-Schild, coordinates , |a| <= M).
+
+
+-- Local functions for spherical Bessel functions of order 2 (for TE, l=2, m=0 mode)
+local function sph_j2(x)
+  return (3.0/(x * x * x) - 1.0/x)*math.sin(x) - 3.0*math.cos(x)/(x * x)
+end
+
+local function sph_y2(x)
+  return -(3.0/(x * x * x) - 1.0/x)*math.cos(x) - 3.0*math.sin(x)/(x * x)
+end
+
 
 vlasovApp = Vlasov.App.new {
   -- Model ID sets Maxwell's Eq type
@@ -39,7 +56,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Specify the geometry rtheta choice
     usePresetGeom = true,
-    triadPresetGeomType = G0.TriadGeom.GR_KS_rtheta
+    triadPresetGeomType = G0.TriadGeom.Spherical_rtheta
     
   },
 
@@ -50,8 +67,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.8 * massBH, math.pi / 8.0 },
-  upper = { 5.0 * massBH, 7.0 * math.pi / 8.0 },
+  lower = { r0, 0.0 },
+  upper = { r1, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
     
@@ -63,7 +80,7 @@ vlasovApp = Vlasov.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (r-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = {  }, -- Periodic directions (x- and theta-directions only).
+  periodicDirs = { }, -- Periodic directions (x- and theta-directions only).
 
   -- Field.
   field = Vlasov.Field.new {
@@ -75,19 +92,23 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local r, theta = xn[1], xn[2]
 
-      -- D^i, and B^i (contravaraint components)
-      -- (TODO: Compute the spherical KS initial conditions)
+      -- TE, l=2, m=0 mode, spherical waveguide
+      local E0 = 1.0
+      local a = 1.0
+      local b = -a * sph_j2(w*r0) / sph_y2(w*r0)
+      local u = a*sph_j2(w*r) + b*sph_y2(w*r)
+
+      -- D^i, and B^i (contravariant components)
       local Dr = 0.0 -- Total electric field (r-direction).
       local Dtheta = 0.0 -- Total electric field (theta-direction).
-      local Dphi = 0.0 -- Total electric field (phi-direction).
-    
+      local Dphi = 3.0 * E0 * u / r * math.cos(theta) -- Total electric field (phi-direction). (Flat limit: E = D)
+
       local Br = 0.0 -- Total magnetic field (r-direction).
       local Btheta = 0.0 -- Total magnetic field (theta-direction).
       local Bphi = 0.0 -- Total magnetic field (phi-direction).
 
       -- Must return conserved variables
-      local rho = math.sqrt(r * r + spinBH * spinBH * math.cos(theta) * math.cos(theta) )
-      local metric_det = rho * math.sqrt(2*massBH*r + rho * rho) * math.sin(theta) 
+      local metric_det = r * r * math.sin(theta)
       
       -- Compute Jc * D^i and Jc * B^i
       local JDr = metric_det * Dr
@@ -97,13 +118,11 @@ vlasovApp = Vlasov.App.new {
       local JBtheta = metric_det * Btheta
       local JBphi = metric_det * Bphi
 
-      -- Hand off the conserved varaibles (J * Q^\xi)
+      -- Hand off the conserved varaibles (Q^\xi = J * U^\xi)
       return JDr, JDtheta, JDphi, JBr, JBtheta, JBphi, 0.0, 0.0
     end,
 
-    -- (TODO: Will need outflow / excision BCs at r = 0, but Copy may be fine since no charateristics escape.)
-    -- (TODO: Theta boundaries need an added (reflecting?) BC that doesn't currently exist )
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- boundary conditions (r-direction).
+    bcx = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall }, -- boundary conditions (r-direction).
     bcy = { G0.FieldBc.bcThetaPole, G0.FieldBc.bcThetaPole } -- boundary conditions (theta-direction).
   }
 }

@@ -132,6 +132,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .conf_basis = &app->basis,
       .conf_grid = &app->grid,
       .field_id = f->field_id,
+      .theta_pole_lo = app->vm_geom->theta_pole_lo,
+      .theta_pole_up = app->vm_geom->theta_pole_up,
       .use_gpu = app->use_gpu,
     }; 
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
@@ -229,6 +231,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
+    else if (f->lower_bc[d] == GKYL_FIELD_THETA_POLE)
+      bctype = GKYL_BC_MAXWELL_THETA_POLE;
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev,
       &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
@@ -242,7 +246,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
-
+    else if (f->upper_bc[d] == GKYL_FIELD_THETA_POLE)
+      bctype = GKYL_BC_MAXWELL_THETA_POLE;
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
@@ -452,6 +457,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_THETA_POLE:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
           break;
@@ -464,6 +470,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_THETA_POLE:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
           break;

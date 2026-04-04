@@ -84,6 +84,42 @@ eval_annulus_det_h(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 
 
 void
+eval_spherical_h_ij_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  
+  // theta = pi/2
+  double r = xn[0];
+  double theta = xn[1];
+
+  // Metric spatial covariant components  h_ij
+  double h_rr = 1.0;
+  double h_tt = r * r;
+  double h_pp = r * r * sin(theta) * sin(theta);
+
+  fout[0] = h_rr; // h_rr
+  fout[1] = 0.0; // h_rt
+  fout[2] = 0.0; // h_rp
+  fout[3] = h_tt; // h_tt
+  fout[4] = 0.0; // h_tp
+  fout[5] = h_pp; // h_pp
+}
+
+void
+eval_spherical_det_h_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  
+  // determinant is simply r^2 sin(theta)
+  double r = xn[0];
+  double theta = xn[1];
+
+  fout[0] = r * r * sin(theta);
+}
+
+
+
+
+
+void
 eval_ks_lapse_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
 
@@ -260,23 +296,21 @@ choose_lapse_kern(enum gkyl_triad_preset_geom_type type)
 {
   switch(type) {
     case GKYL_TRIAD_FLAT:
-      return eval_non_relativistic_lapse;
-      break;
     case GKYL_TRIAD_ANNULUS:
+    case GKYL_TRIAD_SPHERICAL_RTHETA:
       return eval_non_relativistic_lapse;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
-      return eval_ks_lapse_r;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_R:
       return eval_ks_lapse_r;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RTHETA:
-      return eval_ks_lapse_rtheta;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return eval_ks_lapse_rtheta;
       break;
+
     default:
       assert(false);
   }
@@ -287,23 +321,21 @@ choose_shift_kern(enum gkyl_triad_preset_geom_type type)
 {
   switch(type) {
     case GKYL_TRIAD_FLAT:
-      return eval_non_relativistic_shift;
-      break;
     case GKYL_TRIAD_ANNULUS:
+    case GKYL_TRIAD_SPHERICAL_RTHETA:
       return eval_non_relativistic_shift;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
-      return eval_ks_shift_r;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_R:
       return eval_ks_shift_r;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RTHETA:
-      return eval_ks_shift_rtheta;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return eval_ks_shift_rtheta;
       break;
+      
     default:
       assert(false);
   }
@@ -316,21 +348,25 @@ choose_h_ij_kern(enum gkyl_triad_preset_geom_type type)
     case GKYL_TRIAD_FLAT:
       return eval_flat_h_ij;
       break;
+
     case GKYL_TRIAD_ANNULUS:
       return eval_annulus_h_ij;
       break;
-    case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
-      return eval_ks_h_ij_r;
+
+    case GKYL_TRIAD_SPHERICAL_RTHETA:
+      return eval_spherical_h_ij_rtheta;
       break;
+
+    case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
     case GKYL_TRIAD_GR_KERR_SCHILD_R:
       return eval_ks_h_ij_r;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RTHETA:
-      return eval_ks_h_ij_rtheta;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return eval_ks_h_ij_rtheta;
       break;
+
     default:
       assert(false);
   }
@@ -343,21 +379,25 @@ choose_det_h_kern(enum gkyl_triad_preset_geom_type type)
     case GKYL_TRIAD_FLAT:
       return eval_flat_det_h;
       break;
+
     case GKYL_TRIAD_ANNULUS:
       return eval_annulus_det_h;
       break;
-    case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
-      return eval_ks_det_h_r;
+
+    case GKYL_TRIAD_SPHERICAL_RTHETA:
+      return eval_spherical_det_h_rtheta;
       break;
+
+    case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
     case GKYL_TRIAD_GR_KERR_SCHILD_R:
       return eval_ks_det_h_r;
       break;
+
     case GKYL_TRIAD_GR_KERR_SCHILD_RTHETA:
-      return eval_ks_det_h_rtheta;
-      break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return eval_ks_det_h_rtheta;
       break;
+
     default:
       assert(false);
   }

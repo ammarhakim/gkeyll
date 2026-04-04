@@ -15,6 +15,8 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf_inp {
   const struct gkyl_rect_grid *conf_grid; // Configuration-space grid. 
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions. 
   enum gkyl_field_id field_id; // enum to determine what type of Maxwell model (e.g., curved space non-relativistic vs. relativistic). 
+  const int *theta_pole_lo; // (lower edge) Default zeros, but 1 if any directions use theta-pole BC's.
+  const int *theta_pole_up; // (upper edge) Default zeros, but 1 if any directions use theta-pole BC's.
   bool use_gpu; // bool to determine if on GPU. 
 };
 

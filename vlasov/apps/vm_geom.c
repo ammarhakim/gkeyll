@@ -15,6 +15,20 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
     .spin_bh = vmg->spin_bh
   };
 
+  int is_np[3] = { 1, 1, 1 };
+  for (int d=0; d<app->num_periodic_dir; ++d) {
+    is_np[app->periodic_dirs[d]] = 0;
+  }
+
+  // Record which configured field boundaries use the theta-pole BC.
+  for (int i=0; i<app->cdim; ++i) {
+    const enum gkyl_field_bc_type *bc = i == 0 ? vm_app_inp->field.bcx :
+      i == 1 ? vm_app_inp->field.bcy : vm_app_inp->field.bcz;
+
+    vmg->theta_pole_lo[i] = is_np[i] && bc[0] == GKYL_FIELD_THETA_POLE;
+    vmg->theta_pole_up[i] = is_np[i] && bc[1] == GKYL_FIELD_THETA_POLE;
+  }
+
   // Evaluation of geometry at surface and volume nodal points.
   // Lapse - \alpha in the ADM split
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* lapse_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(

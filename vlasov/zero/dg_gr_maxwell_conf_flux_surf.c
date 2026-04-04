@@ -61,6 +61,12 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   // Set assembly functions for computing fluxes. 
   up->conf_flux_surf = conf_flux_surf_kernels[cdim-1].kernels[poly_order];
 
+  // Set the theta direction pole bc flags
+  for (int i=0; i<cdim; ++i) {
+    up->theta_pole_lo[i] = inp->theta_pole_lo[i];
+    up->theta_pole_up[i] = inp->theta_pole_up[i];
+  }
+
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
     assert(up->lax_flux_nodal_to_modal[i]);
@@ -138,10 +144,16 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       long cidx_l = gkyl_range_idx(conf_range, idx_l); 
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_con, cidx_l);
 
-      // Which face to evalute the geometry elements on
-      int geom_edge = -1;
+      // For Points not along the domain-edge in theta, compute the left hand surface 
+      // conf-flux.
+      int theta_pole = 0;
 
-      cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, geom_edge,
+      // If at the left edge in the theta dir
+      if(idx[dir] == conf_range->lower[dir] && up->theta_pole_lo[dir]) {
+        theta_pole = 1;
+      }
+
+      cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
         lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, flux);     
 
       // If at the right boundary compute flux owned by the point in the ghost cell
@@ -174,12 +186,13 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
           det_h_d = gkyl_array_cfetch(det_h->nodal_arr_surf_z, cidx_r);
         }
 
-        /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
-          and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of the geometry */
-        geom_edge = 1;
+        // If at the upper surface (in the ghost cell, computing the left edge)
+        if(idx[dir] == conf_range->upper[dir] && up->theta_pole_up[dir]) {
+          theta_pole = 1;
+        }
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
-        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, geom_edge,
+        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
         lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_c, field_no_J_con_r, flux_r);
       }
     }
