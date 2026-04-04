@@ -27,28 +27,28 @@ jobs:
 
       # Core module
       - name: Build core-unit
-        run: .github/workflows/make-module.sh core unit 3
+        run: make -j 3 core-unit
       - name: Build core-regression
-        run: .github/workflows/make-module.sh core regression 3
+        run: make -j 3 core-regression
 
       # Moments module
       - name: Build moments-unit
-        run: .github/workflows/make-module.sh moments unit 3
+        run: make -j 3 moments-unit
       - name: Build moments-regression
-        run: .github/workflows/make-module.sh moments regression 3
+        run: make -j 3 moments-regression
 
       # Vlasov module
       - name: Build vlasov-unit
-        run: .github/workflows/make-module.sh vlasov unit 3
+        run: make -j 3 vlasov-unit
       - name: Build vlasov-regression
-        run: .github/workflows/make-module.sh vlasov regression 3
+        run: make -j 3 vlasov-regression
 
       # Gyrokinetic module
       - name: Build gyrokinetic-unit
-        run: .github/workflows/make-module.sh gyrokinetic unit 3
+        run: make -j 3 gyrokinetic-unit
       - name: Build gyrokinetic-regression
-        run: .github/workflows/make-module.sh gyrokinetic regression 3
+        run: make -j 3 gyrokinetic-regression
 
       # PKPM module
       - name: Build pkpm-regression
-        run: .github/workflows/make-module.sh pkpm regression 3
+        run: make -j 3 pkpm-regression
