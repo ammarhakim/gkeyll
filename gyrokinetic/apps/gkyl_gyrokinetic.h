@@ -335,6 +335,7 @@ struct gkyl_gyrokinetic_damping {
   bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
   bool cellwise_const; // For low-pass filter damping, whether fbar uses a single value per cell.
+  bool do_not_reset_fbar; // On runtime reset, preserve the existing low-pass-filter fbar instead of reinitializing from f.
 };
 
 enum gkyl_gyrokinetic_fdot_multiplier_type {

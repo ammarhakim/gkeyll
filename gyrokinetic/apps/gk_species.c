@@ -1505,6 +1505,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
   // Damping term -nu*f on RHS.
+  gks->damping = (struct gk_damping) { .fbar_backup_initialized = false };
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
@@ -1914,6 +1915,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_source_release(app, &gks->src);
 
   gk_species_damping_release(app, &gks->damping);
+  if (gks->damping.fbar_backup_initialized) {
+    gkyl_array_release(gks->damping.fbar_backup);
+  }
 
   gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
 

@@ -804,12 +804,15 @@ struct gk_damping {
   bool write_rate; // Whether to write damping-rate diagnostics.
   bool write_fbar; // Whether to write low-pass-filter fbar diagnostics.
   bool cellwise_const; // Whether low-pass-filter fbar is stored as one value per cell.
+  bool do_not_reset_fbar; // Whether runtime reset should preserve existing fbar.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
   // Low-pass filter variables
   struct gkyl_array *fbar; // Filtered/averaged distribution function.
   struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.
   struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
+  struct gkyl_array *fbar_backup; // Parked backup retained across resets while LPF is inactive.
+  bool fbar_backup_initialized; // Whether fbar_backup holds a valid parked handle.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_rate_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
