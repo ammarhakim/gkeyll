@@ -577,7 +577,7 @@ create_ctx(void)
     poa_phases[2*i].is_static_field = is_static_field_oap;
     poa_phases[2*i].fdot_mult_type = fdot_mult_type_oap;
     poa_phases[2*i].is_positivity_enabled = is_positivity_enabled_oap;
-    poa_phases[2*i].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
+    poa_phases[2*i].damping_type = GKYL_GK_DAMPING_NONE;
 
     // FDPs.
     poa_phases[2*i+1].phase = GK_POA_FDP;
@@ -587,7 +587,7 @@ create_ctx(void)
     poa_phases[2*i+1].is_static_field = is_static_field_fdp;
     poa_phases[2*i+1].fdot_mult_type = fdot_mult_type_fdp;
     poa_phases[2*i+1].is_positivity_enabled = is_positivity_enabled_fdp;
-    poa_phases[2*i+1].damping_type = GKYL_GK_DAMPING_NONE;
+    poa_phases[2*i+1].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
   }
   // Add an extra, longer FDP.
   poa_phases[num_phases-1].phase = GK_POA_FDP;
