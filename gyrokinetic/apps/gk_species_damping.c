@@ -519,7 +519,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     damp->copy_func = gk_species_damping_copy_range_enabled;
   }
 
-  if (damp->evolve && damp->write_rate) {
+  if (damp->evolve) {
     damp->write_func = gk_species_damping_write_enabled;
   }
   else {
