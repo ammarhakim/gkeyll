@@ -21,8 +21,6 @@ GKYL_CU_DH double dg_gyrokinetic_add_apar_vol_1x1v_ser_p1(const double *w, const
   double rdx2 = 2.0/dxv[0];
   double rdvpar2 = 2.0/dxv[1];
 
-  double rdvpar2Sq = rdvpar2*rdvpar2;
-  double dvparSq = dxv[1]*dxv[1];
 
   const double *b_x = &b_i[0];
   const double *b_y = &b_i[2];
