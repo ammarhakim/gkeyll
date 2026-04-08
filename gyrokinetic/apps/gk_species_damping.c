@@ -453,9 +453,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   damp->fbar1 = 0;
   damp->fbarnew = 0;
   damp->fbar_host = 0;
-  if (!damp->fbar_backup_initialized) {
-    damp->fbar_backup = 0;
-  }
+  damp->fbar_initialized = false;
 
   if (!damp->type) {
     return;
@@ -495,6 +493,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     damp->fbar1 = mkarr(app->use_gpu, fbar_ncomp, gks->local_ext.volume);
     damp->fbarnew = mkarr(app->use_gpu, fbar_ncomp, gks->local_ext.volume);
     damp->fbar_host = damp->fbar;
+    damp->fbar_initialized = true;
     gkyl_array_clear(damp->fbar, 0.0);
 
     if (damp->write_fbar) {
@@ -535,6 +534,11 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 void
 gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp)
 {
+  // Release remembered fbar state even when damping is currently disabled.
+  if (damp->fbar_initialized) {
+    gkyl_array_release(damp->fbar);
+  }
+
   if (!damp->type) {
     return;
   }
@@ -542,9 +546,7 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
   if (app->use_gpu) {
     gkyl_array_release(damp->rate_host);
   }
-
   if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-    gkyl_array_release(damp->fbar);
     gkyl_array_release(damp->fbar1);
     gkyl_array_release(damp->fbarnew);
     if (app->use_gpu && damp->write_fbar) {
@@ -553,62 +555,39 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
   }
 }
 
-// Damping runtime reset.
-static bool
-gk_species_damping_can_restore_fbar(const struct gk_species *gks,
-  const struct gkyl_gyrokinetic_damping *damp_inp, const struct gkyl_array *fbar_backup)
-{
-  // Determines whether the provided backup of fbar state is compatible with the requested damping configuration, and can be used to preserve fbar state across a reset.
-  if (damp_inp->type != GKYL_GK_DAMPING_LOW_PASS_FILTER || !fbar_backup
-    || !damp_inp->do_not_reset_fbar) {
-    return false;
-  }
-
-  int fbar_ncomp = damp_inp->cellwise_const ? 1 : gks->basis.num_basis;
-  return fbar_backup->ncomp == fbar_ncomp && fbar_backup->size == gks->local_ext.volume;
-}
-
 void
 gk_species_damping_reset(gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks,
   struct gk_damping *damp, struct gkyl_gyrokinetic_damping damp_inp)
 {
-  bool preserve_fbar = false;
+  bool has_fbar_backup = false;
   struct gkyl_array *fbar_backup = 0;
-  bool keep_lpf_state = damp_inp.type == GKYL_GK_DAMPING_LOW_PASS_FILTER
-    && damp_inp.do_not_reset_fbar;
 
-  if (keep_lpf_state) {
-    // Prefer latest LPF state if currently active, otherwise keep parked backup.
-    if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER && damp->fbar) {
-      fbar_backup = gkyl_array_acquire(damp->fbar);
+  // Create a reset-local backup if requested and there is restorable state.
+  if (damp_inp.do_not_reset_fbar) {
+    if (damp->fbar_initialized) {
+      has_fbar_backup = true;
+      fbar_backup = mkarr(app->use_gpu, damp->fbar->ncomp, damp->fbar->size);
+      gkyl_array_copy(fbar_backup, damp->fbar);
     }
-    else if (damp->fbar_backup_initialized) {
-      fbar_backup = damp->fbar_backup;
-      damp->fbar_backup = 0;
-      damp->fbar_backup_initialized = false;
-    }
-    preserve_fbar = gk_species_damping_can_restore_fbar(gks, &damp_inp, fbar_backup);
-  }
-  else if (damp->fbar_backup_initialized) {
-    // User disabled preservation: drop any parked state.
-    gkyl_array_release(damp->fbar_backup);
-    damp->fbar_backup = 0;
-    damp->fbar_backup_initialized = false;
   }
 
   gk_species_damping_release(app, damp);
 
-  damp->fbar_backup = fbar_backup;
-  damp->fbar_backup_initialized = fbar_backup != 0;
   gks->info.damping = damp_inp;
   gk_species_damping_init(app, gks, damp);
 
-  gk_species_damping_set_fbar_to_f(gks, damp, preserve_fbar ? damp->fbar_backup : gks->f);
+  gk_species_damping_set_fbar_to_f(gks, damp, gks->f);
 
-  // If backup has been consumed to initialize LPF state, drop parked handle.
-  if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER && damp->fbar_backup_initialized) {
-    gkyl_array_release(damp->fbar_backup);
-    damp->fbar_backup = 0;
-    damp->fbar_backup_initialized = false;
+  if (has_fbar_backup) {
+    if (damp->fbar_initialized) {
+      gkyl_array_copy(damp->fbar, fbar_backup);
+      gkyl_array_copy(damp->fbar1, fbar_backup);
+      gkyl_array_copy(damp->fbarnew, fbar_backup);
+    }
+    else {
+      damp->fbar = gkyl_array_acquire(fbar_backup);
+      damp->fbar_initialized = true;
+    }
+    gkyl_array_release(fbar_backup);
   }
 }
