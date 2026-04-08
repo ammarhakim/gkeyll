@@ -169,6 +169,12 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
 
       // set magnitude of e_3
       gkdgv[qvloc].mag_e_3 = sqrt(gkdgv[qvloc].g_33); // |e_3|
+
+      // set b_i/J_c/B
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.bioverJB_nodal, global_loc);
+      gkdgv[qvloc].bioverJB.x[0] = global_val[0];
+      gkdgv[qvloc].bioverJB.x[1] = global_val[1];
+      gkdgv[qvloc].bioverJB.x[2] = global_val[2];
     }
   }
 }

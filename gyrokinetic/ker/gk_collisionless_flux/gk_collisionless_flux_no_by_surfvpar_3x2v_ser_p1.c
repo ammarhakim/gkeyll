@@ -49,7 +49,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
   double B3_quad = 0.0; 
-  double Jc_quad = 0.0; 
   double dualcurlbhat_quad[3] = {0.0}; 
   double alpha_quad = 0.0; 
   double JfL_quad = 0.0; 
@@ -59,7 +58,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[0].bmag; 
   B3_quad = gkdgv[0].B3; 
-  Jc_quad = dgv[0].Jc; 
   dualcurlbhat_quad[0] = gkdgv[0].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[0].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[0].dualcurlbhat.x[2]; 
@@ -84,7 +82,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[1].bmag; 
   B3_quad = gkdgv[1].B3; 
-  Jc_quad = dgv[1].Jc; 
   dualcurlbhat_quad[0] = gkdgv[1].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[1].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[1].dualcurlbhat.x[2]; 
@@ -109,7 +106,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[2].bmag; 
   B3_quad = gkdgv[2].B3; 
-  Jc_quad = dgv[2].Jc; 
   dualcurlbhat_quad[0] = gkdgv[2].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[2].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[2].dualcurlbhat.x[2]; 
@@ -134,7 +130,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[3].bmag; 
   B3_quad = gkdgv[3].B3; 
-  Jc_quad = dgv[3].Jc; 
   dualcurlbhat_quad[0] = gkdgv[3].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[3].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[3].dualcurlbhat.x[2]; 
@@ -159,7 +154,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[4].bmag; 
   B3_quad = gkdgv[4].B3; 
-  Jc_quad = dgv[4].Jc; 
   dualcurlbhat_quad[0] = gkdgv[4].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[4].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[4].dualcurlbhat.x[2]; 
@@ -184,7 +178,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[5].bmag; 
   B3_quad = gkdgv[5].B3; 
-  Jc_quad = dgv[5].Jc; 
   dualcurlbhat_quad[0] = gkdgv[5].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[5].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[5].dualcurlbhat.x[2]; 
@@ -209,7 +202,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[6].bmag; 
   B3_quad = gkdgv[6].B3; 
-  Jc_quad = dgv[6].Jc; 
   dualcurlbhat_quad[0] = gkdgv[6].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[6].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[6].dualcurlbhat.x[2]; 
@@ -234,7 +226,6 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1(
 
   bmag_quad = gkdgv[7].bmag; 
   B3_quad = gkdgv[7].B3; 
-  Jc_quad = dgv[7].Jc; 
   dualcurlbhat_quad[0] = gkdgv[7].dualcurlbhat.x[0]; 
   dualcurlbhat_quad[1] = gkdgv[7].dualcurlbhat.x[1]; 
   dualcurlbhat_quad[2] = gkdgv[7].dualcurlbhat.x[2]; 
