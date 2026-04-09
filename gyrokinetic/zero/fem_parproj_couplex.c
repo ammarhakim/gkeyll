@@ -97,7 +97,7 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_couplex_choose_kernels_cu(basis, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels_cu);
+    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels_cu);
 #endif
 
   // We support two cases:
