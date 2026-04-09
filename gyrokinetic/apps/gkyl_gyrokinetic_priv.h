@@ -942,7 +942,6 @@ struct gk_positivity {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
-  int vdim; // Velocity space dimensions.
 
   struct gkyl_basis basis; // Phase-space basis.
 
@@ -1095,7 +1094,6 @@ struct gk_species {
 // Neutral species data.
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // Data for neutral species.
-  int vdim; // Velocity space dimensions.
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
