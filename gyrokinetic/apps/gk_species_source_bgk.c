@@ -140,42 +140,6 @@ gks_src_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struct gk_speci
   // Add this Maxwellian onto the average of Maxwellians.
   gkyl_array_accumulate_range(out, 1.0, species->lte.f_lte, &species->local);
 
-  //// This section is debugging output
-
-  //// Write out the distribution function
-  //const char *fmtdist = "%s-%s_%s_hsource.gkyl";
-  //int szdist = gkyl_calc_strlen(fmtdist, app->name, species->info.name, "dist");
-  //char fileNmdist[szdist+1]; // ensures no buffer overflow
-  //snprintf(fileNmdist, sizeof fileNmdist, fmtdist, app->name, species->info.name, "dist");
-  //if (app->use_gpu)
-  //  gkyl_array_copy(species->f_host, species->lte.f_lte);
-  //gkyl_comm_array_write(species->comm, &species->grid, &species->local, 0, species->f_host, fileNmdist);
-
-  //// Write out the LTE Moments of the source term for debugging 
-  //const char *fmt = "%s-%s_%s_hsource.gkyl";
-  //int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, "LTEMoments");
-  //char fileNm[sz+1]; // ensures no buffer overflow
-  //snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, "LTEMoments");
-  //if (app->use_gpu)
-  //  gkyl_array_copy(species->lte.moms.marr_host, species->lte.moms.marr);
-  //gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->lte.moms.marr_host, fileNm);
-
-  //// Write out moments
-  //gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-  //  src->Jrate, species->lte.f_lte, &app->local, &species->local);
-  //gkyl_array_accumulate(species->lte.f_lte, -1.0/src->coupling_time, fin);
-  //for (int m=0; m<species->info.num_diag_moments; ++m) {
-  //  gk_species_moment_calc(&species->moms[m], species->local, app->local, species->lte.f_lte);
-  //  gkyl_dg_div_op_range(species->moms[m].mem_geo, app->basis, 0, species->moms[m].marr, 0, species->moms[m].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
-  //  if (app->use_gpu)
-  //    gkyl_array_copy(species->moms[m].marr_host, species->moms[m].marr);
-  //  const char *fmt = "%s-%s_%s_hsource.gkyl";
-  //  int sz = gkyl_calc_strlen(fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  char fileNm[sz+1]; // ensures no buffer overflow
-  //  snprintf(fileNm, sizeof fileNm, fmt, app->name, species->info.name, gkyl_distribution_moments_strs[species->info.diag_moments[m]]);
-  //  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, species->moms[m].marr_host, fileNm);
-  //}
-
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
 
