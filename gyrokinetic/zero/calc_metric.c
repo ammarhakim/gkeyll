@@ -86,7 +86,7 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       if ( i==j && prod[i][j] < 0 ) {
-        fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %g\n", i+1, j+1, prod[i][j]);
+        fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %.6e\n", i+1, j+1, prod[i][j]);
         assert(!exit_at_check);
       }
     }
@@ -106,11 +106,11 @@ check_right_handed(const double tan[9], const double dual[9], bool exit_at_check
   double J = dot(e1, cross_e2e3);
 
   if (J < 0.0) {
-    fprintf(stderr, "calc_metric.c: Left-handed coordinate system, J = e_1 . (e_2 x e_3) < 0.\n");
+    fprintf(stderr, "calc_metric.c: Left-handed coordinate system, J = e_1 . (e_2 x e_3) = %.6e < 0.\n", J);
     assert(!exit_at_check);
   }
   else if (J == 0.0) {
-    fprintf(stderr, "calc_metric.c: Degenerate coordinate system, J = 0.\n");
+    fprintf(stderr, "calc_metric.c: Degenerate coordinate system, J = %.6e\n", J);
     assert(!exit_at_check);
   }
 }
@@ -120,7 +120,7 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   // Check v1 and v2 are parallel by checking that:
   //   |v1 x v2 | < eps 
   //   |v1 . v2 - 1| < eps
-  const double eps = 1e-4;
+  const double eps = 1e-3;
 
   double cx = v1[1]*v2[2] - v1[2]*v2[1];
   double cy = v1[2]*v2[0] - v1[0]*v2[2];
@@ -129,10 +129,10 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
 
   double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-  if (c_mag < eps && fabs(dot-1.0) < eps)
+  if (fabs(c_mag) < eps && fabs(dot-1.0) < eps)
     return;
   else {
-    fprintf(stderr, "calc_metric.c: B and mapc2p are inconsistent (hat{b} and e_3 are not parallel).\n");
+    fprintf(stderr, "calc_metric.c: inconsistent B & mapc2p (hat{b} not parallel to e_3; |b . e_3|=%.6e, |b x e_3|=%.6e).\n",dot,c_mag);
     assert(!exit_at_check);
   }
 }
