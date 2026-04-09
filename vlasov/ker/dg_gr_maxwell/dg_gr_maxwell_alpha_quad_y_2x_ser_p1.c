@@ -65,12 +65,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_y_2x_ser_p1(const double *w, const doub
   if ( theta_pole ) { 
     Dy_con_l_n[0] = 0.0;
     By_con_l_n[0] = 0.0;
-    Dz_con_l_n[0] = 0.0;
-    Bz_con_l_n[0] = 0.0;
     Dy_con_l_n[1] = 0.0;
     By_con_l_n[1] = 0.0;
-    Dz_con_l_n[1] = 0.0;
-    Bz_con_l_n[1] = 0.0;
   } 
   
   for (int i=0; i<2; ++i) {
@@ -107,12 +103,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_y_2x_ser_p1(const double *w, const doub
   if ( theta_pole ) { 
     Dy_con_r_n[0] = 0.0;
     By_con_r_n[0] = 0.0;
-    Dz_con_r_n[0] = 0.0;
-    Bz_con_r_n[0] = 0.0;
     Dy_con_r_n[1] = 0.0;
     By_con_r_n[1] = 0.0;
-    Dz_con_r_n[1] = 0.0;
-    Bz_con_r_n[1] = 0.0;
   } 
   
   for (int i=0; i<2; ++i) {
