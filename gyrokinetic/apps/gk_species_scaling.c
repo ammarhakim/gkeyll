@@ -178,6 +178,7 @@ gk_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   }
   else if (sca_inp->type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {
 
+    sca->type = sca_inp->type;
     sca->sheath_val = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->buffer_conf = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->proj_exp = gkyl_proj_exp_on_basis_new(&app->basis, app->basis.poly_order+1, app->use_gpu);
