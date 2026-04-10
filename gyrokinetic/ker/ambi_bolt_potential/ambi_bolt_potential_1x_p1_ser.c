@@ -83,8 +83,19 @@ GKYL_CU_DH void ambi_bolt_potential_phi_calc_1x_ser_p1(double q_e, double T_e, c
   // phi: electrostatic potential in domain volume.
 
   double phi_qp[2];
-  phi_qp[0] = -((1.0*log(m0Ion[0]/(sheathvals[0]-1.0*sheathvals[1])-(1.0*m0Ion[1])/(sheathvals[0]-1.0*sheathvals[1]))*T_e)/q_e)-0.7071067811865475*sheathvals[3]+0.7071067811865475*sheathvals[2]; 
-  phi_qp[1] = -((1.0*log(m0Ion[1]/(sheathvals[1]+sheathvals[0])+m0Ion[0]/(sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.7071067811865475*sheathvals[3]+0.7071067811865475*sheathvals[2]; 
+  double m0IonS_curr;
+  m0IonS_curr = 0.7071067811865475*sheathvals[0]-0.7071067811865475*sheathvals[1];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[0] = -((1.0*T_e*log(fmax(0.7071067811865475*m0Ion[0]-0.7071067811865475*m0Ion[1],m0IonS_curr)/m0IonS_curr))/q_e)-0.7071067811865475*sheathvals[3]+0.7071067811865475*sheathvals[2];
+  } else {
+    phi_qp[0] = 0.0;
+  }
+  m0IonS_curr = 0.7071067811865475*sheathvals[1]+0.7071067811865475*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[1] = -((1.0*T_e*log(fmax(0.7071067811865475*m0Ion[1]+0.7071067811865475*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)+0.7071067811865475*sheathvals[3]+0.7071067811865475*sheathvals[2];
+  } else {
+    phi_qp[1] = 0.0;
+  }
 
   phi[0] = 0.7071067811865475*(phi_qp[1]+phi_qp[0]); 
   phi[1] = 0.7071067811865475*phi_qp[1]-0.7071067811865475*phi_qp[0]; 
