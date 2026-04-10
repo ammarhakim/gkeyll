@@ -98,6 +98,33 @@ project_moment_if_needed(bool from_file, struct gkyl_proj_on_basis *proj_op,
   }
 }
 
+static struct gkyl_proj_on_basis*
+init_moment_from_import_or_proj(struct gkyl_gyrokinetic_app *app, struct gk_proj *proj,
+  bool from_file, struct gkyl_array *arr, const struct gkyl_gyrokinetic_ic_import *import_inp,
+  evalf_t eval, void *ctx, double scale_fac)
+{
+  if (from_file) {
+    load_projection_moment_from_file(app, arr, import_inp);
+    if (scale_fac != 1.0) {
+      gkyl_array_scale(arr, scale_fac);
+    }
+    return 0;
+  }
+
+  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order+1,
+      .num_ret_vals = 1,
+      .eval = eval,
+      .ctx = ctx,
+      .c2p_func = proj_on_basis_c2p_position_func,
+      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+    }
+  );
+}
+
 static void
 gk_species_projection_calc_max_prim(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
@@ -241,101 +268,22 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     load_projection_moment_from_file(app, proj->prim_moms_host, inp.bimaxwellian_moms_import);
   }
   else {
-    if (proj->dens_from_file) {
-      load_projection_moment_from_file(app, proj->dens, inp.density_import);
-    }
-    else {
-      proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-          .grid = &app->grid,
-          .basis = &app->basis,
-          .qtype = GKYL_GAUSS_QUAD,
-          .num_quad = app->basis.poly_order+1,
-          .num_ret_vals = 1,
-          .eval = inp.density,
-          .ctx = inp.ctx_density,
-          .c2p_func = proj_on_basis_c2p_position_func,
-          .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-        }
-      );
-    }
-
-    if (proj->upar_from_file) {
-      load_projection_moment_from_file(app, proj->upar, inp.upar_import);
-    }
-    else {
-      proj->proj_upar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-          .grid = &app->grid,
-          .basis = &app->basis,
-          .qtype = GKYL_GAUSS_QUAD,
-          .num_quad = app->basis.poly_order+1,
-          .num_ret_vals = 1,
-          .eval = inp.upar,
-          .ctx = inp.ctx_upar,
-          .c2p_func = proj_on_basis_c2p_position_func,
-          .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-        }
-      );
-    }
-
+    proj->proj_dens = init_moment_from_import_or_proj(app, proj,
+      proj->dens_from_file, proj->dens, inp.density_import, inp.density, inp.ctx_density, 1.0);
+    proj->proj_upar = init_moment_from_import_or_proj(app, proj,
+      proj->upar_from_file, proj->upar, inp.upar_import, inp.upar, inp.ctx_upar, 1.0);
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-      if (proj->temp_from_file) {
-        load_projection_moment_from_file(app, proj->vtsq, inp.temp_import);
-        gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
-      }
-      else {
-        proj->proj_temp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-            .grid = &app->grid,
-            .basis = &app->basis,
-            .qtype = GKYL_GAUSS_QUAD,
-            .num_quad = app->basis.poly_order+1,
-            .num_ret_vals = 1,
-            .eval = inp.temp,
-            .ctx = inp.ctx_temp,
-            .c2p_func = proj_on_basis_c2p_position_func,
-            .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-          }
-        );
-      }
-
+      proj->proj_temp = init_moment_from_import_or_proj(app, proj,
+        proj->temp_from_file, proj->vtsq, inp.temp_import, inp.temp, inp.ctx_temp, 1.0/s->info.mass);
     }
     else {
       bimaxwellian = true;
-      if (proj->temppar_from_file) {
-        load_projection_moment_from_file(app, proj->vtsqpar, inp.temppar_import);
-        gkyl_array_scale(proj->vtsqpar, 1.0/s->info.mass);
-      }
-      else {
-        proj->proj_temppar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-            .grid = &app->grid,
-            .basis = &app->basis,
-            .qtype = GKYL_GAUSS_QUAD,
-            .num_quad = app->basis.poly_order+1,
-            .num_ret_vals = 1,
-            .eval = inp.temppar,
-            .ctx = inp.ctx_temppar,
-            .c2p_func = proj_on_basis_c2p_position_func,
-            .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-          }
-        );
-      }
-      if (proj->tempperp_from_file) {
-        load_projection_moment_from_file(app, proj->vtsqperp, inp.tempperp_import);
-        gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
-      }
-      else {
-        proj->proj_tempperp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-            .grid = &app->grid,
-            .basis = &app->basis,
-            .qtype = GKYL_GAUSS_QUAD,
-            .num_quad = app->basis.poly_order+1,
-            .num_ret_vals = 1,
-            .eval = inp.tempperp,
-            .ctx = inp.ctx_tempperp,
-            .c2p_func = proj_on_basis_c2p_position_func,
-            .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-          }
-        );
-      }
+      proj->proj_temppar = init_moment_from_import_or_proj(app, proj,
+        proj->temppar_from_file, proj->vtsqpar, inp.temppar_import,
+        inp.temppar, inp.ctx_temppar, 1.0/s->info.mass);
+      proj->proj_tempperp = init_moment_from_import_or_proj(app, proj,
+        proj->tempperp_from_file, proj->vtsqperp, inp.tempperp_import,
+        inp.tempperp, inp.ctx_tempperp, 1.0/s->info.mass);
     }
   }
 
