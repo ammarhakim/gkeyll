@@ -93,11 +93,13 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*perp_range_sub.volume); // Global right side vector.
 
-  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels);
+  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs,
+    up->isperiodic, up->isdirichlet, up->kernels);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels_cu);
+    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs,
+      up->isperiodic, up->isdirichlet, up->kernels_cu);
 #endif
 
   // We support two cases:

@@ -536,7 +536,7 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
  * assigning LHS matrix elements, RHS source vector elements, and extracking
  * the soslution from the RHS vector.
  */
-static void
+void
 fem_parproj_couplex_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
   bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_couplex_kernels *kers);
 
