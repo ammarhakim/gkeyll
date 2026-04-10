@@ -185,7 +185,8 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
   gkyl_nodal_ops_release(n2m);
 
   // now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid,
+    &up->global, &up->global_ext, &up->local, &up->local_ext, false, false);
   gkyl_calc_metric_advance_interior(mcalc, up);
   gkyl_array_copy(up->geo_int.g_ij_neut, up->geo_int.g_ij);
   
@@ -339,8 +340,9 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
     }
   }
 
-  // now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  // Now calculate the metrics.
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid,
+    &up->global, &up->global_ext, &up->local, &up->local_ext, false, false);
   gkyl_calc_metric_advance_surface(mcalc, dir, up);
   gkyl_calc_metric_release(mcalc);
   gk_geometry_surf_calc_expansions(up, dir, *nrange);
