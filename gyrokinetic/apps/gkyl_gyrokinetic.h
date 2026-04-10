@@ -14,11 +14,6 @@
 
 #include <stdbool.h>
 
-struct gkyl_gyrokinetic_projection_moment_import {
-  enum gkyl_ic_import_type type;
-  char file_name[128];
-};
-
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -49,11 +44,13 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_tempperp;
 
       // Optionally read primitive moments from files.
-      struct gkyl_gyrokinetic_projection_moment_import density_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import upar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temp_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temppar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import tempperp_from_file;
+      const struct gkyl_gyrokinetic_ic_import *maxwellian_moms_import;
+      const struct gkyl_gyrokinetic_ic_import *bimaxwellian_moms_import;
+      const struct gkyl_gyrokinetic_ic_import *density_import;
+      const struct gkyl_gyrokinetic_ic_import *upar_import;
+      const struct gkyl_gyrokinetic_ic_import *temp_import;
+      const struct gkyl_gyrokinetic_ic_import *temppar_import;
+      const struct gkyl_gyrokinetic_ic_import *tempperp_import;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
@@ -513,7 +510,7 @@ struct gkyl_gyrokinetic_field {
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
-  struct gkyl_gyrokinetic_ic_import polarization_potential_init_from_file;
+  struct gkyl_gyrokinetic_ic_import polarization_potential_import;
 
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;

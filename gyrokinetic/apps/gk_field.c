@@ -296,8 +296,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->init_phi_pol = false;
   if (f->info.polarization_potential) {
     gk_field_polarization_potential_new(f, app);
-  } else if (f->info.polarization_potential_init_from_file.type != GKYL_IC_IMPORT_NONE) {
-    gk_field_polarization_potential_from_file_new(f, app, f->info.polarization_potential_init_from_file);
+  } else if (f->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
+    gk_field_polarization_potential_from_file_new(f, app, f->info.polarization_potential_import);
   }
   
   // Initialize energy diagnostics.
