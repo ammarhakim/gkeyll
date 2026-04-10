@@ -1,29 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static bool gyrokinetic_str_ends_in_b67(char *name){
-  size_t len = strlen(name);
-  int i = len - 1;
-  int digit_count = 0;
-  while (i >= 0 && isdigit((unsigned char)name[i])) {
-    i--;
-    digit_count++;
-  }
-  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
-    const char *num_str = &name[i + 1];
-    int num = atoi(num_str);
-    if ( num == 6)
-      return true;
-    else if ( num == 7)
-      return true;
-    else
-      return false;
-  }
-  else {
-    return false;
-  }
-}
-
 static double
 gk_source_bgk_volume_integrate(gkyl_gyrokinetic_app *app, struct gk_source_bgk *src, const struct gkyl_array *arrin)
 {
@@ -425,10 +402,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
   if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
     // source_bgk rate.
-    // Set rate in core to be much larger
-    if ( gyrokinetic_str_ends_in_b67(app->name) )
-      src->coupling_time = src->coupling_time/src->core_coll_factor;
-
     src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->coupling_time, 0); // Sets rate = 1/coupling_time
 

@@ -877,7 +877,6 @@ struct gk_source_bgk {
   struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
   double coupling_time; // Coupling time for external heating model
   double damping_factor; // Damping factor used to prevent negative densities
-  double core_coll_factor; // core rate is increased by this factor
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.

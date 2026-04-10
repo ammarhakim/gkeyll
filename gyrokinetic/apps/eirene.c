@@ -12,6 +12,56 @@
 #include <assert.h>
 #include <time.h>
 
+static bool gyrokinetic_str_ends_in_b67(char *name){
+  size_t len = strlen(name);
+  int i = len - 1;
+  int digit_count = 0;
+  while (i >= 0 && isdigit((unsigned char)name[i])) {
+    i--;
+    digit_count++;
+  }
+  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
+    const char *num_str = &name[i + 1];
+    int num = atoi(num_str);
+    if ( num == 6)
+      return true;
+    else if ( num == 7)
+      return true;
+    else
+      return false;
+  }
+  else {
+    return false;
+  }
+}
+
+static bool gyrokinetic_str_ends_in_b1011(char *name){
+  size_t len = strlen(name);
+  int i = len - 1;
+  int digit_count = 0;
+
+  while (i >= 0 && isdigit((unsigned char)name[i])) {
+    i--;
+    digit_count++;
+  }
+
+  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
+    const char *num_str = &name[i + 1];
+    int num = atoi(num_str);
+
+    // Changed the checks to 10 and 11
+    if ( num == 10)
+      return true;
+    else if ( num == 11)
+      return true;
+    else
+      return false;
+  }
+  else {
+    return false;
+  }
+}
+
 void
 gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
@@ -118,9 +168,15 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
 
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
-    eirene->bgk_src[i].coupling_time = eirene->info.coupling_time[i];
+    double coll_factor = 1.0;
+    if (gyrokinetic_str_ends_in_b67(app->name) && eirene->info.half_domain) {
+      coll_factor = eirene->info.core_coll_factor[i];
+    }
+    else if (gyrokinetic_str_ends_in_b1011(app->name)) {
+      coll_factor = eirene->info.core_coll_factor[i];
+    }
+    eirene->bgk_src[i].coupling_time = eirene->info.coupling_time[i]/coll_factor;
     eirene->bgk_src[i].damping_factor = eirene->info.damping_factor[i];
-    eirene->bgk_src[i].core_coll_factor = eirene->info.core_coll_factor[i];
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);
