@@ -18,6 +18,7 @@ BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
 BUILD_SOLPS=no
+BUILD_EIRENE_COUPLING=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -172,6 +173,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SOLPS="$value"
       ;;   
+   --build-eirene-coupling)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_EIRENE_COUPLING="$value"
+      ;;
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -274,6 +279,14 @@ build_solps() {
     fi
 }
 
+build_eirene_coupling() {
+    if [ "$BUILD_EIRENE_COUPLING" = "yes" ]
+    then
+	echo "Building EIRNE Coupling for neutral coupling"
+	./build-eirene-coupling.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
@@ -284,3 +297,4 @@ build_superlu
 build_cudss
 build_adas
 build_solps
+build_eirene_coupling
