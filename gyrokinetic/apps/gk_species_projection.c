@@ -95,13 +95,13 @@ gk_species_projection_calc_max_prim(gkyl_gyrokinetic_app *app, struct gk_species
     return;
   }
 
-  if (!proj->maxwellian_moms_from_file && !proj->dens_from_file) {
+  if (!proj->dens_from_file) {
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens);
   }
-  if (!proj->maxwellian_moms_from_file && !proj->upar_from_file) {
+  if (!proj->upar_from_file) {
     gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
   }
-  if (!proj->maxwellian_moms_from_file && !proj->temp_from_file) {
+  if (!proj->temp_from_file) {
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
     gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
   }
