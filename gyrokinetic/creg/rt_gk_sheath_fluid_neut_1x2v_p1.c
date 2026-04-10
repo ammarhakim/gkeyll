@@ -798,7 +798,7 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
-    .recycling_reaction_scaling = {
+    .scaling = {
       .type = GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE,
       .impacting_ion_name =  "ion" ,
       .impacting_ion_id = GKYL_ION_H,
