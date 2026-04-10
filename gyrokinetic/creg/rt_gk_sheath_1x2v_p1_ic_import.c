@@ -472,6 +472,7 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
+      .correct_all_moms = true,
     },
 
     .collisionless = {
@@ -549,6 +550,7 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
+      .correct_all_moms = true,
     },
 
     .collisionless = {
