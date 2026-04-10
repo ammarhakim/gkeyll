@@ -216,7 +216,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
   // prim_moms_host is a combined array of all the projected moments
   int prim_moms_ncomp = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ? 3 : 4;
   proj->prim_moms_host = mkarr(false, prim_moms_ncomp*app->basis.num_basis, app->local_ext.volume);
-  proj->prim_moms = mkarr(app->use_gpu, prim_moms_ncomp*app->basis.num_basis, app->local_ext.volume);
+  proj->prim_moms = mkarr(app->use_gpu, proj->prim_moms_host->ncomp, proj->prim_moms_host->size);
 
   proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
