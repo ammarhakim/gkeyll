@@ -224,6 +224,13 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
 
   proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+    proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  }
+  else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+    proj->vtsqpar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->vtsqperp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  }
 
   bool bimaxwellian = false;
   if (maxwellian_moms_from_file) {
@@ -271,7 +278,6 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     }
 
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-      proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       if (proj->temp_from_file) {
         load_projection_moment_from_file(app, proj->vtsq, inp.temp_import);
         gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
@@ -294,8 +300,6 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     }
     else {
       bimaxwellian = true;
-      proj->vtsqpar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      proj->vtsqperp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       if (proj->temppar_from_file) {
         load_projection_moment_from_file(app, proj->vtsqpar, inp.temppar_import);
         gkyl_array_scale(proj->vtsqpar, 1.0/s->info.mass);
