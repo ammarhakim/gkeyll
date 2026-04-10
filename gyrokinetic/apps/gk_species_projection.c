@@ -85,6 +85,20 @@ gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_specie
 }
 
 static void
+project_moment_if_needed(bool from_file, struct gkyl_proj_on_basis *proj_op,
+  double tm, const struct gkyl_range *conf_range, struct gkyl_array *arr, double scale_fac)
+{
+  if (from_file) {
+    return;
+  }
+
+  gkyl_proj_on_basis_advance(proj_op, tm, conf_range, arr);
+  if (scale_fac != 1.0) {
+    gkyl_array_scale(arr, scale_fac);
+  }
+}
+
+static void
 gk_species_projection_calc_max_prim(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
@@ -95,16 +109,12 @@ gk_species_projection_calc_max_prim(gkyl_gyrokinetic_app *app, struct gk_species
     return;
   }
 
-  if (!proj->dens_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens);
-  }
-  if (!proj->upar_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
-  }
-  if (!proj->temp_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
-    gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
-  }
+  project_moment_if_needed(proj->dens_from_file, proj->proj_dens,
+    tm, &app->local, proj->dens, 1.0);
+  project_moment_if_needed(proj->upar_from_file, proj->proj_upar,
+    tm, &app->local, proj->upar, 1.0);
+  project_moment_if_needed(proj->temp_from_file, proj->proj_temp,
+    tm, &app->local, proj->vtsq, 1.0/s->info.mass);
 
   // proj_maxwellian expects the primitive moments as a single array.
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
@@ -128,20 +138,14 @@ gk_species_projection_calc_bimax(gkyl_gyrokinetic_app *app, struct gk_species *s
     return;
   }
 
-  if (!proj->dens_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens);
-  }
-  if (!proj->upar_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
-  }
-  if (!proj->temppar_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_temppar, tm, &app->local, proj->vtsqpar);
-    gkyl_array_scale(proj->vtsqpar, 1.0/s->info.mass);
-  }
-  if (!proj->tempperp_from_file) {
-    gkyl_proj_on_basis_advance(proj->proj_tempperp, tm, &app->local, proj->vtsqperp);
-    gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
-  }
+  project_moment_if_needed(proj->dens_from_file, proj->proj_dens,
+    tm, &app->local, proj->dens, 1.0);
+  project_moment_if_needed(proj->upar_from_file, proj->proj_upar,
+    tm, &app->local, proj->upar, 1.0);
+  project_moment_if_needed(proj->temppar_from_file, proj->proj_temppar,
+    tm, &app->local, proj->vtsqpar, 1.0/s->info.mass);
+  project_moment_if_needed(proj->tempperp_from_file, proj->proj_tempperp,
+    tm, &app->local, proj->vtsqperp, 1.0/s->info.mass);
 
   // proj_bimaxwellian expects the primitive moments as a single array.
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
