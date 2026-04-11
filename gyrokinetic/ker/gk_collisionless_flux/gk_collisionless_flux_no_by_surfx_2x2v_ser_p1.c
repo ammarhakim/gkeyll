@@ -50,14 +50,14 @@ GKYL_CU_DH double gk_collisionless_flux_no_by_surfx_2x2v_ser_p1(
   double JfR_quad = 0.0; 
   double Jfavg_quad = 0.0; 
   double Jfjump_quad = 0.0; 
-  double mvpar_quad[3] = {0.0}; 
-  mvpar_quad[0] = (0.8164965809277261*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1]; 
-  mvpar_quad[1] = (0.49999999999999994*hamil[2])/vmap[1]; 
-  mvpar_quad[2] = (0.8164965809277261*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1]; 
+  double dHdvpar_quad[3] = {0.0}; 
+  dHdvpar_quad[0] = (0.8164965809277261*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1]; 
+  dHdvpar_quad[1] = (0.49999999999999994*hamil[2])/vmap[1]; 
+  dHdvpar_quad[2] = (0.8164965809277261*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1]; 
   double mvparsq_quad[3] = {0.0}; 
-  mvparsq_quad[0] = mvpar_quad[0]*mvpar_quad[0]/m_; 
-  mvparsq_quad[1] = mvpar_quad[1]*mvpar_quad[1]/m_; 
-  mvparsq_quad[2] = mvpar_quad[2]*mvpar_quad[2]/m_; 
+  mvparsq_quad[0] = dHdvpar_quad[0]*dHdvpar_quad[0]/m_; 
+  mvparsq_quad[1] = dHdvpar_quad[1]*dHdvpar_quad[1]/m_; 
+  mvparsq_quad[2] = dHdvpar_quad[2]*dHdvpar_quad[2]/m_; 
 
   bmag_quad = gkdgs[0].bmag; 
   Jc_quad = gkdgs[0].Jc; 

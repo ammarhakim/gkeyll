@@ -47,14 +47,14 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   double JfR_quad = 0.0; 
   double Jfavg_quad = 0.0; 
   double Jfjump_quad = 0.0; 
-  double mvpar_quad[3] = {0.0}; 
-  mvpar_quad[0] = (0.8164965809277261*(0.8660254037844386*hamil[1]-2.5980762113533156*hamil[4]))/vmap[1]; 
-  mvpar_quad[1] = (0.7071067811865476*hamil[1])/vmap[1]; 
-  mvpar_quad[2] = (0.8164965809277261*(2.5980762113533156*hamil[4]+0.8660254037844386*hamil[1]))/vmap[1]; 
+  double dHdvpar_quad[3] = {0.0}; 
+  dHdvpar_quad[0] = (0.8164965809277261*(0.8660254037844386*hamil[1]-2.5980762113533156*hamil[4]))/vmap[1]; 
+  dHdvpar_quad[1] = (0.7071067811865476*hamil[1])/vmap[1]; 
+  dHdvpar_quad[2] = (0.8164965809277261*(2.5980762113533156*hamil[4]+0.8660254037844386*hamil[1]))/vmap[1]; 
   double mvparsq_quad[3] = {0.0}; 
-  mvparsq_quad[0] = mvpar_quad[0]*mvpar_quad[0]/m_; 
-  mvparsq_quad[1] = mvpar_quad[1]*mvpar_quad[1]/m_; 
-  mvparsq_quad[2] = mvpar_quad[2]*mvpar_quad[2]/m_; 
+  mvparsq_quad[0] = dHdvpar_quad[0]*dHdvpar_quad[0]/m_; 
+  mvparsq_quad[1] = dHdvpar_quad[1]*dHdvpar_quad[1]/m_; 
+  mvparsq_quad[2] = dHdvpar_quad[2]*dHdvpar_quad[2]/m_; 
 
   bmag_quad = gkdgs[0].bmag; 
   Jc_quad = gkdgs[0].Jc; 
@@ -66,7 +66,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   area_elem_quad = dgs[0].area_elem; 
 
 
-  alpha_quad = (mvpar_quad[0]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[0]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
@@ -77,7 +77,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[0] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
 
-  alpha_quad = (mvpar_quad[1]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[1]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
@@ -88,7 +88,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[1] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
 
-  alpha_quad = (mvpar_quad[2]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[2]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
@@ -99,7 +99,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[2] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
 
-  alpha_quad = (mvpar_quad[0]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[0]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
@@ -110,7 +110,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[3] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
 
-  alpha_quad = (mvpar_quad[1]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[1]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
@@ -121,7 +121,7 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_surfx_1x2v_ser_p1(
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[4] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
 
-  alpha_quad = (mvpar_quad[2]*B3_quad/(m_*bmag_quad)); 
+  alpha_quad = (dHdvpar_quad[2]*B3_quad/(m_*bmag_quad)); 
   alpha_quad += mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_); 
   alpha_quad = alpha_quad * area_elem_quad/Jc_quad; 
 
