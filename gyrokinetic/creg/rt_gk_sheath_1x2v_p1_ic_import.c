@@ -714,7 +714,7 @@ main(int argc, char **argv)
     .ctx_temp = &ctx,
   };
   app_inp.field.init_from_file = field_import;
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", "rt_gk_sheath_1x2v_p1_ic_import_max_import");
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   run_inp.app_inp = app_inp;
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
@@ -749,18 +749,18 @@ main(int argc, char **argv)
    *
     #1) Maxwellian moments: electron, imported vs initial_conditions.
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_MaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-elc_MaxwellianMoments_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-elc_MaxwellianMoments_0.gkyl \
           interp pl -f0 --title "Elc Maxwellian moments: initial vs max_import" &
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_MaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-elc_MaxwellianMoments_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-elc_MaxwellianMoments_0.gkyl \
           interp ev "f[0] f[1] - f[0] /" pl --title "Elc Maxwellian moments: relative error" &
    
     #2) Ion per-moment import: density (M0), max_import vs initial_conditions.
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_M0_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-ion_M0_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-ion_M0_0.gkyl \
           interp pl -f0 --title "Ion M0: initial vs max_import" &
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_M0_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-ion_M0_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-ion_M0_0.gkyl \
           interp ev "f[0] f[1] - f[0] /" pl --title "Ion M0: relative error" &
    
     #3) BiMaxwellian moments: electron and ion, bimax_import vs initial_conditions.
@@ -780,10 +780,10 @@ main(int argc, char **argv)
    
     #4) Field import: max_import vs initial_conditions.
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-field_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-field_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-field_0.gkyl \
           interp pl -f0 --title "Field: initial vs max_import" &
     pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-field_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_max_import-field_0.gkyl \
+          rt_gk_sheath_1x2v_p1_ic_import-field_0.gkyl \
           interp ev "f[0] f[1] - f[0] /" pl --title "Field: relative error" &
    */
 
