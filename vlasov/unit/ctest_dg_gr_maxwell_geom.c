@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_bc_basic.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -30,6 +31,39 @@ static inline void
 log_to_comp(int ndim, const double *eta, const double *dx, const double *xc, double *xout)
 {
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d] + xc[d];
+}
+
+struct skin_ghost_ranges {
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+};
+
+static void
+skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
+{
+  int ndim = parent->ndim;
+  for (int d=0; d<ndim; ++d) {
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d,
+      GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d,
+      GKYL_UPPER_EDGE, parent, ghost);
+  }
+}
+
+static void
+apply_expected_theta_pole_bc_cell(const struct gkyl_basis *basis, const double *skin, double *ghost)
+{
+  int dir = 1, nbasis = basis->num_basis;
+
+  basis->flip_odd_sign(dir,  &skin[nbasis*0], &ghost[nbasis*0]);
+  basis->flip_even_sign(dir, &skin[nbasis*1], &ghost[nbasis*1]);
+  basis->flip_odd_sign(dir,  &skin[nbasis*2], &ghost[nbasis*2]);
+  basis->flip_odd_sign(dir,  &skin[nbasis*3], &ghost[nbasis*3]);
+  basis->flip_even_sign(dir, &skin[nbasis*4], &ghost[nbasis*4]);
+  basis->flip_odd_sign(dir,  &skin[nbasis*5], &ghost[nbasis*5]);
 }
 
 void field_init_func(double t, const double *xn, double* restrict fout, void *ctx)
@@ -114,6 +148,10 @@ static const double JBtheta_ref[4][4] = {
   {+2.0445592598257387e+00, +2.3608536780690687e-01, +3.8720225028423155e-01, +4.4710264686485979e-02},
   {+2.0445592598257387e+00, +2.3608536780690687e-01, -3.8720225028423133e-01, -4.4710264686486034e-02},
   {+4.5544074017426045e-01, +5.2589766787906451e-02, -3.8720225028423166e-01, -4.4710264686486104e-02}
+};
+
+static const char *em_comp_names[8] = {
+  "Dr", "Dtheta", "Dphi", "Br", "Btheta", "Bphi", "phi", "psi"
 };
 
 void
@@ -590,10 +628,131 @@ test_ks_r_theta_2x_geom_p1()
       TEST_CHECK(gkyl_compare_double(JBphi[k],   0.0,                 1e-12));
     }
   }
-    
+
+  
+  // (TEST III) Boundary Conditions
+  struct skin_ghost_ranges conf_skin_ghost;
+  skin_ghost_ranges_init(&conf_skin_ghost, &confLocal_ext, confGhost);
+
+  long bc_buff_sz = 0;
+  for (int d=0; d<cdim; ++d) {
+    if (conf_skin_ghost.lower_skin[d].volume > bc_buff_sz) bc_buff_sz = conf_skin_ghost.lower_skin[d].volume;
+    if (conf_skin_ghost.upper_skin[d].volume > bc_buff_sz) bc_buff_sz = conf_skin_ghost.upper_skin[d].volume;
+  }
+
+  struct gkyl_range radial_ghost_lo, radial_ghost_up;
+  int radial_ghost_lo_lower[] = { confLocal_ext.lower[0], confLocal.lower[1] };
+  int radial_ghost_lo_upper[] = { confLocal.lower[0]-1, confLocal.upper[1] };
+  int radial_ghost_up_lower[] = { confLocal.upper[0]+1, confLocal.lower[1] };
+  int radial_ghost_up_upper[] = { confLocal_ext.upper[0], confLocal.upper[1] };
+  gkyl_sub_range_init(&radial_ghost_lo, &confLocal_ext, radial_ghost_lo_lower, radial_ghost_lo_upper);
+  gkyl_sub_range_init(&radial_ghost_up, &confLocal_ext, radial_ghost_up_lower, radial_ghost_up_upper);
+
+  struct gkyl_array *field_with_J_radial_init = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *field_no_J_radial_init = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_clear(field_with_J_radial_init, 0.0);
+  gkyl_array_clear(field_no_J_radial_init, 0.0);
+
+  gkyl_proj_on_basis *proj_radial_ghost = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1,
+    8, field_init_func, &ctx);
+  gkyl_proj_on_basis_advance(proj_radial_ghost, 0.0, &radial_ghost_lo, field_with_J_radial_init);
+  gkyl_proj_on_basis_advance(proj_radial_ghost, 0.0, &radial_ghost_up, field_with_J_radial_init);
+  gkyl_proj_on_basis_release(proj_radial_ghost);
+
+  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_lo, det_h->nodal_arr_vol,
+    field_with_J_radial_init, field_no_J_radial_init, false);
+  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_up, det_h->nodal_arr_vol,
+    field_with_J_radial_init, field_no_J_radial_init, false);
+
+  struct gkyl_array *field_no_J_fixed = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bc_buffer = mkarr(field_no_J_con->ncomp, bc_buff_sz);
+  struct gkyl_array *bc_buffer_lo_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.lower_ghost[0].volume);
+  struct gkyl_array *bc_buffer_up_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.upper_ghost[0].volume);
+  struct gkyl_bc_basic *bc_lo[GKYL_MAX_DIM] = { 0 }, *bc_up[GKYL_MAX_DIM] = { 0 };
+
+  // Compute the boundary updaters. Radial boundaries are fixed from the initial field,
+  // while theta boundaries use the usual theta-pole condition.
+  bc_lo[0] = gkyl_bc_basic_new(0, GKYL_LOWER_EDGE, GKYL_BC_FIXED_FUNC, &confBasis,
+    &conf_skin_ghost.lower_skin[0], &conf_skin_ghost.lower_ghost[0], field_no_J_con->ncomp, cdim, false);
+  bc_up[0] = gkyl_bc_basic_new(0, GKYL_UPPER_EDGE, GKYL_BC_FIXED_FUNC, &confBasis,
+    &conf_skin_ghost.upper_skin[0], &conf_skin_ghost.upper_ghost[0], field_no_J_con->ncomp, cdim, false);
+  bc_lo[1] = gkyl_bc_basic_new(1, GKYL_LOWER_EDGE, GKYL_BC_MAXWELL_THETA_POLE, &confBasis,
+    &conf_skin_ghost.lower_skin[1], &conf_skin_ghost.lower_ghost[1], field_no_J_con->ncomp, cdim, false);
+  bc_up[1] = gkyl_bc_basic_new(1, GKYL_UPPER_EDGE, GKYL_BC_MAXWELL_THETA_POLE, &confBasis,
+    &conf_skin_ghost.upper_skin[1], &conf_skin_ghost.upper_ghost[1], field_no_J_con->ncomp, cdim, false);
+
+  gkyl_array_copy(field_no_J_fixed, field_no_J_con);
+
+  // Seed the fixed-function radial buffers from the projected radial ghost data
+  // with the configuration-space Jacobian divided out.
+  gkyl_array_copy_to_buffer(bc_buffer_lo_fixed->data, field_no_J_radial_init, &radial_ghost_lo);
+  gkyl_array_copy_to_buffer(bc_buffer_up_fixed->data, field_no_J_radial_init, &radial_ghost_up);
+
+  // Update the boundary.
+  gkyl_bc_basic_advance(bc_lo[0], bc_buffer_lo_fixed, field_no_J_fixed);
+  gkyl_bc_basic_advance(bc_up[0], bc_buffer_up_fixed, field_no_J_fixed);
+  gkyl_bc_basic_advance(bc_lo[1], bc_buffer, field_no_J_fixed);
+  gkyl_bc_basic_advance(bc_up[1], bc_buffer, field_no_J_fixed);
+
+  struct gkyl_range *radial_ghost_ranges[] = { &radial_ghost_lo, &radial_ghost_up };
+  const char *radial_ghost_labels[] = { "lower", "upper" };
+  for (int rg=0; rg<2; ++rg) {
+    gkyl_range_iter_init(&iter, radial_ghost_ranges[rg]);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&confLocal_ext, iter.idx);
+      const double *expected = gkyl_array_cfetch(field_no_J_radial_init, lidx);
+      const double *actual = gkyl_array_cfetch(field_no_J_fixed, lidx);
+
+      //printf("(TEST III) Radial %s fixed ghost cell (%d,%d)\n",
+      //  radial_ghost_labels[rg], iter.idx[0], iter.idx[1]);
+
+      for (int c=0; c<8; ++c) {
+        for (int m=0; m<confBasis.num_basis; ++m) {
+          int k = c*confBasis.num_basis + m;
+          //printf("  %s mode %d: fixed_bc=% .16e, expected_init_no_J=% .16e\n",
+          //  em_comp_names[c], m, actual[k], expected[k]);
+          TEST_CHECK(gkyl_compare_double(actual[k], expected[k], 1e-12));
+        }
+      }
+    }
+  }
+
+  // Theta boundary condition. Check against direct sign flips of the inner most cell.
+  for (int ir=confLocal.lower[0]; ir<=confLocal.upper[0]; ++ir) {
+    int idx_skin_lo[] = { ir, confLocal.lower[1] };
+    int idx_ghost_lo[] = { ir, confLocal.lower[1]-1 };
+    int idx_skin_up[] = { ir, confLocal.upper[1] };
+    int idx_ghost_up[] = { ir, confLocal.upper[1]+1 };
+    double expected_lo[8*4] = { 0.0 }, expected_up[8*4] = { 0.0 };
+
+    apply_expected_theta_pole_bc_cell(&confBasis,
+      gkyl_array_cfetch(field_no_J_fixed, gkyl_range_idx(&confLocal_ext, idx_skin_lo)), expected_lo);
+    apply_expected_theta_pole_bc_cell(&confBasis,
+      gkyl_array_cfetch(field_no_J_fixed, gkyl_range_idx(&confLocal_ext, idx_skin_up)), expected_up);
+
+    const double *actual_lo = gkyl_array_cfetch(field_no_J_fixed, gkyl_range_idx(&confLocal_ext, idx_ghost_lo));
+    const double *actual_up = gkyl_array_cfetch(field_no_J_fixed, gkyl_range_idx(&confLocal_ext, idx_ghost_up));
+
+    for (int k=0; k<6*confBasis.num_basis; ++k) {
+      TEST_CHECK(gkyl_compare_double(actual_lo[k], expected_lo[k], 1e-12));
+      TEST_CHECK(gkyl_compare_double(actual_up[k], expected_up[k], 1e-12));
+    }
+  }
+
+  gkyl_array_release(field_with_J_radial_init);
+  gkyl_array_release(field_no_J_radial_init);
+  gkyl_array_release(bc_buffer_lo_fixed);
+  gkyl_array_release(bc_buffer_up_fixed);
+
+  for (int d=0; d<cdim; ++d) {
+    gkyl_bc_basic_release(bc_lo[d]);
+    gkyl_bc_basic_release(bc_up[d]);
+  }
+  gkyl_array_release(bc_buffer);
 
 
-  // (TEST III) Configuration space flux and maximum eigenvalue calculation
+
+  // (TEST IV) Configuration space flux and maximum eigenvalue calculation
   // Compute the x-surface
   int theta_pole_lo[3] = {0,1,0};
   struct gkyl_array *conf_flux_surf = mkarr(cdim*8*num_surf_nodes, confLocal_ext.volume);
@@ -608,7 +767,8 @@ test_ks_r_theta_2x_geom_p1()
     double xcC[GKYL_MAX_DIM], xcR[GKYL_MAX_DIM];
     gkyl_rect_grid_cell_center(&confGrid, idx, xcC);
 
-    const double *field_no_J_con_c = gkyl_array_cfetch(field_no_J_con, cidx); 
+    const double *field_no_J_con_c = gkyl_array_cfetch(field_no_J_fixed, cidx); 
+    const double *field_con_c = gkyl_array_cfetch(field_with_J_con, cidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, cidx);
     double *flux = gkyl_array_fetch(conf_flux_surf, cidx); 
 
@@ -645,7 +805,8 @@ test_ks_r_theta_2x_geom_p1()
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
       long cidx_l = gkyl_range_idx(&confLocal, idx_l); 
-      const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_con, cidx_l);
+      const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_fixed, cidx_l);
+      const double *field_con_l = gkyl_array_cfetch(field_with_J_con, cidx_l); 
 
       // For Points not along the domain-edge in theta, compute the left hand surface 
       // conf-flux.
@@ -680,6 +841,194 @@ test_ks_r_theta_2x_geom_p1()
         double cflrate = lax_flux_nodal_to_modal_y_2x_ser_p1(confGrid.dx, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
           field_no_J_con_l, field_no_J_con_c, flux); 
       }
+
+      // Dir = 0 comparison
+      if (dir == 0) { 
+        // Compute and check |alpha^i| J_c \Delta U ~ |alpha_i| \Delta Q
+        double Dx_con_l_n[2] = {0.0};
+        double Dy_con_l_n[2] = {0.0};
+        double Dz_con_l_n[2] = {0.0};
+        double Bx_con_l_n[2] = {0.0};
+        double By_con_l_n[2] = {0.0};
+        double Bz_con_l_n[2] = {0.0};
+        double Ex_l_n[2] = {0.0};
+        double Ey_l_n[2] = {0.0};
+        double Ez_l_n[2] = {0.0};
+        double Hx_l_n[2] = {0.0};
+        double Hy_l_n[2] = {0.0};
+        double Hz_l_n[2] = {0.0};
+
+        double Dx_con_r_n[2] = {0.0};
+        double Dy_con_r_n[2] = {0.0};
+        double Dz_con_r_n[2] = {0.0};
+        double Bx_con_r_n[2] = {0.0};
+        double By_con_r_n[2] = {0.0};
+        double Bz_con_r_n[2] = {0.0};
+        double Ex_r_n[2] = {0.0};
+        double Ey_r_n[2] = {0.0};
+        double Ez_r_n[2] = {0.0};
+        double Hx_r_n[2] = {0.0};
+        double Hy_r_n[2] = {0.0};
+        double Hz_r_n[2] = {0.0};
+
+        double JDx_con_l_n[2] = {0.0};
+        double JDy_con_l_n[2] = {0.0};
+        double JDz_con_l_n[2] = {0.0};
+        double JBx_con_l_n[2] = {0.0};
+        double JBy_con_l_n[2] = {0.0};
+        double JBz_con_l_n[2] = {0.0};
+        double JEx_l_n[2] = {0.0};
+        double JEy_l_n[2] = {0.0};
+        double JEz_l_n[2] = {0.0};
+        double JHx_l_n[2] = {0.0};
+        double JHy_l_n[2] = {0.0};
+        double JHz_l_n[2] = {0.0};
+
+        double JDx_con_r_n[2] = {0.0};
+        double JDy_con_r_n[2] = {0.0};
+        double JDz_con_r_n[2] = {0.0};
+        double JBx_con_r_n[2] = {0.0};
+        double JBy_con_r_n[2] = {0.0};
+        double JBz_con_r_n[2] = {0.0};
+        double JEx_r_n[2] = {0.0};
+        double JEy_r_n[2] = {0.0};
+        double JEz_r_n[2] = {0.0};
+        double JHx_r_n[2] = {0.0};
+        double JHy_r_n[2] = {0.0};
+        double JHz_r_n[2] = {0.0};
+        
+        const double *Dx_l = &field_no_J_con_l[0]; 
+        const double *Dy_l = &field_no_J_con_l[4]; 
+        const double *Dz_l = &field_no_J_con_l[8]; 
+        const double *Bx_l = &field_no_J_con_l[12]; 
+        const double *By_l = &field_no_J_con_l[16]; 
+        const double *Bz_l = &field_no_J_con_l[20]; 
+        
+        Dx_con_l_n[0] = -(0.8660254037844386*Dx_l[3])-0.5*Dx_l[2]+0.8660254037844386*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_l_n[0] = -(0.8660254037844386*Dy_l[3])-0.5*Dy_l[2]+0.8660254037844386*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_l_n[0] = -(0.8660254037844386*Dz_l[3])-0.5*Dz_l[2]+0.8660254037844386*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_l_n[0] = -(0.8660254037844386*Bx_l[3])-0.5*Bx_l[2]+0.8660254037844386*Bx_l[1]+0.5*Bx_l[0];
+        By_con_l_n[0] = -(0.8660254037844386*By_l[3])-0.5*By_l[2]+0.8660254037844386*By_l[1]+0.5*By_l[0];
+        Bz_con_l_n[0] = -(0.8660254037844386*Bz_l[3])-0.5*Bz_l[2]+0.8660254037844386*Bz_l[1]+0.5*Bz_l[0];
+        
+        Dx_con_l_n[1] = 0.8660254037844386*Dx_l[3]+0.5*Dx_l[2]+0.8660254037844386*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_l_n[1] = 0.8660254037844386*Dy_l[3]+0.5*Dy_l[2]+0.8660254037844386*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_l_n[1] = 0.8660254037844386*Dz_l[3]+0.5*Dz_l[2]+0.8660254037844386*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_l_n[1] = 0.8660254037844386*Bx_l[3]+0.5*Bx_l[2]+0.8660254037844386*Bx_l[1]+0.5*Bx_l[0];
+        By_con_l_n[1] = 0.8660254037844386*By_l[3]+0.5*By_l[2]+0.8660254037844386*By_l[1]+0.5*By_l[0];
+        Bz_con_l_n[1] = 0.8660254037844386*Bz_l[3]+0.5*Bz_l[2]+0.8660254037844386*Bz_l[1]+0.5*Bz_l[0];
+
+        const double *Dx_r = &field_no_J_con_c[0]; 
+        const double *Dy_r = &field_no_J_con_c[4]; 
+        const double *Dz_r = &field_no_J_con_c[8]; 
+        const double *Bx_r = &field_no_J_con_c[12]; 
+        const double *By_r = &field_no_J_con_c[16]; 
+        const double *Bz_r = &field_no_J_con_c[20]; 
+        
+        Dx_con_r_n[0] = 0.8660254037844386*Dx_r[3]-0.5*Dx_r[2]-0.8660254037844386*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_r_n[0] = 0.8660254037844386*Dy_r[3]-0.5*Dy_r[2]-0.8660254037844386*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_r_n[0] = 0.8660254037844386*Dz_r[3]-0.5*Dz_r[2]-0.8660254037844386*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_r_n[0] = 0.8660254037844386*Bx_r[3]-0.5*Bx_r[2]-0.8660254037844386*Bx_r[1]+0.5*Bx_r[0];
+        By_con_r_n[0] = 0.8660254037844386*By_r[3]-0.5*By_r[2]-0.8660254037844386*By_r[1]+0.5*By_r[0];
+        Bz_con_r_n[0] = 0.8660254037844386*Bz_r[3]-0.5*Bz_r[2]-0.8660254037844386*Bz_r[1]+0.5*Bz_r[0];
+        
+        Dx_con_r_n[1] = -(0.8660254037844386*Dx_r[3])+0.5*Dx_r[2]-0.8660254037844386*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_r_n[1] = -(0.8660254037844386*Dy_r[3])+0.5*Dy_r[2]-0.8660254037844386*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_r_n[1] = -(0.8660254037844386*Dz_r[3])+0.5*Dz_r[2]-0.8660254037844386*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_r_n[1] = -(0.8660254037844386*Bx_r[3])+0.5*Bx_r[2]-0.8660254037844386*Bx_r[1]+0.5*Bx_r[0];
+        By_con_r_n[1] = -(0.8660254037844386*By_r[3])+0.5*By_r[2]-0.8660254037844386*By_r[1]+0.5*By_r[0];
+        Bz_con_r_n[1] = -(0.8660254037844386*Bz_r[3])+0.5*Bz_r[2]-0.8660254037844386*Bz_r[1]+0.5*Bz_r[0];
+
+        const double *JDx_l = &field_con_l[0]; 
+        const double *JDy_l = &field_con_l[4]; 
+        const double *JDz_l = &field_con_l[8]; 
+        const double *JBx_l = &field_con_l[12]; 
+        const double *JBy_l = &field_con_l[16]; 
+        const double *JBz_l = &field_con_l[20]; 
+        
+        JDx_con_l_n[0] = -(0.8660254037844386*JDx_l[3])-0.5*JDx_l[2]+0.8660254037844386*JDx_l[1]+0.5*JDx_l[0];
+        JDy_con_l_n[0] = -(0.8660254037844386*JDy_l[3])-0.5*JDy_l[2]+0.8660254037844386*JDy_l[1]+0.5*JDy_l[0];
+        JDz_con_l_n[0] = -(0.8660254037844386*JDz_l[3])-0.5*JDz_l[2]+0.8660254037844386*JDz_l[1]+0.5*JDz_l[0];
+        JBx_con_l_n[0] = -(0.8660254037844386*JBx_l[3])-0.5*JBx_l[2]+0.8660254037844386*JBx_l[1]+0.5*JBx_l[0];
+        JBy_con_l_n[0] = -(0.8660254037844386*JBy_l[3])-0.5*JBy_l[2]+0.8660254037844386*JBy_l[1]+0.5*JBy_l[0];
+        JBz_con_l_n[0] = -(0.8660254037844386*JBz_l[3])-0.5*JBz_l[2]+0.8660254037844386*JBz_l[1]+0.5*JBz_l[0];
+        
+        JDx_con_l_n[1] = 0.8660254037844386*JDx_l[3]+0.5*JDx_l[2]+0.8660254037844386*JDx_l[1]+0.5*JDx_l[0];
+        JDy_con_l_n[1] = 0.8660254037844386*JDy_l[3]+0.5*JDy_l[2]+0.8660254037844386*JDy_l[1]+0.5*JDy_l[0];
+        JDz_con_l_n[1] = 0.8660254037844386*JDz_l[3]+0.5*JDz_l[2]+0.8660254037844386*JDz_l[1]+0.5*JDz_l[0];
+        JBx_con_l_n[1] = 0.8660254037844386*JBx_l[3]+0.5*JBx_l[2]+0.8660254037844386*JBx_l[1]+0.5*JBx_l[0];
+        JBy_con_l_n[1] = 0.8660254037844386*JBy_l[3]+0.5*JBy_l[2]+0.8660254037844386*JBy_l[1]+0.5*JBy_l[0];
+        JBz_con_l_n[1] = 0.8660254037844386*JBz_l[3]+0.5*JBz_l[2]+0.8660254037844386*JBz_l[1]+0.5*JBz_l[0];
+
+        const double *JDx_r = &field_con_c[0]; 
+        const double *JDy_r = &field_con_c[4]; 
+        const double *JDz_r = &field_con_c[8]; 
+        const double *JBx_r = &field_con_c[12]; 
+        const double *JBy_r = &field_con_c[16]; 
+        const double *JBz_r = &field_con_c[20]; 
+        
+        JDx_con_r_n[0] = 0.8660254037844386*JDx_r[3]-0.5*JDx_r[2]-0.8660254037844386*JDx_r[1]+0.5*JDx_r[0];
+        JDy_con_r_n[0] = 0.8660254037844386*JDy_r[3]-0.5*JDy_r[2]-0.8660254037844386*JDy_r[1]+0.5*JDy_r[0];
+        JDz_con_r_n[0] = 0.8660254037844386*JDz_r[3]-0.5*JDz_r[2]-0.8660254037844386*JDz_r[1]+0.5*JDz_r[0];
+        JBx_con_r_n[0] = 0.8660254037844386*JBx_r[3]-0.5*JBx_r[2]-0.8660254037844386*JBx_r[1]+0.5*JBx_r[0];
+        JBy_con_r_n[0] = 0.8660254037844386*JBy_r[3]-0.5*JBy_r[2]-0.8660254037844386*JBy_r[1]+0.5*JBy_r[0];
+        JBz_con_r_n[0] = 0.8660254037844386*JBz_r[3]-0.5*JBz_r[2]-0.8660254037844386*JBz_r[1]+0.5*JBz_r[0];
+        
+        JDx_con_r_n[1] = -(0.8660254037844386*JDx_r[3])+0.5*JDx_r[2]-0.8660254037844386*JDx_r[1]+0.5*JDx_r[0];
+        JDy_con_r_n[1] = -(0.8660254037844386*JDy_r[3])+0.5*JDy_r[2]-0.8660254037844386*JDy_r[1]+0.5*JDy_r[0];
+        JDz_con_r_n[1] = -(0.8660254037844386*JDz_r[3])+0.5*JDz_r[2]-0.8660254037844386*JDz_r[1]+0.5*JDz_r[0];
+        JBx_con_r_n[1] = -(0.8660254037844386*JBx_r[3])+0.5*JBx_r[2]-0.8660254037844386*JBx_r[1]+0.5*JBx_r[0];
+        JBy_con_r_n[1] = -(0.8660254037844386*JBy_r[3])+0.5*JBy_r[2]-0.8660254037844386*JBy_r[1]+0.5*JBy_r[0];
+        JBz_con_r_n[1] = -(0.8660254037844386*JBz_r[3])+0.5*JBz_r[2]-0.8660254037844386*JBz_r[1]+0.5*JBz_r[0];
+
+        // Compute the two different Jumps
+        // Iterate over nodes
+        double a_Jc_dU[12]; 
+        double a_dQ[12]; 
+        double Q_mag[12]; 
+        for (int j = 0; j<2; ++j) {
+          a_Jc_dU[0 + j] = alpha_quad_x[j] * det_h_d[j] * ( Dx_con_r_n[j] - Dx_con_l_n[j] ); 
+          a_Jc_dU[2 + j] = alpha_quad_x[j] * det_h_d[j] * ( Dy_con_r_n[j] - Dy_con_l_n[j] ); 
+          a_Jc_dU[4 + j] = alpha_quad_x[j] * det_h_d[j] * ( Dz_con_r_n[j] - Dz_con_l_n[j] ); 
+          a_Jc_dU[6 + j] = alpha_quad_x[j] * det_h_d[j] * ( Bx_con_r_n[j] - Bx_con_l_n[j] ); 
+          a_Jc_dU[8 + j] = alpha_quad_x[j] * det_h_d[j] * ( By_con_r_n[j] - By_con_l_n[j] ); 
+          a_Jc_dU[10 + j] = alpha_quad_x[j] * det_h_d[j] * ( Bz_con_r_n[j] - Bz_con_l_n[j] ); 
+          a_dQ[0 + j] = alpha_quad_x[j] * ( JDx_con_r_n[j] - JDx_con_l_n[j] ); 
+          a_dQ[2 + j] = alpha_quad_x[j] * ( JDy_con_r_n[j] - JDy_con_l_n[j] ); 
+          a_dQ[4 + j] = alpha_quad_x[j] * ( JDz_con_r_n[j] - JDz_con_l_n[j] ); 
+          a_dQ[6 + j] = alpha_quad_x[j] * ( JBx_con_r_n[j] - JBx_con_l_n[j] ); 
+          a_dQ[8 + j] = alpha_quad_x[j] * ( JBy_con_r_n[j] - JBy_con_l_n[j] ); 
+          a_dQ[10 + j] = alpha_quad_x[j] * ( JBz_con_r_n[j] - JBz_con_l_n[j] ); 
+          Q_mag[0 + j] = ( JDx_con_r_n[j] ); 
+          Q_mag[2 + j] = ( JDy_con_r_n[j] ); 
+          Q_mag[4 + j] = ( JDz_con_r_n[j] ); 
+          Q_mag[6 + j] = ( JBx_con_r_n[j] ); 
+          Q_mag[8 + j] = ( JBy_con_r_n[j] ); 
+          Q_mag[10 + j] = ( JBz_con_r_n[j] ); 
+        }
+
+        // print the comparison in the Jumps
+        for (int j = 0; j<12; ++j) {
+          printf("(Q_ref[%d] = %1.16e) a_Jc_dU[%d]: %1.16e, a_dQ[%d]: %1.16e\n",j,Q_mag[j],j,a_Jc_dU[j], j, a_dQ[j]);
+        }
+      }
+
+      // Check the charateristic speeds at quadratures
+      if (dir == 0) {
+        for (int j = 0; j<2; ++j) {
+          
+          // Eigenvalues at the inner radial boundary are [0.0, -1.0, and -0.33], so |alpha| is 1:
+          //printf("[X] alpha(Node: %d): alpha: %1.16e \n",j,alpha_quad_x[j]);
+          TEST_CHECK(gkyl_compare_double(alpha_quad_x[j], 1.0, 1e-12));
+
+          // Check the field components are properly computed.
+          for (int i = 0; i<6; ++i) { 
+            //printf("[X] Field(Comp: %d, Node: %d): Field_l: %1.16e, Field_r: %1.16e \n",i,j, field_no_J_con_l[j + i*2], field_no_J_con_c[j + i*2]);
+            //printf("[X] Field(Comp: %d, Node: %d): Field_l: %1.16e, Field_r: %1.16e \n",i,j, field_no_J_con_l[j + i*2], field_no_J_con_c[j + i*2]);
+            //printf("[X] Flux(Comp: %d, Node: %d): flux_l: %1.16e, flux_r: %1.16e \n",i,j, flux_l_x[j + i*2], flux_r_x[j + i*2]);
+          }
+        }
+      }
     }
   }
 
@@ -695,6 +1044,9 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_array_release(field_no_J_con);
   gkyl_array_release(conf_flux_surf);
   gkyl_array_release(cflrate);
+
+  // Release fields
+  gkyl_array_release(field_no_J_fixed);
 
 }
 

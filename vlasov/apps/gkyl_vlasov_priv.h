@@ -612,6 +612,8 @@ struct vm_field {
       struct gkyl_array *em, *em1, *emnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
       struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+      struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3]; // fixed buffers for time independent BCs
+      struct gkyl_array *bc_buffer_lo_fixed_no_J[3], *bc_buffer_up_fixed_no_J[3]; // fixed buffers for GR fields without Jc
 
       struct gkyl_array *em_host;  // host copy for use IO and initialization
 
@@ -1760,6 +1762,14 @@ void vm_field_accumulate_current(gkyl_vlasov_app *app,
  * @param em Input (and Output after limiting) EM fields
  */
 void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em);
+
+/**
+ * Seed fixed-function field BC buffers from the stored field state.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ */
+void vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field);
 
 /**
  * Compute RHS from field equations

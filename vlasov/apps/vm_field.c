@@ -9,6 +9,44 @@
 #include <float.h>
 #include <time.h>
 
+static bool
+vm_field_is_fixed_func_bc(const struct vm_field *field, int d)
+{
+  return field->lower_bc[d] == GKYL_FIELD_FIXED_FUNC || field->upper_bc[d] == GKYL_FIELD_FIXED_FUNC;
+}
+
+void
+vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  bool has_fixed_func_bc = false;
+  for (int d=0; d<app->cdim; ++d)
+    has_fixed_func_bc = has_fixed_func_bc || vm_field_is_fixed_func_bc(field, d);
+
+  if (!has_fixed_func_bc)
+    return;
+
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h->nodal_arr_vol,
+      field->em, field->em_no_J, app->use_gpu);
+  }
+
+  for (int d=0; d<app->cdim; ++d) {
+    if (field->lower_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      gkyl_array_copy_to_buffer(field->bc_buffer_lo_fixed[d]->data, field->em, &app->lower_ghost[d]);
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy_to_buffer(field->bc_buffer_lo_fixed_no_J[d]->data, field->em_no_J, &app->lower_ghost[d]);
+      }
+    }
+
+    if (field->upper_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      gkyl_array_copy_to_buffer(field->bc_buffer_up_fixed[d]->data, field->em, &app->upper_ghost[d]);
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy_to_buffer(field->bc_buffer_up_fixed_no_J[d]->data, field->em_no_J, &app->upper_ghost[d]);
+      }
+    }
+  }
+}
+
 // initialize field object
 struct vm_field* 
 vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
@@ -17,6 +55,10 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   f->info = vm->field;
   f->field_id = f->info.field_id;
+  for (int d=0; d<3; ++d) {
+    f->bc_buffer_lo_fixed[d] = f->bc_buffer_up_fixed[d] = 0;
+    f->bc_buffer_lo_fixed_no_J[d] = f->bc_buffer_up_fixed_no_J[d] = 0;
+  }
 
   // Acquire the geometry object (only used for GR)
   if ( f->field_id == GKYL_FIELD_GR_D_B ){
@@ -231,6 +273,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
+    else if (f->lower_bc[d] == GKYL_FIELD_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
     else if (f->lower_bc[d] == GKYL_FIELD_THETA_POLE)
       bctype = GKYL_BC_MAXWELL_THETA_POLE;
 
@@ -246,10 +290,25 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
+    else if (f->upper_bc[d] == GKYL_FIELD_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
     else if (f->upper_bc[d] == GKYL_FIELD_THETA_POLE)
       bctype = GKYL_BC_MAXWELL_THETA_POLE;
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
+
+    if (f->lower_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      f->bc_buffer_lo_fixed[d] = mkarr(app->use_gpu, f->em->ncomp, app->lower_ghost[d].volume);
+      if (f->field_id == GKYL_FIELD_GR_D_B) {
+        f->bc_buffer_lo_fixed_no_J[d] = mkarr(app->use_gpu, f->em->ncomp, app->lower_ghost[d].volume);
+      }
+    }
+    if (f->upper_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      f->bc_buffer_up_fixed[d] = mkarr(app->use_gpu, f->em->ncomp, app->upper_ghost[d].volume);
+      if (f->field_id == GKYL_FIELD_GR_D_B) {
+        f->bc_buffer_up_fixed_no_J[d] = mkarr(app->use_gpu, f->em->ncomp, app->upper_ghost[d].volume);
+      }
+    }
   }
 
   gkyl_dg_eqn_release(eqn);
@@ -276,6 +335,7 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   if (app->use_gpu) {
     gkyl_array_copy(field->em, field->em_host);
   }
+  vm_field_buffer_fixed_func_bc(app, field);
   // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
   vm_field_limiter(app, field, field->em);
 
@@ -462,6 +522,11 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
           gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
           break;
 
+        case GKYL_FIELD_FIXED_FUNC:
+          gkyl_bc_basic_advance(field->bc_lo[d],
+            (field->field_id == GKYL_FIELD_GR_D_B && f == field->em_no_J) ? field->bc_buffer_lo_fixed_no_J[d] : field->bc_buffer_lo_fixed[d], f);
+          break;
+
         default:
           break;
       }
@@ -473,6 +538,11 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_THETA_POLE:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
+          break;
+
+        case GKYL_FIELD_FIXED_FUNC:
+          gkyl_bc_basic_advance(field->bc_up[d],
+            (field->field_id == GKYL_FIELD_GR_D_B && f == field->em_no_J) ? field->bc_buffer_up_fixed_no_J[d] : field->bc_buffer_up_fixed[d], f);
           break;
           
         default:
@@ -661,6 +731,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
+    if (f->bc_buffer_lo_fixed[d]) gkyl_array_release(f->bc_buffer_lo_fixed[d]);
+    if (f->bc_buffer_up_fixed[d]) gkyl_array_release(f->bc_buffer_up_fixed[d]);
+    if (f->bc_buffer_lo_fixed_no_J[d]) gkyl_array_release(f->bc_buffer_lo_fixed_no_J[d]);
+    if (f->bc_buffer_up_fixed_no_J[d]) gkyl_array_release(f->bc_buffer_up_fixed_no_J[d]);
     gkyl_bc_basic_release(f->bc_lo[d]);
     gkyl_bc_basic_release(f->bc_up[d]);
   }

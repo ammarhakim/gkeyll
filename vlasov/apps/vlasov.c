@@ -956,8 +956,10 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(app->field->em, app->field->em_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      vm_field_buffer_fixed_func_bc(app, app->field);
       vm_field_apply_bc(app, app->field, app->field->em);
+    }
   }
 
   // Compute external EM field and applied current if present
