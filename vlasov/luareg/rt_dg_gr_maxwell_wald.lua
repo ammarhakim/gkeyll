@@ -1,7 +1,8 @@
 local Vlasov = G0.Vlasov
--- Wald solution referenced from Section 3.2 of the Tetrad-First paper: https://arxiv.org/pdf/2410.02549
--- Axisymmetry in phi, startign from a uniform backgrond B-field
+-- Primary reference: S. S. Komissarov, Electrodynamics of black hole magnetospheres, 2004 (Eqns 101/102)
+-- Axisymmetry in phi, Schwarzschild Wald solution
 -- Also see: K. Parfery et al. Introducing PHAEDRA: a new spectral code for simulations of relativistic magnetospheres
+-- Also see: Wald solution referenced from Section 3.2 of the Tetrad-First paper: https://arxiv.org/pdf/2410.02549
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -14,16 +15,18 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.1 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+t_end = 5.0 -- Final simulation time.
+num_frames = 30 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-massBH = 0.3 -- Mass of the black hole
+massBH = 1.0 -- Mass of the black hole
 spinBH = 0.0 -- Spin parameter, a = J/M, of the black hole ( Kerr-Schild, coordinates , |a| <= M).
+
+B_0 = 1.0 -- Magnetic field amplitude 
 
 vlasovApp = Vlasov.App.new {
   -- Model ID sets Maxwell's Eq type
@@ -50,8 +53,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.8 * massBH, math.pi / 8.0 },
-  upper = { 5.0 * massBH, 7.0 * math.pi / 8.0 },
+  lower = { 1.5 * massBH, 0 },
+  upper = { 5.0 * massBH, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
     
@@ -76,13 +79,14 @@ vlasovApp = Vlasov.App.new {
       local r, theta = xn[1], xn[2]
 
       -- D^i, and B^i (contravaraint components)
-      -- (TODO: Compute the spherical KS initial conditions)
+      -- Even though E_i is non-zero, the vacuum consituitve relations give 
+      -- a non-zero D^\phi component
       local Dr = 0.0 -- Total electric field (r-direction).
       local Dtheta = 0.0 -- Total electric field (theta-direction).
-      local Dphi = 0.0 -- Total electric field (phi-direction).
+      local Dphi = - 2.0 * massBH * B_0 / ( r * r * math.sqrt( 1.0 + 2.0 * massBH / r ) )  -- Total electric field (phi-direction).
     
-      local Br = 0.0 -- Total magnetic field (r-direction).
-      local Btheta = 0.0 -- Total magnetic field (theta-direction).
+      local Br = - B_0 * math.cos(theta) / ( math.sqrt( 1.0 + 2.0 * massBH / r ) )   -- Total magnetic field (r-direction).
+      local Btheta = B_0 * math.sin(theta) / ( r * math.sqrt( 1.0 + 2.0 * massBH / r ) ) -- Total magnetic field (theta-direction).
       local Bphi = 0.0 -- Total magnetic field (phi-direction).
 
       -- Must return conserved variables
@@ -101,9 +105,8 @@ vlasovApp = Vlasov.App.new {
       return JDr, JDtheta, JDphi, JBr, JBtheta, JBphi, 0.0, 0.0
     end,
 
-    -- (TODO: Will need outflow / excision BCs at r = 0, but Copy may be fine since no charateristics escape.)
-    -- (TODO: Theta boundaries need an added (reflecting?) BC that doesn't currently exist )
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- boundary conditions (r-direction).
+    -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs
+    bcx = { G0.FieldBc.bcFixedFunc, G0.FieldBc.bcFixedFunc }, -- boundary conditions (r-direction).
     bcy = { G0.FieldBc.bcThetaPole, G0.FieldBc.bcThetaPole } -- boundary conditions (theta-direction).
   }
 }

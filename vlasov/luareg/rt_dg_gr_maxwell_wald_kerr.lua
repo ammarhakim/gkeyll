@@ -13,7 +13,7 @@ Ntheta = 48 -- Cell count (theta-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.01 -- CFL coefficient.
+cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 5.0 -- Final simulation time.
 num_frames = 30 -- Number of output frames.
