@@ -513,11 +513,35 @@ struct gkyl_fem_parproj_couplex {
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_culinsolver_prob* prob_cu;
   struct gkyl_array *brhs_cu;
-  struct gkyl_fem_parproj_couplex_kernels *kernels_cu;
 #endif
 
   bool use_gpu;  
 };
+
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * Choose the kernels needed for doing the local to global index translation,
+ * assigning LHS matrix elements, RHS source vector elements, and extracking
+ * the soslution from the RHS vector.
+ */
+void
+fem_parproj_couplex_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers);
+
+/**
+ * Assign the right-side vector with the discontinuous (DG) source field
+ * on the NVIDIA GPU.
+ */
+void gkyl_fem_parproj_couplex_set_rhs_cu(struct gkyl_fem_parproj_couplex *up,
+  const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+
+/**
+ * Solve the linear problem
+ * on the NVIDIA GPU.
+ */
+void gkyl_fem_parproj_couplex_solve_cu(struct gkyl_fem_parproj_couplex* up, struct gkyl_array *phiout);
+#endif
 
 GKYL_CU_DH
 static inline int idx_to_inup_ker(const int dim, const int *range_upper, const int *idx) {
@@ -553,8 +577,15 @@ static inline int idx_to_inloup_ker(int dim, const int *range_lower, const int *
 GKYL_CU_D
 static void
 fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers)
+  enum gkyl_fem_parproj_bc_type bctype, bool use_gpu, struct gkyl_fem_parproj_couplex_kernels *kers)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, has_weight_rhs, bctype, kers);
+    return;
+  }
+#endif
+
   // Local-to-global kernel.
   int bckey[1] = {0};
   bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
@@ -623,28 +654,3 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
   else
     kers->get_dirichlet_value = get_dirichlet_value_disabled;
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-/**
- * Choose the kernels needed for doing the local to global index translation,
- * assigning LHS matrix elements, RHS source vector elements, and extracking
- * the soslution from the RHS vector.
- */
-void
-fem_parproj_couplex_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers);
-
-/**
- * Assign the right-side vector with the discontinuous (DG) source field
- * on the NVIDIA GPU.
- */
-void gkyl_fem_parproj_couplex_set_rhs_cu(struct gkyl_fem_parproj_couplex *up,
-  const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
-
-/**
- * Solve the linear problem
- * on the NVIDIA GPU.
- */
-void gkyl_fem_parproj_couplex_solve_cu(struct gkyl_fem_parproj_couplex* up, struct gkyl_array *phiout);
-#endif

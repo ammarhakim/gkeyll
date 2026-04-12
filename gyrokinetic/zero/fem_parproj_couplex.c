@@ -11,12 +11,6 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
 {
   struct gkyl_fem_parproj_couplex *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj_couplex));
 
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
-#endif
-
   up->solve_range = solve_range;
   up->ndim = solve_range->ndim;
   up->num_basis  = basis->num_basis;
@@ -93,12 +87,21 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*perp_range_sub.volume); // Global right side vector.
 
-  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, up->kernels);
+  // Allocate struct holding kernel pointers.
+  struct gkyl_fem_parproj_couplex_kernels *kernels_ho = gkyl_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
+  if (!use_gpu)
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs, bctype, up->kernels_cu);
+  if (use_gpu)
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_couplex_kernels));
 #endif
+
+  // Choose kernels.
+  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, use_gpu, up->kernels);
+
+  // Select kernels for building LHS matrix on host:
+  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, false, kernels_ho);
 
   // We support two cases:
   //  a) No weight, or weight is a single number so we can divide the RHS by it.
@@ -164,11 +167,11 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
       }
 
       int keri = idx_to_inup_ker(up->fem_range.ndim, up->fem_range.upper, up->fem_iter.idx);
-      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+      kernels_ho->l2g[keri](up->num_cells, idx0, up->globalidx);
 
       // Apply the wgt*phi*basis stencil.
       keri = idx_to_inloup_ker(up->fem_range.ndim, up->fem_range.lower, up->fem_range.upper, up->fem_iter.idx);
-      up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[linidx_perp]);
+      kernels_ho->lhsker[keri](wgt_p, up->globalidx, tri[linidx_perp]);
     }
   }
 
@@ -184,6 +187,7 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   for (size_t i=0; i<prob_range.volume; i++)
     gkyl_mat_triples_release(tri[i]);
   gkyl_free(tri);
+  gkyl_free(kernels_ho);
 
   if (weight_left)
     gkyl_array_release(weight_left_ho);
