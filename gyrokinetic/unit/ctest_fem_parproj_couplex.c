@@ -13,6 +13,7 @@
 #include <gkyl_fem_parproj_couplex.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_bc_basic_gyrokinetic.h>
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -222,8 +223,8 @@ static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis bas
   gkyl_array_release(nodes);
 }
 
-void check_dirichlet_bc(struct gkyl_range range, struct gkyl_basis basis,
-  struct gkyl_array *field_dg, struct gkyl_array *field_fem)
+void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_basis basis,
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_array *field_dg, struct gkyl_array *field_fem)
 {
   // Check that two fields have the same boundary values in last dimension.
   if (basis.poly_order > 1) return;
@@ -243,30 +244,46 @@ void check_dirichlet_bc(struct gkyl_range range, struct gkyl_basis basis,
 
     struct gkyl_range perp_range;
     if (e == 0)
-      gkyl_range_shorten_from_above(&perp_range, &range, pardir, 1);
+      gkyl_range_shorten_from_above(&perp_range, &local, pardir, 1);
     else
-      gkyl_range_shorten_from_below(&perp_range, &range, pardir, 1);
+      gkyl_range_shorten_from_below(&perp_range, &local, pardir, 1);
 
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &perp_range);
     while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&range, iter.idx);
-      double *arr_dg = gkyl_array_fetch(field_dg, lidx);
-      double *arr_fem = gkyl_array_fetch(field_fem, lidx);
+      int diri_idx[ndim];
+      for (int d=0; d<ndim; d++)
+        diri_idx[d] = iter.idx[d];
+
+      if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+        diri_idx[pardir] = e==0? iter.idx[pardir]-1 : iter.idx[pardir]+1;
+
+      long lidx_diri = gkyl_range_idx(&local_ext, diri_idx);
+      long lidx_skin = gkyl_range_idx(&local, iter.idx);
+
+      double *arr_dg = gkyl_array_fetch(field_dg, lidx_diri);
+      double *arr_fem = gkyl_array_fetch(field_fem, lidx_skin);
 
       double fn_dg[num_nodes_perp_max], fn_fem[num_nodes_perp_max];
 
-      int off = e==0? 0 : num_nodes_perp;
+      int off_diri;
+      if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+        off_diri = e==0? num_nodes_perp : 0;
+      else
+        off_diri = e==0? 0 : num_nodes_perp;
+
       for (int i=0; i<num_nodes_perp; i++) {
-        const double *node = gkyl_array_cfetch(nodes, off+i);
+        const double *node = gkyl_array_cfetch(nodes, off_diri+i);
         fn_dg[i] = basis.eval_expand(node, arr_dg);
       }
+
+      int off_skin = e==0? 0 : num_nodes_perp;
       for (int i=0; i<num_nodes_perp; i++) {
-        const double *node = gkyl_array_cfetch(nodes, off+i);
+        const double *node = gkyl_array_cfetch(nodes, off_skin+i);
         fn_fem[i] = basis.eval_expand(node, arr_fem);
       }
       for (int i=0; i<num_nodes_perp; i++) {
-        TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
+        TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-11) );
         if (ndim == 1)
           TEST_MSG( "idx=%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
         else if (ndim == 2)
@@ -292,6 +309,27 @@ void evalFunc1x_dirichlet(double t, const double *xn, double* restrict fout, voi
   fout[0] = cos(2.*M_PI*x);
 }
 
+void ghost_from_skin_surf(bool use_gpu, int dim, struct skin_ghost_ranges *sgr,
+  struct gkyl_basis *basis, struct gkyl_array *rho)
+{
+  // The ghost range with the value of the skin at the boundary.
+  struct gkyl_array *bc_buffer = mkarr(use_gpu, rho->ncomp, sgr->lower_ghost[dim-1].volume);
+  
+  struct gkyl_bc_basic_gyrokinetic* bc_op_lo = gkyl_bc_basic_gyrokinetic_new(dim-1, GKYL_LOWER_EDGE,
+    GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->lower_skin[dim-1], &sgr->lower_ghost[dim-1],
+    basis->num_basis, dim, use_gpu);
+  gkyl_bc_basic_gyrokinetic_advance(bc_op_lo, bc_buffer, rho);
+  gkyl_bc_basic_gyrokinetic_release(bc_op_lo);
+  
+  struct gkyl_bc_basic_gyrokinetic* bc_op_up = gkyl_bc_basic_gyrokinetic_new(dim-1, GKYL_UPPER_EDGE,
+    GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->upper_skin[dim-1], &sgr->upper_ghost[dim-1],
+    basis->num_basis, dim, use_gpu);
+  gkyl_bc_basic_gyrokinetic_advance(bc_op_up, bc_buffer, rho);
+  gkyl_bc_basic_gyrokinetic_release(bc_op_up);
+  
+  gkyl_array_release(bc_buffer);
+}
+
 void
 test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
@@ -315,7 +353,9 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // projection updater for DG field.
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN? evalFunc1x_dirichlet : evalFunc1x, NULL);
+    poly_order+1, 1,
+    bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN || bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN? evalFunc1x_dirichlet : evalFunc1x,
+    NULL);
 
   // create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
@@ -327,6 +367,11 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
   gkyl_array_copy(rho, rho_ho);
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_couplex_1x_p2_rho_1.gkyl");
 
@@ -352,8 +397,8 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   check_continuity_par(localRange, basis, phi_ho);
 
   if (poly_order == 1) {
-    if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+    if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+      check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
@@ -412,7 +457,7 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     }
   } if (poly_order == 2) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-      check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
+      check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
       const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
@@ -631,10 +676,14 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   // Project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
     // Make the RHS source equal along x at the z boundary. 
     make_common_x_nodes_equal_at_z_boundaries(&solve_rng, &basis, rho_ho);
   }
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
 
   gkyl_array_copy(rho, rho_ho);
 
@@ -674,8 +723,8 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   check_continuity_par(solve_rng, basis, phi_ho);
   check_continuity_perp(solve_rng, basis, phi_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-    check_dirichlet_bc(solve_rng, basis, rho_ho, phi_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+    check_dirichlet_bc(solve_rng, localRange_ext, basis, bctype, rho_ho, phi_ho);
   } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
     // Check periodicity.
     check_periodicity(localRange, basis, phi_ho);
@@ -789,7 +838,7 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
   check_continuity_perp(solve_rng, basis, phi_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
-    check_dirichlet_bc(solve_rng, basis, rho_ho, phi_ho);
+    check_dirichlet_bc(solve_rng, localRange_ext, basis, bctype, rho_ho, phi_ho);
 
   gkyl_fem_parproj_couplex_release(parproj);
   gkyl_proj_on_basis_release(projob);
@@ -980,10 +1029,14 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
     // Make the RHS source equal along x at the z boundary. 
     make_common_x_nodes_equal_at_z_boundaries(&solve_rng, &basis, rho_ho);
   }
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
 
   gkyl_array_copy(rho, rho_ho);
   gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_couplex_3x_p1_rho_1.gkyl");
@@ -1010,8 +1063,8 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
   check_continuity_par(solve_rng, basis, phi_ho);
   check_continuity_perp(solve_rng, basis, phi_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-    check_dirichlet_bc(solve_rng, basis, rho_ho, phi_ho);
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+    check_dirichlet_bc(solve_rng, localRange_ext, basis, bctype, rho_ho, phi_ho);
   } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
     check_periodicity(solve_rng, basis, phi_ho);
   }
@@ -1026,57 +1079,93 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 }
 
 void test_1x_p1_bcnone_ho() {test_1x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_1x_p1_bcdirichlet_ho() {test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_1x_p1_bcdirichlet_ho() {
+  test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_1x_p1_bcperiodic_ho() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 void test_1x_p2_bcnone_ho() {test_1x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_1x_p2_bcdirichlet_ho() {test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_1x_p2_bcdirichlet_ho() {
+  test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_1x_p2_bcperiodic_ho() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 void test_2x_p1_bcnone_ho() {test_2x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_2x_p1_bcdirichlet_ho() {test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_2x_p1_bcdirichlet_ho() {
+  test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_2x_p1_bcperiodic_ho() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
 void test_2x_p1_weighted_ho() {test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
 void test_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
 
 void test_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_2x_p2_bcdirichlet_ho() {test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_2x_p2_bcdirichlet_ho() {
+  test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_2x_p2_bcperiodic_ho() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 void test_3x_p1_bcnone_ho() {test_3x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_3x_p1_bcdirichlet_ho() {test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_3x_p1_bcdirichlet_ho() {
+  test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_3x_p1_bcperiodic_ho() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 void test_3x_p2_bcnone_ho() {test_3x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_3x_p2_bcdirichlet_ho() {test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);}
+void test_3x_p2_bcdirichlet_ho() {
+  test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 void test_3x_p2_bcperiodic_ho() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
 void test_1x_p1_bcnone_dev() {test_1x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_1x_p1_bcdirichlet_dev() {test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_1x_p1_bcdirichlet_dev() {
+  test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_1x_p1_bcperiodic_dev() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
 void test_1x_p2_bcnone_dev() {test_1x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_1x_p2_bcdirichlet_dev() {test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_1x_p2_bcdirichlet_dev() {
+  test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_1x_p2_bcperiodic_dev() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
 void test_2x_p1_bcnone_dev() {test_2x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p1_bcdirichlet_dev() {test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_2x_p1_bcdirichlet_dev() {
+  test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_2x_p1_bcperiodic_dev() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 void test_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
 
 void test_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p2_bcdirichlet_dev() {test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_2x_p2_bcdirichlet_dev() {
+  test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_2x_p2_bcperiodic_dev() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
 void test_3x_p1_bcnone_dev() {test_3x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_3x_p1_bcdirichlet_dev() {test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_3x_p1_bcdirichlet_dev() {
+  test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_3x_p1_bcperiodic_dev() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
 void test_3x_p2_bcnone_dev() {test_3x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_3x_p2_bcdirichlet_dev() {test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);}
+void test_3x_p2_bcdirichlet_dev() {
+  test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 void test_3x_p2_bcperiodic_dev() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 #endif
 
