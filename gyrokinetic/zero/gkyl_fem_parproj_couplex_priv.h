@@ -256,7 +256,7 @@ typedef void (*srcstencil_t)(const double *weight, const double *rho, const doub
 
 typedef struct { srcstencil_t kernels[9]; } srcstencil_kern_loc_list;  // For use in kernel tables.
 typedef struct { srcstencil_kern_loc_list list[2]; } srcstencil_kern_bc_list;  // For use in kernel tables.
-typedef struct { srcstencil_kern_bc_list list[2]; } srcstencil_kern_list;  // For use in kernel tables.
+typedef struct { srcstencil_kern_bc_list list[3]; } srcstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity unweighted src kernels.
 GKYL_CU_D
@@ -271,11 +271,18 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
           {fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_lox_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_upx_nondirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
         },
       },
-      // dirichletx
+      // dirichletx ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_lox_dirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_upx_dirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
-          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_lox_dirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_upx_dirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_lox_dirichlet_ghostx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_upx_dirichlet_ghostx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_lox_dirichlet_ghostx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_upx_dirichlet_ghostx,NULL,NULL,NULL,NULL,NULL,NULL,},
+        },
+      },
+      // dirichletx skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_lox_dirichlet_skinx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p1_upx_dirichlet_skinx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_lox_dirichlet_skinx, fem_parproj_couplex_src_stencil_noweight_1x_ser_p2_upx_dirichlet_skinx,NULL,NULL,NULL,NULL,NULL,NULL,},
         },
       },
     }
@@ -290,11 +297,18 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
           {fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_upy_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_upy_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_upy_nondirichlety,},
         },
       },
-      // dirichlety
+      // dirichlety ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_upy_dirichlety,},
-          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_upy_dirichlety,},
+          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_upy_dirichlet_ghosty,},
+          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_upy_dirichlet_ghosty,},
+        },
+      },
+      // dirichlety skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_inx_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_lox_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p1_upx_nondirichletx_upy_dirichlet_skiny,},
+          {fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_inx_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_lox_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_noweight_2x_ser_p2_upx_nondirichletx_upy_dirichlet_skiny,},
         },
       },
     }
@@ -309,11 +323,18 @@ static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
           {fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_upz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_upz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_upz_nondirichletz,},
         },
       },
-      // dirichletz
+      // dirichletz ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_upz_dirichletz,},
-          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_upz_dirichletz,},
+          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_upz_dirichlet_ghostz,},
+          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_upz_dirichlet_ghostz,},
+        },
+      },
+      // dirichletz skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_inx_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_lox_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p1_upx_nondirichletx_upz_dirichlet_skinz,},
+          {fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_inx_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_lox_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_noweight_3x_ser_p2_upx_nondirichletx_upz_dirichlet_skinz,},
         },
       },
     }
@@ -333,11 +354,18 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
           {fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_lox_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_upx_nondirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
         },
       },
-      // dirichletx
+      // dirichletx ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_lox_dirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_upx_dirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
-          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_lox_dirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_upx_dirichletx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_lox_dirichlet_ghostx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_upx_dirichlet_ghostx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_lox_dirichlet_ghostx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_upx_dirichlet_ghostx,NULL,NULL,NULL,NULL,NULL,NULL,},
+        },
+      },
+      // dirichletx skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_lox_dirichlet_skinx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p1_upx_dirichlet_skinx,NULL,NULL,NULL,NULL,NULL,NULL,},
+          {fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_lox_dirichlet_skinx, fem_parproj_couplex_src_stencil_weighted_1x_ser_p2_upx_dirichlet_skinx,NULL,NULL,NULL,NULL,NULL,NULL,},
         },
       },
     }
@@ -352,11 +380,18 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
           {fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_iny_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_upy_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_upy_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_loy_nondirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_upy_nondirichlety,},
         },
       },
-      // dirichlety
+      // dirichlety ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_upy_dirichlety,},
-          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_iny_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_upy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_loy_dirichlety,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_upy_dirichlety,},
+          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_upy_dirichlet_ghosty,},
+          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_iny_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_upy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_loy_dirichlet_ghosty,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_upy_dirichlet_ghosty,},
+        },
+      },
+      // dirichlety skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_inx_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_lox_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p1_upx_nondirichletx_upy_dirichlet_skiny,},
+          {fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_iny_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_inx_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_lox_nondirichletx_upy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_loy_dirichlet_skiny,fem_parproj_couplex_src_stencil_weighted_2x_ser_p2_upx_nondirichletx_upy_dirichlet_skiny,},
         },
       },
     }
@@ -371,11 +406,18 @@ static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
           {fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_inz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_upz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_upz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_loz_nondirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_upz_nondirichletz,},
         },
       },
-      // dirichletz
+      // dirichletz ghost
       {.list = 
         {
-          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_upz_dirichletz,},
-          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_inz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_upz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_loz_dirichletz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_upz_dirichletz,},
+          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_upz_dirichlet_ghostz,},
+          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_inz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_upz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_loz_dirichlet_ghostz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_upz_dirichlet_ghostz,},
+        },
+      },
+      // dirichletz skin
+      {.list = 
+        {
+          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_inx_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_lox_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p1_upx_nondirichletx_upz_dirichlet_skinz,},
+          {fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_inz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_inx_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_lox_nondirichletx_upz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_loz_dirichlet_skinz,fem_parproj_couplex_src_stencil_weighted_3x_ser_p2_upx_nondirichletx_upz_dirichlet_skinz,},
         },
       },
     }
@@ -396,12 +438,49 @@ static const solstencil_kern_list ser_solstencil_list[] = {
   { fem_parproj_couplex_sol_stencil_3x_ser_p1, fem_parproj_couplex_sol_stencil_3x_ser_p2 }
 };
 
+// Functions that return the value to impose as Dirichlet BC.
+typedef const double *(*get_diri_val_t)(int par_dir, const int *num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc);
+
+// No Dirichlet BC.
+GKYL_CU_D
+static const double *get_dirichlet_value_disabled(int par_dir, const int *num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  return 0;
+}
+
+// Dirichlet BC using the ghost value.
+GKYL_CU_D
+static const double *get_dirichlet_value_enabled_ghost(int par_dir, const int *num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  int dirichlet_idx[GKYL_MAX_CDIM];
+  for (size_t d=0; d<par_dir+1; d++)
+    dirichlet_idx[d] = idx[d];
+
+  dirichlet_idx[par_dir] = dirichlet_idx[par_dir] == num_cells[par_dir]? dirichlet_idx[par_dir]+1
+                                                                       : dirichlet_idx[par_dir]-1;
+
+  return (const double *) gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
+}
+
+// Dirichlet BC using the skin value.
+GKYL_CU_D
+static const double *get_dirichlet_value_enabled_skin(int par_dir, const int *num_cells,
+  const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+{
+  return (const double *) gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, idx));
+}
+
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_couplex_kernels {
   local2global_t l2g[4]; // Pointer to local-to-global kernel.
   lhsstencil_t lhsker[9]; // Weighted LHS kernel.
   srcstencil_t srcker[9]; // RHS source kernel.
   solstencil_t solker; // Kernel that takes the solution and converts it to modal.
+
+  get_diri_val_t get_dirichlet_value; // Gets value to impose as Dirichlet BC.
 };
 
 struct gkyl_fem_parproj_couplex {
@@ -474,11 +553,11 @@ static inline int idx_to_inloup_ker(int dim, const int *range_lower, const int *
 GKYL_CU_D
 static void
 fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_couplex_kernels *kers)
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers)
 {
   // Local-to-global kernel.
   int bckey[1] = {0};
-  bckey[0] = isperiodic? 0 : 1;
+  bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -491,7 +570,10 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
   }
 
   // LHS kernel.
-  bckey[0] = isdirichlet? 1 : 0;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey[0] = 1;
+  else
+    bckey[0] = 0;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -505,7 +587,12 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
   }
 
   // RHS source kernel.
-  bckey[0] = isdirichlet? 1 : 0;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    bckey[0] = 1;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey[0] = 2;
+  else
+    bckey[0] = 0;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -527,6 +614,14 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
       assert(false);
       break;
   }
+
+  // Select function that obtains the value to impose as Dirichlet BC.
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_ghost;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
+  else
+    kers->get_dirichlet_value = get_dirichlet_value_disabled;
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -538,7 +633,7 @@ fem_parproj_couplex_choose_kernels(const struct gkyl_basis* basis, bool has_weig
  */
 void
 fem_parproj_couplex_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_couplex_kernels *kers);
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field

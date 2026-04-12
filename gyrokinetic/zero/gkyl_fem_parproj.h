@@ -37,7 +37,7 @@ struct gkyl_fem_parproj* gkyl_fem_parproj_new(const struct gkyl_range *solve_ran
  *
  * @param up FEM project updater to run.
  * @param rhsin DG field to set as RHS source.
- * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
+ * @param phibc Potential to use for Dirichlet BCs.
  */
 void gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up,
   const struct gkyl_array *rhsin, const struct gkyl_array *phibc);

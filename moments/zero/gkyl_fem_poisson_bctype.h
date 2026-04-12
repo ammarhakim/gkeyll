@@ -6,10 +6,10 @@
 // Boundary condition types.
 enum gkyl_poisson_bc_type {
   GKYL_POISSON_PERIODIC = 0,
-  GKYL_POISSON_DIRICHLET, // sets the value.
-  GKYL_POISSON_NEUMANN,   // sets the slope normal to the boundary.
-  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.  
-  GKYL_POISSON_DIRICHLET_VARYING, // sets the value, spatially varying.
+  GKYL_POISSON_DIRICHLET, // Sets the value.
+  GKYL_POISSON_NEUMANN, // Sets the slope normal to the boundary.
+  GKYL_POISSON_ROBIN, // A combination of dirichlet and neumann.  
+  GKYL_POISSON_DIRICHLET_VARYING, // Sets the value, spatially varying.
 };
 
 // Boundary condition values. Dirichlet and Neumann use only one value,
@@ -25,6 +25,19 @@ struct gkyl_poisson_bias_plane {
 struct gkyl_poisson_bias_plane_list {
   int num_bias_plane; // Number of bias planes.
   struct gkyl_poisson_bias_plane *bp;
+};
+
+struct gkyl_poisson_bias_line {
+  // Directions perpendicular to the line and coordinates in those directions
+  // (in 3D space; for 2x sims value in 3rd direction is ignored).
+  int perp_dirs[GKYL_MAX_CDIM-1];
+  double perp_coords[GKYL_MAX_CDIM-1];
+  double val; // Biasing value.
+};
+
+struct gkyl_poisson_bias_line_list {
+  int num_bias_line; // Number of bias planes.
+  struct gkyl_poisson_bias_line *bl;
 };
 
 struct gkyl_poisson_bc {

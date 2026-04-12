@@ -24,7 +24,7 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   up->poly_order = basis->poly_order;
   up->pardir = up->ndim-1; // Assume parallel direction is always the last.
   up->isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
-  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET;
+  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
   up->use_gpu = use_gpu;
 
   up->has_weight_rhs = false;
@@ -93,13 +93,11 @@ gkyl_fem_parproj_couplex_new(const struct gkyl_range *solve_range,
   
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*perp_range_sub.volume); // Global right side vector.
 
-  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs,
-    up->isperiodic, up->isdirichlet, up->kernels);
+  fem_parproj_couplex_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, up->kernels);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs,
-      up->isperiodic, up->isdirichlet, up->kernels_cu);
+    fem_parproj_couplex_choose_kernels_cu(basis, has_weight_lhs, up->has_weight_rhs, bctype, up->kernels_cu);
 #endif
 
   // We support two cases:
@@ -232,7 +230,7 @@ gkyl_fem_parproj_couplex_set_rhs(struct gkyl_fem_parproj_couplex* up,
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       const double *wgt_p = up->has_weight_rhs? gkyl_array_cfetch(up->weight_rhs, linidx) : NULL;
-      const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
+      const double *phibc_p = up->kernels->get_dirichlet_value(up->pardir, up->num_cells, idx1, up->solve_range, phibc);
       const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
       long perpProbOff = linidx_perp*up->numnodes_global;
