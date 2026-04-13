@@ -2,6 +2,7 @@
 GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_ser_p2(const double *w, const double *dxv, 
       const int theta_pole, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
       const double *J_c, const double *field_no_J_con_l, const double *field_no_J_con_r, 
+      double* GKYL_RESTRICT A_plus_dQ, double* GKYL_RESTRICT A_minus_dQ,
       double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT max_alpha_quad) 
 { 
   const double *h_xx_nodal = &h_ij_nodal[0]; 
@@ -110,7 +111,7 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_ser_p2(const double *w, const doub
   By_con_l_n[8] = 1.4230249470757703*By_l[19]+0.7348469228349525*By_l[18]+0.7348469228349533*By_l[17]+1.060660171779821*By_l[16]+1.060660171779821*By_l[15]+0.5477225575051661*By_l[14]+0.5477225575051661*By_l[13]+0.42426406871192807*By_l[12]+0.42426406871192845*By_l[11]+1.1022703842524295*By_l[10]+0.7905694150420947*By_l[9]+0.3162277660168379*By_l[8]+0.3162277660168379*By_l[7]+0.8215838362577489*By_l[6]+0.8215838362577489*By_l[5]+0.6363961030678926*By_l[4]+0.6123724356957944*By_l[3]+0.4743416490252568*By_l[2]+0.4743416490252568*By_l[1]+0.3535533905932737*By_l[0];
   Bz_con_l_n[8] = 1.4230249470757703*Bz_l[19]+0.7348469228349525*Bz_l[18]+0.7348469228349533*Bz_l[17]+1.060660171779821*Bz_l[16]+1.060660171779821*Bz_l[15]+0.5477225575051661*Bz_l[14]+0.5477225575051661*Bz_l[13]+0.42426406871192807*Bz_l[12]+0.42426406871192845*Bz_l[11]+1.1022703842524295*Bz_l[10]+0.7905694150420947*Bz_l[9]+0.3162277660168379*Bz_l[8]+0.3162277660168379*Bz_l[7]+0.8215838362577489*Bz_l[6]+0.8215838362577489*Bz_l[5]+0.6363961030678926*Bz_l[4]+0.6123724356957944*Bz_l[3]+0.4743416490252568*Bz_l[2]+0.4743416490252568*Bz_l[1]+0.3535533905932737*Bz_l[0];
   
-  // If at a theta pole, zero out B^(theta, phi), abd B^(theta, phi) 
+  // If at a theta pole, zero out B^(theta), abd B^(theta) 
   if ( theta_pole ) { 
     Dy_con_l_n[0] = 0.0;
     By_con_l_n[0] = 0.0;
@@ -211,7 +212,7 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_ser_p2(const double *w, const doub
   By_con_r_n[8] = 1.4230249470757703*By_r[19]-0.7348469228349525*By_r[18]-0.7348469228349533*By_r[17]+1.060660171779821*By_r[16]+1.060660171779821*By_r[15]-0.5477225575051661*By_r[14]-0.5477225575051661*By_r[13]+0.42426406871192807*By_r[12]+0.42426406871192845*By_r[11]-1.1022703842524295*By_r[10]+0.7905694150420947*By_r[9]+0.3162277660168379*By_r[8]+0.3162277660168379*By_r[7]-0.8215838362577489*By_r[6]-0.8215838362577489*By_r[5]+0.6363961030678926*By_r[4]-0.6123724356957944*By_r[3]+0.4743416490252568*By_r[2]+0.4743416490252568*By_r[1]+0.3535533905932737*By_r[0];
   Bz_con_r_n[8] = 1.4230249470757703*Bz_r[19]-0.7348469228349525*Bz_r[18]-0.7348469228349533*Bz_r[17]+1.060660171779821*Bz_r[16]+1.060660171779821*Bz_r[15]-0.5477225575051661*Bz_r[14]-0.5477225575051661*Bz_r[13]+0.42426406871192807*Bz_r[12]+0.42426406871192845*Bz_r[11]-1.1022703842524295*Bz_r[10]+0.7905694150420947*Bz_r[9]+0.3162277660168379*Bz_r[8]+0.3162277660168379*Bz_r[7]-0.8215838362577489*Bz_r[6]-0.8215838362577489*Bz_r[5]+0.6363961030678926*Bz_r[4]-0.6123724356957944*Bz_r[3]+0.4743416490252568*Bz_r[2]+0.4743416490252568*Bz_r[1]+0.3535533905932737*Bz_r[0];
   
-  // If at a theta pole, zero out B^(theta, phi), abd B^(theta, phi) 
+  // If at a theta pole, zero out B^(theta), abd B^(theta) 
   if ( theta_pole ) { 
     Dy_con_r_n[0] = 0.0;
     By_con_r_n[0] = 0.0;
@@ -365,9 +366,59 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_z_3x_ser_p2(const double *w, const doub
   flux_l_quad[8] = 0.0; 
   flux_r_quad[8] = 0.0; 
   
+  double lambda_1[9] = {0.0};
+  double lambda_2[9] = {0.0};
+  double lambda_3[9] = {0.0};
   for (int i=0; i<9; ++i) {
-    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( -shift_nodal_z[i] - lapse_nodal[i] * sqrt( h_xx_nodal[i] * h_yy_nodal[i] - h_xy_nodal[i] * h_xy_nodal[i] )/J_c[i] ) );
-    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( -shift_nodal_z[i] + lapse_nodal[i] * sqrt( h_xx_nodal[i] * h_yy_nodal[i] - h_xy_nodal[i] * h_xy_nodal[i] )/J_c[i] ) );
+    lambda_2[i] = -shift_nodal_z[i] + lapse_nodal[i] * sqrt( h_xx_nodal[i] * h_yy_nodal[i] - h_xy_nodal[i] * h_xy_nodal[i] )/J_c[i];
+    lambda_3[i] = -shift_nodal_z[i] - lapse_nodal[i] * sqrt( h_xx_nodal[i] * h_yy_nodal[i] - h_xy_nodal[i] * h_xy_nodal[i] )/J_c[i];
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_2[i] ));
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_3[i] ));
+  }
+  // If at the theta pole, dU = dQ = 0, so A_plus_dQ = A_minus_dQ = 0
+  if (theta_pole == 0) {    double dQ_n[6] = {0.0};
+    double lambda_plus_n[6] = {0.0};
+    double lambda_minus_n[6] = {0.0};
+    double A_plus_dQ_n[6] = {0.0};
+    double A_minus_dQ_n[6] = {0.0};
+    for (int i=0; i<9; ++i) {
+      dQ_n[0] = J_c[i]*(Dx_con_r_n[i] -  Dx_con_l_n[i]);
+      dQ_n[1] = J_c[i]*(Dy_con_r_n[i] -  Dy_con_l_n[i]);
+      dQ_n[2] = J_c[i]*(Dz_con_r_n[i] -  Dz_con_l_n[i]);
+      dQ_n[3] = J_c[i]*(Bx_con_r_n[i] -  Bx_con_l_n[i]);
+      dQ_n[4] = J_c[i]*(By_con_r_n[i] -  By_con_l_n[i]);
+      dQ_n[5] = J_c[i]*(Bz_con_r_n[i] -  Bz_con_l_n[i]);
+      lambda_plus_n[0] = (lambda_1[i] > 0.0) ? lambda_1[i] : 0.0;
+      lambda_plus_n[1] = (lambda_1[i] > 0.0) ? lambda_1[i] : 0.0;
+      lambda_plus_n[2] = (lambda_2[i] > 0.0) ? lambda_2[i] : 0.0;
+      lambda_plus_n[3] = (lambda_2[i] > 0.0) ? lambda_2[i] : 0.0;
+      lambda_plus_n[4] = (lambda_3[i] > 0.0) ? lambda_3[i] : 0.0;
+      lambda_plus_n[5] = (lambda_3[i] > 0.0) ? lambda_3[i] : 0.0;
+      lambda_minus_n[0] = (lambda_1[i] < 0.0) ? lambda_1[i] : 0.0;
+      lambda_minus_n[1] = (lambda_1[i] < 0.0) ? lambda_1[i] : 0.0;
+      lambda_minus_n[2] = (lambda_2[i] < 0.0) ? lambda_2[i] : 0.0;
+      lambda_minus_n[3] = (lambda_2[i] < 0.0) ? lambda_2[i] : 0.0;
+      lambda_minus_n[4] = (lambda_3[i] < 0.0) ? lambda_3[i] : 0.0;
+      lambda_minus_n[5] = (lambda_3[i] < 0.0) ? lambda_3[i] : 0.0;
+      A_dQ_z_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
+                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
+                      J_c[i], lambda_plus_n, dQ_n, A_plus_dQ_n);
+      A_plus_dQ[i + 0*9] = A_plus_dQ_n[0]; 
+      A_plus_dQ[i + 1*9] = A_plus_dQ_n[1]; 
+      A_plus_dQ[i + 2*9] = A_plus_dQ_n[2]; 
+      A_plus_dQ[i + 3*9] = A_plus_dQ_n[3]; 
+      A_plus_dQ[i + 4*9] = A_plus_dQ_n[4]; 
+      A_plus_dQ[i + 5*9] = A_plus_dQ_n[5]; 
+      A_dQ_z_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
+                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
+                      J_c[i], lambda_minus_n, dQ_n, A_minus_dQ_n);
+      A_minus_dQ[i + 0*9] = A_minus_dQ_n[0]; 
+      A_minus_dQ[i + 1*9] = A_minus_dQ_n[1]; 
+      A_minus_dQ[i + 2*9] = A_minus_dQ_n[2]; 
+      A_minus_dQ[i + 3*9] = A_minus_dQ_n[3]; 
+      A_minus_dQ[i + 4*9] = A_minus_dQ_n[4]; 
+      A_minus_dQ[i + 5*9] = A_minus_dQ_n[5]; 
+    }
   }
 
 } 
