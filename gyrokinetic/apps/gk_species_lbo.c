@@ -2,29 +2,6 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_const.h>
 
-static bool gyrokinetic_str_ends_in_b67(char *name){
-  size_t len = strlen(name);
-  int i = len - 1;
-  int digit_count = 0;
-  while (i >= 0 && isdigit((unsigned char)name[i])) {
-    i--;
-    digit_count++;
-  }
-  if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i-1] == '_') {
-    const char *num_str = &name[i + 1];
-    int num = atoi(num_str);
-    if ( num == 6)
-      return true;
-    else if ( num == 7)
-      return true;
-    else
-      return false;
-  }
-  else {
-    return false;
-  }
-}
-
 static void
 gklbo_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
@@ -252,10 +229,6 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     lbo->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
     double nu_frac = gks->info.collisions.nu_frac ? gks->info.collisions.nu_frac : 1.0;
-    //if ( gyrokinetic_str_ends_in_b67(app->name) && gks->info.charge < 0.0)
-    //  nu_frac = 1000.0;
-    //if ( gyrokinetic_str_ends_in_b67(app->name) && gks->info.charge > 0.0)
-    //  nu_frac = 60000.0;
   
     if (gks->info.collisions.self_nu) {
       // Project user's self-species collision frequency.
