@@ -10,9 +10,6 @@
 #include <gkyl_range.h>
 #include <gkyl_comm.h>
 
-// Comment out if you don't want debug prints.
-// #define GKYL_DEBUG_SUNDIALS_OP_SPLIT
-
 // Time stepping method options.
 enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_NONE          = 0,
@@ -166,6 +163,30 @@ void gkyl_sundials_set_fixed_step_ssprk(struct gkyl_sundials *gksun, double dt);
  * @param dt Time step size.
  */
 void gkyl_sundials_set_fixed_step_sts(struct gkyl_sundials *gksun, double dt);
+
+/**
+ * Return the CFL stable time step size (dt) for the df/dt operator.
+ *
+ * @param gksun SUNDIALS object.
+ * @return CFL stable time step size.
+ */
+double gkyl_sundials_get_cfl_dt(struct gkyl_sundials *gksun);
+
+/**
+ * Return the CFL stable time step size (dt) for the SSP-RK df/dt operator.
+ *
+ * @param gksun SUNDIALS object.
+ * @return CFL stable time step size.
+ */
+double gkyl_sundials_get_cfl_dt_ssprk(struct gkyl_sundials *gksun);
+
+/**
+ * Return the CFL stable time step size (dt) for the STS df/dt operator.
+ *
+ * @param gksun SUNDIALS object.
+ * @return CFL stable time step size.
+ */
+double gkyl_sundials_get_cfl_dt_sts(struct gkyl_sundials *gksun);
 
 /**
  * Evolve the solution contained in a given Nvector from

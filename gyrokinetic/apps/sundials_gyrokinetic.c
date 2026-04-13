@@ -710,9 +710,7 @@ cfl_stable_dt_ssprk_gyrokinetic(N_Vector nvec_y, sunrealtype t_curr, sunrealtype
 
   double dt_local = app_ctx->dt_local_ssprk;
 
-//  printf("  in cfl_stable_dt: dt_local = %.9e\n",dt_local);
   *dt_out = app_ctx->reduce_dt_func(app_ctx->app_ptr, t_curr, dt_local);
-//  printf("  in cfl_stable_dt: dt_global = %.9e\n",*dt_out);
 
   return 0; // Success.
 }

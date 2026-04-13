@@ -696,10 +696,13 @@ gkyl_sundials_stepper_init_ssp_rk33(struct gkyl_sundials *gksun,
   flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_stab);
   sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
 
-  // Set CFL stable time step size function.
-  flag = ARKodeSetStabilityFn(gksun->arkode_mem_ssprk,
-    gksun->has_sts? gksun->cfl_stable_dt_ssprk_func : gksun->cfl_stable_dt_func, inp->app_ctx);
-  sundials_check_flag(&flag, "ARKodeSetStabilityFn", 1);
+  if (!gksun->has_sts) {
+    // Set CFL stable time step size function.
+    // Don't do it if we are doing operator split as in that case the time step
+    // is set in the update function in gyrokinetic.c.
+    flag = ARKodeSetStabilityFn(gksun->arkode_mem_ssprk, gksun->cfl_stable_dt_func, inp->app_ctx);
+    sundials_check_flag(&flag, "ARKodeSetStabilityFn", 1);
+  }
 
   // Set CFL safety factor one to ensure exact use of the stable time step size.
   flag = ARKodeSetCFLFraction(gksun->arkode_mem_ssprk, SUN_RCONST(1.0));
@@ -1022,30 +1025,20 @@ gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
       N_Vector manynvbuff = gsmanynv_buff->nvec;
   
       // Compute dt.
-      double dt_init;
       if (gksun->is_opsplit) {
         double dt_ssprk;
         flag = gksun->dfdt_ssprk_func(time, manynvin, manynvbuff, gksun->app_ctx);
         flag = gksun->cfl_stable_dt_ssprk_func(manynvin, time, &dt_ssprk, gksun->app_ctx);
 
-        double dt_sts;
-        flag = gksun->dfdt_sts_func(time, manynvin, manynvbuff, gksun->app_ctx);
-        flag = gksun->cfl_stable_dt_sts_func(manynvin, time, &dt_sts, gksun->app_ctx);
+        // Set the initial step size of the SSP-RK stepper.
+        flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_ssprk);
+        sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
 
-        if (gkyl_sundials_check_rk_method(gksun->stepper_inp->rk_method, 0, GKYL_SUNDIALS_METHOD_RK_SSP_3_3)) {
-          // Set the initial step size of the SSP-RK stepper.
-          flag = ARKodeSetInitStep(gksun->arkode_mem_ssprk, dt_ssprk);
-          sundials_check_flag(&flag, "ARKodeSetInitStep", 1);
-        }
-
-        // Set outer dt to the largest of the SSP-RK and STS dt's.
-        dt_init = GKYL_MAX2(dt_ssprk, dt_sts); 
-#ifdef GKYL_DEBUG_SUNDIALS_OP_SPLIT
-    printf("Init CFL stable dt_ssprk=%.7e | dt_sts=%.7e\n",dt_ssprk,dt_sts);
-#endif
-        gkyl_sundials_set_fixed_step(gksun, dt_init);
+        // Set outer dt to the SSP-RK dt.
+        gkyl_sundials_set_fixed_step(gksun, dt_ssprk);
       }
       else {
+        double dt_init;
         flag = gksun->dfdt_func(time, manynvin, manynvbuff, gksun->app_ctx);
         flag = gksun->cfl_stable_dt_func(manynvin, time, &dt_init, gksun->app_ctx);
         // Set the initial step size.
@@ -1076,6 +1069,30 @@ gkyl_sundials_set_fixed_step_sts(struct gkyl_sundials *gksun, double dt)
 {
   int flag = ARKodeSetFixedStep(gksun->arkode_mem_sts, dt);
   sundials_check_flag(&flag, "ARKodeSetFixedStep", 1);
+}
+
+double
+gkyl_sundials_get_cfl_dt(struct gkyl_sundials *gksun)
+{
+  double dt;
+  int flag = gksun->cfl_stable_dt_func(0, 0, &dt, gksun->app_ctx);
+  return dt;
+}
+
+double
+gkyl_sundials_get_cfl_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  double dt;
+  int flag = gksun->cfl_stable_dt_ssprk_func(0, 0, &dt, gksun->app_ctx);
+  return dt;
+}
+
+double
+gkyl_sundials_get_cfl_dt_sts(struct gkyl_sundials *gksun)
+{
+  double dt;
+  int flag = gksun->cfl_stable_dt_sts_func(0, 0, &dt, gksun->app_ctx);
+  return dt;
 }
 
 int

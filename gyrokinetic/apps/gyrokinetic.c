@@ -759,28 +759,16 @@ gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
   double t_end = t_curr + dt0;
 
   double t_new = -1.0;
-#ifdef GKYL_DEBUG_SUNDIALS_OP_SPLIT
-  printf("New step: t_curr=%.7e | t_end=%.7e\n", app->tcurr, t_end);
-#endif
   gkyl_sundials_evolve(app->gk_sundials, t_end, app->sundials_mnvec, &t_new);
 
   st.dt_actual = t_new - t_curr;
   st.dt_suggested = dt0;
-#ifdef GKYL_DEBUG_SUNDIALS_OP_SPLIT
-  printf("Used dt = %.7e | t_new = %.7e |",st.dt_actual, t_new);
-#endif
 
   if (gkyl_sundials_use_operator_split(app->gk_sundials)) {
-//    gkyl_sundials_set_fixed_step(app->gk_sundials, st.dt_actual);
-    // MF 2026/02/19: I would think setting the outer dt to the larger of dt_ssprk
-    // and dt_sts would be the best option but it appears to be 2x slower.
-    double dt_ssprk = gkyl_sundials_get_current_dt_ssprk(app->gk_sundials);
-    double dt_sts   = gkyl_sundials_get_current_dt_sts(app->gk_sundials);
-    double dt_next = GKYL_MAX2(dt_ssprk, dt_sts);
-#ifdef GKYL_DEBUG_SUNDIALS_OP_SPLIT
-    printf(" dt_ssprk=%.7e | dt_sts=%.7e | next outer dt=%.7e\n",dt_ssprk, dt_sts, dt_next);
-#endif
+    // Set the next time step to be tha CFL stable one for SSP-RK operator.
+    double dt_next = gkyl_sundials_get_cfl_dt_ssprk(app->gk_sundials);
     gkyl_sundials_set_fixed_step(app->gk_sundials, dt_next);
+    gkyl_sundials_set_fixed_step_ssprk(app->gk_sundials, dt_next);
     st.dt_suggested = dt_next;
   }
 
