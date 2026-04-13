@@ -665,6 +665,7 @@ test_ks_r_theta_2x_geom_p1()
     field_with_J_radial_init, field_no_J_radial_init, false);
 
   struct gkyl_array *field_no_J_fixed = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *field_no_J_fixed_copy = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *bc_buffer = mkarr(field_no_J_con->ncomp, bc_buff_sz);
   struct gkyl_array *bc_buffer_lo_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.lower_ghost[0].volume);
   struct gkyl_array *bc_buffer_up_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.upper_ghost[0].volume);
@@ -681,7 +682,13 @@ test_ks_r_theta_2x_geom_p1()
   bc_up[1] = gkyl_bc_basic_new(1, GKYL_UPPER_EDGE, GKYL_BC_MAXWELL_THETA_POLE, &confBasis,
     &conf_skin_ghost.upper_skin[1], &conf_skin_ghost.upper_ghost[1], field_no_J_con->ncomp, cdim, false);
 
+  // For further analysis, copy the field to the boundary (in primative variables)
+  struct gkyl_bc_basic *bc_lo_copy[GKYL_MAX_DIM] = { 0 };
+  bc_lo_copy[0] = gkyl_bc_basic_new(0, GKYL_LOWER_EDGE, GKYL_BC_COPY, &confBasis,
+    &conf_skin_ghost.lower_skin[0], &conf_skin_ghost.lower_ghost[0], field_no_J_con->ncomp, cdim, false);
+
   gkyl_array_copy(field_no_J_fixed, field_no_J_con);
+  gkyl_array_copy(field_no_J_fixed_copy, field_no_J_con);
 
   // Seed the fixed-function radial buffers from the projected radial ghost data
   // with the configuration-space Jacobian divided out.
@@ -693,7 +700,10 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_bc_basic_advance(bc_up[0], bc_buffer_up_fixed, field_no_J_fixed);
   gkyl_bc_basic_advance(bc_lo[1], bc_buffer, field_no_J_fixed);
   gkyl_bc_basic_advance(bc_up[1], bc_buffer, field_no_J_fixed);
+  gkyl_bc_basic_advance(bc_lo_copy[0], bc_buffer, field_no_J_fixed_copy);
 
+  // Test whether the created BC using the gkyl_bc_basic_advance() scheme is the same
+  // as directly evaluating the primative variables and dividing out Jc
   struct gkyl_range *radial_ghost_ranges[] = { &radial_ghost_lo, &radial_ghost_up };
   const char *radial_ghost_labels[] = { "lower", "upper" };
   for (int rg=0; rg<2; ++rg) {
@@ -744,6 +754,7 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_array_release(bc_buffer_lo_fixed);
   gkyl_array_release(bc_buffer_up_fixed);
 
+  gkyl_bc_basic_release(bc_lo_copy[0]);
   for (int d=0; d<cdim; ++d) {
     gkyl_bc_basic_release(bc_lo[d]);
     gkyl_bc_basic_release(bc_up[d]);
@@ -768,6 +779,7 @@ test_ks_r_theta_2x_geom_p1()
     gkyl_rect_grid_cell_center(&confGrid, idx, xcC);
 
     const double *field_no_J_con_c = gkyl_array_cfetch(field_no_J_fixed, cidx); 
+    const double *field_no_J_con_copy_c = gkyl_array_cfetch(field_no_J_fixed_copy, cidx); 
     const double *field_con_c = gkyl_array_cfetch(field_with_J_con, cidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, cidx);
     double *flux = gkyl_array_fetch(conf_flux_surf, cidx); 
@@ -804,8 +816,9 @@ test_ks_r_theta_2x_geom_p1()
       // Create an index for the left cell (which may be a ghost cell) 
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long cidx_l = gkyl_range_idx(&confLocal, idx_l); 
+      long cidx_l = gkyl_range_idx(&confLocal_ext, idx_l); 
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_fixed, cidx_l);
+      const double *field_no_J_con_copy_l = gkyl_array_cfetch(field_no_J_fixed_copy, cidx_l);
       const double *field_con_l = gkyl_array_cfetch(field_with_J_con, cidx_l); 
 
       // For Points not along the domain-edge in theta, compute the left hand surface 
@@ -822,27 +835,293 @@ test_ks_r_theta_2x_geom_p1()
       double alpha_quad_x[2] = {0.0}; 
       double flux_l_x[12] = {0.0};
       double flux_r_x[12] = {0.0};
+      double A_plus_dQ_x[12] = {0.0};
+      double A_minus_dQ_x[12] = {0.0};
       double alpha_quad_y[2] = {0.0}; 
       double flux_l_y[12] = {0.0};
       double flux_r_y[12] = {0.0};
+      double A_plus_dQ_y[12] = {0.0};
+      double A_minus_dQ_y[12] = {0.0};
 
       // Compute the fluxes in the first two directions
       if (dir == 0) { 
         dg_gr_maxwell_alpha_quad_x_2x_ser_p1(xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, flux_l_x, flux_r_x, alpha_quad_x);
+          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_x, A_minus_dQ_x, flux_l_x, flux_r_x, alpha_quad_x);
           
-        double cflrate = lax_flux_nodal_to_modal_x_2x_ser_p1(confGrid.dx, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
+        double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
           field_no_J_con_l, field_no_J_con_c, flux); 
       }
       else if (dir == 1) { 
         dg_gr_maxwell_alpha_quad_y_2x_ser_p1(xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, flux_l_y, flux_r_y, alpha_quad_y);
+          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_y, A_minus_dQ_y, flux_l_y, flux_r_y, alpha_quad_y);
           
-        double cflrate = lax_flux_nodal_to_modal_y_2x_ser_p1(confGrid.dx, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
+        double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
           field_no_J_con_l, field_no_J_con_c, flux); 
       }
 
-      // Dir = 0 comparison
+      // Dir = 1 comparison, for Jumps in quantities at the theta edges 
+      if (dir == 1) { 
+        // Compute and check |alpha^i| J_c \Delta U ~ |alpha_i| \Delta Q
+        double Dx_con_l_n[2] = {0.0};
+        double Dy_con_l_n[2] = {0.0};
+        double Dz_con_l_n[2] = {0.0};
+        double Bx_con_l_n[2] = {0.0};
+        double By_con_l_n[2] = {0.0};
+        double Bz_con_l_n[2] = {0.0};
+
+        double Dx_con_r_n[2] = {0.0};
+        double Dy_con_r_n[2] = {0.0};
+        double Dz_con_r_n[2] = {0.0};
+        double Bx_con_r_n[2] = {0.0};
+        double By_con_r_n[2] = {0.0};
+        double Bz_con_r_n[2] = {0.0};
+
+        double JDx_con_l_n[2] = {0.0};
+        double JDy_con_l_n[2] = {0.0};
+        double JDz_con_l_n[2] = {0.0};
+        double JBx_con_l_n[2] = {0.0};
+        double JBy_con_l_n[2] = {0.0};
+        double JBz_con_l_n[2] = {0.0};
+
+        double JDx_con_r_n[2] = {0.0};
+        double JDy_con_r_n[2] = {0.0};
+        double JDz_con_r_n[2] = {0.0};
+        double JBx_con_r_n[2] = {0.0};
+        double JBy_con_r_n[2] = {0.0};
+        double JBz_con_r_n[2] = {0.0};
+
+        double Dx_con_copy_l_n[2] = {0.0};
+        double Dy_con_copy_l_n[2] = {0.0};
+        double Dz_con_copy_l_n[2] = {0.0};
+        double Bx_con_copy_l_n[2] = {0.0};
+        double By_con_copy_l_n[2] = {0.0};
+        double Bz_con_copy_l_n[2] = {0.0};
+
+        double Dx_con_copy_r_n[2] = {0.0};
+        double Dy_con_copy_r_n[2] = {0.0};
+        double Dz_con_copy_r_n[2] = {0.0};
+        double Bx_con_copy_r_n[2] = {0.0};
+        double By_con_copy_r_n[2] = {0.0};
+        double Bz_con_copy_r_n[2] = {0.0};
+
+        const double *Dx_l = &field_no_J_con_l[0];
+        const double *Dy_l = &field_no_J_con_l[4];
+        const double *Dz_l = &field_no_J_con_l[8];
+        const double *Bx_l = &field_no_J_con_l[12];
+        const double *By_l = &field_no_J_con_l[16];
+        const double *Bz_l = &field_no_J_con_l[20];
+
+        Dx_con_l_n[0] = -(0.8660254037844386*Dx_l[3])+0.8660254037844386*Dx_l[2]-0.5*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_l_n[0] = -(0.8660254037844386*Dy_l[3])+0.8660254037844386*Dy_l[2]-0.5*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_l_n[0] = -(0.8660254037844386*Dz_l[3])+0.8660254037844386*Dz_l[2]-0.5*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_l_n[0] = -(0.8660254037844386*Bx_l[3])+0.8660254037844386*Bx_l[2]-0.5*Bx_l[1]+0.5*Bx_l[0];
+        By_con_l_n[0] = -(0.8660254037844386*By_l[3])+0.8660254037844386*By_l[2]-0.5*By_l[1]+0.5*By_l[0];
+        Bz_con_l_n[0] = -(0.8660254037844386*Bz_l[3])+0.8660254037844386*Bz_l[2]-0.5*Bz_l[1]+0.5*Bz_l[0];
+
+        Dx_con_l_n[1] = 0.8660254037844386*Dx_l[3]+0.8660254037844386*Dx_l[2]+0.5*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_l_n[1] = 0.8660254037844386*Dy_l[3]+0.8660254037844386*Dy_l[2]+0.5*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_l_n[1] = 0.8660254037844386*Dz_l[3]+0.8660254037844386*Dz_l[2]+0.5*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_l_n[1] = 0.8660254037844386*Bx_l[3]+0.8660254037844386*Bx_l[2]+0.5*Bx_l[1]+0.5*Bx_l[0];
+        By_con_l_n[1] = 0.8660254037844386*By_l[3]+0.8660254037844386*By_l[2]+0.5*By_l[1]+0.5*By_l[0];
+        Bz_con_l_n[1] = 0.8660254037844386*Bz_l[3]+0.8660254037844386*Bz_l[2]+0.5*Bz_l[1]+0.5*Bz_l[0];
+
+        const double *Dx_r = &field_no_J_con_c[0];
+        const double *Dy_r = &field_no_J_con_c[4];
+        const double *Dz_r = &field_no_J_con_c[8];
+        const double *Bx_r = &field_no_J_con_c[12];
+        const double *By_r = &field_no_J_con_c[16];
+        const double *Bz_r = &field_no_J_con_c[20];
+
+        Dx_con_r_n[0] = 0.8660254037844386*Dx_r[3]-0.8660254037844386*Dx_r[2]-0.5*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_r_n[0] = 0.8660254037844386*Dy_r[3]-0.8660254037844386*Dy_r[2]-0.5*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_r_n[0] = 0.8660254037844386*Dz_r[3]-0.8660254037844386*Dz_r[2]-0.5*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_r_n[0] = 0.8660254037844386*Bx_r[3]-0.8660254037844386*Bx_r[2]-0.5*Bx_r[1]+0.5*Bx_r[0];
+        By_con_r_n[0] = 0.8660254037844386*By_r[3]-0.8660254037844386*By_r[2]-0.5*By_r[1]+0.5*By_r[0];
+        Bz_con_r_n[0] = 0.8660254037844386*Bz_r[3]-0.8660254037844386*Bz_r[2]-0.5*Bz_r[1]+0.5*Bz_r[0];
+
+        Dx_con_r_n[1] = -(0.8660254037844386*Dx_r[3])-0.8660254037844386*Dx_r[2]+0.5*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_r_n[1] = -(0.8660254037844386*Dy_r[3])-0.8660254037844386*Dy_r[2]+0.5*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_r_n[1] = -(0.8660254037844386*Dz_r[3])-0.8660254037844386*Dz_r[2]+0.5*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_r_n[1] = -(0.8660254037844386*Bx_r[3])-0.8660254037844386*Bx_r[2]+0.5*Bx_r[1]+0.5*Bx_r[0];
+        By_con_r_n[1] = -(0.8660254037844386*By_r[3])-0.8660254037844386*By_r[2]+0.5*By_r[1]+0.5*By_r[0];
+        Bz_con_r_n[1] = -(0.8660254037844386*Bz_r[3])-0.8660254037844386*Bz_r[2]+0.5*Bz_r[1]+0.5*Bz_r[0];
+
+        // The theta-pole BC applies parity in the ghost cell, while the
+        // flux kernel additionally enforces regularity by zeroing the
+        // theta components at the face.
+        if (theta_pole) {
+          Dy_con_l_n[0] = 0.0;
+          Dy_con_l_n[1] = 0.0;
+          Dy_con_r_n[0] = 0.0;
+          Dy_con_r_n[1] = 0.0;
+          By_con_l_n[0] = 0.0;
+          By_con_l_n[1] = 0.0;
+          By_con_r_n[0] = 0.0;
+          By_con_r_n[1] = 0.0;
+        }
+
+        // Acquire new pointer locations.
+        Dx_l = &field_no_J_con_copy_l[0];
+        Dy_l = &field_no_J_con_copy_l[4];
+        Dz_l = &field_no_J_con_copy_l[8];
+        Bx_l = &field_no_J_con_copy_l[12];
+        By_l = &field_no_J_con_copy_l[16];
+        Bz_l = &field_no_J_con_copy_l[20];
+
+        Dx_con_copy_l_n[0] = -(0.8660254037844386*Dx_l[3])+0.8660254037844386*Dx_l[2]-0.5*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_copy_l_n[0] = -(0.8660254037844386*Dy_l[3])+0.8660254037844386*Dy_l[2]-0.5*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_copy_l_n[0] = -(0.8660254037844386*Dz_l[3])+0.8660254037844386*Dz_l[2]-0.5*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_copy_l_n[0] = -(0.8660254037844386*Bx_l[3])+0.8660254037844386*Bx_l[2]-0.5*Bx_l[1]+0.5*Bx_l[0];
+        By_con_copy_l_n[0] = -(0.8660254037844386*By_l[3])+0.8660254037844386*By_l[2]-0.5*By_l[1]+0.5*By_l[0];
+        Bz_con_copy_l_n[0] = -(0.8660254037844386*Bz_l[3])+0.8660254037844386*Bz_l[2]-0.5*Bz_l[1]+0.5*Bz_l[0];
+
+        Dx_con_copy_l_n[1] = 0.8660254037844386*Dx_l[3]+0.8660254037844386*Dx_l[2]+0.5*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_copy_l_n[1] = 0.8660254037844386*Dy_l[3]+0.8660254037844386*Dy_l[2]+0.5*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_copy_l_n[1] = 0.8660254037844386*Dz_l[3]+0.8660254037844386*Dz_l[2]+0.5*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_copy_l_n[1] = 0.8660254037844386*Bx_l[3]+0.8660254037844386*Bx_l[2]+0.5*Bx_l[1]+0.5*Bx_l[0];
+        By_con_copy_l_n[1] = 0.8660254037844386*By_l[3]+0.8660254037844386*By_l[2]+0.5*By_l[1]+0.5*By_l[0];
+        Bz_con_copy_l_n[1] = 0.8660254037844386*Bz_l[3]+0.8660254037844386*Bz_l[2]+0.5*Bz_l[1]+0.5*Bz_l[0];
+
+        // Acquire new pointer locations.
+        Dx_r = &field_no_J_con_copy_c[0];
+        Dy_r = &field_no_J_con_copy_c[4];
+        Dz_r = &field_no_J_con_copy_c[8];
+        Bx_r = &field_no_J_con_copy_c[12];
+        By_r = &field_no_J_con_copy_c[16];
+        Bz_r = &field_no_J_con_copy_c[20];
+
+        Dx_con_copy_r_n[0] = 0.8660254037844386*Dx_r[3]-0.8660254037844386*Dx_r[2]-0.5*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_copy_r_n[0] = 0.8660254037844386*Dy_r[3]-0.8660254037844386*Dy_r[2]-0.5*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_copy_r_n[0] = 0.8660254037844386*Dz_r[3]-0.8660254037844386*Dz_r[2]-0.5*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_copy_r_n[0] = 0.8660254037844386*Bx_r[3]-0.8660254037844386*Bx_r[2]-0.5*Bx_r[1]+0.5*Bx_r[0];
+        By_con_copy_r_n[0] = 0.8660254037844386*By_r[3]-0.8660254037844386*By_r[2]-0.5*By_r[1]+0.5*By_r[0];
+        Bz_con_copy_r_n[0] = 0.8660254037844386*Bz_r[3]-0.8660254037844386*Bz_r[2]-0.5*Bz_r[1]+0.5*Bz_r[0];
+
+        Dx_con_copy_r_n[1] = -(0.8660254037844386*Dx_r[3])-0.8660254037844386*Dx_r[2]+0.5*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_copy_r_n[1] = -(0.8660254037844386*Dy_r[3])-0.8660254037844386*Dy_r[2]+0.5*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_copy_r_n[1] = -(0.8660254037844386*Dz_r[3])-0.8660254037844386*Dz_r[2]+0.5*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_copy_r_n[1] = -(0.8660254037844386*Bx_r[3])-0.8660254037844386*Bx_r[2]+0.5*Bx_r[1]+0.5*Bx_r[0];
+        By_con_copy_r_n[1] = -(0.8660254037844386*By_r[3])-0.8660254037844386*By_r[2]+0.5*By_r[1]+0.5*By_r[0];
+        Bz_con_copy_r_n[1] = -(0.8660254037844386*Bz_r[3])-0.8660254037844386*Bz_r[2]+0.5*Bz_r[1]+0.5*Bz_r[0];
+
+        const double *JDx_l = &field_con_l[0];
+        const double *JDy_l = &field_con_l[4];
+        const double *JDz_l = &field_con_l[8];
+        const double *JBx_l = &field_con_l[12];
+        const double *JBy_l = &field_con_l[16];
+        const double *JBz_l = &field_con_l[20];
+
+        JDx_con_l_n[0] = -(0.8660254037844386*JDx_l[3])+0.8660254037844386*JDx_l[2]-0.5*JDx_l[1]+0.5*JDx_l[0];
+        JDy_con_l_n[0] = -(0.8660254037844386*JDy_l[3])+0.8660254037844386*JDy_l[2]-0.5*JDy_l[1]+0.5*JDy_l[0];
+        JDz_con_l_n[0] = -(0.8660254037844386*JDz_l[3])+0.8660254037844386*JDz_l[2]-0.5*JDz_l[1]+0.5*JDz_l[0];
+        JBx_con_l_n[0] = -(0.8660254037844386*JBx_l[3])+0.8660254037844386*JBx_l[2]-0.5*JBx_l[1]+0.5*JBx_l[0];
+        JBy_con_l_n[0] = -(0.8660254037844386*JBy_l[3])+0.8660254037844386*JBy_l[2]-0.5*JBy_l[1]+0.5*JBy_l[0];
+        JBz_con_l_n[0] = -(0.8660254037844386*JBz_l[3])+0.8660254037844386*JBz_l[2]-0.5*JBz_l[1]+0.5*JBz_l[0];
+
+        JDx_con_l_n[1] = 0.8660254037844386*JDx_l[3]+0.8660254037844386*JDx_l[2]+0.5*JDx_l[1]+0.5*JDx_l[0];
+        JDy_con_l_n[1] = 0.8660254037844386*JDy_l[3]+0.8660254037844386*JDy_l[2]+0.5*JDy_l[1]+0.5*JDy_l[0];
+        JDz_con_l_n[1] = 0.8660254037844386*JDz_l[3]+0.8660254037844386*JDz_l[2]+0.5*JDz_l[1]+0.5*JDz_l[0];
+        JBx_con_l_n[1] = 0.8660254037844386*JBx_l[3]+0.8660254037844386*JBx_l[2]+0.5*JBx_l[1]+0.5*JBx_l[0];
+        JBy_con_l_n[1] = 0.8660254037844386*JBy_l[3]+0.8660254037844386*JBy_l[2]+0.5*JBy_l[1]+0.5*JBy_l[0];
+        JBz_con_l_n[1] = 0.8660254037844386*JBz_l[3]+0.8660254037844386*JBz_l[2]+0.5*JBz_l[1]+0.5*JBz_l[0];
+
+        const double *JDx_r = &field_con_c[0];
+        const double *JDy_r = &field_con_c[4];
+        const double *JDz_r = &field_con_c[8];
+        const double *JBx_r = &field_con_c[12];
+        const double *JBy_r = &field_con_c[16];
+        const double *JBz_r = &field_con_c[20];
+
+        JDx_con_r_n[0] = 0.8660254037844386*JDx_r[3]-0.8660254037844386*JDx_r[2]-0.5*JDx_r[1]+0.5*JDx_r[0];
+        JDy_con_r_n[0] = 0.8660254037844386*JDy_r[3]-0.8660254037844386*JDy_r[2]-0.5*JDy_r[1]+0.5*JDy_r[0];
+        JDz_con_r_n[0] = 0.8660254037844386*JDz_r[3]-0.8660254037844386*JDz_r[2]-0.5*JDz_r[1]+0.5*JDz_r[0];
+        JBx_con_r_n[0] = 0.8660254037844386*JBx_r[3]-0.8660254037844386*JBx_r[2]-0.5*JBx_r[1]+0.5*JBx_r[0];
+        JBy_con_r_n[0] = 0.8660254037844386*JBy_r[3]-0.8660254037844386*JBy_r[2]-0.5*JBy_r[1]+0.5*JBy_r[0];
+        JBz_con_r_n[0] = 0.8660254037844386*JBz_r[3]-0.8660254037844386*JBz_r[2]-0.5*JBz_r[1]+0.5*JBz_r[0];
+
+        JDx_con_r_n[1] = -(0.8660254037844386*JDx_r[3])-0.8660254037844386*JDx_r[2]+0.5*JDx_r[1]+0.5*JDx_r[0];
+        JDy_con_r_n[1] = -(0.8660254037844386*JDy_r[3])-0.8660254037844386*JDy_r[2]+0.5*JDy_r[1]+0.5*JDy_r[0];
+        JDz_con_r_n[1] = -(0.8660254037844386*JDz_r[3])-0.8660254037844386*JDz_r[2]+0.5*JDz_r[1]+0.5*JDz_r[0];
+        JBx_con_r_n[1] = -(0.8660254037844386*JBx_r[3])-0.8660254037844386*JBx_r[2]+0.5*JBx_r[1]+0.5*JBx_r[0];
+        JBy_con_r_n[1] = -(0.8660254037844386*JBy_r[3])-0.8660254037844386*JBy_r[2]+0.5*JBy_r[1]+0.5*JBy_r[0];
+        JBz_con_r_n[1] = -(0.8660254037844386*JBz_r[3])-0.8660254037844386*JBz_r[2]+0.5*JBz_r[1]+0.5*JBz_r[0];
+
+        // Compute the two different Jumps.
+        double a_Jc_dU[12];
+        double dU[12];
+        double a_dQ[12];
+        double Q_mag[12];
+        double Ul[12];
+        double Ur[12];
+        for (int j = 0; j<2; ++j) {
+          a_Jc_dU[0 + j] = alpha_quad_y[j] * det_h_d[j] * ( Dx_con_r_n[j] - Dx_con_l_n[j] );
+          a_Jc_dU[2 + j] = alpha_quad_y[j] * det_h_d[j] * ( Dy_con_r_n[j] - Dy_con_l_n[j] );
+          a_Jc_dU[4 + j] = alpha_quad_y[j] * det_h_d[j] * ( Dz_con_r_n[j] - Dz_con_l_n[j] );
+          a_Jc_dU[6 + j] = alpha_quad_y[j] * det_h_d[j] * ( Bx_con_r_n[j] - Bx_con_l_n[j] );
+          a_Jc_dU[8 + j] = alpha_quad_y[j] * det_h_d[j] * ( By_con_r_n[j] - By_con_l_n[j] );
+          a_Jc_dU[10 + j] = alpha_quad_y[j] * det_h_d[j] * ( Bz_con_r_n[j] - Bz_con_l_n[j] );
+          dU[0 + j] = ( Dx_con_r_n[j] - Dx_con_l_n[j] );
+          dU[2 + j] = ( Dy_con_r_n[j] - Dy_con_l_n[j] );
+          dU[4 + j] = ( Dz_con_r_n[j] - Dz_con_l_n[j] );
+          dU[6 + j] = ( Bx_con_r_n[j] - Bx_con_l_n[j] );
+          dU[8 + j] = ( By_con_r_n[j] - By_con_l_n[j] );
+          dU[10 + j] = ( Bz_con_r_n[j] - Bz_con_l_n[j] );
+          a_dQ[0 + j] = alpha_quad_y[j] * ( JDx_con_r_n[j] - JDx_con_l_n[j] );
+          a_dQ[2 + j] = alpha_quad_y[j] * ( JDy_con_r_n[j] - JDy_con_l_n[j] );
+          a_dQ[4 + j] = alpha_quad_y[j] * ( JDz_con_r_n[j] - JDz_con_l_n[j] );
+          a_dQ[6 + j] = alpha_quad_y[j] * ( JBx_con_r_n[j] - JBx_con_l_n[j] );
+          a_dQ[8 + j] = alpha_quad_y[j] * ( JBy_con_r_n[j] - JBy_con_l_n[j] );
+          a_dQ[10 + j] = alpha_quad_y[j] * ( JBz_con_r_n[j] - JBz_con_l_n[j] );
+          Q_mag[0 + j] = ( JDx_con_r_n[j] );
+          Q_mag[2 + j] = ( JDy_con_r_n[j] );
+          Q_mag[4 + j] = ( JDz_con_r_n[j] );
+          Q_mag[6 + j] = ( JBx_con_r_n[j] );
+          Q_mag[8 + j] = ( JBy_con_r_n[j] );
+          Q_mag[10 + j] = ( JBz_con_r_n[j] );
+          Ur[0 + j] = ( Dx_con_r_n[j] );
+          Ur[2 + j] = ( Dy_con_r_n[j] );
+          Ur[4 + j] = ( Dz_con_r_n[j] );
+          Ur[6 + j] = ( Bx_con_r_n[j] );
+          Ur[8 + j] = ( By_con_r_n[j] );
+          Ur[10 + j] = ( Bz_con_r_n[j] );
+          Ul[0 + j] = ( Dx_con_l_n[j] );
+          Ul[2 + j] = ( Dy_con_l_n[j] );
+          Ul[4 + j] = ( Dz_con_l_n[j] );
+          Ul[6 + j] = ( Bx_con_l_n[j] );
+          Ul[8 + j] = ( By_con_l_n[j] );
+          Ul[10 + j] = ( Bz_con_l_n[j] );
+        }
+
+        // Specifically verify the theta-pole face states are continuous
+        // after applying the same regularity condition as the flux kernel.
+        if (theta_pole) {
+          for (int j = 0; j<12; ++j) {
+            printf("(theta-pole): dU[%d] %1.16e, Ur: %1.16e, Ul: %1.16e\n", j, dU[j], Ur[j], Ul[j]);
+            TEST_CHECK(gkyl_compare_double(dU[j], 0.0, 1e-12));
+            TEST_CHECK(gkyl_compare_double(A_plus_dQ_y[j], 0.0, 1e-12));
+            TEST_CHECK(gkyl_compare_double(A_minus_dQ_y[j], 0.0, 1e-12));
+          }
+        }
+
+        // Check the flux-Jump conditions (It is critical this passes!)
+        for (int j = 0; j<12; ++j) {
+          //printf("(Index: %d) A_plus_dQ_y: %1.16e, A_minus_dQ_y: %1.16e, flux_l_y: %1.16e, flux_r_y: %1.16e\n",j,A_plus_dQ_y[j], A_minus_dQ_y[j], flux_l_y[j], flux_r_y[j]);
+        }
+
+        for (int j = 0; j<12; ++j) {
+          //printf("(Index: %d) A_plus_dQ_y + A_minus_dQ_y: %1.16e, flux_r_y - flux_l_y: %1.16e\n",j,A_plus_dQ_y[j] + A_minus_dQ_y[j], flux_r_y[j] - flux_l_y[j]);
+          if (theta_pole == 0) {
+            TEST_CHECK(gkyl_compare_double(A_plus_dQ_y[j] + A_minus_dQ_y[j], flux_r_y[j] - flux_l_y[j], 1e-12));
+          }
+        }
+
+        // print the comparison in the Jumps
+        for (int j = 0; j<12; ++j) {
+          //printf("(Q_ref[%d] = %1.16e) a_Jc_dU[%d]: %1.16e, a_dQ[%d]: %1.16e\n",j,Q_mag[j],j,a_Jc_dU[j], j, a_dQ[j]);
+        }
+      }
+
+      // Dir = 0 comparison, for Jumps in quantities at the radial boundary
       if (dir == 0) { 
         // Compute and check |alpha^i| J_c \Delta U ~ |alpha_i| \Delta Q
         double Dx_con_l_n[2] = {0.0};
@@ -851,12 +1130,6 @@ test_ks_r_theta_2x_geom_p1()
         double Bx_con_l_n[2] = {0.0};
         double By_con_l_n[2] = {0.0};
         double Bz_con_l_n[2] = {0.0};
-        double Ex_l_n[2] = {0.0};
-        double Ey_l_n[2] = {0.0};
-        double Ez_l_n[2] = {0.0};
-        double Hx_l_n[2] = {0.0};
-        double Hy_l_n[2] = {0.0};
-        double Hz_l_n[2] = {0.0};
 
         double Dx_con_r_n[2] = {0.0};
         double Dy_con_r_n[2] = {0.0};
@@ -864,12 +1137,6 @@ test_ks_r_theta_2x_geom_p1()
         double Bx_con_r_n[2] = {0.0};
         double By_con_r_n[2] = {0.0};
         double Bz_con_r_n[2] = {0.0};
-        double Ex_r_n[2] = {0.0};
-        double Ey_r_n[2] = {0.0};
-        double Ez_r_n[2] = {0.0};
-        double Hx_r_n[2] = {0.0};
-        double Hy_r_n[2] = {0.0};
-        double Hz_r_n[2] = {0.0};
 
         double JDx_con_l_n[2] = {0.0};
         double JDy_con_l_n[2] = {0.0};
@@ -877,12 +1144,6 @@ test_ks_r_theta_2x_geom_p1()
         double JBx_con_l_n[2] = {0.0};
         double JBy_con_l_n[2] = {0.0};
         double JBz_con_l_n[2] = {0.0};
-        double JEx_l_n[2] = {0.0};
-        double JEy_l_n[2] = {0.0};
-        double JEz_l_n[2] = {0.0};
-        double JHx_l_n[2] = {0.0};
-        double JHy_l_n[2] = {0.0};
-        double JHz_l_n[2] = {0.0};
 
         double JDx_con_r_n[2] = {0.0};
         double JDy_con_r_n[2] = {0.0};
@@ -890,12 +1151,20 @@ test_ks_r_theta_2x_geom_p1()
         double JBx_con_r_n[2] = {0.0};
         double JBy_con_r_n[2] = {0.0};
         double JBz_con_r_n[2] = {0.0};
-        double JEx_r_n[2] = {0.0};
-        double JEy_r_n[2] = {0.0};
-        double JEz_r_n[2] = {0.0};
-        double JHx_r_n[2] = {0.0};
-        double JHy_r_n[2] = {0.0};
-        double JHz_r_n[2] = {0.0};
+
+        double Dx_con_copy_l_n[2] = {0.0};
+        double Dy_con_copy_l_n[2] = {0.0};
+        double Dz_con_copy_l_n[2] = {0.0};
+        double Bx_con_copy_l_n[2] = {0.0};
+        double By_con_copy_l_n[2] = {0.0};
+        double Bz_con_copy_l_n[2] = {0.0};
+
+        double Dx_con_copy_r_n[2] = {0.0};
+        double Dy_con_copy_r_n[2] = {0.0};
+        double Dz_con_copy_r_n[2] = {0.0};
+        double Bx_con_copy_r_n[2] = {0.0};
+        double By_con_copy_r_n[2] = {0.0};
+        double Bz_con_copy_r_n[2] = {0.0};
         
         const double *Dx_l = &field_no_J_con_l[0]; 
         const double *Dy_l = &field_no_J_con_l[4]; 
@@ -939,6 +1208,50 @@ test_ks_r_theta_2x_geom_p1()
         By_con_r_n[1] = -(0.8660254037844386*By_r[3])+0.5*By_r[2]-0.8660254037844386*By_r[1]+0.5*By_r[0];
         Bz_con_r_n[1] = -(0.8660254037844386*Bz_r[3])+0.5*Bz_r[2]-0.8660254037844386*Bz_r[1]+0.5*Bz_r[0];
 
+        // Acqiure new pointer locations
+        Dx_l = &field_no_J_con_copy_l[0]; 
+        Dy_l = &field_no_J_con_copy_l[4]; 
+        Dz_l = &field_no_J_con_copy_l[8]; 
+        Bx_l = &field_no_J_con_copy_l[12]; 
+        By_l = &field_no_J_con_copy_l[16]; 
+        Bz_l = &field_no_J_con_copy_l[20]; 
+        
+        Dx_con_copy_l_n[0] = -(0.8660254037844386*Dx_l[3])-0.5*Dx_l[2]+0.8660254037844386*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_copy_l_n[0] = -(0.8660254037844386*Dy_l[3])-0.5*Dy_l[2]+0.8660254037844386*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_copy_l_n[0] = -(0.8660254037844386*Dz_l[3])-0.5*Dz_l[2]+0.8660254037844386*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_copy_l_n[0] = -(0.8660254037844386*Bx_l[3])-0.5*Bx_l[2]+0.8660254037844386*Bx_l[1]+0.5*Bx_l[0];
+        By_con_copy_l_n[0] = -(0.8660254037844386*By_l[3])-0.5*By_l[2]+0.8660254037844386*By_l[1]+0.5*By_l[0];
+        Bz_con_copy_l_n[0] = -(0.8660254037844386*Bz_l[3])-0.5*Bz_l[2]+0.8660254037844386*Bz_l[1]+0.5*Bz_l[0];
+        
+        Dx_con_copy_l_n[1] = 0.8660254037844386*Dx_l[3]+0.5*Dx_l[2]+0.8660254037844386*Dx_l[1]+0.5*Dx_l[0];
+        Dy_con_copy_l_n[1] = 0.8660254037844386*Dy_l[3]+0.5*Dy_l[2]+0.8660254037844386*Dy_l[1]+0.5*Dy_l[0];
+        Dz_con_copy_l_n[1] = 0.8660254037844386*Dz_l[3]+0.5*Dz_l[2]+0.8660254037844386*Dz_l[1]+0.5*Dz_l[0];
+        Bx_con_copy_l_n[1] = 0.8660254037844386*Bx_l[3]+0.5*Bx_l[2]+0.8660254037844386*Bx_l[1]+0.5*Bx_l[0];
+        By_con_copy_l_n[1] = 0.8660254037844386*By_l[3]+0.5*By_l[2]+0.8660254037844386*By_l[1]+0.5*By_l[0];
+        Bz_con_copy_l_n[1] = 0.8660254037844386*Bz_l[3]+0.5*Bz_l[2]+0.8660254037844386*Bz_l[1]+0.5*Bz_l[0];
+
+        // Acqiure new pointer locations
+        Dx_r = &field_no_J_con_copy_c[0]; 
+        Dy_r = &field_no_J_con_copy_c[4]; 
+        Dz_r = &field_no_J_con_copy_c[8]; 
+        Bx_r = &field_no_J_con_copy_c[12]; 
+        By_r = &field_no_J_con_copy_c[16]; 
+        Bz_r = &field_no_J_con_copy_c[20]; 
+        
+        Dx_con_copy_r_n[0] = 0.8660254037844386*Dx_r[3]-0.5*Dx_r[2]-0.8660254037844386*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_copy_r_n[0] = 0.8660254037844386*Dy_r[3]-0.5*Dy_r[2]-0.8660254037844386*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_copy_r_n[0] = 0.8660254037844386*Dz_r[3]-0.5*Dz_r[2]-0.8660254037844386*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_copy_r_n[0] = 0.8660254037844386*Bx_r[3]-0.5*Bx_r[2]-0.8660254037844386*Bx_r[1]+0.5*Bx_r[0];
+        By_con_copy_r_n[0] = 0.8660254037844386*By_r[3]-0.5*By_r[2]-0.8660254037844386*By_r[1]+0.5*By_r[0];
+        Bz_con_copy_r_n[0] = 0.8660254037844386*Bz_r[3]-0.5*Bz_r[2]-0.8660254037844386*Bz_r[1]+0.5*Bz_r[0];
+        
+        Dx_con_copy_r_n[1] = -(0.8660254037844386*Dx_r[3])+0.5*Dx_r[2]-0.8660254037844386*Dx_r[1]+0.5*Dx_r[0];
+        Dy_con_copy_r_n[1] = -(0.8660254037844386*Dy_r[3])+0.5*Dy_r[2]-0.8660254037844386*Dy_r[1]+0.5*Dy_r[0];
+        Dz_con_copy_r_n[1] = -(0.8660254037844386*Dz_r[3])+0.5*Dz_r[2]-0.8660254037844386*Dz_r[1]+0.5*Dz_r[0];
+        Bx_con_copy_r_n[1] = -(0.8660254037844386*Bx_r[3])+0.5*Bx_r[2]-0.8660254037844386*Bx_r[1]+0.5*Bx_r[0];
+        By_con_copy_r_n[1] = -(0.8660254037844386*By_r[3])+0.5*By_r[2]-0.8660254037844386*By_r[1]+0.5*By_r[0];
+        Bz_con_copy_r_n[1] = -(0.8660254037844386*Bz_r[3])+0.5*Bz_r[2]-0.8660254037844386*Bz_r[1]+0.5*Bz_r[0];
+        
         const double *JDx_l = &field_con_l[0]; 
         const double *JDy_l = &field_con_l[4]; 
         const double *JDz_l = &field_con_l[8]; 
@@ -984,8 +1297,10 @@ test_ks_r_theta_2x_geom_p1()
         // Compute the two different Jumps
         // Iterate over nodes
         double a_Jc_dU[12]; 
+        double dU_copy[12]; 
         double a_dQ[12]; 
         double Q_mag[12]; 
+        double U_mag[12]; 
         for (int j = 0; j<2; ++j) {
           a_Jc_dU[0 + j] = alpha_quad_x[j] * det_h_d[j] * ( Dx_con_r_n[j] - Dx_con_l_n[j] ); 
           a_Jc_dU[2 + j] = alpha_quad_x[j] * det_h_d[j] * ( Dy_con_r_n[j] - Dy_con_l_n[j] ); 
@@ -993,6 +1308,12 @@ test_ks_r_theta_2x_geom_p1()
           a_Jc_dU[6 + j] = alpha_quad_x[j] * det_h_d[j] * ( Bx_con_r_n[j] - Bx_con_l_n[j] ); 
           a_Jc_dU[8 + j] = alpha_quad_x[j] * det_h_d[j] * ( By_con_r_n[j] - By_con_l_n[j] ); 
           a_Jc_dU[10 + j] = alpha_quad_x[j] * det_h_d[j] * ( Bz_con_r_n[j] - Bz_con_l_n[j] ); 
+          dU_copy[0 + j] = ( Dx_con_copy_r_n[j] - Dx_con_copy_l_n[j] ); 
+          dU_copy[2 + j] = ( Dy_con_copy_r_n[j] - Dy_con_copy_l_n[j] ); 
+          dU_copy[4 + j] = ( Dz_con_copy_r_n[j] - Dz_con_copy_l_n[j] ); 
+          dU_copy[6 + j] = ( Bx_con_copy_r_n[j] - Bx_con_copy_l_n[j] ); 
+          dU_copy[8 + j] = ( By_con_copy_r_n[j] - By_con_copy_l_n[j] ); 
+          dU_copy[10 + j] = ( Bz_con_copy_r_n[j] - Bz_con_copy_l_n[j] ); 
           a_dQ[0 + j] = alpha_quad_x[j] * ( JDx_con_r_n[j] - JDx_con_l_n[j] ); 
           a_dQ[2 + j] = alpha_quad_x[j] * ( JDy_con_r_n[j] - JDy_con_l_n[j] ); 
           a_dQ[4 + j] = alpha_quad_x[j] * ( JDz_con_r_n[j] - JDz_con_l_n[j] ); 
@@ -1005,11 +1326,28 @@ test_ks_r_theta_2x_geom_p1()
           Q_mag[6 + j] = ( JBx_con_r_n[j] ); 
           Q_mag[8 + j] = ( JBy_con_r_n[j] ); 
           Q_mag[10 + j] = ( JBz_con_r_n[j] ); 
+          U_mag[0 + j] = ( Dx_con_r_n[j] ); 
+          U_mag[2 + j] = ( Dy_con_r_n[j] ); 
+          U_mag[4 + j] = ( Dz_con_r_n[j] ); 
+          U_mag[6 + j] = ( Bx_con_r_n[j] ); 
+          U_mag[8 + j] = ( By_con_r_n[j] ); 
+          U_mag[10 + j] = ( Bz_con_r_n[j] );
+        }
+
+        // Check the flux-Jump conditions (It is critical this passes!)
+        for (int j = 0; j<12; ++j) {
+          // printf("(Index: %d) A_plus_dQ_x: %1.16e, A_minus_dQ_x: %1.16e, flux_l_x: %1.16e, flux_r_x: %1.16e\n",j,A_plus_dQ_x[j], A_minus_dQ_x[j], flux_l_x[j], flux_r_x[j]);
+          //printf("(Index: %d) A_plus_dQ_x + A_minus_dQ_x: %1.16e, flux_r_x - flux_l_x: %1.16e\n",j,A_plus_dQ_x[j] + A_minus_dQ_x[j], flux_r_x[j] - flux_l_x[j]);
+          TEST_CHECK(gkyl_compare_double(A_plus_dQ_x[j] + A_minus_dQ_x[j], flux_r_x[j] - flux_l_x[j], 1e-12));
         }
 
         // print the comparison in the Jumps
         for (int j = 0; j<12; ++j) {
-          printf("(Q_ref[%d] = %1.16e) a_Jc_dU[%d]: %1.16e, a_dQ[%d]: %1.16e\n",j,Q_mag[j],j,a_Jc_dU[j], j, a_dQ[j]);
+          //printf("(Q_ref[%d] = %1.16e) a_Jc_dU[%d]: %1.16e, a_dQ[%d]: %1.16e\n",j,Q_mag[j],j,a_Jc_dU[j], j, a_dQ[j]);
+        }
+        // print the comparison in the Jumps
+        for (int j = 0; j<12; ++j) {
+          //printf("(U_ref[%d] = %1.16e) dU[%d]: %1.16e\n",j,U_mag[j],j,dU_copy[j]);
         }
       }
 
@@ -1047,6 +1385,7 @@ test_ks_r_theta_2x_geom_p1()
 
   // Release fields
   gkyl_array_release(field_no_J_fixed);
+  gkyl_array_release(field_no_J_fixed_copy);
 
 }
 

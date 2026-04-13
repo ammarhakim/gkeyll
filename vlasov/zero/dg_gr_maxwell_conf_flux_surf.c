@@ -26,13 +26,19 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   up->cdim = cdim;
   up->use_gpu = inp->use_gpu; 
   up->conf_grid = *inp->conf_grid;
+  up->use_lax = inp->use_lax;
    
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       // Kernels to compute the lax flux using the maximum eigenvalue and the left and right fluxes.
-      up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_x_kernels[cdim-1].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_y_kernels[cdim-1].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_z_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[0] = ser_lax_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[1] = ser_lax_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[2] = ser_lax_flux_z_kernels[cdim-1].kernels[poly_order];
+
+      // Kernels to compute the Roe fluxes.
+      up->roe_flux[0] = ser_roe_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->roe_flux[1] = ser_roe_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->roe_flux[2] = ser_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ser_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
@@ -43,9 +49,14 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
 
     case GKYL_BASIS_MODAL_TENSOR:
     // Kernels to compute the lax flux using the maximum eigenvalue and the left and right fluxes.
-      up->lax_flux_nodal_to_modal[0] = ten_lax_flux_nodal_to_modal_x_kernels[cdim-1].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[1] = ten_lax_flux_nodal_to_modal_y_kernels[cdim-1].kernels[poly_order];
-      up->lax_flux_nodal_to_modal[2] = ten_lax_flux_nodal_to_modal_z_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[0] = ten_lax_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[1] = ten_lax_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux[2] = ten_lax_flux_z_kernels[cdim-1].kernels[poly_order];
+
+      // Kernels to compute the Roe fluxes.
+      up->roe_flux[0] = ten_roe_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->roe_flux[1] = ten_roe_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->roe_flux[2] = ten_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ten_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
@@ -69,7 +80,8 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    assert(up->lax_flux_nodal_to_modal[i]);
+    assert(up->lax_flux[i]);
+    assert(up->roe_flux[i]);
     assert(up->dg_gr_maxwell_alpha_quad[i]);
   }
 

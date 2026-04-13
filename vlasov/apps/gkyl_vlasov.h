@@ -306,6 +306,8 @@ struct gkyl_vlasov_field {
   // Pointer to function defining external potentials (phi,A).
   void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
+
+  bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
 };
 
 // Parameter for Vlasov fluid species

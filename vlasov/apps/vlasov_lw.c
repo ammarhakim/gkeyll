@@ -1492,6 +1492,9 @@ vlasov_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
+  bool use_lax = glua_tbl_get_bool(L, "useLax", false);
+  vm_field.use_lax = use_lax;
+
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
 
