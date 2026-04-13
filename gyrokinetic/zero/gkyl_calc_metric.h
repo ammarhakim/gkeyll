@@ -13,15 +13,17 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * Create new updater to compute the metric coefficients
  *
  * @param cbasis Basis object (configuration space).
- * @param grid configuration space grid.
- * @param global, _ext computational global Config-space range and extended range.
- * @param local, _ext computational local Config-space range and extended range.
- * @param use_gpu boolean indicating whether to use the GPU.
+ * @param grid Configuration space grid.
+ * @param global, _ext Computational global Config-space range and extended range.
+ * @param local, _ext Computational local Config-space range and extended range.
+ * @param exit_at_checks =true terminates if consistency checks fail, =false just write a warning.
+ * @param use_gpu Boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *global, const struct gkyl_range *global_ext, 
-  const struct gkyl_range *local, const struct gkyl_range *local_ext, bool use_gpu);
+gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *global, const struct gkyl_range *global_ext, 
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  bool exit_at_checks, bool use_gpu);
 
 /**
  * Use finite differences to calculate metric coefficients and tangent vectors at nodes
