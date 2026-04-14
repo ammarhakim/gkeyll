@@ -14,8 +14,7 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *flux_surf, 
+gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf, 
   const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
@@ -29,9 +28,10 @@ gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
-  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-    auxin.flux_surf->on_dev, 
-    auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
+  const struct gkyl_array *apar_ondev = auxin.apar == 0? NULL : auxin.apar->on_dev;
+  const struct gkyl_array *apardot_ondev = auxin.apardot == 0? NULL : auxin.apardot->on_dev;
+  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.flux_surf->on_dev, 
+    auxin.phi->on_dev, apar_ondev, apardot_ondev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic kernel function

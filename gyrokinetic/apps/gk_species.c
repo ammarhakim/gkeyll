@@ -1540,6 +1540,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, 0, false);
 
   gks->gyro_phi = mkarr(app->use_gpu, app->field->phi->ncomp, app->field->phi->size); // Gyroaveraged potential
+  gks->gyro_apar = 0;
+  gks->gyro_apardot = 0;
   if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_APAR) {
     // Parallel component of magnetic vector potential.
     gks->gyro_apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
