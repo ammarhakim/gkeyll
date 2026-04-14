@@ -28,6 +28,7 @@ struct gk_app_ctx {
   double kappa;     // Elongation (=1 for no elongation).
   double delta;     // Triangularity (=0 for no triangularity).
   double q0;        // Magnetic safety factor in the center of domain.
+  double Cy;        // Prefactor in binormal coordinate.
 
   double x_LCFS;    // Radial location of the last closed flux surface.
 
@@ -151,6 +152,16 @@ double integrand(double t, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
+
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -158,10 +169,10 @@ double dPsidr(double r, double theta, void *ctx)
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
-  double R = R_rtheta(r,0.0,ctx);
-  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
+  double R_omp = R_rtheta(r,0.0,ctx);
+  return ( R*Bt/(2.*M_PI*qprofile(R_omp)) )*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -180,20 +191,12 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
+  return phi - R*Bt*integral.res/dPsidr(r,theta,ctx);
 }
 
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
-}
 double gradr(double r, double theta, void *ctx)
 {
   return (R_rtheta(r,theta,ctx)/Jr(r,theta,ctx))*sqrt(pow(dRdtheta(r,theta,ctx),2) + pow(dZdtheta(r,theta,ctx),2));
@@ -340,8 +343,7 @@ diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
 
   double x = xc[0], y = xc[1], z = xc[2];
@@ -351,7 +353,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = Z_rtheta(r, z, ctx);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -362,9 +364,8 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
-  double r0 = app->r0;
-  double q0 = app->q0;
 
   double x = xc[0], y = xc[1], z = xc[2];
   double r = r_x(x,a_mid);
@@ -376,14 +377,14 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
-  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
-  fout[2] = -B_z;
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
+  fout[2] = B_z;
 }
 
 struct gk_app_ctx
@@ -425,6 +426,7 @@ create_ctx(void)
   double x_LCFS    = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
 
   double q0        = qprofile(R0);    // Magnetic safety factor in the center of domain.
+  double Cy        = 1; // Normalization in binormal coordinate.
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
@@ -469,7 +471,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 1.e-7; // Should terminate in 111 steps.
+  double t_end = 1.e-7;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -488,6 +490,7 @@ create_ctx(void)
     .kappa  = kappa ,
     .delta  = delta ,
     .q0     = q0    ,
+    .Cy     = Cy    ,
     .Lx     = Lx    ,
     .Lz     = Lz    ,
     .x_min = x_min,  .x_max = x_max,
