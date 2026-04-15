@@ -71,7 +71,7 @@ struct gk_app_ctx {
 
 double random0to1()
 {
-  return 1.0;//(double)rand() / (double)RAND_MAX;
+  return (double)rand() / (double)RAND_MAX;
 }
 
 // Common source density profiles.
@@ -636,10 +636,10 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
-    .print_verbosity = {
-      .enabled = true,
-      .frequency = 1.0,
-    }
+    // .print_verbosity = {
+    //   .enabled = true,
+    //   .frequency = 1.0,
+    // }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
