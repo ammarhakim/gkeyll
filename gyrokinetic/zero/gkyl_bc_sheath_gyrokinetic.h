@@ -21,12 +21,14 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.
  * @param use_surrogate Boolean to indicate whether to use surrogate model for vcut.
+ * @param use_surrogate_conv_check Boolean to indicate whether to use the SVM classifier to check for convergence before using the surrogate.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate, bool use_gpu);
+  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate, 
+  bool use_surrogate_conv_check, bool use_gpu);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.

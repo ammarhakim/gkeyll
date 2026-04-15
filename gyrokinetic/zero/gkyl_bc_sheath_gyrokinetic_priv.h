@@ -2,9 +2,8 @@
 
 // Private header for bc_sheath_gyrokinetic updater, not for direct use in user code.
 
-#include <gkyl_bc_sheath_gyrokinetic.h>
-#include <gkyl_bc_sheath_gyrokinetic_kernels.h>
-#include <gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h>
+#include "gkyl_bc_sheath_gyrokinetic.h"
+#include "gkyl_bc_sheath_gyrokinetic_kernels.h"
 #include <assert.h>
 
 // Function pointer type for sheath reflection kernels.
@@ -38,7 +37,8 @@ typedef void (*sheath_surrogate_t)(const double *vmap, const double *phi, const 
   const double *density, const double *temperature, double q2Dm, const double *bmag, const double *bimpact_angle, double *vcut_fact_out);
 
 typedef struct { sheath_surrogate_t kernels[3]; } sheath_surrogate_kern_list;  // For use in kernel tables.
-typedef struct { sheath_surrogate_kern_list list[4]; } edged_sheath_surrogate_kern_list;
+typedef struct { sheath_surrogate_kern_list dim_list[4]; } edged_sheath_surrogate_kern_list;
+typedef struct { edged_sheath_surrogate_kern_list edge_list[2]; } conv_sheath_surrogate_kern_list;
 
 // Function pointer for direct surrogate interface.
 typedef void (*srgrz_eval_t) (const double *mu_new, int n, double phi, double phi_wall, double dens_e,
@@ -46,21 +46,41 @@ typedef void (*srgrz_eval_t) (const double *mu_new, int n, double phi, double ph
 
 // Serendipity surrogate kernels.
 GKYL_CU_D
-static const edged_sheath_surrogate_kern_list ser_sheath_surrogate_list[] = {
-  { .list={
-           { NULL, NULL },
-           { bc_sheath_gyrokinetic_surrogate_lower_1x2v_ser_p1, NULL },
-           { bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1, NULL },
-           { bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1, NULL },
-          },
+static const conv_sheath_surrogate_kern_list ser_sheath_surrogate_list[] = {
+  { .edge_list={
+      { .dim_list={
+              { NULL, NULL },
+              { bc_sheath_gyrokinetic_surrogate_lower_1x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1, NULL },
+              },
+      },
+      { .dim_list={
+              { NULL, NULL },
+              { bc_sheath_gyrokinetic_surrogate_upper_1x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1, NULL },
+              },
+      },
+    },
   },
-  { .list={
-           { NULL, NULL },
-           { bc_sheath_gyrokinetic_surrogate_upper_1x2v_ser_p1, NULL },
-           { bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1, NULL },
-           { bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1, NULL },
-          },
-  },
+  { .edge_list={
+      { .dim_list={
+              { NULL, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_lower_1x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_lower_2x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_lower_3x2v_ser_p1, NULL },
+              },
+      },
+      { .dim_list={
+              { NULL, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_upper_1x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_upper_2x2v_ser_p1, NULL },
+              { bc_sheath_gyrokinetic_surrogate_conv_upper_3x2v_ser_p1, NULL },
+              },
+      },
+    },
+  }
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
@@ -77,6 +97,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   bool use_gpu; // Whether to run on GPU.
   double q2Dm; // charge-to-mass ratio times 2.
   bool use_surrogate; // Whether to use surrogate sheath BC to determine vcut.
+  bool use_surrogate_conv_check; // Whether to use the SVM classifier to check for convergence before using the surrogate.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
@@ -128,23 +149,25 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 }
 
 void 
-gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+  bool use_conv_check, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
 static sheath_surrogate_t
-bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, bool use_conv_check)
 {
   
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
+  int conv_idx = use_conv_check ? 1 : 0;
 
   sheath_surrogate_t kern = NULL;
 
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kern = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
+      kern = ser_sheath_surrogate_list[conv_idx].edge_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       kern = NULL;

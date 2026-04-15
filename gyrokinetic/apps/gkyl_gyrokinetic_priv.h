@@ -84,6 +84,7 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_powsqrt_on_basis.h>
+#include <gkyl_proj_exp_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
@@ -323,6 +324,7 @@ struct gk_collisionless {
 struct gk_lbo_collisions {  
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
+  bool not_in_dfdt; // Whether to not add collision contribution to df/dt 
 
   struct gkyl_array *self_nu; // Self-collision frequency.
   struct gkyl_array *boundary_corrections; // LBO boundary corrections.
@@ -654,35 +656,62 @@ struct gk_react {
     int ridx, double tm, int frame);
 };
 
-struct gk_recycle_react_scale {
+struct gk_scaling {
   bool write_diagnostics; // Whether to write diagnostics.
-  int num_boundaries; // Number of boundaries.
-  int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
-  enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
-  int elc_idx; // Index of electron species.
-  int ion_idx; // Index of ion species.
-  double recycling_coeff; // Recycling coefficient.
- 
-  struct gkyl_array *Jm0_init; // Initial number density times jacobgeo.
-  struct gkyl_array *reactivity; // Reactivity.
-  struct gkyl_array *dndt_react; // Reaction contribution.
-  struct gkyl_dg_iz *iz_react_calc; // Operator to compute ionization rate.
-  struct gkyl_array_integrate *integrate_op; // Operator that integrates an array.
-  double react_vol_integ, *react_vol_integ_local, *react_vol_integ_global; // Volume integral of reaction contribution.
+  enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
 
-  struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Ghost cells to where integrated M0 is computed.
- 
-  double *bflux_m0_vol_integ_local; // Local volume integral of boundary flux M0.
+  union {
+    struct {
+      // Objects for GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE.
+      int num_boundaries; // Number of boundaries.
+      int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
+      enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
+      int elc_idx; // Index of electron species.
+      int ion_idx; // Index of ion species.
+      double recycling_coeff; // Recycling coefficient.
+     
+      struct gkyl_array *Jm0_init; // Initial number density times jacobgeo.
+      struct gkyl_array *reactivity; // Reactivity.
+      struct gkyl_array *dndt_react; // Reaction contribution.
+      struct gkyl_dg_iz *iz_react_calc; // Operator to compute ionization rate.
+      struct gkyl_array_integrate *integrate_op; // Operator that integrates an array.
+      double react_vol_integ, *react_vol_integ_local, *react_vol_integ_global; // Volume integral of reaction contribution.
+    
+      struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Ghost cells to where integrated M0 is computed.
+     
+      double *bflux_m0_vol_integ_local; // Local volume integral of boundary flux M0.
+    };
+    struct {
+      // Info for GKYL_GK_SPECIES_SCALING_FIXED_FRACTION.
+      int ref_species_idx; // Index of reference species species.
+      double fixed_fraction; // Fraction of reference species density.
+    };
+    struct {
+      // Objects for GKYL_GK_SPECIES_SCALING_BOLTZMANN.
+      struct gkyl_proj_exp_on_basis *proj_exp; // Operator to project exp(A).
+      struct gkyl_array *sheath_val; // Value at the sheath entrance, copied to interior cells.
+      struct gkyl_array *buffer_conf; // Conf-space buffer array.
+    };
+  };
 
   // Methods chosen at runtime.
-  void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns,
-    struct gk_recycle_react_scale *rrs, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
-  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-    struct gk_recycle_react_scale *rrs, const struct gkyl_array *fin, struct gkyl_array *rhs);
-  void (*apply_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-    struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[]);
-  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *ns,
-    struct gk_recycle_react_scale *rrs, int ridx, double tm, int frame);
+  void (*cross_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*apply_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[]);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_scaling *sca, int ridx, double tm, int frame);
+  // Neutral species function pointers (MF 2025/11/03: to be removed when we unify species types).
+  void (*cross_moms_func_neut)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns,
+    struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  void (*rhs_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+    struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*apply_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+    struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[]);
+  void (*write_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *ns,
+    struct gk_scaling *sca, int ridx, double tm, int frame);
 };
 
 // Context for c2p function passed to proj_on_basis.
@@ -913,7 +942,6 @@ struct gk_positivity {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
-  int vdim; // Velocity space dimensions.
 
   struct gkyl_basis basis; // Phase-space basis.
 
@@ -1021,6 +1049,8 @@ struct gk_species {
 
   struct gk_lte lte; // Object constructing LTE distributions.
 
+  struct gk_scaling sca; // Recycle react scale.
+
   struct gk_lbo_collisions lbo; // LBO collisions object.
   struct gk_bgk_collisions bgk; // BGK collisions object.
 
@@ -1070,7 +1100,6 @@ struct gk_species {
 // Neutral species data.
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // Data for neutral species.
-  int vdim; // Velocity space dimensions.
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
@@ -1119,7 +1148,7 @@ struct gk_neut_species {
 
   struct gk_lte lte; // Object needed for the lte equilibrium.
  
-  struct gk_recycle_react_scale rrs; // Recycle react scale.
+  struct gk_scaling sca; // Recycle react scale.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[GKYL_MAX_CDIM]; // List of periodic directions.
@@ -3483,95 +3512,183 @@ void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_speci
  */
 void gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react);
 
-/** gk_neut_species_recycle_react_scale API */
+/** gk_species_scaling API */
 
 /**
- * Initialize operator that scales the neutral species according to a balance
- * of recycling and reactions.
+ * Initialize operator that scales the species according to some criteria.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ */
+void gk_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
+  struct gk_scaling *sca);
+
+/**
+ * Initialize the part of scaling that depends on other species.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ */
+void  gk_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_scaling *sca);
+
+/**
+ * Store initial condition of the species.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ */
+void gk_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_scaling *sca);
+
+/**
+ * Compute the cross-species moments needed.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ * @param fin Input distribution for charged species.
+ * @param fin_neut Input distribution/moments for neutral species.
+ */
+void gk_species_scaling_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute factor to scale species by.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ * @param fin Input distribution/moments for species.
+ * @param rhs df/dt to add to.
+ */
+void gk_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Add up the integrated boundary fluxes and scale the species.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ * @param fin Distribution/moments to scale.
+ * @param bflux Boundary fluxes of charged species.
+ */
+void gk_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[]);
+
+/**
+ * Write scaling diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ * @param fin Input distribution/moments for species.
+ * @param rhs df/dt to add to.
+ */
+void gk_species_scaling_write(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_scaling *sca, int ridx, double tm, int frame);
+
+/**
+ * Free memory associated with the scaling operator.
+ *
+ * @param app gyrokinetic app object.
+ * @param sca Recycle react scale object.
+ */
+void gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_scaling *sca);
+
+/** gk_neut_species_scaling API */
+
+/**
+ * Initialize operator that scales the neutral species according to some criteria.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  */
-void gk_neut_species_recycle_react_scale_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, 
-  struct gk_recycle_react_scale *rrs);
+void gk_neut_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, 
+  struct gk_scaling *sca);
 
 /**
- * Initialize the part of recycle_react_scale that depends on other species.
+ * Initialize the part of scaling that depends on other species.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  */
-void  gk_neut_species_recycle_react_scale_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs);
+void  gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_scaling *sca);
 
 /**
  * Store initial condition of the neutral species.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  */
-void gk_neut_species_recycle_react_scale_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs);
+void gk_neut_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_scaling *sca);
 
 /**
- * Compute the reaction rates needed.
+ * Compute the cross-species moments needed.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  * @param fin Input distribution for charged species.
  * @param fin_neut Input distribution/moments for neutral species.
  */
-void gk_neut_species_recycle_react_scale_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+void gk_neut_species_scaling_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns,
+  struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute factor to scale neutrals by.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  * @param fin Input distribution/moments for neutral species.
  * @param rhs df/dt to add to.
  */
-void gk_neut_species_recycle_react_scale_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, const struct gkyl_array *fin, struct gkyl_array *rhs);
+void gk_neut_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Add up the integrated boundary fluxes and scale the neutral species.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  * @param fin Distribution/moments to scale.
  * @param bflux Boundary fluxes of charged species.
  */
-void gk_neut_species_recycle_react_scale_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, struct gkyl_array *fin, struct gkyl_array **bflux[]);
+void gk_neut_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[]);
 
 /**
- * Write out recycle_react_scale diagnostics.
+ * Write scaling diagnostics.
  *
  * @param app gyrokinetic app object.
  * @param ns Neutral species object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  * @param fin Input distribution/moments for neutral species.
  * @param rhs df/dt to add to.
  */
-void gk_neut_species_recycle_react_scale_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *ns,
-  struct gk_recycle_react_scale *rrs, int ridx, double tm, int frame);
+void gk_neut_species_scaling_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *ns,
+  struct gk_scaling *sca, int ridx, double tm, int frame);
 
 /**
- * Free memory associated with the recycle_react_scale operator.
+ * Free memory associated with the scaling operator.
  *
  * @param app gyrokinetic app object.
- * @param rrs Recycle react scale object.
+ * @param sca Recycle react scale object.
  */
-void gk_neut_species_recycle_react_scale_release(const struct gkyl_gyrokinetic_app *app,
-  const struct gk_recycle_react_scale *rrs);
+void gk_neut_species_scaling_release(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_scaling *sca);
 
 /** gk_neut_species_projection API */
 

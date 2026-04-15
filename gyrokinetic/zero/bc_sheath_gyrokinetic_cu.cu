@@ -34,16 +34,17 @@ gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
 // CUDA kernel to set device pointers to kernel that calls the surrogate.
 __global__ static void
 gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
-  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+  enum gkyl_edge_loc edge, bool use_conv_check, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
   int dim = basis->ndim;
   enum gkyl_basis_type b_type = basis->b_type;
   int poly_order = basis->poly_order;
+  int conv_idx = use_conv_check ? 1 : 0;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->surrogate = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
+      kers->surrogate = ser_sheath_surrogate_list[conv_idx].edge_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -52,9 +53,9 @@ gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
 
 void
 gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis,
-  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+  enum gkyl_edge_loc edge, bool use_conv_check, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
-  gkyl_bc_gksheath_surr_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
+  gkyl_bc_gksheath_surr_set_cu_ker_ptrs<<<1,1>>>(basis, edge, use_conv_check, kers);
 }
 
 __global__ static void

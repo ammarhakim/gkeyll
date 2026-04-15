@@ -103,10 +103,31 @@ GKYL_CU_DH void ambi_bolt_potential_phi_calc_2x_ser_p1(double q_e, double T_e, c
   // phi: electrostatic potential in domain volume.
 
   double phi_qp[4];
-  phi_qp[0] = -((1.0*log(m0Ion[3]/(sheathvals[3]-1.0*sheathvals[2]-1.0*sheathvals[1]+sheathvals[0])-(1.0*m0Ion[2])/(sheathvals[3]-1.0*sheathvals[2]-1.0*sheathvals[1]+sheathvals[0])-(1.0*m0Ion[1])/(sheathvals[3]-1.0*sheathvals[2]-1.0*sheathvals[1]+sheathvals[0])+m0Ion[0]/(sheathvals[3]-1.0*sheathvals[2]-1.0*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.5*sheathvals[7]-0.5*sheathvals[6]-0.5*sheathvals[5]+0.5*sheathvals[4]; 
-  phi_qp[1] = -((1.0*log(-((1.0*m0Ion[3])/(-(1.0*sheathvals[3])+sheathvals[2]-1.0*sheathvals[1]+sheathvals[0]))+m0Ion[2]/(-(1.0*sheathvals[3])+sheathvals[2]-1.0*sheathvals[1]+sheathvals[0])-(1.0*m0Ion[1])/(-(1.0*sheathvals[3])+sheathvals[2]-1.0*sheathvals[1]+sheathvals[0])+m0Ion[0]/(-(1.0*sheathvals[3])+sheathvals[2]-1.0*sheathvals[1]+sheathvals[0]))*T_e)/q_e)-0.5*sheathvals[7]+0.5*sheathvals[6]-0.5*sheathvals[5]+0.5*sheathvals[4]; 
-  phi_qp[2] = -((1.0*log(-((1.0*m0Ion[3])/(-(1.0*sheathvals[3])-1.0*sheathvals[2]+sheathvals[1]+sheathvals[0]))-(1.0*m0Ion[2])/(-(1.0*sheathvals[3])-1.0*sheathvals[2]+sheathvals[1]+sheathvals[0])+m0Ion[1]/(-(1.0*sheathvals[3])-1.0*sheathvals[2]+sheathvals[1]+sheathvals[0])+m0Ion[0]/(-(1.0*sheathvals[3])-1.0*sheathvals[2]+sheathvals[1]+sheathvals[0]))*T_e)/q_e)-0.5*sheathvals[7]-0.5*sheathvals[6]+0.5*sheathvals[5]+0.5*sheathvals[4]; 
-  phi_qp[3] = -((1.0*log(m0Ion[3]/(sheathvals[3]+sheathvals[2]+sheathvals[1]+sheathvals[0])+m0Ion[2]/(sheathvals[3]+sheathvals[2]+sheathvals[1]+sheathvals[0])+m0Ion[1]/(sheathvals[3]+sheathvals[2]+sheathvals[1]+sheathvals[0])+m0Ion[0]/(sheathvals[3]+sheathvals[2]+sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.5*sheathvals[7]+0.5*sheathvals[6]+0.5*sheathvals[5]+0.5*sheathvals[4]; 
+  double m0IonS_curr;
+  m0IonS_curr = 0.5*sheathvals[3]-0.5*sheathvals[2]-0.5*sheathvals[1]+0.5*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[0] = -((1.0*T_e*log(fmax(0.5*m0Ion[3]-0.5*m0Ion[2]-0.5*m0Ion[1]+0.5*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)+0.5*sheathvals[7]-0.5*sheathvals[6]-0.5*sheathvals[5]+0.5*sheathvals[4];
+  } else {
+    phi_qp[0] = 0.0;
+  }
+  m0IonS_curr = -(0.5*sheathvals[3])+0.5*sheathvals[2]-0.5*sheathvals[1]+0.5*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[1] = -((1.0*T_e*log(fmax(-(0.5*m0Ion[3])+0.5*m0Ion[2]-0.5*m0Ion[1]+0.5*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)-0.5*sheathvals[7]+0.5*sheathvals[6]-0.5*sheathvals[5]+0.5*sheathvals[4];
+  } else {
+    phi_qp[1] = 0.0;
+  }
+  m0IonS_curr = -(0.5*sheathvals[3])-0.5*sheathvals[2]+0.5*sheathvals[1]+0.5*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[2] = -((1.0*T_e*log(fmax(-(0.5*m0Ion[3])-0.5*m0Ion[2]+0.5*m0Ion[1]+0.5*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)-0.5*sheathvals[7]-0.5*sheathvals[6]+0.5*sheathvals[5]+0.5*sheathvals[4];
+  } else {
+    phi_qp[2] = 0.0;
+  }
+  m0IonS_curr = 0.5*sheathvals[3]+0.5*sheathvals[2]+0.5*sheathvals[1]+0.5*sheathvals[0];
+  if ((isfinite(m0IonS_curr)) && (m0IonS_curr>0.)) {
+    phi_qp[3] = -((1.0*T_e*log(fmax(0.5*m0Ion[3]+0.5*m0Ion[2]+0.5*m0Ion[1]+0.5*m0Ion[0],m0IonS_curr)/m0IonS_curr))/q_e)+0.5*sheathvals[7]+0.5*sheathvals[6]+0.5*sheathvals[5]+0.5*sheathvals[4];
+  } else {
+    phi_qp[3] = 0.0;
+  }
 
   phi[0] = 0.5*(phi_qp[3]+phi_qp[2]+phi_qp[1]+phi_qp[0]); 
   phi[1] = 0.5*(phi_qp[3]+phi_qp[2])-0.5*(phi_qp[1]+phi_qp[0]); 
