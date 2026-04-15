@@ -1461,6 +1461,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Store the BCs from the input file.
   for (int d=0; d<app->cdim; ++d) {
+    gks->lower_bc[d] = (struct gkyl_gyrokinetic_bc) { };
+    gks->upper_bc[d] = (struct gkyl_gyrokinetic_bc) { };
     if (gks->bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0)
@@ -2009,6 +2011,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   if (gks->alloc_srg_aux_var) {
     gkyl_gk_maxwellian_moments_release(gks->maxwell_mom);
+    gkyl_array_release(gks->maxmom);
+    gkyl_array_release(gks->dens_sheath);
+    gkyl_array_release(gks->temp_sheath);
   }
 
   gks->release_func(app, gks);
