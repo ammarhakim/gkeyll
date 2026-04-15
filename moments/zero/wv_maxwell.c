@@ -97,6 +97,7 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
     maxwell->eqn.num_waves = 6;
     maxwell->eqn.waves_func = wave;
     maxwell->eqn.qfluct_func = qfluct;
+    maxwell->eqn.fuse_waves_qfluct_func = fused_rotate_waves_qfluct_roe;
   }
   else if (inp->rp_type == WV_MAXWELL_RP_LAX) {
     maxwell->eqn.num_waves = 2;
@@ -106,6 +107,7 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
 
   maxwell->eqn.flux_jump = flux_jump;
   maxwell->eqn.check_inv_func = check_inv;
+  maxwell->eqn.fuse_check_inv_func = fuse_check_inv;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;

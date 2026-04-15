@@ -586,6 +586,83 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 GKYL_CU_DH
+static double 
+fused_rotate_waves_qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double* tau1, const double* tau2, const double* norm, double lenr, 
+  const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s, double *amdq, double *apdq)
+{
+  double ql_local[10], qr_local[10];
+  rot_to_local(eqn, tau1, tau2, norm, ql, ql_local); 
+  rot_to_local(eqn, tau1, tau2, norm, qr, qr_local); 
+
+  // clear waves and wave speeds
+  int mwaves = (type == GKYL_WV_HIGH_ORDER_FLUX) ? eqn->num_waves : 2;
+  int meqn = eqn->num_equations;
+  for (int i=0; i<mwaves; ++i) {
+    double *w = &waves[i*meqn];
+    for (int j=0; j<meqn; ++j)
+      waves[j] = 0.0;
+    s[i] = 0.0;
+  }
+
+  double delta[10]; 
+  delta[0] = qr_local[0] - ql_local[0];
+  delta[1] = qr_local[1] - ql_local[1];
+  delta[2] = qr_local[2] - ql_local[2];
+  delta[3] = qr_local[3] - ql_local[3];
+  delta[4] = qr_local[4] - ql_local[4];
+  delta[5] = qr_local[5] - ql_local[5];
+  delta[6] = qr_local[6] - ql_local[6];
+  delta[7] = qr_local[7] - ql_local[7];
+  delta[8] = qr_local[8] - ql_local[8];
+  delta[9] = qr_local[9] - ql_local[9];
+
+  double amdq_local[10], apdq_local[10];
+
+  double my_max_speed = 0.0; 
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    double waves_local[50];
+    if ((phil < 0.0) || (phir < 0.0))
+      my_max_speed = wave_embedded(eqn, delta, ql_local, qr_local, phil, phir,
+        waves_local, s);
+    else {
+      if (type == GKYL_WV_HIGH_ORDER_FLUX)
+        my_max_speed = wave_roe(eqn, delta, ql_local, qr_local, waves_local, s);
+      else
+        my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    }
+    // Rescale speeds (5 waves)
+    s[0] *= lenr;
+    s[1] *= lenr;
+    s[2] *= lenr;
+    s[3] *= lenr;
+    s[4] *= lenr;
+    qfluct_roe(eqn, ql_local, qr_local, waves_local, s, amdq_local, apdq_local);
+    // Rotate the waves back to global coordinates. 
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[0], &waves[0]);
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[10], &waves[10]);
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[20], &waves[20]);
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[30], &waves[30]);
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[40], &waves[40]); 
+  }
+  else {
+    double waves_local[20];
+    my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    // Rescale speeds (2 waves)
+    s[0] *= lenr;
+    s[1] *= lenr;
+    qfluct_lax(eqn, ql_local, qr_local, waves_local, s, amdq_local, apdq_local);
+    // Rotate the waves back to global coordinates. 
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[0], &waves[0]); 
+    rot_to_global(eqn, tau1, tau2, norm, &waves_local[10], &waves[10]); 
+  }
+  rot_to_global(eqn, tau1, tau2, norm, amdq_local, amdq); 
+  rot_to_global(eqn, tau1, tau2, norm, apdq_local, apdq);
+  return my_max_speed*lenr; 
+}
+
+GKYL_CU_DH
 static void
 qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
@@ -611,6 +688,22 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
     return false;
   }
   
+  return true;
+}
+
+GKYL_CU_DH
+static bool
+fuse_check_inv(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr)
+{
+  if (ql[0] < 0.0 || qr[0] < 0.0)
+    return false;
+
+  double Pl[3], Pr[3];
+  gkyl_ten_moment_diag_pressure(ql, Pl);
+  gkyl_ten_moment_diag_pressure(qr, Pr);
+  if ((Pl[0] < 0.0 || Pl[1] < 0.0 || Pl[2] < 0.0) || (Pr[0] < 0.0 || Pr[1] < 0.0 || Pr[2] < 0.0))
+    return false;
+
   return true;
 }
 

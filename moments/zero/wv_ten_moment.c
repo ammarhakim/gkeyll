@@ -61,8 +61,10 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
   
   ten_moment->eqn.waves_func = wave;
   ten_moment->eqn.qfluct_func = qfluct;
+  ten_moment->eqn.fuse_waves_qfluct_func = fused_rotate_waves_qfluct_roe;
 
   ten_moment->eqn.check_inv_func = check_inv;
+  ten_moment->eqn.fuse_check_inv_func = fuse_check_inv;
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;

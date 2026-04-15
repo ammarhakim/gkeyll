@@ -21,6 +21,12 @@ typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_typ
   const double *ql, const double *qr, double phil, double phir, const double *waves, const double *speeds,
   double *amdq, double *apdq);
 
+// Function pointer to compute wave, q-fluctuations from waves, and necessary rotations in fused function.
+typedef double (*wv_fuse_waves_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double* tau1, const double* tau2, const double* norm, double lenr, 
+  const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s, double *amdq, double *apdq);
+
 // Function pointer to compute jump in flux. Returns absolute maximum
 // wave-speed
 typedef double (*wv_flux_jump_t)(const struct gkyl_wv_eqn *eqn,
@@ -28,6 +34,9 @@ typedef double (*wv_flux_jump_t)(const struct gkyl_wv_eqn *eqn,
 
 // Function pointer to check if invariant domain is preserved
 typedef bool (*wv_check_inv)(const struct gkyl_wv_eqn *eqn, const double *q);
+
+// Function pointer to check if invariant domain is preserved interface-wise
+typedef bool (*wv_fuse_check_inv)(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr);
 
 // Function pointer to compute maximum speed given local state
 typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q);
@@ -69,10 +78,12 @@ struct gkyl_wv_eqn {
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
   wv_qfluct_t ffluct_func; // function to compute f-fluctuations
+  wv_fuse_waves_qfluct_t fuse_waves_qfluct_func; // function to compute both waves and q-fluctuations, including rotations
 
   wv_flux_jump_t flux_jump; // function to compute jump in flux
 
   wv_check_inv check_inv_func; // function to check invariant domains
+  wv_fuse_check_inv fuse_check_inv_func; // function to check invariant domains on either side of an interface
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame
@@ -202,6 +213,34 @@ gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 /**
+ * Compute waves, speeds, and qfluctuations in the local coordinate system
+ * in a single function, and then rotate the waves and qfluctuations back
+ * to the global coordinate system.
+ *
+ * @param eqn Equation object
+ * @param type Flux type (e.g. high order Roe vs. low order Lax)
+ * @param tau1 Tangent vector
+ * @param tau2 Tangent vector
+ * @param norm Normal vector such that norm = tau1 x tau2
+ * @param ql Conserved variables on left of interface
+ * @param qr Conserved variables on right of interface
+ * @param waves On output, waves computed from Riemann solve
+ * @param speeds On output, wave speeds[num_wave]
+ * @param amdq On output, the left-going fluctuations.
+ * @param apdq On output, the right-going fluctuations.
+ */
+GKYL_CU_DH
+static inline double
+gkyl_wv_eqn_fused_rotate_waves_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double* tau1, const double* tau2, const double* norm, double lenr, 
+  const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s, double *amdq, double *apdq)
+{
+  return eqn->fuse_waves_qfluct_func(eqn, type, tau1, tau2, norm, lenr, 
+    ql, qr, phil, phir, waves, s, amdq, apdq);
+}
+
+/**
  * Compute jump in flux given two conserved variable states.
  *
  * @param eqn Equation object
@@ -216,6 +255,22 @@ gkyl_wv_eqn_flux_jump(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, double *flux_jump)
 {
   return eqn->flux_jump(eqn, ql, qr, flux_jump);
+}
+
+/**
+ * Check invariant domain of equation system (e.g., pressure > 0.0)
+ * by checking cell values on either side of an interface
+ *
+ * @param eqn Equation object
+ * @param ql Conserved variables to the left (lower) of interface
+ * @param qr Conserved variables to the right (upper) of interface
+ * @return boolean (true if invariant domain is satisfied, false if not)
+ */
+GKYL_CU_DH
+static inline bool
+gkyl_wv_eqn_fuse_check_inv(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr)
+{
+  return eqn->fuse_check_inv_func(eqn, ql, qr);
 }
 
 /**
