@@ -39,11 +39,12 @@ gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
   int dim = basis->ndim;
   enum gkyl_basis_type b_type = basis->b_type;
   int poly_order = basis->poly_order;
+  int conv_idx = use_conv_check ? 1 : 0;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->surrogate = ser_sheath_surrogate_list[edge].list[dim-2].kernels[poly_order-1];
+      kers->surrogate = ser_sheath_surrogate_list[conv_idx].edge_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       assert(false);
