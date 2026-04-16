@@ -986,10 +986,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   }
 
   gks->alloc_srg_aux_var = false;
-  for (int d=0; d<app->cdim; ++d) {
-    gks->alloc_srg_aux_var = gks->alloc_srg_aux_var || gks->lower_bc[d].use_sheath_surrogate;
-    gks->alloc_srg_aux_var = gks->alloc_srg_aux_var || gks->upper_bc[d].use_sheath_surrogate;    
-  }
+  for (int d=0; d<2*app->cdim; ++d)
+    gks->alloc_srg_aux_var = gks->alloc_srg_aux_var || gks->info.bcs[d].use_sheath_surrogate;
+
   if (gks->alloc_srg_aux_var) {
     struct gkyl_gk_maxwellian_moments_inp inp_mom = {
       .phase_grid = &gks->grid,
@@ -1461,8 +1460,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Store the BCs from the input file.
   for (int d=0; d<app->cdim; ++d) {
-    gks->lower_bc[d] = (struct gkyl_gyrokinetic_bc) { };
-    gks->upper_bc[d] = (struct gkyl_gyrokinetic_bc) { };
     if (gks->bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks->info.bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0)
