@@ -229,9 +229,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
 
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  // Free memory for the object that scales the species.
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -842,8 +841,8 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).
-  s->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
+  s->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, s, &s->sca);
 
   // Initialize reactions with charged species.
   s->react_neut = (struct gk_react) { };

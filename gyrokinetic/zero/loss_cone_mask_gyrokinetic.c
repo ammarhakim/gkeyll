@@ -18,15 +18,6 @@
 //          = 0.5*mass*pow(vpar,2)/(bmag_max-bmag[0]) + charge*(phi-phi_m)/(bmag_max-bmag[0]);
 //
 
-// Identity comp to phys coord mapping, for when user doesn't provide a map.
-static inline void
-c2p_pos_identity(const double *xcomp, double *xphys, void *ctx)
-{
-  struct gkyl_loss_cone_mask_gyrokinetic *up = ctx;
-  int cdim = up->cdim;
-  for (int d=0; d<cdim; d++) xphys[d] = xcomp[d];
-}
-
 // create range to loop over quadrature points.
 static inline struct gkyl_range
 get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
@@ -216,15 +207,6 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->num_basis_phase = inp->phase_basis->num_basis;
   }
   up->use_gpu = inp->use_gpu;
-
-  if (inp->c2p_pos_func == 0) {
-    up->c2p_pos = c2p_pos_identity;
-    up->c2p_pos_ctx = up;
-  }
-  else {
-    up->c2p_pos = inp->c2p_pos_func;
-    up->c2p_pos_ctx = inp->c2p_pos_func_ctx;
-  }
 
   // Initialize data needed for conf-space quadrature.
   up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, inp->qtype, num_quad,
@@ -437,7 +419,6 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         // Convert comp position coordinate to phys pos coord.
         gkyl_rect_grid_cell_center(up->grid_phase, pidx, xc);
         log_to_comp(up->cdim, xcomp_d, up->grid_phase->dx, xc, xmu);
-        up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
 
         // Convert comp velocity coordinate to phys velocity coord.
         const struct gkyl_velocity_map *gvm = up->vel_map;

@@ -269,8 +269,10 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
   // Now multiply by fpol
   double R[4] = {0};
+  double dRdZ[4] = {0};
   double dR[4] = {0};
-  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
@@ -374,8 +376,10 @@ dphidtheta_func(double Z, void *ctx)
   integrand = dphidtheta_integrand(Z, &cctx);
   // Now multiply by fpol
   double R[4] = {0};
+  double dRdZ[4] = {0};
   double dR[4] = {0};
-  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
@@ -637,12 +641,12 @@ gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi,
 
 int
 gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR)
+  double *R, double *dRdZ, double *dR, double *dZ)
 {
   if(geo->use_cubics)
-    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dR);
+    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
   else
-    return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
+    return R_psiZ(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
 }
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo, 
@@ -700,8 +704,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       double psi_curr = psi_lo + ip*dpsi;
@@ -797,10 +799,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           }
         }
 
-        double R[4] = { 0 }, dR[4] = { 0 };
-        int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+        double R[4] = { 0 }, dRdZ[4] = { 0 };
+        double dR[4] = { 0 }, dZ[4] = { 0 };
+        int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
         double r_curr = choose_closest(rclose, R, R, nr);
+        double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
         double dr_curr = choose_closest(rclose, R, dR, nr);
+        double dz_curr = choose_closest(rclose, R, dZ, nr);
 
         if (psi_curr==geo->psisep) {
           if (z_curr == geo->efit->Zxpt[0]) {
@@ -842,9 +847,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
-    alpha_curr*=-1.0;
     double alpha_donor = alpha_lo + nrange->lower[AL_IDX]*dalpha;
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -961,8 +964,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 3;
@@ -1025,10 +1026,13 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
-          double R[4] = { 0 }, dR[4] = { 0 };
-          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
+          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
+          double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
           double dr_curr = choose_closest(rclose, R, dR, nr);
+          double dz_curr = choose_closest(rclose, R, dZ, nr);
 
           if (psi_curr==geo->psisep && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
@@ -1066,8 +1070,8 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[0] = sin(atan2(dr_curr, dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan2(dr_curr, dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             ddpsi_n[0] = dPsi_dpsi;
             mc2p_n[lidx+X_IDX] = r_curr;
@@ -1086,9 +1090,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    alpha_curr*=-1.0;
     double alpha_donor = calc_running_coord(alpha_lo, 0, dalpha);
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -1222,8 +1224,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 5;
@@ -1300,10 +1300,13 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             }
           }
 
-          double R[4] = { 0 }, dR[4] = { 0 };
-          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
+          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
+          double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
           double dr_curr = choose_closest(rclose, R, dR, nr);
+          double dz_curr = choose_closest(rclose, R, dZ, nr);
 
           if (psi_curr==geo->psisep && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
@@ -1339,8 +1342,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[0] = sin(atan2(dr_curr,dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan2(dr_curr,dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             ddpsi_n[0] = dPsi_dpsi;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
@@ -1355,9 +1358,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    alpha_curr*=-1.0;
     double alpha_donor= dir==1 ? alpha_lo + nrange->lower[AL_IDX]*dalpha : calc_running_coord(alpha_lo, 0, dalpha);
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {

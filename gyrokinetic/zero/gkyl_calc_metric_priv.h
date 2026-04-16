@@ -9,6 +9,7 @@ struct gkyl_calc_metric {
   unsigned cnum_basis; // Number of conf-space basis functions.
   unsigned poly_order; // Polynomial order of the basis.
   const struct gkyl_rect_grid* grid;
+  bool exit_at_checks; // Whether to terminate if consistency checks fail.
   bool use_gpu;
   const int *num_cells;
   const struct gkyl_basis* cbasis;
