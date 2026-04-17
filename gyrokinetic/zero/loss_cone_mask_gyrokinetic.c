@@ -248,6 +248,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     up->num_basis_phase = inp->phase_basis->num_basis;
   }
   up->use_gpu = inp->use_gpu;
+
   up->bmag_max_z_scalar_gpu = NULL; // Will be set for GPU case.
   up->bmag_max_basis_on_dev = NULL; // Will be set for GPU case.
 

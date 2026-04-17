@@ -698,14 +698,16 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
   double Theta = res.res;
   fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength); 
-
   bool enable_limits_min_B = gpm->constB_ctx->enable_maximum_slope_limits_at_min_B;
   bool enable_limits_max_B = gpm->constB_ctx->enable_maximum_slope_limits_at_max_B;
 
   if (enable_limits_min_B || enable_limits_max_B)
   {
-    // Set a minimum cell size on the edges
-    // Assume that at inflection points, Theta = theta. This should be true
+    // Set a minimum cell size on the edges.
+    // Build limiter lines from inflection-point anchors in point-slope form:
+    //   y = y0 + m * (x - x0)
+    // where x0 is the computational-coordinate location of a region boundary
+    // and y0 is the mapped extrema location in physical theta.
     double Theta_left  = interval_lower;
     double Theta_right = interval_upper;
     double theta_middle = 0.5 * (interval_lower + interval_upper);
@@ -725,20 +727,19 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     double max_slope_min_B = gpm->constB_ctx->maximum_slope_at_min_B;
     double max_slope_max_B = gpm->constB_ctx->maximum_slope_at_max_B;
 
-    double right_straight_line_value, left_straight_line_value;
-    if (left_is_maximum){
-      left_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_left;
-    }
-    else {
-      left_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_left;
-    }
+    // Compute x-locations (in computational theta) of left/right inflection anchors.
+    double seg_dB = fabs(gpm->constB_ctx->bmag_extrema[region+1] - gpm->constB_ctx->bmag_extrema[region]);
+    double it_left_inflection = dB_global_lower / dB_cell;
+    double it_right_inflection = (dB_global_lower + seg_dB) / dB_cell;
+    double theta_left_inflection = theta_lo + it_left_inflection * theta_dxi;
+    double theta_right_inflection = theta_lo + it_right_inflection * theta_dxi;
 
-    if (right_is_maximum){
-      right_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_right;
-    }
-    else {
-      right_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_right;
-    }
+    // Build limiter lines in point-slope form so they pass through
+    // (theta_left_inflection, Theta_left) and (theta_right_inflection, Theta_right).
+    double left_slope = left_is_maximum ? max_slope_max_B : max_slope_min_B;
+    double right_slope = right_is_maximum ? max_slope_max_B : max_slope_min_B;
+    double left_straight_line_value = Theta_left + left_slope * (theta - theta_left_inflection);
+    double right_straight_line_value = Theta_right + right_slope * (theta - theta_right_inflection);
 
     if ( fout[0] < right_straight_line_value && 
       ((right_is_maximum && enable_limits_max_B) || 
