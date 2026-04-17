@@ -66,6 +66,12 @@ GKYL_CU_DH double gk_collisionless_flux_em_no_by_multib_boundary_surfz_3x2v_ser_
   JRatfL[22] = 0.016666666666666666*(36.742346141747674*(jacobgeo_rat_surfL[1]*JfL[47]+jacobgeo_rat_surfL[2]*JfL[42])+8.660254037844387*(4.242640687119286*(jacobgeo_rat_surfL[0]*JfL[46]+jacobgeo_rat_surfL[3]*JfL[45])+2.4494897427831783*(jacobgeo_rat_surfL[1]*JfL[44]+jacobgeo_rat_surfL[2]*JfL[36]))+21.213203435596427*(jacobgeo_rat_surfL[0]*JfL[41]+jacobgeo_rat_surfL[3]*JfL[40])); 
   JRatfL[23] = 0.016666666666666666*(8.660254037844387*(4.242640687119286*(jacobgeo_rat_surfL[0]*JfL[47]+jacobgeo_rat_surfL[3]*JfL[42])+2.4494897427831783*(jacobgeo_rat_surfL[1]*JfL[41]+jacobgeo_rat_surfL[2]*JfL[40]))+36.742346141747674*(jacobgeo_rat_surfL[1]*JfL[46]+jacobgeo_rat_surfL[2]*JfL[45])+21.213203435596427*(jacobgeo_rat_surfL[0]*JfL[44]+jacobgeo_rat_surfL[3]*JfL[36])); 
 
+  double apar_surf[24] = {0.}; 
+  apar_surf[0] = 1.4142135623730951*apar[0]-2.4494897427831783*apar[3]; 
+  apar_surf[1] = 1.4142135623730951*apar[1]-2.4494897427831783*apar[5]; 
+  apar_surf[2] = 1.4142135623730951*apar[2]-2.4494897427831783*apar[6]; 
+  apar_surf[5] = 1.4142135623730951*apar[4]-2.4494897427831783*apar[7]; 
+
   double *flux_surf_nodal = &flux_surf[48]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 

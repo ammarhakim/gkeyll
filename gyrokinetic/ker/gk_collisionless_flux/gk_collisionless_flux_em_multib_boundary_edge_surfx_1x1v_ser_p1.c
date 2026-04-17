@@ -35,6 +35,9 @@ GKYL_CU_DH double gk_collisionless_flux_em_multib_boundary_edge_surfx_1x1v_ser_p
 
   double JRatfR[3] = {0.}; 
 
+  double apar_surf[3] = {0.}; 
+  apar_surf[0] = 1.7320508075688772*apar[1]+apar[0]; 
+
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 

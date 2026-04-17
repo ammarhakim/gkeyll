@@ -40,6 +40,12 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_edge_surfz_3x2v_ser_p1(
   hamil[8] = vmap[3]*(1.7320508075688772*bmag[5]+bmag[1]); 
   hamil[16] = 1.4142135623730951*vmapSq[2]*m_; 
 
+  double apar_surf[24] = {0.}; 
+  apar_surf[0] = 2.4494897427831783*apar[3]+1.4142135623730951*apar[0]; 
+  apar_surf[1] = 2.4494897427831783*apar[5]+1.4142135623730951*apar[1]; 
+  apar_surf[2] = 2.4494897427831783*apar[6]+1.4142135623730951*apar[2]; 
+  apar_surf[5] = 2.4494897427831783*apar[7]+1.4142135623730951*apar[4]; 
+
   double *flux_surf_nodal = &flux_surf[48]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 

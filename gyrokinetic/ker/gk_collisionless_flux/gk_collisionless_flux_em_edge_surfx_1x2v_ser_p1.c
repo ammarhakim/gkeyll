@@ -34,6 +34,9 @@ GKYL_CU_DH double gk_collisionless_flux_em_edge_surfx_1x2v_ser_p1(
   hamil[2] = (1.7320508075688772*bmag[1]+bmag[0])*vmap[3]; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
+  double apar_surf[6] = {0.}; 
+  apar_surf[0] = 2.4494897427831783*apar[1]+1.4142135623730951*apar[0]; 
+
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 

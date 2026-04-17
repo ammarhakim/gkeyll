@@ -51,6 +51,10 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_multib_boundary_edge_surfx
   JRatfR[10] = 0.03333333333333333*(-(25.980762113533157*jacobgeo_rat_surfR[1]*JfR[23])+8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[22]-3.0*jacobgeo_rat_surfR[0]*JfR[21])+15.0*jacobgeo_rat_surfR[0]*JfR[19]); 
   JRatfR[11] = 0.03333333333333333*(8.660254037844387*(1.7320508075688772*jacobgeo_rat_surfR[1]*JfR[19]-3.0*jacobgeo_rat_surfR[0]*JfR[23])+15.0*jacobgeo_rat_surfR[0]*JfR[22]-25.980762113533157*jacobgeo_rat_surfR[1]*JfR[21]); 
 
+  double apar_surf[12] = {0.}; 
+  apar_surf[0] = 2.4494897427831783*apar[1]+1.4142135623730951*apar[0]; 
+  apar_surf[1] = 2.4494897427831783*apar[3]+1.4142135623730951*apar[2]; 
+
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
