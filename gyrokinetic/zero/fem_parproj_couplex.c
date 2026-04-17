@@ -293,18 +293,17 @@ void gkyl_fem_parproj_couplex_release(struct gkyl_fem_parproj_couplex *up)
   if (up->has_weight_rhs) {
     gkyl_array_release(up->weight_rhs);
   }
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_cu_free(up->kernels_cu);
-    gkyl_culinsolver_prob_release(up->prob_cu);
-  } else {
+  if (!up->use_gpu) {
+    gkyl_free(up->kernels);
     gkyl_superlu_prob_release(up->prob);
   }
-#else
-  gkyl_superlu_prob_release(up->prob);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->kernels);
+    gkyl_culinsolver_prob_release(up->prob_cu);
+  }
 #endif
   gkyl_array_release(up->brhs);
   gkyl_free(up->globalidx);
-  gkyl_free(up->kernels);
   gkyl_free(up);
 }

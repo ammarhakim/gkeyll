@@ -12,11 +12,11 @@ extern "C" {
 // cudaMemcpyFromSymbol.
 __global__ static void
 fem_parproj_couplex_set_cu_ker_ptrs(const struct gkyl_basis basis, bool has_weight_lhs, bool has_weight_rhs,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_couplex_kernels *kers)
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers)
 {
   // Local-to-global kernel.
   int bckey[1] = {0};
-  bckey[0] = isperiodic? 0 : 1;
+  bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
 
   switch (basis.b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -29,7 +29,12 @@ fem_parproj_couplex_set_cu_ker_ptrs(const struct gkyl_basis basis, bool has_weig
   }
 
   // RHS source kernel.
-  bckey[0] = isdirichlet? 1 : 0;
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    bckey[0] = 1;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    bckey[0] = 2;
+  else
+    bckey[0] = 0;
 
   switch (basis.b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -51,13 +56,21 @@ fem_parproj_couplex_set_cu_ker_ptrs(const struct gkyl_basis basis, bool has_weig
       assert(false);
       break;
   }
+
+  // Select function that obtains the value to impose as Dirichlet BC.
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_ghost;
+  else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
+    kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
+  else
+    kers->get_dirichlet_value = get_dirichlet_value_disabled;
 }
 
 void
 fem_parproj_couplex_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
-  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_couplex_kernels *kers)
+  enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_couplex_kernels *kers)
 {
-  fem_parproj_couplex_set_cu_ker_ptrs<<<1,1>>>(*basis, has_weight_lhs, has_weight_rhs, isperiodic, isdirichlet, kers);
+  fem_parproj_couplex_set_cu_ker_ptrs<<<1,1>>>(*basis, has_weight_lhs, has_weight_rhs, bctype, kers);
 }
 
 __global__ void
@@ -124,7 +137,7 @@ gkyl_fem_parproj_couplex_set_rhs_cu(gkyl_fem_parproj_couplex *up, const struct g
 
   gkyl_fem_parproj_couplex_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->pardir, rhs_cu,
     rhsin->on_dev, wgt_cu, phibc_cu, *up->solve_range, up->perp_range, up->fem_range,
-    up->kernels_cu, up->numnodes_global);
+    up->kernels, up->numnodes_global);
 }
 
 __global__ void
@@ -181,5 +194,5 @@ gkyl_fem_parproj_couplex_solve_cu(gkyl_fem_parproj_couplex *up, struct gkyl_arra
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
   gkyl_fem_parproj_couplex_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(up->pardir, phiout->on_dev, x_cu,
-    *up->solve_range, up->perp_range, up->fem_range, up->kernels_cu, up->numnodes_global);
+    *up->solve_range, up->perp_range, up->fem_range, up->kernels, up->numnodes_global);
 }
