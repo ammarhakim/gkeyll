@@ -111,8 +111,8 @@ psi_RZ(double RIn, double ZIn, void *ctx)
   double psi = 0.5 * pow(RIn, 2.) * mcB *
     (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2.))) +
     1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))) +
-    2. / (M_PI * gamma * (1. + pow((ZIn - 2 * Z_m) / gamma, 2.))) +
-    2. / (M_PI * gamma * (1. + pow((ZIn + 2 * Z_m) / gamma, 2.))));
+    1. / (M_PI * gamma * (1. + pow((ZIn - 2 * Z_m) / gamma, 2.))) +
+    1. / (M_PI * gamma * (1. + pow((ZIn + 2 * Z_m) / gamma, 2.))));
   return psi;
 }
 
@@ -123,8 +123,8 @@ R_psiZ(double psiIn, double ZIn, void *ctx)
   double Rout = sqrt(2.0 * psiIn / (app->mcB *
     (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
     1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))) +
-    2.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - 2 * app->Z_m) / app->gamma, 2.))) +
-    2.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + 2 * app->Z_m) / app->gamma, 2.)))
+    1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - 2 * app->Z_m) / app->gamma, 2.))) +
+    1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + 2 * app->Z_m) / app->gamma, 2.)))
     )));
   return Rout;
 }
@@ -140,16 +140,16 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
   *BRad = -(1.0 / 2.0) * Rcoord * mcB *
     (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2.), 2.))) +
     -2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))) +
-    -4.0 * (ZIn - 2 * Z_m) / (M_PI * pow(gamma,
+    -2.0 * (ZIn - 2 * Z_m) / (M_PI * pow(gamma,
       3.) * (pow(1.0 + pow((ZIn - 2 * Z_m) / gamma, 2.), 2.))) +
-    -4.0 * (ZIn + 2 * Z_m) / (M_PI * pow(gamma,
+    -2.0 * (ZIn + 2 * Z_m) / (M_PI * pow(gamma,
       3.) * (pow(1.0 + pow((ZIn + 2 * Z_m) / gamma, 2.), 2.)))
     );
   *BZ = mcB *
     (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2.))) +
     1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))) +
-    2.0 / (M_PI * gamma * (1.0 + pow((ZIn - 2 * Z_m) / gamma, 2.))) +
-    2.0 / (M_PI * gamma * (1.0 + pow((ZIn + 2 * Z_m) / gamma, 2.)))
+    1.0 / (M_PI * gamma * (1.0 + pow((ZIn - 2 * Z_m) / gamma, 2.))) +
+    1.0 / (M_PI * gamma * (1.0 + pow((ZIn + 2 * Z_m) / gamma, 2.)))
     );
   *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
@@ -817,7 +817,14 @@ int main(int argc, char **argv)
       .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // Magnetic field.
-      .bfield_ctx = &ctx
+      .bfield_ctx = &ctx,
+      .position_map_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.5,
+        .maximum_slope_at_min_B = 2,
+        .gaussian_std = 0.1,
+        .gaussian_max_integration_width = 0.25,
+      },
     },
 
     .num_periodic_dir = 0,
