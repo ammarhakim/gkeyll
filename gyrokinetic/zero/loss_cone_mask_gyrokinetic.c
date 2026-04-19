@@ -97,6 +97,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   gkyl_loss_cone_mask_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+  up->bmag = gkyl_array_acquire(inp->bmag);
   up->mass = inp->mass;
   up->charge = inp->charge;
   up->use_gpu = inp->use_gpu;
@@ -113,7 +114,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, struct gkyl_array *mask_out)
 {
   int cdim = up->cdim;
   int pdim = phase_range->ndim;
@@ -155,7 +156,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
       double vpar = xmu[cdim];
 
       long linidx_conf = gkyl_range_idx(conf_range, conf_idx);
-      double bmag_curr = field_node_val(bmag, up->basis_at_nodes_conf, num_basis_conf,
+      double bmag_curr = field_node_val(up->bmag, up->basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
       double phi_curr = field_node_val(phi, up->basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
@@ -165,10 +166,10 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
       int target_z_cell = conf_idx[zdim];
       int target_z_bit = conf_node & 1;
 
-      double barrier_left = escape_barrier_segment(up, phi, bmag, conf_range, conf_idx,
+      double barrier_left = escape_barrier_segment(up, phi, up->bmag, conf_range, conf_idx,
         conf_range->lower[zdim], target_z_cell, conf_node, target_z_cell, target_z_bit,
         mu, up->charge);
-      double barrier_right = escape_barrier_segment(up, phi, bmag, conf_range, conf_idx,
+      double barrier_right = escape_barrier_segment(up, phi, up->bmag, conf_range, conf_idx,
         target_z_cell, conf_range->upper[zdim], conf_node, target_z_cell, target_z_bit,
         mu, up->charge);
 
@@ -185,8 +186,7 @@ void
 gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
-
+  gkyl_array_release(up->bmag);
   gkyl_array_release(up->basis_at_nodes_conf);
-
   gkyl_free(up);
 }

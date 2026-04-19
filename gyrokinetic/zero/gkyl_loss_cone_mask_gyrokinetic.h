@@ -46,7 +46,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, struct gkyl_array *mask_out);
 
 /**
  * Delete updater.

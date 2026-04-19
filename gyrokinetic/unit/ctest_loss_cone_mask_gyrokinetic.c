@@ -381,7 +381,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .conf_basis = &basis_conf,
     .conf_range = &local_conf,
     .vel_map = gvm,
-    .bmag = gk_geom->geo_int.bmag,
+    .bmag = gk_geom->geo_corn.bmag,
     .mass = ctx.mass,
     .charge = ctx.charge,
   };
@@ -393,11 +393,11 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   struct gkyl_array *mask_ref = mkarr(false, 1, local_ext.volume);
 
   gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf,
-    gk_geom->geo_int.bmag, phi, mask);
+    phi, mask);
   gkyl_array_copy(mask_ho, mask);
 
   struct gkyl_array *bmag_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
-  gkyl_array_copy(bmag_ho, gk_geom->geo_int.bmag);
+  gkyl_array_copy(bmag_ho, gk_geom->geo_corn.bmag);
 
   {
     char f_bmag[256], f_phi[256], f_mask[256];
