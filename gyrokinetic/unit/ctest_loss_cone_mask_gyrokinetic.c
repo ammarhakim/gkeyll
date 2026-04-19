@@ -4,6 +4,7 @@
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -131,41 +132,98 @@ vel_corner_val(const struct gkyl_velocity_map *gvm, const int *vel_idx, int vd, 
   return gvm->vmap_basis->eval_expand(xcomp, vmap_d + vd * gvm->vmap_basis->num_basis);
 }
 
-static double
-escape_barrier_segment_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
-  const struct gkyl_range *conf_range, const struct gkyl_array *basis_at_corners_conf,
-  int num_basis_conf, const int *base_idx, int z_start, int z_end, int target_corner,
-  int target_z_cell, int target_z_bit, double mu, double charge)
+static inline int
+corner_z_endpoint_side_ref(int cdim, int corner, int zdim)
 {
+  double eta[GKYL_MAX_DIM] = { 0.0 };
+  corner_coords_range(cdim, corner, eta);
+  return eta[zdim] > 0.0 ? 1 : 0;
+}
+
+static inline int
+corner_with_z_side_ref(int cdim, int anchor_corner, int zdim, int z_side)
+{
+  int num_conf_corners = 1 << cdim;
+
+  double eta_anchor[GKYL_MAX_DIM] = { 0.0 };
+  corner_coords_range(cdim, anchor_corner, eta_anchor);
+
+  for (int cand = 0; cand < num_conf_corners; ++cand) {
+    if (corner_z_endpoint_side_ref(cdim, cand, zdim) != z_side) {
+      continue;
+    }
+
+    double eta_cand[GKYL_MAX_DIM] = { 0.0 };
+    corner_coords_range(cdim, cand, eta_cand);
+
+    bool same_transverse = true;
+    for (int d = 0; d < cdim; ++d) {
+      if (d == zdim) {
+        continue;
+      }
+      if (eta_cand[d] != eta_anchor[d]) {
+        same_transverse = false;
+        break;
+      }
+    }
+
+    if (same_transverse) {
+      return cand;
+    }
+  }
+
+  assert(false);
+  return anchor_corner;
+}
+
+static void
+escape_barriers_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
+  const struct gkyl_range *conf_range, const struct gkyl_array *basis_at_corners_conf,
+  int cdim, int num_basis_conf, const int *base_idx, int target_z_cell,
+  int anchor_corner, int anchor_z_side, double mu, double charge, double *barrier_left,
+  double *barrier_right)
+{
+  int zdim = cdim - 1;
+  int anchor_corner_node = corner_with_z_side_ref(cdim, anchor_corner, zdim, anchor_z_side);
+  int z_upper_corner = corner_with_z_side_ref(cdim, anchor_corner, zdim, 1);
+  int z_lower_corner = corner_with_z_side_ref(cdim, anchor_corner, zdim, 0);
+
   int scan_idx[GKYL_MAX_DIM];
-  for (int d = 0; d < conf_range->ndim; ++d) {
+  for (int d = 0; d < cdim; ++d) {
     scan_idx[d] = base_idx[d];
   }
 
-  double barrier = -DBL_MAX;
-  for (int iz = z_start; iz <= z_end; ++iz) {
-    scan_idx[conf_range->ndim - 1] = iz;
-    int corner = target_corner;
-    int zbit = (iz == target_z_cell) ? target_z_bit : (z_start < target_z_cell ? 1 : 0);
+  *barrier_left = -DBL_MAX;
+  *barrier_right = -DBL_MAX;
 
-    if (zbit) {
-      corner |= 1;
-    }
-    else {
-      corner &= ~1;
-    }
-
+  for (int iz = conf_range->lower[zdim]; iz <= conf_range->upper[zdim]; ++iz) {
+    scan_idx[zdim] = iz;
     long linidx = gkyl_range_idx(conf_range, scan_idx);
-    double phi_q = field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, corner);
-    double bmag_q = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, corner);
-    double u_q = mu * bmag_q + charge * phi_q;
 
-    if (u_q > barrier) {
-      barrier = u_q;
+    int left_corner = z_upper_corner;
+    int right_corner = z_lower_corner;
+    if (iz == target_z_cell) {
+      left_corner = anchor_corner_node;
+      right_corner = anchor_corner_node;
+    }
+
+    if (iz <= target_z_cell) {
+      double phi_left = field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, left_corner);
+      double bmag_left = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, left_corner);
+      double u_left = mu * bmag_left + charge * phi_left;
+      if (u_left > *barrier_left) {
+        *barrier_left = u_left;
+      }
+    }
+    if (iz >= target_z_cell) {
+      double phi_right = field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, right_corner);
+      double bmag_right = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, right_corner);
+      double u_right = mu * bmag_right + charge * phi_right;
+      if (u_right > *barrier_right) {
+        *barrier_right = u_right;
+      }
     }
   }
-
-  return barrier;
 }
 
 static void
@@ -212,14 +270,12 @@ build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_ran
 
       int zdim = cdim - 1;
       int target_z_cell = conf_idx[zdim];
-      int target_z_bit = conf_corner & 1;
+      int anchor_z_side = corner_z_endpoint_side_ref(cdim, conf_corner, zdim);
 
-      double barrier_left = escape_barrier_segment_ref(phi, bmag, conf_range, basis_at_corners_conf,
-        num_basis_conf, conf_idx, conf_range->lower[zdim], target_z_cell, conf_corner,
-        target_z_cell, target_z_bit, mu, charge);
-      double barrier_right = escape_barrier_segment_ref(phi, bmag, conf_range, basis_at_corners_conf,
-        num_basis_conf, conf_idx, target_z_cell, conf_range->upper[zdim], conf_corner,
-        target_z_cell, target_z_bit, mu, charge);
+      double barrier_left, barrier_right;
+      escape_barriers_ref(phi, bmag, conf_range, basis_at_corners_conf, cdim,
+        num_basis_conf, conf_idx, target_z_cell, conf_corner, anchor_z_side, mu, charge,
+        &barrier_left, &barrier_right);
 
       cell_trapped = h_curr < GKYL_MIN2(barrier_left, barrier_right);
     }
