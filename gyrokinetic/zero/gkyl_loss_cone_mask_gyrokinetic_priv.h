@@ -154,7 +154,15 @@ escape_barriers(int cdim, int num_basis_conf, const struct gkyl_range *conf_rang
 
 
 #ifdef GKYL_HAVE_CUDA
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

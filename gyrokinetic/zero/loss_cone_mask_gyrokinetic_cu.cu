@@ -6,10 +6,11 @@ extern "C" {
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
-#include <gkyl_loss_cone_mask_gyrokinetic_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_velocity_map.h>
 }
+
+#include <gkyl_loss_cone_mask_gyrokinetic_priv.h>
 
 __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
@@ -82,7 +83,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
   }
 }
 
-void
+extern "C" void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out)
