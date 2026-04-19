@@ -437,6 +437,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .conf_basis = &basis_conf,
     .conf_range = &local_conf,
     .vel_map = gvm,
+    .use_gpu = use_gpu,
     .mass = ctx.mass,
     .charge = ctx.charge,
   };
@@ -445,6 +446,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
 
   struct gkyl_array *mask = mkarr(use_gpu, 1, local_ext.volume);
   struct gkyl_array *mask_ho = mkarr(false, 1, local_ext.volume);
+  struct gkyl_array *mask_cpu = mkarr(false, 1, local_ext.volume);
   struct gkyl_array *mask_ref = mkarr(false, 1, local_ext.volume);
 
   gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf,
@@ -477,6 +479,43 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   build_reference_mask(&local, &local_conf, &basis_conf, gvm_ho,
     bmag_ho, phi_ho, ctx.mass, ctx.charge, mask_ref);
 
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj_cpu = {
+      .conf_basis = &basis_conf,
+      .conf_range = &local_conf,
+      .vel_map = gvm_ho,
+      .use_gpu = false,
+      .mass = ctx.mass,
+      .charge = ctx.charge,
+    };
+    struct gkyl_loss_cone_mask_gyrokinetic *proj_mask_cpu =
+      gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj_cpu);
+
+    gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask_cpu, &local, &local_conf,
+      bmag_ho, phi_ho, mask_cpu);
+
+    int gpu_cpu_mismatches = 0;
+    struct gkyl_range_iter iter_cmp;
+    gkyl_range_iter_init(&iter_cmp, &local);
+    while (gkyl_range_iter_next(&iter_cmp)) {
+      long linidx = gkyl_range_idx(&local, iter_cmp.idx);
+      const double *mg = gkyl_array_cfetch(mask_ho, linidx);
+      const double *mc = gkyl_array_cfetch(mask_cpu, linidx);
+
+      bool same = fabs(mg[0] - mc[0]) < 1e-12;
+      TEST_CHECK(same);
+      if (!same && gpu_cpu_mismatches < 8) {
+        printf("gpu/cpu mismatch idx=(%d,%d,%d): gpu=%g cpu=%g\n",
+          iter_cmp.idx[0], iter_cmp.idx[1], iter_cmp.idx[2], mg[0], mc[0]);
+        gpu_cpu_mismatches++;
+      }
+    }
+
+    gkyl_loss_cone_mask_gyrokinetic_release(proj_mask_cpu);
+  }
+#endif
+
   int mismatches = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
@@ -499,6 +538,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   gkyl_array_release(phi_ho);
   gkyl_array_release(mask);
   gkyl_array_release(mask_ho);
+  gkyl_array_release(mask_cpu);
   gkyl_array_release(mask_ref);
 
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
