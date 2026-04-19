@@ -28,7 +28,6 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   bool use_gpu;
 
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
 
   double mass; // Species mass.
   double charge; // Species charge.

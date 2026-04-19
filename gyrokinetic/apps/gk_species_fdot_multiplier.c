@@ -85,8 +85,10 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out)
 {
-  gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->multiplier);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, fdmul->phi_global);
+
+  gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_gk, &gks->local, &app->global,
+    fdmul->bmag_global, fdmul->phi_global, fdmul->multiplier);
 
   // Multiply out by the multiplier.
   gkyl_array_scale_by_cell(out, fdmul->multiplier);
@@ -179,11 +181,16 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
         .conf_basis = &app->basis,
         .vel_map = gks->vel_map,
-        .bmag = app->gk_geom->geo_corn.bmag,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
       };
-      fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
+      fdmul->lcm_gk = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
+      fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
+        app->global_ext.volume);
+      fdmul->phi_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_corn.bmag,
+        fdmul->bmag_global);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
       fdmul->advance_times_omegaH_func = gk_species_fdot_multiplier_advance_omegaH_mult;
@@ -255,7 +262,9 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
       // Nothing to release.
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
-      gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
+      gkyl_array_release(fdmul->bmag_global);
+      gkyl_array_release(fdmul->phi_global);
+      gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_gk);
     }
   }
 }

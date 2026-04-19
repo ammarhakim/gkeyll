@@ -15,7 +15,6 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_range *conf_range; // Configuration-space range.
   const struct gkyl_velocity_map *vel_map;    // Velocity space mapping object.
-  const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
   bool use_gpu; // Flag to indicate if GPU should be used.
   double mass; // Species mass.
   double charge; // Species charge.
@@ -37,6 +36,10 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 /**
  * Compute the loss-cone mask on phase-space cell nodes.
  *
+ * The caller supplies the magnetic field magnitude and electrostatic
+ * potential arrays. This keeps the updater free of any communication logic;
+ * the app is responsible for assembling global data when needed.
+ *
  * @param up Project on basis updater to run.
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
@@ -46,7 +49,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, struct gkyl_array *mask_out);
+  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
 
 /**
  * Delete updater.

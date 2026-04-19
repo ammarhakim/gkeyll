@@ -54,41 +54,66 @@ field_node_val(const struct gkyl_array *arr, const struct gkyl_array *basis_at_n
   return val;
 }
 
-static inline double
-escape_barrier_segment(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array *phi,
+static inline void
+escape_barriers(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *bmag, const struct gkyl_range *conf_range, const int *base_idx,
-  int z_start, int z_end, int target_node, int target_z_cell, int target_z_bit,
-  double mu, double charge)
+  int z_cell, int target_node, int target_z_bit, double mu, double charge,
+  double *barrier_left, double *barrier_right)
 {
   int scan_idx[GKYL_MAX_DIM];
   for (int d = 0; d < conf_range->ndim; ++d) {
     scan_idx[d] = base_idx[d];
   }
 
-  double barrier = -DBL_MAX;
-  for (int iz = z_start; iz <= z_end; ++iz) {
+  *barrier_left = -DBL_MAX;
+  *barrier_right = -DBL_MAX;
+
+  for (int iz = conf_range->lower[conf_range->ndim - 1]; iz <= conf_range->upper[conf_range->ndim - 1]; ++iz) {
     scan_idx[conf_range->ndim - 1] = iz;
-    int node = target_node;
-    int zbit = (iz == target_z_cell) ? target_z_bit : (z_start < target_z_cell ? 1 : 0);
-    if (zbit) {
-      node |= 1;
-    }
-    else {
-      node &= ~1;
-    }
     long linidx = gkyl_range_idx(conf_range, scan_idx);
 
-    double phi_q = field_node_val(phi, up->basis_at_nodes_conf, up->num_basis_conf,
-      linidx, node);
-    double bmag_q = field_node_val(bmag, up->basis_at_nodes_conf, up->num_basis_conf,
-      linidx, node);
-    double u_q = mu * bmag_q + charge * phi_q;
-    if (u_q > barrier) {
-      barrier = u_q;
+    int left_node = target_node;
+    int right_node = target_node;
+    if (iz == z_cell) {
+      if (target_z_bit) {
+        left_node |= 1;
+        right_node |= 1;
+      }
+      else {
+        left_node &= ~1;
+        right_node &= ~1;
+      }
+    }
+    else if (iz < z_cell) {
+      left_node |= 1;
+      right_node &= ~1;
+    }
+    else {
+      left_node |= 1;
+      right_node &= ~1;
+    }
+
+    if (iz <= z_cell) {
+      double phi_left = field_node_val(phi, up->basis_at_nodes_conf, up->num_basis_conf,
+        linidx, left_node);
+      double bmag_left = field_node_val(bmag, up->basis_at_nodes_conf, up->num_basis_conf,
+        linidx, left_node);
+      double u_left = mu * bmag_left + charge * phi_left;
+      if (u_left > *barrier_left) {
+        *barrier_left = u_left;
+      }
+    }
+    if (iz >= z_cell) {
+      double phi_right = field_node_val(phi, up->basis_at_nodes_conf, up->num_basis_conf,
+        linidx, right_node);
+      double bmag_right = field_node_val(bmag, up->basis_at_nodes_conf, up->num_basis_conf,
+        linidx, right_node);
+      double u_right = mu * bmag_right + charge * phi_right;
+      if (u_right > *barrier_right) {
+        *barrier_right = u_right;
+      }
     }
   }
-
-  return barrier;
 }
 
 struct gkyl_loss_cone_mask_gyrokinetic*
@@ -97,7 +122,6 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   gkyl_loss_cone_mask_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
-  up->bmag = gkyl_array_acquire(inp->bmag);
   up->mass = inp->mass;
   up->charge = inp->charge;
   up->use_gpu = inp->use_gpu;
@@ -114,7 +138,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, struct gkyl_array *mask_out)
+  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out)
 {
   int cdim = up->cdim;
   int pdim = phase_range->ndim;
@@ -156,22 +180,18 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
       double vpar = xmu[cdim];
 
       long linidx_conf = gkyl_range_idx(conf_range, conf_idx);
-      double bmag_curr = field_node_val(up->bmag, up->basis_at_nodes_conf, num_basis_conf,
+      double bmag_curr = field_node_val(bmag, up->basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
       double phi_curr = field_node_val(phi, up->basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
       double h_curr = 0.5 * up->mass * vpar * vpar + mu * bmag_curr + up->charge * phi_curr;
 
       int zdim = cdim - 1;
-      int target_z_cell = conf_idx[zdim];
       int target_z_bit = conf_node & 1;
 
-      double barrier_left = escape_barrier_segment(up, phi, up->bmag, conf_range, conf_idx,
-        conf_range->lower[zdim], target_z_cell, conf_node, target_z_cell, target_z_bit,
-        mu, up->charge);
-      double barrier_right = escape_barrier_segment(up, phi, up->bmag, conf_range, conf_idx,
-        target_z_cell, conf_range->upper[zdim], conf_node, target_z_cell, target_z_bit,
-        mu, up->charge);
+      double barrier_left, barrier_right;
+      escape_barriers(up, phi, bmag, conf_range, conf_idx, conf_idx[zdim], conf_node,
+        target_z_bit, mu, up->charge, &barrier_left, &barrier_right);
 
       cell_trapped = h_curr < GKYL_MIN2(barrier_left, barrier_right);
     }
@@ -186,7 +206,6 @@ void
 gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
-  gkyl_array_release(up->bmag);
   gkyl_array_release(up->basis_at_nodes_conf);
   gkyl_free(up);
 }
