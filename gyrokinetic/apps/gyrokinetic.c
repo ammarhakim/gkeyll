@@ -677,10 +677,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
   // Choose the function that updates the fields in time.
-  if (app->field->update_field)
-    app->calc_field_func = gyrokinetic_calc_field_enabled;
-  else
-    app->calc_field_func = gyrokinetic_calc_field_disabled;
+  app->calc_field_func = app->field->update_field? 
+    gyrokinetic_calc_field_enabled : gyrokinetic_calc_field_disabled;
 
   // Initialize the post-positivity quasineutrality enforcement.
   app->post_positivity_quasineut = false;
@@ -3014,10 +3012,12 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
     struct gkyl_array *distf[app->num_species];
+    struct gkyl_array *distfdot[app->num_species];
     struct gkyl_array **bflux[app->num_species];
     struct gkyl_array *distf_neut[app->num_neut_species];
     for (int i=0; i<app->num_species; ++i) {
       distf[i] = app->species[i].f;
+      distfdot[i] = app->species[i].f1;
       bflux[i] = app->species[i].bflux.f;
     }
     for (int i=0; i<app->num_neut_species; ++i) {
@@ -3042,6 +3042,16 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.
       gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf, bflux);
+
+      if (app->field->is_em) {
+        gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
+        gk_field_calc_apar_ic(app, app->field);
+        for (int i=0; i<app->num_species; ++i) {
+          struct gk_species *gk_s = &app->species[i];
+          gk_species_rhs_star(app, gk_s, distf[i], distfdot[i], bflux[i]);
+        }
+        gk_field_em_rhs(app, app->field, (const struct gkyl_array **) distf, distfdot);
+      }      
     }
     else {
       // Read the t=0 field.
@@ -3186,8 +3196,7 @@ gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
 {
   app->field->info.is_static = field_inp.is_static;
   app->field->update_field = !field_inp.is_static;
-  if (app->field->update_field)
-    app->calc_field_func = gyrokinetic_calc_field_enabled;
-  else
-    app->calc_field_func = gyrokinetic_calc_field_disabled;
+
+  app->calc_field_func = app->field->update_field? 
+    gyrokinetic_calc_field_enabled : gyrokinetic_calc_field_disabled;
 }
