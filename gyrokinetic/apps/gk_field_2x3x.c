@@ -246,6 +246,10 @@ gk_field_ampere_solve_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field)
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
   gkyl_fem_poisson_perp_solve(field->fem_apar_solver, field->apar);
 
+  // Smooth along z.
+  // gk_field_fem_projection_par(app, field, field->apar, field->apar_smooth_aux);
+  // gkyl_array_copy_range(field->apar, field->apar_smooth_aux, &app->local_ext);
+
   field->invert_flr(app, field, field->apar);
 
   field->enforce_parallel_bc_em_func(app, field, field->apar);
@@ -287,6 +291,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->aparnew);
 
   if (f->is_em) {
+    gkyl_array_release(f->apar_smooth_aux);
     gkyl_array_release(f->currentDens);
     gkyl_array_release(f->currentDensdot);
     gkyl_array_release(f->lapWeightAmpere);
@@ -364,6 +369,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
+    f->apar_smooth_aux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->lapWeightAmpere = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
