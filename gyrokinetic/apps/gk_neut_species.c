@@ -84,8 +84,8 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 void
 gk_neut_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns_self, double t0)
 {
-  // Store initial density in recycle_react_scale.
-  gk_neut_species_recycle_react_scale_apply_ic_cross(app, gkns_self, &gkns_self->rrs);
+  // Store initial density in scaling operator.
+  gk_neut_species_scaling_apply_ic_cross(app, gkns_self, &gkns_self->sca);
 }
 
 double

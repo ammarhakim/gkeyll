@@ -326,7 +326,9 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
 
     // Methods chosen at runtime.
     lbo->moms_func = gklbo_moms_enabled;
-    lbo->rhs_func = gklbo_rhs_enabled;
+    if (! gks->info.collisions.not_in_dfdt) {;
+      lbo->rhs_func = gklbo_rhs_enabled;
+    }
     if (lbo->write_diagnostics)
       lbo->write_mom_func = gklbo_write_mom_enabled;
   }

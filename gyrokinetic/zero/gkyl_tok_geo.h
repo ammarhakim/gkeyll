@@ -190,7 +190,7 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const str
  * @param dR on output, dR/dZ
  */
 int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR);
+  double *R, double *dRdZ, double *dR, double *dZ);
 
 /**
  * Integrate along a specified psi countour and return its length. The

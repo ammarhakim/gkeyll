@@ -124,7 +124,8 @@ gk_field_2x3x_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struc
     app->basis, &app->lower_skin_par_core,  &app->lower_ghost_par_core, app->use_gpu);
 
   // Write the discrete shift to file.
-  gk_field_2x3x_write_twistshift(app, f);
+  if (app->cdim == 3)
+    gk_field_2x3x_write_twistshift(app, f);
 }
 
 static void

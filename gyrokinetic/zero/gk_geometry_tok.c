@@ -89,7 +89,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_tok_geo_calc_surface(up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp, geometry_inp->position_map);
 
   // Now calculate the metrics at interior nodes
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid,
+    &up->global, &up->global_ext, &up->local, &up->local_ext, true, false);
   gkyl_calc_metric_advance_rz_interior(mcalc, up);
   gkyl_array_copy(up->geo_int.jacobgeo_ghost, up->geo_int.jacobgeo);
   // Calculate neutral metrics at interior nodes

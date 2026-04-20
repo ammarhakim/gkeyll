@@ -225,12 +225,6 @@ gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr,
     gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
   }
 
-  for (int i=0; i<ns_neut; ++i) {
-    struct gk_neut_species *gkns = &app->neut_species[i];
-    // Scale species according to balance between recycling and reactions.
-    gk_neut_species_recycle_react_scale_apply(app, gkns, &gkns->rrs, fout_neut[i], bflux_out);
-  }
-
   // Apply positivity shift if requested.
   for (int i=0; i<ns_charged; ++i) {
     struct gk_species *gks = &app->species[i];
@@ -253,6 +247,16 @@ gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr,
     // Compute moment of f_new to compute moment of df/dt.
     // Need to do it after the fields are updated.
     gk_species_calc_int_mom_dt(app, gks, fout[i], fieldout, dt, gks->fdot_mom_new);
+  }
+
+  // Scale species according to some criteria.
+  for (int i=0; i<ns_charged; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_scaling_apply(app, gks, &gks->sca, gks->f, fieldout, bflux_out);
+  }
+  for (int i=0; i<ns_neut; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_scaling_apply(app, gkns, &gkns->sca, gkns->f, fieldout, bflux_out);
   }
 
   // Compute field energy divided by dt for energy balance diagnostics.

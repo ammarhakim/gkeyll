@@ -29,7 +29,7 @@ gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
     double *fOut_d = (double *) gkyl_array_fetch(fOut, linidx);
     for (int k=0; k<num_basis; ++k) fOut_d[k] = 0.0;
 
-    // Compute expansion coefficients of nuOut using quadrature.
+    // Compute expansion coefficients of fOut using quadrature.
     const double *w_d = (const double *) weights->data;
     const double *bo_d = (const double *) basis_at_ords->data;
 
@@ -37,13 +37,15 @@ gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
 
       const double *b_ord = (const double *) gkyl_array_cfetch(basis_at_ords, n);
 
-      // Evaluate densities and thermal speeds (squared) at quad point.
+      // Evaluate input function f at quad point.
       double fIn_q=0.;
       for (int k=0; k<num_basis; ++k)
         fIn_q += fIn_d[k]*b_ord[k];
 
+      // Evaluate pow(sqrt()) at quad point.
       double fOut_o = fIn_q<0. ? 1.e-40 : pow(sqrt(fIn_q),expIn);
 
+      // Compute expansion coefficients.
       double tmp = w_d[n]*fOut_o;
       for (int k=0; k<num_basis; ++k)
         fOut_d[k] += tmp*bo_d[k+num_basis*n];

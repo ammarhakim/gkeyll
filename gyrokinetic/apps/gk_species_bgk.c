@@ -284,11 +284,15 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
       bgk->moms_func_implicit = gkbgk_moms_enabled;
-      bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      }
     }
     else {
       bgk->moms_func = gkbgk_moms_enabled;
-      bgk->rhs_func = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func = gkbgk_rhs_enabled;
+      }
       bgk->moms_func_implicit = gkbgk_moms_disabled;
       bgk->rhs_func_implicit = gkbgk_rhs_disabled;
     }
