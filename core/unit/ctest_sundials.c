@@ -1,8 +1,9 @@
 #include <acutest.h>
 #include <mpack.h>
-
-#include <gkyl_sundials.h>
 #include <gkyl_util.h>
+
+#ifdef GKYL_HAVE_SUNDIALS
+#include <gkyl_sundials.h>
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -75,3 +76,4 @@ TEST_LIST = {
 #endif
   { NULL, NULL },
 };
+#endif

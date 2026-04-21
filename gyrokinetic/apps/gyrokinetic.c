@@ -703,6 +703,7 @@ gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, stru
   int ns_neut = app->num_neut_species;
   int num_fields = app->field->num_fields;
 
+#ifdef GKYL_HAVE_SUNDIALS
   if (app->use_sundials) {
     if (ns_charged > 0) {
       gkyl_free(fdot_args->num_arr_distf_charged);
@@ -729,6 +730,7 @@ gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, stru
       gkyl_free(fdot_args->bflux_out_neut[i]);
     }
   }
+#endif
 
   if (ns_charged > 0) {
     gkyl_free(fdot_args->fin);
@@ -750,6 +752,7 @@ gyrokinetic_fdot_args_release(struct gkyl_gyrokinetic_fdot_args *fdot_args, stru
   }
 }
 
+#ifdef GKYL_HAVE_SUNDIALS
 struct gkyl_update_status
 gyrokinetic_update_sundials(gkyl_gyrokinetic_app* app, double dt0)
 {
@@ -791,6 +794,7 @@ gyrokinetic_sundials_error_weight_range(void *ctx, const struct gkyl_array *xarr
 
   return 0;
 }
+#endif
 
 static void
 gyrokinetic_pre_process_step_ssprk_generic(void *app_gen, double tcurr, double dt,
@@ -1008,6 +1012,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
       app->update_func = gyrokinetic_update_ssp_rk3;
     }
   }
+#ifdef GKYL_HAVE_SUNDIALS
   else {
     // Step the solution forward with SUNDIALS.
     app->use_sundials = true;
@@ -1112,6 +1117,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     app->update_func = gyrokinetic_update_sundials;
   }
+#endif
 
   // Pre-compute time-independent factors in omega_H.
   gkyl_gyrokinetic_app_omegaH_init(app); 
@@ -1284,6 +1290,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     }
   }
 
+#ifdef GKYL_HAVE_SUNDIALS
   if (app->use_sundials) {
     // Give initial time and ICs to Sundials.
     struct gkyl_sundials_nvec *mnvec_buff = 0;
@@ -1319,6 +1326,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gkyl_sundials_many_nvec_release(mnvec_buff);
     }
   }
+#endif
 }
 
 void
@@ -2568,6 +2576,7 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
     + stat->neut_species_diag_calc_tm + stat->neut_species_diag_io_tm + stat->field_io_tm + stat->field_diag_calc_tm
     + stat->field_diag_io_tm + stat->app_io_tm;
 
+#ifdef GKYL_HAVE_SUNDIALS
   if (app->use_sundials) {
     long num_failures = gkyl_sundials_get_num_error_test_failures(app->gk_sundials);
     app->stat.dt_error_adapt_fail = num_failures;
@@ -2575,6 +2584,7 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
     long num_fdot_evals = gkyl_sundials_get_num_rhs_evals(app->gk_sundials);
     app->stat.nfdot = num_fdot_evals;
   }
+#endif
 
   return *stat;
 }
@@ -3578,6 +3588,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
+#ifdef GKYL_HAVE_SUNDIALS
   if (app->use_sundials) {
     // Give initial time and ICs to Sundials.
     struct gkyl_sundials_nvec *mnvec_buff = 0;
@@ -3613,6 +3624,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gkyl_sundials_many_nvec_release(mnvec_buff);
     }
   }
+#endif
 
   return rstat;
 }
@@ -3699,6 +3711,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
   gkyl_dynvec_release(app->dts);
 
+#ifdef GKYL_HAVE_SUNDIALS
   if (app->use_sundials) {
     for (int i=0; i<ns_charged; ++i) {
       struct gk_species *gk_s = &app->species[i];
@@ -3714,6 +3727,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
     gkyl_sundials_release(app->gk_sundials);
   }
+#endif
 
   gyrokinetic_fdot_args_release(&app->fdot_args, app);
 
