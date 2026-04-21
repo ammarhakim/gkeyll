@@ -183,6 +183,7 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         .vel_map = gks->vel_map,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
+        .use_gpu = app->use_gpu,
       };
       fdmul->lcm_gk = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
       fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
