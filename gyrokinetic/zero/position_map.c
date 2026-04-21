@@ -266,6 +266,9 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
 
   if (gpm->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL && gpm->to_optimize == true)
   {
+    double psi_center = 0.5 * (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max);
+    double alpha_center = 0.5 * (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max);
+
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
@@ -277,14 +280,17 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->bmag_ctx->cbasis = &gpm->basis;
     gpm->bmag_ctx->cgrid = &gpm->grid;
 
-    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = psi_center;
+    gpm->constB_ctx->alpha  = alpha_center;
 
     calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
   else if (gpm->id == GKYL_PMAP_CONSTANT_DB_NUMERIC && gpm->to_optimize == true)
   {
+    double psi_center = pow(0.5 * (sqrt(gpm->constB_ctx->psi_min) + sqrt(gpm->constB_ctx->psi_max)), 2.0);
+    double alpha_center = 0.5 * (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max);
+
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
@@ -296,8 +302,8 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->bmag_ctx->cbasis        = &gpm->basis;
     gpm->bmag_ctx->cgrid         = &gpm->grid;
 
-    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = psi_center;
+    gpm->constB_ctx->alpha  = alpha_center;
 
     find_B_field_extrema(gpm);
     refine_B_field_extrema(gpm);
