@@ -10,47 +10,22 @@
 // Object type.
 typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 
-// Available options:
-// A) num_quad=1, qtype=GKYL_GAUSS_QUAD. Output: ncomp=1 array.
-// B) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=true. Output: ncomp=1 array.
-// C) num_quad>1, qtype=GKYL_GAUSS_QUAD or GKYL_GAUSS_LOBATTO_QUAD, cellwise_trap_loss=false. Output: ncomp=phase_basis.ncomp array.
-
 // Inputs packaged as a struct.
 struct gkyl_loss_cone_mask_gyrokinetic_inp {
-  const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
-  const struct gkyl_basis *phase_basis; // Phase-space basis functions.
   const struct gkyl_range *conf_range; // Configuration-space range.
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations).
-  const struct gkyl_range *vel_range; // Velocity space range.
-  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  const struct gkyl_array *bmag; // Magnetic field magnitude (cdim DG expansion).
-  const struct gkyl_array *bmag_max; // Maximum bmag per field line (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
-  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
-  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays (1D for 2x, 0D for 1x).
-  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
-  bool is_tandem; // =True
+  const struct gkyl_velocity_map *vel_map;    // Velocity space mapping object.
+  bool use_gpu; // Flag to indicate if GPU should be used.
   double mass; // Species mass.
   double charge; // Species charge.
-  enum gkyl_quad_type qtype; // Quadrature rule/nodes.
-  int num_quad; // Number of quad points in each direction to use (default: poly_order+1).
-  bool cellwise_trap_loss; // =True takes a whole cell to be either trapped or passing,
-                           // so not high-order distinction within the cell is made.
-  bool use_gpu; // Whether to run on GPU.
 };
 
 /**
  * Create new updater that populates an array with the masking function
- *   if (mu > mu_bound)
- *     f = 1
- *   else
- *     f = 0
- * where mu_bound = (0.5*m*vpar^2+q*(phi-phi_m))/(B*(B_max/B-1))
- * is the trapped-passing boundary in vpar-mu space.
+ * based on the escape-barrier criterion
+ *   EB(z,mu) = min(max_{s in [z_L,z]} U(s,mu), max_{s in [z,z_R]} U(s,mu))
+ * with U = mu*B + q*phi.
+ * A node is trapped if H < EB.
  *
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
@@ -59,20 +34,22 @@ struct gkyl_loss_cone_mask_gyrokinetic*
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
- * Compute projection of the loss cone masking function on the phase-space basis.
+ * Compute the loss-cone mask on phase-space cell nodes.
+ *
+ * The caller supplies the magnetic field magnitude and electrostatic
+ * potential arrays. This keeps the updater free of any communication logic;
+ * the app is responsible for assembling global data when needed.
  *
  * @param up Project on basis updater to run.
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
+ * @param bmag Magnetic field magnitude (cdim DG expansion).
  * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat (DG array on reduced grid).
- * @param phi_tandem Electrostatic potential at the tandem mirror throat (DG array on reduced grid).
  * @param mask_out Output masking function.
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_m, const struct gkyl_array *phi_tandem,
-  struct gkyl_array *mask_out);
+  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
 
 /**
  * Delete updater.

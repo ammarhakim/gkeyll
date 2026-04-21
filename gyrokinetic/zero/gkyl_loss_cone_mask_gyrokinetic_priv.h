@@ -1,6 +1,7 @@
 // Private header: not for direct use
 #pragma once
 
+#include <float.h>
 #include <math.h>
 
 #include <gkyl_array.h>
@@ -8,133 +9,160 @@
 #include <gkyl_mat.h>
 #include <gkyl_mat_priv.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
 GKYL_CU_DH
 static inline void
-log_to_comp(int ndim, const double *eta,
-  const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
-  double *GKYL_RESTRICT xout)
+nodal_coords(int ndim, int node, double *x)
 {
   for (int d = 0; d < ndim; ++d) {
-    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
-  }
-}
-
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
-{
-  for (int i = 0; i < cdim; ++i) {
-    out[i] = cidx[i];
-  }
-  for (int i = cdim; i < pdim; ++i) {
-    out[i] = vidx[i - cdim];
+    int place_value = (int) pow(2.0, (double) (ndim - 1 - d));
+    int digit = (node / place_value) % 2;
+    x[d] = digit ? 1.0 : -1.0;
   }
 }
 
 struct gkyl_loss_cone_mask_gyrokinetic {
   int cdim; // Configuration-space dimension.
-  int pdim; // Phase-space dimension.
-  int vdim; // Velocity-space dimension.
-
-  const struct gkyl_rect_grid *grid_phase;
   int num_basis_conf; // Number of configuration-space basis functions.
-  int num_basis_phase; // Number of phase-space basis functions.
-  double norm_fac; // Normalization factor.
+  int num_nodes_conf; // Number of configuration-space cell nodes.
+  bool use_gpu;
 
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 
   double mass; // Species mass.
   double charge; // Species charge.
 
-  // Per-field-line bmag_max arrays (1D for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
-  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
-  const struct gkyl_array *bmag_wall; // Magnetic field magnitude at the wall (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag at the wall (1D DG expansion for 2x, scalar for 1x).
-  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
-  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate
-  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
-  struct gkyl_basis *bmag_max_basis_on_dev; // Device-resident basis with device-callable function pointers.
-  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
-
-  // GPU helper: scalar bmag_max_z value for simple 1x cases.
-  // TODO: For 2x GPU support, need to pass full arrays and do per-cell lookup.
-  double *bmag_max_z_scalar_gpu; // Single z-coordinate for GPU (1x case only).
-  double *bmag_wall_z_scalar_gpu; // Single z-coordinate for GPU (1x case only).
-
-  bool is_tandem; // Whether we are dealing with a tandem mirror case.
-  bool use_gpu; // Boolean if we are performing projection on device.
-
-  bool cellwise_trap_loss; // Whether a whole cell is trapped/lost, or whether
-                           // high-order distinction within a cell is allowed.
-  struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
-  struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
-
-  // For quadrature in phase-space.
-  int tot_quad_phase; // Total number of quadrature points.
-  struct gkyl_array *ordinates_phase; // Ordinates.
-  struct gkyl_array *weights_phase; // Weights.
-  struct gkyl_array *basis_at_ords_phase; // Basis functions at ordinates.
-
-  // For quadrature in configuration-space.
-  int tot_quad_conf; // Total number of quadrature points.
-  struct gkyl_array *ordinates_conf; // Ordinates.
-  struct gkyl_array *weights_conf; // Weights.
-  struct gkyl_array *basis_at_ords_conf; // Basis functions at ordinates.
-
-  struct gkyl_array *fun_at_ords; // Mask we are projecting at ordinates in a cell.
-
-  int *p2c_qidx;  // Mapping between configuration-space and phase-space ordinates.
-  struct gkyl_array *mask_out_quad; // Array keeping f_lte at phase-space quadrature nodes.
-  struct gkyl_array *qDphiDbmag_quad; // Array keeping q*(phi-phi_m)/(B_max-B)
-                                      // at configuration-space quadrature nodes.
-  struct gkyl_array *qDphiDbmag_quad_wall; // Array keeping q*phi/(B_wall-B)
-  // at configuration-space quadrature nodes.
-  struct gkyl_array *qDphiDbmag_quad_tandem; // Array keeping q*(phi-phi_tandem)/(B_tandem-B)
-  // at configuration-space quadrature nodes.
-  struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
-  struct gkyl_array *Dbmag_quad_wall; // B-B_wall at configuration-space quadrature nodes.
-  struct gkyl_array *Dbmag_quad_tandem; // B_tandem-B at configuration-space quadrature nodes.
-
-  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts
-                                                          // stores the info to convert phase
-                                                          // space nodal to modal gkyl arrays.
+  struct gkyl_array *basis_at_nodes_conf; // Basis functions at configuration-space nodes.
 };
 
+GKYL_CU_DH
+static inline int
+conf_node_z_endpoint_index(int cdim, int conf_node, int zdim)
+{
+  double eta[GKYL_MAX_DIM] = { 0.0 };
+  nodal_coords(cdim, conf_node, eta);
+  return eta[zdim] > 0.0 ? 1 : 0;
+}
+
+GKYL_CU_DH
+static inline int
+conf_node_with_matching_perpendicular_coords(int cdim, int anchor_node, int zdim,
+  int z_endpoint_index)
+{
+  int num_nodes_conf = (int)pow(2.0, (double)cdim);
+
+  double eta_anchor[GKYL_MAX_DIM] = { 0.0 };
+  nodal_coords(cdim, anchor_node, eta_anchor);
+
+  for (int cand = 0; cand < num_nodes_conf; ++cand) {
+    if (conf_node_z_endpoint_index(cdim, cand, zdim) != z_endpoint_index) {
+      continue;
+    }
+
+    double eta_cand[GKYL_MAX_DIM] = { 0.0 };
+    nodal_coords(cdim, cand, eta_cand);
+
+    bool same_transverse = true;
+    for (int d = 0; d < cdim; ++d) {
+      if (d == zdim) {
+        continue;
+      }
+      if (eta_cand[d] != eta_anchor[d]) {
+        same_transverse = false;
+        break;
+      }
+    }
+
+    if (same_transverse) {
+      return cand;
+    }
+  }
+
+  return anchor_node;
+}
+
+GKYL_CU_DH
+static inline double
+field_node_val(const struct gkyl_array *arr, const struct gkyl_array *basis_at_nodes,
+  int num_basis, long linidx, int node)
+{
+  const double *arr_d = (const double *)gkyl_array_cfetch(arr, linidx);
+  const double *basis_d = (const double *)gkyl_array_cfetch(basis_at_nodes, node);
+
+  double val = 0.0;
+  for (int k = 0; k < num_basis; ++k) {
+    val += arr_d[k] * basis_d[k];
+  }
+
+  return val;
+}
+
+GKYL_CU_DH
+static inline void
+escape_barriers(int cdim, int num_basis_conf, const struct gkyl_range *conf_range,
+  const struct gkyl_array *basis_at_nodes_conf, const struct gkyl_array *phi,
+  const struct gkyl_array *bmag, const int *base_idx, int z_cell,
+  int anchor_conf_node, double mu, double charge,
+  double *barrier_left, double *barrier_right)
+{
+  int zdim = cdim - 1;
+
+  int z_endpoint_index = conf_node_z_endpoint_index(cdim, anchor_conf_node, zdim);
+  int anchor_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node, zdim,
+    z_endpoint_index);
+  int z_upper_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node,
+    zdim, 1);
+  int z_lower_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node,
+    zdim, 0);
+
+  int scan_idx[GKYL_MAX_DIM];
+  for (int d = 0; d < cdim; ++d) {
+    scan_idx[d] = base_idx[d];
+  }
+
+  *barrier_left = -DBL_MAX;
+  *barrier_right = -DBL_MAX;
+
+  for (int iz = conf_range->lower[zdim]; iz <= conf_range->upper[zdim]; ++iz) {
+    scan_idx[zdim] = iz;
+    long linidx = gkyl_range_idx(conf_range, scan_idx);
+
+    int z_scan_node = anchor_node;
+    if (iz < z_cell) {
+      z_scan_node = z_upper_node;
+    }
+    else if (iz > z_cell) {
+      z_scan_node = z_lower_node;
+    }
+
+    double phi_scan = field_node_val(phi, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_scan_node);
+    double bmag_scan = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_scan_node);
+    double u_scan = mu * bmag_scan + charge * phi_scan;
+
+    if (iz <= z_cell && u_scan > *barrier_left) {
+      *barrier_left = u_scan;
+    }
+    if (iz >= z_cell && u_scan > *barrier_right) {
+      *barrier_right = u_scan;
+    }
+  }
+}
+
+
 #ifdef GKYL_HAVE_CUDA
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/**
- * Obtain bmag_peak-bmag at conf-space quadrature nodes and store it in Dbmag_quad.
- *
- * @param up Loss cone mask updater.
- * @param conf_range Configuration-space range.
- * @param bmag Magnetic field magnitude.
- * @param Dbmag_quad Output array (bmag_peak - bmag) at quadrature nodes.
- * @param bmag_peak Peak bmag value (per-field-line array for 2x, scalar for 1x).
- */
-void
-gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
-  struct gkyl_array *Dbmag_quad, const struct gkyl_array *bmag_peak);
-
-/**
- * Compute projection of the loss cone masking function on the phase-space basis
- * on the GPU.
- *
- * @param up Project on basis updater to run.
- * @param phase_rng Phase-space range.
- * @param conf_rng Configuration-space range.
- * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat (DG array on reduced grid).
- * @param phi_tandem Electrostatic potential at the tandem mirror throat (DG array on reduced grid).
- * @param mask_out Output masking function.
- */
-void
-gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
+void gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_m, const struct gkyl_array *phi_tandem,
-  struct gkyl_array *mask_out);
+  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

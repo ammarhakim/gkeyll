@@ -878,25 +878,11 @@ struct gk_fdot_multiplier {
   struct gkyl_array *multiplier; // Damping rate.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
-  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
 
-  // Updater to find bmag peaks (mirror throat location).
-  struct gkyl_array_dg_find_peaks *bmag_peak_finder; // Finds peaks in bmag along parallel direction.
-  struct gkyl_array *phi_smooth_global; // Smoothed electrostatic potential on the global grid.
-  // Per-field-line bmag_max arrays (pointers to arrays owned by bmag_peak_finder).
-  const struct gkyl_array *bmag_max; // Maximum magnetic field amplitude per field line.
-  const struct gkyl_array *bmag_max_z_coord; // z-coordinate of bmag_max per field line.
-  const struct gkyl_array *bmag_wall; // Magnetic field amplitude at the wall per field line.
-  const struct gkyl_array *bmag_wall_z_coord; // z-coordinate of bmag_wall per field line.
-  const struct gkyl_array *bmag_tandem; // Magnetic field at the tandem mirror (for 7-extrema case).
-  const struct gkyl_array *bmag_tandem_z_coord; // z-coordinate of bmag_tandem per field line.
-  const struct gkyl_basis *bmag_max_basis; // Basis for bmag_max arrays.
-  const struct gkyl_range *bmag_max_range; // Range for bmag_max arrays.
-  const struct gkyl_range *bmag_max_range_ext; // Extended range for bmag_max arrays.
-  int bmag_max_peak_idx; // Index of the LOCAL_MAX peak in the peak finder.
-  int bmag_tandem_peak_idx; // Index of the TANDEM_MIRROR peak in the peak finder.
-  struct gkyl_array *phi_at_bmag_max; // Phi evaluated at all peak locations.
-  struct gkyl_array *phi_at_bmag_tandem; // Phi evaluated at tandem mirror locations.
+  // Loss cone mask objects
+  struct gkyl_loss_cone_mask_gyrokinetic *lcm_gk; // Operator that projects the loss cone mask.
+  struct gkyl_array *bmag_global; // Global bmag field used by the loss-cone updater.
+  struct gkyl_array *phi_global; // Global phi field used by the loss-cone updater.
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
