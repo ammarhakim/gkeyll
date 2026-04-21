@@ -1362,7 +1362,7 @@ gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
 #else
 
 struct gkyl_sundials*
-gkyl_sundials_new(int ncomp, bool use_gpu)
+gkyl_sundials_new(bool use_gpu)
 {
   fprintf(stderr, "\nGkeyll was not built with SUNDIALS. Use Gkeyll-native steppers or build Gkeyll with SUNDIALS.\n");
   return 0;
@@ -1377,7 +1377,7 @@ gkyl_sundials_stepper_init_ssp_rk(struct gkyl_sundials *gksun,
 
 int
 gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
-  struct gkyl_sundials_nvec *gsnv, double t_curr)
+  struct gkyl_sundials_nvec *gsnv, double *t_curr)
 {
   // Do nothing.
   return 0;
