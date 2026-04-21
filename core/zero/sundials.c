@@ -573,7 +573,8 @@ gkyl_sundials_new(bool use_gpu)
  */
 bool
 gkyl_sundials_check_rk_method(enum gkyl_sundials_rk_method rk_method,
-  enum gkyl_sundials_rk_method opt_A, enum gkyl_sundials_rk_method opt_B) {
+  enum gkyl_sundials_rk_method opt_A, enum gkyl_sundials_rk_method opt_B)
+{
   bool out;
   if (opt_A == 0) {
     out = rk_method & opt_B;
@@ -1359,4 +1360,199 @@ gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
   gkyl_free(gsmanynv);
 }
 
+#else
+
+struct gkyl_sundials*
+gkyl_sundials_new(bool use_gpu)
+{
+  fprintf(stderr, "\nGkeyll was not built with SUNDIALS. Use Gkeyll-native steppers or build Gkeyll with SUNDIALS.\n");
+  return 0;
+}
+
+bool
+gkyl_sundials_check_rk_method(enum gkyl_sundials_rk_method rk_method,
+  enum gkyl_sundials_rk_method opt_A, enum gkyl_sundials_rk_method opt_B)
+{
+  return false;
+};
+
+void
+gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
+  struct gkyl_sundials_stepper_inp *inp)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_arkode_reset(struct gkyl_sundials *gksun, double time,
+  struct gkyl_sundials_nvec *gsmanynv, struct gkyl_sundials_nvec *gsmanynv_buff)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_set_fixed_step(struct gkyl_sundials *gksun, double dt)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_set_fixed_step_ssprk(struct gkyl_sundials *gksun, double dt)
+{
+  // Do nothing.
+}
+
+void
+gkyl_sundials_set_fixed_step_sts(struct gkyl_sundials *gksun, double dt)
+{
+  // Do nothing.
+}
+
+double
+gkyl_sundials_get_cfl_dt(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0.0;
+}
+
+double
+gkyl_sundials_get_cfl_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0.0;
+}
+
+double
+gkyl_sundials_get_cfl_dt_sts(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0.0;
+}
+
+int
+gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
+  struct gkyl_sundials_nvec *gsnv, double *t_curr)
+{
+  // Do nothing.
+  return 0;
+}
+
+void
+gkyl_sundials_release(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+}
+
+struct gkyl_sundials_nvec*
+gkyl_sundials_nvec_new(struct gkyl_sundials *gksun, struct gkyl_array *arr,
+  struct gkyl_comm *comm, struct gkyl_range *local_range, bool no_error_norm, bool not_stepped)
+{
+  // Do nothing.
+  return 0;
+}
+
+struct gkyl_array*
+gkyl_sundials_nvec_get_array(struct gkyl_sundials_nvec *gsnv)
+{
+  // Do nothing.
+  return 0;
+}
+
+long
+gkyl_sundials_get_num_error_test_failures(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+long
+gkyl_sundials_get_num_rhs_evals(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_last_dt(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_last_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_last_dt_sts(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_current_dt(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_current_dt_ssprk(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+double
+gkyl_sundials_get_current_dt_sts(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return 0;
+}
+
+bool
+gkyl_sundials_use_operator_split(struct gkyl_sundials *gksun)
+{
+  // Do nothing.
+  return false;
+}
+
+bool
+gkyl_sundials_operator_split_in_method(enum gkyl_sundials_rk_method rk_method)
+{
+  // Do nothing.
+  return false;
+}
+
+void
+gkyl_sundials_nvec_release(struct gkyl_sundials_nvec *gsnv)
+{
+  // Do nothing.
+}
+
+struct gkyl_sundials_nvec*
+gkyl_sundials_many_nvec_new(struct gkyl_sundials *gksun, int num_nvector,
+  struct gkyl_sundials_nvec *gsnv_arr[])
+{
+  // Do nothing.
+  return 0;
+}
+
+
+int 
+gkyl_sundials_many_nvec_get_num_subvec(struct gkyl_sundials *gksun, struct gkyl_sundials_nvec* gsmanynv)
+{
+  // Do nothing.
+  return 0;
+}
+
+void
+gkyl_sundials_many_nvec_release(struct gkyl_sundials_nvec *gsmanynv)
+{
+  // Do nothing.
+}
 #endif

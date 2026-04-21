@@ -76,4 +76,11 @@ TEST_LIST = {
 #endif
   { NULL, NULL },
 };
+
+#else
+
+TEST_LIST = {
+  { NULL, NULL },
+};
+
 #endif
