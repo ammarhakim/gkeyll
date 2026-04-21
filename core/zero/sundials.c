@@ -4,14 +4,15 @@
  *
  */
 
-#ifdef GKYL_HAVE_SUNDIALS
-
 #include <gkyl_sundials.h>
-#include <gkyl_sundials_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <string.h> // for memcpy.
+
+#ifdef GKYL_HAVE_SUNDIALS
+
+#include <gkyl_sundials_priv.h>
 
 /**
  * Create a new Gkeyll array.
