@@ -11,11 +11,13 @@ void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     double zlo_last;
     double zup=*zmax;
     zlo_last = zlo;
-    double R[4], dR[4];
-    double Rup[4], dRup[4];
+    double R[4], dRdZ[4];
+    double dR[4], dZ[4];
+    double Rup[4], dRdZup[4];
+    double dRup[4], dZup[4];
     while(true){
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
       //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
       if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
                   // However I need to think thos through more. I think it is ok only when xpt
@@ -45,11 +47,13 @@ void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     int nup = 0;
     double zlo=*zmin;
     double zup_last = zup;
-    double R[4], dR[4];
-    double Rlo[4], dRlo[4];
+    double R[4], dRdZ[4];
+    double dR[4], dZ[4];
+    double Rlo[4], dRdZlo[4];
+    double dRlo[4], dZlo[4];
     while(true){
-      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
       //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
       if (nlo > 0) {
         *zmin = zlo;
@@ -77,11 +81,13 @@ void find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, d
     int nup = 0;
     double zlo=*zmin;
     double zup_last = zup;
-    double R[4], dR[4];
-    double Rlo[4], dRlo[4];
+    double R[4], dRdZ[4];
+    double dR[4], dZ[4];
+    double Rlo[4], dRdZlo[4];
+    double dRlo[4], dZlo[4];
     while(true){
-      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
       //if(nlo==1){
       //  if (Rlo[0] < geo->rleft)
       //    nlo=0;
@@ -116,11 +122,13 @@ void find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, d
     double zlo_last;
     double zup=*zmax;
     zlo_last = zlo;
-    double R[4], dR[4];
-    double Rup[4], dRup[4];
+    double R[4], dRdZ[4];
+    double dR[4], dZ[4];
+    double Rup[4], dRdZup[4];
+    double dRup[4], dZup[4];
     while(true){
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
       if(nup==1){
         if (Rup[0] < geo->rleft)
           nup=0;
@@ -202,6 +210,7 @@ void set_upper_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double smax = res.res;
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmax_iwl_plate = rzplate[1];
+      geo->rmin = rzplate[0];
 }
 
 // Sets zmin if plate is specified
@@ -219,6 +228,7 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double smin = res.res;
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmin_iwl_plate = rzplate[1];
+      geo->rmin = rzplate[0];
 }
 
 void 
@@ -862,6 +872,17 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rleft and rright. Will need both
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
+
+    double rmin_old = geo->rmin;
+    if (geo->plate_spec && ( (arc_ctx->psi > geo->efit->sibry && geo->efit->sibry > geo->efit->simag) || (arc_ctx->psi < geo->efit->sibry && geo->efit->sibry < geo->efit->simag) )){
+      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else {
+      arc_ctx->zmin_iwl_plate = geo->zmaxis;
+      arc_ctx->zmax_iwl_plate = geo->zmaxis;
+    }
+
     arc_ctx->zmax = inp->zmax; // Initial guess.
 
     double zlo = geo->zmaxis;
@@ -872,15 +893,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Done finding turning points
     arc_ctx->zmin_iwl = arc_ctx->zmin;
     arc_ctx->zmax_iwl = arc_ctx->zmax;
-
-    if (geo->plate_spec && ( (arc_ctx->psi > geo->efit->sibry && geo->efit->sibry > geo->efit->simag) || (arc_ctx->psi < geo->efit->sibry && geo->efit->sibry < geo->efit->simag) )){
-      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-    }
-    else {
-      arc_ctx->zmin_iwl_plate = geo->zmaxis;
-      arc_ctx->zmax_iwl_plate = geo->zmaxis;
-    }
+    geo->rmin = rmin_old;
 
     arc_ctx->right = true;
     arc_ctx->arcL_q1 = integrate_psi_contour_memo(geo, psi_curr, geo->zmaxis, arc_ctx->zmax, arc_ctx->rright, false, false, arc_memo);

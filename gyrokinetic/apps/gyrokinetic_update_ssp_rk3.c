@@ -289,10 +289,14 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
           }
 
+          // Scale species according to some criteria.
+          for (int i=0; i<app->num_species; ++i) {
+            struct gk_species *gks = &app->species[i];
+            gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux_out);
+          }
           for (int i=0; i<app->num_neut_species; ++i) {
             struct gk_neut_species *gkns = &app->neut_species[i];
-            // Scale species according to balance between recycling and reactions.
-            gk_neut_species_recycle_react_scale_apply(app, gkns, &gkns->rrs, gkns->f, bflux_out);
+            gk_neut_species_scaling_apply(app, gkns, &gkns->sca, gkns->f, bflux_out);
           }
 
           // Compute field energy divided by dt for energy balance diagnostics.
