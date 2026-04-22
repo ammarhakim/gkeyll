@@ -128,14 +128,14 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         }
 
         
-        static int tov_step = 0;
-        // /* Einstein Toolkit 
-        // double tov_R_star = 11.14;
-        // double tov_pos_x  = 0.5 * (app->grid.upper[0] + app->grid.lower[0]);  // auto-compute center
-        // */
-        double tov_R_star = 13.07;
-        double tov_pos_x  = 100.0;
-        tov_step++;
+        // static int tov_step = 0;
+        // // /* Einstein Toolkit 
+        // // double tov_R_star = 11.14;
+        // // double tov_pos_x  = 0.5 * (app->grid.upper[0] + app->grid.lower[0]);  // auto-compute center
+        // // */
+        // double tov_R_star = 13.07;
+        // double tov_pos_x  = 100.0;
+        // tov_step++;
 
         // static int eq_check = 0;
         // if (!eq_check && tov_step == 1) {
@@ -164,56 +164,56 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         //   eq_check = 1;
         // }
 
-        if (tov_step % 10 == 0 && ns > 0) {
-          struct gkyl_array *fld = app->species[0].f[0];
-          struct gkyl_range *rng = &app->local;
+        // if (tov_step % 10 == 0 && ns > 0) {
+        //   struct gkyl_array *fld = app->species[0].f[0];
+        //   struct gkyl_range *rng = &app->local;
 
-          double x_lo = app->grid.lower[0];
-          double dx   = (app->grid.upper[0] - x_lo) / app->grid.cells[0];
+        //   double x_lo = app->grid.lower[0];
+        //   double dx   = (app->grid.upper[0] - x_lo) / app->grid.cells[0];
 
-          // total energy and max Etot
-          double total_E = 0.0;
-          double Etot_max = 0.0;
-          double x_max = 0.0;
+        //   // total energy and max Etot
+        //   double total_E = 0.0;
+        //   double Etot_max = 0.0;
+        //   double x_max = 0.0;
 
-          int idx[GKYL_MAX_DIM] = {0};
-          for (int ci = rng->lower[0]; ci <= rng->upper[0]; ci++) {
-            idx[0] = ci;
-            const double *q = gkyl_array_cfetch(fld, gkyl_range_idx(rng, idx));
-            double cell_E = q[0] * dx;
-            if (cell_E > 0.0) total_E += cell_E;
-            if (q[0] > Etot_max) {
-                Etot_max = q[0];
-                x_max = x_lo + (ci - rng->lower[0] + 0.5) * dx;
-            }
-          }
+        //   int idx[GKYL_MAX_DIM] = {0};
+        //   for (int ci = rng->lower[0]; ci <= rng->upper[0]; ci++) {
+        //     idx[0] = ci;
+        //     const double *q = gkyl_array_cfetch(fld, gkyl_range_idx(rng, idx));
+        //     double cell_E = q[0] * dx;
+        //     if (cell_E > 0.0) total_E += cell_E;
+        //     if (q[0] > Etot_max) {
+        //         Etot_max = q[0];
+        //         x_max = x_lo + (ci - rng->lower[0] + 0.5) * dx;
+        //     }
+        //   }
 
-          printf("\n[TOV 1D step=%d t=%.4f Nx=%d]\n", tov_step, tcurr, app->grid.cells[0]);
-          printf("  Total_E=%.6e  Etot_max=%.4e\n", total_E, Etot_max);
+        //   printf("\n[TOV 1D step=%d t=%.4f Nx=%d]\n", tov_step, tcurr, app->grid.cells[0]);
+        //   printf("  Total_E=%.6e  Etot_max=%.4e\n", total_E, Etot_max);
           
-          // sample at fixed physical locations
-          double x_sample[6] = {
-            tov_pos_x,
-            tov_pos_x + 0.5*tov_R_star,
-            tov_pos_x + 0.9*tov_R_star,
-            tov_pos_x + tov_R_star,
-            tov_pos_x + 0.7*tov_R_star,  // mid-surface
-            tov_pos_x + 1.5*tov_R_star,
-          };
+        //   // sample at fixed physical locations
+        //   double x_sample[6] = {
+        //     tov_pos_x,
+        //     tov_pos_x + 0.5*tov_R_star,
+        //     tov_pos_x + 0.9*tov_R_star,
+        //     tov_pos_x + tov_R_star,
+        //     tov_pos_x + 0.7*tov_R_star,  // mid-surface
+        //     tov_pos_x + 1.5*tov_R_star,
+        //   };
           
-          printf("  %-10s %-12s %-12s %-12s %-6s\n", 
-              "x", "Etot", "mom_x", "lapse", "reg");
-          for (int p = 0; p < 6; p++) {
-            int ci = (int)((x_sample[p] - x_lo) / dx) + rng->lower[0];
-            ci = GKYL_MAX2(rng->lower[0], GKYL_MIN2(rng->upper[0], ci));
-            idx[0] = ci;
-            const double *q = gkyl_array_cfetch(fld, gkyl_range_idx(rng, idx));
-            double r = fabs(x_sample[p] - tov_pos_x);
-            printf("  %-10.4f %-12.4e %-12.4e %-12.4f %-6s\n",
-                x_sample[p], q[0], q[1], q[4],
-                (r < tov_R_star) ? "in" : "out");
-          }
-        }
+        //   printf("  %-10s %-12s %-12s %-12s %-6s\n", 
+        //       "x", "Etot", "mom_x", "lapse", "reg");
+        //   for (int p = 0; p < 6; p++) {
+        //     int ci = (int)((x_sample[p] - x_lo) / dx) + rng->lower[0];
+        //     ci = GKYL_MAX2(rng->lower[0], GKYL_MIN2(rng->upper[0], ci));
+        //     idx[0] = ci;
+        //     const double *q = gkyl_array_cfetch(fld, gkyl_range_idx(rng, idx));
+        //     double r = fabs(x_sample[p] - tov_pos_x);
+        //     printf("  %-10.4f %-12.4e %-12.4e %-12.4f %-6s\n",
+        //         x_sample[p], q[0], q[1], q[4],
+        //         (r < tov_R_star) ? "in" : "out");
+        //   }
+        // }
       
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.f[ndim]);

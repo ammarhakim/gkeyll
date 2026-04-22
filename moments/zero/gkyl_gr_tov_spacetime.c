@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_ref_count.h>
@@ -37,52 +38,75 @@ star_radius(const struct gr_tov_spacetime *ts, double x, double y, double z)
   double dz = z - ts->pos_c[2];
   return sqrt(dx * dx + dy * dy + dz * dz);
 }
-
-
-//  BL -> Spherical KS
-//  Time transformation:  dt_KS = dt_BL + h'(r) dr
-//  with  h'(r) = 2m(r) / [ r (1 - 2m(r)/r) ]
-//  Spherical KS 3+1:
-//  alpha_KS = sqrt( alpha_BL^2 + beta_r^2 / spatial_metric_rr )
-//  beta_r = alpha_BL^2  h'
-//  spatial_metric_rr = A_BL - alpha_BL^2  h'^2
-
 static bool
 eval_cks_interior(const struct gkyl_tov *tov,
     double dx, double dy, double dz,
     double *lapse, double shift_vector[3], double spatial_metric[3][3])
 {
-  double r = sqrt(dx*dx + dy*dy + dz*dz);
+  double r = sqrt(dx * dx + dy * dy + dz * dz);
   double r_safe = fmax(r, 1e-6);
-
-  // Step 1: BL metric from TOV arrays
   struct tov_eval_bl bl;
   if (!gkyl_tov_eval_bl(tov, r_safe, &bl)) return false;
 
-  double alpha_BL = exp(bl.Phi);
-  double f        = 1.0 - 2.0*bl.m / r_safe;
-  double A_BL     = (f > 1e-10) ? 1.0/f : 1e10;
+  // double V_m  = 2.0 * bl.m / r_safe; // 2m(r)/r — local mass
+  // double a = exp(bl.Phi); // BL lapse (with Phi(R*)=½ln(1-2M/R*))
+  // double a2 = a * a;
 
-  // Step 2: BL -> SKS
-  double h_prime       = 2.0*bl.m * A_BL / r_safe;
-  double beta_r        = alpha_BL*alpha_BL * h_prime;
-  double gamma_rr      = A_BL - alpha_BL*alpha_BL * h_prime*h_prime;
-  double lapse_SKS     = (gamma_rr > 1e-10) ?
-    sqrt(alpha_BL*alpha_BL + beta_r*beta_r / gamma_rr) : 0.0;
+  // // X = a² V_m² / (1 - V_m)
+  // double one_m_Vm = 1.0 - V_m;
+  // double X = a2 * V_m * V_m / one_m_Vm;
 
-  // Step 3: SKS -> CKS
-  double n[3] = {dx/r_safe, dy/r_safe, dz/r_safe};
+  // // Radial component of interior CKS spatial metric
+  // // γ_rr = (1 - X) / (1 - V_m)
+  // double gamma_rr = (1.0 - X) / one_m_Vm;
 
-  *lapse = lapse_SKS;
+  // // Lapse: α² = a² / (1 - X)
+  // *lapse = a / sqrt(1.0 - X);
 
+  // // Shift: β^r = a² V_m/(1-V_m) / γ_rr = a² V_m / (1-X)
+  // double beta_r = a2 * V_m / (one_m_Vm * gamma_rr);
+  // double ni[3] = {dx/r_safe, dy/r_safe, dz/r_safe};
+  // for (int k = 0; k < 3; k++)
+  //     shift_vector[k] = beta_r * ni[k];
+
+  // // Spatial metric: γ_ij = δ_ij + (γ_rr - 1) n_i n_j
+  // double coeff = gamma_rr - 1.0;
+
+  // // In eval_cks_interior, temporarily override:
+  // *lapse = exp(bl.Phi);
+  // shift_vector[0] = shift_vector[1] = shift_vector[2] = 0.0;
+  // coeff = V_m / (1.0 - V_m);
+
+  // for (int i = 0; i < 3; i++)
+  //     for (int j = 0; j < 3; j++)
+  //         spatial_metric[i][j] = (i==j ? 1.0 : 0.0) + coeff * ni[i] * ni[j];
+
+  // polar coords
+  
+  *lapse = exp(bl.Phi);
+  shift_vector[0] = shift_vector[1] = shift_vector[2] = 0.0;
+  
+  double coeff = 2.0 * bl.m/r_safe;
   for (int i = 0; i < 3; i++) {
-    shift_vector[i] = (beta_r / gamma_rr) * n[i]; // beta_r * n[i];
-    for (int j = 0; j < 3; j++)
-      spatial_metric[i][j] = (i==j ? 1.0 : 0.0) + (gamma_rr - 1.0)*n[i]*n[j];
+      for (int j = 0; j < 3; j++) {
+          spatial_metric[i][j] = 0.0;
+      }
   }
+  spatial_metric[0][0] = pow(1.0 - coeff, -1);
+  spatial_metric[1][1] = r_safe * r_safe;
+  double dtheta = atan(dy / dx);
+  spatial_metric[2][2] = r_safe * r_safe * sin(dtheta) * sin(dtheta);
 
+  //
+  // Add temporarily
+  //printf("r=%.3f shift[0]/lapse=%.6f shift[1]/lapse=%.6f shift[2]/lapse=%.6f\n",
+  //        r_safe, shift_vector[0]/(*lapse), shift_vector[1]/(*lapse), shift_vector[2]/(*lapse));
+  ///
+  
+  
   return true;
 }
+
 
 static void
 tov_lapse_function(const struct gkyl_gr_spacetime *spacetime, const double t,
@@ -98,7 +122,22 @@ tov_lapse_function(const struct gkyl_gr_spacetime *spacetime, const double t,
             lapse, shift_vector, spatial_metric);
     }
     else {
-        ts->bh->lapse_function_func(ts->bh, t, x, y, z, lapse);
+      // ts->bh->lapse_function_func(ts->bh, t, x, y, z, lapse);
+      // double rel_x = x - ts->pos_c[0];
+      // double rel_y = y - ts->pos_c[1];
+      // double rel_z = z - ts->pos_c[2];
+      // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+      // double r_safe = fmax(r, 1e-10);
+      // double M = gkyl_tov_star_mass(ts->tov);
+      // double V = 2.0*M / r_safe;          // 2M/r
+      // double f = 1.0 - V;                  // 1 - 2M/r
+
+      // *lapse = sqrt(f);
+
+      //polar coords:
+      double r_safe = fmax(r, 1e-10);
+      double M = gkyl_tov_star_mass(ts->tov);
+      *lapse = sqrt(1.0 - 2.0 * M / r_safe);
     }
 }
 
@@ -117,12 +156,13 @@ tov_shift_vector(const struct gkyl_gr_spacetime *spacetime, const double t,
         x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2],
         &lapse, shift_vector, spatial_metric);
     (*shift)[0] = shift_vector[0];
-    (*shift)[1] = shift_vector[1];
+    (*shift)[0] = shift_vector[1];
     (*shift)[2] = shift_vector[2];
   }
   else {
-      ts->bh->shift_vector_func(ts->bh, t, x, y, z, shift);
-  }
+    // ts->bh->shift_vector_func(ts->bh, t, x, y, z, shift);
+    (*shift)[0] = (*shift)[0] = (*shift)[2] = 0.0;
+    }
 }
 
 static void
@@ -144,7 +184,40 @@ tov_spatial_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const doubl
             (*spatial_metric)[i][j] = spatial_metric_local[i][j];
   }
   else {
-      ts->bh->spatial_metric_tensor_func(ts->bh, t, x, y, z, spatial_metric);
+    // ts->bh->spatial_metric_tensor_func(ts->bh, t, x, y, z, spatial_metric);
+    // // Spatial metric: γ_ij = δ_ij + [V/(1-V)] n_i n_j
+    // double rel_x = x - ts->pos_c[0];
+    // double rel_y = y - ts->pos_c[1];
+    // double rel_z = z - ts->pos_c[2];
+    // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+    // double r_safe = fmax(r, 1e-10);
+    // double M = gkyl_tov_star_mass(ts->tov);
+    // double V = 2.0*M / r_safe;          // 2M/r
+    // double f = 1.0 - V;                  // 1 - 2M/r
+    // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+    // double coeff = V / f;                // V/(1-V) for spatial metric
+    // for (int i = 0; i < 3; i++) {
+    //   for (int j = 0; j < 3; j++) {
+    //       (*spatial_metric)[i][j] = (i==j ? 1.0 : 0.0) + coeff * ni[i] * ni[j];
+    //   }
+    // }
+
+    //polar coords:
+    double M = gkyl_tov_star_mass(ts->tov);
+    double r_safe = fmax(r, 1e-6);
+    double coeff = 2.0 * M /r_safe;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            (*spatial_metric)[i][j] = 0.0;
+        }
+    }
+    (*spatial_metric)[0][0] = pow(1.0 - coeff, -1);
+    (*spatial_metric)[1][1] = r_safe * r_safe;
+    double rel_x = x - ts->pos_c[0];
+    double rel_y = y - ts->pos_c[1];
+    double dtheta = atan(rel_y / rel_x);
+    (*spatial_metric)[2][2] = r_safe * r_safe * sin(dtheta) * sin(dtheta);
+
   }
 }
 
@@ -169,25 +242,26 @@ tov_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const dou
     eval_cks_interior(ts->tov,
         x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2],
         &lapse, shift_vector, spatial_metric);
+    
+    (*spacetime_metric)[0][0] = - lapse * lapse;
+    // double shift_vect_cov[3] = {0.0, 0.0, 0.0};
+    // for (int i = 0; i < 3; i++) {
+    //   for (int j = 0; j < 3; j++) {
+    //     shift_vect_cov[i] += spatial_metric[i][j] * shift_vector[j];
+    //   }
+    // }
 
-    double shift_vect_cov[3] = {0.0, 0.0, 0.0};
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        shift_vect_cov[i] += spatial_metric[i][j] * shift_vector[j];
-      }
-    }
+    // double shift_vect_sq = 0.0;
+    // for (int i = 0; i < 3; i++) {
+    //   shift_vect_sq += shift_vect_cov[i] * shift_vector[i];
+    // }
 
-    double shift_vect_sq = 0.0;
-    for (int i = 0; i < 3; i++) {
-      shift_vect_sq += shift_vect_cov[i] * shift_vector[i];
-    }
+    // (*spacetime_metric)[0][0] = -(lapse * lapse) + shift_vect_sq;
 
-    (*spacetime_metric)[0][0] = -(lapse * lapse) + shift_vect_sq;
-
-    for (int i = 0; i < 3; i++) {
-      (*spacetime_metric)[0][i + 1] = shift_vect_cov[i];
-      (*spacetime_metric)[i + 1][0] = shift_vect_cov[i];
-    }
+    // for (int i = 0; i < 3; i++) {
+    //   (*spacetime_metric)[0][i + 1] = shift_vect_cov[i];
+    //   (*spacetime_metric)[i + 1][0] = shift_vect_cov[i];
+    // }
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
@@ -196,9 +270,46 @@ tov_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const dou
     }
 
     }
-    else {
-      ts->bh->spacetime_metric_tensor_func(ts->bh, t, x, y, z, spacetime_metric);
+  else {
+    // ts->bh->spacetime_metric_tensor_func(ts->bh, t, x, y, z, spacetime_metric);
+    // double rel_x = x - ts->pos_c[0];
+    // double rel_y = y - ts->pos_c[1];
+    // double rel_z = z - ts->pos_c[2];
+    // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+    // double r_safe = fmax(r, 1e-10);
+    // double M = gkyl_tov_star_mass(ts->tov);
+    // double V = 2.0*M / r_safe;          // 2M/r
+    // double f = 1.0 - V;                  // 1 - 2M/r
+    // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+    // double coeff = V / f;                // V/(1-V) for spatial metric
+    // (*spacetime_metric)[0][0] = -f;
+    // for (int i = 1; i < 4; i++) {
+    //     (*spacetime_metric)[0][i] = 0.0;
+    //     (*spacetime_metric)[i][0] = 0.0;
+    // }
+    // for (int i = 0; i < 3; i++) {
+    //     for (int j = 0; j < 3; j++) {
+    //         (*spacetime_metric)[i+1][j+1] = (i==j ? 1.0 : 0.0) + coeff * ni[i] * ni[j];
+    //     }
+    // }
+    
+
+    //polar coords:
+    double M = gkyl_tov_star_mass(ts->tov);
+    double r_safe = fmax(r, 1e-6);
+    double coeff = 2.0 * M /r_safe;
+    for (int i = 1; i < 4; i++) {
+        (*spacetime_metric)[0][i] = 0.0;
+        (*spacetime_metric)[i][0] = 0.0;
     }
+    (*spacetime_metric)[0][0] = -(1.0 - coeff);
+    (*spacetime_metric)[1][1] = pow(1.0 - coeff, -1);
+    (*spacetime_metric)[2][2] = r_safe * r_safe;
+    double rel_x = x - ts->pos_c[0];
+    double rel_y = y - ts->pos_c[1];
+    double dtheta = atan(rel_y / rel_x);
+    (*spacetime_metric)[3][3] = r_safe * r_safe * sin(dtheta) * sin(dtheta);
+  }
 
 }
 
@@ -209,21 +320,43 @@ const double x, const double y, const double z, double* spatial_metric_det)
   struct gr_tov_spacetime *ts = tov_st(spacetime);
   double r = star_radius(ts, x, y, z);
   if (r < ts->R_star) {
-    double lapse, shift_vector[3], spatial_metric_local[3][3];
-    eval_cks_interior(ts->tov, x - ts->pos_c[0], y - ts->pos_c[1], z - ts->pos_c[2], &lapse, shift_vector, spatial_metric_local);
-    double dx = x - ts->pos_c[0], dy = y - ts->pos_c[1], dz = z - ts->pos_c[2];
-    double r_safe = fmax(r, 1e-6);
-    double n[3] = {dx/r_safe, dy/r_safe, dz/r_safe};
-    double spatial_metric_local_rr = 0.0;
+    double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
     for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        spatial_metric_local_rr += spatial_metric_local[i][j] * n[i] * n[j];
-      }
+        spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
     }
-    *spatial_metric_det = spatial_metric_local_rr;
+
+    tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+    *spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+    for (int i = 0; i < 3; i++) {
+      gkyl_free(spatial_metric[i]);
+    }
+    gkyl_free(spatial_metric);
   }
   else {
-    ts->bh->spatial_metric_det_func(ts->bh, t, x, y, z, spatial_metric_det);
+    // ts->bh->spatial_metric_det_func(ts->bh, t, x, y, z, spatial_metric_det);
+    // double rel_x = x - ts->pos_c[0];
+    // double rel_y = y - ts->pos_c[1];
+    // double rel_z = z - ts->pos_c[2];
+    // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+    // double r_safe = fmax(r, 1e-10);
+    // double M = gkyl_tov_star_mass(ts->tov);
+    // double V = 2.0*M / r_safe;          // 2M/r
+    // double f = 1.0 - V;                  // 1 - 2M/r
+    // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+    // double coeff = V / f;                // V/(1-V) for spatial metric
+    // *spatial_metric_det = 1.0 / f;
+
+    //polar coords:
+    double M = gkyl_tov_star_mass(ts->tov);
+    double r_safe = fmax(r, 1e-6);
+    double coeff = 2.0 * M /r_safe;
+    double rel_x = x - ts->pos_c[0];
+    double rel_y = y - ts->pos_c[1];
+    double dtheta = atan(rel_y / rel_x);
+    *spatial_metric_det = (r_safe * r_safe * r_safe * r_safe * sin(dtheta) * sin(dtheta)) / (1.0 - coeff); 
   }
 }
 
@@ -244,7 +377,27 @@ const double x, const double y, const double z, double* spacetime_metric_det)
     *spacetime_metric_det = -(lapse * lapse) * spatial_det;
   }
   else {
-    ts->bh->spacetime_metric_det_func(ts->bh, t, x, y, z, spacetime_metric_det);
+    // ts->bh->spacetime_metric_det_func(ts->bh, t, x, y, z, spacetime_metric_det);
+    // double rel_x = x - ts->pos_c[0];
+    // double rel_y = y - ts->pos_c[1];
+    // double rel_z = z - ts->pos_c[2];
+    // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+    // double r_safe = fmax(r, 1e-10);
+    // double M = gkyl_tov_star_mass(ts->tov);
+    // double V = 2.0*M / r_safe;          // 2M/r
+    // double f = 1.0 - V;                  // 1 - 2M/r
+    // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+    // double coeff = V / f;                // V/(1-V) for spatial metric
+    // *spacetime_metric_det = -1.0;
+
+    //polar coords:
+    double M = gkyl_tov_star_mass(ts->tov);
+    double r_safe = fmax(r, 1e-6);
+    double coeff = 2.0 * M /r_safe;
+    double rel_x = x - ts->pos_c[0];
+    double rel_y = y - ts->pos_c[1];
+    double dtheta = atan(rel_y / rel_x);
+    *spacetime_metric_det = -(r_safe * r_safe * r_safe * r_safe * sin(dtheta) * sin(dtheta));
   }
 }
 
@@ -320,7 +473,38 @@ tov_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const d
       gkyl_free(euclidean_metric);
     }
     else {
-        ts->bh->spatial_inv_metric_tensor_func(ts->bh, t, x, y, z, spatial_inv_metric_tensor);
+        // ts->bh->spatial_inv_metric_tensor_func(ts->bh, t, x, y, z, spatial_inv_metric_tensor);
+        // double rel_x = x - ts->pos_c[0];
+        // double rel_y = y - ts->pos_c[1];
+        // double rel_z = z - ts->pos_c[2];
+        // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+        // double r_safe = fmax(r, 1e-10);
+        // double M = gkyl_tov_star_mass(ts->tov);
+        // double V = 2.0*M / r_safe;          // 2M/r
+        // double f = 1.0 - V;                  // 1 - 2M/r
+        // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+        // double coeff = V / f;                // V/(1-V) for spatial metric
+        // for (int i = 0; i < 3; i++) {
+        //   for (int j = 0; j < 3; j++) {
+        //     (*spatial_inv_metric_tensor)[i][j] = (i==j ? 1.0 : 0.0) - V * ni[i] * ni[j];
+        //   }
+        // }
+
+        //polar coords:
+        double M = gkyl_tov_star_mass(ts->tov);
+        double r_safe = fmax(r, 1e-6);
+        double coeff = 2.0 * M /r_safe;
+        double rel_x = x - ts->pos_c[0];
+        double rel_y = y - ts->pos_c[1];
+        double dtheta = atan(rel_y / rel_x);
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+              (*spatial_inv_metric_tensor)[i][j] = 0.0;
+          }
+        }
+        (*spatial_inv_metric_tensor)[0][0] = 1.0 - coeff;
+        (*spatial_inv_metric_tensor)[1][1] = 1.0 / (r_safe * r_safe);
+        (*spatial_inv_metric_tensor)[2][2] = 1.0 / (r_safe * r_safe * sin(dtheta) * sin(dtheta));
     }
 }
 
@@ -377,7 +561,41 @@ tov_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime, const
 
     }
     else {
-        ts->bh->spacetime_inv_metric_tensor_func(ts->bh, t, x, y, z, spacetime_inv_metric);
+        // ts->bh->spacetime_inv_metric_tensor_func(ts->bh, t, x, y, z, spacetime_inv_metric);
+        // double rel_x = x - ts->pos_c[0];
+        // double rel_y = y - ts->pos_c[1];
+        // double rel_z = z - ts->pos_c[2];
+        // double r = sqrt(rel_x*rel_x + rel_y*rel_y + rel_z*rel_z);
+        // double r_safe = fmax(r, 1e-10);
+        // double M = gkyl_tov_star_mass(ts->tov);
+        // double V = 2.0*M / r_safe;          // 2M/r
+        // double f = 1.0 - V;                  // 1 - 2M/r
+        // double ni[3] = {rel_x/r_safe, rel_y/r_safe, rel_z/r_safe};
+        // double coeff = V / f;                // V/(1-V) for spatial metric
+        // (*spacetime_inv_metric)[0][0] = -1.0 / f;
+        // for (int i = 1; i < 4; i++) {
+        //     (*spacetime_inv_metric)[0][i] = 0.0;
+        //     (*spacetime_inv_metric)[i][0] = 0.0;
+        // }
+        // for (int i = 0; i < 3; i++) {
+        //     for (int j = 0; j < 3; j++) {
+        //         (*spacetime_inv_metric)[i+1][j+1] = (i==j ? 1.0 : 0.0) - V * ni[i] * ni[j];
+        //     }
+        //   }
+
+      //polar coords
+      //polar coords:
+      double M = gkyl_tov_star_mass(ts->tov);
+      double r_safe = fmax(r, 1e-6);
+      double coeff = 2.0 * M /r_safe;
+      double rel_x = x - ts->pos_c[0];
+      double rel_y = y - ts->pos_c[1];
+      double dtheta = atan(rel_y / rel_x);
+
+      (*spacetime_inv_metric)[0][0] = -pow(1.0 - coeff, -1);
+      (*spacetime_inv_metric)[1][1] = 1.0 - coeff;
+      (*spacetime_inv_metric)[2][2] = 1.0 / (r_safe * r_safe);
+      (*spacetime_inv_metric)[3][3] = 1.0 / (r_safe * r_safe * sin(dtheta) * sin(dtheta));
     }
 }
 
@@ -481,82 +699,112 @@ tov_spacetime_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const doubl
   gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
+// static void
+// tov_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+//   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
+// {
+//   struct gr_tov_spacetime *ts = tov_st(spacetime);
+//   double r = star_radius(ts, x, y, z);
+
+//   if (r < ts->R_star) {
+//     for (int i = 0; i < 3; i++) {
+//       for (int j = 0; j < 3; j++) {
+//         (*extrinsic_curvature_tensor)[i][j] = 0.0;
+//       }
+//     }
+//   }
+//   else {
+//     ts->bh->extrinsic_curvature_tensor_func(ts->bh, t, x, y, z, dx, dy, dz, extrinsic_curvature_tensor);
+//   }
+// }
+
+// in polar coords
 static void
 tov_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
-  double lapse_function;
-  double *shift_vector = gkyl_malloc(sizeof(double[3]));
-
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
-  double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
-  double **shift_vector_cov_der = gkyl_malloc(sizeof(double*[3]));
-  double **shift_covector_cov_der = gkyl_malloc(sizeof(double*[3]));
-
-  double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
-
-  for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
-    shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
-    shift_vector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
-    shift_covector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
-
-    spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
-    for (int j = 0; j < 3; j++) {
-      spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
-
-      shift_covector_cov_der[i][j] = 0.0;
-    }
-  }
-
-  tov_lapse_function(spacetime, t, x, y, z, &lapse_function);
-  tov_shift_vector(spacetime, t, x, y, z, &shift_vector);
-  tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
-  tov_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_vector_der);
-  tov_spatial_christoffel(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
-
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      shift_vector_cov_der[i][j] = shift_vector_der[i][j];
-
-      for (int k = 0; k < 3; k++) {
-        shift_vector_cov_der[i][j] += spatial_christoffel[j][i][k] * shift_vector[k];
-      }
+      (*extrinsic_curvature_tensor)[i][j] = 0.0;
     }
   }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        shift_covector_cov_der[i][j] += spatial_metric[j][k] * shift_vector_cov_der[i][k];
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*extrinsic_curvature_tensor)[i][j] = -(1.0 / (2.0 * lapse_function)) * (shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]);
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric[i]);
-    gkyl_free(shift_vector_der[i]);
-    gkyl_free(shift_vector_cov_der[i]);
-    gkyl_free(shift_covector_cov_der[i]);
-
-    for (int j = 0; j < 3; j++) {
-      gkyl_free(spatial_christoffel[i][j]);
-    }
-    gkyl_free(spatial_christoffel[i]);
-  }
-  gkyl_free(shift_vector);
-  gkyl_free(spatial_metric);
-  gkyl_free(shift_vector_der);
-  gkyl_free(shift_vector_cov_der);
-  gkyl_free(shift_covector_cov_der);
-  gkyl_free(spatial_christoffel);
 }
+// static void
+// tov_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+//   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
+// {
+//   double lapse_function;
+//   double *shift_vector = gkyl_malloc(sizeof(double[3]));
+
+//   double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+//   double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
+//   double **shift_vector_cov_der = gkyl_malloc(sizeof(double*[3]));
+//   double **shift_covector_cov_der = gkyl_malloc(sizeof(double*[3]));
+
+//   double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
+
+//   for (int i = 0; i < 3; i++) {
+//     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+//     shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
+//     shift_vector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+//     shift_covector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+
+//     spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
+//     for (int j = 0; j < 3; j++) {
+//       spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
+
+//       shift_covector_cov_der[i][j] = 0.0;
+//     }
+//   }
+
+//   tov_lapse_function(spacetime, t, x, y, z, &lapse_function);
+//   tov_shift_vector(spacetime, t, x, y, z, &shift_vector);
+//   tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+//   tov_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_vector_der);
+//   tov_spatial_christoffel(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
+
+//   for (int i = 0; i < 3; i++) {
+//     for (int j = 0; j < 3; j++) {
+//       shift_vector_cov_der[i][j] = shift_vector_der[i][j];
+
+//       for (int k = 0; k < 3; k++) {
+//         shift_vector_cov_der[i][j] += spatial_christoffel[j][i][k] * shift_vector[k];
+//       }
+//     }
+//   }
+
+//   for (int i = 0; i < 3; i++) {
+//     for (int j = 0; j < 3; j++) {
+//       for (int k = 0; k < 3; k++) {
+//         shift_covector_cov_der[i][j] += spatial_metric[j][k] * shift_vector_cov_der[i][k];
+//       }
+//     }
+//   }
+
+//   for (int i = 0; i < 3; i++) {
+//     for (int j = 0; j < 3; j++) {
+//       (*extrinsic_curvature_tensor)[i][j] = +(1.0 / (2.0 * lapse_function)) * (shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]);
+//     }
+//   }
+
+//   for (int i = 0; i < 3; i++) {
+//     gkyl_free(spatial_metric[i]);
+//     gkyl_free(shift_vector_der[i]);
+//     gkyl_free(shift_vector_cov_der[i]);
+//     gkyl_free(shift_covector_cov_der[i]);
+
+//     for (int j = 0; j < 3; j++) {
+//       gkyl_free(spatial_christoffel[i][j]);
+//     }
+//     gkyl_free(spatial_christoffel[i]);
+//   }
+//   gkyl_free(shift_vector);
+//   gkyl_free(spatial_metric);
+//   gkyl_free(shift_vector_der);
+//   gkyl_free(shift_vector_cov_der);
+//   gkyl_free(shift_covector_cov_der);
+//   gkyl_free(spatial_christoffel);
+// }
 
 static void
 tov_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,

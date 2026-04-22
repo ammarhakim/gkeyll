@@ -496,17 +496,6 @@ void
 explicit_gr_polytropic_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, double t_curr, const double dt,
   double* fluid_old, double* fluid_new)
 {
-
-  static int dt_check = 0;
-  if (dt_check < 1) {
-      printf("[EULER_ARGS] gas_gamma=%.6e t_curr=%.6e dt=%.6e fluid_old[0]=%.6e\n",
-          gas_gamma, t_curr, dt, fluid_old[0]);
-      dt_check++;
-  }
-  // Are pointers the same?
-  // printf("PTR: fluid_old=%p fluid_new=%p same=%d\n",
-  //   (void*)fluid_old, (void*)fluid_new, fluid_old == fluid_new);
-  
   double K_poly = mom_em->gr_polytropic_K_poly;
 
   double lapse = fluid_old[4];
@@ -587,11 +576,6 @@ explicit_gr_polytropic_source_update_euler(const gkyl_moment_em_coupling* mom_em
     double vy = v[2];
     double vz = v[3];
     double p = K_poly * pow(rho, gas_gamma);
-
-    lapse = v[4];
-    shift_x = v[5];
-    shift_y = v[6];
-    shift_z = v[7];
 
     spatial_metric[0][0] = v[8]; spatial_metric[0][1] = v[9]; spatial_metric[0][2] = v[10];
     spatial_metric[1][0] = v[11]; spatial_metric[1][1] = v[12]; spatial_metric[1][2] = v[13];
@@ -696,16 +680,16 @@ explicit_gr_polytropic_source_update_euler(const gkyl_moment_em_coupling* mom_em
     //double local_etot = fluid_old[0] / sqrt(spatial_det);
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        fluid_new[0] += sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[0] += lapse * sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
         // if (local_etot > 1e-3) {
         //   printf("after K term [%d][%d]: fluid_new[0]=%e\n", i, j, fluid_new[0]);
         // }
-        fluid_new[0] += sqrt(spatial_det) * dt * (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
-        fluid_new[0] += sqrt(spatial_det) * dt * (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
+        fluid_new[0] += lapse * sqrt(spatial_det) * dt * (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[0] += lapse * sqrt(spatial_det) * dt * (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
       }
 
-      fluid_new[0] -= sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * lapse_der[i]);
-      fluid_new[0] -= sqrt(spatial_det) * dt * (stress_energy[0][i + 1] * lapse_der[i]);
+      fluid_new[0] -= lapse * sqrt(spatial_det) * dt * (stress_energy[0][0] * shift[i] * lapse_der[i]);
+      fluid_new[0] -= lapse * sqrt(spatial_det) * dt * (stress_energy[0][i + 1] * lapse_der[i]);
     }
     // if (local_etot > 1e-3) {
     //   printf("after energy source: fluid_new[0]=%e fluid_old[0]=%e\n", fluid_new[0], fluid_old[0]);
@@ -713,90 +697,66 @@ explicit_gr_polytropic_source_update_euler(const gkyl_moment_em_coupling* mom_em
 
     // Momentum density sources.
     for (int j = 0; j < 3; j++) {
-      fluid_new[1 + j] -= sqrt(spatial_det) * dt * (stress_energy[0][0] * lapse * lapse_der[j]);
+      double mom_source = -stress_energy[0][0] * lapse * lapse_der[j];
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
-          fluid_new[1 + j] += sqrt(spatial_det) * dt * (0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
-          fluid_new[1 + j] += sqrt(spatial_det) * dt * (0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+          mom_source += 0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l];
+          mom_source += 0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l];
         }
 
-        fluid_new[1 + j] += sqrt(spatial_det) * dt * ((mom[k] / lapse) * shift_der[j][k]);
+        mom_source += (mom[k] / lapse) * shift_der[j][k];
 
         for (int i = 0; i < 3; i++) {
-          fluid_new[1 + j] += sqrt(spatial_det) * dt * (stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+          mom_source += stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k];
         }
       }
+
+      fluid_new[1 + j] += sqrt(spatial_det) * dt * lapse * mom_source;
     }
+    // Geometric source from 1D spherical symmetry
+    // Missing term: -(2/r) * F^r evaluated at cell center
+    // r here is the radial distance of the cell center from star center
+    double x = fluid_old[67];
+    double y = fluid_old[68];
+    double z = fluid_old[69];
+    double pos_x = 50.0;
+    double pos_y = 0.0;
+    double pos_z = 0.0;
+    double r_cell = sqrt((x - pos_x)*(x - pos_x)
+                      + (y - pos_y)*(y - pos_y)
+                      + (z - pos_z)*(z - pos_z));
 
-    static int se_check = 0;
-    if (se_check < 1 && fluid_old[0]/sqrt(spatial_det) > 4e-4) {
-      double sqg = sqrt(spatial_det);
-      double T00 = stress_energy[0][0];
-      double t1_step1 = sqg;
-      double t1_step2 = t1_step1 * dt;
-      double t1_step3 = t1_step2 * T00;
-      double t1_step4 = t1_step3 * lapse;
-      double t1_step5 = t1_step4 * lapse_der[0];
-      printf("[T1_STEPS] sqg=%.6e dt=%.6e T00=%.6e lapse=%.6e lapse_der0=%.6e\n",
-          sqg, dt, T00, lapse, lapse_der[0]);
-      printf("[T1_STEPS] s1=%.6e s2=%.6e s3=%.6e s4=%.6e s5=%.6e\n",
-          t1_step1, t1_step2, t1_step3, t1_step4, t1_step5);
-      printf("[T1_STEPS] -s5=%.6e vs term1_printed=%.6e\n",
-          -t1_step5, -sqg*dt*T00*lapse*lapse_der[0]);
-      se_check++;
-    }
+    if (r_cell > 1e-6) {
+      // Compute flux at cell center using current primitives
+      double vx_rel = vx - shift_x / lapse;  // advection velocity
+      double geo = 2.0 / r_cell;
 
-    // static int se_check = 0;
-    // if (se_check < 3 && fluid_old[0]/sqrt(spatial_det) > 4e-4) {
-    //   // existing SE print
-    //   printf("[SE] x=%.4f T00=%.6e T11=%.6e T22=%.6e lapse=%.6f lapse_der0=%.6e met_der000=%.6e\n",
-    //       fluid_old[67],
-    //       stress_energy[0][0], stress_energy[1][1], stress_energy[2][2],
-    //       lapse, lapse_der[0], spatial_metric_der[0][0][0]);
-    //   printf("[SE] term1=%.6e term2=%.6e net=%.6e\n",
-    //       -sqrt(spatial_det)*dt*stress_energy[0][0]*lapse*lapse_der[0],
-    //       sqrt(spatial_det)*dt*0.5*stress_energy[1][1]*spatial_metric_der[0][0][0],
-    //       fluid_new[1] - fluid_old[1]);
+      // D equation: F_D = sqrt_g * D * (alpha*v^x - beta^x)
+      //           = sqrt_g * rho * W * alpha * vx_rel
+      double F_D = sqrt(spatial_det) * rho * W * lapse * vx_rel;
 
-    //   // analytic flux divergence at this point
-    //   // flux = alpha * sqrt(gamma) * p  for static star
-    //   // d/dx(alpha * sqrt(gamma) * p) ~ T11 * d/dx(alpha*sqrt(gamma))
-    //   double alpha_sqrtgam = lapse * sqrt(spatial_det);
-    //   double d_alpha_sqrtgam_dx = lapse_der[0] * sqrt(spatial_det) 
-    //       + lapse * 0.5 / sqrt(spatial_det) * spatial_det * spatial_metric_der[0][0][0];
-    //   double flux_div_analytic = p * d_alpha_sqrtgam_dx + alpha_sqrtgam * 0.0; // dp/dx ~ 0 at center
-      
-    //   // more directly: for static TOV, flux divergence = d/dx(alpha*sqrt(gam)*p)
-    //   // use lapse_der and metric_der already available
-    //   double dp_dx = (gas_gamma * p / rho) * 
-    //       ((-lapse_der[0] / lapse) * rho); // from TOV: dp/dx = -rho*h * d(ln alpha)/dx
-    //   double flux_div = d_alpha_sqrtgam_dx * p + alpha_sqrtgam * dp_dx;
+      // tau equation: F_tau = sqrt_g * (tau * (alpha*v^x - beta^x) + alpha*p*v^x)
+      double tau_prim = rho * h * W * W - p;
+      double F_tau = sqrt(spatial_det) * (tau_prim * lapse * vx_rel + lapse * p * vx);
 
-    //   printf("[FLUX_DIV] x=%.4f alpha_sqrtgam=%.6e d_alpha_sqrtgam_dx=%.6e dp_dx=%.6e flux_div=%.6e\n",
-    //       fluid_old[67], alpha_sqrtgam, d_alpha_sqrtgam_dx, dp_dx, flux_div * dt);
+      // S_x equation: F_Sx = sqrt_g * (S_x * (alpha*v^x - beta^x) + alpha*p)
+      double cov_vx = spatial_metric[0][0]*vx + spatial_metric[0][1]*vy + spatial_metric[0][2]*vz;
+      double F_Sx = sqrt(spatial_det) * (rho * h * W * W * cov_vx * lapse * vx_rel + lapse * p);
 
-    //   se_check++;
-    // }
+      // S_y, S_z: F_Sy = sqrt_g * S_y * (alpha*v^x - beta^x)
+      double cov_vy = spatial_metric[1][0]*vx + spatial_metric[1][1]*vy + spatial_metric[1][2]*vz;
+      double cov_vz = spatial_metric[2][0]*vx + spatial_metric[2][1]*vy + spatial_metric[2][2]*vz;
+      double F_Sy = sqrt(spatial_det) * rho * h * W * W * cov_vy * lapse * vx_rel;
+      double F_Sz = sqrt(spatial_det) * rho * h * W * W * cov_vz * lapse * vx_rel;
 
-    static int src_conv = 0;
-    if (src_conv < 3 && fluid_old[0]/sqrt(spatial_det) > 1e-5 
-      && fluid_old[0]/sqrt(spatial_det) < 2e-4) {  // surface cells only
-      printf("[CONV_SRC] x=%.6f dS_x=%.6e dS_y=%.6e Etot=%.6e rho=%.6e\n",
-          fluid_old[67],
-          fluid_new[1] - fluid_old[1],
-          fluid_new[2] - fluid_old[2],
-          fluid_old[0]/sqrt(spatial_det),
-          rho);
-      src_conv++;
-    }
-
-    static int src_check = 0;
-    if (src_check < 5 && fluid_old[0]/sqrt(spatial_det) > 1e-4) {
-        double dS = fluid_new[1] - fluid_old[1];
-        printf("[SRC] x=%.4f Etot=%.6e p=%.6e rho=%.6e dS_x=%.6e\n",
-            fluid_old[67], fluid_old[0]/sqrt(spatial_det), p, rho, dS);
-        src_check++;
+      // Add geometric source: -geo * F to each equation
+      fluid_new[0] -= geo * F_tau * dt;
+      fluid_new[1] -= geo * F_Sx * dt;
+      fluid_new[2] -= geo * F_Sy * dt;
+      fluid_new[3] -= geo * F_Sz * dt;
+      // D is not evolved directly in your scheme (recovered from Etot)
+      // but if it were: fluid_new_D -= geo * F_D * dt;
     }
   }
   else {
@@ -1298,9 +1258,12 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
     spatial_metric_der[1][2][0] = fluid_old[55]; spatial_metric_der[1][2][1] = fluid_old[56]; spatial_metric_der[1][2][2] = fluid_old[57];
 
     double mom[3];
-    mom[0] = (rho + p) * (W * W) * vx;
-    mom[1] = (rho + p) * (W * W) * vy;
-    mom[2] = (rho + p) * (W * W) * vz;
+    // mom[0] = (rho + p) * (W * W) * vx;
+    // mom[1] = (rho + p) * (W * W) * vy;
+    // mom[2] = (rho + p) * (W * W) * vz;
+    mom[0] = (rho * h) * (W * W) * vx;
+    mom[1] = (rho * h) * (W * W) * vy;
+    mom[2] = (rho * h) * (W * W) * vz;
 
     for (int i = 0; i < 71; i++) {
       fluid_new[i] = fluid_old[i];

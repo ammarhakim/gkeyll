@@ -53,10 +53,16 @@ gkyl_gr_polytropic_euler_flux(double K_poly, double gas_gamma, const double q[70
 
     double h = 1.0 + (gas_gamma / (gas_gamma - 1.0)) * (p / fmax(rho, 1.0e-15));
 
-    flux[0] = lapse * sqrt(spatial_det) * ((rho * h * W * W - p) * (vx - shift_x/lapse) + p * vx);
-    flux[1] = lapse * sqrt(spatial_det) * (rho * h * W * W * vx * (vx - shift_x/lapse) + p);
-    flux[2] = lapse * sqrt(spatial_det) * (rho * h * W * W * vy * (vx - shift_x/lapse));
-    flux[3] = lapse * sqrt(spatial_det) * (rho * h * W * W * vz * (vx - shift_x/lapse));
+    double cov_vx = spatial_metric[0][0]*vx + spatial_metric[0][1]*vy + spatial_metric[0][2]*vz;
+    double cov_vy = spatial_metric[1][0]*vx + spatial_metric[1][1]*vy + spatial_metric[1][2]*vz;
+    double cov_vz = spatial_metric[2][0]*vx + spatial_metric[2][1]*vy + spatial_metric[2][2]*vz;
+
+    double tau = rho*h*W*W - p; 
+
+    flux[0] = lapse * sqrt(spatial_det) * (tau * (vx - shift_x/lapse) + p * vx);
+    flux[1] = lapse * sqrt(spatial_det) * (rho * h * W * W * cov_vx * (vx - shift_x/lapse) + p);
+    flux[2] = lapse * sqrt(spatial_det) * (rho * h * W * W * cov_vy * (vx - shift_x/lapse));
+    flux[3] = lapse * sqrt(spatial_det) * (rho * h * W * W * cov_vz * (vx - shift_x/lapse));
 
     for (int i = 4; i < 70; i++) {
       flux[i] = 0.0;
@@ -160,8 +166,22 @@ gkyl_gr_polytropic_euler_prim_vars(double K_poly, double gas_gamma, const double
     if (p < p_floor) {
       p = p_floor;
     }
-    int max_iter = 50;
-    double tol = 1.0e-12;
+    for (int iter = 0; iter < 50; iter++) {
+      double rho_iter = pow(p / K_poly, 1.0 / gas_gamma);
+      double Q        = Etot + p;             // tau + p = rho*h*W^2
+      double f_val    = rho_iter + (gas_gamma * p / (gas_gamma - 1.0))
+                        - Q + (mom_sq / Q);
+      double f_prime  = (rho_iter / (gas_gamma * p))
+                        + (1.0 / (gas_gamma - 1.0))
+                        - (mom_sq / (Q * Q));
+      double dp = -f_val / f_prime;
+      p += dp;
+      if (p < p_floor) p = p_floor;
+      if (fabs(dp) < 1.0e-12 * fabs(p)) break;
+    }
+
+    // int max_iter = 50;
+    // double tol = 1.0e-12;
 
     // static int prim_fail_count = 0;
     // if (prim_fail_count < 10 && (Etot < 0.0 || mom_sq < 0.0 || p < 0.0)) {
@@ -173,27 +193,27 @@ gkyl_gr_polytropic_euler_prim_vars(double K_poly, double gas_gamma, const double
     //     prim_fail_count++;
     // }
     
-    for (int iter = 0; iter < max_iter; iter++) {
-      double rho_iter = pow(p / K_poly, 1.0 / gas_gamma);
-      double ep = Etot + p;
+    // for (int iter = 0; iter < max_iter; iter++) {
+    //   double rho_iter = pow(p / K_poly, 1.0 / gas_gamma);
+    //   double ep = Etot + p;
 
-      double f_val = rho_iter + (gas_gamma * p / (gas_gamma - 1.0)) - ep + (mom_sq / ep);
-      double f_prime = (rho_iter / (gas_gamma * p)) + (1.0 / (gas_gamma - 1.0)) - (mom_sq / (ep * ep));
+    //   double f_val = rho_iter + (gas_gamma * p / (gas_gamma - 1.0)) - ep + (mom_sq / ep);
+    //   double f_prime = (rho_iter / (gas_gamma * p)) + (1.0 / (gas_gamma - 1.0)) - (mom_sq / (ep * ep));
 
-      double dp = -f_val / f_prime;
-      p += dp;
+    //   double dp = -f_val / f_prime;
+    //   p += dp;
 
-      // if (p < pow(10.0, -8.0)) {
-      //   p = pow(10.0, -8.0);
-      // }
-      if (p < p_floor) {
-        p = p_floor;
-      }
+    //   // if (p < pow(10.0, -8.0)) {
+    //   //   p = pow(10.0, -8.0);
+    //   // }
+    //   if (p < p_floor) {
+    //     p = p_floor;
+    //   }
 
-      if (fabs(dp) < tol * fabs(p)) {
-        break;
-      }
-    }
+    //   if (fabs(dp) < tol * fabs(p)) {
+    //     break;
+    //   }
+    // }
 
     // right after the iter loop, before computing rho:
     // if (prim_fail_count < 10 && (p < 0.0 || p != p)) {  // p != p catches NaN
@@ -202,12 +222,33 @@ gkyl_gr_polytropic_euler_prim_vars(double K_poly, double gas_gamma, const double
     //         lapse, spatial_metric[0][0], spatial_metric[1][1]);
     //     prim_fail_count++;
     // }
+
         
     double rho = pow(p / K_poly, 1.0 / gas_gamma);
 
-    double cov_vx = momx / (Etot + p);
-    double cov_vy = momy / (Etot + p);
-    double cov_vz = momz / (Etot + p);
+    double Q   = Etot + p;                     // rho*h*W^2
+    double W2  = 1.0 + mom_sq / (Q * Q);
+    double W   = sqrt(W2);
+
+    // Covariant velocity: v_i = S_i / Q  (since S_i = rho*h*W^2 * v_i = Q * v_i)
+    double cov_vx = momx / Q;
+    double cov_vy = momy / Q;
+    double cov_vz = momz / Q;
+
+    // Contravariant velocity: v^i = gamma^{ij} v_j  (one place, no redundancy)
+    double vx = inv_spatial_metric[0][0]*cov_vx
+              + inv_spatial_metric[0][1]*cov_vy
+              + inv_spatial_metric[0][2]*cov_vz;
+    double vy = inv_spatial_metric[1][0]*cov_vx
+              + inv_spatial_metric[1][1]*cov_vy
+              + inv_spatial_metric[1][2]*cov_vz;
+    double vz = inv_spatial_metric[2][0]*cov_vx
+              + inv_spatial_metric[2][1]*cov_vy
+              + inv_spatial_metric[2][2]*cov_vz;
+
+    // double cov_vx = momx / (Etot + p);
+    // double cov_vy = momy / (Etot + p);
+    // double cov_vz = momz / (Etot + p);
 
     if (Etot + p < pow(10.0, -8.0)) {
       cov_vx = momx / pow(10.0, -8.0);
@@ -245,9 +286,9 @@ gkyl_gr_polytropic_euler_prim_vars(double K_poly, double gas_gamma, const double
     }
 
     v[0] = rho;
-    v[1] = vel[0];
-    v[2] = vel[1];
-    v[3] = vel[2];
+    v[1] = vel[0] - shift_x / lapse;
+    v[2] = vel[1] - shift_y / lapse;
+    v[3] = vel[2] - shift_z / lapse;
 
     v[4] = lapse;
     v[5] = shift_x;
@@ -423,12 +464,12 @@ gkyl_gr_polytropic_euler_stress_energy_tensor(double K_poly, double gas_gamma, c
     double inv_spacetime_metric[4][4];
     inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
     for (int i = 0; i < 3; i++) {
-      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
-      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
     }
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+        inv_spacetime_metric[i + 1][j + 1] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
       }
     }
 
@@ -1781,6 +1822,7 @@ gr_polytropic_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, dou
           sout[1 + j] += stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k];
         }
       }
+      sout[1 + j] *= lapse;
     }
   }
   else {

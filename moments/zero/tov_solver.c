@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 #include <string.h>
 
 #include <gkyl_alloc.h>
+
 #include "tov_solver.h"
 
 struct gkyl_tov {
@@ -318,16 +320,34 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     // We fix lapse: Phi(R) = 0.5 ln(1 - 2M/R). Lapse = e^Phi. At the stellar surface, the interior must match exterior Schwarzschild.
     // g_tt = -(1 - 2M/r) = -e^2Phi. => Phi(R) = 0.5 * ln(1 - 2M/R)
     double Phi_exact = 0.5 * log(1.0 - 2.0 * tov->M_star / tov->R_areal);
+    //double Phi_exact = 0.0;
     double Phi_shift = Phi_exact - tov->Phi[i_surf]; // We integrated with Phi(0) = Phi_c = 0 before (arbitrary), so we need to shift the profile by a constant
     for (int i = 0; i < n; i++) {
         tov->Phi[i] += Phi_shift;
     }   
+    // After the Phi shift -- sanity check that the convention is what we expect
+    // double alpha_surf_int = exp(tov->Phi[i_surf]) / sqrt(1.0 + 2.0*tov->M_star/tov->R_areal);
+    // double alpha_surf_ext = 1.0 / sqrt(1.0 + 2.0*tov->M_star/tov->R_areal);
+    double alpha_surf_int = exp(tov->Phi[i_surf]);
+    double alpha_surf_ext = sqrt(1.0 - 2.0*tov->M_star/tov->R_areal);
+
+    assert(fabs(alpha_surf_int - alpha_surf_ext) < 1e-12 && "Lapse doesn't match on the surface"); // this should pass
+
+    // double V_star = 2.0 * tov->M_star / tov->R_areal;
+    // double a_surf = exp(tov->Phi[i_surf]);               // BL lapse at R*
+    // double X_surf = a_surf*a_surf * V_star*V_star / (1.0 - V_star);
+    // double alpha_cks_int = a_surf / sqrt(1.0 - X_surf);  // CKS interior lapse
+    // double alpha_cks_ext = 1.0 / sqrt(1.0 + V_star);     // exterior KS lapse
+    // assert(fabs(alpha_cks_int - alpha_cks_ext) < 1e-12); // this should pass
+    //assert(fabs(alpha_surf_int - 1.0 / sqrt(1.0 + 2.0*tov->M_star/tov->R_areal)) < 1e-12);
+
+    // This passes iff Phi(R_star) = 0, which is the CKS normalization convention.
 
 
     // Extend to vacuum exterior out to r_max
     while (r_n < r_max && n < TOV_MAX_POINTS) {
         r_n += dr;
-
+        double V_ext = 2.0 * tov->M_star / r_n;
         tov->r_areal[n] = r_n;
         tov->m[n]       = tov->M_star;
         tov->P[n]       = 0.0;
@@ -335,11 +355,9 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
         tov->eps[n]     = 0.0;
         tov->e[n]       = 0.0;
 
-        {
-        const double f = 1.0 - 2.0 * tov->M_star / r_n;
-        tov->Phi[n] = (f > 0.0) ? 0.5 * log(f) : tov->Phi[n - 1];
-        }
-
+        tov->Phi[n] = (1.0 - V_ext > 0.0)
+                  ? 0.5 * log(1.0 - V_ext)
+                  : tov->Phi[n-1];
         n++;
     }
 
