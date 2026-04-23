@@ -18,12 +18,9 @@ struct gk_app_ctx {
   
   // Geometry and magnetic field.
   double B_axis;
-  double R_axis;
-  double a_center;
-  double R_center;
-  double B_center;
-  double Lp; // Poloidal length (used to get the field line pitch).
-  double Lt; // Toroidal length (used to get the field line pitch).
+  double R0;
+  double Rc;
+  double Bv0;
 
   // Plasma parameters.
   double me; double qe;
@@ -159,14 +156,66 @@ double driftSpeed(const double * GKYL_RESTRICT xn, void *ctx){
   }
 }
 
-// Magnetic field strength.
-double bmag(const double *xc, void *ctx)
+// Radial coordinate mapping.
+double Rx(const double *xc, void *ctx)
+{
+  return xc[0];
+}
+
+// Toroidal magnetic field.
+double Bphi(const double *xc, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
   double B_axis = app->B_axis;
-  double R_axis = app->R_axis;
-  return B_axis * R_axis/x;
+  double R0 = app->R0;
+  double R = Rx(xc, ctx);
+  return B_axis*R0/R;
+}
+
+// Vertical magnetic field.
+double Bvert(const double *xc, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double Bv0 = app->Bv0;
+  return Bv0;
+}
+
+// Magnetic field magnitude.
+double bmag(const double *xc, void *ctx)
+{
+  double Bt = Bphi(xc, ctx);
+  double Bv = Bvert(xc, ctx);
+  return sqrt(pow(Bt,2) + pow(Bv,2));
+}
+
+// Field line pitch.
+double thetax(const double *xc, void *ctx)
+{
+  return asin(Bvert(xc, ctx)/bmag(xc, ctx));
+}
+
+// Parallel coordinate mapping.
+double Zx(const double *xc, void *ctx)
+{
+  double theta = thetax(xc, ctx);
+  return xc[2]*sin(theta);
+}
+
+double phix(const double *xc, void *ctx)
+{
+  double x = xc[0], y = xc[1], z = xc[2];
+  struct gk_app_ctx *app = ctx;
+  double Rc = app->Rc;
+  double Bt = Bphi(xc, ctx);
+  double Bv = Bvert(xc, ctx);
+
+  // double theta = asin(Lp/Lt);
+  // return (y/sin(theta) + z*cos(theta))/Rc; // Original Shi mapping.
+
+  double theta = thetax(xc, ctx);
+  return (y/sin(theta) + z*cos(theta))/x;
+  // return y/Rc + (Bt * z*sin(theta))/(Bv * x); // Helical sheared mapping.
 }
 
 // Interface function calls.
@@ -181,7 +230,15 @@ void temp_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void upar_ion_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 { fout[0] = driftSpeed(xn, ctx); }
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{ fout[0] = bmag(xc, ctx); }
+{ 
+  // Cartesian formulation of the magnetic field.
+  double Bt = Bphi(xc, ctx);
+  double Bv = Bvert(xc, ctx);
+  double phi = phix(xc, ctx);
+  fout[0] = -Bt*sin(phi);
+  fout[1] = Bt*cos(phi);
+  fout[2] = Bv;
+}
 void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 { fout[0] = 0.0; }
 
@@ -189,19 +246,13 @@ void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
-
-  struct gk_app_ctx *app = ctx;
-  double R_center = app->R_center;
-  double Lp = app->Lp;
-  double Lt = app->Lt;
-
-  double theta = asin(Lp/Lt);
+  
+  double theta = thetax(xc, ctx);
 
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = x;
   double Z   = z*sin(theta);
-  double phi = (y/sin(theta) + z*cos(theta))/R_center;
-
+  double phi = phix(xc, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -231,17 +282,20 @@ create_ctx(void)
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
-  double R_axis = 0.85;
-  double a_center = 0.5; // Minor radius of the center of the domain.
-  double R_center = R_axis + a_center; // Major radius of the center of the domain.
-  double B_center = B_axis*R_axis/R_center; // Magnetic field strength at the center of the domain.
-  double Lp = 2.4; // Poloidal length (used to get the field line pitch).
-  double Lt = 8.0; // Toroidal length (used to get the field line pitch).
+  double R0 = 0.85;
+  double a0 = 0.5;
+  double Lp = 2.4; // Poloidal length at x0.
+  double Lt = 8.0; // Toroidal length at x0.
+  double Rc = R0 + a0;
+  double B0 = B_axis*R0/Rc;
+
+  double sintheta = Lp/Lt;
+  double Bv0 = B0*sintheta;
 
   // Source parameters.
   double P_SOL = 8.1e5;
-  double S0 = 5.7691e23*10;
-  double xSource = R_center - 0.05;
+  double S0 = 5.7691e23*10; // Multiplied by 10 to increase beta
+  double xSource = Rc - 0.05;
   double lambdaSource = 0.005;
 
   // Collisions;
@@ -250,7 +304,7 @@ create_ctx(void)
   // Derived parameters.
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
   double c_s = sqrt(Te0/mi); // Sound speed.
-  double omega_ci = fabs(qi*B_center/mi); // Ion cyclotron frequency.
+  double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
   // Box size.
@@ -258,27 +312,27 @@ create_ctx(void)
   double Ly = 100*rho_s;
   double Lz = Lt; // [m]
 
-  double x_min = R_center - Lx/2;
-  double x_max = R_center + Lx/2;
+  double x_min = Rc - Lx/2;
+  double x_max = Rc + Lx/2;
   double y_min = -Ly/2;
   double y_max = Ly/2;
   double z_min = -Lz/2;
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 2;
-  int Ny = 2;
+  int Nx = 4;
+  int Ny = 4;
   int Nz = 4;
   int Nvpar = 4;
   int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
-  double mu_max_elc = 12*me*pow(vte,2)/(2*B_center);
+  double mu_max_elc = 12*me*pow(vte,2)/(2*B0);
   double vpar_max_ion = 4.*vti;
-  double mu_max_ion = 12*mi*pow(vti,2)/(2*B_center);
+  double mu_max_ion = 12*mi*pow(vti,2)/(2*B0);
 
-  double t_end = 1.e-6; // End time, should terminate in 43 steps.
+  double t_end = 2.e-7; // End time, should terminate in 43 steps.
   int num_frames = 1;
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -289,12 +343,9 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .B_axis = B_axis,
-    .R_axis = R_axis,
-    .a_center = a_center,
-    .Lp = Lp,
-    .Lt = Lt,
-    .R_center = R_center,
-    .B_center = B_center,
+    .R0 = R0,
+    .Rc = Rc,
+    .Bv0 = Bv0,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -506,6 +557,8 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+
+    .time_rate_diagnostics = true,
   };
 
   // field
@@ -557,7 +610,6 @@ main(int argc, char **argv)
     }
   };
 
-  // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
@@ -572,6 +624,11 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 1.0,
+      .disable_timings = true,
+    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
