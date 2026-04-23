@@ -489,6 +489,7 @@ struct gkyl_gyrokinetic_field {
   bool is_static; // =true field does not change in time.
   bool is_apar_static; // =true Apar at initial time is used for all time steps.
   bool zero_init_field; // =true doesn't compute the initial field.
+  bool calc_init_apar; // Whether to calculate the initial Apar from the initial condition of the distribution function.
 
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations

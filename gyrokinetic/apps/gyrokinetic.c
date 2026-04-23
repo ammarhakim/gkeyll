@@ -2873,6 +2873,31 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
   return rstat;
 }
 
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_file_em(gkyl_gyrokinetic_app *app, const char *fname_apar, const char *fname_apardot)
+{
+  struct gkyl_app_restart_status rstat;
+
+  rstat = header_from_file(app, fname_apar);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->apar_host, fname_apar);
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->apar, app->field->apar_host);
+  }
+
+  rstat = header_from_file(app, fname_apardot);
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->apardot_host, fname_apardot);
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->apardot, app->field->apardot_host);
+  }
+  
+  return rstat;
+}
+
 struct gkyl_app_restart_status 
 gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   const char *fname)
@@ -2927,6 +2952,20 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_em(gkyl_gyrokinetic_app *app, int frame)
+{
+  cstr fileNm_apar = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "apar", frame);
+  cstr fileNm_apardot = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "apardot", frame);
+  struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_em(app, fileNm_apar.str, fileNm_apardot.str);
+  app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+  app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
+  cstr_drop(&fileNm_apar);
+  cstr_drop(&fileNm_apardot);
   
   return rstat;
 }
@@ -3044,14 +3083,21 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf, bflux);
 
       if (app->field->is_em) {
-        gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
-        gk_field_calc_apar_ic(app, app->field);
-        for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gk_s = &app->species[i];
-          gk_species_rhs_star(app, gk_s, distf[i], distfdot[i], bflux[i]);
+        if (app->field->calc_init_apar) {
+          // Compute Apar.
+          gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
+          gk_field_calc_apar_ic(app, app->field);
+          // We also compute Apardot here to output the first frame.
+          for (int i=0; i<app->num_species; ++i) {
+            struct gk_species *gk_s = &app->species[i];
+            gk_species_rhs_star(app, gk_s, distf[i], distfdot[i], bflux[i]);
+          }
+          gk_field_em_rhs(app, app->field, (const struct gkyl_array **) distf, distfdot);
+        } else {
+          // Load Apar and Apardot from last frame.
+          gkyl_gyrokinetic_app_from_frame_em(app, frame);
         }
-        gk_field_em_rhs(app, app->field, (const struct gkyl_array **) distf, distfdot);
-      }      
+      }
     }
     else {
       // Read the t=0 field.

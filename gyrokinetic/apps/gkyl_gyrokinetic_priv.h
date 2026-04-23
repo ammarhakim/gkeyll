@@ -1251,6 +1251,7 @@ struct gk_field {
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
   bool is_em; // Whether we solve the EM field equations.
+  bool calc_init_apar; // Whether to initialize A_parallel with Ampere's law solve.
 
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density

@@ -405,6 +405,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->em_combine_func = gk_field_combine_disabled;
     f->em_copy_func = gk_field_copy_range_disabled;
   }
+  f->calc_init_apar = f->info.calc_init_apar;
 
   f->calc_init_field = !f->info.zero_init_field;
   f->update_field = !f->info.is_static;
