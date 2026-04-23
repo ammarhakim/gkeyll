@@ -98,20 +98,20 @@ project_moment_if_needed(bool from_file, struct gkyl_proj_on_basis *proj_op,
   }
 }
 
-static struct gkyl_proj_on_basis*
+static void
 init_moment_from_import_or_proj(struct gkyl_gyrokinetic_app *app, struct gk_proj *proj,
   bool from_file, struct gkyl_array *arr, const struct gkyl_gyrokinetic_ic_import *import_inp,
-  evalf_t eval, void *ctx, double scale_fac)
+  evalf_t eval, void *ctx, double scale_fac, struct gkyl_proj_on_basis **proj_on_basis)
 {
   if (from_file) {
     load_projection_moment_from_file(app, arr, import_inp);
     if (scale_fac != 1.0) {
       gkyl_array_scale(arr, scale_fac);
     }
-    return 0;
+    return;
   }
 
-  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
+  *proj_on_basis = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
       .grid = &app->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
@@ -268,22 +268,22 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     load_projection_moment_from_file(app, proj->prim_moms_host, inp.bimaxwellian_moms_import);
   }
   else {
-    proj->proj_dens = init_moment_from_import_or_proj(app, proj,
-      proj->dens_from_file, proj->dens, inp.density_import, inp.density, inp.ctx_density, 1.0);
-    proj->proj_upar = init_moment_from_import_or_proj(app, proj,
-      proj->upar_from_file, proj->upar, inp.upar_import, inp.upar, inp.ctx_upar, 1.0);
+    init_moment_from_import_or_proj(app, proj, proj->dens_from_file, proj->dens, 
+      inp.density_import, inp.density, inp.ctx_density, 1.0, &proj->proj_dens);
+    init_moment_from_import_or_proj(app, proj, proj->upar_from_file, proj->upar,
+      inp.upar_import, inp.upar, inp.ctx_upar, 1.0, &proj->proj_upar);
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-      proj->proj_temp = init_moment_from_import_or_proj(app, proj,
-        proj->temp_from_file, proj->vtsq, inp.temp_import, inp.temp, inp.ctx_temp, 1.0/s->info.mass);
+      init_moment_from_import_or_proj(app, proj, proj->temp_from_file, proj->vtsq,
+        inp.temp_import, inp.temp, inp.ctx_temp, 1.0/s->info.mass, &proj->proj_temp);
     }
     else {
       bimaxwellian = true;
-      proj->proj_temppar = init_moment_from_import_or_proj(app, proj,
+      init_moment_from_import_or_proj(app, proj,
         proj->temppar_from_file, proj->vtsqpar, inp.temppar_import,
-        inp.temppar, inp.ctx_temppar, 1.0/s->info.mass);
-      proj->proj_tempperp = init_moment_from_import_or_proj(app, proj,
+        inp.temppar, inp.ctx_temppar, 1.0/s->info.mass, &proj->proj_temppar);
+      init_moment_from_import_or_proj(app, proj,
         proj->tempperp_from_file, proj->vtsqperp, inp.tempperp_import,
-        inp.tempperp, inp.ctx_tempperp, 1.0/s->info.mass);
+        inp.tempperp, inp.ctx_tempperp, 1.0/s->info.mass, &proj->proj_tempperp);
     }
   }
 
