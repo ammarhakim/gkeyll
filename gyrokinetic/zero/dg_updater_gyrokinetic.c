@@ -37,9 +37,24 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
+
   int up_dirs[GKYL_MAX_DIM] = {0};
-  int num_up_dirs = cdim+1;
-  for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+  int num_up_dirs;
+  if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
+    // For ES, we always update all surface fluxes.
+    num_up_dirs = cdim+1;
+    for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+  } else {
+    // For EM, we split the conf. space and vpar surface fluxes for the partial RHS computation.
+    if (complete_em) {
+      num_up_dirs = 1;
+      up_dirs[0] = cdim; // Only surface flux in vpar direction.
+
+    } else {
+      num_up_dirs = cdim; // Only surface fluxes in configuration space.
+      for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+    }
+  }
 
   int zero_flux_flags[2*GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; ++d) {

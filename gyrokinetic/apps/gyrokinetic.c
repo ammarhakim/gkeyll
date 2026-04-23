@@ -915,7 +915,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         gk_field_calc_apar_ic(app, app->field);
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gk_s = &app->species[i];
-          gk_species_rhs_em(app, gk_s, distf[i], distfdot[i], bflux[i]);
+          gk_species_rhs_em_complete(app, gk_s, distf[i], distfdot[i], bflux[i]);
         }
         gk_field_em_rhs(app, app->field, (const struct gkyl_array **) distf, distfdot);
       }
@@ -1941,10 +1941,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Update aparout.
   gk_field_em_copy_range(app->field, aparout, app->field->apardot, &app->local_ext);
 
-  // 2. Finish building the GK RHS (vpar surface flux and Apardot volume term).
+  // 2. Finish building the EM GK RHS (vpar surface flux and Apardot volume term).
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
-    gk_species_rhs_em(app, gk_s, fin[i], fout[i], bflux_out[i]);
+    gk_species_rhs_em_complete(app, gk_s, fin[i], fout[i], bflux_out[i]);
     gk_species_update_bflux(app, gk_s, fin[i], fout[i], bflux_out[i]);
   }
 
@@ -3093,7 +3093,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
           // We also compute Apardot here to output the first frame.
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gk_s = &app->species[i];
-            gk_species_rhs_em(app, gk_s, distf[i], distfdot[i], bflux[i]);
+            gk_species_rhs_em_complete(app, gk_s, distf[i], distfdot[i], bflux[i]);
           }
           gk_field_em_rhs(app, app->field, (const struct gkyl_array **) distf, distfdot);
         } else {

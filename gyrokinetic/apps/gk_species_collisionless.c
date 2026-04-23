@@ -57,13 +57,10 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
 }
 
 static void
-gk_species_collisionless_rhs_em_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_em_complete_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-
-  // It is importnat to clear the flux_surf array since we already pushed the RHS once.
-  gkyl_array_clear(gkcls->flux_surf, 0.0);
 
   gkcls->flux_func_em_complete(app, species, gkcls, fin);
 
@@ -128,7 +125,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
-  gkcls->rhs_em_func = gk_species_collisionless_rhs_disabled;
+  gkcls->rhs_em_complete_func = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
 
@@ -214,7 +211,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
         &aux_inp, app->use_gpu);
       // Methods chosen at runtime.
       gkcls->flux_func_em_complete = gk_species_collisionless_flux_em_enabled;
-      gkcls->rhs_em_func = gk_species_collisionless_rhs_em_enabled;
+      gkcls->rhs_em_complete_func = gk_species_collisionless_rhs_em_complete_enabled;
     }
   }
 }
@@ -235,10 +232,10 @@ gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *speci
 }
 
 void
-gk_species_collisionless_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_em_complete(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkcls->rhs_em_func(app, species, gkcls, fin, rhs);
+  gkcls->rhs_em_complete_func(app, species, gkcls, fin, rhs);
 }
 
 void

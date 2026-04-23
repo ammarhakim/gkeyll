@@ -162,11 +162,11 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 static void
-gk_species_rhs_em_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_em_complete_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Collisionless terms.
-  gk_species_collisionless_rhs_em(app, species, &species->collisionless, fin, rhs);
+  gk_species_collisionless_rhs_em_complete(app, species, &species->collisionless, fin, rhs);
 }
 
 static double
@@ -978,10 +978,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
-  if ((gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) || (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)){
-    gks->rhs_em_func = gk_species_rhs_em_dynamic;
+  if ((gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) 
+   || (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)){
+    gks->rhs_em_complete_func = gk_species_rhs_em_complete_dynamic;
   } else {
-    gks->rhs_em_func = gk_species_rhs_static;
+    gks->rhs_em_complete_func = gk_species_rhs_static;
   }
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
   gks->bflux_update = gk_species_update_bflux_dynamic;
@@ -1019,7 +1020,7 @@ gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
-  gks->rhs_em_func = gk_species_rhs_static;
+  gks->rhs_em_complete_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
   gks->bflux_update = gk_species_rhs_static;
   gks->get_cfl = gk_species_get_cfl_static;  
@@ -1840,10 +1841,10 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 void
-gk_species_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_em_complete(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  species->rhs_em_func(app, species, fin, rhs, bflux_moms);
+  species->rhs_em_complete_func(app, species, fin, rhs, bflux_moms);
 }
 
 void 

@@ -312,7 +312,7 @@ struct gk_collisionless {
   };
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
-  void (*rhs_em_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  void (*rhs_em_complete_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*fdot_scaling)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng);
@@ -1066,7 +1066,7 @@ struct gk_species {
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   // Pointer to RHS star function (ES + [Apar]).
-  void (*rhs_em_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  void (*rhs_em_complete_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   void (*bflux_update)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
@@ -1846,7 +1846,7 @@ void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *
  * @param fin Input distribution function.
  * @param rhs collisionless contribution to df/dt.
  */
-void gk_species_collisionless_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+void gk_species_collisionless_rhs_em_complete(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
@@ -3113,7 +3113,7 @@ void gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
  * @param rhs On output, the RHS from the species object.
  * @param bflux_moms Output boundary flux moments.
  */
-void gk_species_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
+void gk_species_rhs_em_complete(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
