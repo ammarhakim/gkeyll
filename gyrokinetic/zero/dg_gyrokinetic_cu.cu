@@ -100,15 +100,15 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
   if (is_em) {
     if (complete_em) {
-      // We build Ohm's law RHS (no Apardot contribution).
-      gyrokinetic->vol_es_kernel = gyrokinetic->vol_es_kernel; // no change to ES kernel
-      gyrokinetic->vol_add_apar_kernel = vol_add_apar_kernels[cv_index].kernels[poly_order];
-      gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
-    } else {
       // We complete the Ohm's law RHS with Apardot contribution to get the full GK RHS.
       gyrokinetic->vol_es_kernel = dg_gyrokinetic_vol_none;
       gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
       gyrokinetic->vol_add_apardot_kernel = vol_add_apardot_kernels[cv_index].kernels[poly_order];
+    } else {
+      // We build Ohm's law RHS (no Apardot contribution).
+      gyrokinetic->vol_es_kernel = gyrokinetic->vol_es_kernel; // no change to ES kernel
+      gyrokinetic->vol_add_apar_kernel = vol_add_apar_kernels[cv_index].kernels[poly_order];
+      gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
     }
   }
 
