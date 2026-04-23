@@ -13,13 +13,19 @@ void
 gk_species_damping_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = 0,
-      .basis_type = "tensor",
-    }, GKYL_GK_META_NONE, 0
-  );
+  // DG metadata for damping rate.
+  struct gkyl_msgpack_map_elem mpe_drate[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+  };
+  int mpe_drate_len = sizeof(mpe_drate)/sizeof(mpe_drate[0]);
+  // Update app basic metada with time/frame.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  // Package metadata.
+  int io_meta_len[] = {app->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, mpe_drate, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out the damping rate.
   const char *fmt = "%s-%s_damping_rate_%d.gkyl";
@@ -34,7 +40,7 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->damping.rate_host, fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -152,6 +158,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
         .vel_map = gks->vel_map,
         .bmag = app->gk_geom->geo_int.bmag,
         .bmag_max = damp->bmag_max,
+        .bmag_max_loc = damp->bmag_max_coord,
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .num_quad = num_quad,

@@ -47,6 +47,20 @@ struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(const struct gkyl_bc_twistshif
 void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
+ * Return pointers to the discretized shift, its range, and grid and basis.
+ *
+ * Pointer to shift_dg needs to be released with gkyl_array_release.
+ *
+ * @param up Twist-shift BC updater object.
+ * @param shear_grid Grid on which shift is defined.
+ * @param shear_r Range for the shift.
+ * @param shift_b Basis shift_dg coefficients are expanded on.
+ * @return Discretized shift.
+ */
+struct gkyl_array* gkyl_bc_twistshift_get_shift_objects(struct gkyl_bc_twistshift *up,
+  struct gkyl_rect_grid *shear_grid, struct gkyl_range *shear_r, struct gkyl_basis *shift_b);
+
+/**
  * Free memory associated with bc_twistshift updater.
  *
  * @param up BC updater.

@@ -13,8 +13,8 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
-  // Compute volume-integrated reactions in rrs.
-  gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
+  // Compute volume-integrated reactions in sca.
+  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
 
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -94,6 +94,8 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
+  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
   gkyl_array_release(ns->fnew);
@@ -121,7 +123,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -250,6 +252,14 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
       ns->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
+  // Metadata for gk_neut_species app.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = ns->basis.id }
+  };
+  ns->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  ns->io_meta = gkyl_msgpack_map_elem_clone(ns->io_meta_len, io_meta);
+
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
   ns->f_host = app->use_gpu? mkarr(false, ns->f->ncomp, ns->f->size)
@@ -308,8 +318,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions.
-  ns->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+  ns->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, ns, &ns->sca);
 
   // Initialize BGK collisions with null type (not applicable to fluids).
   ns->bgk = (struct gk_bgk_collisions) { };

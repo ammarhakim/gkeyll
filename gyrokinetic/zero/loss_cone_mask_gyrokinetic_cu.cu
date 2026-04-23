@@ -146,7 +146,6 @@ gkyl_loss_cone_mask_gyrokinetic_ker(struct gkyl_rect_grid grid_phase,
 
       // Convert comp position coordinate to phys pos coord.
       log_to_comp(cdim, xcomp_d, grid_phase.dx, xc, xmu);
-//      up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
   
       // Convert comp velocity coordinate to phys velocity coord.
       double xcomp[1];
@@ -213,7 +212,6 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
     // Convert comp position coordinate to phys pos coord.
     gkyl_rect_grid_cell_center(&grid_phase, pidx, xc);
     log_to_comp(cdim, xcomp_d, grid_phase.dx, xc, xmu);
-//    up->c2p_pos(xmu, xmu, up->c2p_pos_ctx);
 
     // Convert comp velocity coordinate to phys velocity coord.
     double xcomp[1];

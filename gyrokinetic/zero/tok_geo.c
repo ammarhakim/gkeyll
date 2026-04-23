@@ -67,7 +67,7 @@ arc_length_func(double Z, void *ctx)
   double zmax = actx->zmax;
   double ival = 0.0;
 
-  if(actx->ftype==GKYL_CORE){
+  if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE){
     if(actx->right==true){
       double *arc_memo = actx->arc_memo_right;
       ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
@@ -78,7 +78,7 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
-  else if(actx->ftype==GKYL_CORE_L || actx->ftype==GKYL_CORE_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_L || actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_R){
     if(actx->pre==true){
       ival = actx->arcL_start - integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL ;
     }
@@ -92,7 +92,7 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
-  else if(actx->ftype==GKYL_PF_LO_L || actx->ftype == GKYL_PF_LO_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_L || actx->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R){
     if(actx->right==true){
       double *arc_memo = actx->arc_memo_right;
       ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
@@ -103,7 +103,7 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
-  else if(actx->ftype==GKYL_PF_UP_L || actx->ftype == GKYL_PF_UP_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_L || actx->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_R){
     if(actx->right==false){
       double *arc_memo = actx->arc_memo_left;
       ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo) - arcL;
@@ -114,16 +114,16 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
-  else if( (actx->ftype==GKYL_DN_SOL_OUT) || (actx->ftype==GKYL_DN_SOL_OUT_LO) || (actx->ftype==GKYL_DN_SOL_OUT_MID) || (actx->ftype==GKYL_DN_SOL_OUT_UP) ){
+  else if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) ){
     double *arc_memo = actx->arc_memo;
     ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
   }
-  else if( (actx->ftype==GKYL_DN_SOL_IN) || (actx->ftype==GKYL_DN_SOL_IN) || (actx->ftype==GKYL_DN_SOL_IN_LO) || (actx->ftype==GKYL_DN_SOL_IN_MID) || (actx->ftype==GKYL_DN_SOL_IN_UP) ){
+  else if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP) ){
     double *arc_memo = actx->arc_memo;
     ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo) - arcL;
   }
 
-  else if(actx->ftype==GKYL_LSN_SOL || actx->ftype == GKYL_LSN_SOL_LO || actx->ftype == GKYL_LSN_SOL_MID || actx->ftype == GKYL_LSN_SOL_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_LSN_SOL || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP){
     if(actx->right==true){
       double *arc_memo = actx->arc_memo_right;
       ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL;
@@ -134,7 +134,7 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
-  else if(actx->ftype==GKYL_IWL){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_IWL){
     if(actx->q3) {
       double *arc_memo = actx->arc_memo;
       ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo) - arcL;
@@ -171,7 +171,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // The idea for axisymmetry is that I am avoiding starting integrals at the x-point to minimize issues
   double ival = 0;
   double phi_ref = 0.0;
-  if (actx->ftype==GKYL_CORE){ 
+  if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE){ 
     if(actx->right==true){ // phi = alpha at outboard midplane
       if(Z<actx->zmaxis)
         ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
@@ -185,44 +185,44 @@ phi_func(double alpha_curr, double Z, void *ctx)
         ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
     }
   }
-  else if (actx->ftype==GKYL_CORE_L){ 
+  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_L){ 
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
     phi_ref = actx->phi_right;
   }
 
-  else if (actx->ftype==GKYL_CORE_R){ 
+  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_R){ 
     if(Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
 
-  else if( (actx->ftype==GKYL_DN_SOL_OUT) || (actx->ftype==GKYL_DN_SOL_OUT_MID)){
+  else if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID)){
     if (Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_OUT_LO){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO){
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_OUT_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP){
     ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  if( (actx->ftype==GKYL_DN_SOL_IN) || (actx->ftype==GKYL_DN_SOL_IN_MID) ){
+  if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ){
     if (Z<actx->zmaxis)
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_IN_LO){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO){
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_DN_SOL_IN_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP){
     ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
 
-  else if(actx->ftype==GKYL_LSN_SOL || actx->ftype == GKYL_LSN_SOL_LO || actx->ftype == GKYL_LSN_SOL_MID || actx->ftype == GKYL_LSN_SOL_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_LSN_SOL || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP){
     // alpha = phi at outboard midplane
     if (actx->right==true){
       if (Z<actx->zmaxis)
@@ -235,19 +235,19 @@ phi_func(double alpha_curr, double Z, void *ctx)
       phi_ref = actx->phi_right;
     }
   }
-  else if(actx->ftype==GKYL_PF_LO_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_R){
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_PF_LO_L){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_L){
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);// + actx->phi_right;
   }
-  else if(actx->ftype==GKYL_PF_UP_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_R){
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_PF_UP_L){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_L){
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
   }
-  else if (actx->ftype==GKYL_IWL) {
+  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_IWL) {
     // phi = alpha at outboard midplane
     if(actx->right==true){
       if(Z<actx->zmaxis)
@@ -268,8 +268,10 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
   // Now multiply by fpol
   double R[4] = {0};
+  double dRdZ[4] = {0};
   double dR[4] = {0};
-  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
@@ -310,8 +312,10 @@ dphidtheta_func(double Z, void *ctx)
   integrand = dphidtheta_integrand(Z, &cctx);
   // Now multiply by fpol
   double R[4] = {0};
+  double dRdZ[4] = {0};
   double dR[4] = {0};
-  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
@@ -573,12 +577,12 @@ gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi,
 
 int
 gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR)
+  double *R, double *dRdZ, double *dR, double *dZ)
 {
   if(geo->use_cubics)
-    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dR);
+    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
   else
-    return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
+    return R_psiZ(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
 }
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo, 
@@ -637,8 +641,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       double psi_curr = psi_lo + ip*dpsi;
@@ -690,15 +692,15 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         if (inp->half_domain) { //Alternative for half domain
           if (psi_curr == geo->psisep) {
             if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
-              if (inp->ftype == GKYL_PF_LO_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_LO|| inp->ftype == GKYL_DN_SOL_IN_MID)
+              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
                 z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_LSN_SOL_LO || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
                 z_curr = geo->efit->Zxpt[0];
             }
             if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
-              if (inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID|| inp->ftype == GKYL_DN_SOL_IN_LO)
+              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO)
                 z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_LSN_SOL_UP || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
                 z_curr = geo->efit->Zxpt[0];
             }
           }
@@ -706,19 +708,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         else { // For full domain
           if (psi_curr == geo->psisep) {
             if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
-              if (inp->ftype == GKYL_PF_UP_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID || inp->ftype == GKYL_DN_SOL_IN_UP)
+              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)
                 z_curr = geo->efit->Zxpt[1];
-              else if (inp->ftype == GKYL_PF_LO_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_LO|| inp->ftype == GKYL_DN_SOL_IN_MID)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
                 z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_LSN_SOL_LO || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
                 z_curr = geo->efit->Zxpt[0];
             }
             if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
-              if (inp->ftype == GKYL_PF_UP_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_UP|| inp->ftype == GKYL_DN_SOL_IN_MID)
+              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
                 z_curr = geo->efit->Zxpt[1];
-              else if (inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID|| inp->ftype == GKYL_DN_SOL_IN_LO)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO)
                 z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_LSN_SOL_UP || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
+              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
                 z_curr = geo->efit->Zxpt[0];
             }
           }
@@ -726,18 +728,21 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 
         // Ensure that node at the lower Xpt (lower end of right core/upper end of left core) is at the same location
         if (psi_curr != geo->psisep) {
-          if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
+          if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
             z_curr = arc_ctx.zmin;
           }
-          if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_CORE_R && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
+          if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
             z_curr = arc_ctx.zmin;
           }
         }
 
-        double R[4] = { 0 }, dR[4] = { 0 };
-        int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+        double R[4] = { 0 }, dRdZ[4] = { 0 };
+        double dR[4] = { 0 }, dZ[4] = { 0 };
+        int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
         double r_curr = choose_closest(rclose, R, R, nr);
+        double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
         double dr_curr = choose_closest(rclose, R, dR, nr);
+        double dz_curr = choose_closest(rclose, R, dZ, nr);
 
         if (psi_curr==geo->psisep) {
           if (z_curr == geo->efit->Zxpt[0]) {
@@ -780,9 +785,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
-    alpha_curr*=-1.0;
     double alpha_donor = alpha_lo + nrange->lower[AL_IDX]*dalpha;
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -895,8 +898,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 3;
@@ -951,10 +952,13 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
-          double R[4] = { 0 }, dR[4] = { 0 };
-          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
+          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
+          double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
           double dr_curr = choose_closest(rclose, R, dR, nr);
+          double dz_curr = choose_closest(rclose, R, dZ, nr);
 
           if (psi_curr==geo->psisep && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
@@ -991,8 +995,8 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[0] = sin(atan2(dr_curr, dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan2(dr_curr, dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             ddpsi_n[0] = dPsi_dpsi;
             mc2p_n[lidx+X_IDX] = r_curr;
@@ -1010,9 +1014,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    alpha_curr*=-1.0;
     double alpha_donor = calc_running_coord(alpha_lo, 0, dalpha);
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -1144,8 +1146,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
-    alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 5;
@@ -1214,18 +1214,21 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
 
           // Ensure that node at the lower Xpt (lower end of right core/upper end of left core) is at the same location
           if (psi_curr != geo->psisep) {
-            if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
+            if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
               z_curr = arc_ctx.zmin;
             }
-            if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_CORE_R  && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
+            if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R  && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
               z_curr = arc_ctx.zmin;
             }
           }
 
-          double R[4] = { 0 }, dR[4] = { 0 };
-          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
+          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
+          double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
           double dr_curr = choose_closest(rclose, R, dR, nr);
+          double dz_curr = choose_closest(rclose, R, dZ, nr);
 
           if (psi_curr==geo->psisep && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
@@ -1261,8 +1264,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[0] = sin(atan2(dr_curr,dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan2(dr_curr,dz_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             ddpsi_n[0] = dPsi_dpsi;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
@@ -1277,9 +1280,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    alpha_curr*=-1.0;
     double alpha_donor= dir==1 ? alpha_lo + nrange->lower[AL_IDX]*dalpha : calc_running_coord(alpha_lo, 0, dalpha);
-    alpha_donor*=-1.0;
     double alpha_diff = alpha_curr -  alpha_donor;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {

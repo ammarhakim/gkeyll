@@ -26,8 +26,8 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 void
 gk_neut_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns_self, double t0)
 {
-  // Store initial density in recycle_react_scale.
-  gk_neut_species_recycle_react_scale_apply_ic_cross(app, gkns_self, &gkns_self->rrs);
+  // Store initial density in scaling operator.
+  gk_neut_species_scaling_apply_ic_cross(app, gkns_self, &gkns_self->sca);
 }
 
 double
@@ -190,13 +190,12 @@ void
 gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = gkns->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, gkns->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gkns->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, frame);
@@ -213,32 +212,27 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
   app->stat.neut_species_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_neut_io += 1;
   
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 }
 
 void
 gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   for (int m=0; m<gkns->info.num_diag_moments; ++m) {
     struct timespec wst = gkyl_wall_clock();
     gk_neut_species_moment_calc(&gkns->moms[m], gkns->local, app->local, gkns->f);
     app->stat.n_neut_mom += 1;
 
-    // Rescale moment by inverse of Jacobian. 
-    // For LTE (Maxwellian) moments, we only need to re-scale
-    // the density (the 0th component).
-    gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
-      0, gkns->moms[m].marr, 0, gkns->moms[m].marr, 0, 
-      app->gk_geom->geo_int.jacobgeo, &app->local);      
+    // Rescale moment by inverse of Jacobian if necessary. 
+    gk_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
     app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
@@ -257,7 +251,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_neut_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 void

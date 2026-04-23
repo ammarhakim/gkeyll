@@ -15,6 +15,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_radiation_read.h>
@@ -175,14 +176,17 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = 0 ,
+    .position_map = pmap,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -433,6 +437,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   }
 
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -503,20 +508,23 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0},
-      .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bfield_func = bfield_func_3x, // magnetic field magnitude
-      .bfield_ctx = 0 ,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = {0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bfield_func = bfield_func_3x, // magnetic field magnitude
+    .bfield_ctx = 0 ,
+    .position_map = pmap,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
@@ -772,6 +780,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   }
 
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 
