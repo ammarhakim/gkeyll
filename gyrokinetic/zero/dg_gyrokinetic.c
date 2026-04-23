@@ -48,14 +48,14 @@ struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, 
-  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool em_star,
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool complete_em,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
-      charge, mass, collless_type, no_by, em_star, gk_geom, vel_map);
+      charge, mass, collless_type, no_by, complete_em, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -119,13 +119,20 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
 
   // Setup electromagnetic terms if needed.
   bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP);
-  gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_return_zero;
-  gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_return_zero;
+  gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+  gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
   if (is_em) {
-    gyrokinetic->vol_add_apar_kernel = CK(vol_add_apar_kernels,cdim,vdim,poly_order);
-    // Apardot is removed if we want to compute RHS star (ES + Apardot).
-    gyrokinetic->vol_add_apardot_kernel = em_star ? 
-      dg_gyrokinetic_add_apardot_vol_return_zero : CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+    if (complete_em) {
+      // We complete with Apardot contribution to get the full GK RHS.
+      gyrokinetic->vol_es_kernel = dg_gyrokinetic_vol_none;
+      gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+      gyrokinetic->vol_add_apardot_kernel = CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+    } else {
+      // We build for Ohm's law RHS (no Apardot contribution).
+      gyrokinetic->vol_es_kernel = gyrokinetic->vol_es_kernel; // no change to ES kernel
+      gyrokinetic->vol_add_apar_kernel = CK(vol_add_apar_kernels,cdim,vdim,poly_order);
+      gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
+    }
   }
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);

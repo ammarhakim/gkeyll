@@ -107,7 +107,7 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
   const double *bioverJB = (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx);
   
   // Electrostatic contribution to volume term.
-  cfl = gyrokinetic->vol_es_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
+  cfl += gyrokinetic->vol_es_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
     bmag, phi, dualcurlbhatoverB, rtg33inv, bioverJB, qIn, qRhsOut);
   // Add Apar contribution to volume term if needed.
   cfl += gyrokinetic->vol_add_apar_kernel(xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, 
@@ -118,19 +118,31 @@ kernel_dg_gyrokinetic_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const
   return cfl;
 }
 
-// To turn off EM effects:
+// To turn off terms (used in EM).
+
 GKYL_CU_DH 
 static double 
-dg_gyrokinetic_add_apar_vol_return_zero(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
-    const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
-    const double *b_i, const double *phi, const double *apar, const double *fin, double* GKYL_RESTRICT out) 
+dg_gyrokinetic_vol_none(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
+    const double q_, const double m_, const double *bmag, const double *phi,
+    const double *dualcurlbhatoverB, const double *rtg33inv, const double *bioverJB,
+    const double *fin, double* GKYL_RESTRICT out)
 { 
   return 0.; 
 }
 
 GKYL_CU_DH 
 static double 
-dg_gyrokinetic_add_apardot_vol_return_zero(const double *vmap, const double q_, const double m_,
+dg_gyrokinetic_add_apar_vol_none(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
+    const double q_, const double m_, const double *bmag, const double *jacobtot_inv, 
+    const double *dualcurlbhatoverB, const double *bioverJB, const double *b_i, const double *phi, 
+    const double *apar, const double *fin, double* GKYL_RESTRICT out) 
+{ 
+  return 0.; 
+}
+
+GKYL_CU_DH 
+static double 
+dg_gyrokinetic_add_apardot_vol_none(const double *vmap, const double q_, const double m_,
             const double *apardot, const double *fin, double* GKYL_RESTRICT out)
 { 
   return 0.; 
@@ -390,7 +402,7 @@ boundary_diag(const struct gkyl_dg_eqn *eqn,
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
-  const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)

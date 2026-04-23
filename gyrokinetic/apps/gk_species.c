@@ -162,45 +162,11 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 static void
-gk_species_rhs_star_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_em_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  // Gyroaverage the potential if needed.
-  species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
-
-  gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
-
   // Collisionless terms.
-  gk_species_collisionless_rhs_star(app, species, &species->collisionless, fin, rhs);
-
-  // Damping term.
-  gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
-    species->lte.f_lte, rhs, species->cflrate);
-
-  // LBO Collisions.
-  gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-
-  // BGK collisions.
-  gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  
-  // Anomalous diffusion.
-  gk_species_anomalous_diff_rhs(app, species, &species->anom_diff, fin, rhs);
-
-  // Line radiation.
-  gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
-
-  // Reactions with charged species.
-  gk_species_react_rhs(app, species, &species->react, fin, rhs);
-
-  // Reactions with neutral species.
-  gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
-
-  // Heating source.
-  gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
-
-  // Particle + heat source terms.
-  gk_species_source_rhs(app, species, &species->src, fin, rhs);
+  gk_species_collisionless_rhs_em(app, species, &species->collisionless, fin, rhs);
 }
 
 static double
@@ -1013,9 +979,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   if ((gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) || (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP)){
-    gks->rhs_star_func = gk_species_rhs_star_dynamic;
+    gks->rhs_em_func = gk_species_rhs_em_dynamic;
   } else {
-    gks->rhs_star_func = gk_species_rhs_static;
+    gks->rhs_em_func = gk_species_rhs_static;
   }
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
   gks->bflux_update = gk_species_update_bflux_dynamic;
@@ -1053,7 +1019,7 @@ gk_species_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
-  gks->rhs_star_func = gk_species_rhs_static;
+  gks->rhs_em_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
   gks->bflux_update = gk_species_rhs_static;
   gks->get_cfl = gk_species_get_cfl_static;  
@@ -1874,10 +1840,10 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 void
-gk_species_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  species->rhs_star_func(app, species, fin, rhs, bflux_moms);
+  species->rhs_em_func(app, species, fin, rhs, bflux_moms);
 }
 
 void 

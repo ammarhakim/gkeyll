@@ -24,7 +24,7 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 }
 
 static void
-gk_species_collisionless_flux_star_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_flux_em_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin)
 {
   // Compute the surface expansion of the phase space flux for ES + Apar contributions.
@@ -57,14 +57,17 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
 }
 
 static void
-gk_species_collisionless_rhs_star_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_em_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkcls->flux_func_star(app, species, gkcls, fin);
+  // It is importnat to clear the flux_surf array since we already pushed the RHS once.
+  gkyl_array_clear(gkcls->flux_surf, 0.0);
 
-  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_em_star, &species->local, 
+  gkcls->flux_func_em_complete(app, species, gkcls, fin);
+
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_em_complete, &species->local, 
     fin, species->cflrate, rhs);
 
   // AH Note: I'm not sure we need this here.
@@ -125,7 +128,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
-  gkcls->rhs_star_func = gk_species_collisionless_rhs_disabled;
+  gkcls->rhs_em_func = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
 
@@ -169,10 +172,10 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
     }
 
-    bool em_star = false;
+    bool complete_em = false;
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
       gks->info.charge, gks->info.mass,
-      gkcls->collisionless_id,  gkcls->no_by, em_star, app->gk_geom, 
+      gkcls->collisionless_id,  gkcls->no_by, complete_em, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
@@ -180,7 +183,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-      gkcls->collisionless_id, gkcls->no_by, em_star, app->gk_geom, gks->vel_map, 
+      gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
     gkcls->scale_fac = -1.0; // Not used if scale_factor in input file is not given.
@@ -197,20 +200,21 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->flux_surf_ho = mkarr(false, gkcls->flux_surf->ncomp, gkcls->flux_surf->size);
       gkcls->write_diags_func = gk_species_collisionless_write_diags_enabled;
     }
+
     // Electromagnetic set up.
     if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
       // Set up ES + Apar contributions to flux and solver.
-      em_star = true;
+      complete_em = true;
       gkcls->surf_flux_em_star_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-        gks->info.charge, gks->info.mass, gkcls->collisionless_id, gkcls->no_by, em_star, app->gk_geom, 
+        gks->info.charge, gks->info.mass, gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, 
         app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
-      gkcls->slvr_em_star = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
+      gkcls->slvr_em_complete = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
         &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-        gkcls->collisionless_id, gkcls->no_by, em_star, app->gk_geom, gks->vel_map, 
+        gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, gks->vel_map, 
         &aux_inp, app->use_gpu);
       // Methods chosen at runtime.
-      gkcls->flux_func_star = gk_species_collisionless_flux_star_enabled; // ES + Apar.
-      gkcls->rhs_star_func = gk_species_collisionless_rhs_star_enabled; // ES + Apar.
+      gkcls->flux_func_em_complete = gk_species_collisionless_flux_em_enabled;
+      gkcls->rhs_em_func = gk_species_collisionless_rhs_em_enabled;
     }
   }
 }
@@ -226,14 +230,15 @@ void
 gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  // gkyl_array_clear(gkcls->flux_surf, 0.0);
   gkcls->rhs_func(app, species, gkcls, fin, rhs);
 }
 
 void
-gk_species_collisionless_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_collisionless_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkcls->rhs_star_func(app, species, gkcls, fin, rhs);
+  gkcls->rhs_em_func(app, species, gkcls, fin, rhs);
 }
 
 void
@@ -254,7 +259,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
 
     if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
       gkyl_gk_collisionless_flux_release(gkcls->surf_flux_em_star_op);
-      gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_em_star);
+      gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_em_complete);
     }
 
     if (gkcls->write_diagnostics) {

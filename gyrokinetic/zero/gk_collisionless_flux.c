@@ -15,14 +15,14 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass,
   enum gkyl_gk_collisionless_type type,
-  const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_gk_collisionless_flux_cu_dev_new(phase_grid, conf_basis, phase_basis,
-      charge, mass, type, no_by, em_star, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
+      charge, mass, type, no_by, complete_em, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
 #endif     
 
   gkyl_gk_collisionless_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_flux));
@@ -45,7 +45,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 
   // Choose appropriate kernels.
   int em = ((type == GKYL_GK_COLLISIONLESS_EM) || (type == GKYL_GK_COLLISIONLESS_EM_BPERP)) ? 1 : 0;
-  em = em_star ? 2 : em; // If em_star is true, use EM kernels without Apardot contribution.
+  em = complete_em ? 2 : em; // If complete_em is true, use EM kernels without Apardot contribution.
   if (no_by) {
     for (int d=0; d<cdim; ++d) {
       // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.

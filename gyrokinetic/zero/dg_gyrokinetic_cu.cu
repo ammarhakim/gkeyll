@@ -39,7 +39,7 @@ gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 __global__ static void 
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type, 
-  bool no_by, bool em_star)
+  bool no_by, bool complete_em)
 {
   gyrokinetic->auxfields.flux_surf = 0; 
   gyrokinetic->auxfields.phi = 0; 
@@ -96,13 +96,20 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 
   // Setup electromagnetic terms if needed.
   bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP);
-  gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_return_zero;
-  gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_return_zero;
+  gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+  gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
   if (is_em) {
-    gyrokinetic->vol_add_apar_kernel = vol_add_apar_kernels[cv_index].kernels[poly_order];
-    // Apardot is removed if we want to compute RHS star (ES + Apardot).
-    gyrokinetic->vol_add_apardot_kernel = em_star ?
-      dg_gyrokinetic_add_apardot_vol_return_zero : vol_add_apardot_kernels[cv_index].kernels[poly_order];
+    if (complete_em) {
+      // We build Ohm's law RHS (no Apardot contribution).
+      gyrokinetic->vol_es_kernel = gyrokinetic->vol_es_kernel; // no change to ES kernel
+      gyrokinetic->vol_add_apar_kernel = vol_add_apar_kernels[cv_index].kernels[poly_order];
+      gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
+    } else {
+      // We complete the Ohm's law RHS with Apardot contribution to get the full GK RHS.
+      gyrokinetic->vol_es_kernel = dg_gyrokinetic_vol_none;
+      gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+      gyrokinetic->vol_add_apardot_kernel = vol_add_apardot_kernels[cv_index].kernels[poly_order];
+    }
   }
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
@@ -125,7 +132,7 @@ struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
-  const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
+  const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
 
@@ -159,7 +166,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
   dg_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
-    cdim, vdim, poly_order, collless_type, no_by, em_star);
+    cdim, vdim, poly_order, collless_type, no_by, complete_em);
 
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;

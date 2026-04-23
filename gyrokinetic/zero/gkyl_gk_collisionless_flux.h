@@ -25,7 +25,7 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param mass Species mass
  * @param collless_type Type of collisionless terms.
  * @param no_by Whether to neglect the toroidal field (set b_y=0).
- * @param em_star Whether to compute fstar for Ohm's law.
+ * @param complete_em Whether it is meant to complete the RHS after partial EM update.
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
@@ -38,7 +38,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass,
   enum gkyl_gk_collisionless_type collless_type,
-  const bool no_by, const bool em_star, const struct gk_geometry *gk_geom, 
+  const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, 
   const struct gkyl_dg_geom *dg_geom, const struct gkyl_gk_dg_geom *gk_dg_geom, 
   const struct gkyl_velocity_map *vel_map, const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
 

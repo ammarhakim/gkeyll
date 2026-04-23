@@ -1159,12 +1159,20 @@ GKYL_CU_DH double gk_collisionless_flux_em_star_no_by_surfvpar_3x2v_ser_p1(
   const double *bmag, const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
   double* GKYL_RESTRICT flux_surf); 
 
-GKYL_CU_DH double gk_collisionless_flux_surf_return_zero(
+GKYL_CU_DH double gk_collisionless_flux_surfconf_none(
   const double *w, const double *dxv,
   const double *vmap, const double *vmapSq, const double q_, const double m_,
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
   const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
-  const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR,
+  const double *phi, const double *apar, const double *apardot, const double *JfL, const double *JfR, 
   double* GKYL_RESTRICT flux_surf);
+
+GKYL_CU_DH double gk_collisionless_flux_surfvpar_none(
+  const double *w, const double *dxv,
+  const double *vmap_prime_l, const double *vmap_prime_r,
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
+  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
+  const double *bmag, const double *phi, const double *apar, const double *apardot, 
+  const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf);
 
 EXTERN_C_END

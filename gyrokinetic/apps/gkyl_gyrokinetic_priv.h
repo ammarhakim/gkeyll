@@ -287,12 +287,12 @@ struct gk_collisionless {
       struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
       struct gkyl_gk_collisionless_flux *surf_flux_em_star_op; // EM collisionless fluxes without Apardot contribution.
       gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
-      gkyl_dg_updater_gyrokinetic *slvr_em_star; // EM without Apardot contribution.
+      gkyl_dg_updater_gyrokinetic *slvr_em_complete; // EM without Apardot contribution.
 
       // Methods chosen at runtime.
       void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
         struct gk_collisionless *gkcls, const struct gkyl_array *fin);
-      void (*flux_func_star)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+      void (*flux_func_em_complete)(gkyl_gyrokinetic_app *app, struct gk_species *species,
         struct gk_collisionless *gkcls, const struct gkyl_array *fin);
     };
     // Neutral (Vlasov) species ............................................ //
@@ -312,7 +312,7 @@ struct gk_collisionless {
   };
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
-  void (*rhs_star_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  void (*rhs_em_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*fdot_scaling)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_collisionless *gkcls, struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng);
@@ -1066,7 +1066,7 @@ struct gk_species {
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   // Pointer to RHS star function (ES + [Apar]).
-  void (*rhs_star_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  void (*rhs_em_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   void (*bflux_update)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
@@ -1846,7 +1846,7 @@ void gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *
  * @param fin Input distribution function.
  * @param rhs collisionless contribution to df/dt.
  */
-void gk_species_collisionless_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+void gk_species_collisionless_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
@@ -3092,7 +3092,8 @@ void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, 
 void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
 
 /**
- * Compute RHS from species distribution function
+ * Compute RHS from species distribution function. 
+ * In EM simulation, this does not include contribution from Apardot and vpar surface flux.
  *
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
@@ -3104,15 +3105,15 @@ void gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
- * Compute RHS star (ES + Apar) from species distribution function.
- *
+ * Complete the EM RHS by adding the contribution from Apardot and vpar surface flux.
+ * 
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
  * @param fin Input distribution function.
  * @param rhs On output, the RHS from the species object.
  * @param bflux_moms Output boundary flux moments.
  */
-void gk_species_rhs_star(gkyl_gyrokinetic_app *app, struct gk_species *species,
+void gk_species_rhs_em(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**

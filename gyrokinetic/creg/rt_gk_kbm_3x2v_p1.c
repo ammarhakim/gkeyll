@@ -138,7 +138,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 0.0;
   fout[1] = 0.0;
-  fout[2] = app->B*app->R/(app->R + x);
+  fout[2] = app->B*app->R/(app->R + x); // this may be wrong!
 }
 
 void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)

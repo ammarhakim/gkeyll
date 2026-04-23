@@ -1,5 +1,5 @@
 #include <gkyl_gk_collisionless_flux_kernels.h> 
-GKYL_CU_DH double gk_collisionless_flux_surf_return_zero(
+GKYL_CU_DH double gk_collisionless_flux_surfconf_none(
     const double *w, const double *dxv,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
