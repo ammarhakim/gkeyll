@@ -205,7 +205,7 @@ void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up, 
-  bool em, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type, 
+  int em, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type, 
   bool no_by, bool complete_em,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf)
 {
