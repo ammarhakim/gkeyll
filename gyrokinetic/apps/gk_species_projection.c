@@ -219,18 +219,18 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
   {
   bool maxwellian_moms_from_file = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM &&
-    inp.maxwellian_moms_import != NULL && inp.maxwellian_moms_import->type != GKYL_IC_IMPORT_NONE;
+    inp.maxwellian_moms_import.type != GKYL_IC_IMPORT_NONE;
   proj->maxwellian_moms_from_file = maxwellian_moms_from_file;
   bool bimaxwellian_moms_from_file = proj->proj_id == GKYL_PROJ_BIMAXWELLIAN &&
-    inp.bimaxwellian_moms_import != NULL && inp.bimaxwellian_moms_import->type != GKYL_IC_IMPORT_NONE;
+    inp.bimaxwellian_moms_import.type != GKYL_IC_IMPORT_NONE;
   proj->bimaxwellian_moms_from_file = bimaxwellian_moms_from_file;
 
   // Determine whether we import the primitive moments from files or compute them from functions.
-  proj->dens_from_file = inp.density_import != NULL && inp.density_import->type != GKYL_IC_IMPORT_NONE;
-  proj->upar_from_file = inp.upar_import != NULL && inp.upar_import->type != GKYL_IC_IMPORT_NONE;
-  proj->temp_from_file = inp.temp_import != NULL && inp.temp_import->type != GKYL_IC_IMPORT_NONE;
-  proj->temppar_from_file = inp.temppar_import != NULL && inp.temppar_import->type != GKYL_IC_IMPORT_NONE;
-  proj->tempperp_from_file = inp.tempperp_import != NULL && inp.tempperp_import->type != GKYL_IC_IMPORT_NONE;
+  proj->dens_from_file = inp.density_import.type != GKYL_IC_IMPORT_NONE;
+  proj->upar_from_file = inp.upar_import.type != GKYL_IC_IMPORT_NONE;
+  proj->temp_from_file = inp.temp_import.type != GKYL_IC_IMPORT_NONE;
+  proj->temppar_from_file = inp.temppar_import.type != GKYL_IC_IMPORT_NONE;
+  proj->tempperp_from_file = inp.tempperp_import.type != GKYL_IC_IMPORT_NONE;
 
   if (maxwellian_moms_from_file) {
     proj->dens_from_file = true;
@@ -261,28 +261,28 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
 
   bool bimaxwellian = false;
   if (maxwellian_moms_from_file) {
-    load_projection_moment_from_file(app, proj->prim_moms_host, inp.maxwellian_moms_import);
+    load_projection_moment_from_file(app, proj->prim_moms_host, &inp.maxwellian_moms_import);
   }
   else if (bimaxwellian_moms_from_file) {
     bimaxwellian = true;
-    load_projection_moment_from_file(app, proj->prim_moms_host, inp.bimaxwellian_moms_import);
+    load_projection_moment_from_file(app, proj->prim_moms_host, &inp.bimaxwellian_moms_import);
   }
   else {
     init_moment_from_import_or_proj(app, proj, proj->dens_from_file, proj->dens, 
-      inp.density_import, inp.density, inp.ctx_density, 1.0, &proj->proj_dens);
+      &inp.density_import, inp.density, inp.ctx_density, 1.0, &proj->proj_dens);
     init_moment_from_import_or_proj(app, proj, proj->upar_from_file, proj->upar,
-      inp.upar_import, inp.upar, inp.ctx_upar, 1.0, &proj->proj_upar);
+      &inp.upar_import, inp.upar, inp.ctx_upar, 1.0, &proj->proj_upar);
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       init_moment_from_import_or_proj(app, proj, proj->temp_from_file, proj->vtsq,
-        inp.temp_import, inp.temp, inp.ctx_temp, 1.0/s->info.mass, &proj->proj_temp);
+        &inp.temp_import, inp.temp, inp.ctx_temp, 1.0/s->info.mass, &proj->proj_temp);
     }
     else {
       bimaxwellian = true;
       init_moment_from_import_or_proj(app, proj,
-        proj->temppar_from_file, proj->vtsqpar, inp.temppar_import,
+        proj->temppar_from_file, proj->vtsqpar, &inp.temppar_import,
         inp.temppar, inp.ctx_temppar, 1.0/s->info.mass, &proj->proj_temppar);
       init_moment_from_import_or_proj(app, proj,
-        proj->tempperp_from_file, proj->vtsqperp, inp.tempperp_import,
+        proj->tempperp_from_file, proj->vtsqperp, &inp.tempperp_import,
         inp.tempperp, inp.ctx_tempperp, 1.0/s->info.mass, &proj->proj_tempperp);
     }
   }

@@ -703,11 +703,11 @@ main(int argc, char **argv)
   // Second simulation: combined Maxwellian import (electron) + per-moment imports (ion).
   app_inp.species[0].projection = (struct gkyl_gyrokinetic_projection) {
     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    .maxwellian_moms_import = &elc_maxwellian_moms_import,
+    .maxwellian_moms_import = elc_maxwellian_moms_import,
   };
   app_inp.species[1].projection = (struct gkyl_gyrokinetic_projection) {
     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    .density_import = &ion_density_import,
+    .density_import = ion_density_import,
     .upar = evalIonUparInit,
     .ctx_upar = &ctx,
     .temp = evalIonTempInit,
@@ -721,11 +721,11 @@ main(int argc, char **argv)
   // Third simulation: combined BiMaxwellian imports for both species.
   app_inp.species[0].projection = (struct gkyl_gyrokinetic_projection) {
     .proj_id = GKYL_PROJ_BIMAXWELLIAN,
-    .bimaxwellian_moms_import = &elc_bimaxwellian_moms_import,
+    .bimaxwellian_moms_import = elc_bimaxwellian_moms_import,
   };
   app_inp.species[1].projection = (struct gkyl_gyrokinetic_projection) {
     .proj_id = GKYL_PROJ_BIMAXWELLIAN,
-    .bimaxwellian_moms_import = &ion_bimaxwellian_moms_import,
+    .bimaxwellian_moms_import = ion_bimaxwellian_moms_import,
   };
   app_inp.field.init_from_file = field_import;
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", "rt_gk_sheath_1x2v_p1_ic_import_bimax_import");

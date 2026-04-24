@@ -14,7 +14,20 @@
 
 #include <stdbool.h>
 
+
 // Parameters for projection
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, J*f_in.
+  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
+  bool enforce_positivity; // =true sets f to 0 where it was negative.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+};
+
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
@@ -44,13 +57,13 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_tempperp;
 
       // Optionally read primitive moments from files.
-      const struct gkyl_gyrokinetic_ic_import *maxwellian_moms_import;
-      const struct gkyl_gyrokinetic_ic_import *bimaxwellian_moms_import;
-      const struct gkyl_gyrokinetic_ic_import *density_import;
-      const struct gkyl_gyrokinetic_ic_import *upar_import;
-      const struct gkyl_gyrokinetic_ic_import *temp_import;
-      const struct gkyl_gyrokinetic_ic_import *temppar_import;
-      const struct gkyl_gyrokinetic_ic_import *tempperp_import;
+      struct gkyl_gyrokinetic_ic_import maxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import bimaxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import density_import;
+      struct gkyl_gyrokinetic_ic_import upar_import;
+      struct gkyl_gyrokinetic_ic_import temp_import;
+      struct gkyl_gyrokinetic_ic_import temppar_import;
+      struct gkyl_gyrokinetic_ic_import tempperp_import;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
@@ -297,19 +310,6 @@ struct gkyl_gyrokinetic_flr {
   double Tperp; // Perp temperature used to evaluate gyroradius. 
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
                // it'll use B in the center of the domain.
-};
-
-struct gkyl_gyrokinetic_ic_import {
-  // Inputs to initialize the species with the distribution from a file (f_in)
-  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  enum gkyl_ic_import_type type;
-  char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
-  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
-  bool enforce_positivity; // =true sets f to 0 where it was negative.
-  void *conf_scale_ctx;
-  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
-  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
 };
 
 struct gkyl_gyrokinetic_correct_inp {
