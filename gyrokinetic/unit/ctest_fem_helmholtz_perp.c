@@ -67,10 +67,8 @@ static void evalFunc_ksquare(double t, const double *xn, double* restrict fout, 
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = ksquare();
   // fout[0] *= cos(2*M_PI*x); 
-  // fout[0] *= exp(4*M_PI*y); 
+  fout[0] *= exp(4*M_PI*y); 
   // fout[0] *= sin(z)+2;  
-  // noise:
-  fout[0] *= 1. + 1e-7*cos(2*M_PI*x)*exp(4*M_PI*y)*(sin(z)+2);
 }
 
 // RHS: rho(x,z) = (1.+kz*z+0.5*pow(z,2)) * sum_{m=1}^2 b_m sin(2*pi*m*x)
@@ -334,32 +332,32 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
     fclose(fp);
   }
 
-  // Write parameters file for visualization.
-  fp = fopen("helmholtz_2x_params.txt", "w");
-  if (fp) {
-    fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
-    fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
-    fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
-    fprintf(fp, "poly_order: %d\n", poly_order);
-    fprintf(fp, "kSq: %.16e\n", kSq);
-    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
-    fclose(fp);
-  }
+  // // Write parameters file for visualization.
+  // fp = fopen("helmholtz_2x_params.txt", "w");
+  // if (fp) {
+  //   fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
+  //   fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
+  //   fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
+  //   fprintf(fp, "poly_order: %d\n", poly_order);
+  //   fprintf(fp, "kSq: %.16e\n", kSq);
+  //   fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+  //   fclose(fp);
+  // }
 
-  // Write parameters file for visualization.
-  fp = fopen("helmholtz_2x_params.txt", "w");
-  if (fp) {
-    fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
-    fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
-    fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
-    fprintf(fp, "poly_order: %d\n", poly_order);
-    fprintf(fp, "kSq: %.16e\n", kSq);
-    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
-    fclose(fp);
-  }
+  // // Write parameters file for visualization.
+  // fp = fopen("helmholtz_2x_params.txt", "w");
+  // if (fp) {
+  //   fprintf(fp, "lower: %.16e %.16e\n", lower[0], lower[1]);
+  //   fprintf(fp, "upper: %.16e %.16e\n", upper[0], upper[1]);
+  //   fprintf(fp, "cells: %d %d\n", cells[0], cells[1]);
+  //   fprintf(fp, "poly_order: %d\n", poly_order);
+  //   fprintf(fp, "kSq: %.16e\n", kSq);
+  //   fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+  //   fclose(fp);
+  // }
 
-  double errL2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
-  printf("\nerror L2 norm = %g\n",errL2);
+  // double errL2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
+  // printf("\nerror L2 norm = %g\n",errL2);
 
   // Compare solution to analytic result.
   struct gkyl_range_iter iter;
@@ -481,37 +479,37 @@ test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
-  FILE *fp = fopen("helmholtz_3x_results.txt", "w");
-  if (fp) {
-    fprintf(fp, "# x y z phi_numerical phi_analytical\n");
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &localRange);
-    while (gkyl_range_iter_next(&iter)) {
-      double xc[3];
-      gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
-      long loc = gkyl_range_idx(&localRange, iter.idx);
-      const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
-      const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
-      // Write cell center coordinates and the 0th basis coefficient (cell average)
-      fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0]/dg0norm, phisol_p[0]/dg0norm);
-    }
-    fclose(fp);
-  }
+  // FILE *fp = fopen("helmholtz_3x_results.txt", "w");
+  // if (fp) {
+  //   fprintf(fp, "# x y z phi_numerical phi_analytical\n");
+  //   struct gkyl_range_iter iter;
+  //   gkyl_range_iter_init(&iter, &localRange);
+  //   while (gkyl_range_iter_next(&iter)) {
+  //     double xc[3];
+  //     gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+  //     long loc = gkyl_range_idx(&localRange, iter.idx);
+  //     const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+  //     const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
+  //     // Write cell center coordinates and the 0th basis coefficient (cell average)
+  //     fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0]/dg0norm, phisol_p[0]/dg0norm);
+  //   }
+  //   fclose(fp);
+  // }
 
-  // Write parameters file for visualization.
-  fp = fopen("helmholtz_3x_params.txt", "w");
-  if (fp) {
-    fprintf(fp, "lower: %.16e %.16e %.16e\n", lower[0], lower[1], lower[2]);
-    fprintf(fp, "upper: %.16e %.16e %.16e\n", upper[0], upper[1], upper[2]);
-    fprintf(fp, "cells: %d %d %d\n", cells[0], cells[1], cells[2]);
-    fprintf(fp, "poly_order: %d\n", poly_order);
-    fprintf(fp, "kSq: %.16e\n", kSq);
-    fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
-    fclose(fp);
-  }
+  // // Write parameters file for visualization.
+  // fp = fopen("helmholtz_3x_params.txt", "w");
+  // if (fp) {
+  //   fprintf(fp, "lower: %.16e %.16e %.16e\n", lower[0], lower[1], lower[2]);
+  //   fprintf(fp, "upper: %.16e %.16e %.16e\n", upper[0], upper[1], upper[2]);
+  //   fprintf(fp, "cells: %d %d %d\n", cells[0], cells[1], cells[2]);
+  //   fprintf(fp, "poly_order: %d\n", poly_order);
+  //   fprintf(fp, "kSq: %.16e\n", kSq);
+  //   fprintf(fp, "epsilon_0: %.16e\n", epsilon_0);
+  //   fclose(fp);
+  // }
 
-  double errL2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
-  printf("\nerror L2 norm = %g\n",errL2);
+  // double errL2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
+  // printf("\nerror L2 norm = %g\n",errL2);
 
   // Compare solution to analytic result.
   if (poly_order == 1) {
