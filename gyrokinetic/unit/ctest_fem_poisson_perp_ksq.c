@@ -84,7 +84,7 @@ static void evalFunc_ksquare(double t, const double *xn, double* restrict fout, 
 { 
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = ksquare();
-  // fout[0] *= cos(2*M_PI*x); 
+  fout[0] *= cos(2*M_PI*x); 
   fout[0] *= exp(4*M_PI*y); 
   fout[0] *= sin(z)+2;
 }
@@ -231,20 +231,6 @@ void evalFunc_rhs_dirichletx_periodicy_3x(double t, const double *xn, double* re
   fout[0] = -trig_func(x,y,true)*z_envelope(z) - kSq[0]*fsol[0];
 }
 
-// Check that the relative L2 error between numerical and analytical solutions is < 1%.
-static void check_solution(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *phi, struct gkyl_array *phisol)
-{
-  double err_L2 = error_L2norm(grid, range, basis, phi, phisol);
-  double sol_L2 = field_L2norm(grid, range, basis, phisol);
-  double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
-  TEST_CHECK( rel_err < 0.01 );
-  TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
-
-  if (helmholtz_verbose())
-    printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
-}
-
 // Read 2x grid resolution from environment variables (or defaults).
 static void get_2x_cells(int *cells) {
   int nx = 32, nz = 48;
@@ -264,8 +250,9 @@ static void get_3x_cells(int *cells) {
   cells[0] = nx; cells[1] = ny; cells[2] = nz;
 }
 
-void
-test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+static double
+solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu,
+  double *sol_L2_out)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare();  // Helmholtz wave number squared.
@@ -351,7 +338,7 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
-  FILE *fp = helmholtz_write_output() ? fopen("helmholtz_2x_results.txt", "w") : NULL;
+  FILE *fp = helmholtz_write_output() ? fopen("ctest_fem_poisson_perp_ksq_results.txt", "w") : NULL;
   if (fp) {
     fprintf(fp, "# x z phi_numerical phi_analytical\n");
     struct gkyl_range_iter iter;
@@ -368,8 +355,9 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
     fclose(fp);
   }
 
-  // Compare solution to analytic result.
-  check_solution(grid, localRange, basis, phi_ho, phisol_ho);
+  double err_L2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
+  if (sol_L2_out)
+    *sol_L2_out = field_L2norm(grid, localRange, basis, phisol_ho);
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -381,10 +369,38 @@ test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson
   gkyl_array_release(phisol_ho);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
+  return err_L2;
 }
 
 void
-test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  if (helmholtz_write_output()) {
+    // Single-resolution mode (called from Python): check relative L2 error < 1%.
+    double sol_L2;
+    double err_L2 = solve_fem_helmholtz_perp_2x(poly_order, cells, bcs, use_gpu, &sol_L2);
+    double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
+    TEST_CHECK(rel_err < 0.01);
+    TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
+    if (helmholtz_verbose())
+      printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
+  } else {
+    // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
+    // (consistent with 2nd-order convergence: factor of 4 = 2^2).
+    int cells2[2] = {2*cells[0], 2*cells[1]};
+    double err_coarse = solve_fem_helmholtz_perp_2x(poly_order, cells,  bcs, use_gpu, NULL);
+    double err_fine   = solve_fem_helmholtz_perp_2x(poly_order, cells2, bcs, use_gpu, NULL);
+    double ratio = err_coarse / err_fine;
+    TEST_CHECK(ratio >= 3.5);
+    TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
+    if (helmholtz_verbose())
+      printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
+  }
+}
+
+static double
+solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu,
+  double *sol_L2_out)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare();  // Helmholtz wave number squared.
@@ -477,7 +493,7 @@ test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
-  FILE *fp = helmholtz_write_output() ? fopen("helmholtz_3x_results.txt", "w") : NULL;
+  FILE *fp = helmholtz_write_output() ? fopen("ctest_fem_poisson_perp_ksq_results.txt", "w") : NULL;
   if (fp) {
     fprintf(fp, "# x y z phi_numerical phi_analytical\n");
     struct gkyl_range_iter iter;
@@ -494,21 +510,9 @@ test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson
     fclose(fp);
   }
 
-  // Compare solution to analytic result.
-  if (poly_order == 1) {
-    bool dd = (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET);
-    bool ydir_ok = (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET) ||
-                   (bcs.lo_type[1] == GKYL_POISSON_PERIODIC  && bcs.up_type[1] == GKYL_POISSON_PERIODIC);
-    if (dd && ydir_ok)
-      check_solution(grid, localRange, basis, phi_ho, phisol_ho);
-    else {
-      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
-      TEST_MSG("This BC combination is not available");
-    }
-  } else {
-    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
-    TEST_MSG("This poly_order is not available");
-  }
+  double err_L2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
+  if (sol_L2_out)
+    *sol_L2_out = field_L2norm(grid, localRange, basis, phisol_ho);
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -521,6 +525,47 @@ test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson
   gkyl_array_release(phisol_ho);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
+  return err_L2;
+}
+
+void
+test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  // Validate poly_order and BC combination before running.
+  if (poly_order != 1) {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This poly_order is not available");
+    return;
+  }
+  bool dd = (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET);
+  bool ydir_ok = (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET) ||
+                 (bcs.lo_type[1] == GKYL_POISSON_PERIODIC  && bcs.up_type[1] == GKYL_POISSON_PERIODIC);
+  if (!dd || !ydir_ok) {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This BC combination is not available");
+    return;
+  }
+
+  if (helmholtz_write_output()) {
+    // Single-resolution mode (called from Python): check relative L2 error < 1%.
+    double sol_L2;
+    double err_L2 = solve_fem_helmholtz_perp_3x(poly_order, cells, bcs, use_gpu, &sol_L2);
+    double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
+    TEST_CHECK(rel_err < 0.01);
+    TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
+    if (helmholtz_verbose())
+      printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
+  } else {
+    // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
+    int cells2[3] = {2*cells[0], 2*cells[1], 2*cells[2]};
+    double err_coarse = solve_fem_helmholtz_perp_3x(poly_order, cells,  bcs, use_gpu, NULL);
+    double err_fine   = solve_fem_helmholtz_perp_3x(poly_order, cells2, bcs, use_gpu, NULL);
+    double ratio = err_coarse / err_fine;
+    TEST_CHECK(ratio >= 3.5);
+    TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
+    if (helmholtz_verbose())
+      printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
+  }
 }
 
 // 2x test wrappers
