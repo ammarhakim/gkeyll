@@ -30,6 +30,7 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
+ * @param bias_line_list List of points (2D) or lines (3D) to bias.
  * @param epsilon Spatially varying permittivity tensor.
  * @param kSq Squared wave number (factor multiplying phi in Helmholtz eq).
  * @param use_gpu boolean indicating whether to use the GPU.
@@ -37,8 +38,8 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  */
 struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
-  struct gkyl_array *kSq, bool use_gpu);
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_line_list* bias_line_list,
+  struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu);
 
 /**
  * Update the epsilon array and set the make_stiff flag to true to recompute stiffness
@@ -76,6 +77,15 @@ void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp* up, struct gkyl_array 
  * @param up FEM project updater to run.
  */
 void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
+
+/**
+ * Assign the left-side matrix.
+ *
+ * @param up FEM poisson updater to run.
+ * @param epsilon Weight in Laplacian term.
+ * @param kSq Linear factor in Helmholtz term.
+ */
+void gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp* up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
 
 /**
  * Delete updater.

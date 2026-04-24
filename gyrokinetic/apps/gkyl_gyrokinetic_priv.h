@@ -1010,12 +1010,12 @@ struct gk_species {
   // Pointers to updaters that apply (non-sheath) BC.
   struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
   struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
-  // To simplify BC application, store local skin and ghost ranges
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  // Local skin/ghost ranges.
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
@@ -1023,10 +1023,10 @@ struct gk_species {
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
-  struct gkyl_range lower_skin_par_core, lower_ghost_par_core;
-  struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
-  struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
-  struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
+  struct gkyl_range local_lower_skin_par_core, local_lower_ghost_par_core;
+  struct gkyl_range local_upper_skin_par_core, local_upper_ghost_par_core;
+  struct gkyl_range local_lower_skin_par_sol , local_lower_ghost_par_sol;
+  struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
@@ -1139,12 +1139,12 @@ struct gk_neut_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
-  // To simplify BC application, store local skin and ghost ranges
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  // Local skin/ghost ranges.
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
@@ -1242,9 +1242,9 @@ struct gk_neut_species {
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 };
 
-// field data
+// Field data.
 struct gk_field {
-  struct gkyl_gyrokinetic_field info; // data for field
+  struct gkyl_gyrokinetic_field info; // Data for field.
 
   enum gkyl_gkfield_id gkfield_id;
 
@@ -1253,12 +1253,11 @@ struct gk_field {
   bool is_em; // Whether we solve the EM field equations.
   bool calc_init_apar; // Whether to initialize A_parallel with Ampere's law solve.
 
-  struct gkyl_job_pool *job_pool; // Job pool  
-  // arrays for local charge density, global charge density, and global smoothed (in z) charge density
+  // Arrays for local charge density, global charge density, and global smoothed (in z) charge density.
   struct gkyl_array *rho_c;
   struct gkyl_array *rho_c_global_dg; // Auxiliary array for global charge density but also used in smoothing.
   struct gkyl_array *rho_c_global_smooth; 
-  struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
+  struct gkyl_array *phi_fem, *phi_smooth; // Arrays for updates.
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
@@ -1305,25 +1304,22 @@ struct gk_field {
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
-  struct gkyl_array *kSq; 
+  struct gkyl_array *kSq; // Weight for Poisson/Helmholtz solver. 
 
-  struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
-                                        // weight*phi_{fem} = phi_{dg} 
-  struct gkyl_fem_parproj *fem_parproj_sol;
-  struct gkyl_fem_parproj *fem_parproj_core;
+  struct gkyl_fem_parproj *fem_parproj; // Projects DG function onto continuous  FEM basis:  weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj *fem_parproj_sol; // FEM projection in the SOL.
+  struct gkyl_fem_parproj *fem_parproj_core; // FEM projection in the core.
 
-  struct gkyl_deflated_fem_poisson *fem_poisson_deflated; // poisson solver which solves
-  struct gkyl_fem_poisson_perp *fem_poisson_perp; // poisson solver which solves
-                                             // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+  struct gkyl_fem_poisson_perp *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
 
   // Objects needed for FLR effects.
-  bool use_flr;
-  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi);
+  bool use_flr; // Whether to apply FLR effects.
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function inverting  FLR  operator.
   struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
   struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
 
-  struct gkyl_array_integrate *calc_em_energy;
+  struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
   gkyl_dynvec integ_apar_energy; // integrated EM energy components (separate from electrostatic energy for debugging purposes)
@@ -1354,12 +1350,15 @@ struct gk_field {
   void (*calc_apar_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
   
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo; // TS BC updater.
-  // Objects used by the skin surface to ghost (SSFG) operator.
-  struct gkyl_skin_surf_from_ghost *ssfg_z_lo;
+  struct gkyl_bc_twistshift *bc_ts_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
+  struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
-  // Pointer to functions for the twist-and-shift BCs.
-  void (*enforce_parallel_bc_func) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
+  // Pointer to functions that make phi continuous along z.
+  void (*fem_projection_par_rho_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
+  void (*fem_projection_par_phi_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
   void (*enforce_parallel_bc_em_func) (const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout);
   void (*twistshift_func) (struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
@@ -1375,17 +1374,16 @@ struct gk_field {
   void (*step_apar) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
   void (*em_combine_func) (struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,const struct gkyl_range *rng);
   void (*em_copy_func) (struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
-
   // Pointer to function to calculate the potential.
-  void (*rhs_phi_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+  void (*rhs_phi_func)(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
   void (*em_rhs_func) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],  struct gkyl_array *rhs_in[]);
-
-  void (*calc_energy_func) (gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
-  
-  void (*accumulate_rhoc_func) (gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
-
-  void (*solver_release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
+  // Pointer to function that calculates the field energy.
+  void (*calc_energy_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm);
+  // Pointer to function that accumulates the charge density. 
+  void (*accumulate_rhoc_func)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
+  // Pointer to function that frees memory.
+  void (*release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -1409,24 +1407,29 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range local, local_ext; // Local, local-ext conf-space ranges.
   struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
   // To simplify BC application, store local skin and ghost ranges.
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range local_upper_ghost[GKYL_MAX_DIM];
   // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
   struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  // Core and SOL ranges for IWL sims.
+  // Core and SOL ranges for sims with a LCFS.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+  struct gkyl_range global_par_ext_core; // Core range extended in parallel direction.
+  struct gkyl_range global_lower_skin_par_core, global_lower_ghost_par_core;
+  struct gkyl_range global_upper_skin_par_core, global_upper_ghost_par_core;
+  struct gkyl_range global_lower_skin_par_sol , global_lower_ghost_par_sol;
+  struct gkyl_range global_upper_skin_par_sol , global_upper_ghost_par_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
-  struct gkyl_range lower_skin_par_core, lower_ghost_par_core;
-  struct gkyl_range upper_skin_par_core, upper_ghost_par_core;
-  struct gkyl_range lower_skin_par_sol , lower_ghost_par_sol;
-  struct gkyl_range upper_skin_par_sol , upper_ghost_par_sol;
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  struct gkyl_range local_lower_skin_par_core, local_lower_ghost_par_core;
+  struct gkyl_range local_upper_skin_par_core, local_upper_ghost_par_core;
+  struct gkyl_range local_lower_skin_par_sol , local_lower_ghost_par_sol;
+  struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
 
   struct gkyl_basis basis; // conf-space basis
   

@@ -405,7 +405,7 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
     }
 
     mbf->fem_poisson[bI] = gkyl_fem_poisson_perp_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
-      &bcs, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
+      &bcs, mbf->info.bias_line_list, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
   }
 
 }
