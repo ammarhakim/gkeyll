@@ -342,6 +342,12 @@ solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisso
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis,
     &bcs, NULL, eps, kSqFld, use_gpu);
 
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
   remove_factors(eps, kSqFld);
   gkyl_fem_poisson_perp_update_lhs(poisson, eps, kSqFld);
@@ -503,6 +509,12 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   // FEM Helmholtz solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis,
     &bcs, NULL, eps, kSqFld, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
 
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
   remove_factors(eps, kSqFld);
