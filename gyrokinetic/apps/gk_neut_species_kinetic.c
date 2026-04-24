@@ -229,9 +229,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
 
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  // Free memory for the object that scales the species.
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -274,7 +273,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
   for (int dir=0; dir<cdim; ++dir) {
-    long vol = GKYL_MAX2(s->lower_skin[dir].volume, s->upper_skin[dir].volume);
+    long vol = GKYL_MAX2(s->local_lower_skin[dir].volume, s->local_upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
@@ -296,7 +295,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->lower_bc[d].type);
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, s->basis_on_dev,
-        &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+        &s->local_lower_skin[d], &s->local_lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
@@ -320,7 +319,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
       // Upper BC updater. Copy BCs by default.
       enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->upper_bc[d].type);
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, s->basis_on_dev,
-        &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+        &s->local_upper_skin[d], &s->local_upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
@@ -770,26 +769,16 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->collisionless = (struct gk_collisionless) { };
   gk_neut_species_collisionless_init(app, s, &s->collisionless);
 
-  // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
-  // code duplication since the "ghost" array is needed.
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&s->local_lower_skin[dir], &s->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&s->local_upper_skin[dir], &s->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
     gkyl_skin_ghost_ranges(&s->global_lower_skin[dir], &s->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &s->global_ext, ghost); 
-    gkyl_sub_range_intersect(&s->global_lower_skin[dir], &s->local_ext, &s->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_lower_ghost[dir], &s->local_ext, &s->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&s->global_upper_skin[dir], &s->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-    gkyl_sub_range_intersect(&s->global_upper_skin[dir], &s->local_ext, &s->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
   }
 
   if (s->info.init_from_file.type == 0) {
@@ -852,8 +841,8 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).
-  s->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
+  s->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, s, &s->sca);
 
   // Initialize reactions with charged species.
   s->react_neut = (struct gk_react) { };

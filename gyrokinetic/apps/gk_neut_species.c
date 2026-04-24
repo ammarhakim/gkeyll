@@ -26,8 +26,8 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 void
 gk_neut_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns_self, double t0)
 {
-  // Store initial density in recycle_react_scale.
-  gk_neut_species_recycle_react_scale_apply_ic_cross(app, gkns_self, &gkns_self->rrs);
+  // Store initial density in scaling operator.
+  gk_neut_species_scaling_apply_ic_cross(app, gkns_self, &gkns_self->sca);
 }
 
 double
@@ -212,7 +212,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
   app->stat.neut_species_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_neut_io += 1;
   
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 }
 
 void
@@ -251,7 +251,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_neut_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 void

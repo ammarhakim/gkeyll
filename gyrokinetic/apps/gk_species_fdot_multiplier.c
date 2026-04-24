@@ -40,7 +40,7 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app* app, struct gk_sp
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->fdot_mult.multiplier_host, fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -147,6 +147,10 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
       );
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, fdmul->multiplier_host);
       gkyl_proj_on_basis_release(projup);
+
+      if (basis_mult.poly_order == 0)
+        gkyl_array_scale_range(fdmul->multiplier_host, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
+
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;

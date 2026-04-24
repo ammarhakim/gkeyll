@@ -299,7 +299,7 @@ gk_multib_field_new_par_smooth(const struct gkyl_gyrokinetic_multib *mbinp,
     enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
     const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
     enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
-    if (mbf->cdim == 2 && (ftype == GKYL_CORE || ftype == GKYL_CORE_R || ftype == GKYL_CORE_L) && !mbf->info.half_domain)
+    if (mbf->cdim == 2 && (ftype == GKYL_GEOMETRY_TOKAMAK_CORE || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) && !mbf->info.half_domain)
       fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
 
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
@@ -405,7 +405,7 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
     }
 
     mbf->fem_poisson[bI] = gkyl_fem_poisson_perp_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
-      &bcs, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
+      &bcs, mbf->info.bias_line_list, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
   }
 
 }

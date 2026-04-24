@@ -21,7 +21,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   int dir = recyc->dir;
   int edi = recyc->edge == GKYL_LOWER_EDGE? 0 : 1;
 
-  struct gkyl_range *cskin_r = edi ==0 ? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
+  struct gkyl_range *cskin_r = edi ==0 ? &app->local_lower_skin[recyc->dir] : &app->local_upper_skin[recyc->dir];
   
   for (int i=0; i<recyc->num_species; ++i) {
     struct timespec wst = gkyl_wall_clock();
@@ -76,7 +76,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 }
 
 static void
@@ -146,8 +146,8 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   upper[dir] = e==0? s->grid.lower[dir] : s->grid.upper[dir] + s->grid.dx[dir];
   gkyl_rect_grid_init(&recyc->emit_grid, ndim, lower, upper, cells);
 
-  recyc->emit_ghost_r = e==0? &s->lower_ghost[dir] : &s->upper_ghost[dir];
-  recyc->emit_skin_r = e==0? &s->lower_skin[dir] : &s->upper_skin[dir];
+  recyc->emit_ghost_r = e==0? &s->local_lower_ghost[dir] : &s->local_upper_ghost[dir];
+  recyc->emit_skin_r = e==0? &s->local_lower_skin[dir] : &s->local_upper_skin[dir];
   gkyl_range_init(&recyc->emit_buff_r, ndim, recyc->emit_ghost_r->lower, recyc->emit_ghost_r->upper);
   gkyl_range_init(&recyc->emit_cbuff_r, cdim, recyc->emit_ghost_r->lower, recyc->emit_ghost_r->upper);
 
@@ -264,8 +264,8 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     upper[recyc->dir] = e==0? gks->grid.lower[recyc->dir] : gks->grid.upper[recyc->dir] + gks->grid.dx[recyc->dir];
     gkyl_rect_grid_init(&recyc->impact_grid[i], cdim+gks->info.vdim, lower, upper, cells);
 
-    struct gkyl_range *phase_skin_r = e==0? &gks->lower_skin[recyc->dir] : &gks->upper_skin[recyc->dir];
-    struct gkyl_range *phase_ghost_r = e==0? &gks->lower_ghost[recyc->dir] : &gks->upper_ghost[recyc->dir];
+    struct gkyl_range *phase_skin_r = e==0? &gks->local_lower_skin[recyc->dir] : &gks->local_upper_skin[recyc->dir];
+    struct gkyl_range *phase_ghost_r = e==0? &gks->local_lower_ghost[recyc->dir] : &gks->local_upper_ghost[recyc->dir];
     recyc->impact_ghost_r[i] = phase_ghost_r;
     gkyl_range_init(&recyc->impact_buff_r[i], cdim+gks->info.vdim, phase_ghost_r->lower, phase_ghost_r->upper);
     gkyl_range_init(&recyc->impact_cbuff_r[i], cdim, phase_ghost_r->lower, phase_ghost_r->upper);

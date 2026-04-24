@@ -149,9 +149,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       f->use_flr = f->use_flr || s->info.flr.type;
   }
 
-  f->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
-
   gkyl_array_release(epsilon_global);
 
-  f->solver_release_func = gk_field_fem_release_1x;
+  f->release_func = gk_field_fem_release_1x;
 }

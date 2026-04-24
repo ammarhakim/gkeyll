@@ -184,7 +184,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -284,11 +284,15 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
       bgk->moms_func_implicit = gkbgk_moms_enabled;
-      bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      }
     }
     else {
       bgk->moms_func = gkbgk_moms_enabled;
-      bgk->rhs_func = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func = gkbgk_rhs_enabled;
+      }
       bgk->moms_func_implicit = gkbgk_moms_disabled;
       bgk->rhs_func_implicit = gkbgk_rhs_disabled;
     }

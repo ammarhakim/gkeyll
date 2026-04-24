@@ -450,7 +450,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rclose = 0.7,
     .rleft= 0.1,
     .rright = 0.7,
@@ -465,7 +465,6 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_ltx_iwl_2x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { ctx.psi_min, ctx.z_min },
@@ -497,6 +496,8 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

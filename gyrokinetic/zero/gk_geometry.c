@@ -13,6 +13,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <assert.h>
 #include <float.h>
+#include <ctype.h>
 
 
 struct gk_geometry*
@@ -448,6 +449,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2p, up->geo_corn.mc2p, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2nu_pos, up->geo_corn.mc2nu_pos, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag, up->geo_corn.bmag, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag_inv, up->geo_corn.bmag_inv, 1);
 
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag, up->geo_int.bmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij, up->geo_int.g_ij, 6);
@@ -466,8 +468,6 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.cmag, up->geo_int.cmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot, up->geo_int.jacobtot, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot_inv, up->geo_int.jacobtot_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv, up->geo_int.bmag_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv_sq, up->geo_int.bmag_inv_sq, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxxj, up->geo_int.gxxj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxyj, up->geo_int.gxyj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gyyj, up->geo_int.gyyj, 1);
@@ -478,7 +478,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.B3, up->geo_int.B3, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.qprofile, up->geo_int.qprofile, 1);
   // Done deflating modal
+
   // Deflate nodal quantities
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.jacobgeo_nodal, up->geo_int.jacobgeo_nodal, 1);
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dxdz_nodal, up->geo_int.dxdz_nodal, 9);
@@ -497,12 +499,12 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     // In 2D geometry, make mapc2p a function of only R and Z 
     // and mc2nu_pos only a function of psi and length along field line
     struct gkyl_array *temp = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, up->geo_corn.mc2p, 0 * up->basis.num_basis); // 
-    gkyl_array_set_offset(temp,              1.0, up->geo_corn.mc2p, 1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, temp,     1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0 * up->basis.num_basis);
-    gkyl_array_set_offset(temp,                   1.0, up->geo_corn.mc2nu_pos, 2 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp,          1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, up->geo_corn.mc2p     , 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2p     , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, temp                  , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2nu_pos, 2*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp                  , 1*up->basis.num_basis);
     gkyl_array_release(temp);
   }
   else if (up->grid.ndim==3) {
@@ -511,7 +513,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     gkyl_array_copy(up->geo_corn.mc2nu_pos_deflated, up->geo_corn.mc2nu_pos);
   }
   // Deflate surface geo
-  int  count = 0;
+  int count = 0;
   for (int dir = 0; dir < 3; dir++) {
     if(rem_dirs[dir] == 0) {
       struct gkyl_range local_ext_in_dir_3d;
@@ -566,6 +568,42 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   return up;
 }
 
+void 
+gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len)
+{
+  struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
+  const char *fmt = "%s-psi.gkyl";
+  int sz = gkyl_calc_strlen(fmt, efit->name);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, efit->name);
+
+  // Set extra metadata
+  struct gkyl_msgpack_map_elem io_meta_rz[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
+    { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = efit->name},
+    { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
+    { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
+    { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
+    { .key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
+    { .key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current},
+    { .key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis},
+    { .key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft},
+    { .key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
+    { .key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
+    { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
+  };
+  int io_meta_rz_len = sizeof(io_meta_rz)/sizeof(io_meta_rz[0]);
+  int io_meta_len[] = {io_meta_basic_len, io_meta_rz_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {io_meta_basic, io_meta_rz};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
+
+  gkyl_msgpack_data_release(mt);
+}
+
 void
 gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
@@ -573,6 +611,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_corn.mc2p);
   gkyl_array_release(up->geo_corn.mc2nu_pos);
   gkyl_array_release(up->geo_corn.bmag);
+  gkyl_array_release(up->geo_corn.bmag_inv);
   gkyl_array_release(up->geo_corn.mc2p_deflated);
   gkyl_array_release(up->geo_corn.mc2nu_pos_deflated);
 
@@ -594,8 +633,6 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.cmag);
   gkyl_array_release(up->geo_int.jacobtot);
   gkyl_array_release(up->geo_int.jacobtot_inv);
-  gkyl_array_release(up->geo_int.bmag_inv);
-  gkyl_array_release(up->geo_int.bmag_inv_sq);
   gkyl_array_release(up->geo_int.gxxj);
   gkyl_array_release(up->geo_int.gxyj);
   gkyl_array_release(up->geo_int.gyyj);
@@ -606,6 +643,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.rtg33inv);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
+  gkyl_array_release(up->geo_int.qprofile);
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);

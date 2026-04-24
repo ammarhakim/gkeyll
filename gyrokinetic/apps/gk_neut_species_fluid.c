@@ -13,8 +13,8 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
-  // Compute volume-integrated reactions in rrs.
-  gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
+  // Compute volume-integrated reactions in sca.
+  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
 
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -123,7 +123,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -271,24 +271,16 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   for (int d=0; d<cdim; ++d)
     ghost[d] = 1;
 
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->lower_skin[dir], &ns->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->upper_skin[dir], &ns->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&ns->local_lower_skin[dir], &ns->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&ns->local_upper_skin[dir], &ns->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_lower_skin[dir], &ns->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &ns->global_ext, ghost); 
-    gkyl_sub_range_intersect(&ns->global_lower_skin[dir], &ns->local_ext, &ns->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_lower_ghost[dir], &ns->local_ext, &ns->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&ns->global_upper_skin[dir], &ns->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-    gkyl_sub_range_intersect(&ns->global_upper_skin[dir], &ns->local_ext, &ns->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_upper_ghost[dir], &ns->local_ext, &ns->global_upper_ghost[dir]);
   }
 
   // Initialize projection routine for initial conditions.
@@ -318,8 +310,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions.
-  ns->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+  ns->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, ns, &ns->sca);
 
   // Initialize BGK collisions with null type (not applicable to fluids).
   ns->bgk = (struct gk_bgk_collisions) { };
