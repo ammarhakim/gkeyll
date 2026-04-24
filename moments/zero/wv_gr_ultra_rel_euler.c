@@ -44,6 +44,13 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[70], double flux[7
         v_sq += spatial_metric[i][j] * vel[i] * vel[j];
       }
     }
+    
+    double cov_vel[3] = {0};
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        cov_vel[i] += spatial_metric[i][j] * vel[j];
+      }
+    }
 
     double W = 1.0 / (sqrt(1.0 - v_sq));
     if (v_sq > 1.0 - pow(10.0, -8.0)) {
@@ -51,9 +58,9 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[70], double flux[7
     }
 
     flux[0] = (lapse * sqrt(spatial_det)) * ((((rho + p) * (W * W)) - p) * (vx - (shift_x / lapse)) + (p * vx));
-    flux[1] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vx * (vx - (shift_x / lapse))) + p);
-    flux[2] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vy * (vx - (shift_x / lapse))));
-    flux[3] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vz * (vx - (shift_x / lapse))));
+    flux[1] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[0] * (vx - (shift_x / lapse))) + p);
+    flux[2] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[1] * (vx - (shift_x / lapse))));
+    flux[3] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[2] * (vx - (shift_x / lapse))));
 
     for (int i = 4; i < 70; i++) {
       flux[i] = 0.0;
@@ -110,9 +117,9 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[70], double v
   spatial_metric_der[1][1][0] = q[51]; spatial_metric_der[1][1][1] = q[52]; spatial_metric_der[1][1][2] = q[53];
   spatial_metric_der[1][2][0] = q[54]; spatial_metric_der[1][2][1] = q[55]; spatial_metric_der[1][2][2] = q[56];
 
-  spatial_metric_der[0][0][0] = q[57]; spatial_metric_der[0][0][1] = q[58]; spatial_metric_der[0][0][2] = q[59];
-  spatial_metric_der[0][1][0] = q[60]; spatial_metric_der[0][1][1] = q[61]; spatial_metric_der[0][1][2] = q[62];
-  spatial_metric_der[0][2][0] = q[63]; spatial_metric_der[0][2][1] = q[64]; spatial_metric_der[0][2][2] = q[65];
+  spatial_metric_der[2][0][0] = q[57]; spatial_metric_der[2][0][1] = q[58]; spatial_metric_der[2][0][2] = q[59];
+  spatial_metric_der[2][1][0] = q[60]; spatial_metric_der[2][1][1] = q[61]; spatial_metric_der[2][1][2] = q[62];
+  spatial_metric_der[2][2][0] = q[63]; spatial_metric_der[2][2][1] = q[64]; spatial_metric_der[2][2][2] = q[65];
 
   double evol_param = q[66];
   double x = q[67];
@@ -1628,9 +1635,9 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
   spatial_metric_der[1][1][0] = v[51]; spatial_metric_der[1][1][1] = v[52]; spatial_metric_der[1][1][2] = v[53];
   spatial_metric_der[1][2][0] = v[54]; spatial_metric_der[1][2][1] = v[55]; spatial_metric_der[1][2][2] = v[56];
 
-  spatial_metric_der[0][0][0] = v[57]; spatial_metric_der[0][0][1] = v[58]; spatial_metric_der[0][0][2] = v[59];
-  spatial_metric_der[0][1][0] = v[60]; spatial_metric_der[0][1][1] = v[61]; spatial_metric_der[0][1][2] = v[62];
-  spatial_metric_der[0][2][0] = v[63]; spatial_metric_der[0][2][1] = v[64]; spatial_metric_der[0][2][2] = v[65];
+  spatial_metric_der[2][0][0] = v[57]; spatial_metric_der[2][0][1] = v[58]; spatial_metric_der[2][0][2] = v[59];
+  spatial_metric_der[2][1][0] = v[60]; spatial_metric_der[2][1][1] = v[61]; spatial_metric_der[2][1][2] = v[62];
+  spatial_metric_der[2][2][0] = v[63]; spatial_metric_der[2][2][1] = v[64]; spatial_metric_der[2][2][2] = v[65];
 
   double **stress_energy = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
@@ -1663,10 +1670,18 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
       W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
     }
     
+    double cov_vel[3] = {0.0};
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        cov_vel[i] += spatial_metric[i][j] * vel[j];
+      }
+    }
+
     double mom[3];
-    mom[0] = (rho + p) * (W * W) * vx;
-    mom[1] = (rho + p) * (W * W) * vy;
-    mom[2] = (rho + p) * (W * W) * vz;
+    mom[0] = (rho + p) * (W * W) * cov_vel[0];
+    mom[1] = (rho + p) * (W * W) * cov_vel[1];
+    mom[2] = (rho + p) * (W * W) * cov_vel[2];
+
 
     // Energy density source.
     sout[0] = 0.0;
