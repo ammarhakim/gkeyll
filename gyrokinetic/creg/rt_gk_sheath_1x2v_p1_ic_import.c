@@ -744,48 +744,5 @@ main(int argc, char **argv)
     MPI_Finalize();
 #endif
 
-  /*
-   * PGKYL verification commands for IC import regression.
-   *
-    #1) Maxwellian moments: electron, imported vs initial_conditions.
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_MaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-elc_MaxwellianMoments_0.gkyl \
-          interp pl -f0 --title "Elc Maxwellian moments: initial vs max_import" &
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_MaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-elc_MaxwellianMoments_0.gkyl \
-          interp ev "f[0] f[1] - f[0] /" pl --title "Elc Maxwellian moments: relative error" &
-   
-    #2) Ion per-moment import: density (M0), max_import vs initial_conditions.
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_M0_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-ion_M0_0.gkyl \
-          interp pl -f0 --title "Ion M0: initial vs max_import" &
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_M0_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-ion_M0_0.gkyl \
-          interp ev "f[0] f[1] - f[0] /" pl --title "Ion M0: relative error" &
-   
-    #3) BiMaxwellian moments: electron and ion, bimax_import vs initial_conditions.
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_BiMaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_bimax_import-elc_BiMaxwellianMoments_0.gkyl \
-          interp pl -f0 --title "Elc BiMaxwellian moments: initial vs bimax_import" &
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_BiMaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_bimax_import-elc_BiMaxwellianMoments_0.gkyl \
-          interp ev "f[0] f[1] - f[0] /" pl --title "Elc BiMaxwellian moments: relative error" &
-   
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_BiMaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_bimax_import-ion_BiMaxwellianMoments_0.gkyl \
-          interp pl -f0 --title "Ion BiMaxwellian moments: initial vs bimax_import" &
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_BiMaxwellianMoments_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import_bimax_import-ion_BiMaxwellianMoments_0.gkyl \
-          interp ev "f[0] f[1] - f[0] /" pl --title "Ion BiMaxwellian moments: relative error" &
-   
-    #4) Field import: max_import vs initial_conditions.
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-field_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-field_0.gkyl \
-          interp pl -f0 --title "Field: initial vs max_import" &
-    pgkyl rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-field_0.gkyl \
-          rt_gk_sheath_1x2v_p1_ic_import-field_0.gkyl \
-          interp ev "f[0] f[1] - f[0] /" pl --title "Field: relative error" &
-   */
-
   return 0;
 }
