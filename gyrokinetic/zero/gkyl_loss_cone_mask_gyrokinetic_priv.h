@@ -17,7 +17,7 @@ static inline void
 nodal_coords(int ndim, int node, double *x)
 {
   for (int d = 0; d < ndim; ++d) {
-    int place_value = (int) pow(2.0, (double) (ndim - 1 - d));
+    int place_value = (int)pow(2.0, (double)(ndim - 1 - d));
     int digit = (node / place_value) % 2;
     x[d] = digit ? 1.0 : -1.0;
   }
@@ -151,7 +151,6 @@ escape_barriers(int cdim, int num_basis_conf, const struct gkyl_range *conf_rang
     }
   }
 }
-
 
 #ifdef GKYL_HAVE_CUDA
 #ifdef __cplusplus
