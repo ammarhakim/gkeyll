@@ -244,7 +244,7 @@ static void get_2x_cells(int *cells) {
 
 // Read 3x grid resolution from environment variables (or defaults).
 static void get_3x_cells(int *cells) {
-  int nx = 32, ny = 24, nz = 8;
+  int nx = 8, ny = 8, nz = 4;
   char *env;
   if ((env = getenv("TEST_NX"))) nx = atoi(env);
   if ((env = getenv("TEST_NY"))) ny = atoi(env);
@@ -345,7 +345,7 @@ solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisso
   // Set the RHS source.
   gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
+  // Solve the problem once, to allow kSq and epsilon modification.
   gkyl_fem_poisson_perp_solve(poisson, phi);
 
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
@@ -477,13 +477,15 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   // Analytic solution.
   struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Device copies:
-  struct gkyl_array *rho_ho, *phi_ho;
+  struct gkyl_array *rho_ho, *phi_ho, *kSq_ho;
   if (use_gpu) {
     rho_ho = mkarr(false, rho->ncomp, rho->size);
     phi_ho = mkarr(false, phi->ncomp, phi->size);
+    kSq_ho = mkarr(false, kSqFld->ncomp, kSqFld->size);
   } else {
     rho_ho = gkyl_array_acquire(rho);
     phi_ho = gkyl_array_acquire(phi);
+    kSq_ho = gkyl_array_acquire(kSqFld);
   }
 
   // Project RHS charge density on basis.
@@ -497,8 +499,8 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   gkyl_array_shiftc(eps, epsilon_0 * dg0norm, 2 * basis.num_basis);
 
   // Project kSq onto the basis.
-  // gkyl_array_shiftc(kSqFld, kSq * dg0norm, 0);
-  gkyl_proj_on_basis_advance(projob_kSq, 0.0, &localRange, kSqFld);
+  gkyl_proj_on_basis_advance(projob_kSq, 0.0, &localRange, kSq_ho);
+  gkyl_array_copy(kSqFld, kSq_ho);
 
   // Project the analytic solution.
   gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
@@ -513,7 +515,7 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   // Set the RHS source.
   gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
+  // Solve the problem once, to allow kSq and epsilon modification.
   gkyl_fem_poisson_perp_solve(poisson, phi);
 
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
@@ -564,6 +566,7 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   gkyl_array_release(phisol_ho);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
+  gkyl_array_release(kSq_ho);
   return err_L2;
 }
 
