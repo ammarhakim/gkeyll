@@ -224,14 +224,7 @@ static void
 gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   struct timespec wst = gkyl_wall_clock();
   
-  // The update of kSq is causing issues with leaks and valgrind.
-  // gkyl_fem_poisson_perp_update_kSq(field->fem_apardot_solver, field->dApartdtSlvr_kSq);
-
-  // Temporary solution to avoid superLU leak when updating kSq: we release and re-create the solver
-  gkyl_fem_poisson_perp_release(field->fem_apardot_solver);
-  field->fem_apardot_solver = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &field->ampere_bcs, field->info.bias_line_list, field->lapWeightAmpere, field->dApartdtSlvr_kSq, app->use_gpu);
-
+  gkyl_fem_poisson_perp_update_lhs(field->fem_apardot_solver, field->lapWeightAmpere, field->dApartdtSlvr_kSq);
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
   gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, field->apardot);
 
@@ -522,6 +515,11 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     // FEM solver for Ohm's law (evolves d(Apart)/dt).
     f->fem_apardot_solver = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
       &f->ampere_bcs, f->info.bias_line_list, f->lapWeightAmpere, f->dApartdtSlvr_kSq, app->use_gpu);
+
+    // We have to advance the updater once to be able to update the kSq later.
+    gkyl_fem_poisson_perp_set_rhs(f->fem_apardot_solver, f->currentDensdot);
+    gkyl_fem_poisson_perp_solve(f->fem_apardot_solver, f->apardot);
+    
     // FEM smoother for Aparallel.
     f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_NONE;
     f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
