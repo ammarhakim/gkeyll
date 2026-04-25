@@ -233,23 +233,6 @@ void evalFunc_rhs_dirichletx_periodicy_3x(double t, const double *xn, double* re
   fout[0] = -trig_func(x,y,true)*z_envelope(z) - kSq[0]*fsol[0];
 }
 
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-// Check that the relative L2 error between numerical and analytical solutions is < 1%.
-static void check_solution(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *phi, struct gkyl_array *phisol)
-{
-  double err_L2 = error_L2norm(grid, range, basis, phi, phisol);
-  double sol_L2 = field_L2norm(grid, range, basis, phisol);
-  double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
-  TEST_CHECK( rel_err < 0.01 );
-  TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
-
-  if (helmholtz_verbose())
-    printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
-}
-
-========
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
 // Read 2x grid resolution from environment variables (or defaults).
 static void get_2x_cells(int *cells) {
   int nx = 32, nz = 48;
@@ -261,7 +244,7 @@ static void get_2x_cells(int *cells) {
 
 // Read 3x grid resolution from environment variables (or defaults).
 static void get_3x_cells(int *cells) {
-  int nx = 32, ny = 24, nz = 8;
+  int nx = 8, ny = 8, nz = 4;
   char *env;
   if ((env = getenv("TEST_NX"))) nx = atoi(env);
   if ((env = getenv("TEST_NY"))) ny = atoi(env);
@@ -269,10 +252,6 @@ static void get_3x_cells(int *cells) {
   cells[0] = nx; cells[1] = ny; cells[2] = nz;
 }
 
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-void
-test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
-========
 // Introduce eps and ksq factors.
 static void introduce_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld) {
   gkyl_array_scale(eps, eps_factor());
@@ -287,7 +266,6 @@ static void remove_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld) {
 static double
 solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu,
   double *sol_L2_out)
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare();  // Helmholtz wave number squared.
@@ -367,7 +345,7 @@ solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisso
   // Set the RHS source.
   gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
+  // Solve the problem once, to allow kSq and epsilon modification.
   gkyl_fem_poisson_perp_solve(poisson, phi);
 
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
@@ -386,11 +364,7 @@ solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisso
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-  FILE *fp = helmholtz_write_output() ? fopen("helmholtz_2x_results.txt", "w") : NULL;
-========
   FILE *fp = helmholtz_write_output() ? fopen("ctest_fem_poisson_perp_ksq_results.txt", "w") : NULL;
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
   if (fp) {
     fprintf(fp, "# x z phi_numerical phi_analytical\n");
     struct gkyl_range_iter iter;
@@ -407,14 +381,9 @@ solve_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisso
     fclose(fp);
   }
 
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-  // Compare solution to analytic result.
-  check_solution(grid, localRange, basis, phi_ho, phisol_ho);
-========
   double err_L2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
   if (sol_L2_out)
     *sol_L2_out = field_L2norm(grid, localRange, basis, phisol_ho);
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -508,13 +477,15 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   // Analytic solution.
   struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Device copies:
-  struct gkyl_array *rho_ho, *phi_ho;
+  struct gkyl_array *rho_ho, *phi_ho, *kSq_ho;
   if (use_gpu) {
     rho_ho = mkarr(false, rho->ncomp, rho->size);
     phi_ho = mkarr(false, phi->ncomp, phi->size);
+    kSq_ho = mkarr(false, kSqFld->ncomp, kSqFld->size);
   } else {
     rho_ho = gkyl_array_acquire(rho);
     phi_ho = gkyl_array_acquire(phi);
+    kSq_ho = gkyl_array_acquire(kSqFld);
   }
 
   // Project RHS charge density on basis.
@@ -528,8 +499,8 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   gkyl_array_shiftc(eps, epsilon_0 * dg0norm, 2 * basis.num_basis);
 
   // Project kSq onto the basis.
-  // gkyl_array_shiftc(kSqFld, kSq * dg0norm, 0);
-  gkyl_proj_on_basis_advance(projob_kSq, 0.0, &localRange, kSqFld);
+  gkyl_proj_on_basis_advance(projob_kSq, 0.0, &localRange, kSq_ho);
+  gkyl_array_copy(kSqFld, kSq_ho);
 
   // Project the analytic solution.
   gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
@@ -544,7 +515,7 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   // Set the RHS source.
   gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
+  // Solve the problem once, to allow kSq and epsilon modification.
   gkyl_fem_poisson_perp_solve(poisson, phi);
 
   // Remove the factor and correct the solver's internal kSq and epsilon field accordingly.
@@ -563,11 +534,7 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-  FILE *fp = helmholtz_write_output() ? fopen("helmholtz_3x_results.txt", "w") : NULL;
-========
   FILE *fp = helmholtz_write_output() ? fopen("ctest_fem_poisson_perp_ksq_results.txt", "w") : NULL;
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
   if (fp) {
     fprintf(fp, "# x y z phi_numerical phi_analytical\n");
     struct gkyl_range_iter iter;
@@ -580,23 +547,6 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
       const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
       // Write cell center coordinates and the 0th basis coefficient (cell average)
       fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0]/dg0norm, phisol_p[0]/dg0norm);
-<<<<<<<< HEAD:gyrokinetic/unit/ctest_fem_poisson_perp_kSq.c
-    }
-    fclose(fp);
-  }
-
-  // Compare solution to analytic result.
-  if (poly_order == 1) {
-    bool dd = (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET);
-    bool ydir_ok = (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET) ||
-                   (bcs.lo_type[1] == GKYL_POISSON_PERIODIC  && bcs.up_type[1] == GKYL_POISSON_PERIODIC);
-    if (dd && ydir_ok)
-      check_solution(grid, localRange, basis, phi_ho, phisol_ho);
-    else {
-      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
-      TEST_MSG("This BC combination is not available");
-========
->>>>>>>> origin/ctest_helmholtz_perp:gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c
     }
     fclose(fp);
   }
@@ -616,6 +566,7 @@ solve_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisso
   gkyl_array_release(phisol_ho);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
+  gkyl_array_release(kSq_ho);
   return err_L2;
 }
 
