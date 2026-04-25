@@ -229,17 +229,9 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   }
 
   double p = (gas_gamma - 1.0) * rho;
-
-  double cov_vel[3] = {0};
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      cov_vel[i] += spatial_metric[i][j] * vel[j];
-    }
-  }
   
   double Etot = sqrt(spatial_det) * (((rho + p) * (W * W)) - p); // Fluid total energy density.
-  //double mom_x = sqrt(spatial_det) * (rho + p) * (W * W) * u; // Fluid momentum density (x-direction).
-  double mom_x = sqrt(spatial_det) * (rho + p) * (W * W) * cov_vel[0];
+  double mom_x = sqrt(spatial_det) * (rho + p) * (W * W) * u; // Fluid momentum density (x-direction).
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
 

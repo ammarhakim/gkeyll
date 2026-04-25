@@ -44,13 +44,6 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[70], double flux[7
         v_sq += spatial_metric[i][j] * vel[i] * vel[j];
       }
     }
-    
-    double cov_vel[3] = {0};
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        cov_vel[i] += spatial_metric[i][j] * vel[j];
-      }
-    }
 
     double W = 1.0 / (sqrt(1.0 - v_sq));
     if (v_sq > 1.0 - pow(10.0, -8.0)) {
@@ -58,9 +51,9 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[70], double flux[7
     }
 
     flux[0] = (lapse * sqrt(spatial_det)) * ((((rho + p) * (W * W)) - p) * (vx - (shift_x / lapse)) + (p * vx));
-    flux[1] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[0] * (vx - (shift_x / lapse))) + p);
-    flux[2] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[1] * (vx - (shift_x / lapse))));
-    flux[3] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (cov_vel[2] * (vx - (shift_x / lapse))));
+    flux[1] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vx * (vx - (shift_x / lapse))) + p);
+    flux[2] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vy * (vx - (shift_x / lapse))));
+    flux[3] = (lapse * sqrt(spatial_det)) * ((rho + p) * (W * W) * (vz * (vx - (shift_x / lapse))));
 
     for (int i = 4; i < 70; i++) {
       flux[i] = 0.0;
@@ -1669,18 +1662,11 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
     if (v_sq > 1.0 - pow(10.0, -8.0)) {
       W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
     }
-    
-    double cov_vel[3] = {0.0};
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        cov_vel[i] += spatial_metric[i][j] * vel[j];
-      }
-    }
 
     double mom[3];
-    mom[0] = (rho + p) * (W * W) * cov_vel[0];
-    mom[1] = (rho + p) * (W * W) * cov_vel[1];
-    mom[2] = (rho + p) * (W * W) * cov_vel[2];
+    mom[0] = (rho + p) * (W * W) * vx;
+    mom[1] = (rho + p) * (W * W) * vy;
+    mom[2] = (rho + p) * (W * W) * vz;
 
 
     // Energy density source.
