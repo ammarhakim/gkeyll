@@ -550,7 +550,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   // Twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi.
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL || f->gkfield_id == GKYL_GK_FIELD_EM_IWL) {
     gk_field_2x3x_add_IWL_updaters(app, f);
   }
 
