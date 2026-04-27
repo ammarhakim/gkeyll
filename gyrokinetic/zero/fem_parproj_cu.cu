@@ -144,6 +144,9 @@ gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin
 
   gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, wgt_cu, phibc_cu,
     *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels, up->numnodes_global);
+
+  // Set the corresponding entries to the biasing potential.
+  up->bias_line_src(up, rhsin);
 }
 
 __global__ void

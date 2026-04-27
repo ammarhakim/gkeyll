@@ -337,24 +337,27 @@ void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local
           }
         }
 
+	double ref_val;
         if (is_node_biased) {
           // Check biasing value is enforced.
           struct gkyl_poisson_bias_line *bl = &bls->bl[biased_node_idx];
-          TEST_CHECK( gkyl_compare(bl->val, fn_fem[i], 1e-12) );
+	  ref_val = bl->val;
+          TEST_CHECK( gkyl_compare(ref_val, fn_fem[i], 1e-12) );
         }
         else {
           // Check Dirichlet value is enforced.
-          TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
+	  ref_val = fn_dg[i];
+          TEST_CHECK( gkyl_compare(ref_val, fn_fem[i], 1e-12) );
         }
         if (ndim == 1)
-          TEST_MSG( "e=%d, idx_skin=%d, idx_diri=%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], diri_idx[0], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+          TEST_MSG( "e=%d, idx_skin=%d, idx_diri=%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n", e,
+            iter.idx[0], diri_idx[0], off_skin+i, ref_val, fn_fem[i], fn_dg[i]-fn_fem[i]);
         else if (ndim == 2)
-          TEST_MSG( "e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+          TEST_MSG( "e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n", e,
+            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin+i, ref_val, fn_fem[i], fn_dg[i]-fn_fem[i]);
         else if (ndim == 3)
-          TEST_MSG( "e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+          TEST_MSG( "e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n", e,
+            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2], off_skin+i, ref_val, fn_fem[i], fn_dg[i]-fn_fem[i]);
       }
     }
   }
@@ -1082,11 +1085,9 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // Check continuity at cell boundaries.
   check_continuity_par(localRange, basis, phi_ho);
-//  check_continuity_perp(localRange, basis, phi_ho);
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-//      check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
       check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
     }
   }
@@ -1823,6 +1824,10 @@ void test_2x_p1_bcdirichlet_dev() {
 void test_2x_p1_bcperiodic_dev() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 void test_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_2x_p1_bcdirichlet_bias_dev() {
+  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+//  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 
 void test_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p2_bcdirichlet_dev() {
@@ -1883,6 +1888,7 @@ TEST_LIST = {
   { "test_2x_p2_bcperiodic_dev", test_2x_p2_bcperiodic_dev },
   { "test_2x_p1_weighted_dev_dev", test_2x_p1_weighted_dev},
   { "test_2x_p1_selfadjoint_dev", test_2x_p1_selfadjoint_dev},
+  { "test_2x_p1_bcdirichlet_bias_dev", test_2x_p1_bcdirichlet_bias_dev },
   { "test_3x_p1_bcnone_dev", test_3x_p1_bcnone_dev },
   { "test_3x_p1_bcdirichlet_dev", test_3x_p1_bcdirichlet_dev },
   { "test_3x_p1_bcperiodic_dev", test_3x_p1_bcperiodic_dev },
