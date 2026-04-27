@@ -1,8 +1,14 @@
-// Test the perpendicular FEM Helmholtz solver with a nonzero kSq,
-// essentially solving the Helmholtz equation:
-//   - nabla . (epsilon * nabla phi) + kSq * phi = rho
-// using the gkyl_fem_poisson_perp struct.
-//
+/* Test the perpendicular FEM Helmholtz solver with a nonzero kSq,
+ * essentially solving the Helmholtz equation:
+ *   - nabla . (epsilon * nabla phi) + kSq * phi = rho
+ * using the gkyl_fem_poisson_perp struct. Also test the LHS update routine,
+ * 
+ * This test contains additional optional environment variables:
+ *   TEST_NX, TEST_NY, TEST_NZ: to set the grid resolution (default: 32x16x2 for 3x tests, 32x48 for 2x tests)
+ *   TEST_OUTPUT: when set, enables writing the solution in the ctest_fem_poisson_perp_ksq.txt file (default: no output file written)
+ *   TEST_VERBOSE: when set, enables writing the DG L2 error in standard output (default: no extra output)
+*/
+
 #include <acutest.h>
 #include <assert.h>
 #include <math.h>
