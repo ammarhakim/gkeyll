@@ -118,7 +118,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   }
 
   // Setup electromagnetic terms if needed.
-  bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM) || (collless_type == GKYL_GK_COLLISIONLESS_EM_BPERP);
+  bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM);
   gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
   gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
   if (is_em) {

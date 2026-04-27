@@ -390,9 +390,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Ensure that if any species is electromagnetic, the field is electromagnetic.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    f->is_em = f->is_em || (s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) || 
-                      (s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPERP) ||
-                      (s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM_BPAR);
+    f->is_em = f->is_em || (s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM);
   }
   if (f->is_em) {
     assert(f->info.mu0 > 0.0);

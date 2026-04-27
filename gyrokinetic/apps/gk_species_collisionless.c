@@ -199,7 +199,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     // Electromagnetic set up.
-    if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
+    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) {
       // Set up ES + Apar contributions to flux and solver.
       complete_em = true;
       gkcls->surf_flux_em_star_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
@@ -254,7 +254,7 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
 
-    if ((gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) || (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP)) {
+    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) {
       gkyl_gk_collisionless_flux_release(gkcls->surf_flux_em_star_op);
       gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_em_complete);
     }

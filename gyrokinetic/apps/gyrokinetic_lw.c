@@ -59,8 +59,6 @@ static const struct gkyl_str_int_pair position_map_type[] = {
 static const struct gkyl_str_int_pair gk_collisionless_type[] = {
   { "None", GKYL_GK_COLLISIONLESS_NONE },
   { "GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES },
-  { "GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP },
-  { "GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR },
   { "GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM },
   { 0, 0 }
 };
