@@ -33,7 +33,8 @@
 static const struct gkyl_str_int_pair parproj_type[] = {
   { "None", GKYL_FEM_PARPROJ_NONE },
   { "Periodic", GKYL_FEM_PARPROJ_PERIODIC },
-  { "Dirichlet", GKYL_FEM_PARPROJ_DIRICHLET },
+  { "DirichletGhost", GKYL_FEM_PARPROJ_DIRICHLET_GHOST },
+  { "DirichletSkin", GKYL_FEM_PARPROJ_DIRICHLET_SKIN },
   { 0, 0 }
 };
 

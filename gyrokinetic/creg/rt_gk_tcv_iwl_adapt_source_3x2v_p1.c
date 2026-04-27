@@ -50,10 +50,10 @@ double r_x(double x, double a_mid, double x_inner)
   return x+a_mid-x_inner;
 }
 
-// cubic polynomial fit to TCV NT q profile (discharge #65130)
+// cubic polynomial fit to TCV PT q profile (more stable for reg test than NT one).
 double qprofile(double R) {
   double qfit[4] = {
-    484.0615913225881, -1378.25993228584, 1309.3099150729233, -414.13270311478726
+    497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
   };
   return qfit[0]*pow(R,3) + qfit[1]*pow(R,2) + qfit[2]*R + qfit[3];
 }
@@ -788,15 +788,22 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  struct gkyl_poisson_bias_plane target_corner_bc = {
-    .dir = 0, // Direction perpendicular to the plane.
-    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
-    .val = 0.0, // Biasing value.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
   };
   
-  struct gkyl_poisson_bias_plane_list bias_plane_list = {
-    .num_bias_plane = 1,
-    .bp = &target_corner_bc,
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
   };
 
   // field
@@ -807,7 +814,7 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
-    .bias_plane_list = &bias_plane_list,
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
   
