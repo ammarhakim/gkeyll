@@ -328,7 +328,7 @@ void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local
           bool found_node = true;
           for (int bld=0; bld<2; bld++) {
             int perp_dir = bl->perp_dirs[bld];
-            found_node = found_node && (fabs(bl->perp_coords[perp_dir]-node_comp[perp_dir]) < 1e-11);
+            found_node = found_node && (fabs(bl->perp_coords[bld]-node_comp[perp_dir]) < 1e-11);
           }
           if (found_node) {
             is_node_biased = true;
@@ -1081,15 +1081,13 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
     gkyl_array_release(parbuff);
   }
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_bias_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_bias_phi_1.gkyl");
 
   // Check continuity at cell boundaries.
   check_continuity_par(localRange, basis, phi_ho);
 
-  if (poly_order == 1) {
-    if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
-      check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
-    }
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+    check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
   }
 
   gkyl_fem_parproj_release(parproj);
@@ -1749,6 +1747,92 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 
 }
 
+void
+test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+{
+  double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
+  int cells[] = {3, 3, 4};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1, 1};
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // projection updater for DG field.
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1,
+    bctype==GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN? evalFunc3x_dirichlet : evalFunc3x,
+    NULL);
+
+  // create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
+
+  // project distribution function on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_3x_p1_bias_rho_1.gkyl");
+
+  // Specify the bias:
+  struct gkyl_poisson_bias_line bias[] = {
+    {.perp_dirs = {0, 2},
+     .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
+     .val = 0.,}, // Biasing value.
+    {.perp_dirs = {0, 2},
+     .perp_coords = {-2+2*4.0/3.0, 0.5}, // Location of the plane in the 'dir' dimension.
+     .val = 0.,}, // Biasing value.
+  };
+  struct gkyl_poisson_bias_line_list bll = {
+    .num_bias_line = sizeof(bias)/sizeof(bias[0]), // Number of bias lines.
+    .bl = bias,
+  };
+
+  // parallel FEM projection method.
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, &bll, 0, 0, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_parproj_set_rhs(parproj, rho, rho);
+
+  // Solve the problem.
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+  if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_3x_p1_bias_phi_1.gkyl");
+
+  // Check continuity at cell boundaries.
+  check_continuity_par(localRange, basis, phi_ho);
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+    check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
+  }
+}
+
 void test_1x_p1_bcnone_ho() {test_1x(1, GKYL_FEM_PARPROJ_NONE, false);}
 void test_1x_p1_bcdirichlet_ho() {
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
@@ -1776,7 +1860,7 @@ void test_2x_p1_weighted_ho() {
 void test_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
 void test_2x_p1_bcdirichlet_bias_ho() {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
-//  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 
 void test_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
@@ -1792,6 +1876,10 @@ void test_3x_p1_bcdirichlet_ho() {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 void test_3x_p1_bcperiodic_ho() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_3x_p1_bcdirichlet_bias_ho() {
+  test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+  test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 
 void test_3x_p2_bcnone_ho() {test_3x(2, GKYL_FEM_PARPROJ_NONE, false);}
 void test_3x_p2_bcdirichlet_ho() {
@@ -1842,6 +1930,10 @@ void test_3x_p1_bcdirichlet_dev() {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 void test_3x_p1_bcperiodic_dev() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_3x_p1_bcdirichlet_bias_dev() {
+  test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
+  test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+}
 
 void test_3x_p2_bcnone_dev() {test_3x(2, GKYL_FEM_PARPROJ_NONE, true);}
 void test_3x_p2_bcdirichlet_dev() {
@@ -1870,6 +1962,7 @@ TEST_LIST = {
   { "test_3x_p1_bcnone_ho", test_3x_p1_bcnone_ho },
   { "test_3x_p1_bcdirichlet_ho", test_3x_p1_bcdirichlet_ho },
   { "test_3x_p1_bcperiodic_ho", test_3x_p1_bcperiodic_ho },
+  { "test_3x_p1_bcdirichlet_bias_ho", test_3x_p1_bcdirichlet_bias_ho },
   { "test_3x_p2_bcnone_ho", test_3x_p2_bcnone_ho },
   { "test_3x_p2_bcdirichlet_ho", test_3x_p2_bcdirichlet_ho },
   { "test_3x_p2_bcperiodic_ho", test_3x_p2_bcperiodic_ho },
@@ -1892,6 +1985,7 @@ TEST_LIST = {
   { "test_3x_p1_bcnone_dev", test_3x_p1_bcnone_dev },
   { "test_3x_p1_bcdirichlet_dev", test_3x_p1_bcdirichlet_dev },
   { "test_3x_p1_bcperiodic_dev", test_3x_p1_bcperiodic_dev },
+  { "test_3x_p1_bcdirichlet_bias_dev", test_3x_p1_bcdirichlet_bias_dev },
   { "test_3x_p2_bcnone_dev", test_3x_p2_bcnone_dev },
   { "test_3x_p2_bcdirichlet_dev", test_3x_p2_bcdirichlet_dev },
   { "test_3x_p2_bcperiodic_dev", test_3x_p2_bcperiodic_dev },
