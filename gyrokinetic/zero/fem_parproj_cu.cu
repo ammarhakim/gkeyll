@@ -66,6 +66,19 @@ fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_bas
     kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
   else
     kers->get_dirichlet_value = get_dirichlet_value_disabled;
+
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k=0; k<2; k++)
+        kers->bias_src_ker[k] = CK(ser_bias_src_list, dim, bckey_periodic, poly_order, k); 
+
+      break;
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      break;
+    default:
+      assert(false);
+      break;
+  }
 }
 
 void
@@ -131,6 +144,74 @@ gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin
 
   gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, wgt_cu, phibc_cu,
     *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels, up->numnodes_global);
+}
+
+__global__ void
+gkyl_fem_parproj_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
+  struct gkyl_range range, struct gkyl_range perp_range2d, struct gkyl_range par_range1d,
+  struct gkyl_fem_parproj_kernels *kers, long numnodes_global,
+  int num_bias_line, struct gkyl_poisson_bias_line *bias_lines)
+{
+  const int bl_ndim_perp = 2;
+
+  int ndim_perp = range.ndim-1;
+  int parnum_cells = range.upper[ndim_perp]-range.lower[ndim_perp]+1;
+
+  int idx[GKYL_MAX_CDIM];
+  long globalidx[32];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+       linc1 < range.volume; linc1 += gridDim.x*blockDim.x)
+  {
+    // Inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    int idx1d[] = {idx[ndim_perp]};
+    long paridx = gkyl_range_idx(&par_range1d, idx1d);
+    int keri = idx1d[0] == parnum_cells? 1 : 0;
+    kers->l2g[keri](parnum_cells, paridx, globalidx);
+
+    // Modify the RHS source to enforce biasing of the solution.
+    int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
+    for (int d=0; d<ndim_perp; d++) idx2d[d] = idx[d];
+    long perpidx2d = gkyl_range_idx(&perp_range2d, idx2d);
+    long perpProbOff = perpidx2d*numnodes_global;
+
+    for (int i=0; i<num_bias_line; i++) {
+      // Index of the cell that abuts the line from below.
+      struct gkyl_poisson_bias_line *bl = &bias_lines[i];
+      int bl_idx_m[bl_ndim_perp];
+      for (int d=0; d<bl_ndim_perp; d++) {
+        int perp_dir = bl->perp_dirs[d];
+        double dx = grid.dx[perp_dir];
+        bl_idx_m[d] = (bl->perp_coords[d]-1e-3*dx - grid.lower[perp_dir])/dx+1;
+      }
+
+      if (
+          ( idx[bl->perp_dirs[0]] == bl_idx_m[0]   && idx[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+          ( idx[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx[bl->perp_dirs[1]] == bl_idx_m[1]   ) ||
+          ( idx[bl->perp_dirs[0]] == bl_idx_m[0]   && idx[bl->perp_dirs[1]] == bl_idx_m[1]+1 ) ||
+          ( idx[bl->perp_dirs[0]] == bl_idx_m[0]+1 && idx[bl->perp_dirs[1]] == bl_idx_m[1]+1 )
+         ) {
+        int edge[2] = {
+          -1+2*((bl_idx_m[0]+1)-idx[bl->perp_dirs[0]]),
+          -1+2*((bl_idx_m[1]+1)-idx[bl->perp_dirs[1]]),
+        };
+        kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, perpProbOff, globalidx, rhs_global);
+      }
+    }
+  }
+}
+
+void
+gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+{
+  double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
+  gkyl_fem_parproj_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, up->grid,
+    *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels, up->numnodes_global,
+    up->num_bias_line, up->bias_lines);
 }
 
 __global__ void

@@ -636,6 +636,15 @@ void fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weig
 void gkyl_fem_parproj_set_rhs_cu(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
 
 /**
+ * Replace the entries in the RHS src vector with the biased potential values.
+ *
+ * @param up FEM parallel projection updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void
+gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin);
+
+/**
  * Solve the linear problem
  * on the NVIDIA GPU.
  *
@@ -732,7 +741,6 @@ fem_parproj_choose_bias_lhs_kernels(const struct gkyl_basis* basis,
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
-  int ndim_perp = ndim-1;
 
   int bckey[1];
   bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
@@ -758,7 +766,6 @@ fem_parproj_choose_bias_src_kernels(const struct gkyl_basis* basis,
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
-  int ndim_perp = ndim-1;
 
   int bckey[1];
   bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
