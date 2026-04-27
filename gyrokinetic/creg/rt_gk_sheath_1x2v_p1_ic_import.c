@@ -5,7 +5,6 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
-#include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_run.h>
 #include <gkyl_util.h>
 
@@ -24,13 +23,6 @@ struct sheath_ctx
   double Te; // Electron temperature.
   double Ti; // Ion temperature.
   double n0; // Reference number density (1 / m^3).
-
-  double mass_neut; // Neut mass.
-  double gas_gamma; // Adiabatic index.
-  double n0_neut; // Reference neutral density.
-  double T0_neut; // Reference neutral temperature.
-
-  double rec_frac; // Recycling fraction.
 
   double B_axis; // Magnetic field axis (simple toroidal coordinates).
   double R0; // Major radius (simple toroidal coordinates).
@@ -102,13 +94,6 @@ create_ctx(void)
   double Ti = 40.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
   double n0 = 7.0e18; //  Reference number density (1 / m^3).
 
-  double mass_neut = mass_ion; // Neutral mass.
-  double gas_gamma = 5.0/3.0; // Adiabatic index.
-  double n0_neut = 1e-4*n0; // Reference neutral number density (1 / m^3).
-  double T0_neut = Ti; // Reference neutral temperature.
-
-  double rec_frac = 0.98; // Recycling coefficient.
-
   double B_axis = 0.5; // Magnetic field axis (simple toroidal coordinates).
   double R0 = 0.85; // Major radius (simple toroidal coordinates).
   double a0 = 0.15; // Minor axis (simple toroidal coordinates).
@@ -174,11 +159,6 @@ create_ctx(void)
     .Te = Te,
     .Ti = Ti,
     .n0 = n0,
-    .mass_neut = mass_neut,
-    .gas_gamma = gas_gamma,
-    .n0_neut = n0_neut,
-    .T0_neut = T0_neut,
-    .rec_frac = rec_frac,
     .B_axis = B_axis,
     .R0 = R0,
     .a0 = a0,
@@ -428,62 +408,6 @@ evalNuIonElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   fout[0] = nu_ion_elc;
 }
 
-void
-eval_neut_mom_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  double z = xn[0];
-
-  struct sheath_ctx *app = ctx;
-  double mass_neut = app->mass_neut;
-  double gas_gamma = app->gas_gamma;
-  double n0_neut = app->n0_neut;
-  double T0_neut = app->T0_neut;
-
-  // Mass density.
-  fout[0] = mass_neut * n0_neut;
-
-  // Momentum density.
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-
-  // Total energy density.
-  fout[4] = n0_neut*T0_neut/(gas_gamma-1.0);
-}
-
-void
-eval_neut_density_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  double z = xn[0];
-
-  struct sheath_ctx *app = ctx;
-  double n0_neut = app->n0_neut;
-
-  fout[0] = n0_neut;
-}
-
-void
-eval_neut_udrift_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  double z = xn[0];
-
-  struct sheath_ctx *app = ctx;
-  fout[0] = 0.0;
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-}
-
-void
-eval_neut_temp_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  double z = xn[0];
-
-  struct sheath_ctx *app = ctx;
-  double T0_neut = app->T0_neut;
-
-  fout[0] = T0_neut;
-}
-
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -503,43 +427,6 @@ bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = B0;
-}
-
-void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app,
-  double t_curr, bool is_restart_IC, bool force_calc, double dt)
-{
-  if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-
-    if ( !(dt < 0.0) )
-      gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
-  }
-}
-
-void
-write_data(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_phase,
-  gkyl_gyrokinetic_app* app, double t_curr, bool is_restart_IC, bool force_write)
-{
-  bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
-  if (trig_now_conf || force_write) {
-    int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-    gkyl_gyrokinetic_app_write_conf(app, t_curr, frame);
-
-    if (!is_restart_IC) {
-      gkyl_gyrokinetic_app_write_field_energy(app);
-      gkyl_gyrokinetic_app_write_integrated_mom(app);
-      gkyl_gyrokinetic_app_write_dt(app);
-    }
-  }
-
-  bool trig_now_phase = gkyl_tm_trigger_check_and_bump(iot_phase, t_curr);
-  if (trig_now_phase || force_write) {
-    int frame = (!trig_now_conf) && force_write? iot_conf->curr : iot_conf->curr-1;
-
-    gkyl_gyrokinetic_app_write_phase(app, t_curr, frame);
-  }
 }
 
 int
@@ -585,13 +472,14 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
+      .correct_all_moms = true,
     },
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .collisions = {
+    .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElc,
       .self_nu_ctx = &ctx,
@@ -605,6 +493,7 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
+
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -624,39 +513,13 @@ main(int argc, char **argv)
       }
     },
     
-    .react_neut = {
-      .num_react = 2,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_H,
-	  .elc_nm = "elc",
-          .ion_nm = "ion",
-          .donor_nm = "D0",
-	  .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc,
-        },
-	{ .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_H,
-	  .elc_nm = "elc",
-          .ion_nm = "ion",
-          .recvr_nm = "D0",
-	  .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc,
-        },
-      },
-    },
-
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
-    .num_diag_moments = 6,
-    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN },
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
@@ -676,6 +539,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -686,6 +550,7 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
+      .correct_all_moms = true,
     },
 
     .collisionless = {
@@ -725,47 +590,13 @@ main(int argc, char **argv)
       },
     },
 
-    .react_neut = {
-      .num_react = 3,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_H,
-	  .elc_nm = "elc",
-          .ion_nm = "ion",
-          .donor_nm = "D0",
-	  .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc,
-        },
-	{ .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_H,
-	  .elc_nm = "elc",
-          .ion_nm = "ion",
-          .recvr_nm = "D0",
-	  .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc,
-        },
-	{ .react_id = GKYL_REACT_CX,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_H,
-          .ion_nm = "ion",
-          .partner_nm = "D0",
-          .ion_mass = ctx.mass_ion,
-          .partner_mass = ctx.mass_ion,
-        },
-      },
-    },
-
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
     
-    .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN },
+    .num_diag_moments = 7,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN, GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
@@ -777,42 +608,6 @@ main(int argc, char **argv)
     }
   };
 
-  // D0.
-  struct gkyl_gyrokinetic_neut_species D0 = {
-    .name = "D0",
-    .mass = ctx.mass_ion,
-    .vdim = 0,
-    .gas_gamma = ctx.gas_gamma,
-//    .is_static = true,
-
-    .projection = {
-//      .proj_id = GKYL_PROJ_FUNC, 
-//      .func = eval_neut_mom_init,
-//      .ctx_func = &ctx,
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .density = eval_neut_density_init,
-      .ctx_density = &ctx,
-      .udrift = eval_neut_udrift_init,
-      .ctx_udrift = &ctx,
-      .temp = eval_neut_temp_init,
-      .ctx_temp = &ctx,
-    },
-
-    .scaling = {
-      .type = GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE,
-      .impacting_ion_name =  "ion" ,
-      .impacting_ion_id = GKYL_ION_H,
-      .electron_name = "elc",
-      .recycling_coeff = ctx.rec_frac,
-      .num_boundaries = 2,
-      .boundaries_dir = {0, 0,},
-      .boundaries_edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE,},
-    },
-
-    .num_diag_moments = 1,
-    .diag_moments = { GKYL_F_MOMENT_LTE, },
-  };
-
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .kperpSq = ctx.k_perp * ctx.k_perp,
@@ -821,10 +616,10 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-
+    .name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions",
     .cdim = ctx.cdim,
-    .lower = { -ctx.Lz/2.0 },
-    .upper = {  ctx.Lz/2.0 },
+    .lower = { -0.5 * ctx.Lz },
+    .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },
 
     .poly_order = ctx.poly_order,
@@ -847,9 +642,6 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .num_neut_species = 1,
-    .neut_species = { D0 },
-
     .field = field,
 
     .parallelism = {
@@ -859,25 +651,91 @@ main(int argc, char **argv)
     },
   };
 
-  // Create app object.
   // Set app output name from the executable name (argv[0]).
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  // snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_inp = app_inp,
+    .app_inp = app_inp, 
     .time_stepping = {
-      .t_end           = ctx.t_end,
-      .num_frames      = ctx.num_frames,
+      .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
       .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol  = ctx.dt_failure_tol,
+      .dt_failure_tol = ctx.dt_failure_tol,
       .num_failures_max = ctx.num_failures_max,
-      .is_restart      = app_args.is_restart,
-      .restart_frame   = app_args.restart_frame,
-      .num_steps       = app_args.num_steps,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = 1,
+    },
+    .print_verbosity = {
+      .disable_timings = false,
     },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
+
+
+  // Save original projections and run variants in-place to keep stack usage low.
+  struct gkyl_gyrokinetic_projection elc_proj_orig = app_inp.species[0].projection;
+  struct gkyl_gyrokinetic_projection ion_proj_orig = app_inp.species[1].projection;
+  struct gkyl_gyrokinetic_ic_import field_import_orig = app_inp.field.init_from_file;
+
+  struct gkyl_gyrokinetic_ic_import elc_maxwellian_moms_import = {
+    .type = GKYL_IC_IMPORT_F,
+    .file_name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_MaxwellianMoments_0.gkyl",
+  };
+  struct gkyl_gyrokinetic_ic_import ion_density_import = {
+    .type = GKYL_IC_IMPORT_F,
+    .file_name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_M0_0.gkyl",
+  };
+  struct gkyl_gyrokinetic_ic_import elc_bimaxwellian_moms_import = {
+    .type = GKYL_IC_IMPORT_F,
+    .file_name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-elc_BiMaxwellianMoments_0.gkyl",
+  };
+  struct gkyl_gyrokinetic_ic_import ion_bimaxwellian_moms_import = {
+    .type = GKYL_IC_IMPORT_F,
+    .file_name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-ion_BiMaxwellianMoments_0.gkyl",
+  };
+  struct gkyl_gyrokinetic_ic_import field_import = {
+    .type = GKYL_IC_IMPORT_F,
+    .file_name = "rt_gk_sheath_1x2v_p1_ic_import_initial_conditions-field_0.gkyl",
+  };
+
+  // Second simulation: combined Maxwellian import (electron) + per-moment imports (ion).
+  app_inp.species[0].projection = (struct gkyl_gyrokinetic_projection) {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .maxwellian_moms_import = elc_maxwellian_moms_import,
+  };
+  app_inp.species[1].projection = (struct gkyl_gyrokinetic_projection) {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .density_import = ion_density_import,
+    .upar = evalIonUparInit,
+    .ctx_upar = &ctx,
+    .temp = evalIonTempInit,
+    .ctx_temp = &ctx,
+  };
+  app_inp.field.init_from_file = field_import;
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  run_inp.app_inp = app_inp;
+  gkyl_gyrokinetic_run_simulation(&run_inp);
+
+  // Third simulation: combined BiMaxwellian imports for both species.
+  app_inp.species[0].projection = (struct gkyl_gyrokinetic_projection) {
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+    .bimaxwellian_moms_import = elc_bimaxwellian_moms_import,
+  };
+  app_inp.species[1].projection = (struct gkyl_gyrokinetic_projection) {
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+    .bimaxwellian_moms_import = ion_bimaxwellian_moms_import,
+  };
+  app_inp.field.init_from_file = field_import;
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", "rt_gk_sheath_1x2v_p1_ic_import_bimax_import");
+  run_inp.app_inp = app_inp;
+  gkyl_gyrokinetic_run_simulation(&run_inp);
+
+  // Restore originals.
+  app_inp.species[0].projection = elc_proj_orig;
+  app_inp.species[1].projection = ion_proj_orig;
+  app_inp.field.init_from_file = field_import_orig;
 
   gkyl_gyrokinetic_comms_release(comm);
 

@@ -1,16 +1,16 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_proj_powsqrt_on_basis.h>
-#include <gkyl_proj_powsqrt_on_basis_priv.h>
+#include <gkyl_proj_exp_on_basis.h>
+#include <gkyl_proj_exp_on_basis_priv.h>
 #include <gkyl_const.h>
 #include <gkyl_range.h>
 }
 
 __global__ static void
-gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad, 
+gkyl_proj_exp_on_basis_advance_cu_ker(int num_quad, 
   const struct gkyl_range range, const struct gkyl_array* GKYL_RESTRICT basis_at_ords,
-  const struct gkyl_array* GKYL_RESTRICT weights, double expIn,
+  const struct gkyl_array* GKYL_RESTRICT weights, double alpha, double beta,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT fOut)
 {
   int num_basis = basis_at_ords->ncomp;
@@ -42,8 +42,8 @@ gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
       for (int k=0; k<num_basis; ++k)
         fIn_q += fIn_d[k]*b_ord[k];
 
-      // Evaluate pow(sqrt()) at quad point.
-      double fOut_o = fIn_q<0. ? 1.e-40 : pow(sqrt(fIn_q),expIn);
+      // Evaluate exp at quad point.
+      double fOut_o = alpha*exp(beta*fIn_q);
 
       // Compute expansion coefficients.
       double tmp = w_d[n]*fOut_o;
@@ -55,12 +55,12 @@ gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
 }
 
 void
-gkyl_proj_powsqrt_on_basis_advance_cu(const gkyl_proj_powsqrt_on_basis *up,
-  const struct gkyl_range *range, double expIn,
+gkyl_proj_exp_on_basis_advance_cu(const gkyl_proj_exp_on_basis *up,
+  const struct gkyl_range *range, double alpha, double beta,
   const struct gkyl_array *fIn, struct gkyl_array *fOut)
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_proj_powsqrt_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
+  gkyl_proj_exp_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->num_quad, *range, up->basis_at_ords->on_dev,
-     up->weights->on_dev, expIn, fIn->on_dev, fOut->on_dev);
+     up->weights->on_dev, alpha, beta, fIn->on_dev, fOut->on_dev);
 }

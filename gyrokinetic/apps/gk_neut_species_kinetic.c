@@ -229,9 +229,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
 
-  // Free memory for the object that scales the species according to a balance
-  // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  // Free memory for the object that scales the species.
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -553,7 +552,7 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
-  if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
+  if (inp.type == GKYL_IC_IMPORT_AF) {
     // Scale f by a conf-space factor.
     gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
@@ -566,14 +565,6 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app, struc
     gkyl_proj_on_basis_release(proj_conf_scale);
     gkyl_array_release(xfac_ho);
     gkyl_array_release(xfac);
-  }
-  if (inp.type == GKYL_IC_IMPORT_F_B || inp.type == GKYL_IC_IMPORT_AF_B) {
-    // Add a phase factor to f.
-    struct gk_proj proj_phase_add;
-    gk_neut_species_projection_init(app, s, inp.phase_add, &proj_phase_add);
-    gk_neut_species_projection_calc(app, s, &proj_phase_add, s->fnew, 0.0);
-    gkyl_array_accumulate_range(s->f, 1.0, s->fnew, &s->local);
-    gk_neut_species_projection_release(app, &proj_phase_add);
   }
 
   // Multiply f by the Jacobian.
@@ -852,8 +843,8 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).
-  s->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, s, &s->rrs);
+  s->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, s, &s->sca);
 
   // Initialize reactions with charged species.
   s->react_neut = (struct gk_react) { };
