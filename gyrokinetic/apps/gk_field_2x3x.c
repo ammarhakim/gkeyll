@@ -142,10 +142,10 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
   // Parallel smoother.
   enum gkyl_fem_parproj_bc_type fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
   enum gkyl_fem_parproj_bc_type fem_parproj_bc_sol = GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
-  f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,
-    fem_parproj_bc_core, 0, 0, app->use_gpu);
-  f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
-    fem_parproj_bc_sol, 0, 0, app->use_gpu);
+  f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
+    fem_parproj_bc_core, 0, 0, 0, app->use_gpu);
+  f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
+    fem_parproj_bc_sol, 0, 0, 0, app->use_gpu);
     
   int par_dir = app->cdim-1; // Parallel direction index.
   if (app->cdim == 2) {
@@ -392,8 +392,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   for (int d=0; d<app->num_periodic_dir; ++d)
     if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
 
-  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-    fem_parproj_bc, 0, 0, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
+    fem_parproj_bc, 0, 0, 0, app->use_gpu);
 
   f->fem_projection_par_rho_func = gk_field_fem_projection_par;
   f->fem_projection_par_phi_func = gk_field_fem_projection_par;

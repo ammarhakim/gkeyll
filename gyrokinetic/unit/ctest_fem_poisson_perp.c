@@ -572,7 +572,8 @@ test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct 
   // FEM poisson solver.
   objs->poisson = gkyl_fem_poisson_perp_new(&objs->localRange, &grid, objs->basis, &bcs, NULL, objs->eps, NULL, use_gpu);
 
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&objs->localRange, &objs->localRange_ext, &objs->basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&objs->localRange, &grid,
+//    &objs->localRange_ext, &objs->basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
 //  gkyl_fem_parproj_set_rhs(smooth_op, objs->rho, objs->rho);
 //  gkyl_fem_parproj_solve  (smooth_op, objs->rho);
 
@@ -1832,7 +1833,8 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, NULL, eps, NULL, use_gpu);
 
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &grid, &localRange_ext,
+//    &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 
@@ -4052,7 +4054,8 @@ test_fem_poisson_perp_consteps_3x_bias(int poly_order, const int *cells, struct 
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, &bll, eps, NULL, use_gpu);
 
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &grid, &localRange_ext,
+//    &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 
@@ -4502,7 +4505,8 @@ test_fem_poisson_perp_consteps_3x_bias(int poly_order, const int *cells, struct 
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, &bll, eps, NULL, use_gpu);
 
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &grid, &localRange_ext,
+//    &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 

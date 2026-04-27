@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_array_integrate.h>
@@ -232,13 +233,128 @@ void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext, st
         TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
         if (ndim == 1)
           TEST_MSG( "e=%d, idx_skin=%d, idx_diri=%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], diri_idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+            iter.idx[0], diri_idx[0], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
         else if (ndim == 2)
           TEST_MSG( "e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
         else if (ndim == 3)
           TEST_MSG( "e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+      }
+    }
+  }
+  gkyl_array_release(nodes);
+}
+
+void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext,
+  struct gkyl_basis basis, enum gkyl_fem_parproj_bc_type bctype, struct gkyl_poisson_bias_line_list *bls, 
+  struct gkyl_array *field_dg, struct gkyl_array *field_fem)
+{
+  // Check that two fields have the same boundary values in last dimension,
+  // except for the biased points. Check the bias is satisfied.
+  if (basis.poly_order > 1) return; // Check only working for p=1.
+
+  int ndim = basis.ndim;
+  int pardir = ndim-1;
+  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp = 1;
+  if (ndim == 2)
+    num_nodes_perp = 2;
+  else if (ndim == 3)
+    num_nodes_perp = 4;
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+
+  for (int e=0; e<2; e++) {
+
+    struct gkyl_range perp_range;
+    if (e == 0)
+      gkyl_range_shorten_from_above(&perp_range, &local, pardir, 1);
+    else
+      gkyl_range_shorten_from_below(&perp_range, &local, pardir, 1);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &perp_range);
+    while (gkyl_range_iter_next(&iter)) {
+      int diri_idx[ndim];
+      for (int d=0; d<ndim; d++)
+        diri_idx[d] = iter.idx[d];
+
+      if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+        diri_idx[pardir] = e==0? iter.idx[pardir]-1 : iter.idx[pardir]+1;
+
+      long lidx_diri = gkyl_range_idx(&local_ext, diri_idx);
+      long lidx_skin = gkyl_range_idx(&local, iter.idx);
+
+      double *arr_dg = gkyl_array_fetch(field_dg, lidx_diri);
+      double *arr_fem = gkyl_array_fetch(field_fem, lidx_skin);
+
+      double fn_dg[num_nodes_perp_max], fn_fem[num_nodes_perp_max];
+
+      int off_diri;
+      if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+        off_diri = e==0? num_nodes_perp : 0;
+      else
+        off_diri = e==0? 0 : num_nodes_perp;
+
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off_diri+i);
+        fn_dg[i] = basis.eval_expand(node, arr_dg);
+      }
+
+      int off_skin = e==0? 0 : num_nodes_perp;
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off_skin+i);
+        fn_fem[i] = basis.eval_expand(node, arr_fem);
+      }
+
+      double xc[GKYL_MAX_CDIM];
+      gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+
+      for (int i=0; i<num_nodes_perp; i++) {
+
+        // Translate node coordinates from logical to computational.
+        double node_comp[GKYL_MAX_CDIM];
+        const double *node_log = gkyl_array_cfetch(nodes, off_skin+i);
+        for (int d=0; d<ndim; d++)
+          node_comp[d] = xc[d] + 0.5*grid.dx[d]*node_log[d];
+
+        // Check if this node is a biased node.
+        bool is_node_biased = false;
+        int biased_node_idx = -1;
+        for (int j=0; j<bls->num_bias_line; j++) {
+          struct gkyl_poisson_bias_line *bl = &bls->bl[j];
+          bool found_node = true;
+          for (int bld=0; bld<2; bld++) {
+            int perp_dir = bl->perp_dirs[bld];
+            found_node = found_node && (fabs(bl->perp_coords[perp_dir]-node_comp[perp_dir]) < 1e-11);
+          }
+          if (found_node) {
+            is_node_biased = true;
+            biased_node_idx = j;
+            break;
+          }
+        }
+
+        if (is_node_biased) {
+          // Check biasing value is enforced.
+          struct gkyl_poisson_bias_line *bl = &bls->bl[biased_node_idx];
+          TEST_CHECK( gkyl_compare(bl->val, fn_fem[i], 1e-12) );
+        }
+        else {
+          // Check Dirichlet value is enforced.
+          TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
+        }
+        if (ndim == 1)
+          TEST_MSG( "e=%d, idx_skin=%d, idx_diri=%d, node %d: dg=%g fem=%g diff=%g\n", e,
+            iter.idx[0], diri_idx[0], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+        else if (ndim == 2)
+          TEST_MSG( "e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
+            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+        else if (ndim == 3)
+          TEST_MSG( "e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
+            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2], off_skin+i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
       }
     }
   }
@@ -326,8 +442,8 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
-    bctype, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, 0, 0, 0, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho, rho);
@@ -554,8 +670,8 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
 
   // Parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
-    bctype, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, 0, 0, 0, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho, rho);
@@ -886,6 +1002,104 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
 }
 
+void
+test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+{
+  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
+  int cells[] = {3, 4};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1,
+    bctype==GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype==GKYL_FEM_PARPROJ_DIRICHLET_SKIN? evalFunc2x_dirichlet : evalFunc2x,
+    NULL);
+
+  // create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
+
+  // Project distribution function on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+
+  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
+    // Fill the ghost cell so we can apply Dirichlet BCs.
+    ghost_from_skin_surf(false, dim, &skin_ghost, &basis, rho_ho);
+
+  gkyl_array_copy(rho, rho_ho);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_bias_rho_1.gkyl");
+
+  // Specify the bias:
+  struct gkyl_poisson_bias_line bias[] = {
+    {.perp_dirs = {0, 1},
+     .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
+     .val = 0.,}, // Biasing value.
+    {.perp_dirs = {0, 1},
+     .perp_coords = {-2+2*4.0/3.0, 0.5}, // Location of the plane in the 'dir' dimension.
+     .val = 0.,}, // Biasing value.
+  };
+  struct gkyl_poisson_bias_line_list bll = {
+    .num_bias_line = sizeof(bias)/sizeof(bias[0]), // Number of bias lines.
+    .bl = bias,
+  };
+
+  // Parallel FEM projection method.
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, &bll, 0, 0, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_parproj_set_rhs(parproj, rho, rho);
+
+  // Solve the problem.
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+  if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_bias_phi_1.gkyl");
+
+  // Check continuity at cell boundaries.
+  check_continuity_par(localRange, basis, phi_ho);
+//  check_continuity_perp(localRange, basis, phi_ho);
+
+  if (poly_order == 1) {
+    if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+//      check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
+      check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
+    }
+  }
+
+  gkyl_fem_parproj_release(parproj);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+
+}
+
 void evalWeight2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
@@ -955,8 +1169,8 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, jac_ho,  "ctest_fem_parproj_2x_p1_jac_1.gkyl");
 
   // Parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
-    bctype, jac, jac, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, 0, jac, jac, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho, rho);
@@ -1052,8 +1266,8 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   gkyl_array_copy(phi_dg, phi_ho);
 
   // Parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
-    bctype, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, 0, 0, 0, use_gpu);
 
   struct gkyl_array_integrate* arr_int_op = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
@@ -1168,8 +1382,8 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
-    bctype, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &grid, &basis,
+    bctype, 0, 0, 0, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho, rho);
@@ -1559,6 +1773,10 @@ void test_2x_p1_weighted_ho() {
   test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 void test_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
+void test_2x_p1_bcdirichlet_bias_ho() {
+  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
+//  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
 
 void test_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
 void test_2x_p2_bcdirichlet_ho() {
@@ -1643,6 +1861,7 @@ TEST_LIST = {
   { "test_2x_p2_bcperiodic_ho", test_2x_p2_bcperiodic_ho },
   { "test_2x_p1_weighted_ho", test_2x_p1_weighted_ho},
   { "test_2x_p1_selfadjoint_ho", test_2x_p1_selfadjoint_ho},
+  { "test_2x_p1_bcdirichlet_bias_ho", test_2x_p1_bcdirichlet_bias_ho },
   { "test_3x_p1_bcnone_ho", test_3x_p1_bcnone_ho },
   { "test_3x_p1_bcdirichlet_ho", test_3x_p1_bcdirichlet_ho },
   { "test_3x_p1_bcperiodic_ho", test_3x_p1_bcperiodic_ho },
