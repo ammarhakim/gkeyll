@@ -52,8 +52,8 @@ static double field_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
   return sqrt(l2[0]);
 }
 
-// Return true when the HELMHOLTZ_OUTPUT env var is set (enables results file writing).
-static bool helmholtz_write_output(void) { return getenv("HELMHOLTZ_OUTPUT") != NULL; }
+// Return true when the TEST_OUTPUT env var is set (enables results file writing).
+static bool helmholtz_write_output(void) { return getenv("TEST_OUTPUT") != NULL; }
 // Return true when the HELMHOLTZ_VERBOSE env var is set (enables extra printf output).
 static bool helmholtz_verbose(void) { return getenv("HELMHOLTZ_VERBOSE") != NULL; }
 
