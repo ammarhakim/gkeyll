@@ -89,6 +89,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->reactivity_reaction_rate = inp.reactivity_reaction_rate;
   }
 
+  mom_em->has_gr_tov_sources = inp.has_gr_tov_sources;
+  if (mom_em->has_gr_tov_sources) {
+    mom_em->tov_gas_gamma = inp.tov_gas_gamma;
+    mom_em->tov_kappa = inp.tov_kappa;
+  }
+  
   mom_em->has_einstein_medium_sources = inp.has_einstein_medium_sources;
   if (mom_em->has_einstein_medium_sources) {
     mom_em->medium_gas_gamma = inp.medium_gas_gamma;

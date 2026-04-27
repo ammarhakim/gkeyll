@@ -112,6 +112,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_gr_tov_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_gr_tov) {
+      src_inp.has_gr_tov_sources = true;
+
+      if (app->species[i].tov_gas_gamma != 0.0 || app->species[i].tov_kappa != 0.0) {
+        src_inp.tov_gas_gamma = app->species[i].tov_gas_gamma;
+        src_inp.tov_kappa = app->species[i].tov_kappa;
+      }
+    }
+  }
+
   src_inp.has_gr_ultra_rel_sources = false;
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_gr_ultra_rel) {

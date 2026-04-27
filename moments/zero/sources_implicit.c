@@ -714,6 +714,9 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   if (mom_em->has_einstein_medium_sources) {
     explicit_medium_source_update(mom_em, t_curr, dt, fluid_s);
   }
+  if (mom_em->has_gr_tov_sources) {
+    explicit_gr_tov_source_update(mom_em, t_curr, dt, fluid_s);
+  }
   if (mom_em->has_gr_ultra_rel_sources) {
     explicit_gr_ultra_rel_source_update(mom_em, t_curr, dt, fluid_s);
   }

@@ -81,6 +81,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
   }
 
+  sp->has_gr_tov = false;
+  if (mom_sp->has_gr_tov) {
+    sp->update_sources = true; 
+    sp->has_gr_tov = true;
+
+    sp->tov_gas_gamma = mom_sp->tov_gas_gamma;
+    sp->tov_kappa = mom_sp->tov_kappa;
+  }
+
   sp->has_einstein_medium = false;
   if (mom_sp->has_einstein_medium) {
     sp->update_sources = true; 
