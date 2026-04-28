@@ -270,7 +270,7 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     int n = 2;     
 
     // Actual integration call - call to the SSP-RK3 (implicit_tov_source_update)
-    double r_max = 1500.0;
+    double r_max = 5000.0;
     while (r_n < r_max && y[1] > 0.0 && n < TOV_MAX_POINTS) {
         implicit_tov_source_update(r_n, y, dr, Gamma);
         r_n += dr;

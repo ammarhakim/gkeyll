@@ -1,4 +1,4 @@
-// GR Euler Ultra Rel in Spherical Symmetry in 1D for a static TOV
+// GR Euler Ultra Rel in Spherical Coorindates in 1D for a static TOV
 // Euler eqns from: https://arxiv.org/pdf/gr-qc/9904052
 
 #include <math.h>
@@ -79,12 +79,12 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
 
   // Simulation parameters.
-  int Nx = 1024; // Cell count (r-direction).
-  double Lx = 2000.0; // Domain size (r-direction).
+  int Nx = 4096; // Cell count (r-direction).
+  double Lx = 2500.0; // Domain size (r-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
-  double t_end = 1000; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 500; // Final simulation time.
+  int num_frames = 1000; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -125,13 +125,12 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct gkyl_tov_ultra_rel *tov = app->tov;
   
   struct tov_ultra_rel_eval_fluid fluid = {0}; 
-  double r_relative = r;
 
   struct tov_ultra_rel_eval_bl bl;
-  gkyl_tov_ultra_rel_eval_bl(tov, r_relative, &bl);
+  gkyl_tov_ultra_rel_eval_bl(tov, r, &bl);
 
   double lapse = exp(bl.Phi);
-  double a = 1.0 / sqrt(1.0 - (2.0 * bl.m / r_relative));
+  double a = 1.0 / sqrt(1.0 - (2.0 * bl.m / r));
 
   double v_con[3] = {0.0, 0.0, 0.0}; //fluid coordinate velocity
 
@@ -167,7 +166,7 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[2] = Etot - mom_r; // new conserved variable: PHI
   fout[3] = bl.Phi; // Set Phi appearing in dt metric term
   fout[4] = bl.m;
-  fout[5] = r_relative;
+  fout[5] = r;
   fout[6] = 0;
   fout[7] = 0;
 
@@ -227,6 +226,9 @@ main(int argc, char **argv)
   struct gr_tov_static_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  double lower = 0.5 * (ctx.Lx / NX);
+  double upper = ctx.Lx + 0.5 * (ctx.Lx / NX);
+
 
   // Fluid equations.
   struct gkyl_wv_eqn *gr_tov = gkyl_wv_gr_tov_new(ctx.gas_gamma, ctx.kappa, app_args.use_gpu);
@@ -241,6 +243,9 @@ main(int argc, char **argv)
     .has_gr_tov = true,
     .tov_gas_gamma = ctx.gas_gamma,
     .tov_kappa = ctx.kappa,
+
+    .force_low_order_flux = true,
+    .limiter = GKYL_ZERO,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -316,8 +321,8 @@ main(int argc, char **argv)
     .name = "gr_einstein_tov_static",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
+    .lower = { lower },
+    .upper = { upper },
     .cells = { NX },
 
     .cfl_frac = ctx.cfl_frac,

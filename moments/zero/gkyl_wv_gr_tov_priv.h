@@ -25,7 +25,7 @@ struct wv_gr_tov {
 */
 GKYL_CU_D
 void
-gkyl_gr_tov_prim_vars(double gas_gamma, const double q[15], double v[15]);
+gkyl_gr_tov_prim_vars(double gas_gamma, const double q[8], double v[8]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -36,7 +36,7 @@ gkyl_gr_tov_prim_vars(double gas_gamma, const double q[15], double v[15]);
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[15]);
+gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -48,7 +48,7 @@ gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[15]);
 */
 GKYL_CU_D
 void
-gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[15], double flux[15]);
+gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux1[8], double flux2[8]);
 
 /**
 * Compute Riemann variables given the conserved variables.

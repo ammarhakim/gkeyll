@@ -62,10 +62,14 @@ gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[8])
 }
 
 void
-gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux[8])
+gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux1[8], double flux2[8])
 {
   for (int i = 0; i < 8; i++) {
-    flux[i] = 0.0;
+    flux1[i] = 0.0;
+  }
+
+  for (int i = 0; i < 8; i++) {
+    flux2[i] = 0.0;
   }
 
   double v[8] = { 0.0 };
@@ -74,17 +78,41 @@ gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux[
   double PI = v[1];
   double PHI = v[2];
   double Phi = v[3];
+  double m = v[4];
+  double r = v[5]; 
 
   double rho = v[6];
   double vel = v[7];
 
   double p = (gas_gamma - 1.0) * rho;
 
-  flux[0] = 0.0;
+  double lapse = exp(Phi);
+  double a = 1.0 / sqrt(1.0 - (2.0 * m / r));
 
-  flux[1] = 0.5 * (PI - PHI) * (1 + vel) + p; 
-  flux[2] = 0.5 * (PI - PHI) * (1 - vel) - p;
-  flux[3] = 0.0; // is there flux on Phi (lapse)?
+  flux1[0] = 0.0;
+  flux1[1] = r * r * (lapse / a ) * 0.5 * (PI - PHI) * (1 + vel); 
+  flux1[2] = r * r * (lapse / a ) * 0.5 * (PI - PHI) * (1 - vel);
+  flux1[3] = 0.0; // is there flux on Phi (lapse)?
+
+  flux2[1] = (lapse / a ) * p;
+  flux2[2] = - (lapse / a ) * p;
+}
+
+static void
+gkyl_gr_tov_flux_total(double gas_gamma, double kappa, const double q[8], double flux[8])
+{
+  double f1[8], f2[8];
+  gkyl_gr_tov_flux(gas_gamma, kappa, q, f1, f2);
+
+  double r = q[5];
+  double r2 = r * r;
+
+  for (int i = 0; i < 8; i++) {
+    flux[i] = f2[i];
+  }
+
+  flux[1] += f1[1] / r2;
+  flux[2] += f1[2] / r2;
 }
 
 static inline void
@@ -145,13 +173,19 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double amax = fmax(sl, sr);
 
   double fl[8], fr[8];
-  gkyl_gr_tov_flux(gas_gamma, kappa, ql, fl);
-  gkyl_gr_tov_flux(gas_gamma, kappa, qr, fr);
+  gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
+  gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
 
   double *w0 = &waves[0], *w1 = &waves[8];
   for (int i = 0; i < 8; i++) {
     w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
     w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+  }
+  for (int i = 0; i < 8; i++) {
+    if (i != 1 && i != 2) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
   }
 
   s[0] = -amax;
@@ -163,13 +197,36 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[8];
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+  const struct wv_gr_tov *gr_tov = container_of(eqn, struct wv_gr_tov, eqn);
+  double gas_gamma = gr_tov->gas_gamma;
+  double kappa = gr_tov->kappa;
+
+  double f1l[8], f2l[8], f1r[8], f2r[8];
+  gkyl_gr_tov_flux(gas_gamma, kappa, ql, f1l, f2l);
+  gkyl_gr_tov_flux(gas_gamma, kappa, qr, f1r, f2r);
+
+  double rl = ql[5];
+  double rr = qr[5];
+  double rl2 = rl * rl;
+  double rr2 = rr * rr;
+
+  double amax = fmax(fabs(s[0]), fabs(s[1]));
 
   for (int i = 0; i < 8; i++) {
-    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
-    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+    amdq[i] = 0.0;
+    apdq[i] = 0.0;
+  }
+
+  for (int i = 1; i <= 2; i++) {
+    double dq = qr[i] - ql[i];
+    double df1 = f1r[i] - f1l[i];
+    double df2 = f2r[i] - f2l[i];
+
+    double df_l = (df1 / rl2) + df2;
+    double df_r = (df1 / rr2) + df2;
+    
+    amdq[i] = 0.5 * (df_l - amax * dq);
+    apdq[i] = 0.5 * (df_r + amax * dq);
   }
 }
 
@@ -194,8 +251,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double kappa = gr_tov->kappa;
 
   double fr[8], fl[8];
-  gkyl_gr_tov_flux(gas_gamma, kappa, ql, fl);
-  gkyl_gr_tov_flux(gas_gamma, kappa, qr, fr);
+  gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
+  gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
 
   for (int m = 0; m < 8; m++) {
     flux_jump[m] = fr[m] - fl[m];

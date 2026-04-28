@@ -435,7 +435,7 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   double mom_r = ((rho + p) * W * W) * vel;
 
   double THETA = (mom_r * vel - Etot) * (8.0 * M_PI * lapse * a * r * p + lapse * a * (m / (r * r))) + (lapse * a * p * (m / (r * r)));
-  double SIGMA = THETA + 2.0 * lapse * p / ( a * r);
+  //double SIGMA = THETA + 2.0 * lapse * p / ( a * r);
 
 
   for (int i = 0; i < 8; i++) {
@@ -443,8 +443,8 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   }
 
   fluid_new[0] += 0.0;
-  fluid_new[1] += dt * SIGMA;
-  fluid_new[2] -= dt * SIGMA;
+  fluid_new[1] += dt * THETA;
+  fluid_new[2] -= dt * THETA;
   fluid_new[3] += 0.0;
   fluid_new[4] += 0.0;
   fluid_new[5] += 0.0;

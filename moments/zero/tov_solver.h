@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#define TOV_MAX_POINTS 200000
+#define TOV_MAX_POINTS 500000
 
 // Output struct for BL evaluation
 struct tov_eval_bl {
