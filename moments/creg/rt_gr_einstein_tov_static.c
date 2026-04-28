@@ -79,11 +79,11 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
 
   // Simulation parameters.
-  int Nx = 4096; // Cell count (r-direction).
+  int Nx = 16384; // Cell count (r-direction).
   double Lx = 2500.0; // Domain size (r-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
-  double t_end = 500; // Final simulation time.
+  double t_end = 1500; // Final simulation time.
   int num_frames = 1000; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

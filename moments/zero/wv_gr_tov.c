@@ -217,16 +217,20 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
     apdq[i] = 0.0;
   }
 
+  double dq_mom = 0.5 * ((qr[1] - qr[2]) - (ql[1] - ql[2]));
+  double dq_diff[8] = { 0.0 };
+  dq_diff[1] = dq_mom;
+  dq_diff[2] = -dq_mom;
+
   for (int i = 1; i <= 2; i++) {
-    double dq = qr[i] - ql[i];
     double df1 = f1r[i] - f1l[i];
     double df2 = f2r[i] - f2l[i];
 
     double df_l = (df1 / rl2) + df2;
     double df_r = (df1 / rr2) + df2;
-    
-    amdq[i] = 0.5 * (df_l - amax * dq);
-    apdq[i] = 0.5 * (df_r + amax * dq);
+
+    amdq[i] = 0.5 * (df_l - amax * dq_diff[i]);
+    apdq[i] = 0.5 * (df_r + amax * dq_diff[i]);
   }
 }
 
