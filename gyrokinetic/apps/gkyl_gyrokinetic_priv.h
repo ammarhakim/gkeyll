@@ -1271,9 +1271,11 @@ struct gk_field {
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
   struct gkyl_array *kSq; // Weight for Poisson/Helmholtz solver. 
 
+  struct gkyl_poisson_bias_line_list fem_parproj_bias_line_list; // Biased lines constraining the solution.
+
   struct gkyl_fem_parproj *fem_parproj; // Projects DG function onto continuous  FEM basis:  weight*phi_{fem} = phi_{dg} 
-  struct gkyl_fem_parproj *fem_parproj_sol; // FEM projection in the SOL.
-  struct gkyl_fem_parproj *fem_parproj_core; // FEM projection in the core.
+  struct gkyl_fem_parproj *fem_parproj_rho_sol , *fem_parproj_phi_sol ; // FEM projection in the SOL.
+  struct gkyl_fem_parproj *fem_parproj_rho_core, *fem_parproj_phi_core; // FEM projection in the core.
 
   struct gkyl_fem_poisson_perp *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
 
