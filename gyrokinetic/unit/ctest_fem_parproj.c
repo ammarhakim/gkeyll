@@ -1831,6 +1831,14 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
     check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
   }
+
+  gkyl_fem_parproj_release(parproj);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+
 }
 
 void test_1x_p1_bcnone_ho() {test_1x(1, GKYL_FEM_PARPROJ_NONE, false);}
@@ -1914,7 +1922,7 @@ void test_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true)
 void test_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p1_bcdirichlet_bias_dev() {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
-//  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
+  test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 
 void test_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
