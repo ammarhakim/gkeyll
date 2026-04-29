@@ -1,9 +1,9 @@
 /*
- * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 9032023
+ * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gyraze_surrogate_c_interface @ 725d99e
  * Sources:
- *   nn model      : gkeyll_sheath_ai/model/nn_model_full.pth
- *   normalization : gkeyll_sheath_ai/model/normalization_full.npz
- *   svm model     : gkeyll_sheath_ai/model/svm_model.pkl
+ *   nn model      : gyraze_surrogate_c_interface/model/nn_model_full_MPE.pth
+ *   normalization : gyraze_surrogate_c_interface/model/normalization_full_MPE.npz
+ *   svm model     : gyraze_surrogate_c_interface/model/svm_model.pkl
  */
 #pragma once
 
