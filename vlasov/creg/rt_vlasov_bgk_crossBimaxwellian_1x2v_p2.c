@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
@@ -19,37 +20,56 @@
 
 #include <rt_arg_parse.h>
 
-struct lbo_cross_ctx
+struct bgk_cross_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
-  // Physical constants (using normalized code units).
-  double mass_neut1; // First neutral mass.
-  double mass_neut2; // Second neutral mass.
-  double charge_neut1; // First neutral charge.
-  double charge_neut2; // Second neutral charge.
+  int cdim, vdim; // Dimensionality.
 
-  double p_neut1; // First neutral pressure.
-  double p_neut2; // Second neutral pressure.
-  double n0_neut1; // First neutral reference number density.
-  double n0_neut2; // Second netural reference number density.
+  // Physical constants (using physical units).
+  double epsilon0; // Permittivity of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
+  double mass_ion; // Proton mass.
+  double charge_ion; // Proton charge.
 
-  double ux0_neut1; // First neutral reference velocity (x-direction).
-  double ux0_neut2; // Second neutral reference velocity (x-direction).
-  double nu_neut1; // First neutral collision frequency.
-  double nu_neut2; // Second neutral collision frequency.
+  double n0; // Reference number density (1 / m^3).
 
-  // Derived physical quantities (using normalized code units).
-  double vt_neut1; // First neutral thermal velocity.
-  double vt_neut2; // Second neutral thermal velocity.
+  double T_par_elc; // Parallel electron temperature.
+  double T_par_ion; // Parallel ion temperature.
+  double alpha; // Ratio of perpendicular to parallel temperatures.
+
+  // Derived physical quantities (using physical units).
+  double T_perp_elc; // Perpendicular electron temperature.
+  double T_perp_ion; // Perpendicular ion temperature.
+
+  double vte_par; // Parallel electron thermal velocity.
+  double vti_par; // Parallel ion thermal velocity.
+  double vte_perp; // Perpendicular electron thermal velocity.
+  double vti_perp; // Perpendicular ion thermal velocity.
+
+  double log_lambda_elc; // Electron Coulomb logarithm.
+  double log_lambda_ion; // Ion Coulomb logarithm.
+  double nu_elc; // Electron collision frequency.
+  double nu_ion; // Ion collision frequency.
+
+  double Te; // Electron temperature.
+  double Ti; // Ion temperature.
+  double vte; // Electron thermal velocity.
+  double vti; // Ion thermal velocity.
+  double ue_par; // Electron bulk velocity (x-direction).
+  double ui_par; // Ion bulk velocity (x-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max_neut1; // First neutral domain boundary (velocity space: vx-direction).
-  double vx_max_neut2; // Second neutral domain boundary (velocity space: vx-direction).
+  double vx_max_elc; // Electron domain boundary (velocity space: vx-direction).
+  double vx_max_ion; // Ion domain boundary (velocity space: vx-direction).
+  double vy_max_elc; // Electron domain boundary (velocity space: vy-direction).
+  double vy_max_ion; // Ion domain boundary (velocity space: vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -62,70 +82,106 @@ struct lbo_cross_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct lbo_cross_ctx
+struct bgk_cross_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  double pi = GKYL_PI;
 
-  // Physical constants (using normalized code units).
-  double mass_neut1 = 1.0; // First neutral mass.
-  double mass_neut2 = 0.05; // Second neutral mass.
-  double charge_neut1 = 0.0; // First neutral charge.
-  double charge_neut2 = 0.0; // Second neutral charge.
+  int cdim = 1, vdim = 2; // Dimensionality.
 
-  double p_neut1 = 1.0; // First neutral pressure.
-  double p_neut2 = 0.5; // Second neutral pressure.
-  double n0_neut1 = 1.0; // First neutral reference number density.
-  double n0_neut2 = 1.0; // Second netural reference number density.
+  // Physical constants (using physical units).
+  double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
+  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
+  double mass_ion = 2.014 * GKYL_PROTON_MASS; // Proton mass.
+  double charge_elc = -GKYL_ELEMENTARY_CHARGE; // Electron charge.
+  double charge_ion = GKYL_ELEMENTARY_CHARGE; // Proton charge.
 
-  double ux0_neut1 = 0.1; // First neutral reference velocity (x-direction).
-  double ux0_neut2 = 2.5; // Second neutral reference velocity (x-direction).
-  double nu_neut1 = 1.0 / 0.01; // First neutral collision frequency.
-  double nu_neut2 = sqrt(0.5 / 0.05) / 0.01; // Second neutral collision frequency.
+  double T_par_elc = 300.0 * GKYL_ELEMENTARY_CHARGE; // Parallel electron temperature.
+  double T_par_ion = 200.0 * GKYL_ELEMENTARY_CHARGE; // Parallel ion temperature.
+  double alpha = 1.3; // Ratio of perpendicular to parallel temperatures.
 
-  // Derived physical quantities (using normalized code units).
-  double vt_neut1 = sqrt(p_neut1 / (n0_neut1 * mass_neut1)); // First neutral thermal velocity.
-  double vt_neut2 = sqrt(p_neut2 / (n0_neut2 * mass_neut2)); // Second neutral thermal velocity.
+  double n0 = 7.0e19; //  Reference number density (1 / m^3).
+
+  // Derived physical quantities (using physical units).
+  double T_perp_elc = alpha * T_par_elc; // Perpendicular electron temperature.
+  double T_perp_ion = alpha * T_par_ion; // Perpendicular ion temperature.
+
+  double vte_par = sqrt(T_par_elc / mass_elc); // Parallel electron thermal velocity.
+  double vti_par = sqrt(T_par_ion / mass_ion); // Parallel ion thermal velocity.
+  double vte_perp = sqrt(T_perp_elc / mass_elc); // Perpendicular electron thermal velocity.
+  double vti_perp = sqrt(T_perp_ion / mass_ion); // Perpendicular ion thermal velocity.
+
+  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_elc / charge_ion); // Electron Coulomb logarithm.
+  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_ion / charge_ion); // Ion Coulomb logarithm.
+  double nu_elc = log_lambda_elc * pow(charge_ion, 4.0) * n0 /
+    (12.0 * pow(GKYL_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_elc) * pow(T_par_elc, 3.0 / 2.0)); // Electron collision frequency.
+  double nu_ion = log_lambda_ion * pow(charge_ion, 4.0) * n0 /
+    (12.0 * pow(GKYL_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_ion) * pow(T_par_ion, 3.0 / 2.0)); // Ion collision frequency.
+  
+  double Te = (T_par_elc + (2.0 * T_perp_elc)) / 3.0; // Electron temperature.
+  double Ti = (T_par_ion + (2.0 * T_perp_ion)) / 3.0; // Ion temperature.
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
+  double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
+  double ue_par = 0.5 * sqrt(mass_elc / mass_ion) * vte; // Parallel electron velocity.
+  double ui_par = 50.0 * (mass_elc / mass_ion) * vti; // Parallel ion velocity.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max_neut1 = 6.0 * vt_neut1; // First neutral domain boundary (velocity space: vx-direction).
-  double vx_max_neut2 = 6.0 * vt_neut2; // Second neutral domain boundary (velocity space: vx-direction).
+  int Nx = 1; // Cell count (configuration space: x-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  double Lx = 4.0; // Domain size (configuration space: x-direction).
+  double vx_max_elc = 6.0 * vte_par; // First electron domain boundary (velocity space: vx-direction).
+  double vx_max_ion = 6.0 * vti_par; // Second ion domain boundary (velocity space: vx-direction).
+  double vy_max_elc = 6.0 * vte_par; // First electron domain boundary (velocity space: vy-direction).
+  double vy_max_ion = 6.0 * vti_par; // Second ion domain boundary (velocity space: vy-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.01; // Final simulation time.
-  int num_frames = 10; // Number of output frames.
+  double t_end = 200 / nu_ion; // Final simulation time.
+  int num_frames = 6000; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct lbo_cross_ctx ctx = {
+  struct bgk_cross_ctx ctx = {
     .pi = pi,
-    .mass_neut1 = mass_neut1,
-    .mass_neut2 = mass_neut2,
-    .charge_neut1 = charge_neut1,
-    .charge_neut2 = charge_neut2,
-    .p_neut1 = p_neut1,
-    .p_neut2 = p_neut2,
-    .n0_neut1 = n0_neut1,
-    .n0_neut2 = n0_neut2,
-    .ux0_neut1 = ux0_neut1,
-    .ux0_neut2 = ux0_neut2,
-    .nu_neut1 = nu_neut1,
-    .nu_neut2 = nu_neut2,
-    .vt_neut1 = vt_neut1,
-    .vt_neut2 = vt_neut2,
+    .cdim = cdim,
+    .vdim = vdim,
+    .epsilon0 = epsilon0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .T_par_elc = T_par_elc,
+    .T_par_ion = T_par_ion,
+    .n0 = n0,
+    .T_perp_elc = T_perp_elc,
+    .T_perp_ion = T_perp_ion,
+    .vte_par = vte_par,
+    .vti_par = vti_par,
+    .vte_perp = vte_perp,
+    .vti_perp = vti_perp,
+    .log_lambda_elc = log_lambda_elc,
+    .nu_elc = nu_elc,
+    .log_lambda_ion = log_lambda_ion,
+    .nu_ion = nu_ion,
+    .Te = Te,
+    .Ti = Ti,
+    .vte = vte,
+    .vti = vti,
+    .ue_par = ue_par,
+    .ui_par = ui_par,
     .Nx = Nx,
     .Nvx = Nvx,
+    .Nvy = Nvy,
     .Lx = Lx,
-    .vx_max_neut1 = vx_max_neut1,
-    .vx_max_neut2 = vx_max_neut2,
+    .vx_max_elc = vx_max_elc,
+    .vx_max_ion = vx_max_ion,
+    .vy_max_elc = vy_max_elc,
+    .vy_max_ion = vy_max_ion,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -141,89 +197,94 @@ create_ctx(void)
 }
 
 void
-evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
-  double vx = xn[1];
-  
+  struct bgk_cross_ctx *app = ctx;
+
+  double vx = xn[1], vy = xn[2];
+
   double pi = app->pi;
+  double n0 = app->n0;
+  double vte_par = app->vte_par;
+  double vte_perp = app->vte_perp;
+  double ue_par = app->ue_par;
 
-  double n0_neut1 = app->n0_neut1;
-  double ux0_neut1 = app->ux0_neut1;
-  double vt_neut1 = app->vt_neut1;
+  double vsq_par = pow((vx - ue_par), 2.0);
+  double vsq_perp = pow(vy, 2.0);
 
-  double v_sq = (vx - ux0_neut1) * (vx - ux0_neut1);
-
-  double n = (n0_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)); // Distribution function.
+  double n = (n0 / (2.0 * pow(pi, 3.0 / 2.0) * vte_par * pow(vte_perp, 2.0)) ) *
+    exp( (-vsq_par/pow(vte_par, 2.0)) + (-vsq_perp/pow(vte_perp, 2.0)) ); // Bimaxwellian distribution function.
 
   // Set distribution function.
   fout[0] = n;
 }
 
 void
-evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
-  double vx = xn[1];
-  
+  struct bgk_cross_ctx *app = ctx;
+
+  double vx = xn[1], vy = xn[2];
+
   double pi = app->pi;
+  double n0 = app->n0;
+  double vti_par = app->vti_par;
+  double vti_perp = app->vti_perp;
+  double ui_par = app->ui_par;
 
-  double n0_neut2 = app->n0_neut2;
-  double ux0_neut2 = app->ux0_neut2;
-  double vt_neut2 = app->vt_neut2;
+  double vsq_par = pow((vx - ui_par), 2.0);
+  double vsq_perp = pow(vy, 2.0);
 
-  double v_sq = (vx - ux0_neut2) * (vx - ux0_neut2);
-
-  double n = (n0_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)); // Distribution function.
+  double n = (n0 / (2.0 * pow(pi, 3.0 / 2.0) * vti_par * pow(vti_perp, 2.0)) ) *
+    exp( (-vsq_par/pow(vti_par, 2.0)) + (-vsq_perp/pow(vti_perp, 2.0)) ); // Bimaxwellian distribution function.
 
   // Set distribution function.
   fout[0] = n;
 }
 
 void
-evalNeut1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNuEE(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
-  double nu_neut1 = app->nu_neut1;
+  double nu_elc = app->nu_elc;
 
   // Set collision frequency.
-  fout[0] = nu_neut1;
+  fout[0] = nu_elc;
 }
 
-void 
-evalNeut1CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalNuEI(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
-  double mass_neut1 = app->mass_neut1;
-  double mass_neut2 = app->mass_neut2;
-  double nu_neut2 = app->nu_neut2;
+  double nu_elc = app->nu_elc;
 
   // Set collision frequency.
-  fout[0] = sqrt(2.0) * (mass_neut2 / mass_neut1) * nu_neut2;
+  fout[0] = sqrt(2.0) * nu_elc;
 }
 
 void
-evalNeut2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNuII(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
-  double nu_neut2 = app->nu_neut2;
+  double nu_ion = app->nu_ion;
 
   // Set collision frequency.
-  fout[0] = nu_neut2;
+  fout[0] = nu_ion;
 }
 
 void
-evalNeut2CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNuIE(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
-  double nu_neut2 = app->nu_neut2;
+  double mass_elc = app->mass_elc;
+  double mass_ion = app->mass_ion;
+  double nu_ion = app->nu_ion;
 
   // Set collision frequency.
-  fout[0] = sqrt(2.0) * nu_neut2;
+  fout[0] = sqrt(2.0) * sqrt(mass_elc / mass_ion) * nu_ion;
 }
 
 void
@@ -283,10 +344,11 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct lbo_cross_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bgk_cross_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -364,78 +426,90 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // First neutral species.
-  struct gkyl_vlasov_species neut1 = {
-    .name = "neut1",
-    .charge = ctx.charge_neut1, .mass = ctx.mass_neut1,
-    .lower = { -ctx.vx_max_neut1 },
-    .upper = { ctx.vx_max_neut1 }, 
-    .cells = { NVX },
-
+  // Electrons.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -ctx.vx_max_elc, -ctx.vy_max_elc },
+    .upper = { ctx.vx_max_elc, ctx.vy_max_elc }, 
+    .cells = { NVX, NVY },
     .num_init = 1, 
     .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
-      .func = evalNeut1Init,
+      .func = evalElcInit,
       .ctx_func = &ctx,
     },
+
+    .correct = {
+      .correct_all_moms = true,
+      .use_last_converged = true,
+      .iter_eps = 1e-12,
+      .max_iter = 10,
+    },
+
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNeut1Nu,
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalNuEE,
       .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
-      .collide_with = { "neut2" },
-      .cross_nu = { evalNeut1CrossNu },
+      .collide_with = { "ion" },
+      .cross_nu = { evalNuEI },
       .cross_nu_ctx = { &ctx },
-      // Reference values for Coulomb logarithm
-      .den_ref = ctx.n0_neut1,
-      .temp_ref = ctx.mass_neut1*ctx.vt_neut1*ctx.vt_neut1,
-      // Write collisional diagnostics
-      // .write_coll_diagnostics = true,
+      // Reference values for log Lambda
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te,
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2IJ },
   };
 
   // Second neutral species.
-  struct gkyl_vlasov_species neut2 = {
-    .name = "neut2",
-    .charge = ctx.charge_neut2, .mass = ctx.mass_neut2,
-    .lower = { -ctx.vx_max_neut2 },
-    .upper = { ctx.vx_max_neut2 }, 
-    .cells = { NVX },
+  struct gkyl_vlasov_species ion = {
+    .name = "ion",
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .lower = { -ctx.vx_max_ion, -ctx.vy_max_ion },
+    .upper = { ctx.vx_max_ion, ctx.vy_max_ion }, 
+    .cells = { NVX, NVY },
 
     .num_init = 1, 
     .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
-      .func = evalNeut2Init,
+      .func = evalIonInit,
       .ctx_func = &ctx,
     },
+
+    .correct = {
+      .correct_all_moms = true,
+      .use_last_converged = true,
+      .iter_eps = 1e-12,
+      .max_iter = 10,
+    },
+
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNeut2Nu,
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalNuII,
       .self_nu_ctx = &ctx,
       .num_cross_collisions = 1,
-      .collide_with = { "neut1" },
-      .cross_nu = { evalNeut2CrossNu },
+      .collide_with = { "elc" },
+      .cross_nu = { evalNuIE },
       .cross_nu_ctx = { &ctx },
-      // Reference values for Coulomb logarithm
-      .den_ref = ctx.n0_neut2,
-      .temp_ref = ctx.mass_neut2*ctx.vt_neut2*ctx.vt_neut2,
-      // Write collisional diagnostics
-      // .write_coll_diagnostics = true,
+      // Reference values for log Lambda
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Ti,
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2IJ },
   };
 
     // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
+    .name = "vlasov_bgk_crossBimax_1x2v_p2",
 
-    .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
+    .cdim = 1, .vdim = 2,
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
 
     .poly_order = ctx.poly_order,
@@ -446,7 +520,7 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = { neut1, neut2 },
+    .species = { elc, ion },
 
     .skip_field = true,
 
@@ -458,8 +532,6 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  // Set app output name from the executable name (argv[0]).
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
@@ -562,7 +634,7 @@ main(int argc, char **argv)
 
     step += 1;
   }
-  
+
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
@@ -593,7 +665,7 @@ main(int argc, char **argv)
 freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
-  gkyl_vlasov_app_release(app);
+  gkyl_vlasov_app_release(app); 
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

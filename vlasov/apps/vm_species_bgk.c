@@ -178,7 +178,6 @@ vmbgk_fixed_temp_enabled(gkyl_vlasov_app* app, const struct vm_species *vms,
     (app->vdim+1)*app->basis.num_basis, &app->local);
 }
 
-
 static void
 vmbgk_write_mom_disabled(gkyl_vlasov_app* app, struct vm_species *vms, double tm, int frame)
 {
@@ -365,7 +364,7 @@ vm_species_bgk_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       // Morse's alpha_E.
       bgk->alpha_E = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       // Cross primitive moments (n_sr, u_{parallel sr}, v_{t,sr}^2).
-      bgk->cross_prim_moms = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+      bgk->cross_prim_moms = mkarr(app->use_gpu, (app->vdim+2)*app->basis.num_basis, app->local_ext.volume);
       for (int i=0; i<bgk->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
         bgk->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -404,7 +403,7 @@ vm_species_bgk_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         struct gkyl_array *cross_nu_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
         for (int i=0; i<bgk->num_cross_collisions; ++i) {
           gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-            app->poly_order+1, 1, vms->info.collisions.cross_nu[i], vms->info.collisions.cross_nu_ctx);
+            app->poly_order+1, 1, vms->info.collisions.cross_nu[i], vms->info.collisions.cross_nu_ctx[i]);
           gkyl_proj_on_basis_advance(proj, 0.0, &app->local, cross_nu_ho);
           gkyl_proj_on_basis_release(proj);
           gkyl_array_copy(bgk->cross_nu[i], cross_nu_ho);

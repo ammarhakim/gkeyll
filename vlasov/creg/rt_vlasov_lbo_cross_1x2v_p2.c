@@ -107,8 +107,8 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.0025; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 0.01; // Final simulation time.
+  int num_frames = 10; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -208,6 +208,18 @@ evalNeut1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[0] = nu_neut1;
 }
 
+void evalNeut1CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct lbo_cross_ctx *app = ctx;
+
+  double mass_neut1 = app->mass_neut1;
+  double mass_neut2 = app->mass_neut2;
+  double nu_neut2 = app->nu_neut2;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0) * (mass_neut2 / mass_neut1) * nu_neut2;
+}
+
 void
 evalNeut2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
@@ -217,6 +229,17 @@ evalNeut2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   // Set collision frequency.
   fout[0] = nu_neut2;
+}
+
+void
+evalNeut2CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct lbo_cross_ctx *app = ctx;
+
+  double nu_neut2 = app->nu_neut2;
+
+  // Set collision frequency.
+  fout[0] = sqrt(2.0) * nu_neut2;
 }
 
 void
@@ -376,9 +399,13 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNeut1Nu,
       .self_nu_ctx = &ctx,
-      .cross_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "neut2" },
+      .cross_nu = { evalNeut1CrossNu },
+      .cross_nu_ctx = { &ctx },
+      // Reference values for log Lambda
+      .den_ref = ctx.n0_neut1,
+      .temp_ref = ctx.mass_neut1*ctx.vt_neut1*ctx.vt_neut1,
     },
     
     .num_diag_moments = 3,
@@ -403,9 +430,13 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNeut2Nu,
       .self_nu_ctx = &ctx,
-      .cross_nu_ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "neut1" },
+      .cross_nu = { evalNeut2CrossNu },
+      .cross_nu_ctx = { &ctx },
+      // Reference values for log Lambda
+      .den_ref = ctx.n0_neut2,
+      .temp_ref = ctx.mass_neut2*ctx.vt_neut2*ctx.vt_neut2,
     },
     
     .num_diag_moments = 3,
