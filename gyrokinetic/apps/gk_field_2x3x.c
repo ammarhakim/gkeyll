@@ -292,7 +292,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_2x;
   }
   else if (app->cdim == 3) {
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_iwl_2x;
+    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_iwl_3x;
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;
 
     // Take the TS function from the parallel BC of the first species.
