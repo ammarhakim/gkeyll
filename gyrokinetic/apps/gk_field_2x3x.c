@@ -195,7 +195,11 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
   int par_dir = app->cdim-1; // Parallel direction index.
   int num_bias_line = 0;
   int bl_idx = 0;
-  size_t bl_sz = (2+f->info.bias_line_list->num_bias_line) * sizeof(struct gkyl_poisson_bias_line);
+  int num_bias_line_in = 0;
+  if (f->info.bias_line_list)
+    num_bias_line_in = f->info.bias_line_list->num_bias_line;
+
+  size_t bl_sz = (2+num_bias_line_in) * sizeof(struct gkyl_poisson_bias_line);
   struct gkyl_poisson_bias_line *bias_lines_buff = gkyl_malloc(bl_sz);
   if ((app->gk_geom->geqdsk_sign_convention == 0) && (poisson_bcs->lo_type[0] == GKYL_POISSON_DIRICHLET)) {
     // psi increases towards SOL.
@@ -241,19 +245,18 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
     num_bias_line++;
     bl_idx++;
   } 
-  if (f->info.bias_line_list->num_bias_line > 0) {
-    for (int i=0; i<f->info.bias_line_list->num_bias_line; i++) {
-      struct gkyl_poisson_bias_line *bl = &(bias_lines_buff[bl_idx]);
-      struct gkyl_poisson_bias_line *bl_inp = &(f->info.bias_line_list->bl[i]);
-      bl->perp_dirs[0]   = bl_inp->perp_dirs[0]  ;
-      bl->perp_dirs[1]   = bl_inp->perp_dirs[1]  ;
-      bl->perp_coords[0] = bl_inp->perp_coords[0];
-      bl->perp_coords[1] = bl_inp->perp_coords[1];
-      bl->val = bl_inp->val;
-      num_bias_line++;
-      bl_idx++;
-    }
-  };
+  for (int i=0; i<num_bias_line_in; i++) {
+    struct gkyl_poisson_bias_line *bl = &(bias_lines_buff[bl_idx]);
+    struct gkyl_poisson_bias_line *bl_inp = &(f->info.bias_line_list->bl[i]);
+    bl->perp_dirs[0]   = bl_inp->perp_dirs[0]  ;
+    bl->perp_dirs[1]   = bl_inp->perp_dirs[1]  ;
+    bl->perp_coords[0] = bl_inp->perp_coords[0];
+    bl->perp_coords[1] = bl_inp->perp_coords[1];
+    bl->val = bl_inp->val;
+    num_bias_line++;
+    bl_idx++;
+  }
+  
   // Copy temporary bias line list into app.
   bl_sz = num_bias_line * sizeof(struct gkyl_poisson_bias_line);
   f->fem_parproj_bias_line_list.num_bias_line = num_bias_line;
