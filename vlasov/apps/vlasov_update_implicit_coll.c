@@ -14,18 +14,17 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
     fout[i] = app->species[i].f1;
   }
 
-  // compute necessary moments and boundary corrections for collisions
+  // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      vm_species_bgk_moms(app, &app->species[i], 
-        &app->species[i].bgk, fin[i]);
+      vm_species_bgk_moms_implicit(app, &app->species[i], &app->species[i].bgk, fin[i]);
     }
   }
   
-  // implicit BGK contributions
+  // Implicit BGK contributions with input time step dt0.
+  // Needs to be done after self-collisions moments for all species because RHS
+  // also computes cross-collision moments, so separate loop over species. 
   for (int i=0; i<app->num_species; ++i) {
-    app->species[i].bgk.implicit_step = true;
-    app->species[i].bgk.dt_implicit = dt0;
     vm_species_rhs_implicit(app, &app->species[i], fin[i], fout[i], dt0);
   }
 

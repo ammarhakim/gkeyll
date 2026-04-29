@@ -45,30 +45,27 @@ struct gkyl_vlasov_projection {
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+  double nu_frac; // Rescales collision frequencies (default = 1).
+  bool write_coll_diagnostics; // Whether to output diagnostics.
 
-  void *ctx; // context for collision function
-  // function for computing self-collision frequency
+  // Function for computing self-collision frequency.
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
+  void *self_nu_ctx; // Context for self_nu.
 
-  // inputs for Spitzer collisionality
-  bool normNu; // Set to true if you want to rescale collision frequency
-  double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar; // Planck's constant/2 pi 
+  int num_cross_collisions; // Number of species to collide with.
+  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
+  // Functions for computing cross-collision frequencies (one for each num_cross_collisions).
+  evalf_t cross_nu[GKYL_MAX_SPECIES];
+  void *cross_nu_ctx[GKYL_MAX_SPECIES]; // Context for cross_nu.
+
+  // Parameters used to compute the Coulomb Logarithm.
+  double den_ref; // Reference density.
+  double temp_ref; // Regerence temperature.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   // BGK collisions specific inputs
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
-  double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
-  bool use_last_converged; // use last iteration value regardless of convergence?
-
-  // Boolean for using implicit BGK collisions (replaces rk3)   
-  bool has_implicit_coll_scheme; 
-
-  int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
-
-  char collide_with_fluid[128]; // name of fluid species to cross collide with
+  bool is_implicit; // Boolean for using implicit BGK collisions (replaces rk3).
 };
 
 // Parameters for species radiation

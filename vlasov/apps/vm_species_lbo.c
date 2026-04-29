@@ -19,7 +19,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
   
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    app->poly_order+1, 1, s->info.collisions.self_nu, s->info.collisions.ctx);
+    app->poly_order+1, 1, s->info.collisions.self_nu, s->info.collisions.self_nu_ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_copy(lbo->self_nu, self_nu);
@@ -28,13 +28,13 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   lbo->spitzer_calc = 0;
   lbo->normNu = false;
-  if (s->info.collisions.normNu) {
+  if (s->info.collisions.self_nu) {
     lbo->normNu = true;
-    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+    double nu_frac = s->info.collisions.nu_frac ? s->info.collisions.nu_frac : 1.0;
     double eps0 = app->field->info.epsilon0 ? app->field->info.epsilon0 : 1.0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar : 1.0;
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
-      nuFrac, eps0, hbar, app->use_gpu);
+      nu_frac, eps0, hbar, app->use_gpu);
     // Create arrays for scaling collisionality by normalization factor
     // norm_nu is computed from Spitzer calc and is the normalization factor for the local
     // density and thermal velocity, norm_nu_sr = n/(vth_s^2 + vth_r^2)^(3/2)

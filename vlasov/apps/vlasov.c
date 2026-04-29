@@ -297,10 +297,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
-  for (int i=0; i<ns; ++i)
+  for (int i=0; i<ns; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS &&
         app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS)
+      vm_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
+  }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species.
@@ -331,7 +334,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // Use implicit BGK collisions if specified
   app->has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
-    if (vm->species[i].collisions.has_implicit_coll_scheme){
+    if (vm->species[i].collisions.is_implicit){
       app->has_implicit_coll_scheme = true;
     }
   }
@@ -1000,17 +1003,17 @@ gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
         snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
           "corr-lte-stat"); 
           
-        if (vm_s->bgk.lte.is_first_corr_status_write_call) {
+        if (vm_s->lte.is_first_corr_status_write_call) {
           // write to a new file (this ensure previous output is removed)
-          gkyl_dynvec_write(vm_s->bgk.lte.corr_stat, fileNm);
-          vm_s->bgk.lte.is_first_corr_status_write_call = false;
+          gkyl_dynvec_write(vm_s->lte.corr_stat, fileNm);
+          vm_s->lte.is_first_corr_status_write_call = false;
         }
         else {
           // append to existing file
-          gkyl_dynvec_awrite(vm_s->bgk.lte.corr_stat, fileNm);
+          gkyl_dynvec_awrite(vm_s->lte.corr_stat, fileNm);
         }
       }
-      gkyl_dynvec_clear(vm_s->bgk.lte.corr_stat);
+      gkyl_dynvec_clear(vm_s->lte.corr_stat);
     }
   } 
 }
