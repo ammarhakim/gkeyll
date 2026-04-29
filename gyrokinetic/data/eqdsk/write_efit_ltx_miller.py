@@ -45,11 +45,9 @@ q_min = qprofile(Rmid_min-R_axis)
 def r_x(x):
     return Rmid_min-R_axis + x
 def R_f(r, theta):
-  #return R_axis + r*np.cos(theta + np.arcsin(delta)*np.sin(theta))
-  return R_axis + np.outer(r,np.cos(theta + np.arcsin(delta)*np.sin(theta)))
+  return R_axis + r*np.cos(theta + np.arcsin(delta)*np.sin(theta))
 def Z_f(r, theta):
-  #return kappa*r*np.sin(theta)
-  return kappa*np.outer(r,np.sin(theta))
+  return kappa*r*np.sin(theta)
 
 #.Analytic derivatives.
 def R_f_r(r,theta):
@@ -71,52 +69,45 @@ def integrand(t, r):
   return Jr_f(r,t)/np.power(R_f(r,t),2)
 
 def dPsidr_f(r, theta):
-  integral, _ = integrate.quad(integrand, 0., 2.*np.pi, args=(r), epsabs=1.e-8)
+  integral, _ = integrate.quad(integrand, 0., 2.*np.pi, args=(r,), epsabs=1.e-8)
   return B_axis*R_axis/(2.*np.pi*qprofile(r))*integral
 
 def Bphi_f(R):
     return B_axis*R_axis/R
 
 def psi_fi(r,theta):
-    psi_i,_ = integrate.quad(dPsidr_f, 0, r, args=(theta), epsabs=1.e-8)
+    psi_i,_ = integrate.quad(dPsidr_f, 0, r, args=(theta,), epsabs=1.e-8)
     return psi_i
 
 # Some functions for calculating an analytical shift
-import math
-from scipy.integrate import quad
-
 def alpha(r, theta, phi):
     # Wrap theta to the range [-pi, pi]
-    # This replaces the while loops in the C code
     twrap = (theta + math.pi) % (2 * math.pi) - math.pi
 
     # Define the integrand locally
-    # In Python, we can access 'r' from the outer scope
     def integrand_wrapper(t):
         return integrand(t, r)
 
     # Perform the double exponential integration
-    # integral.res in C is equivalent to the first element of the quad return tuple
     if twrap > 0:
         res, err = quad(integrand_wrapper, 0, twrap, epsabs=1e-10)
     else:
-        # Note: quad(f, twrap, 0) naturally handles the sign 
-        # but we follow the C logic for exact parity
         res, err = quad(integrand_wrapper, twrap, 0, epsabs=1e-10)
         res = -res
 
     return phi - (B_axis * R_axis * res) / dPsidr_f(r, theta)
 
 def shift_lo_i(r):
-  return -r0/q0*alpha(r, -np.pi, 0.0);
+  return -r0/q0*alpha(r, -np.pi, 0.0)
 
 def shift_lo_angle_i(r):
-  return -alpha(r, -np.pi, 0.0);
+  return -alpha(r, -np.pi, 0.0)
+
+def shift_up_angle_i(r):
+    return -alpha(r, np.pi, 0.0);
 
 def shift_lo_angle_i_basic(r):
   return -2*np.pi*qprofile(r)
-
-
 
 
 #RZ box
@@ -144,8 +135,9 @@ xmax = Rmid_max-Rmid_min
 x = np.linspace(0,xmax,NW)
 r = Rmid_min-R_axis+x
 theta=np.linspace(-np.pi,np.pi,65)
-Rm = R_f(r,theta)
-Zm = Z_f(r,theta)
+r_grid, theta_grid = np.meshgrid(r, theta, indexing='ij')
+Rm = R_f(r_grid, theta_grid)
+Zm = Z_f(r_grid, theta_grid)
 
 #Calculate psi(r,theta)
 psi = np.zeros(len(r))
@@ -154,12 +146,9 @@ for i,ri in enumerate(r):
 psi_plot = np.repeat(psi,len(theta)).reshape(len(r),len(theta))
 fig, ax = plt.subplots()
 cax = ax.contour(Rm,Zm,psi_plot, cmap = "inferno")
-#cax = ax.pcolor(Rm,Zm,psi_plot, cmap = "inferno")
 plt.title("Original Psi")
 plt.colorbar(cax)
 plt.show()
-
-
 
 
 #Interpolate to get psi in RZ coords
@@ -175,12 +164,9 @@ psiRZ = psiRZ.T
 
 fig, ax = plt.subplots()
 cax = ax.contour(Rgrid,Zgrid, psiRZ.T, cmap = "inferno")
-#cax = ax.pcolor(Rgrid, Zgrid, psiRZ.T, cmap = "inferno")
 plt.title("Interpolated Psi")
 plt.colorbar(cax)
 plt.show()
-
-
 
 
 #PSI quantities
@@ -192,30 +178,25 @@ PRES = integrate.cumulative_trapezoid(PPRIME,PSIGRID,initial=0)
 PSIZR = psiRZ.T
 
 
-
 #LIMITER and boundary STUFF
 r_LCFS = r_x(x_LCFS)
 RLCFS = R_f(r_LCFS,theta)
 ZLCFS = Z_f(r_LCFS,theta)
 plt.scatter(RLCFS,ZLCFS)
 
-#QPSI = qprofile(r)
 def rlossfunc(r, psi0):
     return psi0 - psi_fi(r,0)
 def rfunc(psi):
-    return sco.ridder(rlossfunc,0, r_LCFS, args = (psi) )
+    return sco.ridder(rlossfunc,0, r_LCFS, args = (psi,) )
 QPSI = np.zeros(NPSI)
 for i in range(NPSI):
     QPSI[i] = qprofile(rfunc(PSIGRID[i]))
-
 
 
 NBBBS = 65
 LIMITR = 10
 RBBBS = Rm[-1,:]
 ZBBBS = Zm[-1,:]
-#RLCFS = R_f(r_LCFS,theta).squeeze()
-#ZLCFS = Z_f(r_LCFS,theta).squeeze()
 RLIM = np.linspace(RLEFT,R_f(r_LCFS,np.pi), LIMITR).squeeze()
 ZLIM = np.repeat(0.0,LIMITR)
 
@@ -223,7 +204,6 @@ ZLIM = np.repeat(0.0,LIMITR)
 plt.figure()
 plt.scatter(RLIM,ZLIM)
 plt.scatter(RBBBS,ZBBBS)
-#plt.show()
 
 writeList = [NW, NH,                                        #3i4
              RDIM, ZDIM, RCENTR, RLEFT, ZMID,               #5E16.9
@@ -266,11 +246,6 @@ def write_line(data: Iterable[Any], fh: TextIO, fmt: str) -> None:
 
 #Now write the EFIT FILE
 with open('ltx_miller.geqdsk','w',newline='') as f:
-    ##NW,NH
-    ##for i in range(2):
-    ##    f.write('%d '%writeList[i])
-    #f.write('FREEGS     19/06/2023        # 0  0ms              3  80  90')
-    #f.write('\n')
     write_line((comment, 3, NW, NH), f, header_fmt) #3 is idum
     # rdim,zdim,rcentr,rleft,zmid
     for i in range(2,7):
@@ -318,7 +293,6 @@ with open('ltx_miller.geqdsk','w',newline='') as f:
                 count=0
     #NBBBS,LIMITR
     for i in range(28,30):
-        #f.write('  %d  '%writeList[i])
         f.write('%5i'%writeList[i])
     f.write('\n')
     #RBBBS,ZBBBS
