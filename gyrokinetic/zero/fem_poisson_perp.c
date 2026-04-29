@@ -443,23 +443,22 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
         up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
-	for (int k=0; k<up->basis.num_basis; k++) {
-	  for (int l=0; l<up->basis.num_basis; l++) {
+        for (int k=0; k<up->basis.num_basis; k++) {
+          for (int l=0; l<up->basis.num_basis; l++) {
             size_t nnz = gkyl_mat_triples_size(up->tri[paridx]); // Number of nonzero elements.
             // Given the global i,j (row-col) place in the LHS matrix, find the linear index into the mat_triples list. 
             // Here we do a brute-force search as we are unsure of the order, and this is done only once at t=0.
-	    long off = -1;
-            gkyl_mat_triples_iter *mtt_iter = gkyl_mat_triples_iter_new(up->tri[k]);
+            long off = -1;
+            gkyl_mat_triples_iter *mtt_iter = gkyl_mat_triples_iter_new(up->tri[paridx]);
             for (size_t m=0; m<nnz; ++m) {
               gkyl_mat_triples_iter_next(mtt_iter); // bump iterator.
               struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(mtt_iter);
               if ((up->globalidx[k] == mt.row) && (up->globalidx[l] == mt.col)) {
                 off = m;
-		break;
-	      }
-	    }
-
-	    csr_val_idx_p[k*up->basis.num_basis+l] = paridx*nnz + off;
+                break;
+              }
+            }
+	          csr_val_idx_p[k*up->basis.num_basis+l] = paridx*nnz + off;
           }
         }
       }
