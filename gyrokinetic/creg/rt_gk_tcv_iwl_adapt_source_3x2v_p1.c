@@ -50,7 +50,7 @@ double r_x(double x, double a_mid, double x_inner)
   return x+a_mid-x_inner;
 }
 
-// cubic polynomial fit to TCV PT q profile (more stable for reg test than NT one).
+// cubic polynomial fit to TCV NT q profile (discharge #65130)
 double qprofile(double R) {
   double qfit[4] = {
     497.3420166252413, -1408.736172826569, 1331.4134861681464, -419.00692601227627
@@ -317,7 +317,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
+  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) )/2; // Half the shift for stability.
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -333,7 +333,7 @@ void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
+  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) )/2; // Half the shift for stability.
 }
 
 struct gk_app_ctx create_ctx(void)
