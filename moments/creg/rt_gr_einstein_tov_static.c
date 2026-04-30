@@ -79,7 +79,7 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
 
   // Simulation parameters.
-  int Nx = 16384; // Cell count (r-direction).
+  int Nx = 4096; // Cell count (r-direction).
   double Lx = 2500.0; // Domain size (r-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
@@ -154,10 +154,10 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   }
 
   double p = fmax(bl.P, app->p_atm);
-  double rho = p / (app->gas_gamma - 1.0);
+  double rho = p / (app->gas_gamma - 1.0); // fluid-frame total energy density
 
-  double Etot = ((rho + p) * W * W) - p;
-  double mom_r = ((rho + p) * W * W) * v_con[0];
+  double Etot = ((rho + p) * W * W) - p; // Eulerian-frame (conserved) energy dneisty 
+  double mom_r = ((rho + p) * W * W) * v_con[0]; // radial momenutm density
 
   //Evolved conservative variables: dummy for D, tau, momentum_r, lapse
 
@@ -229,7 +229,6 @@ main(int argc, char **argv)
   double lower = 0.5 * (ctx.Lx / NX);
   double upper = ctx.Lx + 0.5 * (ctx.Lx / NX);
 
-
   // Fluid equations.
   struct gkyl_wv_eqn *gr_tov = gkyl_wv_gr_tov_new(ctx.gas_gamma, ctx.kappa, app_args.use_gpu);
 
@@ -243,6 +242,8 @@ main(int argc, char **argv)
     .has_gr_tov = true,
     .tov_gas_gamma = ctx.gas_gamma,
     .tov_kappa = ctx.kappa,
+    .tov_p_atm = ctx.p_atm,
+    .has_dynamic_lapse = false,
 
     .force_low_order_flux = true,
     .limiter = GKYL_ZERO,

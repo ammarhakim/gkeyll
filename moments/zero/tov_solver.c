@@ -266,7 +266,7 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     tov->e[0] = e_c;
     tov->Phi[0] = 0.0;  // "provisional"; shifted below
 
-    // Taylor expansion at r = dr  (since we can't start the integration at 0)
+    // Taylor expansion at r = dr  (because the TOV equations are singular-looking at r = 0)
     double r_n = dr;
     double y[3];
     y[0] = (4.0 / 3.0) * M_PI * e_c * r_n * r_n * r_n; //m 

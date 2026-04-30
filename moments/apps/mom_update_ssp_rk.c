@@ -7,7 +7,7 @@
 // the status object.
 static void
 forward_euler(gkyl_moment_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *emin,
+  struct gkyl_array *fin[], const struct gkyl_array *emin,
   struct gkyl_array *fout[], struct gkyl_array *emout,
   struct gkyl_update_status *st)
 {
@@ -16,6 +16,9 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
 
   // compute RHS of fluid equations
   for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].has_gr_tov && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fin[i]);
+    }
     double dt1 = moment_species_rhs(app, &app->species[i], fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
@@ -40,6 +43,9 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &(app->local)),
       1.0, fin[i], &(app->local));
+    if (app->species[i].has_gr_tov && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fout[i]);
+    }
     moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);
   }
   if (app->has_field) {
@@ -57,7 +63,7 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
 struct gkyl_update_status
 moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
 {
-  const struct gkyl_array *fin[app->num_species];
+  struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
   struct gkyl_update_status st = { .success = true };
 

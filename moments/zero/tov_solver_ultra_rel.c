@@ -16,8 +16,6 @@ struct gkyl_tov_ultra_rel {
     double *r_areal; // areal radius
     double *m; 
     double *P;
-    double *rho; // energy density
-    double *eps; // unused for ultra-relativistic EOS
     double *e; // energy density
     double *Phi; // potential (gravitaional potential, metric potential: alpha = exp(Phi))
 
@@ -42,20 +40,15 @@ static inline double eos_pressure(double Gamma, double e)
     return 0.0;
 }
 
-static inline double eos_eps(double Gamma, double e)
+static inline double eos_energy(double Gamma, double e)
 {
-    return 0.0;
-}
-
-static inline double eos_energy(double Gamma, double rho)
-{
-    if (rho > 0) {
-        return rho;
+    if (e > 0) {
+        return e;
     }
     return 0.0;
 }
 
-static inline double eos_rho_from_pressure(double Gamma, double P)
+static inline double eos_e_from_pressure(double Gamma, double P)
 {
     if (P > 0) {
         return P / (Gamma - 1.0);
@@ -74,7 +67,7 @@ static void tov_rhs(double r, const double y[3], double f[3], double Gamma)
         return;
     }
 
-    double e = eos_rho_from_pressure(Gamma, P);
+    double e = eos_e_from_pressure(Gamma, P);
 
     if (r * (r - 2.0 * m_enc) <= 0.0) { // denominator from dP/dr
         f[0] = f[1] = f[2] = 0.0;  // if (r * (r - 2.0 * m_enc) <= 0.0) then we're at/inside the horizon - unphysical for a stable star
@@ -155,9 +148,7 @@ bool gkyl_tov_ultra_rel_eval_bl(const struct gkyl_tov_ultra_rel *tov, double r, 
         return false;
     }
 
-    out->rho = interp(tov, tov->rho, r);
     out->P = interp(tov, tov->P, r);
-    out->eps = interp(tov, tov->eps, r);
     out->e = interp(tov, tov->e, r);
     out->m = interp(tov, tov->m, r);
     out->Phi = interp(tov, tov->Phi, r);
@@ -174,16 +165,12 @@ bool gkyl_tov_ultra_rel_eval(const struct gkyl_tov_ultra_rel *tov, double x, dou
     double r = sqrt(x*x + y*y + z*z);
     
     if (r >= tov->R_areal) {
-        out->rho = 0.0;
         out->P   = 0.0;
-        out->eps = 0.0;
         out->e   = 0.0;
         return true;
     }
     
-    out->rho = interp(tov, tov->rho, r);
     out->P   = interp(tov, tov->P,   r);
-    out->eps = interp(tov, tov->eps, r);
     out->e   = interp(tov, tov->e,   r);
     return true;
 }
@@ -225,12 +212,10 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     tov->r_areal = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
     tov->m = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
     tov->P  = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->rho = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->eps = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
     tov->e = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
     tov->Phi = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
 
-    if (!tov->r_areal || !tov->m || !tov->P || !tov->rho || !tov->eps || !tov->e || !tov->Phi) {
+    if (!tov->r_areal || !tov->m || !tov->P || !tov->e || !tov->Phi) {
         gkyl_tov_ultra_rel_release(tov);
         return NULL;
     }
@@ -243,12 +228,10 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     tov->r_areal[0] = 0.0;
     tov->m[0] = 0.0;
     tov->P[0] = P_c;
-    tov->rho[0] = e_c;
-    tov->eps[0] = eos_eps(Gamma, e_c);
     tov->e[0] = e_c;
     tov->Phi[0] = 0.0;  // "provisional"; shifted below
 
-    // Taylor expansion at r = dr  (since we can't start the integration at 0)
+    // Taylor expansion at r = dr  (because the TOV equations are singular-looking at r = 0)
     double r_n = dr;
     double y[3];
     y[0] = (4.0 / 3.0) * M_PI * e_c * r_n * r_n * r_n; //m 
@@ -259,13 +242,12 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
             y[1] = 0.0;
         }
 
-    double rho_n = eos_rho_from_pressure(Gamma, y[1]);
+    double e_n = eos_e_from_pressure(Gamma, y[1]);
     tov->r_areal[1] = r_n;
     tov->m[1]       = y[0];
     tov->P[1]       = y[1];
-    tov->rho[1]     = rho_n;
-    tov->eps[1]     = eos_eps(Gamma, rho_n);
-    tov->e[1]       = eos_energy(Gamma, rho_n);
+    tov->e[1]     = e_n;
+    tov->e[1]       = eos_energy(Gamma, e_n);
     tov->Phi[1]     = y[2];
     int n = 2;     
 
@@ -279,17 +261,16 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
             y[1] = 0.0;
         }
 
-        rho_n = eos_rho_from_pressure(Gamma, y[1]);
+        e_n = eos_e_from_pressure(Gamma, y[1]);
 
         tov->r_areal[n] = r_n;
         tov->m[n] = y[0];
         tov->P[n]  = y[1];
-        tov->rho[n] = rho_n;
-        tov->eps[n] = eos_eps(Gamma, rho_n);
-        tov->e[n] = eos_energy(Gamma, rho_n);
+        tov->e[n] = e_n;
+        tov->e[n] = eos_energy(Gamma, e_n);
         tov->Phi[n] = y[2];
         n++;
-        
+
         if (y[1] <= 0.0) break;
     }
 
@@ -318,8 +299,6 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
         tov->r_areal[n] = r_n;
         tov->m[n]       = tov->M_star;
         tov->P[n]       = 0.0;
-        tov->rho[n]     = 0.0;
-        tov->eps[n]     = 0.0;
         tov->e[n]       = 0.0;
 
         tov->Phi[n] = (1.0 - V_ext > 0.0)
@@ -333,14 +312,107 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     return tov;
 }
 
+void
+gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q)
+{
+  double m_before = 0.0;
+  double phi_before = 0.0;
+
+  double r_before = 0.0;
+  double dphi_dr_before = 0.0;
+  int surface_idx = ncells - 1;
+
+  for (int i = 0; i < ncells; ++i) {
+    double *qi = &q[8*i];
+
+    double PI = qi[1];
+    double PHI = qi[2];
+    double r = qi[5];
+
+    double beta = 0.25 * (2.0 - gas_gamma);
+    double p_term = beta * beta * (PI + PHI) * (PI + PHI) + (gas_gamma - 1.0) * PI * PHI;
+    double p = -beta * (PI + PHI) + sqrt(fmax(0.0, p_term));
+    bool in_atmosphere = False;
+    if (p_atm > 0.0 && p <= (1.0 + 1.0e-12) * p_atm) {
+        in_atmosphere = True;
+    }
+    double p_geom = 0.0;
+    if (p_atm > 0.0) {
+        p_geom = fmax(0.0, p - p_atm);
+    }
+    else {
+        p_geom = p;
+    }
+
+    double rho = p_geom / (gas_gamma - 1.0);
+
+    double vel = 0.0;
+    double denom = PI + PHI + 2.0 * p;
+    if (denom > 0.0)
+      vel = (PI - PHI) / denom;
+
+    double W = 1.0 / sqrt(fmax(1.0e-8, 1.0 - vel * vel));
+    double Etot = ((rho + p) * W * W) - p;
+    double mom_r = ((rho + p) * W * W) * vel;
+
+    double m = qi[4];
+
+    if (in_atmosphere && surface_idx == ncells - 1) {
+      surface_idx = i > 0 ? i - 1 : 0;
+    }
+
+    double dphi_dr = 0.0;
+    if (!in_atmosphere && r > 0.0 && r - 2.0 * m > 0.0) {
+      double radial_stress = mom_r * vel + p_geom; // fluid is moving, no longer just pressure
+      dphi_dr = (m + 4.0 * M_PI * r * r * r * radial_stress) / (r * (r - 2.0 * m));
+    }
+
+    double phi = 0.0;
+    if (i == 0) {
+      phi = 0.0; // provisional; shift after sweep
+    }
+    else {
+      double dr = r - r_before;
+      phi = phi_before + 0.5*dr*(dphi_dr_before + dphi_dr);
+    }
+
+    qi[3] = phi;
+
+    r_before = r;
+    m_before = m;
+    phi_before = phi;
+    dphi_dr_before = dphi_dr;
+  }
+
+  double *qsurf = &q[8*surface_idx];
+  double R = qsurf[5];
+  double M = qsurf[4];
+
+  if (R > 0.0 && 1.0 - 2.0*M/R > 0.0) {
+    double phi_match = 0.5 * log(1.0 - 2.0 * M / R);
+    double phi_shift = phi_match - qsurf[3];
+
+    for (int i = 0; i <= surface_idx; ++i) {
+      q[8*i + 3] += phi_shift;
+    }
+  }
+
+  for (int i = surface_idx + 1; i < ncells; ++i) {
+    double *qi = &q[8*i];
+    double r = qi[5];
+    double m = qi[4];
+    if (r > 0.0 && 1.0 - 2.0 * m / r > 0.0) {
+      qi[3] = 0.5 * log(1.0 - 2.0 * m / r);
+    }
+  }
+}
+
 void gkyl_tov_ultra_rel_release(struct gkyl_tov_ultra_rel *tov)
 {
     if (!tov) return;
     gkyl_free(tov->r_areal);
     gkyl_free(tov->m);
     gkyl_free(tov->P);
-    gkyl_free(tov->rho);
-    gkyl_free(tov->eps);
     gkyl_free(tov->e);
     gkyl_free(tov->Phi);
     gkyl_free(tov);

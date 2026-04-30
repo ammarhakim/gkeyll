@@ -49,8 +49,10 @@ struct gkyl_moment_species {
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   bool has_gr_tov; 
+  bool has_dynamic_lapse; //
   double tov_gas_gamma; //
   double tov_kappa; // 
+  double tov_p_atm; //
 
   bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
   double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).

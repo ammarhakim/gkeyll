@@ -6,9 +6,7 @@
 
 // Output struct for BL evaluation.
 struct tov_ultra_rel_eval_bl {
-    double rho;
     double P;
-    double eps;
     double e;
     double m;
     double Phi;
@@ -16,9 +14,7 @@ struct tov_ultra_rel_eval_bl {
 
 // Output struct for fluid evaluation (CKS/SKS).
 struct tov_ultra_rel_eval_fluid {
-    double rho;
     double P;
-    double eps;
     double e;
 };
 
@@ -68,6 +64,14 @@ double gkyl_tov_ultra_rel_star_mass(const struct gkyl_tov_ultra_rel *tov);
  * Get areal radius of the stellar surface.
  */
 double gkyl_tov_ultra_rel_star_radius(const struct gkyl_tov_ultra_rel *tov);
+
+/**
+ * Refresh lapse potential Phi and enclosed mass m from the current
+ * one-dimensional GR TOV state.
+ *
+ * The state q is assumed to be contiguous with 8 components per cell.
+ */
+void gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q);
 
 /**
  * Release TOV solution object and free memory.

@@ -2,6 +2,8 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
 
+#include "tov_solver_ultra_rel.h"
+
 // initialize species
 void
 moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_species *mom_sp,
@@ -82,12 +84,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
 
   sp->has_gr_tov = false;
+  sp->has_dynamic_lapse = false;
   if (mom_sp->has_gr_tov) {
     sp->update_sources = true; 
     sp->has_gr_tov = true;
+    sp->has_dynamic_lapse = mom_sp->has_dynamic_lapse;
 
     sp->tov_gas_gamma = mom_sp->tov_gas_gamma;
     sp->tov_kappa = mom_sp->tov_kappa;
+    sp->tov_p_atm = mom_sp->tov_p_atm;
   }
 
   sp->has_einstein_medium = false;
@@ -477,6 +482,9 @@ moment_species_update(gkyl_moment_app *app,
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
+    if (sp->has_gr_tov && sp->has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d]);
+    }
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
 
     double my_max_speed = stat.max_speed;
@@ -489,6 +497,9 @@ moment_species_update(gkyl_moment_app *app,
       };
     
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+    if (sp->has_gr_tov && sp->has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d+1]);
+    }
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
   }
 
@@ -533,6 +544,46 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
   
   return app->cfl/omegaCfl[0];
+}
+
+void
+moment_species_refresh_gr_tov_geometry(gkyl_moment_app *app,
+  const struct moment_species *sp, struct gkyl_array *f)
+{
+  if (!sp->has_gr_tov || !sp->has_dynamic_lapse || sp->ndim != 1 || sp->num_equations < 8) {
+    return;
+  }
+
+  int ncells = app->local.volume;
+  if (ncells <= 0) {
+    return;
+  }
+
+  double *q = gkyl_malloc(sizeof(double) * 8 * ncells);
+
+  int n = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *qin = gkyl_array_cfetch(f, gkyl_range_idx(&app->local, iter.idx));
+    for (int k = 0; k < 8; ++k) {
+      q[8*n + k] = qin[k];
+    }
+    n++;
+  }
+
+  gkyl_gr_tov_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
+
+  n = 0;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *qout = gkyl_array_fetch(f, gkyl_range_idx(&app->local, iter.idx));
+    qout[3] = q[8*n + 3];
+    qout[4] = q[8*n + 4];
+    n++;
+  }
+
+  gkyl_free(q);
 }
 
 // free species

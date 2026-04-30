@@ -99,8 +99,10 @@ struct moment_species {
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   bool has_gr_tov; // 
+  bool has_dynamic_lapse; //
   double tov_gas_gamma; // 
   double tov_kappa; // 
+  double tov_p_atm; //
 
   bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
   double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
@@ -442,6 +444,10 @@ struct gkyl_update_status moment_species_update(gkyl_moment_app *app,
 // Compute RHS of moment equations
 double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// Refresh constrained GR TOV geometry variables from the current fluid state.
+void moment_species_refresh_gr_tov_geometry(gkyl_moment_app *app,
+  const struct moment_species *sp, struct gkyl_array *f);
 
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
