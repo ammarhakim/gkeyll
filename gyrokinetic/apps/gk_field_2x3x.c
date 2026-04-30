@@ -252,7 +252,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     fem_parproj_bc_rho_core = 0;
     fem_parproj_bc_rho_sol  = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-    fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
+    fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_NONE;
 
     f->fem_projection_par_rho_func = gk_field_fem_projection_par;
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;

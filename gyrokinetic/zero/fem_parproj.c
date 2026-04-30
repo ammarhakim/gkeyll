@@ -181,8 +181,26 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
         bool pick_lower = true; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
-
         bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
+
+        if (!bl_in_solve_range[i]) {
+          // Check if line is on the upper cell boundary. If it is, search for the cell
+          // again but with pick_lower=false.
+          bool on_upper_cell_boundary = false;
+          double xc[GKYL_MAX_CDIM];
+          gkyl_rect_grid_cell_center(grid, line_idx, xc);
+          for (int d=0; d<up->ndim; d++) {
+            if (fabs(line_coords[d] - (xc[d]+0.5*grid->dx[d])) < 1e-3*grid->dx[d]) {
+              on_upper_cell_boundary = true;
+            }
+          }
+          if (on_upper_cell_boundary) {
+            pick_lower = false; // If at a cell boundary, pick the cell upper than the biased line.
+            gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
+            bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
+          }
+        }
+
         if (bl_in_solve_range[i])
           up->num_bias_line++;
       }
@@ -227,7 +245,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
   }
   else {
-    if (has_weight_lhs) {
+    if (has_weight_lhs || up->num_bias_line) {
       nrhs = 1;
       gkyl_range_init(&prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper);
     }
