@@ -71,7 +71,7 @@ struct gk_app_ctx {
 
 double random0to1()
 {
-  return (double)rand() / (double)RAND_MAX;
+  return 0.5; // (double)rand() / (double)RAND_MAX;
 }
 
 // Common source density profiles.
