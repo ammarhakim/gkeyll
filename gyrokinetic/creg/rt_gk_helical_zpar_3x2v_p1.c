@@ -206,12 +206,17 @@ double phix(const double *xc, void *ctx)
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
 
+  // Original Shi mapping. This mapping does not pass the right hand check.
   // double theta = asin(Lp/Lt);
-  // return (y/sin(theta) + z*cos(theta))/Rc; // Original Shi mapping.
+  // return (y/sin(theta) + z*cos(theta))/Rc; // O
 
+  // This mapping passes right hand check but does not conserve particle!
+  // double theta = thetax(xc, ctx);
+  // return (y/sin(theta) + z*cos(theta))/x;
+
+  // Helical sheared mapping. Passes right hand check and conserves particle.
   double theta = thetax(xc, ctx);
-  return (y/sin(theta) + z*cos(theta))/x;
-  // return y/Rc + (Bt * z*sin(theta))/(Bv * x); // Helical sheared mapping.
+  return y/Rc + (Bt * z*sin(theta))/(Bv * x); 
 }
 
 // Interface function calls.
