@@ -246,12 +246,10 @@ void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
-  
-  double theta = thetax(xc, ctx);
 
   // Map to cylindrical (R, Z, phi) coordinates.
-  double R   = x;
-  double Z   = z*sin(theta);
+  double R   = Rx(xc, ctx);
+  double Z   = Zx(xc, ctx);
   double phi = phix(xc, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
