@@ -2,12 +2,13 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 #include <gkyl_array_reduce.h>
 
-void
+static void
 fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin)
 {
+  // Do nothing.
 }
 
-void
+static void
 fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA

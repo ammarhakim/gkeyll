@@ -1,8 +1,17 @@
-// Test the perpendicular FEM Helmholtz solver with a nonzero kSq,
-// essentially solving the Helmholtz equation:
-//   - nabla . (epsilon * nabla phi) + kSq * phi = rho
-// using the gkyl_fem_poisson_perp struct.
-//
+/* Test the perpendicular FEM Helmholtz solver with a nonzero kSq,
+ * essentially solving the Helmholtz equation:
+ *   - nabla . (epsilon * nabla phi) + kSq * phi = rho
+ * using the gkyl_fem_poisson_perp struct. Also test the LHS update routine,
+ * 
+ * This test contains additional optional environment variables:
+ *   TEST_NX, TEST_NY, TEST_NZ: to set the grid resolution (default: 32x16x2 for 3x tests, 32x48 for 2x tests)
+ *   TEST_OUTPUT: when set, enables writing the solution in the ctest_fem_poisson_perp_ksq.txt file (default: no output file written)
+ *   TEST_VERBOSE: when set, enables writing the DG L2 error in standard output (default: no extra output)
+ * 
+ *  Example:
+ *   TEST_NX=32 TEST_NY=32 TEST_NZ=16 TEST_OUTPUT=1 TEST_VERBOSE=1 ./ctest_fem_poisson_perp_kSq test_3x_p1_dirichletx_dirichlety
+*/
+
 #include <acutest.h>
 #include <assert.h>
 #include <math.h>
@@ -52,8 +61,8 @@ static double field_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
   return sqrt(l2[0]);
 }
 
-// Return true when the HELMHOLTZ_OUTPUT env var is set (enables results file writing).
-static bool helmholtz_write_output(void) { return getenv("HELMHOLTZ_OUTPUT") != NULL; }
+// Return true when the TEST_OUTPUT env var is set (enables results file writing).
+static bool helmholtz_write_output(void) { return getenv("TEST_OUTPUT") != NULL; }
 // Return true when the HELMHOLTZ_VERBOSE env var is set (enables extra printf output).
 static bool helmholtz_verbose(void) { return getenv("HELMHOLTZ_VERBOSE") != NULL; }
 

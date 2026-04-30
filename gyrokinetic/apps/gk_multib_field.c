@@ -302,8 +302,8 @@ gk_multib_field_new_par_smooth(const struct gkyl_gyrokinetic_multib *mbinp,
     if (mbf->cdim == 2 && (ftype == GKYL_GEOMETRY_TOKAMAK_CORE || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) && !mbf->info.half_domain)
       fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
 
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
-      &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->grid,
+      &sbapp->basis, fem_parbc, 0, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
   }
 }
 
