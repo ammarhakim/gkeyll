@@ -194,7 +194,7 @@ double Bvert(const double *xc, void *ctx)
   int n = app->n;
   double R = Rx(xc, ctx);
   
-  return Bvx0 * pow(R, n);
+  return Bvx0 * pow(R/x0, n);
 }
 
 double Bmag(const double *xc, void *ctx)
@@ -574,6 +574,8 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
+
+    .time_rate_diagnostics = true,
   };
 
   // field
