@@ -634,7 +634,7 @@ test_asdex_qprofile_core()
     .flux_poly_order = 1,
   };
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_CORE,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -707,7 +707,7 @@ test_asdex_qprofile_sol()
   };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
