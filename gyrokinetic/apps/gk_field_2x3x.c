@@ -248,10 +248,11 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_2x;
   }
   else if (app->cdim == 3) {
-    fem_parproj_bc_rho_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-    fem_parproj_bc_rho_sol  = GKYL_FEM_PARPROJ_NONE;
+    // Here fem_parproj_bc_rho is not actually relevant because we don't use f->fem_parproj_rho.
+    fem_parproj_bc_rho_core = 0;
+    fem_parproj_bc_rho_sol  = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-    fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_NONE;
+    fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
 
     f->fem_projection_par_rho_func = gk_field_fem_projection_par;
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;
