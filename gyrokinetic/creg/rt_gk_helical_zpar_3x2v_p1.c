@@ -61,12 +61,6 @@ struct gk_app_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-double random0to1()
-{
-  srand(10651);
-  return (double)rand() / (double)RAND_MAX;
-}
-
 // Common source density profiles.
 double sourceDensity(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
@@ -113,7 +107,8 @@ double densityInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
   double effectiveSource = sourceDensity(t, xSource, ctx);
   double c_ss = sqrt(5/3*sourceTemperature(t, xSource, ctx)/app->mi);
   double nPeak = 4*sqrt(5)/3/c_ss*Ls*effectiveSource/2;
-  double perturb = 1e-3*(random0to1() - 0.5)*2.0;
+  pcg64_random_t rng = gkyl_pcg64_init(0);
+  double perturb = 1e-3*(gkyl_pcg64_rand_double(&rng) - 0.5)*2.0;
   if (fabs(z) <= Ls) {
     return nPeak * (1 + sqrt(1-pow(z/Ls,2)))/2 * (1+perturb);
   } else {
