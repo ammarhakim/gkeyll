@@ -301,11 +301,12 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->is_first_energy_write_call = true;
 
   f->calc_energy_func = gk_field_calc_energy_enabled;
-
   f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   f->calc_apar_energy_dt_func = gk_field_calc_energy_dt_none;
-  if (f->info.time_rate_diagnostics)
+  
+  if (f->info.time_rate_diagnostics) {
     gk_field_time_rate_diags_new(app, f);
+  }
 
   // Factors for ES energy.
   f->es_energy_fac = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
@@ -367,13 +368,6 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
     gkyl_dynvec_release(f->integ_apardot_energy);
     gkyl_array_release(f->apar_energy_fac);
   }
-}
-
-// Related to enforcing parallel Vlasov boundary conditions
-void
-gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
-{
-  // Do nothing.
 }
 
 // Initialize field object.
@@ -506,7 +500,8 @@ gk_field_calc_apar_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *f
   field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
 }
 
-void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
+void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);

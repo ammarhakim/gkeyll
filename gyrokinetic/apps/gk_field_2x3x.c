@@ -332,7 +332,7 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
   field->invert_flr(app, field, field->phi_smooth);
 }
 
-static void 
+static void
 gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   struct timespec wst = gkyl_wall_clock();
   
@@ -589,12 +589,12 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   // Potential smoothing (in z) updater
-    enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-    for (int d=0; d<app->num_periodic_dir; ++d)
-      if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
+  for (int d=0; d<app->num_periodic_dir; ++d)
+    if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
 
-    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
-      fem_parproj_bc, 0, 0, 0, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
+    fem_parproj_bc, 0, 0, 0, app->use_gpu);
 
   f->fem_projection_par_rho_func = gk_field_fem_projection_par;
   f->fem_projection_par_phi_func = gk_field_fem_projection_par;
