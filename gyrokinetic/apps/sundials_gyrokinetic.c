@@ -240,7 +240,18 @@ dfdt_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynvec_ydot
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
 
   // Distribute state vector as Gkeyll expects.
-  unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
+  int stage_idx, num_stages;
+  int flag = ARKodeGetStageIndex(app_ctx->arkode_mem_ssprk, &stage_idx, &num_stages);
+  if (stage_idx == 0) {
+    // Treat this stage different because SUNDIALS passes yin instead of ycur
+    // in stage=0 to avoid a yin->ycur copy at the beginning of every step.
+    N_Vector manynvec_ycur;
+    flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_ycur);
+    unpack_manynvec_gyrokinetic(fdot_args, manynvec_ycur, manynvec_ydot);
+  }
+  else {
+    unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
+  }
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
@@ -265,7 +276,18 @@ dfdt_ssprk_gyrokinetic(sunrealtype t_curr, N_Vector manynvec_y, N_Vector manynve
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
 
   // Distribute state vector as Gkeyll expects.
-  unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
+  int stage_idx, num_stages;
+  int flag = ARKodeGetStageIndex(app_ctx->arkode_mem_ssprk, &stage_idx, &num_stages);
+  if (stage_idx == 0) {
+    // Treat this stage different because SUNDIALS passes yin instead of ycur
+    // in stage=0 to avoid a yin->ycur copy at the beginning of every step.
+    N_Vector manynvec_ycur;
+    flag = ARKodeGetCurrentState(app_ctx->arkode_mem_ssprk, &manynvec_ycur);
+    unpack_manynvec_gyrokinetic(fdot_args, manynvec_ycur, manynvec_ydot);
+  }
+  else {
+    unpack_manynvec_gyrokinetic(fdot_args, manynvec_y, manynvec_ydot);
+  }
 
   // Call the Gkeyll function that computes df/dt. Store local CFL constrained
   // dt (may not be used, depends on stepping method used).
@@ -376,6 +398,8 @@ post_process_rk_stage_gyrokinetic_ssprk(sunrealtype t_curr, N_Vector manynvec_yc
   int flag = 0;
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem_ssprk, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem_ssprk, &dt);
+  if (stage_idx > 0)
+    stage_idx -= 1;
 
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
@@ -497,6 +521,8 @@ post_process_rk_stage_gyrokinetic_sts(sunrealtype t_curr, N_Vector manynvec_y, v
   int flag = 0;
   flag = ARKodeGetStageIndex(app_ctx->arkode_mem_sts, &stage_idx, &num_stages);
   flag = ARKodeGetCurrentStep(app_ctx->arkode_mem_sts, &dt);
+  if (stage_idx > 0)
+    stage_idx -= 1;
 
   // Distribute state vector as Gkeyll expects.
   struct gkyl_gyrokinetic_fdot_args *fdot_args = app_ctx->fdot_args_ptr;
