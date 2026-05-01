@@ -1,5 +1,9 @@
-module load cudatoolkit/12.0
-module load openmpi/cuda-11.1/gcc/4.1.1
-cd install-deps
+module load nvhpc/25.5 # For NCCL.
+module load cudatoolkit/12.9
+module load openmpi/cuda-12.9/nvhpc-25.5/4.1.8
+module load openblas/0.3.x
+
 : "${PREFIX:=$HOME/gkylsoft}"
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-luajit=yes --prefix=$PREFIX
+
+cd install-deps
+./mkdeps.sh --build-superlu=yes --prefix=$PREFIX --build-cudss=yes --build-luajit=yes

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <float.h>
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
