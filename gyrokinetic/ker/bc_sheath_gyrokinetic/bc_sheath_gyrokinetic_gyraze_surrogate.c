@@ -1,12 +1,14 @@
 /*
- * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gyraze_surrogate_c_interface @ 725d99e
+ * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gkeyll_sheath_ai @ 2975cf8
  * Sources:
- *   nn model      : gyraze_surrogate_c_interface/model/nn_model_full_MPE.pth
- *   normalization : gyraze_surrogate_c_interface/model/normalization_full_MPE.npz
- *   svm model     : gyraze_surrogate_c_interface/model/svm_model.pkl
+ *   nn model      : gkeyll_sheath_ai/model/nn_model_full_MPE.pth
+ *   normalization : gkeyll_sheath_ai/model/normalization_full_MPE.npz
+ *   svm model     : gkeyll_sheath_ai/model/svm_model.pkl
  */
 #include "gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h"
 #include <math.h>
+
+#define GKYL_PHI_THRESHOLD 2.0
 
 /* host copy – visible in the __host__ pass */
 static const srgrz_weights_t srgrz_weights_h = {
@@ -516,7 +518,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
     double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
-    if (phinorm > 0.05) {
+    if (phinorm > GKYL_PHI_THRESHOLD) {
       bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
     } else {
       for (int i = 0; i < n; i++)
@@ -544,7 +546,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_conv_eval_fact(const double *mu_new,
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
 
-    if (phinorm > 0.05 && bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
+    if (phinorm > GKYL_PHI_THRESHOLD && bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
       bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
 
       for (int i = 0; i < n; i++)
@@ -562,7 +564,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_fact(const double *mu_new,
     double alpha = impact_angle * 180/GKYL_PI;
     double muref = temperature / bmag;
 
-    if (phinorm > 0.05) {
+    if (phinorm > GKYL_PHI_THRESHOLD) {
       if (!bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
         double xp[3];
         bc_sheath_gyrokinetic_srgrz_project(alpha, gamma, phinorm, &xp[0], &xp[1], &xp[2]);
