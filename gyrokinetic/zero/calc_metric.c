@@ -137,6 +137,57 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   }
 }
 
+static inline void
+check_axisymmetric(struct gkyl_array* arr, struct gkyl_range *range, bool exit_at_check) {
+  const double rel_tol = 1e-6;
+  const double abs_tol = 1e-11;
+  double reldiff;
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  int cidx[3];
+  int cidx_prev[3];
+
+  for (int ip=range->lower[PSI_IDX]; ip<=range->upper[PSI_IDX]; ++ip) {
+    for (int it=range->lower[TH_IDX]; it<=range->upper[TH_IDX]; ++it) {
+
+      double g_ij_avg[6] = {0.0};
+      int num_al = range->upper[AL_IDX] - range->lower[AL_IDX] + 1;
+      for (int ia=range->lower[AL_IDX]; ia<=range->upper[AL_IDX]; ++ia) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *g_ij_n = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx));
+        for (int k = 0; k < 6; ++k) {
+            g_ij_avg[k] += g_ij_n[k] / num_al;
+        }
+      }
+
+      for (int ia=range->lower[AL_IDX] + 1; ia<=range->upper[AL_IDX]; ++ia) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *g_ij_n = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx));
+
+        cidx_prev[PSI_IDX] = ip;
+        cidx_prev[AL_IDX] = ia - 1;
+        cidx_prev[TH_IDX] = it;
+        const double *g_ij_prev = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx_prev));
+
+        for (int k = 0; k < 6; ++k) {
+          reldiff = fabs(g_ij_n[k] - g_ij_avg[k])/(rel_tol*fabs(g_ij_avg[k]) + abs_tol);
+          if (reldiff < 1) {
+            return;
+          }
+          else {
+            fprintf(stderr, "calc_metric.c: Axisymmetry violated at ip=%d, it=%d, ia=%d. g_ij component %d variation %.6e exceeds tolerance\n", ip, it, ia, k, reldiff);
+            assert(!exit_at_check);
+          }
+        }
+
+      }
+    }
+  }
+}
+
 void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld,
@@ -1469,6 +1520,9 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
       }
     }
   }
+
+  check_axisymmetric(gk_geom->geo_int.g_ij_nodal, &gk_geom->nrange_int, up->exit_at_checks);
+
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 6, gk_geom->geo_int.g_ij_nodal, gk_geom->geo_int.g_ij, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dzdx_nodal, gk_geom->geo_int.dzdx, true);
@@ -1693,6 +1747,8 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
       }
     }
   }
+
+  check_axisymmetric(gk_geom->geo_surf[dir].g_ij_nodal, &gk_geom->nrange_surf[dir], up->exit_at_checks);
 }
 
 void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,

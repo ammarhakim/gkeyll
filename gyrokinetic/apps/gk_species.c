@@ -1234,7 +1234,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
   }
 
-  if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
+  if (inp.type == GKYL_IC_IMPORT_AF) {
     // Scale f by a conf-space factor.
     gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
@@ -1247,14 +1247,6 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     gkyl_proj_on_basis_release(proj_conf_scale);
     gkyl_array_release(xfac_ho);
     gkyl_array_release(xfac);
-  }
-  if (inp.type == GKYL_IC_IMPORT_F_B || inp.type == GKYL_IC_IMPORT_AF_B) {
-    // Add a phase factor to f.
-    struct gk_proj proj_phase_add;
-    gk_species_projection_init(app, gks, inp.phase_add, &proj_phase_add);
-    gk_species_projection_calc(app, gks, &proj_phase_add, gks->fnew, 0.0);
-    gkyl_array_accumulate_range(gks->f, 1.0, gks->fnew, &gks->local);
-    gk_species_projection_release(app, &proj_phase_add);
   }
 
   // Multiply f by the Jacobian.
