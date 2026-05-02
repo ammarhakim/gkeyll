@@ -38,6 +38,7 @@ struct gkyl_culinsolver_prob {
   cudssMatrix_t *x, *b; // cuDSS objects holding the unknowns vector and RHS vector.
 
   // Arrays used to populate the LHS matrix in CSR format.
+  double *csr_val_ho;
   double *csr_val_cu;
   int *csr_rowptr_cu, *csr_colind_cu;
 };
@@ -110,7 +111,7 @@ gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gk
 
   // Convert triples to CSR arrays on device.
   // Use CSR format
-  double *csr_val = (double*) gkyl_malloc(prob->nprob*prob->nnz*sizeof(double)); // non-zero matrix elements.
+  prob->csr_val_ho = (double*) gkyl_malloc(prob->nprob*prob->nnz*sizeof(double)); // non-zero matrix elements.
   int *csr_colind = (int*) gkyl_malloc(sizeof(int)*prob->nnz); // col index of entries in csrvalA.
   int *csr_rowptr = (int*) gkyl_malloc(sizeof(int)*(prob->mrow+1)); // 1st entry of each row as index in csrvalA.
 
@@ -125,7 +126,7 @@ gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gk
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
       size_t idx[2] = { mt.row, mt.col };
 
-      csr_val[k*prob->nnz+i] = mt.val;
+      prob->csr_val_ho[k*prob->nnz+i] = mt.val;
       if (k==0) {
         csr_colind[i] = idx[1];
         if (!csr_rowptr_assigned[idx[0]]) {
@@ -143,7 +144,7 @@ gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gk
   prob->csr_val_cu = (double*) gkyl_cu_malloc(prob->nprob*prob->nnz*sizeof(double)); // Non-zero matrix elements.
   prob->csr_colind_cu = (int*) gkyl_cu_malloc(sizeof(int)*prob->nnz); // Col index of entries in csrvalA.
   prob->csr_rowptr_cu = (int*) gkyl_cu_malloc(sizeof(int)*(prob->mrow+1)); // 1st entry of each row as index in csrvalA.
-  gkyl_cu_memcpy(prob->csr_val_cu, csr_val, prob->nprob*prob->nnz*sizeof(double), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->csr_val_cu, prob->csr_val_ho, prob->nprob*prob->nnz*sizeof(double), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csr_colind_cu, csr_colind, sizeof(int)*prob->nnz, GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csr_rowptr_cu, csr_rowptr, sizeof(int)*(prob->mrow+1), GKYL_CU_MEMCPY_H2D);
 
@@ -170,9 +171,55 @@ gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gk
       prob->solverData[i], prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for factor");
   }
 
-  gkyl_free(csr_val);
   gkyl_free(csr_colind);
   gkyl_free(csr_rowptr);
+}
+
+void
+gkyl_culinsolver_amat_update_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
+{
+  // Convert triples to CSR arrays on device.
+  // Sorted (row-major order) keys (linear indices to flattened matrix).
+  for (size_t k=0; k<prob->nprob; k++) {
+    gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[k]);
+    for (size_t i=0; i<prob->nnz; ++i) {
+      gkyl_mat_triples_iter_next(iter); // bump iterator.
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+      prob->csr_val_ho[k*prob->nnz+i] = mt.val;
+    }
+    gkyl_mat_triples_iter_release(iter);
+  }
+
+  // Copy arrays to device.
+  gkyl_cu_memcpy(prob->csr_val_cu, prob->csr_val_ho, prob->nprob*prob->nnz*sizeof(double), GKYL_CU_MEMCPY_H2D);
+
+  for (int i=0; i<prob->nprob; i++) {
+    long off = i * prob->nnz;
+
+    cudssStatus_t status = CUDSS_STATUS_SUCCESS;
+    // Set matrix values.
+    checkCUDSS(cudssMatrixSetValues(prob->A[i], prob->csr_val_cu+off), status, "cudssMatrixSetValues for resetting A.");
+
+    // Factorize.
+    checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_FACTORIZATION, prob->solverConfig[i],
+      prob->solverData[i], prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for factor");
+  }
+}
+
+void
+gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *csr_values)
+{
+  for (int i=0; i<prob->nprob; i++) {
+    long off = i * prob->nnz;
+
+    cudssStatus_t status = CUDSS_STATUS_SUCCESS;
+    // Set matrix values.
+    checkCUDSS(cudssMatrixSetValues(prob->A[i], csr_values+off), status, "cudssMatrixSetValues for resetting A.");
+
+    // Factorize.
+    checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_FACTORIZATION, prob->solverConfig[i],
+      prob->solverData[i], prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for factor");
+  }
 }
 
 void
@@ -229,6 +276,12 @@ gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
   gkyl_cu_memset(prob->rhs_cu, val, prob->nprob*prob->mrow*prob->nrhs*sizeof(double));
 }
 
+void
+gkyl_culinsolver_clear_csr_values(struct gkyl_culinsolver_prob *prob, double val)
+{
+  gkyl_cu_memset(prob->csr_val_cu, val, prob->nprob*prob->nnz*sizeof(double));
+}
+
 double*
 gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
@@ -239,6 +292,12 @@ double*
 gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->x_cu+loc;
+}
+
+double*
+gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+{
+  return prob->csr_val_cu+loc;
 }
 
 double
@@ -269,6 +328,7 @@ gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
   gkyl_cu_free(prob->csr_colind_cu);
   gkyl_cu_free(prob->csr_rowptr_cu);
   gkyl_cu_free(prob->csr_val_cu);
+  gkyl_free(prob->csr_val_ho);
 
   checkCuda(cudaStreamSynchronize(prob->stream));
   cudaStreamDestroy(prob->stream);

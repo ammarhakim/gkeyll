@@ -497,7 +497,7 @@ struct gkyl_gyrokinetic_field {
   bool is_static; // =true field does not change in time.
   bool zero_init_field; // =true doesn't compute the initial field.
 
-  double polarization_bmag; 
+  double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
   // parameters for adiabatic electrons simulations
@@ -529,7 +529,7 @@ struct gkyl_gyrokinetic_field {
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
-  struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
+  struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
 // Top-level app parameters
@@ -1331,6 +1331,16 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
  * @param app App to release.
  */
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
+
+/**
+ * Reset the CFL factor for the omega_H frequency.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param cfl_frac_omegaH New CFL factor to use for the omega_H mode.
+ */
+void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH);
 
 /**
  * Reset the df/dt multiplier operator for a given species.

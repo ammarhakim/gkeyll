@@ -22,7 +22,10 @@ gkyl_rz_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_
 
 
 void
-gkyl_rz_calc_derived_geo_advance(const gkyl_rz_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *g_ij, struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv, struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot, struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv, struct gkyl_array *bmag_inv_sq, struct gkyl_array *gxxj,  struct gkyl_array *gxyj, struct gkyl_array *gyyj, struct gkyl_array *gxzj, struct gkyl_array *eps2)
+gkyl_rz_calc_derived_geo_advance(const gkyl_rz_calc_derived_geo *up, const struct gkyl_range *crange,
+  struct gkyl_array *g_ij, struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv,
+  struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot, struct gkyl_array *jacobtot_inv,
+  struct gkyl_array *gxxj,  struct gkyl_array *gxyj, struct gkyl_array *gyyj, struct gkyl_array *gxzj, struct gkyl_array *eps2)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, crange);
@@ -42,10 +45,9 @@ gkyl_rz_calc_derived_geo_advance(const gkyl_rz_calc_derived_geo *up, const struc
     double *gyyj_i= gkyl_array_fetch(gyyj, loc);
     double *gxzj_i= gkyl_array_fetch(gxzj, loc);
     double *eps2_i= gkyl_array_fetch(eps2, loc);
-    up->kernel(g_ij_i, bmag_i, jacobgeo_i, jacobgeo_inv_i, gij_i, bi_i, cmag_i, jacobtot_i, jacobtot_inv_i, gxxj_i, gxyj_i, gyyj_i, gxzj_i, eps2_i);
+    up->kernel(g_ij_i, bmag_i, jacobgeo_i, jacobgeo_inv_i, gij_i, bi_i, cmag_i, jacobtot_i, jacobtot_inv_i,
+      gxxj_i, gxyj_i, gyyj_i, gxzj_i, eps2_i);
   }
-  gkyl_dg_inv_op_range(up->cbasis, 0, bmag_inv, 0, bmag, crange);
-  gkyl_dg_mul_op_range(up->cbasis, 0, bmag_inv_sq, 0, bmag_inv, 0, bmag_inv, crange);
 }
 
 void

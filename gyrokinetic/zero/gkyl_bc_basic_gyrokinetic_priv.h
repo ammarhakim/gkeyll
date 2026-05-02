@@ -94,34 +94,34 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 
   if (cdim == 1) {
     if (edge == GKYL_LOWER_EDGE) {
-      out[0] = inp[0]-sqrt(3.0)*inp[1];
+      out[0] = inp[0]-1.7320508075688772*inp[1];
     }
     else {
-      out[0] = inp[0]+sqrt(3.0)*inp[1];
+      out[0] = inp[0]+1.7320508075688772*inp[1];
     }
     out[1] = 0.0;
   }
   else if (cdim == 2) {
     if (dir == 0) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-sqrt(3.0)*inp[1];
-        out[2] = inp[2]-sqrt(3.0)*inp[3];
+        out[0] = inp[0]-1.7320508075688772*inp[1];
+        out[2] = inp[2]-1.7320508075688772*inp[3];
       }
       else {
-        out[0] = inp[0]+sqrt(3.0)*inp[1];
-        out[2] = inp[2]+sqrt(3.0)*inp[3];
+        out[0] = inp[0]+1.7320508075688772*inp[1];
+        out[2] = inp[2]+1.7320508075688772*inp[3];
       }
       out[1] = 0.0;
       out[3] = 0.0;
     }
     else if (dir == 1) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-sqrt(3.0)*inp[2];
-        out[1] = inp[1]-sqrt(3.0)*inp[3];
+        out[0] = inp[0]-1.7320508075688772*inp[2];
+        out[1] = inp[1]-1.7320508075688772*inp[3];
       }
       else {
-        out[0] = inp[0]+sqrt(3.0)*inp[2];
-        out[1] = inp[1]+sqrt(3.0)*inp[3];
+        out[0] = inp[0]+1.7320508075688772*inp[2];
+        out[1] = inp[1]+1.7320508075688772*inp[3];
       }
       out[2] = 0.0;
       out[3] = 0.0;
@@ -130,16 +130,16 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
   else if (cdim == 3) {
     if (dir == 0) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-sqrt(3.0)*inp[1];
-        out[2] = inp[2]-sqrt(3.0)*inp[4];
-        out[3] = inp[3]-sqrt(3.0)*inp[5];
-        out[6] = inp[6]-sqrt(3.0)*inp[7];
+        out[0] = inp[0]-1.7320508075688772*inp[1];
+        out[2] = inp[2]-1.7320508075688772*inp[4];
+        out[3] = inp[3]-1.7320508075688772*inp[5];
+        out[6] = inp[6]-1.7320508075688772*inp[7];
       }
       else {
-        out[0] = inp[0]+sqrt(3.0)*inp[1];
-        out[2] = inp[2]+sqrt(3.0)*inp[4];
-        out[3] = inp[3]+sqrt(3.0)*inp[5];
-        out[6] = inp[6]+sqrt(3.0)*inp[7];
+        out[0] = inp[0]+1.7320508075688772*inp[1];
+        out[2] = inp[2]+1.7320508075688772*inp[4];
+        out[3] = inp[3]+1.7320508075688772*inp[5];
+        out[6] = inp[6]+1.7320508075688772*inp[7];
       }
       out[1] = 0.0;
       out[4] = 0.0;
@@ -148,16 +148,16 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
     }
     else if (dir == 1) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-sqrt(3.0)*inp[2];
-        out[1] = inp[1]-sqrt(3.0)*inp[4];
-        out[3] = inp[3]-sqrt(3.0)*inp[6];
-        out[5] = inp[5]-sqrt(3.0)*inp[7];
+        out[0] = inp[0]-1.7320508075688772*inp[2];
+        out[1] = inp[1]-1.7320508075688772*inp[4];
+        out[3] = inp[3]-1.7320508075688772*inp[6];
+        out[5] = inp[5]-1.7320508075688772*inp[7];
       }
       else {
-        out[0] = inp[0]+sqrt(3.0)*inp[2];
-        out[1] = inp[1]+sqrt(3.0)*inp[4];
-        out[3] = inp[3]+sqrt(3.0)*inp[6];
-        out[5] = inp[5]+sqrt(3.0)*inp[7];
+        out[0] = inp[0]+1.7320508075688772*inp[2];
+        out[1] = inp[1]+1.7320508075688772*inp[4];
+        out[3] = inp[3]+1.7320508075688772*inp[6];
+        out[5] = inp[5]+1.7320508075688772*inp[7];
       }
       out[2] = 0.0;
       out[4] = 0.0;
@@ -166,16 +166,16 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
     }
     else if (dir == 2) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-sqrt(3.0)*inp[3];
-        out[1] = inp[1]-sqrt(3.0)*inp[5];
-        out[2] = inp[2]-sqrt(3.0)*inp[6];
-        out[4] = inp[4]-sqrt(3.0)*inp[7];
+        out[0] = inp[0]-1.7320508075688772*inp[3];
+        out[1] = inp[1]-1.7320508075688772*inp[5];
+        out[2] = inp[2]-1.7320508075688772*inp[6];
+        out[4] = inp[4]-1.7320508075688772*inp[7];
       }
       else {
-        out[0] = inp[0]+sqrt(3.0)*inp[3];
-        out[1] = inp[1]+sqrt(3.0)*inp[5];
-        out[2] = inp[2]+sqrt(3.0)*inp[6];
-        out[4] = inp[4]+sqrt(3.0)*inp[7];
+        out[0] = inp[0]+1.7320508075688772*inp[3];
+        out[1] = inp[1]+1.7320508075688772*inp[5];
+        out[2] = inp[2]+1.7320508075688772*inp[6];
+        out[4] = inp[4]+1.7320508075688772*inp[7];
       }
       out[3] = 0.0;
       out[5] = 0.0;
