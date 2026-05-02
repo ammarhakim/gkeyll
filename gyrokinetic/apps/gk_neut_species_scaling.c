@@ -225,7 +225,7 @@ gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       }
   
       // Default scenario: we set the ranges to the full range of the ghost cells.
-      sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+      sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->local_lower_ghost[dir] : app->local_upper_ghost[dir];
       sca->boundaries_dir[j]  = dir;
       sca->boundaries_edge[j] = edge;
   
@@ -233,7 +233,7 @@ gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       if (edge == GKYL_LOWER_EDGE? gks_ion->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL
                                  : gks_ion->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL)
       {
-        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->local_lower_ghost_par_sol : app->local_upper_ghost_par_sol;
       }
     }
 

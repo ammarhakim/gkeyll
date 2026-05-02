@@ -7,6 +7,7 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_math.h>
+#include <gkyl_dg_bin_ops.h>
 
 gkyl_calc_metric_mirror*
 gkyl_calc_metric_mirror_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
@@ -47,43 +48,50 @@ calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 void gkyl_calc_metric_mirror_advance(
   gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid)
 {
-  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // Arrangement of computational coordinates.
+  enum { R_IDX, Z_IDX, PHI_IDX }; // Arrangement of cartesian coordinates.
   int cidx[3];
   for(int ia=gk_geom->nrange_corn.lower[AL_IDX]; ia<=gk_geom->nrange_corn.upper[AL_IDX]; ++ia){
-      for (int ip=gk_geom->nrange_corn.lower[PSI_IDX]; ip<=gk_geom->nrange_corn.upper[PSI_IDX]; ++ip) {
-          for (int it=gk_geom->nrange_corn.lower[TH_IDX]; it<=gk_geom->nrange_corn.upper[TH_IDX]; ++it) {
-              cidx[PSI_IDX] = ip;
-              cidx[AL_IDX] = ia;
-              cidx[TH_IDX] = it;
+    for (int ip=gk_geom->nrange_corn.lower[PSI_IDX]; ip<=gk_geom->nrange_corn.upper[PSI_IDX]; ++ip) {
+      for (int it=gk_geom->nrange_corn.lower[TH_IDX]; it<=gk_geom->nrange_corn.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
 
-              // First fetch the mirror stuff at this location
-              const double *mirror_rza_n = gkyl_array_cfetch(mirror_grid->nodes_rza, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-              const double *mirror_psi_n = gkyl_array_cfetch(mirror_grid->nodes_psi, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-              const struct gkyl_mirror_grid_gen_geom *mirror_geo_n = gkyl_array_cfetch(mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        // First fetch the mirror stuff at this location
+        const double *mirror_rza_n = gkyl_array_cfetch(mirror_grid->nodes_rza, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        const double *mirror_psi_n = gkyl_array_cfetch(mirror_grid->nodes_psi, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        const struct gkyl_mirror_grid_gen_geom *mirror_geo_n = gkyl_array_cfetch(mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
 
-              // Next fetch the gk_geometry nodal values at this location
-              double *mc2p_n = gkyl_array_fetch(gk_geom->geo_corn.mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-              double *mc2nu_pos_n = gkyl_array_fetch(gk_geom->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-              double *bmag_n = gkyl_array_fetch(gk_geom->geo_corn.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        // Next fetch the gk_geometry nodal values at this location
+        double *mc2p_n = gkyl_array_fetch(gk_geom->geo_corn.mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        double *mc2nu_pos_n = gkyl_array_fetch(gk_geom->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        double *bmag_n = gkyl_array_fetch(gk_geom->geo_corn.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
 
-              // Set mapc2p
-              mc2p_n[0] = mirror_rza_n[0]; // R
-              mc2p_n[1] = mirror_rza_n[1]; // Z
-              mc2p_n[2] = mirror_rza_n[2]; // PHI
-              // Set mapc2nu
-              mc2nu_pos_n[0] = mirror_psi_n[0];
-              mc2nu_pos_n[1] = mirror_rza_n[2];
-              mc2nu_pos_n[2] = mirror_rza_n[1];
-              // Set bmag
-              struct gkyl_vec3 B_cart = gkyl_vec3_polar_con_to_cart(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n->B);
-              bmag_n[0] = gkyl_vec3_len(B_cart);
+        // Set mapc2p
+        mc2p_n[0] = mirror_rza_n[0]; // R
+        mc2p_n[1] = mirror_rza_n[1]; // Z
+        mc2p_n[2] = mirror_rza_n[2]; // PHI
+        // Set mapc2nu
+        mc2nu_pos_n[0] = mirror_psi_n[0];
+        mc2nu_pos_n[1] = mirror_rza_n[2];
+        mc2nu_pos_n[2] = mirror_rza_n[1];
+        // Set bmag
+        struct gkyl_vec3 B_cart = gkyl_vec3_polar_con_to_cart(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n->B);
+        bmag_n[0] = gkyl_vec3_len(B_cart);
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3, gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1, gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3,
+    gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3,
+    gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1,
+    gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
+
+  // Need 1/B for LBO collisions, computed weakly.
+  gkyl_dg_inv_op_range(*up->cbasis, 0, gk_geom->geo_corn.bmag_inv, 0, gk_geom->geo_corn.bmag, &gk_geom->local); 
+
 }
 
 void 

@@ -13,12 +13,46 @@
 #include <time.h>
 
 // Functions related to setting the potential by adjusting the polarization density
-
 static void
 eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   gkyl_position_map_eval_mc2nu(gpm, xcomp, xphys);
+}
+
+static struct gkyl_app_restart_status
+header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
+  
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    struct gkyl_msgpack_map_elem elem_list[] = {
+      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0 },
+    };
+    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
+    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size
+      }, elem_list_len, elem_list);
+
+    rstat.frame = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "frame");
+    rstat.stime = gkyl_msgpack_map_elem_get_double(elem_list_len, elem_list, "time");
+
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+  
+  return rstat;
 }
 
 static void
@@ -48,6 +82,31 @@ gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_
   gkyl_array_copy(f->phi_pol, phi_pol_ho);
 
   gkyl_eval_on_nodes_release(phi_pol_proj);
+  gkyl_array_release(phi_pol_ho);
+}
+
+static void
+gk_field_polarization_potential_from_file_new(struct gk_field *f, struct gkyl_gyrokinetic_app *app,
+  struct gkyl_gyrokinetic_ic_import inp)
+{
+  f->init_phi_pol = true;
+  struct gkyl_basis phi_pol_basis;
+  gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order + 1);
+
+  f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *phi_pol_ho = app->use_gpu ? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
+                                               : gkyl_array_acquire(f->phi_pol);
+
+  struct gkyl_app_restart_status rstat = header_from_file(app, inp.file_name);
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, phi_pol_ho, inp.file_name);
+    assert(rstat.io_status == GKYL_ARRAY_RIO_SUCCESS);
+    gkyl_array_copy(f->phi_pol, phi_pol_ho);
+  }
+  else {
+    assert(false);
+  }
+
   gkyl_array_release(phi_pol_ho);
 }
 
@@ -210,13 +269,6 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_release(f->es_energy_fac);
 }
 
-// Related to enforcing parallel Vlasov boundary conditions
-void
-gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout)
-{
-  // Do nothing.
-}
-
 // Initialize field object.
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -236,6 +288,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->init_phi_pol = false;
   if (f->info.polarization_potential) {
     gk_field_polarization_potential_new(f, app);
+  } else if (f->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
+    gk_field_polarization_potential_from_file_new(f, app, f->info.polarization_potential_import);
   }
   
   // Initialize energy diagnostics.
@@ -283,7 +337,8 @@ gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field,
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
 }
 
-void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
+void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -291,11 +346,12 @@ void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_fi
   // Add the background (electron) charge density.
   double n_s0 = field->info.electron_density;
   double q_s = field->info.electron_charge;
-  double dg_norm = pow(sqrt(2), app->basis.ndim);
+  double dg_norm = pow(sqrt(2.0), app->basis.ndim);
   gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
 }
 
-void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
+void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app,
+  struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux)
 {
   // Gyroaverage the density if needed.
   s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -331,41 +387,6 @@ gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field, s
 
   // Copy global, continuous FEM array to a local array.
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-static struct gkyl_app_restart_status
-header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
-{
-  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
-  
-  FILE *fp = 0;
-  with_file(fp, fname, "r") {
-    struct gkyl_rect_grid grid;
-    struct gkyl_array_header_info hdr;
-    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
-
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (hdr.etype != GKYL_DOUBLE)
-        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
-    }
-
-    struct gkyl_msgpack_map_elem elem_list[] = {
-      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
-      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0 },
-    };
-    int elem_list_len = sizeof(elem_list)/sizeof(elem_list[0]);
-    gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
-        .meta = hdr.meta,
-        .meta_sz = hdr.meta_size
-      }, elem_list_len, elem_list);
-
-    rstat.frame = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "frame");
-    rstat.stime = gkyl_msgpack_map_elem_get_double(elem_list_len, elem_list, "time");
-
-    gkyl_grid_sub_array_header_release(&hdr);
-  }
-  
-  return rstat;
 }
 
 void
@@ -406,7 +427,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release solver-specific resources.
-  f->solver_release_func(app, f);
+  f->release_func(app, f);
 
   // Release energy diagnostics.
   gk_field_energy_release(app, f);
