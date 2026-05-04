@@ -11,7 +11,7 @@ typedef struct gkyl_positivity_shift_zhang_shu gkyl_positivity_shift_zhang_shu;
 struct gkyl_positivity_shift_zhang_shu*
 gkyl_positivity_shift_zhang_shu_new(struct gkyl_basis basis);
 
-bool
+void
 gkyl_positivity_shift_zhang_shu_advance(gkyl_positivity_shift_zhang_shu* up,
   const struct gkyl_range *range, struct gkyl_array *f);
 
