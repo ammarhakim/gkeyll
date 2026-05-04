@@ -1,9 +1,9 @@
 /*
- * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gyraze_surrogate_c_interface @ 725d99e
+ * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 171bffe
  * Sources:
- *   nn model      : gyraze_surrogate_c_interface/model/nn_model_full_MPE.pth
- *   normalization : gyraze_surrogate_c_interface/model/normalization_full_MPE.npz
- *   svm model     : gyraze_surrogate_c_interface/model/svm_model.pkl
+ *   nn model      : gkeyll_sheath_ai/model/nn_model_conv_MPE.pth
+ *   normalization : gkeyll_sheath_ai/model/normalization_conv_MPE.npz
+ *   svm model     : gkeyll_sheath_ai/model/svm_model.pkl
  */
 #pragma once
 
@@ -15,10 +15,10 @@
 
 /* --- weight storage type --- **/
 typedef struct {
-  double W0[210], b0[70];
-  double W1[4900], b1[70];
-  double W2[4900], b2[70];
-  double W3[1400], b3[20];
+  double W0[225], b0[75];
+  double W1[5625], b1[75];
+  double W2[5625], b2[75];
+  double W3[1500], b3[20];
   double Y_mu[20], Y_sigma[20];
   double MU_GRID[20];
 } srgrz_weights_t;
