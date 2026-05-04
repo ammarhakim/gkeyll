@@ -67,6 +67,8 @@ static void
 gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
+  sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_disabled;
+
   // Initialize kinetic neutral species moment object.
   if (sm->is_integrated) {
     // Create moment operator.
@@ -206,6 +208,8 @@ static void
 gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
+  sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_disabled;
+
   // Initialize fluid neutral species moment object.
   if (sm->is_integrated) {
     sm->num_mom = 6; // rho, rho*ux, rho*uy, rho*uz, flowE, thermalE.
@@ -249,6 +253,8 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
         // Not yet implemented.
         assert(false);
       }
+
+      sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp;
     }
 
     sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp;

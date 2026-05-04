@@ -508,16 +508,21 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           }
 
           // Default scenario: we set the ranges to the full range of the ghost cells.
-          adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
-          adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+          adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE? s->local_lower_ghost[dir]
+                                                                        : s->local_upper_ghost[dir];
+          adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost[dir]
+                                                                       : app->local_upper_ghost[dir];
           adapt_src->dir[j]  = dir;
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL
+                                     : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
           {
-            adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
-            adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+            adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE? s->local_lower_ghost_par_sol
+                                                                          : s->local_upper_ghost_par_sol;
+            adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost_par_sol
+                                                                         : app->local_upper_ghost_par_sol;
           }
         }
       }

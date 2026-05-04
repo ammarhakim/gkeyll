@@ -655,18 +655,18 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           bflux->boundaries_dir[num_bound] = d;
           bflux->boundaries_edge[num_bound] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
 
-          bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
-          bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
-          bflux->boundaries_phase_skin[num_bound] = e==0? &gkns->lower_skin[d] : &gkns->upper_skin[d];
-          bflux->boundaries_phase_ghost[num_bound] = e==0? &gkns->lower_ghost[d] : &gkns->upper_ghost[d];
+          bflux->boundaries_conf_skin[num_bound]   = e==0? &app->local_lower_skin[d]   : &app->local_upper_skin[d]  ;
+          bflux->boundaries_conf_ghost[num_bound]  = e==0? &app->local_lower_ghost[d]  : &app->local_upper_ghost[d] ;
+          bflux->boundaries_phase_skin[num_bound]  = e==0? &gkns->local_lower_skin[d]  : &gkns->local_upper_skin[d] ;
+          bflux->boundaries_phase_ghost[num_bound] = e==0? &gkns->local_lower_ghost[d] : &gkns->local_upper_ghost[d];
           bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
 
           if (e == 0? gkns->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL : gkns->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
             // Use SOL ranges only for parallel boundary fluxes.
-            bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin_par_sol : &app->upper_skin_par_sol;
-            bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost_par_sol : &app->upper_ghost_par_sol;
-            bflux->boundaries_phase_skin[num_bound] = e==0? &gkns->lower_skin_par_sol : &gkns->upper_skin_par_sol;
-            bflux->boundaries_phase_ghost[num_bound] = e==0? &gkns->lower_ghost_par_sol : &gkns->upper_ghost_par_sol;
+            bflux->boundaries_conf_skin[num_bound]   = e==0? &app->local_lower_skin_par_sol   : &app->local_upper_skin_par_sol  ;
+            bflux->boundaries_conf_ghost[num_bound]  = e==0? &app->local_lower_ghost_par_sol  : &app->local_upper_ghost_par_sol ;
+            bflux->boundaries_phase_skin[num_bound]  = e==0? &gkns->local_lower_skin_par_sol  : &gkns->local_upper_skin_par_sol ;
+            bflux->boundaries_phase_ghost[num_bound] = e==0? &gkns->local_lower_ghost_par_sol : &gkns->local_upper_ghost_par_sol;
           }
 
           num_bound++;
@@ -757,8 +757,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       long buff_sz = 0;
       for (int b=0; b<bflux->num_boundaries; ++b) {
         int dir = bflux->boundaries_dir[b];
-        struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir]
-                                                                              : &gkns->upper_skin[dir];
+        struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->local_lower_skin[dir]
+                                                                              : &gkns->local_upper_skin[dir];
     
         // MF 2025/09/29: The option `GKYL_BC_GK_SPECIES_REFLECT` here is a
         // just a place holder and almost certainly wrong. Currently REFLECT is

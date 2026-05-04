@@ -40,12 +40,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   gkyl_array_release(gkf->epsilon);
   
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gkyl_fem_parproj_release(gkf->fem_parproj_core);
-    gkyl_fem_parproj_release(gkf->fem_parproj_sol);
-  } else {
-    gkyl_fem_parproj_release(gkf->fem_parproj);
-  }
+  gkyl_fem_parproj_release(gkf->fem_parproj);
 
   gkyl_array_integrate_release(gkf->calc_em_energy);
 }
@@ -124,25 +119,13 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, gkf->epsilon, epsilon_global);
 
   // Potential smoothing (in z) updater
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    enum gkyl_fem_parproj_bc_type fem_parproj_bc_core, fem_parproj_bc_sol;
-    fem_parproj_bc_core = GKYL_FEM_PARPROJ_NONE;
-    fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
-
-    gkf->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,
-      fem_parproj_bc_core, 0, 0, app->use_gpu);
-    gkf->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
-      fem_parproj_bc_sol, 0, 0, app->use_gpu);
-  } 
-  else {
-    enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-    for (int d=0; d<app->num_periodic_dir; ++d)
-      if (app->periodic_dirs[d] == app->cdim-1) {
-        fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
-      }
-    gkf->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-      fem_parproj_bc, epsilon_global, 0, app->use_gpu);
-  }
+  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
+  for (int d=0; d<app->num_periodic_dir; ++d)
+    if (app->periodic_dirs[d] == app->cdim-1) {
+      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+    }
+  gkf->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
+    fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu);
 
   gkf->es_energy_fac_1d = 0.5*polarization_weight*gkf->info.kperpSq + es_energy_fac_1d_adiabatic;
 
@@ -158,9 +141,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
       gkf->use_flr = gkf->use_flr || s->info.flr.type;
   }
 
-  gkf->enforce_parallel_bc_func = gk_field_enforce_parallel_bc_disabled;
-
   gkyl_array_release(epsilon_global);
 
-  gkf->solver_release_func = gk_field_fem_release_1x;
+  gkf->release_func = gk_field_fem_release_1x;
 }

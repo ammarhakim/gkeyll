@@ -1,15 +1,15 @@
 #include <gkyl_gk_neut_species_priv.h>
 
 void
-gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+gk_neut_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   if (ns->info.cells[0] == 0) {
     // Fluid neutrals.
-    gk_neut_species_fluid_init(gk, app, ns);
+    gk_neut_species_fluid_init(gk_app_inp, app, ns);
   }
   else {
     // Kinetic neutrals.
-    gk_neut_species_kinetic_init(gk, app, ns);
+    gk_neut_species_kinetic_init(gk_app_inp, app, ns);
   }
 }
 

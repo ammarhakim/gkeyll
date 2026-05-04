@@ -168,7 +168,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 }
 
 static void
-gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   int cdim = app->cdim;
   
@@ -178,7 +178,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   
   // Allocate cflrate (scalar array).
   ns->cflrate = mkarr(app->use_gpu, 1, ns->local_ext.volume);
-  if (gkyl_sundials_operator_split_in_method(gk->sundials_stepper.rk_method)) {
+  if (gkyl_sundials_operator_split_in_method(gk_app_inp->sundials_stepper.rk_method)) {
     ns->cflrate_ssprk = mkarr(app->use_gpu, ns->cflrate->ncomp, ns->cflrate->size);
     ns->cflrate_sts = mkarr(app->use_gpu, ns->cflrate->ncomp, ns->cflrate->size);
   }
@@ -186,7 +186,6 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
     ns->cflrate_ssprk = gkyl_array_acquire(ns->cflrate);
     ns->cflrate_sts = gkyl_array_acquire(ns->cflrate);
   }
-
 
   ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
                               : gkyl_malloc(sizeof(double));
@@ -225,7 +224,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 }
 
 static void
-gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_fluid_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
   // Set pointers for RK methods.
   s->f1 = gkyl_array_acquire(s->f);
@@ -250,7 +249,7 @@ gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_ap
 }
 
 void
-gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+gk_neut_species_fluid_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   ns->is_fluid = true; // Fluid neutrals.
   assert(ns->info.vdim == 0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
@@ -323,24 +322,107 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   for (int d=0; d<cdim; ++d)
     ghost[d] = 1;
 
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->lower_skin[dir], &ns->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->upper_skin[dir], &ns->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&ns->local_lower_skin[dir], &ns->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&ns->local_upper_skin[dir], &ns->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_lower_skin[dir], &ns->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &ns->global_ext, ghost); 
-    gkyl_sub_range_intersect(&ns->global_lower_skin[dir], &ns->local_ext, &ns->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_lower_ghost[dir], &ns->local_ext, &ns->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&ns->global_upper_skin[dir], &ns->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-    gkyl_sub_range_intersect(&ns->global_upper_skin[dir], &ns->local_ext, &ns->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_upper_ghost[dir], &ns->local_ext, &ns->global_upper_ghost[dir]);
+  }
+
+  if (gk_app_inp->geometry.has_LCFS) {
+    // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    // Length of lower and upper x ranges (one is core, the other SOL).
+    int len_lo = idx_LCFS_lo;
+    int len_up = ns->global.upper[0]-len_lo;
+    // Lower and upper x ranges.
+    struct gkyl_range *global_lo_r, *global_ext_lo_r, *global_up_r, *global_ext_up_r;
+    struct gkyl_range *local_lo_r, *local_ext_lo_r, *local_up_r, *local_ext_up_r;
+    struct gkyl_range *local_lower_skin_par_lo_r, *local_upper_skin_par_lo_r,
+                      *local_lower_ghost_par_lo_r, *local_upper_ghost_par_lo_r;
+    struct gkyl_range *local_lower_skin_par_up_r, *local_upper_skin_par_up_r,
+                      *local_lower_ghost_par_up_r, *local_upper_ghost_par_up_r;
+    if (app->gk_geom->geqdsk_sign_convention == 0) {
+      // x increases towards SOL.
+      global_lo_r                = &ns->global_core;
+      global_up_r                = &ns->global_sol;
+      global_ext_lo_r            = &ns->global_ext_core;
+      global_ext_up_r            = &ns->global_ext_sol;
+      local_lo_r                 = &ns->local_core;
+      local_up_r                 = &ns->local_sol;
+      local_ext_lo_r             = &ns->local_ext_core;
+      local_ext_up_r             = &ns->local_ext_sol;
+      local_lower_skin_par_lo_r  = &ns->local_lower_skin_par_core;
+      local_lower_ghost_par_lo_r = &ns->local_lower_ghost_par_core;
+      local_lower_skin_par_up_r  = &ns->local_lower_skin_par_sol;
+      local_lower_ghost_par_up_r = &ns->local_lower_ghost_par_sol;
+      local_upper_skin_par_lo_r  = &ns->local_upper_skin_par_core;
+      local_upper_ghost_par_lo_r = &ns->local_upper_ghost_par_core;
+      local_upper_skin_par_up_r  = &ns->local_upper_skin_par_sol;
+      local_upper_ghost_par_up_r = &ns->local_upper_ghost_par_sol;
+    }
+    else {
+      // x increases towards core.
+      global_lo_r                = &ns->global_sol;
+      global_ext_lo_r            = &ns->global_ext_sol;
+      global_up_r                = &ns->global_core;
+      global_ext_up_r            = &ns->global_ext_core;
+      local_lo_r                 = &ns->local_sol;
+      local_up_r                 = &ns->local_core;
+      local_ext_lo_r             = &ns->local_ext_sol;
+      local_ext_up_r             = &ns->local_ext_core;
+      local_lower_skin_par_lo_r  = &ns->local_lower_skin_par_sol;
+      local_upper_skin_par_lo_r  = &ns->local_upper_skin_par_sol;
+      local_lower_ghost_par_lo_r = &ns->local_lower_ghost_par_sol;
+      local_upper_ghost_par_lo_r = &ns->local_upper_ghost_par_sol;
+      local_lower_skin_par_up_r  = &ns->local_lower_skin_par_core;
+      local_upper_skin_par_up_r  = &ns->local_upper_skin_par_core;
+      local_lower_ghost_par_up_r = &ns->local_lower_ghost_par_core;
+      local_upper_ghost_par_up_r = &ns->local_upper_ghost_par_core;
+    }
+
+    // Lower and upper x ranges.
+    gkyl_range_shorten_from_above(global_lo_r, &ns->global, 0, len_lo);
+    gkyl_range_shorten_from_below(global_up_r, &ns->global, 0, len_up);
+    gkyl_range_shorten_from_above(local_lo_r, &ns->local, 0, len_lo);
+    gkyl_range_shorten_from_below(local_up_r, &ns->local, 0, len_up);
+
+    // Extended lower and upper x ranges.
+    int len_lo_ext = idx_LCFS_lo+1;
+    int len_up_ext = ns->global_ext.upper[0]-len_lo;
+    gkyl_range_shorten_from_above(global_ext_lo_r, &ns->global_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(global_ext_up_r, &ns->global_ext, 0, len_up_ext);
+    gkyl_range_shorten_from_above(local_ext_lo_r, &ns->local_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(local_ext_up_r, &ns->local_ext, 0, len_up_ext);
+
+    // Parallel skin and ghost ranges, limited to the lower and upper x range.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? local_lower_skin_par_lo_r       : local_upper_skin_par_lo_r,
+                                    e==0? &ns->local_lower_skin[par_dir]  : &ns->local_upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(e==0? local_lower_ghost_par_lo_r      : local_upper_ghost_par_lo_r,
+                                    e==0? &ns->local_lower_ghost[par_dir] : &ns->local_upper_ghost[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_below(e==0? local_lower_skin_par_up_r       : local_upper_skin_par_up_r,
+                                    e==0? &ns->local_lower_skin[par_dir]  : &ns->local_upper_skin[par_dir], 0, len_up);
+      gkyl_range_shorten_from_below(e==0? local_lower_ghost_par_up_r      : local_upper_ghost_par_up_r,
+                                    e==0? &ns->local_lower_ghost[par_dir] : &ns->local_upper_ghost[par_dir], 0, len_up);
+    }
+
+    // Core range extended in the parallel direction.
+    int ndim = ns->local.ndim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = ns->local_core.lower[i];
+      upper_bcdir_ext[i] = ns->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = ns->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = ns->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&ns->local_par_ext_core, &ns->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
   }
 
   // Initialize projection routine for initial conditions.
@@ -389,10 +471,10 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   ns->src = (struct gk_source) { };
   if (!ns->info.is_static) {
-    gk_neut_species_fluid_init_dynamic(gk, app, ns);
+    gk_neut_species_fluid_init_dynamic(gk_app_inp, app, ns);
   }
   else {
-    gk_neut_species_fluid_init_static(gk, app, ns);
+    gk_neut_species_fluid_init_static(gk_app_inp, app, ns);
   }
 }
 
