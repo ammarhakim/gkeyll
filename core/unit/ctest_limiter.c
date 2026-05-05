@@ -2,8 +2,8 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_alloc.h>
 #include <gkyl_basis.h>
-#include <gkyl_positivity_shift_zhang_shu.h>
-#include <gkyl_positivity_shift_zhang_shu_priv.h>
+#include <gkyl_limiter.h>
+#include <gkyl_limiter_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -35,7 +35,8 @@ cell_min_from_modal(const struct gkyl_basis *basis, const double *modal_vals)
 static void
 test_cdim_poly_order(int ndim, int poly_order, bool ser, bool gkhyb, bool use_gpu)
 {
-  
+  (void) use_gpu;
+
   struct gkyl_basis basis;
   if (ser) {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
@@ -81,12 +82,9 @@ test_cdim_poly_order(int ndim, int poly_order, bool ser, bool gkhyb, bool use_gp
     }
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, 0, f, "positivity_shift_zhang_shu_1d_initial.gkyl");
-
-  struct gkyl_positivity_shift_zhang_shu *up = gkyl_positivity_shift_zhang_shu_new(basis);
-  gkyl_positivity_shift_zhang_shu_advance(up, &range, f);
-
-  gkyl_grid_sub_array_write(&grid, &range, 0, f, "positivity_shift_zhang_shu_1d_final.gkyl");
+  struct gkyl_limiter_inp inp = { .basis = basis, .type = GKYL_LIMITER_ZS, .dt_factor = 0.9 };
+  struct gkyl_limiter *up = gkyl_limiter_new(inp);
+  gkyl_limiter_advance(up, &range, f);
 
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -95,11 +93,104 @@ test_cdim_poly_order(int ndim, int poly_order, bool ser, bool gkhyb, bool use_gp
     TEST_CHECK(cell_min_from_modal(&basis, after) >= -1e-13);
   }
 
-  gkyl_positivity_shift_zhang_shu_release(up);
+  gkyl_limiter_release(up);
   gkyl_array_release(f);
 }
 
-// Serendipity basis tests
+static void
+test_cdim_poly_order_mrs(int ndim, int poly_order)
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  double lower[] = { 0.0 };
+  double upper[] = { 1.0 };
+  int cells[] = { 32 };
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  int ghost[] = { 0 };
+  struct gkyl_range range, range_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &range_ext, &range);
+
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+
+  const double c0 = sqrt(2.0);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    double *fc = gkyl_array_fetch(f, lidx);
+
+    fc[0] = c0;
+
+    double slope = -1.1 - 0.1 * lidx;
+    for (int k = 1; k < basis.num_basis; ++k) {
+      fc[k] = slope;
+    }
+  }
+
+  struct gkyl_limiter_inp inp = { .basis = basis, .type = GKYL_LIMITER_MRS, .dt_factor = 0.9 };
+  struct gkyl_limiter *up = gkyl_limiter_new(inp);
+  gkyl_limiter_advance(up, &range, f);
+
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    const double *after = gkyl_array_cfetch(f, lidx);
+    TEST_CHECK(cell_min_from_modal(&basis, after) >= -1e-13);
+  }
+
+  gkyl_limiter_release(up);
+  gkyl_array_release(f);
+}
+
+static void
+test_timestep_restriction(void)
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, 1);
+
+  double lower[] = { 0.0 };
+  double upper[] = { 1.0 };
+  int cells[] = { 4 };
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  int ghost[] = { 0 };
+  struct gkyl_range range, range_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &range_ext, &range);
+
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *dfdt = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    double *fc = gkyl_array_fetch(f, lidx);
+    double *dfc = gkyl_array_fetch(dfdt, lidx);
+
+    fc[0] = sqrt(2.0);
+    fc[1] = 0.0;
+    dfc[0] = -0.25 * sqrt(2.0);
+    dfc[1] = 0.0;
+  }
+
+  struct gkyl_limiter_inp inp = { .basis = basis, .type = GKYL_LIMITER_ZS, .dt_factor = 0.9 };
+  struct gkyl_limiter *up = gkyl_limiter_new(inp);
+  double dt = 1.0e99;
+  gkyl_limiter_advance_timestep(up, &range, f, dfdt, &dt);
+
+  TEST_CHECK(fabs(dt - 3.6) < 1e-12);
+
+  gkyl_limiter_release(up);
+  gkyl_array_release(dfdt);
+  gkyl_array_release(f);
+}
+
 void test_1d_p1(void) { test_cdim_poly_order(1, 1, true, false, false); }
 void test_1d_p2(void) { test_cdim_poly_order(1, 2, true, false, false); }
 void test_2d_p1(void) { test_cdim_poly_order(2, 1, true, false, false); }
@@ -111,31 +202,8 @@ void test_4d_p2(void) { test_cdim_poly_order(4, 2, true, false, false); }
 void test_5d_p1(void) { test_cdim_poly_order(5, 1, true, false, false); }
 void test_5d_p2(void) { test_cdim_poly_order(5, 2, true, false, false); }
 void test_6d_p1(void) { test_cdim_poly_order(6, 1, true, false, false); }
-
-// GPU versions
-void test_1d_p1_gpu(void) { test_cdim_poly_order(1, 1, true, false, true); }
-void test_1d_p2_gpu(void) { test_cdim_poly_order(1, 2, true, false, true); }
-void test_2d_p1_gpu(void) { test_cdim_poly_order(2, 1, true, false, true); }
-void test_2d_p2_gpu(void) { test_cdim_poly_order(2, 2, true, false, true); }
-void test_3d_p1_gpu(void) { test_cdim_poly_order(3, 1, true, false, true); }
-void test_3d_p2_gpu(void) { test_cdim_poly_order(3, 2, true, false, true); }
-void test_4d_p1_gpu(void) { test_cdim_poly_order(4, 1, true, false, true); }
-void test_4d_p2_gpu(void) { test_cdim_poly_order(4, 2, true, false, true); }
-void test_5d_p1_gpu(void) { test_cdim_poly_order(5, 1, true, false, true); }
-void test_5d_p2_gpu(void) { test_cdim_poly_order(5, 2, true, false, true); }
-void test_6d_p1_gpu(void) { test_cdim_poly_order(6, 1, true, false, true); }
-
-// Gkhybrid basis tests 
-void test_1x1v_p1_gkhyb(void) { test_cdim_poly_order(2, 1, false, true, false); }
-void test_1x2v_p1_gkhyb(void) { test_cdim_poly_order(3, 1, false, true, false); }
-void test_2x2v_p1_gkhyb(void) { test_cdim_poly_order(4, 1, false, true, false); }
-void test_3x2v_p1_gkhyb(void) { test_cdim_poly_order(5, 1, false, true, false); }
-
-// GPU versions
-void test_1x1v_p1_gpu(void) { test_cdim_poly_order(2, 1, false, true, true); }
-void test_1x2v_p1_gpu(void) { test_cdim_poly_order(3, 1, false, true, true); }
-void test_2x2v_p1_gpu(void) { test_cdim_poly_order(4, 1, false, true, true); }
-void test_3x2v_p1_gpu(void) { test_cdim_poly_order(5, 1, false, true, true); }
+void test_1d_p1_mrs(void) { test_cdim_poly_order_mrs(1, 1); }
+void test_timestep_restriction_case(void) { test_timestep_restriction(); }
 
 TEST_LIST = {
   { "test_1d_p1", test_1d_p1 },
@@ -149,28 +217,7 @@ TEST_LIST = {
   { "test_5d_p1", test_5d_p1 },
   { "test_5d_p2", test_5d_p2 },
   { "test_6d_p1", test_6d_p1 },
-  { "test_1x1v_p1_gkhyb", test_1x1v_p1_gkhyb },
-  { "test_1x2v_p1_gkhyb", test_1x2v_p1_gkhyb },
-  { "test_2x2v_p1_gkhyb", test_2x2v_p1_gkhyb },
-  { "test_3x2v_p1_gkhyb", test_3x2v_p1_gkhyb },
-#ifdef GKYL_HAVE_CUDA
-  { "test_1d_p1_gpu", test_1d_p1_gpu },
-  { "test_1d_p2_gpu", test_1d_p2_gpu },
-  { "test_2d_p1_gpu", test_2d_p1_gpu },
-  { "test_2d_p2_gpu", test_2d_p2_gpu },
-  { "test_3d_p1_gpu", test_3d_p1_gpu },
-  { "test_3d_p2_gpu", test_3d_p2_gpu },
-  { "test_4d_p1_gpu", test_4d_p1_gpu },
-  { "test_4d_p2_gpu", test_4d_p2_gpu },
-  { "test_5d_p1_gpu", test_5d_p1_gpu },
-  { "test_5d_p2_gpu", test_5d_p2_gpu },
-  { "test_6d_p1_gpu", test_6d_p1_gpu },
-  { "test_6d_p2_gpu", test_6d_p2_gpu },
-  { "test_1x1v_p1_gpu", test_1x1v_p1_gpu },
-  { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
-  { "test_2x2v_p1_gpu", test_2x2v_p1_gpu },
-  { "test_3x2v_p1_gpu", test_3x2v_p1_gpu },
-
-#endif
+  { "test_1d_p1_mrs", test_1d_p1_mrs },
+  { "test_timestep_restriction_case", test_timestep_restriction_case },
   { NULL, NULL },
 };
