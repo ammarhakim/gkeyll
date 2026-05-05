@@ -20,13 +20,12 @@ typedef struct gkyl_boundary_flux gkyl_boundary_flux;
  * @param ghost_r Ghost range.
  * @param num_eqns Number of equation objects.
  * @param eqns Equation objects.
- * @param skip_cell_threshold Threshold for skipping cells in the skin range.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_boundary_flux* gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_equations, const struct gkyl_dg_eqn **eqns, double skip_cell_threshold, bool use_gpu);
+  int num_equations, const struct gkyl_dg_eqn **eqns, bool use_gpu);
 
 /**
  * Compute the boundary flux.

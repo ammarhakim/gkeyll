@@ -465,7 +465,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nz/4},
       .cuts = { 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
@@ -487,7 +487,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nz/2},
       .cuts = { 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
@@ -510,7 +510,7 @@ create_gk_block_geom(void *ctx)
       .cells = { nz/4},
       .cuts = { 1 },
       .geometry = {
-        .geometry_id = GKYL_MAPC2P,
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
         .world = { 0.0, 0.0 },
         .mapc2p = mapc2p,
         .c2p_ctx = app,
@@ -759,7 +759,6 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "gk_multib_sheath_1x2v_p1",
 
     .cdim = ctx.cdim,
     .poly_order = 1,
@@ -777,6 +776,8 @@ main(int argc, char **argv)
     .comm = comm
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,

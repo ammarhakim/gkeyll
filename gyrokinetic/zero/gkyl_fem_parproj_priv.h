@@ -1,7 +1,9 @@
 // Private header for fem_parproj updater.
 #pragma once
 #include <gkyl_fem_parproj_kernels.h>
-#include <gkyl_basis.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
 #ifdef GKYL_HAVE_CUDA
 #include <gkyl_culinsolver_ops.h>
@@ -384,6 +386,140 @@ static const solstencil_kern_list ser_solstencil_list[] = {
   { fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
 };
 
+// Function pointer type for kernels that enforce biasing in LHS matrix.
+typedef void (*bias_lhs_t)(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+
+// For use in kernel tables.
+typedef struct { bias_lhs_t kernels[2]; } bias_lhs_kern_loc_list;
+typedef struct { bias_lhs_kern_loc_list list[2]; } bias_lhs_kern_bc_list;
+typedef struct { bias_lhs_kern_bc_list list[2]; } bias_lhs_kern_dim_list;
+
+// Serendipity bias_lhs kernels.
+static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = {
+  // 1x
+  {.list = 
+    { 
+      // periodicy
+      { .list = {
+          {NULL, NULL},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicy
+      { .list = {
+          {NULL, NULL},
+          {NULL, NULL},
+        },
+      },
+    },
+  },
+  // 2x
+  {.list = 
+    { 
+      // periodicy
+      { .list = {
+          {fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy, fem_parproj_bias_line_lhs_2x_ser_p1_upy_periodicy},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicy
+      { .list = {
+          {fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy, fem_parproj_bias_line_lhs_2x_ser_p1_upy_nonperiodicy},
+          {NULL, NULL},
+        },
+      },
+    },
+  },
+  // 3x
+  {.list = 
+    { 
+      // periodicz
+      { .list = {
+          {fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz, fem_parproj_bias_line_lhs_3x_ser_p1_upz_periodicz},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicz
+      { .list = {
+          {fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz, fem_parproj_bias_line_lhs_3x_ser_p1_upz_nonperiodicz},
+          {NULL, NULL},
+        },
+      },
+    },
+  },
+            
+};
+
+// Function pointer type for kernels that enforce biasing in RHS source.
+typedef void (*bias_src_t)(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+
+// For use in kernel tables.
+typedef struct { bias_src_t kernels[2]; } bias_src_kern_loc_list;
+typedef struct { bias_src_kern_loc_list list[2]; } bias_src_kern_bc_list;
+typedef struct { bias_src_kern_bc_list list[2]; } bias_src_kern_dim_list;
+
+// Serendipity bias_src kernels.
+GKYL_CU_D
+static const bias_src_kern_dim_list ser_bias_src_list[] = {
+  // 1x
+  {.list = 
+    { 
+      // periodicy
+      { .list =
+        {
+          {NULL, NULL},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicy
+      { .list =
+        {
+          {NULL, NULL},
+          {NULL, NULL},
+        },
+      },
+    },
+  },
+  // 2x
+  {.list = 
+    { 
+      // periodicy
+      { .list =
+        {
+          {fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy, fem_parproj_bias_line_src_2x_ser_p1_upy_periodicy},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicy
+      { .list =
+        {
+          {fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy, fem_parproj_bias_line_src_2x_ser_p1_upy_nonperiodicy},
+          {NULL, NULL},
+        },
+      },
+    },
+  },
+  // 3x
+  {.list = 
+    { 
+      // periodicz
+      { .list =
+        {
+          {fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz, fem_parproj_bias_line_src_3x_ser_p1_upz_periodicz},
+          {NULL, NULL},
+        },
+      },
+      // nonperiodicz
+      { .list =
+        {
+          {fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz, fem_parproj_bias_line_src_3x_ser_p1_upz_nonperiodicz},
+          {NULL, NULL},
+        },
+      }
+    }
+  },
+};
+
 // Functions that return the value to impose as Dirichlet BC.
 typedef const double *(*get_diri_val_t)(int par_dir, int par_num_cells,
   const int *idx, const struct gkyl_range *solve_range, const struct gkyl_array *phibc);
@@ -432,15 +568,23 @@ struct gkyl_fem_parproj_kernels {
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 
   get_diri_val_t get_dirichlet_value; // Gets value to impose as Dirichlet BC.
+
+  // Pointer to kernels that enforce biasing, 2 (interior and upper).
+  bias_lhs_t bias_lhs_ker[2];
+  bias_src_t bias_src_ker[2];
 };
 
+// Type of function used to enforce biasing in the RHS src.
+typedef void (*bias_src_func_t)(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
+
 struct gkyl_fem_parproj {
-  int ndim; // grid's number of dimensions.
-  int num_basis; // number of basis functions.
-  enum gkyl_basis_type basis_type;
-  int poly_order;
-  int pardir; // parallel (z) direction.
-  int parnum_cells; // number of cells in parallel (z) direction.
+  int ndim; // Grid's number of dimensions.
+  int num_basis; // Number of basis functions.
+  enum gkyl_basis_type basis_type; // Type of DG basis.
+  int poly_order; // Polynomial object of DG basis.
+  struct gkyl_rect_grid grid; // Grid object.
+  int pardir; // Parallel (z) direction.
+  int parnum_cells; // Number of cells in parallel (z) direction.
   bool isperiodic; // =true if parallel direction is periodic.
   bool isdirichlet; // =true if parallel direction has periodic BCs.
   bool has_weight_rhs; // Whether there's a weight on the RHS.
@@ -467,6 +611,11 @@ struct gkyl_fem_parproj {
 
   struct gkyl_fem_parproj_kernels *kernels;
   bool use_gpu;  
+
+  int bl_ndim_perp; // Number of perpendicular directions of bias lines.
+  int num_bias_line; // Number of biased lines.
+  struct gkyl_poisson_bias_line *bias_lines; // Biased lines.
+  bias_src_func_t bias_line_src; // Function to enforce biasing in RHS source.
 };
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.
@@ -485,6 +634,15 @@ void fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool has_weig
  * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
  */
 void gkyl_fem_parproj_set_rhs_cu(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+
+/**
+ * Replace the entries in the RHS src vector with the biased potential values.
+ *
+ * @param up FEM parallel projection updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void
+gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem
@@ -578,6 +736,56 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
 
 GKYL_CU_D
 static void
+fem_parproj_choose_bias_lhs_kernels(const struct gkyl_basis* basis,
+  enum gkyl_fem_parproj_bc_type bctype, bias_lhs_t *blhs_out)
+{
+  int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+
+  int bckey[1];
+  bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k=0; k<2; k++)
+        blhs_out[k] = CK(ser_bias_lhs_list, ndim, bckey[0], poly_order, k);
+
+      break;
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static void
+fem_parproj_choose_bias_src_kernels(const struct gkyl_basis* basis,
+  enum gkyl_fem_parproj_bc_type bctype, bias_src_t *bsrc_out)
+{
+  int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+
+  int bckey[1];
+  bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC? 0 : 1;
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k=0; k<2; k++)
+        bsrc_out[k] = CK(ser_bias_src_list, ndim, bckey[0], poly_order, k); 
+
+      break;
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static void
 fem_parproj_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, bool has_weight_rhs,
   enum gkyl_fem_parproj_bc_type bctype, bool use_gpu, struct gkyl_fem_parproj_kernels *kers)
 {
@@ -607,6 +815,10 @@ fem_parproj_choose_kernels(const struct gkyl_basis* basis, bool has_weight_lhs, 
     kers->get_dirichlet_value = get_dirichlet_value_enabled_skin;
   else
     kers->get_dirichlet_value = get_dirichlet_value_disabled;
+
+  // Select biasing kernels:
+  fem_parproj_choose_bias_lhs_kernels(basis, bctype, kers->bias_lhs_ker);
+  fem_parproj_choose_bias_src_kernels(basis, bctype, kers->bias_src_ker);
 }
 
 GKYL_CU_DH

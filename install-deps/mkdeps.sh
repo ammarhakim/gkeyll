@@ -7,14 +7,12 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
+MPICC=mpicc
+MPICXX=mpicxx
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
-BUILD_SUPERLU_DIST=no
-BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
@@ -54,8 +52,6 @@ The following flags specify the libraries to build.
 
 --build-openblas            [no] Should we build OpenBLAS?
 --build-superlu             [no] Should we build SuperLU (serial)
---build-superlu_dist        [no] Should we build SuperLU (parallel)
---enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
 --build-cudss               [no] Should we build cuDSS?
@@ -149,17 +145,11 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUPERLU="$value"
       ;;
-   --build-superlu_dist)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SUPERLU_DIST="$value"
-      ;;
-   --enable-superlu_gpu)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SUPERLU_DIST_GPU="$value"
-      ;;
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
+      MPICC=$PREFIX/openmpi/bin/mpicc
+      MPICXX=$PREFIX/openmpi/bin/mpicxx
       ;;   
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -231,15 +221,6 @@ build_superlu() {
     fi
 }
 
-build_superlu_dist() {
-    if [ "$BUILD_SUPERLU_DIST" = "yes" ]
-    then    
-	echo "Building SUPERLU Parallel"
-	./build-parmetis.sh
-	./build-superlu_dist.sh 
-    fi
-}
-
 build_openmpi() {
     if [ "$BUILD_OPENMPI" = "yes" ]
     then    
@@ -287,6 +268,5 @@ build_luajit
 build_tcc
 build_openblas
 build_superlu
-build_superlu_dist
 build_cudss
 build_adas

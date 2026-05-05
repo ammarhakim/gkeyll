@@ -129,6 +129,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_skiny(c
 
 GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
 
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_iny_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_upy_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_upy_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_iny_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_upy_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_upy_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+
 long fem_parproj_num_nodes_global_2x_ser_p2_periodicy(int numCellsPar);
 long fem_parproj_num_nodes_global_2x_ser_p2_nonperiodicy(int numCellsPar);
 
@@ -170,6 +179,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_ghosty(
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_iny_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_iny_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_upy_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_upy_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_iny_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_iny_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_upy_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_upy_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 
 long fem_parproj_num_nodes_global_3x_ser_p1_periodicz(int numCellsPar);
@@ -214,6 +232,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_skinz(c
 
 GKYL_CU_DH void fem_parproj_sol_stencil_3x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
 
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_inz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_upz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_upz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_inz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_upz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_upz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+
 long fem_parproj_num_nodes_global_3x_ser_p2_periodicz(int numCellsPar);
 long fem_parproj_num_nodes_global_3x_ser_p2_nonperiodicz(int numCellsPar);
 
@@ -255,6 +282,15 @@ GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_ghostz(
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_3x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_inz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_inz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_upz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_upz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_inz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_inz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_upz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_upz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 
 EXTERN_C_END 

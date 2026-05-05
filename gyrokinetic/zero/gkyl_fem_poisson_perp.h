@@ -57,6 +57,15 @@ void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp* up, struct gkyl_array 
 void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
 
 /**
+ * Assign the left-side matrix.
+ *
+ * @param up FEM poisson updater to run.
+ * @param epsilon Weight in Laplacian term.
+ * @param kSq Linear factor in Helmholtz term.
+ */
+void gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp* up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
+
+/**
  * Delete updater.
  *
  * @param up Updater to delete.

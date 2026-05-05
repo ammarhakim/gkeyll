@@ -10,6 +10,7 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -116,12 +117,15 @@ test_load_geometry()
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_MIRROR,
+    .geometry_id  = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -139,6 +143,7 @@ test_load_geometry()
   struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
   //write_geometry(up, cgrid, clocal, "whamlores");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -251,15 +256,16 @@ test_3x_p1_straight_cylinder()
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_null_new();
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MIRROR,
+    .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
+    .position_map = pos_map,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
@@ -272,7 +278,6 @@ test_3x_p1_straight_cylinder()
     .geo_global = range,
     .geo_global_ext = ext_range,
     .geo_basis = basis,
-    .position_map = pos_map,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
@@ -917,12 +922,12 @@ test_3x_p1_pmap_straight_cylinder()
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MIRROR,
+    .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
     .position_map = pos_map,
     .grid = grid,

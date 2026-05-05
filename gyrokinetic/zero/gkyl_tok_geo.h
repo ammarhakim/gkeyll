@@ -16,51 +16,48 @@
 
 typedef struct gk_geometry gk_geometry;
 
-
 // Some cumulative statistics
 struct gkyl_tok_geo_stat {
   long nquad_cont_calls; // num calls from quadrature
   long nroot_cont_calls; // num calls from root-finder
 };  
 
-typedef   void (*plate_func)(double s, double* RZ);
+typedef void (*plate_func)(double s, double* RZ);
 
 // Type of flux surface
 enum gkyl_tok_geo_type {
   // Full blocks to be used as stand alone simulations
-  GKYL_DN_SOL_OUT, // Full Outboard SOL of double-null (DN) configuration
-  GKYL_DN_SOL_IN, // Full Inboard SOL of DN configuration
-  GKYL_LSN_SOL, // Full SOL of a lower single-null (LSN) configuration
-  GKYL_USN_UP, // Full SOL of an upper single-null (USN) configuration -- not yet implemented
-  GKYL_CORE, // Full core
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT, // Full Outboard SOL of double-null (DN) configuration
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN, // Full Inboard SOL of DN configuration
+  GKYL_GEOMETRY_TOKAMAK_LSN_SOL, // Full SOL of a lower single-null (LSN) configuration
+  GKYL_GEOMETRY_TOKAMAK_USN_UP, // Full SOL of an upper single-null (USN) configuration -- not yet implemented
+  GKYL_GEOMETRY_TOKAMAK_CORE, // Full core
 
   // 6 SOL Block Types for DN multi-block simulations
-  GKYL_DN_SOL_OUT_LO,  // Section of outboard SOL below lower xpt
-  GKYL_DN_SOL_OUT_MID, // Section of outboard SOL between xpts
-  GKYL_DN_SOL_OUT_UP,  // Section of outboard SOL above upper xpt
-  GKYL_DN_SOL_IN_LO,   // Section of inboard SOL below lower xpt
-  GKYL_DN_SOL_IN_MID,  // Section of inboard SOL between xpts
-  GKYL_DN_SOL_IN_UP,   // Section of inboard SOL above upper xpt 
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,  // Section of outboard SOL below lower xpt
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID, // Section of outboard SOL between xpts
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,  // Section of outboard SOL above upper xpt
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,   // Section of inboard SOL below lower xpt
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,  // Section of inboard SOL between xpts
+  GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,   // Section of inboard SOL above upper xpt 
   
   // 3 SOL Block Types for LSN multi-block simulations
-  GKYL_LSN_SOL_LO, // Outboard divertor leg of LSN
-  GKYL_LSN_SOL_MID, // Middle portion of LSN SOL between X-points
-  GKYL_LSN_SOL_UP, // Inboard divertor leg of LSN
+  GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO, // Outboard divertor leg of LSN
+  GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID, // Middle portion of LSN SOL between X-points
+  GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP, // Inboard divertor leg of LSN
 
   // PF Block types that can be used with SN or DN configurations in multi-block simulations
-  GKYL_PF_UP_L, // Left half of Private flux region at top (inboard upper plate to upper xpt)
-  GKYL_PF_UP_R, // Right half of Private flux region at top (upper xpt to outboard upper plate)
-  GKYL_PF_LO_L, // Left half of Private flux region at bottom (lower xpt to inboard lower plate)
-  GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_PF_UP_L, // Left half of Private flux region at top (inboard upper plate to upper xpt)
+  GKYL_GEOMETRY_TOKAMAK_PF_UP_R, // Right half of Private flux region at top (upper xpt to outboard upper plate)
+  GKYL_GEOMETRY_TOKAMAK_PF_LO_L, // Left half of Private flux region at bottom (lower xpt to inboard lower plate)
+  GKYL_GEOMETRY_TOKAMAK_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
   // Core Block types that can be used with SN or DN configurations in multi-block simulations 
-  GKYL_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_CORE_R, // Right half of core (upper to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (lower to upper xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (upper to lower xpt)
 
-  GKYL_IWL, // Inner Wall Limited
+  GKYL_GEOMETRY_TOKAMAK_IWL, // Inner Wall Limited
 };  
-
-
 
 struct gkyl_tok_geo {
   struct gkyl_efit* efit;
@@ -84,18 +81,26 @@ struct gkyl_tok_geo {
   struct gkyl_basis fbasis; // psi basis for fpol
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *fpolprimedg; // fpol'(psi) dg rep
-  const struct gkyl_array *qdg; // q(psi) dg rep
-                                   
+  const struct gkyl_array *qdg; // q(psi) dg rep                                   
 
   double sibry; // psi of separatrix as given by EFIT
   double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
-  double rleft, rright;
-  double rmin, rmax;
+  // rleft : If you are in a circular kind of region (like a single null SOL or the core) and
+  // theta is greater than theta of the upper turning point (so we have already traced the
+  // entire right half of the surface), nodes/roots with R closest to rleft will be chosen.
+  double rleft; 
+  double rright;
+  // rmin : No root with R < rmin will ever be chosen. rmin is interpreted as maybe a machine
+  // boundary. So, no node will be placed at r < rmin.
+  double rmin;
+  double rmax;
 
   // Flag and functions to specify the plate location/shape in RZ coordinates
   // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
   // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
+  // For IWL, when s=0, the plate function must return the coordinates of the corner of the limiter plate
+  // at the inboard midplane which lies on the LCFS.
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -187,7 +192,7 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const str
  * @param dR on output, dR/dZ
  */
 int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR);
+  double *R, double *dRdZ, double *dR, double *dZ);
 
 /**
  * Integrate along a specified psi countour and return its length. The

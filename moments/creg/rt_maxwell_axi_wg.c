@@ -56,7 +56,6 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "maxwell_axi_wg",
 
     .ndim = 3,
     // grid in computational space
@@ -83,6 +82,8 @@ main(int argc, char **argv)
   };
 
   // create app object
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   double w = 1.212168982106865; // frequency of mode

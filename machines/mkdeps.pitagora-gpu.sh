@@ -8,4 +8,4 @@ module load cmake/3.27.9
 
 cd install-deps
 : "${PREFIX:=$HOME/gkylsoft}"
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-luajit=yes --build-cudss=yes --build-adas=yes --prefix=$PREFIX
+./mkdeps.sh --build-openblas=yes --build-superlu=yes --build-luajit=yes --build-cudss=yes --prefix=$PREFIX

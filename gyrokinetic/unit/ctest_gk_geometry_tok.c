@@ -18,6 +18,7 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -121,11 +122,12 @@ test_elliptical()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 5.0,
-    .ftype = GKYL_DN_SOL_OUT,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
     .rclose = 6.0,
     .rright = 6.0,
     .rleft = 0.0,
@@ -134,9 +136,10 @@ test_elliptical()
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -153,6 +156,7 @@ test_elliptical()
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -250,9 +254,11 @@ test_3x_p1_straight_cylinder()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "core/data/eqdsk/straight_cylinder.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -267,9 +273,10 @@ test_3x_p1_straight_cylinder()
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_TOKAMAK,
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
@@ -600,6 +607,7 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -626,7 +634,7 @@ test_asdex_qprofile_core()
     .flux_poly_order = 1,
   };
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_CORE,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -639,7 +647,7 @@ test_asdex_qprofile_core()
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
@@ -699,7 +707,7 @@ test_asdex_qprofile_sol()
   };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_LSN_SOL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -712,7 +720,7 @@ test_asdex_qprofile_sol()
   };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
