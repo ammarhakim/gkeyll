@@ -976,7 +976,6 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
     gksun->arkode_mem_opsplit = SplittingStepCreate(steppers, num_partitions, inp->t_curr, nvin, nvin->sunctx);
     sundials_check_flag(gksun->arkode_mem_opsplit, "SplittingStepCreate", 0);
 
-    inp->app_ctx->arkode_mem_opsplit = gksun->arkode_mem_opsplit;
     flag = ARKodeSetUserData(gksun->arkode_mem_opsplit, inp->app_ctx);
 
     if (inp->opsplit_method != GKYL_SUNDIALS_OPSPLIT_METHOD_NONE) {
@@ -997,6 +996,9 @@ gkyl_sundials_stepper_init(struct gkyl_sundials *gksun,
   else {
     gksun->arkode_mem_opsplit = gksun->has_ssprk? gksun->arkode_mem_ssprk : gksun->arkode_mem_sts;
   }
+
+  // Store operator split mem in context so it can be accessed in methods.
+  inp->app_ctx->arkode_mem_opsplit = gksun->arkode_mem_opsplit;
 
 }
 
