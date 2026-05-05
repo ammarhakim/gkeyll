@@ -349,7 +349,7 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
-    f->gfss_bc_op_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+    f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_upper_skin[par_dir], &app->global_upper_ghost[par_dir],
       app->basis.num_basis, app->cdim, app->use_gpu);
 
@@ -431,7 +431,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     long buff_sz = GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
-    f->gfss_bc_op_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+    f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_upper_skin_par_core, &app->global_upper_ghost_par_core,
       app->basis.num_basis, app->cdim, app->use_gpu);
 
@@ -692,11 +692,11 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     for (int i = 0; i < 2*app->cdim; i++) {
       if ( gks->info.bcs[i].dir == app->cdim-1 ) {
         if (gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT ) {
-          f->bc_par_phi = GKYL_BC_GK_SPECIES_TWISTSHIFT;
+          f->bc_par_phi = GKYL_BC_GK_FIELD_TWISTSHIFT;
           break;
 	}
         if (gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_IWL ) {
-          f->bc_par_phi = GKYL_BC_GK_SPECIES_IWL;
+          f->bc_par_phi = GKYL_BC_GK_FIELD_IWL;
           break;
 	}
       }
