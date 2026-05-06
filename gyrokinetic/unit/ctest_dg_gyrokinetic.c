@@ -125,7 +125,6 @@ test_dg_gyrokinetic()
   gkyl_gk_geometry_release(gk_geom);  
   gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
-  gkyl_position_map_release(pmap);
   gkyl_dg_eqn_release(eqn);
 }
 
