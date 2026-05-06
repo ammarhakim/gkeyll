@@ -137,6 +137,40 @@ limit_time_step(const struct gkyl_positivity *up, const double *fc,
   }
 }
 
+
+static void
+limit_time_step_quad(const struct gkyl_positivity *up, const double *fc,
+  struct gkyl_array *dfdt, double *dt, long lidx, double *dt_bound)
+{
+  const double *dfc = gkyl_array_cfetch(dfdt, lidx);
+
+  const int nbasis = up->basis.num_basis;
+  double cell_dt = DBL_MAX;
+
+  for (int k = 0; k < nbasis; ++k) {
+    up->fquad[k] = 0.0;
+    up->basis.modal_to_quad_nodal(fc, up->fquad, k);
+    const double fq = up->fquad[k];
+
+    up->fquad[k] = 0.0;
+    up->basis.modal_to_quad_nodal(dfc, up->fquad, k);
+    const double dfq = up->fquad[k];
+
+    if (dfq < 0.0) {
+      const double quad_dt = up->dt_factor * fq / (-dfq);
+      if (quad_dt < cell_dt) cell_dt = quad_dt;
+    }
+  }
+
+  if (cell_dt < *dt_bound) {
+    *dt_bound = cell_dt;
+  }
+
+  if (dt != dt_bound) {
+    *dt = cell_dt;
+  }
+}
+
 static void
 per_cell_limiter(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
@@ -167,6 +201,11 @@ limit_cell_disabled(const struct gkyl_positivity *up, const struct gkyl_range *r
   struct gkyl_array *f, const int *idx, double *fc)
 {}
 
+void
+limit_timestep_disabled(const struct gkyl_positivity *up, const double *fc,
+  struct gkyl_array *dfdt, double *dt, long lidx, double *dt_bound)
+{}
+
 struct gkyl_positivity*
 gkyl_positivity_new(struct gkyl_positivity_inp inp)
 {
@@ -176,6 +215,10 @@ gkyl_positivity_new(struct gkyl_positivity_inp inp)
   up->dt_factor = inp.dt_factor;
   up->cellav_fac = 1. / pow(sqrt(2.), inp.basis.ndim);
   up->fquad = gkyl_malloc(up->basis.num_basis * sizeof(double));
+
+  up->positivity_func = limiter_func_diabled;
+  up->limit_cell_func = limit_cell_disabled;
+  up->limit_timestep_func = limit_timestep_disabled;
 
   switch (inp.type) {
     case GKYL_POSITIVITY_ZS:
@@ -188,12 +231,15 @@ gkyl_positivity_new(struct gkyl_positivity_inp inp)
       up->limit_cell_func = limit_cell_mrs;
       up->limit_timestep_func = limit_time_step;
       break;
-    default:
-      up->positivity_func = limiter_func_diabled;
-      up->limit_cell_func = limit_cell_disabled;
+    case GKYL_POSITIVITY_TIMESTEP_AVG:
+      up->positivity_func = per_cell_limiter;
       up->limit_timestep_func = limit_time_step;
+      break;
+    case GKYL_POSITIVITY_TIMESTEP_QUAD:
+      up->positivity_func = per_cell_limiter;
+      up->limit_timestep_func = limit_time_step_quad;
+      break;
   }
-
   return up;
 }
 

@@ -12,6 +12,8 @@ enum gkyl_positivity_type {
   GKYL_POSITIVITY_NONE = 0,
   GKYL_POSITIVITY_ZS, // Zhang & Shu limiter.
   GKYL_POSITIVITY_MRS, // Moe, Rossmanith, and Seal limiter (https://arxiv.org/pdf/1507.03024)
+  GKYL_POSITIVITY_TIMESTEP_AVG, // Only apply timestep limiter based on cell-average value.
+  GKYL_POSITIVITY_TIMESTEP_QUAD, // Only apply timestep limiter based on quadrature point values.
 };
 
 struct gkyl_positivity_inp {
