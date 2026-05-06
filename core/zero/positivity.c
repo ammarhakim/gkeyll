@@ -1,5 +1,5 @@
-#include <gkyl_limiter.h>
-#include <gkyl_limiter_priv.h>
+#include <gkyl_positivity.h>
+#include <gkyl_positivity_priv.h>
 
 #include <gkyl_alloc.h>
 
@@ -8,14 +8,14 @@
 #include <stdio.h>
 
 static double
-cell_average(const struct gkyl_limiter *up, const double *f)
+cell_average(const struct gkyl_positivity *up, const double *f)
 {
   return up->cellav_fac * f[0];
 }
 
 // Finds the minimum and maximum values of the quadrature points of the cell.
 static void
-min_max_quad(const struct gkyl_limiter *up, const double *f, double *fmin, double *fmax)
+min_max_quad(const struct gkyl_positivity *up, const double *f, double *fmin, double *fmax)
 {
   const int nbasis = up->basis.num_basis;
 
@@ -30,7 +30,7 @@ min_max_quad(const struct gkyl_limiter *up, const double *f, double *fmin, doubl
 }
 
 static void
-min_max_quad_neighbor(const struct gkyl_limiter *up, const struct gkyl_range *range,
+min_max_quad_neighbor(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *f_idx, double *fmin, double *fmax)
 {
   *fmin = DBL_MAX;
@@ -67,7 +67,7 @@ min_max_quad_neighbor(const struct gkyl_limiter *up, const struct gkyl_range *ra
 }
 
 static void
-limit_cell_zs(const struct gkyl_limiter *up, const struct gkyl_range *range,
+limit_cell_zs(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *idx, double *fc)
 {
   const int nbasis = up->basis.num_basis;
@@ -91,7 +91,7 @@ limit_cell_zs(const struct gkyl_limiter *up, const struct gkyl_range *range,
 }
 
 static void
-limit_cell_mrs(const struct gkyl_limiter *up, const struct gkyl_range *range,
+limit_cell_mrs(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *idx, double *fc)
 {
   const int nbasis = up->basis.num_basis;
@@ -124,7 +124,7 @@ limit_cell_mrs(const struct gkyl_limiter *up, const struct gkyl_range *range,
 }
 
 static void
-limit_time_step(const struct gkyl_limiter *up, const double *fc,
+limit_time_step(const struct gkyl_positivity *up, const double *fc,
   struct gkyl_array *dfdt, double *dt, long lidx, double *dt_bound)
 {
   const double *dfc = gkyl_array_cfetch(dfdt, lidx);
@@ -138,7 +138,7 @@ limit_time_step(const struct gkyl_limiter *up, const double *fc,
 }
 
 static void
-per_cell_limiter(const struct gkyl_limiter *up, const struct gkyl_range *range,
+per_cell_limiter(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
   double dt_bound = DBL_MAX;
@@ -158,19 +158,19 @@ per_cell_limiter(const struct gkyl_limiter *up, const struct gkyl_range *range,
 }
 
 void
-limiter_func_diabled(const struct gkyl_limiter *up, const struct gkyl_range *range,
+limiter_func_diabled(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {}
 
 void
-limit_cell_disabled(const struct gkyl_limiter *up, const struct gkyl_range *range,
+limit_cell_disabled(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *idx, double *fc)
 {}
 
-struct gkyl_limiter*
-gkyl_limiter_new(struct gkyl_limiter_inp inp)
+struct gkyl_positivity*
+gkyl_positivity_new(struct gkyl_positivity_inp inp)
 {
-  struct gkyl_limiter *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_positivity *up = gkyl_malloc(sizeof(*up));
   up->type = inp.type;
   up->basis = inp.basis;
   up->dt_factor = inp.dt_factor;
@@ -178,18 +178,18 @@ gkyl_limiter_new(struct gkyl_limiter_inp inp)
   up->fquad = gkyl_malloc(up->basis.num_basis * sizeof(double));
 
   switch (inp.type) {
-    case GKYL_LIMITER_ZS:
-      up->limiter_func = per_cell_limiter;
+    case GKYL_POSITIVITY_ZS:
+      up->positivity_func = per_cell_limiter;
       up->limit_cell_func = limit_cell_zs;
       up->limit_timestep_func = limit_time_step;
       break;
-    case GKYL_LIMITER_MRS:
-      up->limiter_func = per_cell_limiter;
+    case GKYL_POSITIVITY_MRS:
+      up->positivity_func = per_cell_limiter;
       up->limit_cell_func = limit_cell_mrs;
       up->limit_timestep_func = limit_time_step;
       break;
     default:
-      up->limiter_func = limiter_func_diabled;
+      up->positivity_func = limiter_func_diabled;
       up->limit_cell_func = limit_cell_disabled;
       up->limit_timestep_func = limit_time_step;
   }
@@ -198,13 +198,14 @@ gkyl_limiter_new(struct gkyl_limiter_inp inp)
 }
 
 void
-gkyl_limiter_advance(gkyl_limiter *up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
+gkyl_positivity_advance(gkyl_positivity *up, const struct gkyl_range *range, 
+  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
-  up->limiter_func(up, range, f, dfdt, dt);
+  up->positivity_func(up, range, f, dfdt, dt);
 }
 
 void
-gkyl_limiter_release(gkyl_limiter *up)
+gkyl_positivity_release(gkyl_positivity *up)
 {
   gkyl_free(up->fquad);
   gkyl_free(up);

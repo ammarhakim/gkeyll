@@ -189,6 +189,29 @@ gks_pos_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
 }
 
 void
+gks_pos_apply_limiter_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
+{
+  // Do nothing.
+}
+
+void
+gks_pos_apply_limiter_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
+{
+  struct timespec wtm = gkyl_wall_clock();
+  // Copy f so we can calculate the moments of delta f later.
+  pos->fbuffer_ptr = fbuffer;
+  gkyl_array_set(pos->fbuffer_ptr, -1.0, fout);
+
+  // Apply limiter to ensure positivity.
+  double dt_unused = 0.0;
+  gkyl_positivity_advance(pos->limiter_op, &gks->local, fout, pos->delta_m0, &dt_unused);
+
+  app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+void
 gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos)
 {
@@ -205,12 +228,24 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    // Positivity shift updater.
-    pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
-
-    // Methods chosen at runtime.
-    pos->apply_func = gks_pos_apply_enabled;
+    // Check if using limiter-based positivity (type > 1) or shift-based (type == 1)
+    if (pos->type > 1) {
+      // Limiter-based positivity updater.
+      struct gkyl_positivity_inp inp = {
+        .basis = gks->basis,
+        .type = pos->type == 2 ? GKYL_POSITIVITY_ZS : GKYL_POSITIVITY_MRS,
+        .dt_factor = 0.9
+      };
+      pos->limiter_op = gkyl_positivity_new(inp);
+      pos->apply_func = gks_pos_apply_limiter_enabled;
+    }
+    else {
+      // Positivity shift updater.
+      pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
+        gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      // Methods chosen at runtime.
+      pos->apply_func = gks_pos_apply_enabled;
+    }
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
@@ -287,7 +322,12 @@ gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const stru
   if (pos->type) {
 
     gkyl_array_release(pos->delta_m0);
-    gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
+    if (pos->type > 1) {
+      gkyl_positivity_release(pos->limiter_op);
+    }
+    else {
+      gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
+    }
     if (app->post_positivity_quasineut) {
       gkyl_array_release(pos->delta_m0s_tot);
       gkyl_array_release(pos->delta_m0r_tot);
