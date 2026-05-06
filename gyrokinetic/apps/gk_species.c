@@ -53,6 +53,10 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+
+    // Multiply omega_H CFL rate by the df/dt multiplier.
+    gk_species_fdot_multiplier_advance_times_cfl_conf(app, gks, &gks->fdot_mult, app->field->phi_smooth, gks->m0.marr);
+  
     gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
   
     double m0_max[1];

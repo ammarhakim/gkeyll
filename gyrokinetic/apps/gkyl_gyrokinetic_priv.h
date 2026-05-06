@@ -853,7 +853,11 @@ struct gk_fdot_multiplier {
   bool write_diagnostics; // Whether to write diagnostics out.
   bool evolve; // Whether the multiplicative function is time dependent.
   struct gkyl_array *multiplier; // Damping rate.
+  struct gkyl_array *multiplier_init; // Damping rate at t=0.
   struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
+  struct gkyl_array *multiplier_conf; // Damping rate.
+  struct gkyl_array *multiplier_conf_init; // Damping rate at t=0.
+  struct gkyl_array *multiplier_conf_host; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   double *bmag_max; // Maximum magnetic field amplitude.
@@ -864,6 +868,8 @@ struct gk_fdot_multiplier {
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
   void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+  void (*advance_times_cfl_conf_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
 };
 
@@ -2869,6 +2875,9 @@ void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk
  * @param out CFL rate to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+
+void gk_species_fdot_multiplier_advance_times_cfl_conf(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
 
 /**

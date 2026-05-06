@@ -354,6 +354,7 @@ struct gkyl_gyrokinetic_damping {
 enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0,
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT_TIME_SCALED,
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
 };
 
@@ -361,6 +362,8 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   enum gkyl_gyrokinetic_fdot_multiplier_type type;
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
   void *profile_ctx; // Context for profile function.
+  double (*profile_time_scaling)(double t, void *ctx); // Function of time to multiply initial profile by.
+  void *profile_time_scaling_ctx; // Context for profile_time_scaling function.
   bool cellwise_const; // Whether the multiplier has a single value per cell.
   bool write_diagnostics; // Whether to output diagnostics.
 };
