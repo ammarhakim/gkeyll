@@ -1,5 +1,5 @@
 /*
- * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 171bffe
+ * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ a5777e5
  * Sources:
  *   nn model      : gkeyll_sheath_ai/model/nn_model_conv_MPE.pth
  *   normalization : gkeyll_sheath_ai/model/normalization_conv_MPE.npz
