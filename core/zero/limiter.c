@@ -152,29 +152,46 @@ per_cell_limiter(const struct gkyl_limiter *up, const struct gkyl_range *range,
 
     up->limit_cell_func(up, range, f, iter.idx, fc);
 
-    limit_time_step(up, fc, dfdt, &dt_bound, lidx, &dt_bound);
+    up->limit_timestep_func(up, fc, dfdt, &dt_bound, lidx, &dt_bound);
   }
   *dt = dt_bound;
 }
+
+void
+limiter_func_diabled(const struct gkyl_limiter *up, const struct gkyl_range *range,
+  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
+{}
+
+void
+limit_cell_disabled(const struct gkyl_limiter *up, const struct gkyl_range *range,
+  struct gkyl_array *f, const int *idx, double *fc)
+{}
 
 struct gkyl_limiter*
 gkyl_limiter_new(struct gkyl_limiter_inp inp)
 {
   struct gkyl_limiter *up = gkyl_malloc(sizeof(*up));
+  up->type = inp.type;
   up->basis = inp.basis;
-  up->cellav_fac = 1. / pow(sqrt(2.), inp.basis.ndim);
   up->dt_factor = inp.dt_factor;
+  up->cellav_fac = 1. / pow(sqrt(2.), inp.basis.ndim);
   up->fquad = gkyl_malloc(up->basis.num_basis * sizeof(double));
 
   switch (inp.type) {
     case GKYL_LIMITER_ZS:
       up->limiter_func = per_cell_limiter;
       up->limit_cell_func = limit_cell_zs;
+      up->limit_timestep_func = limit_time_step;
       break;
     case GKYL_LIMITER_MRS:
       up->limiter_func = per_cell_limiter;
       up->limit_cell_func = limit_cell_mrs;
+      up->limit_timestep_func = limit_time_step;
       break;
+    default:
+      up->limiter_func = limiter_func_diabled;
+      up->limit_cell_func = limit_cell_disabled;
+      up->limit_timestep_func = limit_time_step;
   }
 
   return up;

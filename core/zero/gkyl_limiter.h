@@ -9,7 +9,8 @@
 typedef struct gkyl_limiter gkyl_limiter;
 
 enum gkyl_limiter_type {
-  GKYL_LIMITER_ZS = 0, // Zhang & Shu limiter.
+  GKYL_LIMITER_NONE = 0,
+  GKYL_LIMITER_ZS, // Zhang & Shu limiter.
   GKYL_LIMITER_MRS, // Moe, Rossmanith, and Seal limiter (https://arxiv.org/pdf/1507.03024)
 };
 
