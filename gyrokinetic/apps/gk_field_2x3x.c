@@ -131,7 +131,7 @@ gk_field_fem_projection_par_phi_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field
   // Apply TS BC in the core lower parallel boundary, and
   // fill core upper parallel boundary ghost with skin boundary value.
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
-    &app->global_lower_ghost_par_core, &app->global_upper_skin_par_core);
+    &app->app->global_lower_ghost[par_dir], &app->global_upper_skin[par_dir]);
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
@@ -358,14 +358,14 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
   }
 
   // Parallel smoother for the charge density.
-  f->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
+  f->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc_rho_core, 0, 0, 0, app->use_gpu);
 
   // Fill bias line list for fem_parproj_phi.
   gk_field_2x3x_fill_fem_parproj_bias_lines(app, f, poisson_bcs);
     
   // Parallel smoother for the potential.
-  f->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
+  f->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc_phi_core, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
 }
 
