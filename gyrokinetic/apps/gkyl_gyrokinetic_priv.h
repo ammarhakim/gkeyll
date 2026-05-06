@@ -285,7 +285,7 @@ struct gk_collisionless {
       struct gkyl_array *flux_surf; // Array for surface phase space flux
       struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
-      struct gkyl_gk_collisionless_flux *surf_flux_em_star_op; // EM collisionless fluxes without Apardot contribution.
+      struct gkyl_gk_collisionless_flux *surf_flux_em_complete_op; // EM collisionless fluxes without Apardot contribution.
       gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
       gkyl_dg_updater_gyrokinetic *slvr_em_complete; // EM without Apardot contribution.
 
