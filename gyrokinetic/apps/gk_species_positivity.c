@@ -205,10 +205,26 @@ gks_pos_apply_limiter_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   gkyl_array_set(pos->fbuffer_ptr, -1.0, fout);
 
   // Apply limiter to ensure positivity.
-  double dt_unused = 0.0;
-  gkyl_positivity_advance(pos->limiter_op, &gks->local, fout, pos->delta_m0, &dt_unused);
+  gkyl_positivity_advance(pos->limiter_op, &gks->local, fout);
 
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+static double
+gks_pos_limit_dt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  return DBL_MAX;
+}
+
+static double
+gks_pos_limit_dt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  double dt_pos = DBL_MAX;
+  gkyl_positivity_advance_timestep(pos->limiter_op, &gks->local, (struct gkyl_array *) fin, rhs, &dt_pos);
+
+  return dt_pos;
 }
 
 void
@@ -220,30 +236,62 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   pos->quasineut_rescale = gks->info.positivity.quasineutrality_rescale;
 
   pos->apply_func = gks_pos_apply_disabled;
+  pos->limit_dt_func = gks_pos_limit_dt_disabled;
   pos->write_diags_func = gks_pos_write_diags_disabled;
   pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_disabled;
   pos->write_integrated_diags_func = gks_pos_write_integrated_diags_disabled;
+  pos->limiter_op = 0;
+  pos->shift_op_gk = 0;
 
   if (pos->type) {
 
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    // Check if using limiter-based positivity (type > 1) or shift-based (type == 1)
-    if (pos->type > 1) {
-      // Limiter-based positivity updater.
+    // Determine core positivity type and mode category from gyrokinetic enum.
+    enum gkyl_positivity_type core_pos_type = GKYL_POSITIVITY_TIMESTEP_AVG; // default
+    bool is_limiter_or_timestep_mode = false;
+
+    switch (pos->type) {
+      case GKYL_GK_POSITIVITY_ZS:
+        core_pos_type = GKYL_POSITIVITY_ZS;
+        is_limiter_or_timestep_mode = true;
+        break;
+      case GKYL_GK_POSITIVITY_MRS:
+        core_pos_type = GKYL_POSITIVITY_MRS;
+        is_limiter_or_timestep_mode = true;
+        break;
+      case GKYL_GK_POSITIVITY_TIMESTEP_AVG:
+        core_pos_type = GKYL_POSITIVITY_TIMESTEP_AVG;
+        is_limiter_or_timestep_mode = true;
+        break;
+      case GKYL_GK_POSITIVITY_TIMESTEP_QUAD:
+        core_pos_type = GKYL_POSITIVITY_TIMESTEP_QUAD;
+        is_limiter_or_timestep_mode = true;
+        break;
+      default:
+        break;
+    }
+
+    // Initialize limiter-based or timestep-only modes.
+    if (is_limiter_or_timestep_mode) {
       struct gkyl_positivity_inp inp = {
         .basis = gks->basis,
-        .type = pos->type == 2 ? GKYL_POSITIVITY_ZS : GKYL_POSITIVITY_MRS,
-        .dt_factor = 0.9
+        .type = core_pos_type,
+        .dt_factor = 0.9,
       };
       pos->limiter_op = gkyl_positivity_new(inp);
-      pos->apply_func = gks_pos_apply_limiter_enabled;
+      pos->limit_dt_func = gks_pos_limit_dt_enabled;
+      
+      // Limiter modes (ZS, MRS) also modify f; timestep-only modes (TIMESTEP_AVG, TIMESTEP_QUAD) do not.
+      if (pos->type == GKYL_GK_POSITIVITY_ZS || pos->type == GKYL_GK_POSITIVITY_MRS) {
+        pos->apply_func = gks_pos_apply_limiter_enabled;
+      }
+      // else: timestep-only mode keeps apply_func as gks_pos_apply_disabled (no-op)
     }
     else {
-      // Positivity shift updater.
+      // Shift-based positivity updater (GKYL_GK_POSITIVITY_SHIFT).
       pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
         gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
-      // Methods chosen at runtime.
       pos->apply_func = gks_pos_apply_enabled;
     }
 
@@ -295,6 +343,13 @@ gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   pos->apply_func(app, gks, pos, fbuffer, fout);
 }
 
+double
+gk_species_positivity_limit_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  return pos->limit_dt_func(app, gks, pos, fin, rhs);
+}
+
 void
 gk_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_positivity *pos, double tm, int frame)
@@ -322,10 +377,14 @@ gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const stru
   if (pos->type) {
 
     gkyl_array_release(pos->delta_m0);
-    if (pos->type > 1) {
+    
+    // Release limiter-based or timestep-only modes.
+    if (pos->type == GKYL_GK_POSITIVITY_ZS || pos->type == GKYL_GK_POSITIVITY_MRS ||
+        pos->type == GKYL_GK_POSITIVITY_TIMESTEP_AVG || pos->type == GKYL_GK_POSITIVITY_TIMESTEP_QUAD) {
       gkyl_positivity_release(pos->limiter_op);
     }
     else {
+      // Release shift-based updater.
       gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
     }
     if (app->post_positivity_quasineut) {

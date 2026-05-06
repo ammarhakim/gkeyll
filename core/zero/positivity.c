@@ -173,10 +173,8 @@ limit_time_step_quad(const struct gkyl_positivity *up, const double *fc,
 
 static void
 per_cell_limiter(const struct gkyl_positivity *up, const struct gkyl_range *range,
-  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
+  struct gkyl_array *f)
 {
-  double dt_bound = DBL_MAX;
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
 
@@ -185,16 +183,36 @@ per_cell_limiter(const struct gkyl_positivity *up, const struct gkyl_range *rang
     double *fc = gkyl_array_fetch(f, lidx);
 
     up->limit_cell_func(up, range, f, iter.idx, fc);
-
-    up->limit_timestep_func(up, fc, dfdt, &dt_bound, lidx, &dt_bound);
   }
-  *dt = dt_bound;
 }
 
 void
 limiter_func_diabled(const struct gkyl_positivity *up, const struct gkyl_range *range,
+  struct gkyl_array *f)
+{}
+
+void
+limiter_timestep_diabled(const struct gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {}
+
+static void
+per_cell_timestep(const struct gkyl_positivity *up, const struct gkyl_range *range,
+  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
+{
+  double dt_bound = DBL_MAX;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  const int nbasis = up->basis.num_basis;
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(range, iter.idx);
+    const double *fc = gkyl_array_cfetch(f, lidx);
+    up->limit_timestep_func(up, fc, dfdt, &dt_bound, lidx, &dt_bound);
+  }
+  *dt = dt_bound;
+}
 
 void
 limit_cell_disabled(const struct gkyl_positivity *up, const struct gkyl_range *range,
@@ -216,28 +234,35 @@ gkyl_positivity_new(struct gkyl_positivity_inp inp)
   up->cellav_fac = 1. / pow(sqrt(2.), inp.basis.ndim);
   up->fquad = gkyl_malloc(up->basis.num_basis * sizeof(double));
 
-  up->positivity_func = limiter_func_diabled;
+  up->positivity_advance_func = limiter_func_diabled;
+  up->positivity_timestep_func = limiter_timestep_diabled;
   up->limit_cell_func = limit_cell_disabled;
   up->limit_timestep_func = limit_timestep_disabled;
 
   switch (inp.type) {
     case GKYL_POSITIVITY_ZS:
-      up->positivity_func = per_cell_limiter;
+      up->positivity_advance_func = per_cell_limiter;
+      up->positivity_timestep_func = per_cell_timestep;
       up->limit_cell_func = limit_cell_zs;
       up->limit_timestep_func = limit_time_step;
       break;
     case GKYL_POSITIVITY_MRS:
-      up->positivity_func = per_cell_limiter;
+      up->positivity_advance_func = per_cell_limiter;
+      up->positivity_timestep_func = per_cell_timestep;
       up->limit_cell_func = limit_cell_mrs;
       up->limit_timestep_func = limit_time_step;
       break;
     case GKYL_POSITIVITY_TIMESTEP_AVG:
-      up->positivity_func = per_cell_limiter;
+      up->positivity_advance_func = limiter_func_diabled;
+      up->positivity_timestep_func = per_cell_timestep;
       up->limit_timestep_func = limit_time_step;
       break;
     case GKYL_POSITIVITY_TIMESTEP_QUAD:
-      up->positivity_func = per_cell_limiter;
+      up->positivity_advance_func = limiter_func_diabled;
+      up->positivity_timestep_func = per_cell_timestep;
       up->limit_timestep_func = limit_time_step_quad;
+      break;
+    case GKYL_POSITIVITY_NONE:
       break;
   }
   return up;
@@ -245,9 +270,16 @@ gkyl_positivity_new(struct gkyl_positivity_inp inp)
 
 void
 gkyl_positivity_advance(gkyl_positivity *up, const struct gkyl_range *range, 
+  struct gkyl_array *f)
+{
+  up->positivity_advance_func(up, range, f);
+}
+
+void
+gkyl_positivity_advance_timestep(gkyl_positivity *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
-  up->positivity_func(up, range, f, dfdt, dt);
+  up->positivity_timestep_func(up, range, f, dfdt, dt);
 }
 
 void

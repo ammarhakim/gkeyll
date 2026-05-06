@@ -10,7 +10,10 @@ typedef void (*limit_cell_func_t)(const struct gkyl_positivity *up,
 typedef void (*limit_timestep_func_t)(const struct gkyl_positivity *up, const double *fc,
   struct gkyl_array *dfdt, double *dt, long lidx, double *dt_bound);
 
-typedef void (*pos_func_t)(const struct gkyl_positivity *up,
+typedef void (*pos_advance_func_t)(const struct gkyl_positivity *up,
+  const struct gkyl_range *range, struct gkyl_array *f);
+
+typedef void (*pos_timestep_func_t)(const struct gkyl_positivity *up,
   const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt);
 
 struct gkyl_positivity {
@@ -19,7 +22,8 @@ struct gkyl_positivity {
   double cellav_fac;
   double dt_factor;
   double *fquad;
-  pos_func_t positivity_func;
+  pos_advance_func_t positivity_advance_func;
+  pos_timestep_func_t positivity_timestep_func;
   limit_cell_func_t limit_cell_func;
   limit_timestep_func_t limit_timestep_func;
 };

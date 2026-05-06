@@ -101,13 +101,17 @@ test_cdim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   };
 
   struct gkyl_positivity *up = gkyl_positivity_new(inp);
+  struct gkyl_array *f_adv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_copy(f_adv, f);
+  gkyl_positivity_advance(up, &range, f_adv);
+
   double dt;
-  gkyl_positivity_advance(up, &range, f, dfdt, &dt);
+  gkyl_positivity_advance_timestep(up, &range, f, dfdt, &dt);
 
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(&range, iter.idx);
-    const double *after = gkyl_array_cfetch(f, lidx);
+    const double *after = gkyl_array_cfetch(f_adv, lidx);
     TEST_CHECK(cell_min_from_modal(&basis, after) >= -1e-13);
   }
   TEST_CHECK(gkyl_compare_double(dt, 0.9, 1e-13));
@@ -116,6 +120,7 @@ test_cdim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   // gkyl_grid_sub_array_write(&grid, &range, 0, f, file_name);
 
   gkyl_positivity_release(up);
+  gkyl_array_release(f_adv);
   gkyl_array_release(f);
 }
 

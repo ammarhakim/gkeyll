@@ -323,7 +323,10 @@ struct gkyl_gyrokinetic_correct_inp {
 enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
   GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
-  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+  GKYL_GK_POSITIVITY_ZS, // Zhang-Shu limiter
+  GKYL_GK_POSITIVITY_MRS, // Use the More-Rossmanith-Seal limiter
+  GKYL_GK_POSITIVITY_TIMESTEP_AVG, // Only apply timestep limiter based on cell-average value.
+  GKYL_GK_POSITIVITY_TIMESTEP_QUAD, // Only apply timestep limiter based on quadrature point values.
 };
 
 struct gkyl_gyrokinetic_positivity {

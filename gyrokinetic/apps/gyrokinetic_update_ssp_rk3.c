@@ -25,13 +25,20 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
+    dta = fmin(dta, gk_species_positivity_limit_dt(app, gks, &gks->positivity, fin[i], fout[i]));
+  }
+  st->dt_actual = dta;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
+    gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, fout[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_accumulate(app, &gkns->bflux, bflux_out_neut[i], 1.0, bflux_in_neut[i]);
+    gk_neut_species_positivity_apply(app, gkns, &gkns->positivity, gkns->fnew, fout_neut[i]);
   }
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
@@ -256,16 +263,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
-
-          // Apply positivity shift if requested.
-          for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gks = &app->species[i];
-            gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, gks->f);
-          }
-          for (int i=0; i<app->num_neut_species; ++i) {
-            struct gk_neut_species *gkns = &app->neut_species[i];
-            gk_neut_species_positivity_apply(app, gkns, &gkns->positivity, gkns->fnew, gkns->f);
-          }
 
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];

@@ -26,7 +26,11 @@ struct gkyl_positivity*
 gkyl_positivity_new(struct gkyl_positivity_inp inp);
 
 void
-gkyl_positivity_advance(gkyl_positivity* up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt);
+gkyl_positivity_advance(gkyl_positivity* up, const struct gkyl_range *range, struct gkyl_array *f);
+
+void
+gkyl_positivity_advance_timestep(gkyl_positivity* up, const struct gkyl_range *range,
+  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt);
 
 void
 gkyl_positivity_release(gkyl_positivity* up);
