@@ -622,11 +622,6 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     local, local_ext, local_vel, local_ext_vel, use_gpu);
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  // Position map object.
-  struct gkyl_position_map_inp pmap_inp = { };
-  struct gkyl_position_map *pmap = gkyl_position_map_new(pmap_inp, grid_conf, local_conf, 
-      local_ext_conf, local_conf, local_ext_conf, basis_conf);
-
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -647,7 +642,6 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .geo_global = local_conf,
     .geo_global_ext = local_ext_conf,
     .geo_basis = basis_conf,
-    .position_map = pmap,
   };
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
   struct gk_geometry* gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -812,7 +806,6 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
-  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);
@@ -1373,11 +1366,6 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     local, local_ext, local_vel, local_ext_vel, use_gpu);
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  // Position map object.
-  struct gkyl_position_map_inp pmap_inp = { };
-  struct gkyl_position_map *pmap = gkyl_position_map_new(pmap_inp, grid_conf, local_conf, 
-      local_ext_conf, local_conf, local_ext_conf, basis_conf);
-
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -1398,7 +1386,6 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .geo_global = local_conf,
     .geo_global_ext = local_ext_conf,
     .geo_basis = basis_conf,
-    .position_map = pmap,
   };
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
   struct gk_geometry* gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -1615,7 +1602,6 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
-  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
   gkyl_velocity_map_release(gvm);

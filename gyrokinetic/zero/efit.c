@@ -18,9 +18,7 @@
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
-  // Zero-initialize the struct to avoid uninitialized value warnings
-  memset(up, 0, sizeof(struct gkyl_efit));
+  gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
@@ -377,18 +375,11 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   int num_max_xpts = 10;
   double Rxpt[num_max_xpts];
   double Zxpt[num_max_xpts];
-  // Initialize arrays to avoid uninitialized value warnings
-  for (int i = 0; i < num_max_xpts; i++) {
-    Rxpt[i] = 0.0;
-    Zxpt[i] = 0.0;
-  }
 
   up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  // Always allocate at least 2 elements to avoid out-of-bounds access in tok_geo.c
-  int num_xpts_alloc = up->num_xpts > 2 ? up->num_xpts : 2;
-  up->Rxpt = gkyl_malloc(sizeof(double)*num_xpts_alloc);
-  up->Zxpt = gkyl_malloc(sizeof(double)*num_xpts_alloc);
-  for (int i = 0; i < num_xpts_alloc; i++) {
+  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
@@ -396,11 +387,9 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  // Always allocate at least 2 elements to avoid out-of-bounds access in tok_geo.c
-  int num_xpts_cubic_alloc = up->num_xpts_cubic > 2 ? up->num_xpts_cubic : 2;
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*num_xpts_cubic_alloc);
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*num_xpts_cubic_alloc);
-  for (int i = 0; i < num_xpts_cubic_alloc; i++) {
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations

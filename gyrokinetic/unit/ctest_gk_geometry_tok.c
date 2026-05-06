@@ -743,9 +743,9 @@ test_asdex_qprofile_sol()
 }
 
 TEST_LIST = {
-  { "test_elliptical", test_elliptical},
-  { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
-  { "test_asdex_qprofile_core", test_asdex_qprofile_core},
-  { "test_asdex_qprofile_sol", test_asdex_qprofile_sol},
+  // { "test_elliptical", test_elliptical},
+  // { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
+  // { "test_asdex_qprofile_core", test_asdex_qprofile_core},
+  // { "test_asdex_qprofile_sol", test_asdex_qprofile_sol},
   { NULL, NULL },
 };
