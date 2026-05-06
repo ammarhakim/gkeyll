@@ -15,6 +15,11 @@
 #include <float.h>
 #include <math.h>
 
+enum test_basis_type {
+  SERENDIPITY,
+  GKHYBRID
+};
+
 static double
 cell_min_from_modal(const struct gkyl_basis *basis, const double *modal_vals)
 {
@@ -34,22 +39,24 @@ cell_min_from_modal(const struct gkyl_basis *basis, const double *modal_vals)
 }
 
 static void
-test_cdim_poly_order(int ndim, int poly_order, bool ser,
-  bool gkhyb, bool use_gpu, enum gkyl_limiter_type lim_type)
+test_cdim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
+  bool use_gpu, enum gkyl_limiter_type lim_type)
 {
   (void)use_gpu;
 
   struct gkyl_basis basis;
-  if (ser) {
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
-  }
-  else if (gkhyb) {
-    if (ndim == 2) {
-      gkyl_cart_modal_gkhybrid(&basis, 1, 1);
-    }
-    else {
-      gkyl_cart_modal_gkhybrid(&basis, ndim - 2, 2);
-    }
+  switch (basis_type) {
+    case SERENDIPITY:
+      gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+      break;
+    case GKHYBRID:
+      if (ndim == 2) {
+        gkyl_cart_modal_gkhybrid(&basis, 1, 1);
+      }
+      else {
+        gkyl_cart_modal_gkhybrid(&basis, ndim - 2, 2);
+      }
+      break;
   }
 
   double lower[] = { 0.0 };
@@ -80,6 +87,10 @@ test_cdim_poly_order(int ndim, int poly_order, bool ser,
     }
   }
 
+  // char file_name[256];
+  // sprintf(file_name, "ctest_limiter_input_%dd_p%d_%s_%s.gkyl", ndim, poly_order, ser ? "ser" : "gkhyb", lim_type == GKYL_LIMITER_ZS ? "zs" : "mrs");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, f, file_name);
+
   struct gkyl_array *dfdt = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
   gkyl_array_clear(dfdt, -c0);
 
@@ -101,44 +112,46 @@ test_cdim_poly_order(int ndim, int poly_order, bool ser,
   }
   TEST_CHECK(gkyl_compare_double(dt, 0.9, 1e-13));
 
+  // sprintf(file_name, "ctest_limiter_output_%dd_p%d_%s_%s.gkyl", ndim, poly_order, ser ? "ser" : "gkhyb", lim_type == GKYL_LIMITER_ZS ? "zs" : "mrs");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, f, file_name);
+
   gkyl_limiter_release(up);
   gkyl_array_release(f);
 }
 
-void test_1d_p1_ser_zs(void){test_cdim_poly_order(1, 1, true, false, false, GKYL_LIMITER_ZS);}
-void test_1d_p2_ser_zs(void){test_cdim_poly_order(1, 2, true, false, false, GKYL_LIMITER_ZS);}
-void test_2d_p1_ser_zs(void){test_cdim_poly_order(2, 1, true, false, false, GKYL_LIMITER_ZS);}
-void test_2d_p2_ser_zs(void){test_cdim_poly_order(2, 2, true, false, false, GKYL_LIMITER_ZS);}
-void test_3d_p1_ser_zs(void){test_cdim_poly_order(3, 1, true, false, false, GKYL_LIMITER_ZS);}
-void test_3d_p2_ser_zs(void){test_cdim_poly_order(3, 2, true, false, false, GKYL_LIMITER_ZS);}
-void test_4d_p1_ser_zs(void){test_cdim_poly_order(4, 1, true, false, false, GKYL_LIMITER_ZS);}
-void test_4d_p2_ser_zs(void){test_cdim_poly_order(4, 2, true, false, false, GKYL_LIMITER_ZS);}
-void test_5d_p1_ser_zs(void){test_cdim_poly_order(5, 1, true, false, false, GKYL_LIMITER_ZS);}
-void test_5d_p2_ser_zs(void){test_cdim_poly_order(5, 2, true, false, false, GKYL_LIMITER_ZS);}
-void test_6d_p1_ser_zs(void){test_cdim_poly_order(6, 1, true, false, false, GKYL_LIMITER_ZS);}
+void test_1d_p1_ser_zs(void){test_cdim_poly_order(1, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_1d_p2_ser_zs(void){test_cdim_poly_order(1, 2, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_2d_p1_ser_zs(void){test_cdim_poly_order(2, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_2d_p2_ser_zs(void){test_cdim_poly_order(2, 2, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_3d_p1_ser_zs(void){test_cdim_poly_order(3, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_3d_p2_ser_zs(void){test_cdim_poly_order(3, 2, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_4d_p1_ser_zs(void){test_cdim_poly_order(4, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_4d_p2_ser_zs(void){test_cdim_poly_order(4, 2, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_5d_p1_ser_zs(void){test_cdim_poly_order(5, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_5d_p2_ser_zs(void){test_cdim_poly_order(5, 2, SERENDIPITY, false, GKYL_LIMITER_ZS);}
+void test_6d_p1_ser_zs(void){test_cdim_poly_order(6, 1, SERENDIPITY, false, GKYL_LIMITER_ZS);}
 
-void test_2d_p1_gkhyb_zs(void){test_cdim_poly_order(2, 1, false, true, false, GKYL_LIMITER_ZS);}
-void test_3d_p1_gkhyb_zs(void){test_cdim_poly_order(3, 1, false, true, false, GKYL_LIMITER_ZS);}
-void test_4d_p1_gkhyb_zs(void){test_cdim_poly_order(4, 1, false, true, false, GKYL_LIMITER_ZS);}
-void test_5d_p1_gkhyb_zs(void){test_cdim_poly_order(5, 1, false, true, false, GKYL_LIMITER_ZS);}
+void test_2d_p1_gkhyb_zs(void){test_cdim_poly_order(2, 1, GKHYBRID, false, GKYL_LIMITER_ZS);}
+void test_3d_p1_gkhyb_zs(void){test_cdim_poly_order(3, 1, GKHYBRID, false, GKYL_LIMITER_ZS);}
+void test_4d_p1_gkhyb_zs(void){test_cdim_poly_order(4, 1, GKHYBRID, false, GKYL_LIMITER_ZS);}
+void test_5d_p1_gkhyb_zs(void){test_cdim_poly_order(5, 1, GKHYBRID, false, GKYL_LIMITER_ZS);}
 
+void test_1d_p1_ser_mrs(void){test_cdim_poly_order(1, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_1d_p2_ser_mrs(void){test_cdim_poly_order(1, 2, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_2d_p1_ser_mrs(void){test_cdim_poly_order(2, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_2d_p2_ser_mrs(void){test_cdim_poly_order(2, 2, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_3d_p1_ser_mrs(void){test_cdim_poly_order(3, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_3d_p2_ser_mrs(void){test_cdim_poly_order(3, 2, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_4d_p1_ser_mrs(void){test_cdim_poly_order(4, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_4d_p2_ser_mrs(void){test_cdim_poly_order(4, 2, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_5d_p1_ser_mrs(void){test_cdim_poly_order(5, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_5d_p2_ser_mrs(void){test_cdim_poly_order(5, 2, SERENDIPITY, false, GKYL_LIMITER_MRS);}
+void test_6d_p1_ser_mrs(void){test_cdim_poly_order(6, 1, SERENDIPITY, false, GKYL_LIMITER_MRS);}
 
-void test_1d_p1_ser_mrs(void){test_cdim_poly_order(1, 1, true, false, false, GKYL_LIMITER_MRS);}
-void test_1d_p2_ser_mrs(void){test_cdim_poly_order(1, 2, true, false, false, GKYL_LIMITER_MRS);}
-void test_2d_p1_ser_mrs(void){test_cdim_poly_order(2, 1, true, false, false, GKYL_LIMITER_MRS);}
-void test_2d_p2_ser_mrs(void){test_cdim_poly_order(2, 2, true, false, false, GKYL_LIMITER_MRS);}
-void test_3d_p1_ser_mrs(void){test_cdim_poly_order(3, 1, true, false, false, GKYL_LIMITER_MRS);}
-void test_3d_p2_ser_mrs(void){test_cdim_poly_order(3, 2, true, false, false, GKYL_LIMITER_MRS);}
-void test_4d_p1_ser_mrs(void){test_cdim_poly_order(4, 1, true, false, false, GKYL_LIMITER_MRS);}
-void test_4d_p2_ser_mrs(void){test_cdim_poly_order(4, 2, true, false, false, GKYL_LIMITER_MRS);}
-void test_5d_p1_ser_mrs(void){test_cdim_poly_order(5, 1, true, false, false, GKYL_LIMITER_MRS);}
-void test_5d_p2_ser_mrs(void){test_cdim_poly_order(5, 2, true, false, false, GKYL_LIMITER_MRS);}
-void test_6d_p1_ser_mrs(void){test_cdim_poly_order(6, 1, true, false, false, GKYL_LIMITER_MRS);}
-
-void test_2d_p1_gkhyb_mrs(void){test_cdim_poly_order(2, 1, false, true, false, GKYL_LIMITER_MRS);}
-void test_3d_p1_gkhyb_mrs(void){test_cdim_poly_order(3, 1, false, true, false, GKYL_LIMITER_MRS);}
-void test_4d_p1_gkhyb_mrs(void){test_cdim_poly_order(4, 1, false, true, false, GKYL_LIMITER_MRS);}
-void test_5d_p1_gkhyb_mrs(void){test_cdim_poly_order(5, 1, false, true, false, GKYL_LIMITER_MRS);}
+void test_2d_p1_gkhyb_mrs(void){test_cdim_poly_order(2, 1, GKHYBRID, false, GKYL_LIMITER_MRS);}
+void test_3d_p1_gkhyb_mrs(void){test_cdim_poly_order(3, 1, GKHYBRID, false, GKYL_LIMITER_MRS);}
+void test_4d_p1_gkhyb_mrs(void){test_cdim_poly_order(4, 1, GKHYBRID, false, GKYL_LIMITER_MRS);}
+void test_5d_p1_gkhyb_mrs(void){test_cdim_poly_order(5, 1, GKHYBRID, false, GKYL_LIMITER_MRS);}
 
 TEST_LIST = {
   { "test_1d_p1_ser_zs", test_1d_p1_ser_zs },

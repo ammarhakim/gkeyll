@@ -13,20 +13,19 @@ cell_average(const struct gkyl_limiter *up, const double *f)
   return up->cellav_fac * f[0];
 }
 
-// Finds the minimum and maximum values of the quadrature points of the cell. Used in MRS limiter
+// Finds the minimum and maximum values of the quadrature points of the cell.
 static void
 min_max_quad(const struct gkyl_limiter *up, const double *f, double *fmin, double *fmax)
 {
   const int nbasis = up->basis.num_basis;
-  double fquad[nbasis];
 
   *fmin = DBL_MAX;
   *fmax = -DBL_MAX;
   for (int k = 0; k < nbasis; ++k) {
-    fquad[k] = 0.0;
-    up->basis.modal_to_quad_nodal(f, fquad, k);
-    if (fquad[k] < *fmin) *fmin = fquad[k];
-    if (fquad[k] > *fmax) *fmax = fquad[k];
+    up->fquad[k] = 0.0;
+    up->basis.modal_to_quad_nodal(f, up->fquad, k);
+    if (up->fquad[k] < *fmin) *fmin = up->fquad[k];
+    if (up->fquad[k] > *fmax) *fmax = up->fquad[k];
   }
 }
 
@@ -71,19 +70,11 @@ static void
 limit_cell_zs(const struct gkyl_limiter *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *idx, double *fc)
 {
-  (void) range;
-  (void) f;
-  (void) idx;
-
   const int nbasis = up->basis.num_basis;
-  double fquad[nbasis];
 
   double fmin = DBL_MAX;
-  for (int k = 0; k < nbasis; ++k) {
-    fquad[k] = 0.0;
-    up->basis.modal_to_quad_nodal(fc, fquad, k);
-    fmin = fmin < fquad[k] ? fmin : fquad[k];
-  }
+  double fmax = -DBL_MAX;
+  min_max_quad(up, fc, &fmin, &fmax);
 
   if (fmin >= 0.0) {
     return;
@@ -104,30 +95,28 @@ limit_cell_mrs(const struct gkyl_limiter *up, const struct gkyl_range *range,
   struct gkyl_array *f, const int *idx, double *fc)
 {
   const int nbasis = up->basis.num_basis;
-  double fquad[nbasis];
 
-  double fmin, fmax;
-  min_max_quad(up, fc, &fmin, &fmax);
-  double fmin_neighbor, fmax_neighbor;
-  min_max_quad_neighbor(up, range, f, idx, &fmin_neighbor, &fmax_neighbor);
-  const double fbar = cell_average(up, fc);
+  double qm, qM; // minimum and Maximum of quadrature points in cell
+  min_max_quad(up, fc, &qm, &qM);
 
-  double theta = 1.0;
-  if (fmin < 0.0) {
-    theta = fbar / (fbar - fmin);
+  if (qm >= 0.0) {
+    return;
   }
 
-  if (fmax > fbar && fmax_neighbor > fbar) {
-    const double theta_max = (fmax_neighbor - fbar) / (fmax - fbar);
-    if (theta_max < theta) {
-      theta = theta_max;
-    }
-  }
+  double qm_neighbor, qM_neighbor;
+  min_max_quad_neighbor(up, range, f, idx, &qm_neighbor, &qM_neighbor);
+  const double qbar = cell_average(up, fc);
+
+  double alpha = (fmax(fmax(qM,qbar),qM_neighbor) - fmin(fmin(qm,qbar),qm_neighbor))*0.0;
+
+  double Mi = fmax(qbar + alpha, qM_neighbor);
+  double mi = fmax(fmin(qbar - alpha, qm_neighbor), 0.0);
+
+  double theta_Mi = fmin(((Mi - qbar) / (qM - qbar))/1.1, 1.0);
+  double theta_mi = fmin(((mi - qbar) / (qm - qbar))/1.1, 1.0);
+  double theta = fmin(fmin(theta_Mi, theta_mi), 1.0);
 
   if (theta < 1.0) {
-    if (theta < 0.0) {
-      theta = 0.0;
-    }
     for (int k = 1; k < nbasis; ++k) {
       fc[k] *= theta;
     }
@@ -135,28 +124,23 @@ limit_cell_mrs(const struct gkyl_limiter *up, const struct gkyl_range *range,
 }
 
 static void
-per_cell_limiter(const struct gkyl_limiter *up, const struct gkyl_range *range,
-  struct gkyl_array *f)
+limit_time_step(const struct gkyl_limiter *up, const double *fc,
+  struct gkyl_array *dfdt, double *dt, long lidx, double *dt_bound)
 {
-  assert(f->ncomp == up->basis.num_basis);
+  const double *dfc = gkyl_array_cfetch(dfdt, lidx);
+  const double fbar = cell_average(up, fc);
+  const double dfbar = cell_average(up, dfc);
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-
-  while (gkyl_range_iter_next(&iter)) {
-    long lidx = gkyl_range_idx(range, iter.idx);
-    double *fc = gkyl_array_fetch(f, lidx);
-    up->limit_cell_func(up, range, f, iter.idx, fc);
+  if (dfbar < 0.0) {
+    const double cell_dt = up->dt_factor * fbar / (-dfbar);
+    if (cell_dt < *dt_bound) *dt_bound = cell_dt;
   }
 }
 
 static void
-per_cell_limiter_timestep(const struct gkyl_limiter *up, const struct gkyl_range *range,
+per_cell_limiter(const struct gkyl_limiter *up, const struct gkyl_range *range,
   struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
-  assert(f->ncomp == up->basis.num_basis);
-  assert(dfdt->ncomp == up->basis.num_basis);
-
   double dt_bound = DBL_MAX;
 
   struct gkyl_range_iter iter;
@@ -164,55 +148,33 @@ per_cell_limiter_timestep(const struct gkyl_limiter *up, const struct gkyl_range
 
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(range, iter.idx);
-    const double *fc = gkyl_array_cfetch(f, lidx);
-    const double *dfc = gkyl_array_cfetch(dfdt, lidx);
+    double *fc = gkyl_array_fetch(f, lidx);
 
-    const double fbar = cell_average(up, fc);
-    const double dfbar = cell_average(up, dfc);
+    up->limit_cell_func(up, range, f, iter.idx, fc);
 
-    if (dfbar < 0.0) {
-      const double cell_dt = up->dt_factor * fbar / (-dfbar);
-      if (cell_dt < dt_bound) {
-        dt_bound = cell_dt;
-      }
-    }
-    else if (fbar <= 0.0) {
-      dt_bound = 0.0;
-      break;
-    }
+    limit_time_step(up, fc, dfdt, &dt_bound, lidx, &dt_bound);
   }
-
-  if (dt_bound < 0.0) {
-    dt_bound = 0.0;
-  }
-
   *dt = dt_bound;
 }
 
 struct gkyl_limiter*
 gkyl_limiter_new(struct gkyl_limiter_inp inp)
 {
-  assert(inp.basis.modal_to_quad_nodal != NULL);
-  assert(inp.basis.quad_nodal_to_modal != NULL);
-
   struct gkyl_limiter *up = gkyl_malloc(sizeof(*up));
   up->basis = inp.basis;
   up->cellav_fac = 1. / pow(sqrt(2.), inp.basis.ndim);
   up->dt_factor = inp.dt_factor;
+  up->fquad = gkyl_malloc(up->basis.num_basis * sizeof(double));
 
   switch (inp.type) {
     case GKYL_LIMITER_ZS:
       up->limiter_func = per_cell_limiter;
-      up->limiter_timestep_func = per_cell_limiter_timestep;
       up->limit_cell_func = limit_cell_zs;
       break;
     case GKYL_LIMITER_MRS:
       up->limiter_func = per_cell_limiter;
-      up->limiter_timestep_func = per_cell_limiter_timestep;
       up->limit_cell_func = limit_cell_mrs;
       break;
-    default:
-      assert(false);
   }
 
   return up;
@@ -221,12 +183,12 @@ gkyl_limiter_new(struct gkyl_limiter_inp inp)
 void
 gkyl_limiter_advance(gkyl_limiter *up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
-  up->limiter_func(up, range, f);
-  up->limiter_timestep_func(up, range, f, dfdt, dt);
+  up->limiter_func(up, range, f, dfdt, dt);
 }
 
 void
 gkyl_limiter_release(gkyl_limiter *up)
 {
+  gkyl_free(up->fquad);
   gkyl_free(up);
 }
