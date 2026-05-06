@@ -1443,11 +1443,11 @@ test_gr_euler_tetrad_waves_kerr()
 }
 
 TEST_LIST = {
-  // { "gr_euler_tetrad_basic_minkowski", test_gr_euler_tetrad_basic_minkowski },
-  // { "gr_euler_tetrad_basic_schwarzschild", test_gr_euler_tetrad_basic_schwarzschild },
-  // { "gr_euler_tetrad_basic_kerr", test_gr_euler_tetrad_basic_kerr },
-  // { "gr_euler_tetrad_waves_minkowski", test_gr_euler_tetrad_waves_minkowski },
-  // { "gr_euler_tetrad_waves_schwarzschild", test_gr_euler_tetrad_waves_schwarzschild },
-  // { "gr_euler_tetrad_waves_kerr", test_gr_euler_tetrad_waves_kerr },
+  { "gr_euler_tetrad_basic_minkowski", test_gr_euler_tetrad_basic_minkowski },
+  { "gr_euler_tetrad_basic_schwarzschild", test_gr_euler_tetrad_basic_schwarzschild },
+  { "gr_euler_tetrad_basic_kerr", test_gr_euler_tetrad_basic_kerr },
+  { "gr_euler_tetrad_waves_minkowski", test_gr_euler_tetrad_waves_minkowski },
+  { "gr_euler_tetrad_waves_schwarzschild", test_gr_euler_tetrad_waves_schwarzschild },
+  { "gr_euler_tetrad_waves_kerr", test_gr_euler_tetrad_waves_kerr },
   { NULL, NULL },
 };
