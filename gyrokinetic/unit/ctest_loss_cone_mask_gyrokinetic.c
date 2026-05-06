@@ -383,10 +383,12 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   if (use_gpu) {
     gkyl_cu_free(bmag_max);
+    gkyl_cu_free(bmag_max_loc);
     gkyl_cu_free(phi_m);
   }
   else {
     gkyl_free(bmag_max);
+    gkyl_free(bmag_max_loc);
     gkyl_free(phi_m);
   }
   gkyl_array_release(phi); 

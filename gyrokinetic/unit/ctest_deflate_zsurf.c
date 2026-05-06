@@ -174,10 +174,14 @@ test_deflate_inflate(bool use_gpu)
 
   check_same(local, basis, field, out_field);
 
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_basis_release_cu(basis_on_dev);
-  else
+    gkyl_cart_modal_basis_release_cu(deflated_basis_on_dev);
+  }
+  else {
     gkyl_cart_modal_basis_release(basis_on_dev);
+    gkyl_cart_modal_basis_release(deflated_basis_on_dev);
+  }
 
   gkyl_array_release(field);
   gkyl_array_release(out_field);
@@ -339,6 +343,19 @@ test_poisson_slices()
   gkyl_nodal_ops_release(n2m);
   //gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
+  // Release allocated resources
+  gkyl_array_release(field);
+  gkyl_array_release(deflated_field);
+  gkyl_array_release(deflated_phi);
+  gkyl_array_release(nodal_fld);
+  gkyl_array_release(deflated_nodal_fld);
+  gkyl_array_release(out_field);
+  gkyl_array_release(epsilon);
+  
+  gkyl_nodal_ops_release(n2m_1d);
+  gkyl_deflate_zsurf_release(deflator_lo);
+  gkyl_deflate_zsurf_release(deflator_up);
+  gkyl_fem_poisson_release(fem_poisson);
 }
 
 void test_deflate_inflate_ho(void) { test_deflate_inflate(false); }

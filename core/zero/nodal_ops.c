@@ -418,6 +418,7 @@ gkyl_nodal_ops_m2n_corners_p2(const struct gkyl_nodal_ops *nodal_ops,
     }
   }
 
+  gkyl_array_release(nodes);
 }
 
 void 
