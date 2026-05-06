@@ -279,6 +279,10 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
       });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, fdmul->multiplier_host);
       gkyl_proj_on_basis_release(projup);
+
+      if (basis_mult.poly_order == 0)
+        gkyl_array_scale_range(fdmul->multiplier_host, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
+
       gkyl_array_copy(fdmul->multiplier, fdmul->multiplier_host);
 
       fdmul->advance_times_cfl_func = gk_species_fdot_multiplier_advance_mult;
@@ -532,10 +536,10 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
       gkyl_array_release(fdmul->multiplier_host);
     }
 
-    if (fdmul->type == GKYL_GK_DAMPING_USER_INPUT) {
+    if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
       // Nothing to release.
     }
-    else if (fdmul->type == GKYL_GK_DAMPING_LOSS_CONE) {
+    else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
       if (app->use_gpu) {
         gkyl_cu_free(fdmul->bmag_max);
         gkyl_cu_free(fdmul->bmag_max_coord);

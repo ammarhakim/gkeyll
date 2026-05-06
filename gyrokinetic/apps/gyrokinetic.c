@@ -103,7 +103,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // The value 1.7 here is based on figure 2.4a in Durran's "Numerical methods
   // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
-  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.7 : gk->cfl_frac_omegaH;
+  double cfl_frac_omegaH = fabs(gk->cfl_frac_omegaH) < 1e-16 ? 1.7 : gk->cfl_frac_omegaH;
   app->cfl_omegaH = cfl_frac_omegaH;
 
 #ifdef GKYL_HAVE_CUDA
@@ -216,22 +216,16 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     }
   }
 
-  // Local skin and ghost ranges for configuration space fields.
+  // Skin and ghost ranges for configuration space fields.
   for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
-    gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
-  }
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&app->global_lower_skin[dir], &app->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
-    gkyl_skin_ghost_ranges(&app->global_upper_skin[dir], &app->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->global_ext, ghost);
-
-    gkyl_sub_range_intersect(&app->global_lower_skin[dir], &app->local_ext, &app->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&app->global_upper_skin[dir], &app->local_ext, &app->global_upper_skin[dir]);
-
-    gkyl_sub_range_intersect(&app->global_lower_ghost[dir], &app->local_ext, &app->global_lower_ghost[dir]);
-    gkyl_sub_range_intersect(&app->global_upper_ghost[dir], &app->local_ext, &app->global_upper_ghost[dir]);
+    gkyl_skin_ghost_ranges(&app->local_lower_skin[dir], &app->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->local_upper_skin[dir], &app->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&app->global_lower_skin[dir], &app->global_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->global_upper_skin[dir], &app->global_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &app->global_ext, ghost);
   }
 
   int comm_sz;
@@ -408,62 +402,84 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_array_release(tmp);
 
   if (gk->geometry.has_LCFS) {
-    // IWL simulation. Create core and SOL global ranges.
+    // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
     // Length of lower and upper x ranges (one is core, the other SOL).
     int len_lo = idx_LCFS_lo;
     int len_up = app->global.upper[0]-len_lo;
     // Lower and upper x ranges.
-    struct gkyl_range *global_lo_r, *local_lo_r, *global_ext_lo_r, *local_ext_lo_r;
-    struct gkyl_range *global_up_r, *local_up_r, *global_ext_up_r, *local_ext_up_r;
-    struct gkyl_range *lower_skin_par_lo_r, *upper_skin_par_lo_r, *lower_ghost_par_lo_r, *upper_ghost_par_lo_r;
-    struct gkyl_range *lower_skin_par_up_r, *upper_skin_par_up_r, *lower_ghost_par_up_r, *upper_ghost_par_up_r;
+    struct gkyl_range *global_lo_r, *global_up_r, *global_ext_lo_r, *global_ext_up_r;
+    struct gkyl_range *global_lower_skin_par_lo_r , *global_upper_skin_par_lo_r ,
+                      *global_lower_ghost_par_lo_r, *global_upper_ghost_par_lo_r;
+    struct gkyl_range *global_lower_skin_par_up_r , *global_upper_skin_par_up_r ,
+                      *global_lower_ghost_par_up_r, *global_upper_ghost_par_up_r;
+    struct gkyl_range *local_lo_r, *local_up_r, *local_ext_lo_r, *local_ext_up_r;
+    struct gkyl_range *local_lower_skin_par_lo_r , *local_upper_skin_par_lo_r ,
+                      *local_lower_ghost_par_lo_r, *local_upper_ghost_par_lo_r;
+    struct gkyl_range *local_lower_skin_par_up_r , *local_upper_skin_par_up_r ,
+                      *local_lower_ghost_par_up_r, *local_upper_ghost_par_up_r;
     if (app->gk_geom->geqdsk_sign_convention == 0) {
       // x increases towards SOL.
-      global_lo_r          = &app->global_core;
-      local_lo_r           = &app->local_core;
-      global_ext_lo_r      = &app->global_ext_core;
-      local_ext_lo_r       = &app->local_ext_core;
-      lower_skin_par_lo_r  = &app->lower_skin_par_core;
-      upper_skin_par_lo_r  = &app->upper_skin_par_core;
-      lower_ghost_par_lo_r = &app->lower_ghost_par_core;
-      upper_ghost_par_lo_r = &app->upper_ghost_par_core;
-      global_up_r          = &app->global_sol;
-      local_up_r           = &app->local_sol;
-      global_ext_up_r      = &app->global_ext_sol;
-      local_ext_up_r       = &app->local_ext_sol;
-      lower_skin_par_up_r  = &app->lower_skin_par_sol;
-      upper_skin_par_up_r  = &app->upper_skin_par_sol;
-      lower_ghost_par_up_r = &app->lower_ghost_par_sol;
-      upper_ghost_par_up_r = &app->upper_ghost_par_sol;
+      global_lo_r                 = &app->global_core;
+      global_up_r                 = &app->global_sol;
+      global_ext_lo_r             = &app->global_ext_core;
+      global_ext_up_r             = &app->global_ext_sol;
+      global_lower_skin_par_lo_r  = &app->global_lower_skin_par_core;
+      global_lower_ghost_par_lo_r = &app->global_lower_ghost_par_core;
+      global_lower_skin_par_up_r  = &app->global_lower_skin_par_sol;
+      global_lower_ghost_par_up_r = &app->global_lower_ghost_par_sol;
+      global_upper_skin_par_lo_r  = &app->global_upper_skin_par_core;
+      global_upper_ghost_par_lo_r = &app->global_upper_ghost_par_core;
+      global_upper_skin_par_up_r  = &app->global_upper_skin_par_sol;
+      global_upper_ghost_par_up_r = &app->global_upper_ghost_par_sol;
+      local_lo_r                  = &app->local_core;
+      local_up_r                  = &app->local_sol;
+      local_ext_lo_r              = &app->local_ext_core;
+      local_ext_up_r              = &app->local_ext_sol;
+      local_lower_skin_par_lo_r   = &app->local_lower_skin_par_core;
+      local_lower_ghost_par_lo_r  = &app->local_lower_ghost_par_core;
+      local_lower_skin_par_up_r   = &app->local_lower_skin_par_sol;
+      local_lower_ghost_par_up_r  = &app->local_lower_ghost_par_sol;
+      local_upper_skin_par_lo_r   = &app->local_upper_skin_par_core;
+      local_upper_ghost_par_lo_r  = &app->local_upper_ghost_par_core;
+      local_upper_skin_par_up_r   = &app->local_upper_skin_par_sol;
+      local_upper_ghost_par_up_r  = &app->local_upper_ghost_par_sol;
     }
     else {
       // x increases towards core.
-      global_lo_r          = &app->global_sol;
-      local_lo_r           = &app->local_sol;
-      global_ext_lo_r      = &app->global_ext_sol;
-      local_ext_lo_r       = &app->local_ext_sol;
-      lower_skin_par_lo_r  = &app->lower_skin_par_sol;
-      upper_skin_par_lo_r  = &app->upper_skin_par_sol;
-      lower_ghost_par_lo_r = &app->lower_ghost_par_sol;
-      upper_ghost_par_lo_r = &app->upper_ghost_par_sol;
-      global_up_r          = &app->global_core;
-      local_up_r           = &app->local_core;
-      global_ext_up_r      = &app->global_ext_core;
-      local_ext_up_r       = &app->local_ext_core;
-      lower_skin_par_up_r  = &app->lower_skin_par_core;
-      upper_skin_par_up_r  = &app->upper_skin_par_core;
-      lower_ghost_par_up_r = &app->lower_ghost_par_core;
-      upper_ghost_par_up_r = &app->upper_ghost_par_core;
+      global_lo_r                 = &app->global_sol;
+      global_up_r                 = &app->global_core;
+      global_ext_lo_r             = &app->global_ext_sol;
+      global_ext_up_r             = &app->global_ext_core;
+      global_lower_skin_par_lo_r  = &app->global_lower_skin_par_sol;
+      global_lower_ghost_par_lo_r = &app->global_lower_ghost_par_sol;
+      global_lower_skin_par_up_r  = &app->global_lower_skin_par_core;
+      global_lower_ghost_par_up_r = &app->global_lower_ghost_par_core;
+      global_upper_skin_par_lo_r  = &app->global_upper_skin_par_sol;
+      global_upper_ghost_par_lo_r = &app->global_upper_ghost_par_sol;
+      global_upper_skin_par_up_r  = &app->global_upper_skin_par_core;
+      global_upper_ghost_par_up_r = &app->global_upper_ghost_par_core;
+      local_lo_r                  = &app->local_sol;
+      local_up_r                  = &app->local_core;
+      local_ext_lo_r              = &app->local_ext_sol;
+      local_ext_up_r              = &app->local_ext_core;
+      local_lower_skin_par_lo_r   = &app->local_lower_skin_par_sol;
+      local_lower_ghost_par_lo_r  = &app->local_lower_ghost_par_sol;
+      local_lower_skin_par_up_r   = &app->local_lower_skin_par_core;
+      local_lower_ghost_par_up_r  = &app->local_lower_ghost_par_core;
+      local_upper_skin_par_lo_r   = &app->local_upper_skin_par_sol;
+      local_upper_ghost_par_lo_r  = &app->local_upper_ghost_par_sol;
+      local_upper_skin_par_up_r   = &app->local_upper_skin_par_core;
+      local_upper_ghost_par_up_r  = &app->local_upper_ghost_par_core;
     }
 
-    // Global and local lower and upper x ranges.
+    // Lower and upper x ranges.
     gkyl_range_shorten_from_above(global_lo_r, &app->global, 0, len_lo);
     gkyl_range_shorten_from_below(global_up_r, &app->global, 0, len_up);
     gkyl_range_shorten_from_above(local_lo_r, &app->local, 0, len_lo);
     gkyl_range_shorten_from_below(local_up_r, &app->local, 0, len_up);
 
-    // Extended global and local lower and upper x ranges.
+    // Extended lower and upper x ranges.
     int len_lo_ext = idx_LCFS_lo+1;
     int len_up_ext = app->global_ext.upper[0]-len_lo;
     gkyl_range_shorten_from_above(global_ext_lo_r, &app->global_ext, 0, len_lo_ext);
@@ -471,22 +487,38 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_range_shorten_from_above(local_ext_lo_r, &app->local_ext, 0, len_lo_ext);
     gkyl_range_shorten_from_below(local_ext_up_r, &app->local_ext, 0, len_up_ext);
 
-    // Create core and SOL parallel skin and ghost ranges.
+    // Parallel skin and ghost ranges, limited to the lower and upper x range.
     int par_dir = app->cdim-1;
     for (int e=0; e<2; e++) {
-      gkyl_range_shorten_from_above(e==0? lower_skin_par_lo_r        : upper_skin_par_lo_r,
-                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_lo);
-      gkyl_range_shorten_from_above(e==0? lower_ghost_par_lo_r       : upper_ghost_par_lo_r,
-                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_lo);
-      gkyl_range_shorten_from_below(e==0? lower_skin_par_up_r        : upper_skin_par_up_r,
-                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_up);
-      gkyl_range_shorten_from_below(e==0? lower_ghost_par_up_r       : upper_ghost_par_up_r,
-                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_up);
+      gkyl_range_shorten_from_above(e==0? global_lower_skin_par_lo_r        : global_upper_skin_par_lo_r,
+                                    e==0? &app->global_lower_skin[par_dir]  : &app->global_upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(e==0? global_lower_ghost_par_lo_r       : global_upper_ghost_par_lo_r,
+                                    e==0? &app->global_lower_ghost[par_dir] : &app->global_upper_ghost[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_below(e==0? global_lower_skin_par_up_r        : global_upper_skin_par_up_r,
+                                    e==0? &app->global_lower_skin[par_dir]  : &app->global_upper_skin[par_dir], 0, len_up);
+      gkyl_range_shorten_from_below(e==0? global_lower_ghost_par_up_r       : global_upper_ghost_par_up_r,
+                                    e==0? &app->global_lower_ghost[par_dir] : &app->global_upper_ghost[par_dir], 0, len_up);
+      gkyl_range_shorten_from_above(e==0? local_lower_skin_par_lo_r         : local_upper_skin_par_lo_r,
+                                    e==0? &app->local_lower_skin[par_dir]   : &app->local_upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(e==0? local_lower_ghost_par_lo_r        : local_upper_ghost_par_lo_r,
+                                    e==0? &app->local_lower_ghost[par_dir]  : &app->local_upper_ghost[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_below(e==0? local_lower_skin_par_up_r         : local_upper_skin_par_up_r,
+                                    e==0? &app->local_lower_skin[par_dir]   : &app->local_upper_skin[par_dir], 0, len_up);
+      gkyl_range_shorten_from_below(e==0? local_lower_ghost_par_up_r        : local_upper_ghost_par_up_r,
+                                    e==0? &app->local_lower_ghost[par_dir]  : &app->local_upper_ghost[par_dir], 0, len_up);
     }
 
-    // Create a core local range, extended in the BC dir.
+    // Core range extended in the parallel direction.
     int ndim = app->cdim;
     int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = app->global_core.lower[i];
+      upper_bcdir_ext[i] = app->global_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = app->global_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = app->global_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&app->global_par_ext_core, &app->global_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+
     for (int i=0; i<ndim; i++) {
       lower_bcdir_ext[i] = app->local_core.lower[i];
       upper_bcdir_ext[i] = app->local_core.upper[i];
@@ -1014,7 +1046,7 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
   gkyl_array_copy(arr_host, arr);
 
   gkyl_array_set_offset(arr_host_doubled, 1.0, arr_host, 0);
-  gkyl_array_copy_range_to_range(arr_host, arr_host, &app->upper_skin[dir], &app->upper_ghost[dir]);
+  gkyl_array_copy_range_to_range(arr_host, arr_host, &app->local_upper_skin[dir], &app->local_upper_ghost[dir]);
   gkyl_array_set_offset(arr_host_doubled, 1.0, arr_host, arr_host->ncomp);
 
   const char *fmt = "%s-%s_dir%d.gkyl";
@@ -1049,6 +1081,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.bmag_inv   , arr_ho1, "bmag_inv_corn", mt);
   if (app->cdim < 3) {
     if (geometry_inp->geometry_id == GKYL_GEOMETRY_MIRROR || geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2p_deflated, arr_hocdim, "mapc2p_deflated", mt);  
@@ -1070,13 +1103,12 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.cmag        , arr_ho1, "cmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot    , arr_ho1, "jacobtot", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot_inv, arr_ho1, "jacobtot_inv", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag_inv    , arr_ho1, "bmag_inv", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag_inv_sq , arr_ho1, "bmag_inv_sq", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxxj        , arr_ho1, "gxxj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxyj        , arr_ho1, "gxyj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gyyj        , arr_ho1, "gyyj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxzj        , arr_ho1, "gxzj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.eps2        , arr_ho1, "eps2", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.qprofile    , arr_ho1, "qprofile", mt);
 
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.rtg33inv, arr_ho1, "rtg33inv", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, "dualcurlbhatoverB", mt);
@@ -2637,8 +2669,9 @@ gyrokinetic_app_geometry_read_and_copy_surf(gkyl_gyrokinetic_app* app, struct gk
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host_doubled, fileNm.str);
     gkyl_array_set_offset_range(arr_host, 1.0, arr_host_doubled, 0, &app->local);
-    gkyl_array_copy_range_to_range(arr_host_doubled, arr_host_doubled, &app->upper_ghost[dir], &app->upper_skin[dir]);
-    gkyl_array_set_offset_range(arr_host, 1.0, arr_host_doubled, arr_host->ncomp, &app->upper_ghost[dir]);
+    gkyl_array_copy_range_to_range(arr_host_doubled, arr_host_doubled,
+      &app->local_upper_ghost[dir], &app->local_upper_skin[dir]);
+    gkyl_array_set_offset_range(arr_host, 1.0, arr_host_doubled, arr_host->ncomp, &app->local_upper_ghost[dir]);
     gkyl_array_copy(arr, arr_host);
 
   }
@@ -2698,6 +2731,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.bmag_inv   , arr_ho1, "bmag_inv_corn");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz");
@@ -2712,13 +2746,12 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.cmag        , arr_ho1, "cmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobtot    , arr_ho1, "jacobtot");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobtot_inv, arr_ho1, "jacobtot_inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag_inv    , arr_ho1, "bmag_inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag_inv_sq , arr_ho1, "bmag_inv_sq");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxxj        , arr_ho1, "gxxj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxyj        , arr_ho1, "gxyj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gyyj        , arr_ho1, "gyyj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxzj        , arr_ho1, "gxzj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.eps2        , arr_ho1, "eps2");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.qprofile    , arr_ho1, "qprofile");
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.rtg33inv         , arr_ho1, "rtg33inv");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, "dualcurlbhatoverB");
@@ -3053,6 +3086,14 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_msgpack_map_elem_release(app->io_meta_len, app->io_meta);
 
   gkyl_free(app);
+}
+
+void
+gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH)
+{
+  double new_cfl_frac_omegaH = fabs(cfl_frac_omegaH) < 1e-16 ? 1.7 : cfl_frac_omegaH;
+  app->cfl_omegaH = new_cfl_frac_omegaH;
 }
 
 void

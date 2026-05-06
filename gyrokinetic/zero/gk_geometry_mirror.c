@@ -51,7 +51,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
 
-  // create mirror geometry for corners
+  // Create mirror geometry for corners.
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
         .comp_grid = &up->grid,
@@ -64,8 +64,8 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
         
         // psi(R,Z) grid size
-        .nrcells = psi_grid.cells[0]-1, // cells and not nodes
-        .nzcells = psi_grid.cells[1]-1, // cells and not nodes
+        .nrcells = psi_grid.cells[0]-1, // Cells and not nodes.
+        .nzcells = psi_grid.cells[1]-1, // Cells and not nodes.
 
         .psiRZ = psi,
         .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
@@ -74,7 +74,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       }
     );
 
-  // create mirror geometry for interior
+  // Create mirror geometry for interior.
   struct gkyl_mirror_grid_gen *mirror_grid_int =
     gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp) {
         .comp_grid = &up->grid,
@@ -86,9 +86,9 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
         
-        // psi(R,Z) grid size
-        .nrcells = psi_grid.cells[0]-1, // cells and not nodes
-        .nzcells = psi_grid.cells[1]-1, // cells and not nodes
+        // psi(R,Z) grid size.
+        .nrcells = psi_grid.cells[0]-1, // Cells and not nodes.
+        .nzcells = psi_grid.cells[1]-1, // Cells and not nodes.
 
         .psiRZ = psi,
         .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
@@ -112,9 +112,9 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
           .R = { psi_grid.lower[0], psi_grid.upper[0] },
           .Z = { psi_grid.lower[1], psi_grid.upper[1] },
           
-          // psi(R,Z) grid size
-          .nrcells = psi_grid.cells[0]-1, // cells and not nodes
-          .nzcells = psi_grid.cells[1]-1, // cells and not nodes
+          // psi(R,Z) grid size.
+          .nrcells = psi_grid.cells[0]-1, // Cells and not nodes.
+          .nzcells = psi_grid.cells[1]-1, // Cells and not nodes.
 
           .psiRZ = psi,
           .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
@@ -124,24 +124,23 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       );
   }
 
-  // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required
-  // Now calculate the metrics at corner and interior nodes
+  // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required.
+  // Now calculate the metrics at corner and interior nodes.
   struct gkyl_calc_metric_mirror* mcalc = gkyl_calc_metric_mirror_new(&up->basis, &up->grid, &up->local, &up->local_ext, false);
   gkyl_calc_metric_mirror_advance(mcalc, up, mirror_grid_corn);
   gkyl_calc_metric_mirror_advance_interior(mcalc, up, mirror_grid_int);
-  // calculate the derived geometric quantities at interior nodes
+  // Calculate the derived geometric quantities at interior nodes.
   gkyl_rz_calc_derived_geo *jcalculator = gkyl_rz_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
   gkyl_rz_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
-    up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, 
-    up->geo_int.jacobtot, up->geo_int.jacobtot_inv, up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, 
-    up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+    up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot,
+    up->geo_int.jacobtot_inv, up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
   gkyl_rz_calc_derived_geo_release(jcalculator);
-  // Calculate metrics/derived geo quantities at surface
+  // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_calc_metric_mirror_advance_surface(mcalc, dir,  up, mirror_grid_surf[dir]);
   }
   gkyl_calc_metric_mirror_release(mcalc);
-  // Calculate surface expansions
+  // Calculate surface expansions.
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gk_geometry_surf_calc_expansions(up, dir, up->nrange_surf[dir]);
 
@@ -156,7 +155,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
-  up->on_dev = up; // CPU eqn obj points to itself
+  up->on_dev = up; // CPU eqn obj points to itself.
 
   gkyl_mirror_grid_gen_release(mirror_grid_corn);
   gkyl_mirror_grid_gen_release(mirror_grid_int);
