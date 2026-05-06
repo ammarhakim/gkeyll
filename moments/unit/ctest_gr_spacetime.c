@@ -1866,8 +1866,8 @@ test_gr_brill_lindquist()
 
 TEST_LIST = {
   { "gr_minkowski", test_gr_minkowski },
-  // { "gr_schwarzschild", test_gr_schwarzschild },
-  // { "gr_kerr", test_gr_kerr },
+  { "gr_schwarzschild", test_gr_schwarzschild },
+  { "gr_kerr", test_gr_kerr },
   { "gr_neutronstar_static", test_gr_neutronstar_static },
   { "gr_neutronstar_spinning", test_gr_neutronstar_spinning },
   { "gr_brill_lindquist", test_gr_brill_lindquist },

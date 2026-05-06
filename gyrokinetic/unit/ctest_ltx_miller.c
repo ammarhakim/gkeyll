@@ -154,6 +154,6 @@ test_ltx_miller()
 
 
 TEST_LIST = {
-  // { "test_ltx_miller", test_ltx_miller},
+  { "test_ltx_miller", test_ltx_miller},
   { NULL, NULL },
 };
