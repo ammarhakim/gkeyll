@@ -23,11 +23,7 @@ struct gkyl_limiter*
 gkyl_limiter_new(struct gkyl_limiter_inp inp);
 
 void
-gkyl_limiter_advance(gkyl_limiter* up, const struct gkyl_range *range, struct gkyl_array *f);
-
-void
-gkyl_limiter_advance_timestep(gkyl_limiter *up, const struct gkyl_range *range,
-  struct gkyl_array *f, struct gkyl_array *dfdt, double *dt);
+gkyl_limiter_advance(gkyl_limiter* up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt);
 
 void
 gkyl_limiter_release(gkyl_limiter* up);

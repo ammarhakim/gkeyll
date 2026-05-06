@@ -219,14 +219,9 @@ gkyl_limiter_new(struct gkyl_limiter_inp inp)
 }
 
 void
-gkyl_limiter_advance(gkyl_limiter *up, const struct gkyl_range *range, struct gkyl_array *f)
+gkyl_limiter_advance(gkyl_limiter *up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
 {
   up->limiter_func(up, range, f);
-}
-
-void
-gkyl_limiter_advance_timestep(gkyl_limiter *up, const struct gkyl_range *range, struct gkyl_array *f, struct gkyl_array *dfdt, double *dt)
-{
   up->limiter_timestep_func(up, range, f, dfdt, dt);
 }
 
