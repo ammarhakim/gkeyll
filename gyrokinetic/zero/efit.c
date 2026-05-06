@@ -257,10 +257,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
-  for (int i = up->nr-1; i>=0; i--){
-    fidx[0] = i;
-    double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
-    status = fscanf(ptr,"%lf", q_n);
+  int geqdsk_sign_convention = up->sibry > up->simag ? 0 : 1;
+  if (geqdsk_sign_convention) {
+    // psi increases toward magnetic axis.
+    for (int i = up->nr-1; i>=0; i--) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
+  } else {
+    // psi increases away from magnetic axis.
+    for (int i = 0; i<up->nr; i++) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
     &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
