@@ -1440,7 +1440,7 @@ TEST_LIST = {
   { "gr_ultra_rel_euler_tetrad_basic_schwarzschild", test_gr_ultra_rel_euler_tetrad_basic_schwarzschild },
   { "gr_ultra_rel_euler_tetrad_basic_kerr", test_gr_ultra_rel_euler_tetrad_basic_kerr },
   { "gr_ultra_rel_euler_tetrad_waves_minkowski", test_gr_ultra_rel_euler_tetrad_waves_minkowski },
-  // { "gr_ultra_rel_euler_tetrad_waves_schwarzschild", test_gr_ultra_rel_euler_tetrad_waves_schwarzschild },
+  { "gr_ultra_rel_euler_tetrad_waves_schwarzschild", test_gr_ultra_rel_euler_tetrad_waves_schwarzschild },
   { "gr_ultra_rel_euler_tetrad_waves_kerr", test_gr_ultra_rel_euler_tetrad_waves_kerr },
   { NULL, NULL },
 };
