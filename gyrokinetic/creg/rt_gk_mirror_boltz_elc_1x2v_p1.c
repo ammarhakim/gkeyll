@@ -662,6 +662,11 @@ int main(int argc, char **argv)
       }, 
     },
 
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD,
+      .safety_factor = 0.1,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
