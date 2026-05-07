@@ -160,16 +160,16 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
         len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.lower[2];
-        zcut = len;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? geometry_inp->geo_grid.lower[2] + len/2.0 : geometry_inp->geo_grid.lower[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len/2.0 : len;
         break;
       case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
       case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
         len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.upper[2];
-        zcut = len;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? geometry_inp->geo_grid.upper[2] - len/2.0 : geometry_inp->geo_grid.upper[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len/2.0 : len;
         break;
       default:
         break;
