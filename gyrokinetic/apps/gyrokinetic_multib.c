@@ -788,8 +788,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
       struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
       jacs[b] = geo_surf.jacobgeo_ratio;
-      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->lower_skin[d]);
-      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
     }
     gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
       mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
@@ -800,17 +800,17 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       struct gkyl_array *jacgeo = mkarr(mbapp->use_gpu, geo_surf.jacobgeo_ratio->ncomp, geo_surf.jacobgeo_ratio->size);
 
       // Compute 1/jacobgeo in ghost cells.
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->lower_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->upper_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_lower_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_upper_ghost[d]);
       // Multiply by the Jacobian of this block.
-      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->lower_ghost[d], &sbapp->lower_skin[d]);
-      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->upper_ghost[d]);
+      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_upper_ghost[d]);
       gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
       gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
       // Set the ratio to 1 in the interior (shouldn't be in use).
       gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
       gkyl_array_shiftc_range(geo_surf.jacobgeo_ratio, pow(sqrt(2.0),sbapp->cdim), 0, &sbapp->local);

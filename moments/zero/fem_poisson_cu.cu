@@ -267,16 +267,11 @@ gkyl_fem_poisson_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&range, linc1, idx);
     
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long start = gkyl_range_idx(&range, idx);
-    
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
     for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
     kers->l2g[keri](num_cells, idx0, globalidx);
 
-    // Apply the RHS source stencil. It's mostly the mass matrix times a
-    // modal-to-nodal operator times the source, modified by BCs in skin cells.
+    // Modify the RHS source to enforce biasing of the solution.
     for (int i=0; i<num_bias_plane; i++) {
       // Index of the cell that abuts the plane from below.
       struct gkyl_poisson_bias_plane *bp = &bias_planes[i];
@@ -292,7 +287,7 @@ gkyl_fem_poisson_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
 }
 
 void 
-gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, up->grid,
