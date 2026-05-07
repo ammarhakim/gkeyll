@@ -19,7 +19,6 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_dg_reduce.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_positivity.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_gyrokinetic.h>
 #include <gkyl_bc_emission.h>
@@ -95,6 +94,7 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_vlasov.h>
+#include <gkyl_positivity_fdot_restrict.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
@@ -894,14 +894,13 @@ struct gk_heating {
 };
 
 struct gk_positivity {
-  // Updater that enforces positivity.
+  // Updater that enforces positivity by shifting f.
   enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
   bool quasineut_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
 
   struct gkyl_array *fbuffer_ptr; // Pointer to an array were we store delta f.
   struct gkyl_array *delta_m0; // Number density of the positivity shift.
-  struct gkyl_positivity *limiter_op; // Core positivity limiter updater.
   union {
     struct {
       struct gkyl_positivity_shift_gyrokinetic *shift_op_gk;
@@ -919,12 +918,13 @@ struct gk_positivity {
   gkyl_dynvec integ_diag; // Integrated moments of the positivity shift.
   bool is_first_integ_write_call; // Flag first time writing integ_diag.
   bool integ_diag_file_exists; // Whether the integrated diagnostics file exists.
+  
+  // df/dt restriction updater (for FDOT_RESTRICT modes).
+  struct gkyl_positivity_fdot_restrict *fdot_restrict_op;
  
   // Methods chosen at runtime.
   void (*apply_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
-  double (*limit_dt_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-    struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*deltaf_moms_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_positivity *pos);
   void (*deltaf_integ_moms_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
@@ -938,8 +938,6 @@ struct gk_positivity {
   // Neutral species methods (MF 2025/10/29: to get rid of when we unify species types).
   void (*apply_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
     struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
-  double (*limit_dt_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-    struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*deltaf_moms_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
     struct gk_positivity *pos);
   void (*deltaf_integ_moms_func_neut)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
@@ -1641,9 +1639,6 @@ int gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app* app);
 void gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
 
-double gk_species_positivity_limit_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *rhs);
-
 void gk_neut_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
   struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
 
@@ -1713,6 +1708,21 @@ void gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
 
 void gk_neut_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
   struct gk_neut_species *gkns, struct gk_positivity *pos, struct gkyl_gyrokinetic_positivity pos_inp);
+
+/**
+ * Apply df/dt restriction to maintain positivity.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param fin Input distribution.
+ * @param fout Output rate of change (to be restricted).
+ * @param dt Timestep.
+ */
+void gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
+
+void gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 
 /** gk_species_lte API */
 

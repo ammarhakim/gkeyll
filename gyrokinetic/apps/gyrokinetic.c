@@ -1924,6 +1924,16 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Don't take a time-step larger that input dt.
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
+
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *species = &app->species[i];
+    gk_species_positivity_fdot_restriction(app, species, fin[i], fout[i], &dta);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *neut_species = &app->neut_species[i];
+    gk_neut_species_positivity_fdot_restriction(app, neut_species, fin_neut[i], fout_neut[i], &dta);
+  }
+
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
 }
 

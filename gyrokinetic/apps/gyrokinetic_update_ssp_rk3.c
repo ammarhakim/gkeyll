@@ -25,11 +25,6 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    dta = fmin(dta, gk_species_positivity_limit_dt(app, gks, &gks->positivity, fin[i], fout[i]));
-  }
-  st->dt_actual = dta;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
     gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, fout[i]);

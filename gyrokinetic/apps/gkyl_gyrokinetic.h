@@ -323,16 +323,16 @@ struct gkyl_gyrokinetic_correct_inp {
 enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
   GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
-  GKYL_GK_POSITIVITY_ZS, // Zhang-Shu limiter
-  GKYL_GK_POSITIVITY_MRS, // Use the More-Rossmanith-Seal limiter
-  GKYL_GK_POSITIVITY_TIMESTEP_AVG, // Only apply timestep limiter based on cell-average value.
-  GKYL_GK_POSITIVITY_TIMESTEP_QUAD, // Only apply timestep limiter based on quadrature point values.
+  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD, // Restrict df/dt at quadrature points to maintain positivity.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG, // Restrict df/dt (cell-average) to maintain positivity.
 };
 
 struct gkyl_gyrokinetic_positivity {
   enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
   bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
+  double safety_factor; // Safety factor for df/dt restriction (default: 0.9). Used in FDOT_RESTRICT modes.
 };
 
 enum gkyl_gyrokinetic_damping_type {

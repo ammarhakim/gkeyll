@@ -184,7 +184,6 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
   pos->quasineut_rescale = false;
 
   pos->apply_func_neut = gkns_pos_apply_disabled;
-  pos->limit_dt_func_neut = 0;
   pos->write_diags_func_neut = gkns_pos_write_diags_disabled;
   pos->calc_integrated_diags_func_neut = gkns_pos_calc_integrated_diags_disabled;
   pos->write_integrated_diags_func_neut = gkns_pos_write_integrated_diags_disabled;
