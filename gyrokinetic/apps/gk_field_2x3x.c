@@ -226,9 +226,10 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
   if (f->info.bias_line_list)
     num_bias_line_in = f->info.bias_line_list->num_bias_line;
 
-  size_t bl_sz = (2+num_bias_line_in) * sizeof(struct gkyl_poisson_bias_line);
+  int num_bc_bias = 4; // Number of biases for Dirichlet BCs below.
+  size_t bl_sz = (num_bc_bias+num_bias_line_in) * sizeof(struct gkyl_poisson_bias_line);
   struct gkyl_poisson_bias_line *bias_lines_buff = gkyl_malloc(bl_sz);
-  if ((app->gk_geom->geqdsk_sign_convention == 0) && (poisson_bcs->lo_type[0] == GKYL_POISSON_DIRICHLET)) {
+  if (poisson_bcs->lo_type[0] == GKYL_POISSON_DIRICHLET) {
     // psi increases towards SOL.
     struct gkyl_poisson_bias_line *bl;
     // Core x boundary at lower z boundary.
@@ -250,7 +251,7 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
     num_bias_line++;
     bl_idx++;
   } 
-  else if ((app->gk_geom->geqdsk_sign_convention != 0) && (poisson_bcs->up_type[0] == GKYL_POISSON_DIRICHLET)) {
+  if (poisson_bcs->up_type[0] == GKYL_POISSON_DIRICHLET) {
     // psi increases towards core.
     struct gkyl_poisson_bias_line *bl;
     // Core x boundary at lower z boundary.
@@ -285,10 +286,12 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
   }
   
   // Copy temporary bias line list into app.
-  bl_sz = num_bias_line * sizeof(struct gkyl_poisson_bias_line);
+  bl_sz = GKYL_MAX2(1,num_bias_line) * sizeof(struct gkyl_poisson_bias_line); // max avoids allocating 0 memory.
   f->fem_parproj_bias_line_list.num_bias_line = num_bias_line;
   f->fem_parproj_bias_line_list.bl = gkyl_malloc(bl_sz);
-  memcpy(f->fem_parproj_bias_line_list.bl, bias_lines_buff, bl_sz);
+  if (num_bias_line)
+    memcpy(f->fem_parproj_bias_line_list.bl, bias_lines_buff, bl_sz);
+
   gkyl_free(bias_lines_buff);
 }
 
